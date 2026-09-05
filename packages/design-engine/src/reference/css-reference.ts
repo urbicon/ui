@@ -23,6 +23,11 @@ import {
 
 const { families, intents } = SEMANTIC_TOKENS;
 
+const names = (entries: readonly { name: string }[]): string =>
+  entries.map((e) => `\`${e.name}\``).join(', ');
+/** Every intent but `info`: the `ComponentIntent` union a component's `intent` prop accepts. */
+const componentIntents = intents.entries.filter((e) => e.name !== 'info');
+
 /** "Every one switches with the mode …" — with the exceptions the data carries. */
 function modeSentence(family: SemanticFamily): string {
   const fixed = modeInvariant(family).map((t) => `\`${t.name}\``);
@@ -148,12 +153,14 @@ Also available for intent-colored borders:
 
 const INTENTS = `# Intent Color System
 
-${intents.entries.length} intents — ${intents.entries
-  .map((e) => `\`${e.name}\``)
-  .join(', ')} — each a palette of ${intents.roles.length} semantic roles over 11 foundation
-steps. The roles and the stops below are read from \`semantic.css\`: the role sentences are
-the \`@role\` markers on the \`${intents.exemplar}\` tokens, and every other intent carries the
-same roles by suffix.
+${intents.entries.length} intents — ${names(intents.entries)} — each a palette of ${
+  intents.roles.length
+} semantic roles over 11 foundation steps. ${componentIntents.length} of them
+(${names(componentIntents)}) are the \`ComponentIntent\` values a component's \`intent\`
+prop accepts; \`info\` is the status colour only the feedback components take (see below).
+The roles and the stops are read from \`semantic.css\`: the role sentences are the \`@role\`
+markers on the \`${intents.exemplar}\` tokens, and every other intent carries the same roles
+by suffix.
 
 ## Semantic Intent Roles (auto dark mode)
 

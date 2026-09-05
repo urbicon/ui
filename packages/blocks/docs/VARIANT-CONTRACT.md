@@ -22,10 +22,10 @@ Every container variant is built from four tints that sit on top of `surface-bas
 | Token | Reads as | Lift relative to base |
 | --- | --- | --- |
 | `surface-base` | The page itself | — |
-| `surface-quiet` | A softly tinted in-page zone — "own zone", no border, no shadow | ~1 % darker (light), ~3 % lighter (dark) |
-| `surface-subtle` | A **resting** tint against a border — readonly/disabled fields, list rows, code chips | ~2 % darker (light), ~5 % lighter (dark) |
+| `surface-quiet` | A softly tinted in-page zone — "own zone", no border, no shadow | 1.5 % darker (light), 3 % lighter (dark) |
+| `surface-subtle` | A **resting** tint against a border — readonly/disabled fields, list rows, code chips | 3.5 % darker (light), 8 % lighter (dark) |
 | `surface-elevated` | A floating overlay with its own stacking context | same lift as `subtle`, plus shadow + z-index |
-| `surface-overlay` | Modal backdrop — translucent, draws focus off the page | n/a (translucency) |
+| `surface-overlay` | The highest surfaces — Dialog, Drawer, Sheet, Toast — over a dimmed backdrop | same as base (light), 3 % lighter (dark); the backdrop carries the separation |
 
 Two traps worth naming:
 
@@ -88,6 +88,11 @@ Alert and Toast carry the **feedback intent palette**: they add `info` and drop
 `secondary`. `info` is a stable informational blue that survives a brand recolour, which
 `primary` — being the brand colour — cannot. A violet alert names no status, hence no
 `secondary`.
+
+Wherever `{intent}` appears, the roles are the same: `bg-{intent}` is the **fill** (its label
+is `text-text-on-fill`), `text-{intent}-text` is the AA text step for intent-coloured text on
+a surface, `-emphasis` is the near-ink tier — and `neutral` has no `-text`, because its base
+already reads as text (`urbicon css-reference intents` carries the stops).
 
 ---
 

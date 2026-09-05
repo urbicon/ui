@@ -246,6 +246,90 @@ describe('parseSemanticTokens — intents', () => {
   });
 });
 
+describe('parseSemanticTokens — marker boundaries', () => {
+  const disabled =
+    '--color-surface-disabled: light-dark(var(--color-neutral-0), var(--color-neutral-900));';
+
+  it('ends the marker at the first blank line; reasoning before it stays prose', () => {
+    const data = parse(`
+      /* Reasoning that stays prose — it mentions neutral-200 and #12.
+
+         @role the fill of a disabled control */
+      ${disabled}
+      ${PRIMARY}`);
+    expect(data.families.surface[0]?.role).toBe('the fill of a disabled control');
+  });
+
+  it('fails on prose after the marker paragraph, naming the token', () => {
+    expect(() =>
+      parse(`
+      /* @role the fill of a disabled control
+
+         Historically this sat at neutral-200; moved in v7 (see #12). */
+      ${disabled}
+      ${PRIMARY}`)
+    ).toThrow(/--color-surface-disabled: text after its @role/);
+  });
+
+  it('fails on a second sentence appended without a blank line', () => {
+    expect(() =>
+      parse(`
+      /* @role the fill of a disabled control.
+         Historically this sat at neutral-200; moved in v7 (see #12). */
+      ${disabled}
+      ${PRIMARY}`)
+    ).toThrow(/--color-surface-disabled: @role reads as more than one sentence/);
+  });
+
+  it('fails on a marker over 140 characters', () => {
+    const long =
+      'the fill of a disabled control, one step in from the page in both modes, ' +
+      'chosen so that the disabled label still reads against it in every shipped theme';
+    expect(long.length).toBeGreaterThan(140);
+    expect(() => parse(`\n/* @role ${long} */\n${disabled}\n${PRIMARY}`)).toThrow(
+      /--color-surface-disabled: @role is \d+ characters, the limit is 140/
+    );
+  });
+
+  it('fails on a marker that spells a --color- name followed by a colon', () => {
+    expect(() =>
+      parse(`
+      /* @role the pair of --color-surface-hover: light-dark(a, b) */
+      ${disabled}
+      ${PRIMARY}`)
+    ).toThrow(/spells "--color-surface-hover:"/);
+  });
+
+  it('applies the same limits to @absent', () => {
+    const neutral = `
+      /* === NEUTRAL INTENT === */
+      --color-neutral: light-dark(var(--color-neutral-500), var(--color-neutral-0));`;
+    expect(() =>
+      parse(`${PRIMARY}
+      /* @absent neutral-text — the base reads as text.
+         It always did. */${neutral}`)
+    ).toThrow(/@absent neutral-text reads as more than one sentence/);
+  });
+});
+
+describe('parseSemanticTokens — derived branches', () => {
+  it('resolves a derived branch that reads a semantic token, keeping it derived', () => {
+    const data = parse(`
+      /* @role the page */
+      --color-surface-base: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+      /* @role the inverse */
+      --color-surface-inverted: light-dark(
+        oklch(from var(--color-surface-base) l c 240),
+        var(--color-neutral-0)
+      );
+      ${PRIMARY}`);
+    const inverted = data.families.surface[1];
+    expect(inverted?.light).toEqual({ ref: 'neutral-0', l: 1, derived: true });
+    expect(inverted?.dark).toEqual({ ref: 'neutral-0', l: 1 });
+    expect(inverted?.alias).toBeUndefined();
+  });
+});
+
 describe('renderModule', () => {
   it('emits a typed constant behind a do-not-edit header', () => {
     const out = renderModule(parse(PRIMARY));

@@ -119,21 +119,62 @@ export function tokenizeTheme(css: string): Event[] {
 
 interface Marker {
   kind: 'role' | 'absent';
+  /** The marker's paragraph — up to the first blank line — whitespace-collapsed. */
   text: string;
+  /** Non-blank text between that paragraph and the next marker (or the comment's end). */
+  trailing?: string;
 }
 
 const MARKER = /@(role|absent)\b([\s\S]*?)(?=@(?:role|absent)\b|$)/g;
 const SECTION = /^\s*=== (.+?) ===/;
+const BLANK_LINE = /\n[ \t]*\n/;
+/** A `--color-x:` inside prose reads as a declaration to the three tests that parse the file with comments intact. */
+const DECLARATION_IN_PROSE = /--color-[a-z0-9-]+\s*:/;
+
+/** One sentence: no sentence end followed by a capitalised next one. */
+const MAX_MARKER = 140;
+const SENTENCE_BREAK = /[.!?]\s+[A-Z]/;
 
 function markersIn(comment: string): Marker[] {
   const out: Marker[] = [];
   for (const m of comment.matchAll(MARKER)) {
+    const raw = m[2] ?? '';
+    const cut = BLANK_LINE.exec(raw);
+    const paragraph = cut ? raw.slice(0, cut.index) : raw;
+    const rest = cut ? raw.slice(cut.index + cut[0].length) : '';
+    const text = paragraph.replace(/\s+/g, ' ').trim();
+    const spelled = DECLARATION_IN_PROSE.exec(text);
+    if (spelled)
+      fail(
+        `a marker spells "${spelled[0].replace(/\s+/g, '')}" — contrast.test.ts, tokens.test.ts and semantic.test.ts read semantic.css with comments intact and would take it for a declaration`
+      );
+    const trailing = rest.replace(/\s+/g, ' ').trim();
     out.push({
       kind: m[1] as Marker['kind'],
-      text: (m[2] ?? '').replace(/\s+/g, ' ').trim()
+      text,
+      ...(trailing ? { trailing } : {})
     });
   }
   return out;
+}
+
+/** The limits every marker paragraph is held to, once the token it belongs to is known. */
+function checkMarker(
+  who: string,
+  trailingWho: string,
+  text: string,
+  trailing: string | undefined
+): void {
+  if (trailing !== undefined)
+    fail(
+      `${trailingWho} ("${trailing.slice(0, 48)}") — reasoning goes before the marker, separated by a blank line`
+    );
+  if (text.length > MAX_MARKER)
+    fail(
+      `${who} is ${text.length} characters, the limit is ${MAX_MARKER} — one sentence, reasoning before it`
+    );
+  if (SENTENCE_BREAK.test(text))
+    fail(`${who} reads as more than one sentence ("${text}") — one sentence, reasoning before it`);
 }
 
 interface Declaration {
@@ -153,7 +194,7 @@ function bindMarkers(events: Event[]): {
   const absent = new Map<string, string>();
   const intentSections: string[] = [];
   let section = '';
-  let pendingRole: string | undefined;
+  let pending: Marker | undefined;
   for (const event of events) {
     if (event.kind === 'comment') {
       const header = SECTION.exec(event.text);
@@ -168,21 +209,37 @@ function bindMarkers(events: Event[]): {
           if (!m) fail(`@absent needs "<core> — <reason>", got "${marker.text}"`);
           const [, core, reason] = m;
           if (absent.has(core as string)) fail(`@absent ${core} declared twice`);
+          checkMarker(
+            `@absent ${core}`,
+            `@absent ${core}: text after it`,
+            reason as string,
+            marker.trailing
+          );
           absent.set(core as string, reason as string);
           continue;
         }
-        if (pendingRole !== undefined)
-          fail(`two @role markers before one declaration ("${pendingRole}" / "${marker.text}")`);
+        if (pending !== undefined)
+          fail(`two @role markers before one declaration ("${pending.text}" / "${marker.text}")`);
         if (marker.text === '')
           fail('empty @role — write "@role (none)" to state that deliberately');
-        pendingRole = marker.text === NO_ROLE ? '' : marker.text;
+        pending = marker;
       }
       continue;
     }
-    declarations.push({ name: event.name, value: event.value, role: pendingRole, section });
-    pendingRole = undefined;
+    let role: string | undefined;
+    if (pending !== undefined) {
+      role = pending.text === NO_ROLE ? '' : pending.text;
+      checkMarker(
+        `${event.name}: @role`,
+        `${event.name}: text after its @role`,
+        role,
+        pending.trailing
+      );
+    }
+    declarations.push({ name: event.name, value: event.value, role, section });
+    pending = undefined;
   }
-  if (pendingRole !== undefined) fail(`@role "${pendingRole}" is not followed by a declaration`);
+  if (pending !== undefined) fail(`@role "${pending.text}" is not followed by a declaration`);
   return { declarations, absent, intentSections };
 }
 
@@ -232,7 +289,9 @@ function parseBranch(
   const inner = exact ?? /var\(--color-([a-z0-9-]+)\)/.exec(expr);
   if (!inner) return { raw: expr };
   const ref = inner[1] as string;
-  if (exact && semanticNames.has(ref)) return { aliasOf: ref };
+  // A semantic reference is resolved after every token is known; a derived
+  // one (`oklch(from var(--color-surface-base) …)`) stays marked derived.
+  if (semanticNames.has(ref)) return { aliasOf: ref, ...(exact ? {} : { derived: true }) };
   const stop = foundation.get(ref);
   if (stop === undefined) fail(`${owner} reads --color-${ref}, which neither file defines`);
   const l = lightnessOf(stop);
@@ -324,7 +383,8 @@ export function parseSemanticTokens(semanticCss: string, foundationCss: string):
     if (!target)
       fail(`${trail.at(-1)} aliases --color-${branch.aliasOf}, which the reference does not table`);
     const side = trail[0]?.endsWith(':dark') ? target.dark : target.light;
-    return resolve(side, [...trail, branch.aliasOf]);
+    const resolved = resolve(side, [...trail, branch.aliasOf]);
+    return branch.derived ? { ...resolved, derived: true } : resolved;
   };
   const modeValues = (core: string): ModeValues => {
     const b = branches.get(core) as { light: Branch; dark: Branch };
@@ -333,9 +393,13 @@ export function parseSemanticTokens(semanticCss: string, foundationCss: string):
       dark: resolve(b.dark, [`${core}:dark`])
     };
   };
+  /** The semantic core a token reads VERBATIM in both branches — a derived read is not an alias. */
   const aliasOf = (core: string): string | undefined => {
     const b = branches.get(core) as { light: Branch; dark: Branch };
-    return b.light.aliasOf !== undefined && b.light.aliasOf === b.dark.aliasOf
+    return b.light.aliasOf !== undefined &&
+      b.light.aliasOf === b.dark.aliasOf &&
+      !b.light.derived &&
+      !b.dark.derived
       ? b.light.aliasOf
       : undefined;
   };

@@ -34,6 +34,22 @@ const semantic = resolve(
   'style',
   'semantic.css'
 );
+const cssAvailable = existsSync(semantic);
+
+/**
+ * Unique `--color-<family>-*` cores the CSS declares — a regex over the file
+ * with comments stripped, i.e. an oracle independent of the generator, so a
+ * row the renderer drops (or a token the generator skips) is a count mismatch
+ * here rather than data agreeing with itself.
+ */
+function cssCores(family: string): string[] {
+  const css = readFileSync(semantic, 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const cores = new Set<string>();
+  for (const m of css.matchAll(new RegExp(`--color-(${family}-[a-z0-9-]+)\\s*:`, 'g')))
+    cores.add(m[1]!);
+  return [...cores];
+}
+
 const themesDir = resolve(semantic, '..', 'themes');
 const themesAvailable = existsSync(themesDir);
 
@@ -250,7 +266,7 @@ describe.skipIf(!blocksLibAvailable)('typography reach claims match the blocks s
 
 describe('generated token tables', () => {
   for (const { family, section } of TABLED_FAMILIES) {
-    it(`renders a row for every ${family} token and states their count`, () => {
+    it(`renders a row for every ${family} token in the data`, () => {
       const tokens = SEMANTIC_TOKENS.families[family];
       expect(tokens.length).toBeGreaterThan(0);
       const missing = tokens.filter((t) => !section.includes(`| \`--color-${t.name}\` |`));
@@ -258,7 +274,6 @@ describe('generated token tables', () => {
         missing.map((t) => t.name),
         `${family} tokens in the data without a table row`
       ).toEqual([]);
-      expect(section).toContain(`${tokens.length} tokens for`);
     });
 
     it(`resolves every ${family} branch to a stop or a literal`, () => {
@@ -278,6 +293,7 @@ describe('generated token tables', () => {
       if (!token) throw new Error(`no text token ${name}`);
       return token;
     });
+    const ties: string[][] = [];
     for (let i = 1; i < rungs.length; i++) {
       const above = rungs[i - 1]!;
       const rung = rungs[i]!;
@@ -287,12 +303,20 @@ describe('generated token tables', () => {
       expect(rung.light.l, `${rung.name} lighter than ${above.name} (light)`).toBeGreaterThan(
         above.light.l!
       );
-      // Dark mode: never darker than the rung above; a tie is allowed because
-      // secondary and tertiary share neutral-300 there.
-      expect(rung.dark.l, `${rung.name} not darker than ${above.name} (dark)`).toBeLessThanOrEqual(
+      // Dark mode: every rung strictly darker than the one above it, except
+      // the one tie the CSS carries on purpose (asserted below) — a "not
+      // darker" check would also pass a ramp collapsed onto one stop.
+      if (rung.dark.ref === above.dark.ref) {
+        ties.push([above.name, rung.name]);
+        continue;
+      }
+      expect(rung.dark.l, `${rung.name} darker than ${above.name} (dark)`).toBeLessThan(
         above.dark.l!
       );
     }
+    expect(ties, 'the only dark-mode tie is secondary/tertiary on neutral-300').toEqual([
+      ['text-secondary', 'text-tertiary']
+    ]);
     expect(CSS_REFERENCE_SECTIONS.text).toContain('| `text-tertiary` |');
   });
 
@@ -335,4 +359,27 @@ describe('generated token tables', () => {
       expect.objectContaining({ intent: 'neutral', suffix: 'text' })
     );
   });
+
+  it('keeps info out of the ComponentIntent union it names', () => {
+    // The intro derives its list from the data but states once that `info` is
+    // the status colour; that sentence needs an `info` intent to be about.
+    expect(SEMANTIC_TOKENS.intents.entries.map((e) => e.name)).toContain('info');
+    expect(CSS_REFERENCE_SECTIONS.intents).toContain('`info` is the status colour');
+    expect(CSS_REFERENCE_SECTIONS.intents).not.toMatch(
+      /\(`[^)]*`info`[^)]*\) are the `ComponentIntent`/
+    );
+  });
+});
+
+describe.skipIf(!cssAvailable)('table rows against the CSS', () => {
+  for (const { family, section } of TABLED_FAMILIES) {
+    it(`renders exactly one row per ${family} token the CSS declares, and says so`, () => {
+      const cores = cssCores(family);
+      expect(cores.length).toBeGreaterThan(0);
+      const rows = section.split('\n').filter((line) => line.startsWith('| `--color-'));
+      expect(rows.length, `${family} rows vs. tokens in semantic.css`).toBe(cores.length);
+      for (const core of cores) expect(section).toContain(`| \`--color-${core}\` |`);
+      expect(section).toContain(`${cores.length} tokens for`);
+    });
+  }
 });

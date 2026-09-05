@@ -39,7 +39,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
       },
       {
         name: 'surface-interactive',
-        role: 'a resting FILL one step in from the page — a filled Input, a Slider track, the Tab list; its hover step is surface-interactive-hover, not surface-hover',
+        role: 'a resting FILL one step in from the page — a filled Input, a Slider track, the Tab list; its hover step is surface-interactive-hover',
         light: { ref: 'neutral-100', l: 0.95 },
         dark: { ref: 'neutral-700', l: 0.32 }
       },
@@ -75,7 +75,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
       },
       {
         name: 'surface-subtle',
-        role: 'a RESTING tint only, never a hover step — it resolves to exactly surface-elevated; keep it for resting uses against a border (readonly and disabled fields, list rows, code chips), and prefer surface-quiet for a tinted zone and surface-elevated for a raised one',
+        role: 'a RESTING tint only, never a hover step — it equals surface-elevated; prefer surface-quiet for a zone, surface-elevated for a lift',
         light: { ref: 'neutral-50', l: 0.965 },
         dark: { ref: 'neutral-800', l: 0.23 }
       },
@@ -89,7 +89,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
     text: [
       {
         name: 'text-primary',
-        role: 'body copy — the top of the informative ramp (primary → secondary → tertiary), every rung of which clears AA 4.5:1 on every reading surface in both modes',
+        role: 'body copy — the top of the informative ramp (primary → secondary → tertiary); each rung clears AA 4.5:1 on every reading surface',
         light: { ref: 'neutral-900', l: 0.15 },
         dark: { ref: 'neutral-100', l: 0.95 }
       },
@@ -113,45 +113,45 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
       },
       {
         name: 'text-quaternary',
-        role: 'MARK-ONLY — placeholders, dense-grid marks (calendar day cells, kbd hints), disabled glyphs, decoration; it sits at the AA edge on reading surfaces and below AA on interactive and pressed ones, so never use it for body text (held only to the 3:1 UI-component floor)',
+        role: 'MARK-ONLY — placeholders, dense-grid marks, disabled glyphs, decoration; never use it for body text (held only to the 3:1 UI floor)',
         light: { ref: 'neutral-500', l: 0.55 },
         dark: { ref: 'neutral-400', l: 0.7 }
       },
       {
         name: 'text-disabled',
-        role: 'disabled text — the weakest rung, held to the 3:1 UI floor so a disabled field\'s label still says what the field is; the same stop in both modes, and in light mode the same stop as quaternary (two roles, not two steps of one ladder)',
+        role: 'disabled text — the weakest rung, held to the 3:1 UI floor so a disabled field\'s label still says what the field is',
         light: { ref: 'neutral-500', l: 0.55 },
         dark: { ref: 'neutral-500', l: 0.55 }
       },
       {
         name: 'text-link',
-        role: 'link ink on a reading surface — aliases the primary intent\'s -text role (its AA text step), never the base fill; a lever of its own, so links can be restyled without touching the primary intent',
+        role: 'link ink on a reading surface — aliases the primary intent\'s -text role (its AA text step), never the base fill',
         alias: 'primary-text',
         light: { ref: 'primary-700', l: 0.44 },
         dark: { ref: 'primary-400', l: 0.66 }
       },
       {
         name: 'text-on-dark',
-        role: 'the label on the avatar identity palette, whose slots hold one lightness per mode by construction; deliberately not aliased to text-on-fill, although the two carry the same value today',
+        role: 'the label on the avatar identity palette (one lightness per mode by construction); deliberately not aliased to text-on-fill',
         light: { ref: 'neutral-0', l: 1 },
         dark: { ref: 'neutral-900', l: 0.15 }
       },
       {
         name: 'text-on-fill',
-        role: 'the label on ANY solid intent fill — white in light mode, near-black in dark mode where the fills resolve to their lighter stops; warning is the one exception and takes text-on-warning',
+        role: 'the label on ANY solid intent fill — white in light mode, near-black in dark mode; warning is the exception (text-on-warning)',
         light: { ref: 'neutral-0', l: 1 },
         dark: { ref: 'neutral-900', l: 0.15 }
       },
       {
         name: 'text-on-primary',
-        role: 'the label on the primary fill specifically — defaults to text-on-fill; override it to repaint the primary fills without touching the other intents',
+        role: 'the label on the primary fill specifically — defaults to text-on-fill; override it to repaint the primary fills alone',
         alias: 'text-on-fill',
         light: { ref: 'neutral-0', l: 1 },
         dark: { ref: 'neutral-900', l: 0.15 }
       },
       {
         name: 'text-on-warning',
-        role: 'the label on the warning fill — a warm dark from the warning ramp\'s own 950 stop in BOTH modes, because that fill stays light amber in both',
+        role: 'the label on the warning fill — a warm dark from the ramp\'s own 950 stop in BOTH modes, because the fill stays light amber in both',
         light: { ref: 'warning-950', l: 0.15 },
         dark: { ref: 'warning-950', l: 0.15 }
       },
@@ -165,7 +165,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
     border: [
       {
         name: 'border-hairline',
-        role: 'the quietest tier — structural dividers (row dividers, Card header and footer separators, inline section dividers); translucent, so it blends onto any surface instead of naming a neutral step',
+        role: 'the quietest tier — structural dividers (row dividers, Card separators); translucent, so it blends onto any surface',
         light: { raw: 'rgb(0 0 0 / 0.08)' },
         dark: { raw: 'rgb(255 255 255 / 0.06)' }
       },
@@ -202,7 +202,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
       { suffix: 'hover', role: 'the hover step of the fill' },
       { suffix: 'active', role: 'the pressed step of the fill' },
       { suffix: 'subtle', role: 'a soft tinted ground in the intent\'s hue — an Alert\'s background, a selected row' },
-      { suffix: 'text', role: 'the intent as TEXT on a reading surface — the nearest ramp stop that clears AA 4.5:1 as text on every reading surface and on the intent\'s own -subtle, in both modes, in the worst of the six themes; still reads as the colour (danger text stays red)' },
+      { suffix: 'text', role: 'the intent as TEXT on a reading surface — the nearest stop that clears AA 4.5:1 on every reading surface and the intent\'s own -subtle' },
       { suffix: 'emphasis', role: 'the near-ink tier — strong statements as text, and doubles as a fill; the Radix steps 11/12 split with -text' }
     ],
     entries: [
@@ -411,7 +411,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
       { intent: 'danger', suffix: 'text', note: 'the light stop is the base stop, red already reads on paper; dark needs -300 because sRGB red is too dim on the lightened panels at -400' }
     ],
     absent: [
-      { intent: 'neutral', suffix: 'text', reason: 'its base already clears AA as text on every ground in every theme (the chassis ramp was text-tuned from the start), so a -text role would only alias the base' }
+      { intent: 'neutral', suffix: 'text', reason: 'its base already clears AA as text on every ground in every theme, so a -text role would only alias the base' }
     ]
   },
   notTabled: [

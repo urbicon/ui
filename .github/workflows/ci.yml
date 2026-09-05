@@ -45,9 +45,8 @@ jobs:
       - run: bun run livery:check
       # The CSS token reference (`urbicon css-reference`, `get_css_reference`)
       # renders its surface/text/border tables and the intent roles from a
-      # module generated out of semantic.css; the hand-written tables it
-      # replaced printed a text ramp the CSS no longer had (#402). Fails when
-      # semantic.css changed without a regen.
+      # module generated out of semantic.css (#402). Fails when semantic.css
+      # or foundation.css changed without a regen.
       - run: bun run tokens:reference:check
       # Cross-component import guard: public blocks components must reach for
       # the behaviour-only cores in src/lib/internal/core instead of importing
