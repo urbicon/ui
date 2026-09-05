@@ -29,6 +29,11 @@ type Measurement = {
   declaredWidthPx: number;
   /** What the engine says the cell cannot go below. The contract. */
   minContentPx: number;
+  /**
+   * The three buttons' used widths, summed, from the live cell — the least the
+   * clone can honestly report, so a probe that laid out empty cannot pass.
+   */
+  buttonsPx: number;
 };
 
 async function measure(
@@ -53,6 +58,9 @@ async function measure(
       (c) => c.querySelectorAll('button').length >= 3
     );
     if (!cell) throw new Error(`No actions cell with the built-in trio at size=${s}`);
+    const buttonsPx = [...cell.querySelectorAll('button')]
+      .slice(0, 3)
+      .reduce((w, b) => w + b.getBoundingClientRect().width, 0);
 
     const cellStyle = getComputedStyle(cell);
     const padLeftPx = Number.parseFloat(cellStyle.paddingLeft) || 0;
@@ -75,7 +83,7 @@ async function measure(
     const contentFloorPx = floor.getBoundingClientRect().width;
     box.remove();
 
-    return { declaredWidthPx, minContentPx: contentFloorPx + padLeftPx + padRightPx };
+    return { declaredWidthPx, minContentPx: contentFloorPx + padLeftPx + padRightPx, buttonsPx };
   }, size);
 }
 
@@ -93,6 +101,14 @@ test.describe('Actions column width budget', () => {
       page
     }) => {
       const m = await measure(page, size);
+
+      // The probe's own floor: a clone that laid out empty would report the cell
+      // inset alone and pass the budget below for the wrong reason.
+      expect(
+        m.minContentPx,
+        `size=${size}: the probe reports ${m.minContentPx.toFixed(1)}px, less than the ` +
+          `${m.buttonsPx.toFixed(1)}px its three buttons take in the live cell — the clone did not lay out.`
+      ).toBeGreaterThanOrEqual(m.buttonsPx);
 
       expect(
         m.minContentPx,
