@@ -38,6 +38,11 @@
       "import": "./dist/url.svelte.js",
       "default": "./dist/url.svelte.js"
     },
+    "./search-params": {
+      "types": "./dist/search-params.d.ts",
+      "import": "./dist/search-params.js",
+      "default": "./dist/search-params.js"
+    },
     "./cron": {
       "types": "./dist/cron.d.ts",
       "import": "./dist/cron.js"

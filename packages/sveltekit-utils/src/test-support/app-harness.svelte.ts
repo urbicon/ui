@@ -26,8 +26,16 @@ let history: string[] = ['http://localhost/'];
 let latencyMs = 0;
 
 export const navigationLog = {
-  gotoCount: 0,
-  pushCount: 0
+  /**
+   * The `path` argument of every `goto`, verbatim. Kept unresolved on purpose:
+   * `?q=1` and `/films?q=1` resolve alike against this harness's base, so the
+   * resolved URL cannot tell a relative target from a qualified one.
+   */
+  targets: [] as string[],
+  pushCount: 0,
+  get gotoCount(): number {
+    return this.targets.length;
+  }
 };
 
 import { __setBuilding } from './app-environment';
@@ -40,14 +48,14 @@ export function resetMockApp(initial = ''): void {
   const href = `http://localhost/${initial}`;
   history = [href];
   latencyMs = 0;
-  navigationLog.gotoCount = 0;
+  navigationLog.targets.length = 0;
   navigationLog.pushCount = 0;
   __setBuilding(false);
   page._set(new URL(href));
 }
 
 export function goto(path: string, opts: { replaceState?: boolean } = {}): Promise<void> {
-  navigationLog.gotoCount += 1;
+  navigationLog.targets.push(path);
   const href = new URL(path, page.url).href;
   const replaceState = opts.replaceState ?? false;
   const apply = () => {
