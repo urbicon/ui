@@ -247,8 +247,13 @@ describe('createRateLimiter (injected custom store)', () => {
 });
 
 describe('sharedLimiter', () => {
+  // The registry is process-wide and keyed on the secret, and every config
+  // here carries `secret: 's'`. The package's vitest-setup.ts resets it before
+  // each test; without that the file would spend one budget across its tests,
+  // in file order.
   const config = (rateLimit?: AuthConfig['rateLimit']) =>
     ({ appUrl: 'https://app.test', jwt: { secret: 's' }, rateLimit }) as AuthConfig;
+  const withSecret = (secret: string) => ({ ...config(), jwt: { secret } }) as AuthConfig;
 
   // Two factories reading one key used to allocate one in-memory Map each, so a
   // configured `max: 3` bought 3 requests at EACH endpoint.
@@ -272,11 +277,52 @@ describe('sharedLimiter', () => {
     expect(sharedLimiter(cfg, 'login')).not.toBe(sharedLimiter(cfg, 'register'));
   });
 
-  // The constraint the WeakMap buys: the bucket lives as long as the config
-  // OBJECT. A consumer rebuilding the config per request gets a fresh bucket
-  // each time — i.e. no limiting at all.
-  it('gives a fresh counter to a fresh config object', () => {
-    expect(sharedLimiter(config(), 'login')).not.toBe(sharedLimiter(config(), 'login'));
+  // The registry keys on the secret, not on the config object. The object
+  // `createAuthDeps` returns is new per call, and a consumer calling it per
+  // request used to get a fresh, empty counter with every request.
+  it('hands the same limiter to every config object built for one secret', () => {
+    expect(sharedLimiter(config(), 'login')).toBe(sharedLimiter(config(), 'login'));
+  });
+
+  it('spends one budget across config objects built for one secret', async () => {
+    const limit = { verifyEmail: { windowMs: 60_000, max: 3 } };
+    const a = sharedLimiter(config(limit), 'verifyEmail');
+    const b = sharedLimiter(config(limit), 'verifyEmail');
+    const allowed: boolean[] = [];
+    for (let i = 0; i < 2; i++) allowed.push((await a?.check('ip'))?.allowed ?? true);
+    for (let i = 0; i < 2; i++) allowed.push((await b?.check('ip'))?.allowed ?? true);
+    expect(allowed).toEqual([true, true, true, false]);
+  });
+
+  it('keeps two secrets on two counters', () => {
+    expect(sharedLimiter(withSecret('a'), 'login')).not.toBe(
+      sharedLimiter(withSecret('b'), 'login')
+    );
+  });
+
+  // One secret is one auth instance per process: the first config to read a
+  // key builds its limiter, and a later config's slice for that key is never
+  // consulted.
+  it('keeps the limits of the first config that read a key', async () => {
+    const first = sharedLimiter(config({ login: { windowMs: 60_000, max: 1 } }), 'login');
+    const second = sharedLimiter(config({ login: { windowMs: 60_000, max: 100 } }), 'login');
+    expect(second).toBe(first);
+    await first?.check('ip');
+    expect((await second?.check('ip'))?.allowed).toBe(false);
+  });
+
+  // The in-memory store starts one cleanup `setInterval` per store, so the
+  // timer count is the store count.
+  it('builds one in-memory store per (secret, key) for the process', () => {
+    vi.useFakeTimers();
+    try {
+      const before = vi.getTimerCount();
+      sharedLimiter(config(), 'login');
+      sharedLimiter(config(), 'login');
+      expect(vi.getTimerCount() - before).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('applies the secure default for an unconfigured key', async () => {

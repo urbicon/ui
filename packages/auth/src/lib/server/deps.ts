@@ -15,6 +15,7 @@ import {
 import type { EmailTransport } from './email/types.js';
 import { assertJwtConfigValid } from './jwt.js';
 import { shieldLogger } from './logger.js';
+import { fingerprint } from './secret-fingerprint.js';
 import { lockoutFor, resolveRateLimits } from './security-defaults.js';
 
 export interface AuthDeps<R extends string = string> {
@@ -220,26 +221,14 @@ export function assertAuthConfigValid<R extends string>(
 }
 
 // Every `jwt.secret` a bundle has been built for in this process, as a
-// fingerprint → "has the repeat warning gone out". The rate-limit counters key
-// on the config object `createAuthDeps` returns (see `sharedLimiter`), so the
-// second bundle for one secret is what this reports, and the registry has to
-// be process-wide to see it. A fingerprint, not the secret: the registry
-// outlives every config, and a secret the consumer rotated away must not be
-// retained here. Synchronous by necessity — `crypto.subtle.digest` is async
-// and this function is not — so two 32-bit lanes with different mixing stand
-// in for a digest; a collision would cost one spurious warning, nothing else.
+// fingerprint → "has the repeat warning gone out". A second bundle for one
+// secret is a wiring smell, not a lost limit: the rate-limit counters are per
+// secret as well (see `sharedLimiter`), so its `rateLimit` slice never reaches
+// the limiters the first bundle built, and validation and resolution run again
+// per call. Process-wide because that is the scope of both registries; a
+// fingerprint rather than the secret for the reason `secret-fingerprint.ts`
+// gives.
 const seenSecrets = new Map<string, boolean>();
-
-function fingerprint(secret: string): string {
-  let fnv = 0x811c9dc5;
-  let djb = 5381;
-  for (let i = 0; i < secret.length; i++) {
-    const code = secret.charCodeAt(i);
-    fnv = Math.imul(fnv ^ code, 0x01000193);
-    djb = Math.imul(djb, 33) ^ code;
-  }
-  return `${(fnv >>> 0).toString(16)}:${(djb >>> 0).toString(16)}`;
-}
 
 function warnOnRepeatedSecret(secret: string, logger: AuthLogger): void {
   const key = fingerprint(secret);
@@ -251,7 +240,7 @@ function warnOnRepeatedSecret(secret: string, logger: AuthLogger): void {
   if (warned) return;
   seenSecrets.set(key, true);
   logger.warn(
-    '[auth] createAuthDeps was called again with a jwt.secret this process has already built a bundle for. The rate-limit counters live on the config object it returns, so every call starts each limiter from zero — called per request, no rate limit ever trips. Call createAuthDeps once, at module scope, and pass the returned deps to the handle and the handler factories (docs/AUTH.md → Stage 1 — Quickstart). Reported once per secret. If this appeared right after you edited a file under vite dev, a hot reload made the second call and your wiring is fine; it is only actionable when you see it without having edited anything.'
+    '[auth] createAuthDeps was called again with a jwt.secret this process has already built a bundle for. The rate-limit counters are per secret, so the limits hold — with the max, window and store of the first bundle that read each key; a rateLimit change in this call has no effect — and every call validates and resolves the config again. Call createAuthDeps once, at module scope, and pass the returned deps to the handle and the handler factories (docs/AUTH.md → Stage 1 — Quickstart). Reported once per secret. If this appeared right after you edited a file under vite dev, a hot reload made the second call and your wiring is fine (a rateLimit edit takes effect on the next restart); it is only actionable when you see it without having edited anything.'
   );
 }
 
@@ -270,9 +259,10 @@ export function __resetSeenSecretsForTests(): void {
  * carries the resolved values — pass it on to `createAuthHandle` and the
  * handler factories so the whole app shares one resolved config.
  *
- * Once per process: the rate-limit counters key on the returned object, so a
- * second bundle for the same secret is a fresh, empty set of counters. That
- * call is warned about on the logger, once per secret, in every deployment.
+ * Once per process: the rate-limit counters are per `jwt.secret`, so a second
+ * bundle for the same secret shares them — under the first bundle's limits, not
+ * its own — and validates and resolves the config again. That call is warned
+ * about on the logger, once per secret, in every deployment.
  */
 export function createAuthDeps<R extends string>(deps: Omit<AuthDeps<R>, 'logger'>): AuthDeps<R> {
   // One source for the sink: `config.logger`. The resolved field on the deps

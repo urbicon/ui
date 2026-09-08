@@ -1,5 +1,6 @@
 import type { AuthConfig, RateLimitConfig } from '../types.js';
 import { authError } from './handlers/errors.js';
+import { fingerprint } from './secret-fingerprint.js';
 import { type RateLimitKey, rateLimitFor } from './security-defaults.js';
 
 export interface RateLimitResult {
@@ -142,33 +143,30 @@ export function makeRateLimiter(config: RateLimitConfig | undefined): RateLimite
   return config ? createRateLimiter(config) : null;
 }
 
-// One limiter per (config object, rate-limit key), for the whole process.
+// One limiter per (`jwt.secret` fingerprint, rate-limit key), for the whole
+// process. Keyed on the secret rather than on the config object so that every
+// bundle a consumer builds for one secret — `createAuthDeps` per request
+// included — reads the same counter and the same in-memory store: one cleanup
+// `setInterval` per key, not one per call. Two factories reading one key
+// (verify-email + verify-email-change on `verifyEmail`) share it the same way;
+// a persistent `config.store` shares server-side regardless.
 //
-// Without this, every handler factory building a limiter from the same key gets
-// its own `Map` and the consumer's configured budget is multiplied by the number
-// of factories reading that key: measured 6 accepted requests across
-// verify-email + verify-email-change for a configured `verifyEmail.max` of 3.
-// A persistent `config.store` shares server-side regardless; this is what fixes
-// the in-memory default.
+// The constraint this buys: one secret is one auth instance per process. The
+// limiter for a key is built by the FIRST config that reads it, with that
+// config's `max`, `windowMs` and `store`; a later config's slice for the key is
+// never consulted. Under `vite dev` this module survives a hot reload, so a
+// `rateLimit` edit takes effect on the next restart. And the registry outlives
+// every config: a rotated-away secret leaves its limiters behind, bounded by
+// the number of secrets the process has ever built a bundle for.
 //
-// **The constraint this buys is object identity.** The bucket lives exactly as
-// long as the `AuthConfig` object handed in — which is the object `createAuthDeps`
-// *returns*, and it returns a new one per call even from the same input literal.
-// So the rule is "call createAuthDeps once, at module scope", not "build the
-// config literal once": measured, one `createAuthDeps` lets 5 of 20 requests
-// through at max 5, while calling it per request lets 20 of 20 through. That
-// path also leaks the in-memory store's cleanup `setInterval` per (config, key) —
-// unref'd, so it does not hold the process open, but it is a live GC root for as
-// long as the config is reachable.
-//
-// Keyed on the whole `AuthConfig` rather than the `RateLimitConfig` slice because
-// the slice can be a shared module-level default object (`RATE_LIMIT_DEFAULTS`),
-// which would put unrelated apps — and unrelated tests — on one counter.
-const limiterCache = new WeakMap<object, Map<RateLimitKey, RateLimiter | null>>();
+// Not keyed on the `RateLimitConfig` slice: it can be a shared module-level
+// default object (`RATE_LIMIT_DEFAULTS`), which would put unrelated apps — and
+// unrelated tests — on one counter.
+const limiterCache = new Map<string, Map<RateLimitKey, RateLimiter | null>>();
 
 /**
  * The rate-limiter for one endpoint key, shared by every handler factory built
- * from the same config object. Handlers use this instead of
+ * for the same `jwt.secret`. Handlers use this instead of
  * `makeRateLimiter(config.rateLimit?.key)`: it applies the secure default (see
  * `rateLimitFor`) and it puts two factories reading one key on one counter.
  */
@@ -176,13 +174,24 @@ export function sharedLimiter<R extends string>(
   config: AuthConfig<R>,
   key: RateLimitKey
 ): RateLimiter | null {
-  let byKey = limiterCache.get(config);
+  const secret = fingerprint(config.jwt.secret);
+  let byKey = limiterCache.get(secret);
   if (!byKey) {
     byKey = new Map();
-    limiterCache.set(config, byKey);
+    limiterCache.set(secret, byKey);
   }
   if (!byKey.has(key)) byKey.set(key, makeRateLimiter(rateLimitFor(config, key)));
   return byKey.get(key) ?? null;
+}
+
+/**
+ * Test seam for the process-wide limiter registry — not in the package's
+ * export map. A suite that builds its bundles from a handful of literal secrets
+ * would otherwise spend one budget, under the first test's limits, across every
+ * test in a file.
+ */
+export function __resetLimiterCacheForTests(): void {
+  limiterCache.clear();
 }
 
 /**

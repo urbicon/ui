@@ -23,8 +23,9 @@ export default mergeConfig(
       // boundary to a path outside blocks' exports map, which is safe only
       // because it is import-free and never published; should it ever gain an
       // import, this run fails loudly on the unresolved specifier rather than
-      // quietly losing a polyfill.
-      setupFiles: ['../blocks/vitest-setup.ts']
+      // quietly losing a polyfill. The package's own file resets the
+      // process-wide rate-limit registry before each test; why: its header.
+      setupFiles: ['../blocks/vitest-setup.ts', './vitest-setup.ts']
     },
     // Component tests mount real components, which needs the browser build of
     // svelte. Without this every `mount()` here dies on

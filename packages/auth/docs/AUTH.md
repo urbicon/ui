@@ -430,16 +430,19 @@ dozen requests per second saturate the thread pool that login's own hashing shar
 
 Two endpoints that read one key share **one** counter (`verifyEmail` covers both
 verify-email and verify-email-change; `passkeyAuth` covers options and verify). The
-counter's lifetime is the lifetime of the resolved `AuthConfig` **object**, and
-`createAuthDeps` returns a *new* one on every call — so **call `createAuthDeps`
-once**, at module scope, and pass `deps` around. Calling it per request hands each
-request a fresh config object and therefore a fresh, empty counter: measured 20 of
-20 requests accepted against a configured limit of 5, where one `createAuthDeps`
-lets 5 of 20 through. (Reusing the same config
-*literal* does not help; it is the resolved object's identity that keys the
-counter.) A second call with a `jwt.secret` this process has already built a
-bundle for is warned about on the logger — once per secret, in production too.
-A persistent `RateLimitStore` sidesteps the whole question.
+counters live for the process and are keyed on the `jwt.secret` (a fingerprint of
+it — the secret itself is never retained), so every bundle built for one secret
+reads the same counters and the same in-memory store per key; a `createAuthDeps`
+call per request cannot reset them. Still **call `createAuthDeps` once**, at module
+scope, and pass `deps` around: one secret is one auth instance per process, and the
+limiter for a key is built by the _first_ bundle that reads it, with that bundle's
+`max`, `windowMs` and `store` — a later bundle with a different `rateLimit` slice
+keeps the first one's, and every call validates and resolves the config again. The
+same holds under `vite dev`, where the counters survive a hot reload: a `rateLimit`
+edit takes effect on the next restart. A second call with a `jwt.secret` this
+process has already built a bundle for is warned about on the logger — once per
+secret, in production too. A persistent `RateLimitStore` shares the counters across
+processes as well.
 
 The wiring is four files: deps → `hooks.server.ts` (`createAuthHandle`) → one
 `+server.ts` per handler (`createLoginHandler`, …) → a `<LoginPage>` route.
