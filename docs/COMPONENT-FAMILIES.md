@@ -209,6 +209,8 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
 | `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
+**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent sits in a component's defaults only on the *primary action of its surface* — the confirm button, the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Not on the `EmptyState` icon disc (#434), not on the required-field marker (#395), and `ConfirmDialog` no longer promotes `neutral` to `primary` (#433). The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy; this paragraph carries the issue trail.
+
 ---
 
 ## Listbox item rhythm

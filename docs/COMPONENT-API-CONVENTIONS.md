@@ -436,9 +436,11 @@ A **wrapper** names no axes at all. It hands its name to the component it wraps,
 
 ## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)
 
-Primitives never accept an `href` / `as` / `component` prop to swap their root element. A `Button` always renders `<button>`, a `Card` always renders `<div>`. The library does not own the choice between `<button>` and `<a>` — that decision depends on app-routing concerns (SvelteKit `resolve()`, external vs. internal URLs, `target`/`rel` policies) that the library cannot see.
+A component takes `href` only when it owns **structure** the consumer cannot rebuild from the exported variants function alone — `Card` (header · content · footer) today, a `ListRow` with slots if one is ever built. Single-box controls never swap their root element: a `Button` always renders `<button>`, a `Badge` always renders `<span>`, a `Toggle` always renders `<button role="switch">`. Where the whole component *is* the anchor and nothing else, the Navigation family's `Link` (#429 — always `<a>`, never polymorphic) is the member to reach for.
 
-When you need a Link-Button, write a thin wrapper in your app and reuse the exported variant function:
+The line sits there because a swappable root has three real costs, and only structure pays for them (decided 2026-09-08, kino consumer feedback): the props type splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes` and forces a `Record<string, unknown>` cast; the `no-navigation-without-resolve` rule has to be scoped off for the component; and internal-vs-external URL, `resolve()`, `target`/`rel` are app-routing decisions the library cannot see. `Card` pays all three, and it is worth it, because an `<a>` around a `cardVariants()` shell would have to rebuild three slots. An `<a>` around `buttonVariants()` rebuilds nothing — so that is the recipe, and the library holds itself to it (#427).
+
+When you need a link that looks like a button, write a thin wrapper in your app and reuse the exported variant function:
 
 ```svelte
 <!-- LinkButton.svelte (in your app) -->
@@ -462,7 +464,7 @@ When you need a Link-Button, write a thin wrapper in your app and reuse the expo
 </a>
 ```
 
-This pattern keeps primitives narrow, leaves `resolve()` decisions in app code, and avoids forcing a polymorphic type that splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes`. Apply the same approach if you ever need an anchor styled like a Card or a Badge — call the corresponding `*Variants()` directly.
+This keeps the controls narrow, leaves `resolve()` decisions in app code, and avoids the polymorphic type. Apply the same approach for an anchor styled like a Badge — call `badgeVariants()` directly. The recipe has to reach consumers where they look — the primer, `get-component Button`, the Button docs page (#428) — a rule that lives only in this file is a rule nobody follows.
 
 ## Snippet vs. Component Cell Rendering
 
