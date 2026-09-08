@@ -263,32 +263,33 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, Gap>>> = {
   ResourceTimeline: {
     D: { leaks: ['navButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
   },
-  // Styled entirely through the `Button` it wraps: its own tv() config
-  // (`paginationLinkVariants`) declares no slots, so there is no slot for a
-  // `defaults` entry to land on and no provider name that would help — the
-  // rule a consumer writes goes under `Button`. Measured on the C row: the
-  // three classes that survive are Button's semantic hooks plus its press-cue
-  // token (`blocks-button`, `blocks-intent-primary`,
-  // `[--blocks-press-scale:1]`), which Button keeps under `unstyled` on
-  // purpose; without a provider name route C falls back to comparing every
-  // root class, and those three are in it. Reached the sweep with the
-  // `unstyled` prop that lets `<Pagination unstyled>` reach its page buttons.
+  // Styled entirely through `Button`: the button form renders one, and the link
+  // form — the branch `MOUNT_FIXTURES` makes the sweep measure — puts
+  // `buttonVariants` on its own anchor. Neither resolves a cascade, so there is
+  // no provider name a `defaults` entry could use, and the rule a consumer
+  // writes goes under `Button`, where it reaches the button form only.
+  // Measured on the C row: 2 of the anchor's 39 root classes survive a provider
+  // `unstyled`, and they are the two the `unstyled` prop documents — the intent
+  // hook and the press-cue token. Reached the sweep with the `unstyled` prop
+  // that lets `<Pagination unstyled>` reach its page buttons.
   PaginationItem: {
     A: {
-      // The four are `paginationVariants`' slots rather than this component's:
-      // the tv() index is per module, so a sibling config's slot names come
-      // with the import. Without a provider name none of them is addressable.
-      leaks: ['base', 'controls', 'ellipsis', 'info'],
+      // The six are the slots of the two configs this module imports —
+      // `buttonVariants` for the look, `paginationLinkVariants` for the
+      // anchor-only chrome — rather than slots this component reads: the tv()
+      // index is per module, so an imported config's slot names come with the
+      // import. Without a provider name none of them is addressable.
+      leaks: ['base', 'content', 'controls', 'ellipsis', 'info', 'spinner'],
       // The coupling is in the reason because the reason is what the failure
-      // message prints: adding a slot to `paginationVariants` — a config this
-      // component never calls — moves this set, and the generic wording would
-      // otherwise report that as a regression inside PaginationItem.
-      why: "no provider name, and `paginationLinkVariants` declares no slots to address — the four pinned slots are `paginationVariants`', so a slot added to `Pagination` changes this set"
+      // message prints: a slot added to either imported config moves this set,
+      // and the generic wording would report that as a regression inside
+      // PaginationItem.
+      why: "no provider name, and the slots in play are the imported configs' — a slot added to `Button` or to `Pagination` changes this set"
     },
     B: { leaks: [], why: 'no provider name — a rule for these buttons goes under `Button`' },
     C: {
-      leaks: ['[--blocks-press-scale:1]', 'blocks-button', 'blocks-intent-primary'],
-      why: "the no-provider-name fallback counts Button's semantic hooks as root classes"
+      leaks: ['[--blocks-press-scale:1]', 'blocks-intent-primary'],
+      why: "the no-provider-name fallback counts the anchor's two semantic hooks as root classes"
     }
   },
 

@@ -8,7 +8,11 @@
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { OVERRIDE_CASCADE } from '@urbicon-ui/design-engine/reference';
+import {
+  LINK_AS_BUTTON,
+  LINK_AS_BUTTON_TITLE,
+  OVERRIDE_CASCADE
+} from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runPrimer } from './primer.js';
 
@@ -81,6 +85,16 @@ describe('runPrimer', () => {
     // After the token sections: the rungs name `slotClasses` values that are
     // token classes, and a reader meets those names once they are defined.
     expect(stdout().indexOf('# Override Ladder')).toBeGreaterThan(stdout().indexOf('--z-modal'));
+  });
+
+  it('carries the link-as-button recipe, after the ladder it is not a rung of', async () => {
+    expect(await runPrimer([], {})).toBe(0);
+    // The block is the engine's constant, so the primer and a component's
+    // `llm.txt` note cannot describe two recipes. Asserted on the constant.
+    expect(stdout()).toContain(LINK_AS_BUTTON.trim());
+    expect(stdout().indexOf(`# ${LINK_AS_BUTTON_TITLE}`)).toBeGreaterThan(
+      stdout().indexOf('# Override Ladder')
+    );
   });
 
   it('leaves out what is task-dependent — that is the point of the bundle', async () => {

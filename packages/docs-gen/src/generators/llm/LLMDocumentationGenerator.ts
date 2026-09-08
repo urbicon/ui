@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import {
   CLASS_OVER_SLOT_CLASSES,
+  linkRecipeNote,
   PROVIDER_BELOW_INSTANCE
 } from '@urbicon-ui/design-engine/reference';
 import type { ComponentStability, PropInfo, SvelteDocsConfig } from '@urbicon-ui/shared-types';
@@ -314,6 +315,12 @@ export class LLMDocumentationGenerator {
     const note = stabilityNote(componentApiData.stability);
     if (note) lines.push(`**Stability:** ${note}`);
     if (description) lines.push(`${description}`);
+    // Appended at render time, the way `renderPropRow` appends the precedence
+    // clause: the JSDoc `@description` is one string read by the catalog and the
+    // search index too, and a pointer into the primer belongs to this entry
+    // alone.
+    const linkNote = linkRecipeNote(component.name);
+    if (linkNote) lines.push(linkNote);
     lines.push('');
     lines.push(`**Import:** \`import { ${component.name} } from '${component.packageName}';\``);
     lines.push('');

@@ -64,16 +64,35 @@ export const paginationVariants = tv({
 });
 
 /**
- * The `<a>` of a link-based pagination item. It carries no look of its own —
- * the `Button` inside paints it — only the inline box and the focus ring the
- * anchor needs because the inner button is `tabindex="-1"`.
+ * The anchor form of a pagination item, which wears `buttonVariants` — this
+ * config carries only what a `<button>`'s config cannot say about an `<a>`:
+ *
+ * - `disabled:` matches a form control, so the inert look keys on the attribute
+ *   the anchor actually carries;
+ * - a link inherits whatever `text-decoration` the surrounding page gives `a`;
+ * - `loading` on a button fades the label out behind an overlay spinner, and
+ *   the link form draws no spinner — so the label stays lit.
+ *
+ * A tv() config rather than a string in the markup: `variants:lint` reads
+ * `*.variants.ts`, and a class it never sees is a class the dead-token and
+ * bucket-agreement passes cannot check.
  */
 export const paginationLinkVariants = tv({
-  base: [
-    'inline-block no-underline',
-    'focus-visible:rounded-md focus-visible:outline-2',
-    'focus-visible:outline-offset-2 focus-visible:outline-primary/50'
-  ]
+  slots: {
+    base: [
+      'no-underline',
+      'aria-disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:pointer-events-none'
+    ],
+    content: ''
+  },
+  variants: {
+    loading: {
+      true: { content: 'opacity-100' }
+    }
+  },
+  defaultVariants: {
+    loading: false
+  }
 });
 
 export type PaginationLinkVariants = VariantProps<typeof paginationLinkVariants>;

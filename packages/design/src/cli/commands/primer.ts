@@ -12,8 +12,8 @@
  * the prompt cache on the first round, so the marginal cost over the rest of the
  * session is a rounding error: ~7 100 tokens ≈ $0.14 across 55 rounds, measured
  * at introduction (2026-07-27) and not re-measured since. The page has grown by
- * the layout section and the override ladder — 23 798 B today, 967 B of it
- * (4.2 %) the ladder block and its intro line.
+ * the layout section, the override ladder and the link-as-button recipe —
+ * 30 635 B today, 873 B of it the ladder block and 1 114 B the link recipe.
  *
  * What is deliberately NOT here: patterns and recipes. Those are task-dependent
  * (a settings page needs `settings-page`, not all seven), so bundling them would
@@ -23,6 +23,7 @@
 
 import {
   extractPrincipleSection,
+  LINK_AS_BUTTON,
   OVERRIDE_LADDER,
   renderCssReference
 } from '@urbicon-ui/design-engine/reference';
@@ -82,13 +83,15 @@ export async function runPrimer(_positionals: string[], _flags: Flags): Promise<
     'Everything below applies to every task: how to pick a component, how to lay it\n' +
       'out, what the tokens are called — surfaces, text, borders, intents,\n' +
       'shadows **plus the z-index scale and the radius tiers** (both live in the\n' +
-      'shadows section) — and the override ladder: which styling hook to reach for,\n' +
-      'and what wins when two of them meet. Component APIs, composition patterns and\n' +
+      'shadows section) — the override ladder (which styling hook to reach for, and\n' +
+      'what wins when two of them meet), and one recipe that is not a rung of it: a\n' +
+      'link that looks like a button. Component APIs, composition patterns and\n' +
       'recipes are fetched per task — see the pointers at the end.\n'
   );
   for (const section of sections) console.log(`${section}\n`);
   for (const section of CORE_SECTIONS) console.log(`${renderCssReference(section).trim()}\n`);
   console.log(`${OVERRIDE_LADDER.trim()}\n`);
+  console.log(`${LINK_AS_BUTTON.trim()}\n`);
 
   console.log(
     '→ `urbicon find <query>` then `get-component <slug> --section api` for a component API\n' +

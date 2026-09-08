@@ -137,6 +137,13 @@ export const MOUNT_FIXTURES: Record<string, MountFixture> = {
   Dialog: { props: { open: true } },
   Drawer: { props: { open: true } },
 
+  // ── two elements, one component: which branch the sweep measures ──────
+  // `href` picks an ELEMENT, not a look: without it this component renders the
+  // `<button>` whose cascade is Button's own — already measured under `Button`
+  // — and the branch the gap entries describe would be one nobody ran. With it
+  // the sweep measures the anchor, which resolves no cascade at all.
+  PaginationItem: { props: { href: '/page/2' } },
+
   // ── compound children: no parent, no context, no render ───────────────
   CalendarHeader: { family: 'calendar' },
   // `value` pairs with the open item the accordion host declares — see the

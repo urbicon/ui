@@ -371,7 +371,7 @@ To restyle an embedded component (e.g. make an Input look borderless inside a cu
 
 The `class` prop reaches **one slot and no other**; every remaining element is reachable solely through `slotClasses.<slot>`. For almost every component that slot is the outermost one — and by convention `base` is the interactive core element, so for wrapper components the root slot is **not** `base`. On `Input` the root is `wrapper` (the label + field column) and `base` is the actual `<input>`, so `<Input class="rounded-full" />` rounds the column, not the field; the field needs `<Input slotClasses={{ base: 'rounded-full' }} />`. (Same story for any multi-slot component — see the [Customization → class Root-Slot Trap](../apps/docs/src/routes/customization/+page.svelte) page.)
 
-One shape of exception: where the outermost element is a shell that only positions an overlay, `class` goes to the panel inside it. `Dialog`, `Drawer` and `ConfirmDialog` are that shape — their root `dialog` slot is a full-viewport `fixed inset-0 … w-full h-full` element that takes `slotClasses.dialog` and never `class`, while `class` lands on the panel (measured: the carrier is the `role="document"` div, and the `<dialog>` in the tree does not have the class). `PaginationItem` looks like a further case and is not one: with `href` it renders an `<a>` around a decorative Button, and that anchor *is* its root (measured — the class lands on the `<a>`, not on the button).
+One shape of exception: where the outermost element is a shell that only positions an overlay, `class` goes to the panel inside it. `Dialog`, `Drawer` and `ConfirmDialog` are that shape — their root `dialog` slot is a full-viewport `fixed inset-0 … w-full h-full` element that takes `slotClasses.dialog` and never `class`, while `class` lands on the panel (measured: the carrier is the `role="document"` div, and the `<dialog>` in the tree does not have the class). `PaginationItem` looks like a further case and is not one: with `href` it renders the `<a>` itself, dressed by `buttonVariants()`, with its label in a `content` span and nothing interactive inside, so the anchor is its root and `class` lands there (measured); the label span is reachable by neither `class` nor `slotClasses`.
 
 Do not read "root slot" as "the first slot the `tv()` config declares". The two come apart wherever a component declares its trigger before its wrapper, which `ReasoningDisclosure` and `ToolCallCard` both do — their first slot is a `<button>`, their `class` carrier the root `<div>`. **Which element carries `class` is a per-component fact, and every component states it at its own `class` prop**: that is the place to check it, and the place to fix it when it is wrong.
 
@@ -443,7 +443,7 @@ The line sits there because a swappable root has three real costs, and only stru
 When you need a link that looks like a button, write a thin wrapper in your app and reuse the exported variant function:
 
 ```svelte
-<!-- LinkButton.svelte (in your app) -->
+<!-- LinkButton.svelte -->
 <script lang="ts">
   import { buttonVariants, type ButtonProps } from '@urbicon-ui/blocks';
   import type { HTMLAnchorAttributes } from 'svelte/elements';
