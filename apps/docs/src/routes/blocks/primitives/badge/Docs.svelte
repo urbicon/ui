@@ -198,15 +198,26 @@
   <NoteList>
     <Note title="Built-in ARIA">
       <p>
-        Badges render with <code class="text-text-primary">role="status"</code> by default,
-        announcing content changes to screen readers. Only a badge with an
+        The role follows <code class="text-text-primary">purpose</code>:
+        <code class="text-text-primary">status</code> and
+        <code class="text-text-primary">dot</code> render
+        <code class="text-text-primary">role="status"</code>, a polite live region that announces
+        content changes; <code class="text-text-primary">tag</code>,
+        <code class="text-text-primary">counter</code> and
+        <code class="text-text-primary">chip</code> carry no role — a category, a count or a filter
+        chip announces nothing when it changes, so it stays a plain span: a label inside a link
+        rather than a live region inside one. Without
+        <code class="text-text-primary">purpose</code>
+        a badge keeps
+        <code class="text-text-primary">role="status"</code>, and so does the deprecated
+        <code class="text-text-primary">counter</code>
+        boolean. Only a badge with an
         <code class="text-text-primary">onclick</code> is announced as a
-        <code class="text-text-primary">button</code> —
-        <code class="text-text-primary">purpose="chip"</code>
-        without a handler keeps the chip look but stays a status region, so it never claims an
-        action it cannot perform. Removable badges include an accessible label for the remove
-        button. Set
-        <code class="text-text-primary">role="alert"</code> for time-sensitive notifications.
+        <code class="text-text-primary">button</code> — a chip without a handler keeps the chip look
+        but never claims an action it cannot perform. Removable badges include an accessible label
+        for the remove button. Set
+        <code class="text-text-primary">role="status"</code> for a count that must be announced when
+        it changes, or <code class="text-text-primary">role="alert"</code> for a time-sensitive notification.
       </p>
     </Note>
     <Note title="Keyboard">

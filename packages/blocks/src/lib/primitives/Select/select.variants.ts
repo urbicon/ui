@@ -4,6 +4,11 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 // The trigger is the focusable element, so the error ring lives on it directly.
 const focus = 'focus-visible';
 
+// The trigger is a <button>, whose UA stylesheet centres text. The placeholder
+// is the value's list plus its tone — one list, so the two can never sit on
+// different edges and re-align the trigger on the first choice.
+const triggerText = 'truncate text-left flex-1';
+
 export const selectVariants = tv({
   slots: {
     wrapper: ['flex flex-col w-full gap-1.5'],
@@ -16,8 +21,8 @@ export const selectVariants = tv({
       'hover:border-border-default',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary'
     ],
-    triggerText: ['truncate text-left flex-1'],
-    placeholder: ['text-text-tertiary truncate flex-1'],
+    triggerText: [triggerText],
+    placeholder: [triggerText, 'text-text-tertiary'],
     chevron: [
       'shrink-0 text-text-tertiary',
       'transition-transform duration-[var(--blocks-duration-fast)]'

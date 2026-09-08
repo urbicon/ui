@@ -38,20 +38,34 @@ export const dialogVariants = tv({
       'overflow-hidden'
     ],
     content: 'p-6 overflow-y-auto overscroll-contain flex-1',
+    // `items-start`: the title wraps, so the close control has to stay on its
+    // first line instead of drifting to the middle of a two-line title.
     header: [
-      'flex items-center justify-between px-5 py-4',
+      'flex items-start justify-between px-5 py-4',
       'border-b border-border-hairline flex-shrink-0'
     ],
     // Wraps icon + title so the close button keeps its `justify-between` edge.
-    // `min-w-0` is what lets the title's `truncate` actually shrink inside a
-    // flex row — without it the group's automatic min-width pushes the close
-    // button off the panel on a long title.
-    titleGroup: ['flex items-center gap-2.5 min-w-0'],
+    // `min-w-0` is what holds that edge: it lets the group shrink below the
+    // min-content width of its text, so a word too long for the header overflows
+    // the group instead of widening it. Ablated at 390px, dropping this one
+    // class puts the close button outside the panel — and the title's own
+    // `min-w-0` does not stand in for it.
+    titleGroup: ['flex items-start gap-2.5 min-w-0'],
     // Optional header icon. Sized like the Toast's (w-5 h-5, shrink-0); the
     // colour comes from the `intent` axis below, so a consumer passes a bare
-    // icon component and gets the semantic tint for free.
-    icon: ['shrink-0 w-5 h-5'],
-    title: ['text-base font-semibold text-text-primary truncate'],
+    // icon component and gets the semantic tint for free. `mt-1.5` (6px) puts
+    // the 20px icon's centre on the title's first line: 4px of the title's
+    // `py-1` + half of its 24px line box, less half the icon — so it moves with
+    // the type scale exactly as the title's own height does.
+    icon: ['shrink-0 w-5 h-5 mt-1.5'],
+    // The title wraps — it is the one line the user must be able to read whole.
+    // `py-1` puts a one-line title at the close control's 32px height so their
+    // centres meet; those 32px are this slot's own 24px line box plus that
+    // padding, so the match follows the type scale and the close control's
+    // height rather than being a constant. `min-w-0` + `break-words` act on the
+    // title alone: `min-w-0` shrinks its box, `break-words` breaks the word
+    // inside it, and without the second the word silently overflows the box.
+    title: ['text-base font-semibold text-text-primary py-1 min-w-0 break-words'],
     // Icon-only header close control (× dismiss). Rendered on the internal
     // CoreIconButton (behaviour-only base: inline-flex centring, cursor/select,
     // focus-visible reset, disabled inertness), so this slot carries the FULL
