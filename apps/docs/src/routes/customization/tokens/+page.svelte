@@ -359,8 +359,9 @@
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Intent Roles</h3>
     <p class="text-text-secondary mb-4">
-      Every intent ships the same {roles.length} roles, listed below for {exemplar}. Solid things (a
-      button, a badge, a progress bar) take the base fill,
+      The {exemplar} intent carries {roles.length} roles, listed below; every other intent carries them
+      under the same suffixes{#if absent.length > 0}, and the gaps are listed under the table{/if}.
+      Solid things (a button, a badge, a progress bar) take the base fill,
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary</code>, with
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-text-on-fill</code>
       as the label on it. Text in the intent's colour on a reading surface (a page, a card, a panel) or
@@ -371,8 +372,8 @@
       the stop that clears AA there. Tailwind also emits
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary</code> from
       the fill token and nothing flags it; as text it lands below AA (4.28:1 on
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary-subtle</code>
-      in the Select demo), so write
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary-subtle</code
+      >), so write
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>.
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >text-primary-emphasis</code
