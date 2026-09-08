@@ -1,5 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CLOSEST_NOTE } from '@urbicon-ui/design-engine/search';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runFind } from './find.js';
 
@@ -66,6 +67,57 @@ describe('runFind', () => {
     const code = await runFind(['zzzznotacomponent'], {});
     expect(code).toBe(0);
     expect(stdout()).toContain('No components match');
+    // Nothing scored at all, so there is nothing to offer as a near miss.
+    expect(stdout()).not.toContain('Closest');
+  });
+
+  it('reports no match for a word that only starts a longer one, and names the near miss', async () => {
+    // "stat" starts Badge's "status" and is not it — the shape of #444, where
+    // `find rating` answered Separator through "sepa·rating".
+    const code = await runFind(['stat'], {});
+    expect(code).toBe(0);
+    expect(stdout()).toContain('No components match "stat"');
+    expect(stdout()).not.toContain('component(s) matching');
+    expect(stdout()).toContain('Closest (weak): Badge (badge)');
+    // The same sentence the MCP tool prints — one constant, so they cannot drift.
+    expect(stdout()).toContain(CLOSEST_NOTE);
+  });
+
+  it('keeps a name fragment out of the matches and in the closest list', async () => {
+    await runFind(['butt'], {});
+    expect(stdout()).toContain('No components match "butt"');
+    expect(stdout()).toContain('Closest (weak): Button (button)');
+  });
+
+  it('prints the closest block next to matches when a weak entry outscores them', async () => {
+    // "intent" is an exact prop name on Button and lands for 1 point; "badg" only
+    // sits inside Badge's name and scores 3 without landing. Before #446's second
+    // round the higher-scoring entry was invisible.
+    const code = await runFind(['badg', 'intent'], {});
+    expect(code).toBe(0);
+    expect(stdout()).toContain('component(s) matching');
+    expect(stdout()).toContain('Closest (weak): Badge (badge)');
+    expect(stdout()).toContain(CLOSEST_NOTE);
+  });
+
+  it('prints [] for a no-match query even when the text surface lists near misses', async () => {
+    const code = await runFind(['stat', 'metric', 'kpi'], { json: true });
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout())).toEqual([]);
+  });
+
+  it('keeps matches first and unflagged when both are present', async () => {
+    await runFind(['badg', 'intent'], { json: true });
+    const parsed = JSON.parse(stdout());
+    expect(parsed.map((c: { slug: string }) => c.slug)).toEqual(['button', 'badge']);
+    expect(parsed[0].weak).toBeUndefined();
+    expect(parsed[1].weak).toBe(true);
+  });
+
+  it('prints [] for a query that scored nothing at all', async () => {
+    const code = await runFind(['rating'], { json: true });
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout())).toEqual([]);
   });
 
   it('rejects a non-numeric --limit as a usage error', async () => {

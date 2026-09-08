@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isBooleanAxis, matchComponents } from './match.js';
+import { isBooleanAxis, matchComponents, searchComponents } from './match.js';
 import { extractSection } from './section.js';
 import type { ComponentCatalogEntry } from './types.js';
 
@@ -54,9 +54,12 @@ describe('matchComponents', () => {
     expect(results[0]?.name).toBe('Button');
   });
 
-  it('matches by case-insensitive substring of the name', () => {
-    const results = matchComponents(catalog, 'Butt');
-    expect(results.some((r) => r.name === 'Button')).toBe(true);
+  it('names a fragment of a name as the closest, not as a match', () => {
+    // "butt" sits inside "button": no word landed, so there is no match — the
+    // nearest miss is still named.
+    const { matches, closest } = searchComponents(catalog, 'Butt');
+    expect(matches).toEqual([]);
+    expect(closest[0]?.name).toBe('Button');
   });
 
   it('fuzz-matches a single-character typo', () => {
@@ -128,12 +131,20 @@ describe('matchComponents — Planner discovery', () => {
   });
   const dateCatalog = [Calendar, Planner];
 
-  for (const query of ['planner', 'meal planner', 'weekly plan', 'shift schedule', 'week board']) {
+  for (const query of ['planner', 'meal planner', 'shift schedule', 'week board']) {
     it(`ranks Planner first for "${query}"`, () => {
       const results = matchComponents(dateCatalog, query);
       expect(results[0]?.name).toBe('Planner');
     });
   }
+
+  it('names Planner as the closest for "weekly plan" — "plan" is a word of neither its name nor its text', () => {
+    // "planner" and "planning" start with the word but are not it or its plural;
+    // Calendar has neither. Nothing lands, and the nearest miss is still Planner.
+    const { matches, closest } = searchComponents(dateCatalog, 'weekly plan');
+    expect(matches).toEqual([]);
+    expect(closest[0]?.name).toBe('Planner');
+  });
 
   it('still ranks Calendar first for an event/appointment query', () => {
     const results = matchComponents(dateCatalog, 'event calendar');
@@ -358,6 +369,213 @@ describe('matchComponents — scores what the bundle ships', () => {
       propDocs: { rows: { description: 'Number of rows.' } }
     });
     expect(matchComponents([Pointer, Grid], 'row').map((r) => r.name)).toEqual(['Grid']);
+  });
+});
+
+// A match needs a word that landed whole; everything reached by fragments alone
+// is the `closest` list a surface shows when there is no match. Measured on 8.18:
+// `find rating` returned Separator ("separating"), `find "stat metric kpi"`
+// EmptyState ("State", "states"), `find list` led with NotificationListener.
+describe('searchComponents — the floor', () => {
+  const Separator = makeEntry({
+    name: 'Separator',
+    slug: 'separator',
+    description: 'Thin rule separating two groups.'
+  });
+  const Badge = makeEntry({
+    name: 'Badge',
+    slug: 'badge',
+    description: 'Shows a status, in one of five states.',
+    summary: 'A static label in a box, or several boxes.'
+  });
+  const EmptyState = makeEntry({
+    name: 'EmptyState',
+    slug: 'empty-state',
+    description: 'What a list shows when it has no rows.'
+  });
+  const ChatMessageList = makeEntry({
+    name: 'ChatMessageList',
+    slug: 'chat-message-list',
+    description: 'Scrolling column of chat messages.'
+  });
+  const NotificationListener = makeEntry({
+    name: 'NotificationListener',
+    slug: 'notification-listener',
+    description: 'Listener that shows each notification as a toast.',
+    propDocs: { onNotification: { description: 'Called by the listener.' } }
+  });
+  const shipped = [Badge, ChatMessageList, EmptyState, NotificationListener, Separator];
+
+  it('scores nothing for a word that only occurs inside longer words', () => {
+    const { matches, closest } = searchComponents(shipped, 'rating');
+    expect(matches).toEqual([]);
+    expect(closest).toEqual([]);
+  });
+
+  it('reports no match when a word only starts longer words, and names them as closest', () => {
+    // "stat" starts "state", "states", "status", "static" — and is none of them.
+    // Badge leads at 5 (description "status" 3 + summary "static" 2) over
+    // EmptyState's 3 (the name fragment alone); "metric" and "kpi" hit nothing.
+    const { matches, closest } = searchComponents(shipped, 'stat metric kpi');
+    expect(matches).toEqual([]);
+    expect(closest.map((c) => c.name)).toEqual(['Badge', 'EmptyState']);
+  });
+
+  it('lands a regular plural as the word itself', () => {
+    expect(matchComponents(shipped, 'state').map((c) => c.name)).toEqual(['EmptyState', 'Badge']);
+    expect(matchComponents(shipped, 'box').map((c) => c.name)).toEqual(['Badge']);
+    // "states" is state + s, not stat + es: the sibilant rule keeps "stat" out.
+    expect(matchComponents(shipped, 'stat')).toEqual([]);
+  });
+
+  it('lets a slug word match and a name fragment only rank', () => {
+    // "list" is a word of chat-message-list and a fragment of Listener; the
+    // fragment entry has more text hits and used to lead at 11 against 8.
+    const { matches, closest } = searchComponents(shipped, 'list');
+    expect(matches.map((c) => c.name)).toEqual(['ChatMessageList', 'EmptyState']);
+    expect(closest).toEqual([]);
+  });
+
+  it('lands a name one edit away, ranks one two edits away as closest', () => {
+    expect(matchComponents(shipped, 'badgr').map((c) => c.name)).toEqual(['Badge']);
+    const { matches, closest } = searchComponents(shipped, 'bodgr');
+    expect(matches).toEqual([]);
+    expect(closest.map((c) => c.name)).toEqual(['Badge']);
+  });
+
+  it('caps the closest at three, best first', () => {
+    const many = Array.from({ length: 5 }, (_, i) =>
+      makeEntry({ name: `Widget${i}`, slug: `widget-${i}`, description: `Widgets ${i}` })
+    );
+    const { matches, closest } = searchComponents(many, 'widg');
+    expect(matches).toEqual([]);
+    expect(closest).toHaveLength(3);
+  });
+
+  it('does not let an explicit tag filter stand in for a word that landed', () => {
+    const { matches, closest } = searchComponents(catalog, 'zzzz', ['action']);
+    expect(matches).toEqual([]);
+    expect(closest.map((c) => c.name)).toEqual(['Button']);
+  });
+
+  it('lands on an exact prop name, ranks a fragment of one', () => {
+    expect(matchComponents(catalog, 'intent').map((c) => c.name)).toEqual(['Button']);
+    const { matches, closest } = searchComponents(catalog, 'inte');
+    expect(matches).toEqual([]);
+    expect(closest.map((c) => c.name)).toEqual(['Button']);
+  });
+
+  it('lands a prop name in the plural, but not a longer word starting with it', () => {
+    const Keyboard = makeEntry({ name: 'Keyboard', slug: 'keyboard', keyProps: ['keys'] });
+    const Helper = makeEntry({ name: 'Helper', slug: 'helper', keyProps: ['helper'] });
+    expect(matchComponents([Keyboard], 'key').map((c) => c.name)).toEqual(['Keyboard']);
+    // `+es` after a sibilant, the same rule the text scan uses.
+    const Boxes = makeEntry({ name: 'Boxes', slug: 'boxes', keyProps: ['boxes'] });
+    expect(matchComponents([Boxes], 'box').map((c) => c.name)).toEqual(['Boxes']);
+    // "helper" is not the plural of "help" — it stays a fragment and does not land.
+    expect(searchComponents([Helper], 'help').matches).toEqual([]);
+  });
+
+  it('rejects a limit that would invert the contract', () => {
+    // `slice(0, 0)` empties `matches`, which would hand every landed entry to
+    // `closest` — the opposite of what both fields mean.
+    expect(() => searchComponents(shipped, 'list', undefined, 0)).toThrow(RangeError);
+    expect(() => searchComponents(shipped, 'list', undefined, -1)).toThrow(RangeError);
+    expect(() => searchComponents(shipped, 'list', undefined, 1.5)).toThrow(RangeError);
+  });
+
+  it('lands the whole query joined, across the words it was split into', () => {
+    const Tooltip = makeEntry({
+      name: 'Tooltip',
+      slug: 'tooltip',
+      description: 'A hint on hover.'
+    });
+    const ToolCallCard = makeEntry({
+      name: 'ToolCallCard',
+      slug: 'tool-call-card',
+      description: 'Shows a tool call and its result.'
+    });
+    const split = [ToolCallCard, Tooltip];
+    expect(matchComponents(split, 'tool tip')[0]?.name).toBe('Tooltip');
+    // Symmetric: one word against a hyphenated slug.
+    expect(matchComponents(split, 'toolcallcard')[0]?.name).toBe('ToolCallCard');
+  });
+
+  // The class boundaries are shares of the catalog searched, and never bite below
+  // UBIQUITY_FLOOR entries — so a fixture has to be wide enough to have classes at
+  // all. 40 entries: filler is >30 landings, common is >10, distinctive is the rest.
+  describe('word classes and the pair rule', () => {
+    const wide = Array.from({ length: 40 }, (_, i) =>
+      makeEntry({
+        name: `Widget${String(i).padStart(2, '0')}`,
+        slug: `widget-${String(i).padStart(2, '0')}`,
+        description: [
+          i < 35 ? 'alpha' : '',
+          i < 20 ? 'beta' : '',
+          i >= 10 && i < 30 ? 'gamma' : '',
+          i < 3 ? 'delta' : ''
+        ]
+          .filter(Boolean)
+          .join(' ')
+      })
+    );
+    const names = (q: string) => matchComponents(wide, q, undefined, 40).map((c) => c.name);
+
+    it('never lands a filler word — alpha is in 35 of 40 descriptions', () => {
+      expect(names('alpha')).toEqual([]);
+    });
+
+    it('never lands a common word alone — beta is in 20 of 40', () => {
+      expect(names('beta')).toEqual([]);
+    });
+
+    it('lands a distinctive word alone — delta is in 3 of 40', () => {
+      expect(names('delta')).toEqual(['Widget00', 'Widget01', 'Widget02']);
+    });
+
+    it('lands two common words where they meet, and nowhere else', () => {
+      // beta covers 0-19, gamma 10-29; only 10-19 carry both.
+      expect(names('beta gamma')).toEqual(
+        Array.from({ length: 10 }, (_, i) => `Widget${String(i + 10).padStart(2, '0')}`)
+      );
+    });
+
+    it('does not let a filler word be the second half of a pair', () => {
+      // The shape of "a rating component": one common word, one word that says
+      // nothing. alpha covers beta's whole range, so every pairing is filler+common.
+      expect(names('alpha beta')).toEqual([]);
+    });
+  });
+
+  describe('closest when a weak entry outscores the matches', () => {
+    const Widgetry = makeEntry({
+      name: 'Widgetry',
+      slug: 'widgetry',
+      description: 'A panel of widgetry.'
+    });
+    const Holder = makeEntry({ name: 'Holder', slug: 'holder', keyProps: ['widg'] });
+
+    it('adds the block when the best weak entry scores above the best match', () => {
+      // Holder lands on an exact prop name for 1 point; Widgetry only has "widg"
+      // as a fragment of its name, and outscores it. Without this the reader sees
+      // the 1-point answer and never learns the other exists.
+      const { matches, closest } = searchComponents([Holder, Widgetry], 'widg');
+      expect(matches.map((c) => c.name)).toEqual(['Holder']);
+      expect(closest.map((c) => c.name)).toEqual(['Widgetry']);
+    });
+
+    it('leaves it empty when every match outscores every weak entry', () => {
+      const { matches, closest } = searchComponents(catalog, 'button');
+      expect(matches[0]?.name).toBe('Button');
+      expect(closest).toEqual([]);
+    });
+  });
+
+  it('returns only the matches from matchComponents', () => {
+    expect(matchComponents(shipped, 'stat metric kpi')).toEqual([]);
+    expect(matchComponents(shipped, 'list', undefined, 1).map((c) => c.name)).toEqual([
+      'ChatMessageList'
+    ]);
   });
 });
 

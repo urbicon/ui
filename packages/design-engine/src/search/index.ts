@@ -9,7 +9,13 @@
  */
 
 export { ICON_CATEGORY_ORDER, type IconEntry, matchIcons } from './icons.js';
-export { isBooleanAxis, matchComponents } from './match.js';
+export {
+  CLOSEST_NOTE,
+  type ComponentSearch,
+  isBooleanAxis,
+  matchComponents,
+  searchComponents
+} from './match.js';
 export { extractSection, type LlmTxtSection } from './section.js';
 export type {
   ComponentCatalog,

@@ -108,7 +108,7 @@ for the knowledge every task needs (component selection, the token core, the ove
 | `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             | — (local only)              |
 | `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                | — (local only)              |
 | `urbicon primer`               | The always-needed bundle in one call: component selection, the token core, the override ladder.       | —                           |
-| `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog.                                            | `find_components`           |
+| `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog; says so when nothing matches.              | `find_components`           |
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    | `get_component`             |
 | `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                | `find_icons`                |
 | `urbicon recipe [id]`          | Complete Svelte 5 code recipes from the catalog.                                                      | `get_recipe`                |
