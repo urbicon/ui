@@ -23,11 +23,21 @@ export const drawerVariants = tv({
       'overflow-hidden z-[var(--z-modal)]',
       'shadow-[var(--blocks-shadow-lg)]'
     ],
+    // `items-start`: the title wraps, so the close control has to stay on its
+    // first line instead of drifting to the middle of a two-line title.
     header: [
-      'flex items-center justify-between px-5 py-4',
+      'flex items-start justify-between px-5 py-4',
       'border-b border-border-hairline flex-shrink-0'
     ],
-    title: ['text-base font-semibold text-text-primary truncate'],
+    // The title wraps — it is the one line the user must be able to read whole.
+    // `py-1` puts a one-line title at the close control's 32px height so their
+    // centres meet; those 32px are this slot's own 24px line box plus that
+    // padding, so the match follows the type scale and the close control's
+    // height rather than being a constant. Unlike Dialog there is no titleGroup
+    // between title and close control, so the title's own `min-w-0` +
+    // `break-words` carry both jobs: ablated at 390px, a word that does not fit
+    // pushes the close control off the panel without them.
+    title: ['text-base font-semibold text-text-primary py-1 min-w-0 break-words'],
     // Icon-only header close control (× dismiss). Rendered on the internal
     // CoreIconButton (behaviour-only base: inline-flex centring, cursor/select,
     // focus-visible reset, disabled inertness), so this slot carries the FULL

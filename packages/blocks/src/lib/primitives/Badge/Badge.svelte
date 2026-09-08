@@ -70,18 +70,45 @@
   // `interactive` axis: only an `onclick` badge answers Enter/Space, so only it
   // joins the tab order and is announced as a button. `purpose="chip"` /
   // `interactive` without a handler keep the interactive look (cursor, hover
-  // scale, mint) but stay a `status` region — a focus stop on which every key
-  // is dead helps nobody (#201). A removable badge's tab stop is its own ✕
-  // control; Delete/Backspace on the badge keep working there via bubbling.
-  // An explicit `role` always wins; a disabled badge is inert
-  // (pointer-events-none, guarded handlers) so it stays `status`.
+  // scale, mint) but no button role — a focus stop on which every key is dead
+  // helps nobody (#201). A removable badge's tab stop is its own ✕ control;
+  // Delete/Backspace on the badge keep working there via bubbling. A disabled
+  // badge is inert (pointer-events-none, guarded handlers), so it is never a
+  // button.
+  //
+  // A static badge takes its role from `purpose`. `role="status"` is a live
+  // region (implicit aria-live="polite"): right for a state marker and the dot
+  // indicator, wrong for a category tag, a count or a chip — none of those
+  // announces anything when it changes, so they render as a plain span, a label
+  // inside a link rather than a live region inside one. Without `purpose` the
+  // badge keeps `status`, and so does the deprecated `counter` boolean — that is
+  // the contract of the low-level props. An explicit `role` always wins.
   //
   // The root deliberately carries NO aria-label: the accessible name must be
   // the visible label (name-from-contents). The removable aria-label this
   // component used to set replaced it, so a screen reader heard "Removable
   // badge" and never the text the badge carries (#201). The ✕ names itself.
   const isActivatable = $derived(!!onclick && !disabled);
-  const effRole = $derived(role ?? (isActivatable ? 'button' : 'status'));
+  const effRole = $derived.by(() => {
+    if (role) return role;
+    if (isActivatable) return 'button';
+    switch (purpose) {
+      case 'tag':
+      case 'counter':
+      case 'chip':
+        return undefined;
+      default:
+        return 'status';
+    }
+  });
+
+  // `aria-disabled` is a widget-role attribute: of the roles here only
+  // `button` supports it, and a static `status` or role-less span supports it
+  // neither as `false` nor as `true`. So the root ships it only for a badge that
+  // has something to disable — a handler — and is disabled; a static badge with
+  // `disabled` keeps the look and carries no ARIA state. Unlike Button, a
+  // consumer's own `aria-disabled` overrides even the internal `true`, because
+  // `restProps` spreads after this attribute.
 
   const variantProps: BadgeVariants = $derived({
     tier: effectiveTier,
@@ -159,7 +186,7 @@
   onmouseleave={handleMouseLeave}
   onclick={handleClick}
   onkeydown={handleKeydown}
-  aria-disabled={disabled}
+  aria-disabled={disabled && onclick ? true : undefined}
   {...restProps}
 >
   {#if !isDot}

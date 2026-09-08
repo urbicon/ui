@@ -142,7 +142,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Members:** `Toast`, `Spinner`, `Progress`, `Skeleton`, `Badge`.
 
-**ARIA:** `role="alert"` / `role="status"` (Toast, Badge), `role="progressbar"` (Progress, Skeleton with implicit busy semantics). Spinner inherits `aria-busy` from its host.
+**ARIA:** `role="alert"` / `role="status"` (Toast; Badge for `purpose="status"`, the dot, and any Badge without a `purpose` — a tag, counter or chip Badge carries no role), `role="progressbar"` (Progress, Skeleton with implicit busy semantics). Spinner inherits `aria-busy` from its host.
 
 **Tier:** **Not tier-aware.** Feedback components have fixed geometry that does *not* react to `<TierContext>`. Rationale: a Toast pops over the page chrome and must keep its visual identity even if the host page is themed `tier="modify"`; a Spinner is a circular affordance that the user reads at-a-glance — flipping it to `modify` would defeat the affordance. Badge is the only edge case (the `tier` prop *is* exposed because a Badge inside a `<Toolbar tier="modify">` does want to flatten to `rounded-modify`), but the family-level rule remains: Feedback geometry is per-component, not per-context.
 

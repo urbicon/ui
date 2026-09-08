@@ -30,7 +30,9 @@ function render(props: Partial<BadgeProps> = {}) {
   flushSync();
 }
 
-const badge = () => screen.getByRole('status');
+// The root span, found structurally: the role it carries is itself under test
+// below, and a tag / counter / chip carries none.
+const badge = () => document.body.firstElementChild as HTMLElement;
 
 describe('Badge — purpose axis (BDG-1)', () => {
   it('reflects purpose on data-purpose', () => {
@@ -204,12 +206,31 @@ describe('Badge — remove & interaction', () => {
     const removeBtn = screen.getByRole('button', { name: 'Remove badge' }) as HTMLButtonElement;
     expect(removeBtn.disabled).toBe(true);
   });
+
+  // `aria-disabled` is supported on a widget role, and a static badge has none:
+  // absent, not "false", is the only spelling its role allows.
+  it('a static badge carries no aria-disabled attribute', () => {
+    render({ purpose: 'status', children: label('Active') });
+    expect(badge().hasAttribute('aria-disabled')).toBe(false);
+  });
+
+  it('a disabled chip still reports aria-disabled="true"', () => {
+    render({ purpose: 'chip', onclick: vi.fn(), disabled: true, children: label('React') });
+    expect(badge().getAttribute('aria-disabled')).toBe('true');
+  });
+
+  // Without a handler there is nothing to disable for assistive tech, and a
+  // `status` span supports the attribute neither as "true" nor as "false".
+  it('a disabled static badge keeps the look and carries no aria-disabled', () => {
+    render({ purpose: 'status', disabled: true, children: label('Suspended') });
+    expect(badge().hasAttribute('aria-disabled')).toBe(false);
+  });
 });
 
-// Fix 1 (a11y): an interactive badge must carry button semantics, not the
-// static `status` region — otherwise a focusable, Enter/Space-activatable chip
-// is announced as a passive status. `effRole` derives it: an explicit `role`
-// always wins; otherwise interactive-and-enabled → button, else status.
+// An interactive badge must carry button semantics, not a passive region —
+// otherwise a focusable, Enter/Space-activatable chip is announced as a status.
+// `effRole` derives it: an explicit `role` always wins; otherwise
+// interactive-and-enabled → button, else `purpose` decides (next block).
 describe('Badge — interactive role (a11y)', () => {
   it('an onclick badge is announced as a button, not a status region', () => {
     render({ onclick: vi.fn(), children: label('Filter') });
@@ -225,7 +246,7 @@ describe('Badge — interactive role (a11y)', () => {
     expect(screen.getByRole('button', { name: 'React' }).getAttribute('role')).toBe('button');
   });
 
-  it('a static (non-interactive) badge stays role="status"', () => {
+  it('a static badge without purpose stays role="status"', () => {
     render({ children: label('Active') });
     expect(screen.getByRole('status').getAttribute('role')).toBe('status');
     expect(screen.queryByRole('button')).toBeNull();
@@ -262,6 +283,52 @@ describe('Badge — interactive role (a11y)', () => {
     // old aria-label ("Removable badge") suppressed it entirely.
     const el = screen.getByRole('button', { name: /React/ });
     expect(el.getAttribute('aria-label')).toBeNull();
+  });
+});
+
+// A static badge's role follows `purpose`: `role="status"` is a polite live
+// region, which fits a state marker and the dot indicator but not a category,
+// a count or a chip — those render no role at all. No `purpose` keeps
+// `status`, and an explicit `role` wins over every derivation.
+describe('Badge — role from purpose', () => {
+  it('purpose="status" is a status region', () => {
+    render({ purpose: 'status', children: label('Active') });
+    expect(badge().getAttribute('role')).toBe('status');
+  });
+
+  it('purpose="tag" carries no role — a plain span, not a live region in a link', () => {
+    render({ purpose: 'tag', children: label('Noir') });
+    expect(badge().hasAttribute('role')).toBe(false);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('purpose="counter" carries no role', () => {
+    render({ purpose: 'counter', children: label('3') });
+    expect(badge().hasAttribute('role')).toBe(false);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('purpose="chip" without a handler carries no role; its ✕ is the only button', () => {
+    render({ purpose: 'chip', removable: true, onRemove: vi.fn(), children: label('React') });
+    expect(badge().hasAttribute('role')).toBe(false);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('a disabled chip with a handler is neither a button nor a status', () => {
+    render({ purpose: 'chip', onclick: vi.fn(), disabled: true, children: label('React') });
+    expect(badge().hasAttribute('role')).toBe(false);
+  });
+
+  it('purpose="dot" stays a status region', () => {
+    render({ purpose: 'dot' });
+    expect(badge().getAttribute('role')).toBe('status');
+  });
+
+  // `alert`, not `status`: no derivation ever produces it, so an implementation
+  // that ignored the prop and fell back to a default could not pass this.
+  it('an explicit role wins over the purpose default', () => {
+    render({ purpose: 'tag', role: 'alert', children: label('Noir') });
+    expect(badge().getAttribute('role')).toBe('alert');
   });
 });
 

@@ -132,6 +132,21 @@ describe('drawerVariants', () => {
     expect(bottom).toContain('[border-top-color:var(--drawer-accent)]');
   });
 
+  it('lets the title wrap and keeps the close control on its first line', () => {
+    const styles = drawerVariants();
+    expect(styles.title()).not.toContain('truncate');
+    expect(styles.header()).toContain('items-start');
+  });
+
+  // A wrapping title has no `overflow: hidden` to shrink it, and no titleGroup
+  // stands between title and close control here — so without this pair a word
+  // wider than the header pushes the close control out of the panel.
+  it('breaks a word too long for the header instead of widening it', () => {
+    const title = drawerVariants().title();
+    expect(title).toContain('min-w-0');
+    expect(title).toContain('break-words');
+  });
+
   it('never outputs dark: overrides', () => {
     const placements = ['left', 'right', 'top', 'bottom'] as const;
     for (const placement of placements) {

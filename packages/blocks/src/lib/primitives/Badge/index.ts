@@ -43,15 +43,23 @@ interface BadgeBaseProps
   preset?: string;
 
   /**
-   * ARIA role. A static badge is announced as `"status"`; a badge with an
-   * `onclick` handler (when not `disabled`) defaults to `"button"` so
-   * assistive tech announces its activation semantics. `purpose="chip"` or
-   * `interactive` alone change only the look — without a handler there is
-   * nothing to activate, so the badge stays a `"status"` outside the tab
-   * order. Set explicitly to override — e.g. `"alert"` for time-sensitive
-   * notifications. An explicit value always wins over the derived default.
+   * ARIA role. Derived from `purpose` when unset: `status` and `dot` render
+   * `"status"` — a polite live region, right for a state marker; `tag`,
+   * `counter` and `chip` render no role — a category, a count or a filter chip
+   * announces nothing when it changes, so it stays a plain `span`: a label
+   * inside a link rather than a live region inside one. A badge with an
+   * `onclick` handler (when not `disabled`) is a `"button"` whatever its
+   * purpose, so assistive tech announces its activation semantics;
+   * `purpose="chip"` or `interactive` alone change only the look — without a
+   * handler there is nothing to activate, so no button is announced and the
+   * badge stays outside the tab order. Without `purpose` a static badge keeps
+   * `"status"`, and so does the deprecated `counter` boolean. Set explicitly to
+   * override: `"status"` for a count that must be announced when it changes,
+   * `"alert"` for a time-sensitive notification. An explicit value always wins
+   * over the derived default.
+   * @summary Announced role; follows purpose (status for a state marker, none for a tag or count) unless set.
    */
-  role?: 'status' | 'alert' | 'badge' | 'button';
+  role?: 'status' | 'alert' | 'button';
   /**
    * Micro-interaction preset applied to the badge. Only applies while
    * interactive (`purpose="chip"`, `interactive`, or `onclick`) and not
@@ -120,7 +128,7 @@ interface BadgeStandardProps extends BadgeBaseProps {
    * For a pure indicator use `purpose="dot"` (its own arm — it forbids
    * content / counter / remove). Leave unset to drive the badge purely by the
    * low-level props (back-compat); when set, `purpose` wins over the `counter`
-   * boolean.
+   * boolean and picks the default `role` (see there).
    */
   purpose?: 'status' | 'tag' | 'counter' | 'chip';
   /** Visual variant. `dot` renders a pure indicator (content hidden); the label variants accept the full surface. @default 'filled' */
@@ -129,6 +137,11 @@ interface BadgeStandardProps extends BadgeBaseProps {
   children?: Snippet;
   /**
    * Display as a compact pill for numeric counts (tightens padding, tabular-nums).
+   * Keeps the pre-`purpose` ARIA default with the rest of the low-level props: a
+   * badge driven by this boolean stays a `"status"` live region, where
+   * `purpose="counter"` carries no role. A count that must be announced when it
+   * changes sets `role="status"` explicitly.
+   * @summary Compact numeric pill for counts. Unlike purpose="counter", a badge driven by this boolean stays a status region.
    * @deprecated Prefer `purpose="counter"` — the canonical semantic axis. Kept for back-compat.
    */
   counter?: boolean;
@@ -156,9 +169,12 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * at the type level, while the label arms (`filled` / `outlined` / `soft`;
  * `purpose` `status` / `tag` / `counter` / `chip`) accept the full surface.
  * A badge with an `onclick` handler is announced as a `button` and joins the
- * tab order; a static one — including a chip without a handler — stays a
- * `status` (override via `role`). Its accessible name is always the visible
- * label; a removable badge's ✕ control names itself ("Remove badge").
+ * tab order. A static one takes its role from `purpose`: `status` and `dot`
+ * are a `status` live region; `tag`, `counter` and `chip` carry no role and
+ * render a plain span, so a tag inside a link is a label and not a live region;
+ * without `purpose` it stays a `status`. Override via `role`. Its accessible
+ * name is always the visible label; a removable badge's ✕ control names itself
+ * ("Remove badge").
  *
  * @tag feedback
  * @related Alert

@@ -93,6 +93,24 @@ describe('dialogVariants', () => {
     }
   });
 
+  it('lets the title wrap and keeps icon and close control on its first line', () => {
+    const styles = dialogVariants();
+    expect(styles.title()).not.toContain('truncate');
+    expect(styles.header()).toContain('items-start');
+    expect(styles.titleGroup()).toContain('items-start');
+  });
+
+  // A wrapping title has no `overflow: hidden` to shrink it. Two different
+  // slots answer that: the title's `min-w-0` + `break-words` break the word
+  // inside the title's own box, while the close button's place on the panel is
+  // the titleGroup's `min-w-0` — dropping that one sends it off the panel.
+  it('breaks a word too long for the header instead of widening it', () => {
+    const styles = dialogVariants();
+    expect(styles.title()).toContain('min-w-0');
+    expect(styles.title()).toContain('break-words');
+    expect(styles.titleGroup()).toContain('min-w-0');
+  });
+
   it('content slot has overflow handling', () => {
     const content = dialogVariants().content();
     expect(content).toContain('overflow-y-auto');

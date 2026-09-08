@@ -311,6 +311,35 @@ describe('Select (accessible naming)', () => {
   });
 });
 
+// The trigger is a <button>, whose UA stylesheet centres text. Value and
+// placeholder render in different spans, so the placeholder has to carry the
+// value's alignment — or a row of Selects re-aligns on every first choice.
+describe('Select (trigger text alignment)', () => {
+  const triggerSpan = () => trigger().querySelector('span') as HTMLSpanElement;
+  const classes = (el: Element) => el.className.split(/\s+/).filter(Boolean);
+
+  it('aligns the placeholder and a selected value on the same edge', () => {
+    renderSelect({ options: OPTIONS, placeholder: 'Pick a country' });
+    const placeholder = triggerSpan();
+    expect(placeholder.textContent?.trim()).toBe('Pick a country');
+    const placeholderClasses = classes(placeholder);
+
+    dispose?.();
+    dispose = undefined;
+    document.body.replaceChildren();
+
+    renderSelect({ options: OPTIONS, value: 'fr' });
+    const value = triggerSpan();
+    expect(value.textContent?.trim()).toBe('France');
+    const valueClasses = classes(value);
+
+    expect(valueClasses).toContain('text-left');
+    expect(placeholderClasses).toContain('text-left');
+    // The placeholder is the value's class list plus its tone, nothing less.
+    expect(placeholderClasses).toEqual(expect.arrayContaining(valueClasses));
+  });
+});
+
 // ── Grouped options: cross-boundary keyboard nav + stable {#each} key ──────────
 // groups flatten into one keyboard-navigable list; the virtual cursor crosses
 // group boundaries seamlessly, and each option's flat index is resolved through
