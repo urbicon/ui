@@ -109,11 +109,21 @@ Commands — knowledge (what to build with):
                         component APIs stay on demand — they are task-dependent.
   find [query]          Discover components by fuzzy search over the version-pinned
                         catalog (names, tags, descriptions, summaries, prop docs,
-                        variant values). No query lists all.
+                        variant values). No query lists all. A hit needs a whole,
+                        distinctive query word, or two ordinary ones meeting on one
+                        component — so a query built only from generic words can
+                        still land, widely. When none lands, find says no components
+                        match;
+                        near misses are named whenever they scored — including
+                        beside the matches, when one of them outranks the lot.
                         --tag <t>          Filter by category tag (form, action, …).
                         --limit <n>        Max results (default 10; also caps a full list).
                         --json             Machine-readable catalog entries (prop docs
-                                           omitted — get-component has them).
+                                           omitted — get-component has them). When
+                                           there are matches, the weak near misses
+                                           follow them flagged "weak": true; a
+                                           query that matched nothing prints []
+                                           even when the text surface lists them.
   get-component <slug…> Print a component's API (its llm.txt) from the bundle.
                         Takes several slugs — one call for a whole screen's worth.
                         --section <s>      overview | examples | variants | api | slots |
