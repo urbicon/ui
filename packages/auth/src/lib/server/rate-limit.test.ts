@@ -1,5 +1,7 @@
+import type { RequestEvent } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
+import { createLoginHandler } from './handlers/login.js';
 import {
   createInMemoryRateLimitStore,
   createRateLimiter,
@@ -10,6 +12,8 @@ import {
   type RateLimitStore,
   sharedLimiter
 } from './rate-limit.js';
+import { resetRateLimiters } from './secret-registry.js';
+import { createMockAuthDeps, mockPostEvent } from './test-utils.js';
 
 describe('makeRateLimiter', () => {
   it('returns null when no config is provided', () => {
@@ -343,16 +347,40 @@ describe('sharedLimiter', () => {
   });
 
   // The in-memory store starts one cleanup `setInterval` per store, so the
-  // timer count is the store count.
-  it('builds one in-memory store per (secret, key, values) for the process', () => {
+  // timer count is the store count; a store is built on the first check.
+  it('builds one in-memory store per (secret, key, values) for the process', async () => {
     vi.useFakeTimers();
     try {
-      sharedLimiter(config(), 'login');
-      sharedLimiter(config(), 'login');
+      const a = sharedLimiter(config(), 'login');
+      const b = sharedLimiter(config(), 'login');
+      await a?.check('ip');
+      await b?.check('ip');
       expect(vi.getTimerCount()).toBe(1);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // A handler factory captures its limiter once (`const rateLimiter =
+  // sharedLimiter(…)`), so the reset has to reach a limiter handed out before
+  // it — a test file building its handlers at the top would otherwise reset
+  // nothing and never notice.
+  it('resetRateLimiters reaches a handler built before the reset', async () => {
+    const deps = createMockAuthDeps({
+      config: { rateLimit: { login: { windowMs: 60_000, max: 1 } } },
+      user: { findByEmail: vi.fn().mockResolvedValue(null) }
+    });
+    const login = createLoginHandler(deps);
+    const post = async () =>
+      (
+        await login.POST(
+          mockPostEvent({ email: 'a@b.test', password: 'wrong' }) as unknown as RequestEvent
+        )
+      ).status;
+    expect(await post()).toBe(401);
+    expect(await post()).toBe(429);
+    resetRateLimiters();
+    expect(await post()).toBe(401);
   });
 
   it('applies the secure default for an unconfigured key', async () => {

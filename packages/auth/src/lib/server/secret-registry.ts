@@ -11,7 +11,9 @@ import type { RateLimiter } from './rate-limit.js';
 // pinned in the module registry before any `vi.mock` in the file under test
 // runs — an import of `rate-limit.ts` here would pin `handlers/errors.ts`,
 // `@sveltejs/kit` and the i18n bundle with it, and a test mocking one of those
-// would see the real module. (`import type` is erased.)
+// would see the real module. `setup-file-imports.test.ts` is the control: it
+// goes red the day this module or the setup file gains an import.
+// (`import type` is erased.)
 
 /**
  * The one check every reader of `jwt.secret` runs: `assertJwtConfigValid` at
@@ -56,21 +58,45 @@ export function fingerprint(secret: string): string {
 // ── rate-limit counters ──────────────────────────────────────────────────────
 // What the key is made of, and why only the in-memory default is registered:
 // the block above `sharedLimiter` in rate-limit.ts.
+//
+// Two maps. `limiters` holds the entries with the counters and is what a reset
+// empties. `wrappers` holds one stable `RateLimiter` per key that reads the
+// current entry on every call and rebuilds it after a reset — a handler
+// factory captures its limiter once (`const rateLimiter = sharedLimiter(…)`),
+// so a reset that replaced the object a holder keeps would reach no handler
+// built before it. Never cleared; its size is bounded like `limiters`, by the
+// distinct keys the process has built.
 const limiters = new Map<string, RateLimiter>();
+const wrappers = new Map<string, RateLimiter>();
 
-/** The limiter registered under `key`, built by `build` on first sight. */
+/**
+ * The stable limiter for `key`. Its entry is built by `build` on the first
+ * call that needs it — the first `check`, and the first after a reset.
+ */
 export function limiterFor(key: string, build: () => RateLimiter): RateLimiter {
-  let limiter = limiters.get(key);
-  if (!limiter) {
-    limiter = build();
-    limiters.set(key, limiter);
-  }
-  return limiter;
+  const known = wrappers.get(key);
+  if (known) return known;
+  const current = (): RateLimiter => {
+    let limiter = limiters.get(key);
+    if (!limiter) {
+      limiter = build();
+      limiters.set(key, limiter);
+    }
+    return limiter;
+  };
+  const wrapper: RateLimiter = {
+    check: (identifier) => current().check(identifier),
+    refund: (identifier, amount) => current().refund(identifier, amount),
+    reset: (identifier) => current().reset(identifier)
+  };
+  wrappers.set(key, wrapper);
+  return wrapper;
 }
 
 /**
- * Empty the process-wide rate-limit registry: every in-memory limiter is
- * rebuilt, with a fresh store, the next time a handler factory asks for it.
+ * Empty the process-wide rate-limit counters: every in-memory limiter starts
+ * over, with a fresh store, on its next check — every handler's, whenever the
+ * handler was built.
  *
  * For test suites that build real handlers from a literal secret. The
  * counters are per secret and per process, not per config object, so without

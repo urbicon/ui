@@ -455,10 +455,10 @@ The wiring is four files: deps → `hooks.server.ts` (`createAuthHandle`) → on
 The counters are per secret and per process, not per config object, so a test file
 that builds real handlers from one literal secret spends one budget across its
 tests: a `max: 1` test meets the counter a sibling already moved to 1, and a `429`
-is spent before the test that expects it. Two ways out. Reset the registry before
-each test — `resetRateLimiters()` rebuilds every in-memory limiter, with a fresh
-store, the next time a handler factory asks for it — from a setup file or the top
-of the test file:
+is spent before the test that expects it. Two ways out. Reset the counters before
+each test — `resetRateLimiters()` starts every in-memory limiter over with a fresh
+store, for every handler, whenever it was built — from a setup file or the top of
+the test file:
 
 <!-- typecheck -->
 ```ts

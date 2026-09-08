@@ -145,7 +145,9 @@ export function makeRateLimiter(config: RateLimitConfig | undefined): RateLimite
 
 // One in-memory limiter per (`jwt.secret` fingerprint, rate-limit key,
 // resolved `windowMs`, resolved `max`), for the whole process, registered in
-// `secret-registry.ts`. Keyed on the secret rather than on the config object
+// `secret-registry.ts` — which hands out one stable wrapper per key, so that
+// `resetRateLimiters` reaches a handler built before the reset (a factory
+// captures its limiter once). Keyed on the secret rather than on the config object
 // so that every bundle a consumer builds for one secret — `createAuthDeps` per
 // request included — reads the same counter and the same in-memory store: one
 // cleanup `setInterval` per key, not one per call. Two factories reading one
@@ -190,7 +192,12 @@ export function sharedLimiter<R extends string>(
   const limit = rateLimitFor(config, key);
   if (!limit) return null;
   if (limit.store) return createRateLimiter(limit);
-  return limiterFor(`${fingerprint(secret)}|${key}|${limit.windowMs}|${limit.max}`, () =>
+  // Every value field of `RateLimitConfig` belongs in the key, and the
+  // compiler keeps it so: a field added to the type lands in `rest`, which no
+  // longer assigns to `never` until the key below carries it.
+  const { windowMs, max, store: _store, ...rest } = limit;
+  const _exhaustive: Record<string, never> = rest;
+  return limiterFor(`${fingerprint(secret)}|${key}|${windowMs}|${max}`, () =>
     createRateLimiter(limit)
   );
 }

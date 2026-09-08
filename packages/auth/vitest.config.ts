@@ -30,7 +30,7 @@ export default mergeConfig(
       // it may import only `secret-registry.ts`, which imports nothing at
       // runtime — through `rate-limit.ts` it would pin `handlers/errors.ts`,
       // Kit and the i18n bundle, and a test mocking one of those would get the
-      // real module.
+      // real module. `setup-file-imports.test.ts` is the control for both.
       setupFiles: ['../blocks/vitest-setup.ts', './vitest-setup.ts']
     },
     // Component tests mount real components, which needs the browser build of
