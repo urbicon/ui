@@ -198,7 +198,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
   intents: {
     exemplar: 'primary',
     roles: [
-      { suffix: 'base', role: 'the FILL — a surface with text-on-fill sitting on it; never a text colour (variants-lint errors on a text-<intent> class)' },
+      { suffix: 'base', role: 'the FILL — a surface with text-on-fill sitting on it; never a text colour' },
       { suffix: 'hover', role: 'the hover step of the fill' },
       { suffix: 'active', role: 'the pressed step of the fill' },
       { suffix: 'subtle', role: 'a soft tinted ground in the intent\'s hue — an Alert\'s background, a selected row' },

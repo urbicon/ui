@@ -299,7 +299,7 @@
      (rose/own-subtle) — zero headroom, held by the gate; if a rose retune
      ever trips it, the stop moves to -300, not the bar. */
   /* @role the FILL — a surface with text-on-fill sitting on it; never a text
-     colour (variants-lint errors on a text-<intent> class) */
+     colour */
   --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
   /* @role the hover step of the fill */
   --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
