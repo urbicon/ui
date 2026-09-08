@@ -139,7 +139,9 @@ jobs:
       - run: bun packages/design/dist/cli.js validate apps/docs/src --craft-floor 70
       # Type-checks every @example block in every *Props JSDoc. Those snippets
       # are served to the MCP catalogue, llm.txt and the docs site at once, so a
-      # wrong one is wrong in three places.
+      # wrong one is wrong in three places. The same run compiles the svelte
+      # fences of design-system/patterns/*.md, which `urbicon pattern` serves
+      # verbatim and nothing else compiles.
       - run: bun run examples:lint
       # Compiles the opted-in `ts` fences of the shipped Markdown docs (package
       # READMEs, the six tarball docs) with tsc, resolved through the published
@@ -168,6 +170,14 @@ jobs:
       # `@source` lines on the unpacked copies and expects that finding back
       # by class and file. Without this the gate is green for any reason.
       - run: bun test scripts/consumer-css-check.test.ts
+      # End-to-end control for the pattern corpus of `examples:lint` (the gate
+      # itself runs in `gates`): drives the real script over a fixture corpus and
+      # expects the red case back at its document line. Every way that corpus can
+      # go missing — never reaching the host package, a svelte-check that dies
+      # before reading it — prints the same "type-checks" line otherwise. Its own
+      # step because it costs a full gate run per case; the cheap half (fence
+      # extraction, line mapping) is in the docs-gen vitest suite below.
+      - run: bun test packages/docs-gen/scripts/examples-lint.test.ts
       - run: bun --filter='@urbicon-ui/blocks' run test:run
       - run: bun --filter='@urbicon-ui/i18n' run test:run
       - run: bun --filter='@urbicon-ui/docs-gen' run test

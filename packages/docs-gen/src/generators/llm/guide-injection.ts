@@ -174,6 +174,13 @@ export function closesFence(line: string, open: FenceDelimiter): boolean {
   return d !== null && d.char === open.char && d.length >= open.length && d.info === '';
 }
 
+/** CommonMark: a fence's content is de-indented by up to the opener's indentation. */
+export function dedentFenceLine(line: string, indent: number): string {
+  let n = 0;
+  while (n < indent && (line[n] === ' ' || line[n] === '\t')) n++;
+  return line.slice(n);
+}
+
 /**
  * Line-by-line fence state for one pass over a document: the returned function
  * answers whether the line it is fed is fenced — a delimiter or the code
