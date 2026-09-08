@@ -4,7 +4,7 @@ Small, focused SvelteKit helpers that Urbicon apps share. Zero runtime dependenc
 
 Currently shipping:
 
-- **URL-state runes** — reactive `useUrlParam` / `useUrlArrayParam` that keep component state in sync with `?query=` parameters
+- **URL-state runes** — reactive `useUrlParam` / `useUrlArrayParam` that keep component state in sync with `?query=` parameters, and `withSearchParams` for the links that change them
 - **Table view ↔ URL** — `bindViewToUrl`, the URL home for a `@urbicon-ui/table` view object (`?q=…&sort=…&page=…`), plus the pure serializers for the load path
 - **Cron runner** — interval-based background fetcher for scheduled server endpoints
 - **SSE stream reader** — `streamSse`, a spec-correct async-generator client for one-shot POST `text/event-stream` endpoints (LLM relays)
@@ -53,9 +53,57 @@ import { updateUrlSearchParams } from '@urbicon-ui/sveltekit-utils/url.svelte';
 updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 ```
 
+A link needs an address, not a setter. `withSearchParams(url, patch)` is the pure core that `updateUrlSearchParams` and `createUrlParam`'s setter navigate to: the address `url` has after `patch` — a scalar `set`s its key, an array `append`s each element, `null` removes the key, every other param stays as it is. An empty string is a value and keeps its key (`?a=`); an empty array appends nothing and so removes it. It reads nothing from the page and navigates nowhere, so the same call builds a link's `href` and a redirect's location.
+
+<!-- typecheck -->
+```typescript
+import { withSearchParams } from '@urbicon-ui/sveltekit-utils/search-params';
+
+const url = new URL('https://films.test/archive?sort=title&page=3');
+
+withSearchParams(url, { sort: 'year' }); // '/archive?page=3&sort=year'
+withSearchParams(url, { tag: ['noir', 'silent'] }); // '/archive?sort=title&page=3&tag=noir&tag=silent'
+withSearchParams(url, { sort: null, page: null }); // '/archive'
+```
+
+`./search-params` is the import path that reaches no `$app/*` module, so a `load`, a form action or a plain test can use it; importing `withSearchParams` from `./url.svelte` (or from the package root) is the same function, but pulls SvelteKit's client runtime along:
+
+<!-- typecheck -->
+```typescript
+// src/routes/archive/+page.server.ts
+import { withSearchParams } from '@urbicon-ui/sveltekit-utils/search-params';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = ({ url }) => {
+  const current = Number(url.searchParams.get('page') ?? '1');
+  return {
+    // Page 1 is the default, so its link carries no `page` at all.
+    prevHref: withSearchParams(url, { page: current > 2 ? String(current - 1) : null }),
+    nextHref: withSearchParams(url, { page: String(current + 1) })
+  };
+};
+```
+
+In a component the URL to start from is `page.url`, and the result is the `href`:
+
+```svelte
+<script lang="ts">
+  import { page } from '$app/state';
+  import { withSearchParams } from '@urbicon-ui/sveltekit-utils/url.svelte';
+</script>
+
+<a href={withSearchParams(page.url, { sort: 'year', page: null })}>Sort by year</a>
+```
+
+Not on a prerendered page: SvelteKit makes `url.searchParams` throw there — the emitted HTML must not depend on a query string that will not exist at request time — and `withSearchParams` reads it. `useUrlParam` guards that case for you by yielding its `initial` while `building`; a link on such a page has to be built after hydration, or from a `URL` you construct rather than the page's.
+
+Link or binding: an `href` from `withSearchParams` where the reader picks a destination — a sort header, a pagination step, a filter chip — and the address should exist before the click, so it can be hovered, middle-clicked and crawled; `useUrlParam` where a control owns a value that keeps changing — a search box, a slider — and the URL follows it.
+
 **Design notes**
 
 - URL updates use `goto()` with `replaceState: true`, `noScroll: true`, `keepFocus: true` — suited for filter/pagination UIs, not full page transitions.
+- `updateUrlSearchParams` and `createUrlParam`'s setter hand `goto` the pathname-qualified address `withSearchParams` returns, never a bare `?query`. `goto` resolves a relative target against `document.baseURI`, which equals the page's own URL only while the document carries no `<base href>` — with one, `?page=2` keeps the base's path, not the page's.
+- `bindViewToUrl` is a third URL writer and does **not** go through `withSearchParams`: it merges the view axes itself and carries the URL hash across, where `withSearchParams` drops it. Do not read one policy off the other.
 - `useUrlParam` returns getters (not Svelte stores) so consumers can read the value lazily inside `$derived`/`$effect`.
 
 ## Table View ↔ URL (`url.svelte` + `table-view`)
@@ -228,15 +276,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
 ## Exports
 
-| Subpath         | Contents                                                                                                                                           |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.`             | Barrel of all modules                                                                                                                              |
-| `./url.svelte`  | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `bindViewToUrl`, types                                               |
-| `./table-view`  | `searchParamsToViewSnapshot`, `searchParamsToViewPartial`, `viewSnapshotToSearchParams`, `applyViewToSearchParams`, `assertValidViewSnapshot`, `viewAxesNamedBy`, `viewAxisKeys`, `TABLE_VIEW_AXES`, `TABLE_VIEW_FILTER_OPERATORS`, `TableViewLike`, types |
-| `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                    |
-| `./sse`         | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                     |
+| Subpath           | Contents                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.`               | Barrel of all modules                                                                                                                            |
+| `./url.svelte`    | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `bindViewToUrl`, types (re-exports `withSearchParams`)             |
+| `./search-params` | `withSearchParams`, `SearchParamsPatch` — no `$app/*` import                                                                                     |
+| `./table-view`    | `searchParamsToViewSnapshot`, `searchParamsToViewPartial`, `viewSnapshotToSearchParams`, `applyViewToSearchParams`, `assertValidViewSnapshot`, `viewAxesNamedBy`, `viewAxisKeys`, `TABLE_VIEW_AXES`, `TABLE_VIEW_FILTER_OPERATORS`, `TableViewLike`, types |
+| `./cron`          | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                  |
+| `./sse`           | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                   |
 
-`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./table-view` is SvelteKit-free (it touches no `$app/*`), which is what lets a `load` function and a plain test use it; `./url.svelte` is the half that needs the router.
+`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./search-params` and `./table-view` are SvelteKit-free (they touch no `$app/*`), which is what lets a `load` function and a plain test use them; `./url.svelte` is the half that needs the router — importing it from server code pulls SvelteKit's client runtime in, which is why `withSearchParams` has a subpath of its own as well as the re-export.
 
 ## Development
 

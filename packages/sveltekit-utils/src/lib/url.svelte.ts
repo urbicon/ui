@@ -1,6 +1,13 @@
 import { building } from '$app/environment';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
+import { type SearchParamsPatch, withSearchParams } from './search-params';
+
+// The pure core of the two writers below, re-exported so this import path
+// carries it next to them. Its own module — and its own `./search-params`
+// subpath — because it must stay free of `$app`: importing this one pulls
+// SvelteKit's client runtime, which a `load` or a form action must not.
+export { type SearchParamsPatch, withSearchParams } from './search-params';
 
 // The v8 view-object binding lives in its own module; re-exported here so the
 // documented import path (`@urbicon-ui/sveltekit-utils/url.svelte`) carries it.
@@ -45,50 +52,31 @@ export type UrlParamOptions<T> = {
 
 /**
  * Low-level escape hatch to update several params at once via `goto` (without a
- * full navigation). Starts from the current URL, applies `next`, and keeps
- * every unrelated param.
- *
- * Merge semantics per key in `next`: the key is first cleared, then re-applied
- * — a `URLSearchParams` re-appends all of its entries (repeated keys survive),
- * a record `set`s a scalar, `append`s each array element, and **removes** the
- * key entirely for a `null`/`undefined` value.
+ * full navigation). Navigates to the address {@link withSearchParams} builds
+ * from the current URL and `next`, so every unrelated param is kept; the merge
+ * semantics per key are documented there.
  *
  * @param next - Params to apply, as `URLSearchParams` or a plain record. A
  *   record value of `null`/`undefined` deletes that key.
  * @param opts - `replaceState` (default `true`) — replace vs. push history.
  * @example
  * ```typescript
+ * // on /films?filter=old
  * updateUrlSearchParams({ page: '1', tag: ['a', 'b'], filter: null });
- * // ?page=1&tag=a&tag=b   (any prior `filter` param is dropped)
+ * // navigates to /films?page=1&tag=a&tag=b   (the prior `filter` param is dropped)
  * ```
  */
-// Local imperative use of URLSearchParams — not reactive state — so the
-// SvelteURLSearchParams wrapper is unnecessary here. Likewise for `goto`:
-// we pass constructed relative paths, not resolved route ids; callers of
-// this helper are free to call `resolve()` at their composition point.
-export function updateUrlSearchParams(
-  next: URLSearchParams | Record<string, string | string[]>,
-  opts?: { replaceState?: boolean }
-) {
-  const base = new URLSearchParams(page.url.searchParams);
-
-  if (next instanceof URLSearchParams) {
-    for (const [k] of next) base.delete(k);
-    for (const [k, v] of next) base.append(k, v);
-  } else {
-    for (const [key, val] of Object.entries(next)) {
-      base.delete(key);
-      if (Array.isArray(val)) {
-        for (const v of val) base.append(key, v);
-      } else if (val != null) {
-        base.set(key, String(val));
-      }
-    }
-  }
-
-  const q = base.toString();
-  const path = page.url.pathname;
-  goto(q ? `${path}?${q}` : path, {
+// This writer and `createUrlParam`'s setter hand `goto` the pathname-qualified
+// address, never a bare `?query`: `goto` resolves a relative target against
+// `document.baseURI` (`@sveltejs/kit/src/runtime/client/utils.js` `resolve_url`,
+// which falls back to the first `<base>` tag), so with a `<base href>` in the
+// document `?page=2` keeps the base's path, not the page's. No harness can
+// separate the two spellings by outcome — both resolve against `page.url` there
+// — so `url.test.ts` pins the string `goto` was handed instead.
+// The address is not a route id either, so no `resolve()` here; callers are
+// free to call it at their composition point.
+export function updateUrlSearchParams(next: SearchParamsPatch, opts?: { replaceState?: boolean }) {
+  goto(withSearchParams(page.url, next), {
     replaceState: opts?.replaceState ?? true,
     noScroll: true,
     keepFocus: true
@@ -103,8 +91,8 @@ export function updateUrlSearchParams(
  * page URL (tests, a server `load`).
  *
  * `set` rewrites only the keys that `options.serialize` produces (clear +
- * re-append) and preserves the rest, then navigates with `goto`
- * (`replaceState`, `noScroll`, `keepFocus`).
+ * re-append) and preserves the rest, then navigates with `goto` to the address
+ * {@link withSearchParams} builds (`replaceState`, `noScroll`, `keepFocus`).
  *
  * @param _key - Ignored — `options.parse`/`options.serialize` already close
  *   over the key (see {@link useUrlArrayParam}); kept only for signature parity
@@ -118,12 +106,7 @@ export function updateUrlSearchParams(
 export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
   const get = (sp: URLSearchParams) => options.parse(sp) ?? options.initial;
   function setValue(next: T) {
-    const current = new URLSearchParams(page.url.searchParams);
-    const nextSp = options.serialize(next);
-    for (const [k] of nextSp) current.delete(k);
-    for (const [k, v] of nextSp) current.append(k, v);
-    const q = current.toString();
-    goto(q ? `?${q}` : page.url.pathname, {
+    goto(withSearchParams(page.url, options.serialize(next)), {
       replaceState: options.replaceState ?? true,
       noScroll: true,
       keepFocus: true
