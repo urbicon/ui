@@ -11,6 +11,68 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.20.0
+
+### `Badge` announces a role only where it has one
+
+A static `Badge` derived `role="status"` whatever it was for, so a category tag or a counter
+was a polite live region. The default now follows `purpose`: `status` and `dot` keep
+`role="status"`; `tag`, `counter` and `chip` render a plain `<span>` with no role. A badge
+with an `onclick` is still a `button`, an explicit `role` still wins, and a badge without
+`purpose` — including one driven by the deprecated `counter` boolean — keeps `status`.
+
+```svelte
+<!-- before: role="status" -->
+<Badge purpose="tag">Noir</Badge>
+```
+
+```svelte
+<!-- after: no role — a label, not a live region -->
+<Badge purpose="tag">Noir</Badge>
+<!-- a count that must be announced on change says so -->
+<Badge purpose="counter" role="status">{unread}</Badge>
+```
+
+**Nothing reports the change** — grep your tests and page objects for `getByRole('status')`
+where the target is a tag, counter or chip badge, and reach it by text or test id instead.
+`aria-disabled` also left the static badge: it ships only on a disabled badge that has a
+handler.
+
+### `Badge`'s `role` no longer accepts `"badge"`
+
+`"badge"` is not an ARIA role and mapped to nothing. `role?: 'status' | 'alert' | 'button'`
+now — a call site passing `role="badge"` fails to type-check; drop the prop or pass
+`"status"`.
+
+### `<PaginationItem href>` is the anchor itself
+
+The link form used to wrap a `<Button>` inside its `<a>` — interactive content in an anchor.
+It now renders the `<a>` with `buttonVariants()` and its label in the `content` span, nothing
+interactive inside. What that costs: a `<BlocksProvider defaults={{ Button: … }}>` rule
+reached the link form through that inner Button and reaches it no longer. There is no app-wide
+provider route to the link form — `Pagination` renders no linked items, and `PaginationItem`
+has no provider name of its own.
+
+```svelte
+<!-- before: defaults.Button.slotClasses.base reached this anchor's button -->
+<PaginationItem href="/page/2" page={2} />
+```
+
+```svelte
+<!-- after: the anchor takes class per instance … -->
+<PaginationItem href="/page/2" page={2} class="font-mono" />
+
+<!-- … or a stylesheet rule on the intent hook it carries -->
+<style>
+  :global(a.blocks-intent-primary[aria-current='page']) {
+    text-decoration: underline;
+  }
+</style>
+```
+
+`<BlocksProvider unstyled>` still strips both forms. **Nothing reports the change** — grep for
+`PaginationItem` call sites with `href` under a provider that themes `Button`.
+
 ## 8.18.0
 
 ### `Button` keeps the width its `class` declares
