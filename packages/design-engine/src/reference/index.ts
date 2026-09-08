@@ -36,6 +36,8 @@ export {
   type IntentNote,
   type IntentRole,
   type IntentStops,
+  intentTokenCore,
+  intentUtilities,
   type ModeValues,
   modeInvariant,
   renderFamilyTable,
