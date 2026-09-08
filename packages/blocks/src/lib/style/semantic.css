@@ -298,7 +298,7 @@
      primary's dark stop lands at exactly 4.50 in the worst case
      (rose/own-subtle) — zero headroom, held by the gate; if a rose retune
      ever trips it, the stop moves to -300, not the bar. */
-  /* @role the FILL — a surface with text-on-fill sitting on it; never a text
+  /* @role the fill — a surface with text-on-fill sitting on it; never a text
      colour */
   --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
   /* @role the hover step of the fill */
@@ -308,11 +308,11 @@
   /* @role a soft tinted ground in the intent's hue — an Alert's background, a
      selected row */
   --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
-  /* @role the intent as TEXT on a reading surface — the nearest stop that
+  /* @role the intent as text on a reading surface — the nearest stop that
      clears AA 4.5:1 on every reading surface and the intent's own -subtle */
   --color-primary-text: light-dark(var(--color-primary-700), var(--color-primary-400));
   /* @role the near-ink tier — strong statements as text, and doubles as a
-     fill; the Radix steps 11/12 split with -text */
+     fill */
   --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
 
   /* === SECONDARY INTENT === */
@@ -391,7 +391,7 @@
      needs -300: sRGB red is so dim that even -400 misses on the lightened
      elevated/subtle panels (4.25 at worst).
 
-     @role the light stop is the base stop, red already reads on paper; dark
+     @role the light stop is the fill's stop, red already reads on paper; dark
      needs -300 because sRGB red is too dim on the lightened panels at -400 */
   --color-danger-text: light-dark(var(--color-danger-500), var(--color-danger-300));
   --color-danger-emphasis: light-dark(var(--color-danger-800), var(--color-danger-200));

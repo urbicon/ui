@@ -187,7 +187,7 @@ export const intentTokenCore = (intent: string, suffix: string): string =>
  * role is for: `bg-` for the fill steps, `text-` for `-text`, both for
  * `-emphasis`, which doubles as a fill.
  */
-export function intentUtilities(suffix: string, intent = '<intent>'): readonly string[] {
+export function intentUtilities(intent: string, suffix: string): readonly string[] {
   const core = intentTokenCore(intent, suffix);
   if (suffix === 'text') return [`text-${core}`];
   if (suffix === 'emphasis') return [`bg-${core}`, `text-${core}`];
@@ -199,6 +199,7 @@ export function renderIntentRoles(): string {
   const rows = SEMANTIC_TOKENS.intents.roles.map(
     (r) =>
       `| ${suffixLabel(r.suffix)} | \`--color-${intentTokenCore('<intent>', r.suffix)}\` | ${intentUtilities(
+        '<intent>',
         r.suffix
       )
         .map((u) => `\`${u}\``)

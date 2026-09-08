@@ -189,7 +189,7 @@
     return {
       ...role,
       core: intentTokenCore(exemplar, role.suffix),
-      utilities: intentUtilities(role.suffix, exemplar).join(' / '),
+      utilities: intentUtilities(exemplar, role.suffix),
       light: formatStop(stop.light),
       dark: formatStop(stop.dark)
     };
@@ -359,17 +359,21 @@
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Intent Roles</h3>
     <p class="text-text-secondary mb-4">
-      Every intent ships the same six roles, listed below for primary. Solid things (a button, a
-      badge, a progress bar) take the base fill, <code
-        class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary</code
-      >, with
+      Every intent ships the same {roles.length} roles, listed below for {exemplar}. Solid things (a
+      button, a badge, a progress bar) take the base fill,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary</code>, with
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-text-on-fill</code>
-      as the label on it. Text in the intent's colour on a page, a card or the intent's own
+      as the label on it. Text in the intent's colour on a reading surface (a page, a card, a panel) or
+      on the intent's own
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">-subtle</code>
       tint takes
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>,
-      the stop that clears AA there; the fill is tuned for the label sitting on it, not for its own
-      tone as text.
+      the stop that clears AA there. Tailwind also emits
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary</code> from
+      the fill token and nothing flags it; as text it lands below AA (4.28:1 on
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary-subtle</code>
+      in the Select demo), so write
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>.
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >text-primary-emphasis</code
       >
@@ -377,9 +381,13 @@
       jobs:
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>
       is text in the primary colour,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-text-on-fill</code>
+      (or its primary-only alias
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >text-text-on-primary</code
-      > is the label on a primary fill.
+      >) is the label on a primary fill. The swatches render in whatever theme is active, on this
+      site the docs skin's own primary; the light and dark stops under each token are the library's
+      own.
     </p>
     <div class="border-border-subtle bg-surface-base rounded-contain mb-4 overflow-hidden border">
       <div class="overflow-x-auto">
@@ -389,32 +397,31 @@
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Token</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Utility</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Purpose</th>
-              <th class="text-text-primary px-4 py-3 text-left font-semibold">Light</th>
-              <th class="text-text-primary px-4 py-3 text-left font-semibold">Dark</th>
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
             {#each intentRoles as row (row.suffix)}
               <tr>
-                <td class="px-4 py-3 font-mono whitespace-nowrap">
-                  <span class="flex items-center gap-2">
+                <td class="px-4 py-3 font-mono text-xs">
+                  <span class="flex items-center gap-2 whitespace-nowrap">
                     <span
                       class="rounded-modify h-4 w-4 shrink-0"
                       style="background: var(--color-{row.core})"
                     ></span>
                     <span class="text-primary-text">--color-{row.core}</span>
                   </span>
+                  <span class="text-text-tertiary mt-1 block">
+                    <span class="whitespace-nowrap">light {row.light}</span>
+                    ·
+                    <span class="whitespace-nowrap">dark {row.dark}</span>
+                  </span>
                 </td>
-                <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
-                  >{row.utilities}</td
-                >
+                <td class="text-text-secondary px-4 py-3 font-mono text-xs">
+                  {#each row.utilities as utility (utility)}
+                    <span class="block whitespace-nowrap">{utility}</span>
+                  {/each}
+                </td>
                 <td class="text-text-tertiary px-4 py-3">{row.role}</td>
-                <td class="text-text-tertiary px-4 py-3 font-mono text-xs whitespace-nowrap"
-                  >{row.light}</td
-                >
-                <td class="text-text-tertiary px-4 py-3 font-mono text-xs whitespace-nowrap"
-                  >{row.dark}</td
-                >
               </tr>
             {/each}
           </tbody>
@@ -439,10 +446,12 @@
       {/each}
     </ul>
     <p class="text-text-secondary mb-8 text-sm">
-      The stops of every other intent:
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+      Run <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >urbicon css-reference intents</code
-      >.
+      >
+      (the
+      <a href={resolve('/ai')} class="text-primary-text hover:underline">urbicon CLI</a>) for the
+      stops of every other intent.
     </p>
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Intent Chrome</h3>
