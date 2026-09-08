@@ -106,10 +106,11 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Border source:** Mixed. `SegmentGroup` indicator uses Intent (the active item is action-like). `Tab` `line` variant has no border. Breadcrumb uses no border by default.
 
-**Industry analogue:** Radix `Tabs`, Material `BottomNavigation`, Linear `SegmentedControl`. The key trait: route-or-section selection that persists; not "click and dispatch".
+**Industry analogue:** Radix `Tabs`, Material `BottomNavigation`, Linear `SegmentedControl`. The key trait: a selection that persists and can be read back; not "click and dispatch". Persisting is not the same as navigating — see the split below.
 
 **When to reach for:**
-- App-level navigation (sections, sub-routes) → `Tab` (`variant="line"` for editorial), `SegmentGroup` (the pill-track default) for inline pickers.
+- Section selection *inside one document* — panels that swap in place, no URL involved → `Tab` with `TabItem` / `TabPanel` and `bind:value` (`variant="line"` for editorial). `SegmentGroup` with `SegmentItem` for an inline value picker (list / grid, a filter) on the same page.
+- Route and sub-route navigation → **no member of this family**: a `<nav aria-label>` of `<a href>` carrying `aria-current="page"`. `TabItem` renders a `<button role="tab">`, so an `<a>` inside a trigger is an interactive element inside another one and `role="tab"` promises a panel that never arrives; `SegmentGroup` is a `radiogroup` announcing a chosen value, not a location. The Navigation atom that will own the anchor styling is `Link` (#429); until it ships the tab bar is anchors plus utilities — see the `tab-navigation` pattern.
 - Linear progress through a process the user *completes* (wizard, checkout) → `Stepper`.
 - Retrospective record of a sequence the user *observes* (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
 - Position context inside a route → `Breadcrumb`.

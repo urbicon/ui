@@ -95,6 +95,7 @@ import { basename, dirname, isAbsolute, join, normalize, relative, resolve } fro
 import { fileURLToPath } from 'node:url';
 import {
   closesFence,
+  dedentFenceLine,
   type FenceDelimiter,
   parseFenceDelimiter,
   TYPECHECK_MARKER
@@ -186,7 +187,7 @@ function extract(path: string): Doc {
         }
         open = null;
         body.length = 0;
-      } else body.push(dedent(line, open.delim.indent));
+      } else body.push(dedentFenceLine(line, open.delim.indent));
       continue;
     }
 
@@ -216,13 +217,6 @@ function extract(path: string): Doc {
   }
   if (open) doc.errors.push(`${rel}:${open.line}: fence opened here is never closed`);
   return doc;
-}
-
-/** CommonMark: a fence's content is de-indented by up to the opener's indentation. */
-function dedent(line: string, indent: number): string {
-  let n = 0;
-  while (n < indent && (line[n] === ' ' || line[n] === '\t')) n++;
-  return line.slice(n);
 }
 
 /** `stub a, stub b` → ['a', 'b']; null when a directive is unusable. */

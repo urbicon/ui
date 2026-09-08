@@ -803,7 +803,7 @@ failure it catches was silent:
 | `summary:lint` | Component `@summary` budget |
 | `playgrounds:lint` | Playground snippets and the knob-hint budget |
 | `registry:lint` | A docs page missing from any of its three hand-maintained registration points |
-| `examples:lint` | Every `@example` block type-checked as a real `.svelte` file |
+| `examples:lint` | Every `@example` block type-checked as a real `.svelte` file; every `svelte` fence of `design-system/patterns/*.md` compiled as a whole component |
 | `i18n:check` | Unused / used-but-undefined keys, hardcoded strings |
 | `size --check` | Per-component bundle growth against the baseline |
 
