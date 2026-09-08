@@ -1,5 +1,6 @@
 import type { AuthConfig, RateLimitConfig } from '../types.js';
 import { authError } from './handlers/errors.js';
+import { assertJwtSecret, fingerprint, limiterFor } from './secret-registry.js';
 import { type RateLimitKey, rateLimitFor } from './security-defaults.js';
 
 export interface RateLimitResult {
@@ -142,47 +143,63 @@ export function makeRateLimiter(config: RateLimitConfig | undefined): RateLimite
   return config ? createRateLimiter(config) : null;
 }
 
-// One limiter per (config object, rate-limit key), for the whole process.
+// One in-memory limiter per (`jwt.secret` fingerprint, rate-limit key,
+// resolved `windowMs`, resolved `max`), for the whole process, registered in
+// `secret-registry.ts` — which hands out one stable wrapper per key, so that
+// `resetRateLimiters` reaches a handler built before the reset (a factory
+// captures its limiter once). Keyed on the secret rather than on the config object
+// so that every bundle a consumer builds for one secret — `createAuthDeps` per
+// request included — reads the same counter and the same in-memory store: one
+// cleanup `setInterval` per key, not one per call. Two factories reading one
+// key (verify-email + verify-email-change on `verifyEmail`) share it the same
+// way.
 //
-// Without this, every handler factory building a limiter from the same key gets
-// its own `Map` and the consumer's configured budget is multiplied by the number
-// of factories reading that key: measured 6 accepted requests across
-// verify-email + verify-email-change for a configured `verifyEmail.max` of 3.
-// A persistent `config.store` shares server-side regardless; this is what fixes
-// the in-memory default.
+// The resolved values are part of the key so that a bundle configuring a key
+// differently counts on its own, under its own limits, and nothing depends on
+// which bundle read the key first. Two things are therefore never registered:
+// an opt-out (`rateLimitFor` → undefined), because a `null` under the key would
+// switch off the limit a later bundle configures for it; and a limit with a
+// persistent `store`, because its counters live in the store — two wrappers on
+// one store share them already — and the wrapper itself holds no state and no
+// interval. Only the in-memory default keeps its counters in the limiter, so
+// only that is worth sharing.
 //
-// **The constraint this buys is object identity.** The bucket lives exactly as
-// long as the `AuthConfig` object handed in — which is the object `createAuthDeps`
-// *returns*, and it returns a new one per call even from the same input literal.
-// So the rule is "call createAuthDeps once, at module scope", not "build the
-// config literal once": measured, one `createAuthDeps` lets 5 of 20 requests
-// through at max 5, while calling it per request lets 20 of 20 through. That
-// path also leaks the in-memory store's cleanup `setInterval` per (config, key) —
-// unref'd, so it does not hold the process open, but it is a live GC root for as
-// long as the config is reachable.
-//
-// Keyed on the whole `AuthConfig` rather than the `RateLimitConfig` slice because
-// the slice can be a shared module-level default object (`RATE_LIMIT_DEFAULTS`),
-// which would put unrelated apps — and unrelated tests — on one counter.
-const limiterCache = new WeakMap<object, Map<RateLimitKey, RateLimiter | null>>();
+// The registry outlives every config: its entries are the distinct (secret,
+// key, values) triples the process has ever built, so a rotated-away secret or
+// a retuned limit leaves its limiter behind. Under `vite dev` it survives a hot
+// reload of the consumer's files, which re-executes those and not this module
+// — whether Vite serves the package through its SSR module graph (measured: a
+// comment edit to the file calling `createAuthDeps` kept a spent `login`
+// counter at 429, an edit of `rateLimit.login.max` counted afresh under the new
+// values on the next bundle, no restart) or externalizes it to Node's module
+// cache.
 
 /**
  * The rate-limiter for one endpoint key, shared by every handler factory built
- * from the same config object. Handlers use this instead of
- * `makeRateLimiter(config.rateLimit?.key)`: it applies the secure default (see
- * `rateLimitFor`) and it puts two factories reading one key on one counter.
+ * for the same `jwt.secret` and the same resolved limit. Handlers use this
+ * instead of `makeRateLimiter(config.rateLimit?.key)`: it applies the secure
+ * default (see `rateLimitFor`) and it puts two factories reading one key on
+ * one counter.
  */
 export function sharedLimiter<R extends string>(
   config: AuthConfig<R>,
   key: RateLimitKey
 ): RateLimiter | null {
-  let byKey = limiterCache.get(config);
-  if (!byKey) {
-    byKey = new Map();
-    limiterCache.set(config, byKey);
-  }
-  if (!byKey.has(key)) byKey.set(key, makeRateLimiter(rateLimitFor(config, key)));
-  return byKey.get(key) ?? null;
+  // A hand-built `AuthDeps` never passed `assertAuthConfigValid`, so this is
+  // where it meets the wiring error; `jwt` itself can be absent on that path.
+  const secret: unknown = config.jwt?.secret;
+  assertJwtSecret(secret);
+  const limit = rateLimitFor(config, key);
+  if (!limit) return null;
+  if (limit.store) return createRateLimiter(limit);
+  // Every value field of `RateLimitConfig` belongs in the key, and the
+  // compiler keeps it so: a field added to the type lands in `rest`, which no
+  // longer assigns to `never` until the key below carries it.
+  const { windowMs, max, store: _store, ...rest } = limit;
+  const _exhaustive: Record<string, never> = rest;
+  return limiterFor(`${fingerprint(secret)}|${key}|${windowMs}|${max}`, () =>
+    createRateLimiter(limit)
+  );
 }
 
 /**

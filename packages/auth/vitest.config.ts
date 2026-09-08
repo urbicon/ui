@@ -23,8 +23,15 @@ export default mergeConfig(
       // boundary to a path outside blocks' exports map, which is safe only
       // because it is import-free and never published; should it ever gain an
       // import, this run fails loudly on the unresolved specifier rather than
-      // quietly losing a polyfill.
-      setupFiles: ['../blocks/vitest-setup.ts']
+      // quietly losing a polyfill. The package's own file resets the two
+      // process-wide secret registries before each test, and it is held to the
+      // same rule for the same reason: a module a setup file imports is pinned
+      // in the registry before any `vi.mock` in the file under test runs, so
+      // it may import only `secret-registry.ts`, which imports nothing at
+      // runtime — through `rate-limit.ts` it would pin `handlers/errors.ts`,
+      // Kit and the i18n bundle, and a test mocking one of those would get the
+      // real module. `setup-file-imports.test.ts` is the control for both.
+      setupFiles: ['../blocks/vitest-setup.ts', './vitest-setup.ts']
     },
     // Component tests mount real components, which needs the browser build of
     // svelte. Without this every `mount()` here dies on
