@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import PaginationItemTierHost from './__fixtures__/PaginationItemTierHost.svelte';
 import type { PaginationItemContext, PaginationProps } from './index';
 import Pagination from './Pagination.svelte';
 import PaginationItem from './PaginationItem.svelte';
@@ -261,22 +262,24 @@ describe('Pagination — showFirstLast without showNumbers (DEV warn)', () => {
   });
 });
 
+// One item, mounted on its own target so a test can read the element the branch
+// actually rendered.
+const mountItem = (props: Record<string, unknown>) => {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  const app = mount(PaginationItem, { target, props });
+  flushSync();
+  dispose = () => unmount(app);
+  return target;
+};
+
 describe('PaginationItem forwards its rest props in both branches', () => {
-  // The two branches take different elements — the link branch styles the `<a>`
-  // and leaves the inner Button decorative (`tabindex={-1}`), the button branch
-  // has only the Button — and until this test the link branch spread the rest
+  // The two branches take different elements — the `<a>` with `href`, the
+  // `<button>` without — and until this test the link branch spread the rest
   // bag onto neither. Everything a caller adds (`data-*`, `aria-describedby`,
   // and the `preset` PaginationItem does not declare itself) fell out with no
   // error: measured, `<PaginationItem href data-probe>` put the attribute on no
   // element at all, while the same call without `href` put it on the button.
-  const mountItem = (props: Record<string, unknown>) => {
-    const target = document.createElement('div');
-    document.body.appendChild(target);
-    const app = mount(PaginationItem, { target, props });
-    flushSync();
-    dispose = () => unmount(app);
-    return target;
-  };
 
   it('puts them on the button when there is no href', () => {
     const target = mountItem({ page: 1, 'data-probe': 'x' });
@@ -284,9 +287,133 @@ describe('PaginationItem forwards its rest props in both branches', () => {
   });
 
   it('puts them on the anchor when there is one', () => {
-    // The anchor, not the inner Button: it is the element this branch already
-    // gives `class`, `tabindex` and `aria-current` to.
+    // The anchor is the whole element this branch renders — the one that also
+    // takes `class`, `tabindex` and `aria-current`.
     const target = mountItem({ page: 1, href: '/page/2', 'data-probe': 'x' });
     expect(target.querySelector('[data-probe]')?.tagName).toBe('A');
+  });
+});
+
+describe('PaginationItem link form', () => {
+  it('is the anchor, with no control inside it', () => {
+    // Interactive content inside an `<a>` is invalid HTML, and the assistive
+    // reading it produced ("button, inside link") is the defect: the anchor used
+    // to wrap a full `<Button tabindex={-1}>`.
+    const target = mountItem({ page: 2, href: '/page/2' });
+    const anchor = target.querySelector('a');
+    expect(anchor?.getAttribute('href')).toBe('/page/2');
+    expect(anchor?.querySelector('button')).toBe(null);
+    expect(target.querySelectorAll('button').length).toBe(0);
+    expect(anchor?.textContent?.trim()).toBe('2');
+  });
+
+  // Both elements of both states, because each pins a different divergence: the
+  // root is `base` and the label span is `content`, whose `min-w-0` and
+  // `[&>svg]:shrink-0` keep a 16px icon in a narrow item from being drawn at
+  // 6px; and `loading` at `lg`, because that is where the placement shows —
+  // Button's `overlay` keeps the size's `gap-2.5` while `start` drops it to
+  // `gap-2` for a spinner this form never draws.
+  const LOOK_STATES: Record<string, Record<string, unknown>> = {
+    resting: { active: true },
+    'loading at lg': { loading: true, size: 'lg' }
+  };
+
+  for (const [state, props] of Object.entries(LOOK_STATES)) {
+    it(`wears the button look — root and label — while ${state}`, () => {
+      // The look is the reason the branch exists at all: dropping the inner
+      // Button must not leave a bare link behind. Compared against the button
+      // form of the same item rather than against a class list written out
+      // here, which would pin today's utilities instead of the agreement
+      // between the two forms.
+      const linkRoot = mountItem({ page: 2, href: '/page/2', ...props }).querySelector('a');
+      const linkLabel = linkRoot?.querySelector(':scope > span');
+      dispose?.();
+      const buttonRoot = mountItem({ page: 2, ...props }).querySelector('button');
+      // `:scope >`, because the spinner span has spans of its own: Button's own
+      // children are the spinner (`aria-hidden`) and then the content span.
+      const buttonLabel = buttonRoot?.querySelector(':scope > span:not([aria-hidden])');
+
+      const rootShared = [...(buttonRoot?.classList ?? [])].filter(
+        (c) => c !== 'blocks-button' && !c.startsWith('blocks-intent-')
+      );
+      expect(rootShared.length).toBeGreaterThan(0);
+      for (const cls of rootShared) expect(linkRoot?.classList.contains(cls), cls).toBe(true);
+
+      // `opacity-0` excepted: it is the label fading out behind the overlay
+      // spinner, and the link form has no spinner to fade it out for.
+      const labelShared = [...(buttonLabel?.classList ?? [])].filter((c) => c !== 'opacity-0');
+      expect(labelShared.length).toBeGreaterThan(0);
+      for (const cls of labelShared) expect(linkLabel?.classList.contains(cls), cls).toBe(true);
+    });
+  }
+
+  it('reads the tier off a wrapping TierContext, as the button form does', () => {
+    const link = mount(PaginationItemTierHost, {
+      target: document.body.appendChild(document.createElement('div')),
+      props: { page: 2, href: '/page/2' }
+    });
+    flushSync();
+    expect(document.querySelector('a')?.classList.contains('rounded-modify')).toBe(true);
+    unmount(link);
+
+    const button = mount(PaginationItemTierHost, {
+      target: document.body.appendChild(document.createElement('div')),
+      props: { page: 2 }
+    });
+    flushSync();
+    expect(document.querySelector('button')?.classList.contains('rounded-modify')).toBe(true);
+    unmount(button);
+  });
+
+  it('reports a busy link without hiding its label', () => {
+    // The button form fades its label out behind the overlay spinner. This form
+    // draws no spinner, so the same variant call would leave an empty box: the
+    // anchor's own `content` class puts the label back.
+    const anchor = mountItem({ page: 2, href: '/page/2', loading: true }).querySelector('a');
+    expect(anchor?.getAttribute('aria-busy')).toBe('true');
+    expect(anchor?.classList.contains('cursor-wait')).toBe(true);
+
+    const label = anchor?.querySelector(':scope > span');
+    expect(label?.classList.contains('opacity-100')).toBe(true);
+    expect(label?.classList.contains('opacity-0')).toBe(false);
+    expect(anchor?.textContent?.trim()).toBe('2');
+  });
+
+  it('keeps `preset` off the anchor — it addresses the Button the other form renders', () => {
+    const target = mountItem({ page: 2, href: '/page/2', preset: 'quiet' });
+    expect(target.querySelector('a')?.hasAttribute('preset')).toBe(false);
+  });
+
+  it('marks the current page with aria-current', () => {
+    const anchor = mountItem({ page: 2, href: '/page/2', active: true }).querySelector('a');
+    expect(anchor?.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('takes a disabled item out of the tab order and cancels its activation', () => {
+    const target = mountItem({ page: 2, href: '/page/2', disabled: true });
+    const anchor = target.querySelector('a');
+    expect(anchor?.getAttribute('aria-disabled')).toBe('true');
+    expect(anchor?.getAttribute('tabindex')).toBe('-1');
+
+    // `pointer-events: none` is a style, and jsdom computes none — so the guard
+    // that has to hold is the handler's: the anchor must not navigate.
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("leaves an enabled item's activation alone", () => {
+    // A fragment href: jsdom implements no navigation, and letting a click on a
+    // document-changing one through prints a not-implemented error per test.
+    const anchor = mountItem({ page: 2, href: '#page-2' }).querySelector('a');
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('puts `class` on the anchor, and keeps the variant classes beside it', () => {
+    const anchor = mountItem({ page: 2, href: '/page/2', class: 'ring-4' }).querySelector('a');
+    expect(anchor?.classList.contains('ring-4')).toBe(true);
+    expect(anchor?.classList.contains('inline-flex')).toBe(true);
   });
 });

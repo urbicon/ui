@@ -90,7 +90,8 @@ you have customised is kept and reported, never overwritten.
 
 Then run the guided intake — `bunx urbicon verb adopt` (brownfield) or `onboard` (greenfield) —
 to fill the manifest with this project's design intent. From there an agent can `urbicon primer`
-for the knowledge every task needs (component selection, the token core, the override ladder — one call),
+for the knowledge every task needs (component selection, the token core, the override ladder,
+the link-as-button recipe — one call),
 `urbicon context` to read the intent, `urbicon find` / `get-component` to discover the catalog,
 `urbicon pattern` / `principles` / `css-reference` for the task-specific rest, compose, and
 `urbicon validate` what it produced.
@@ -107,7 +108,7 @@ for the knowledge every task needs (component selection, the token core, the ove
 | `urbicon validate [paths...]`  | Lint `.svelte` markup against the design rules. The CI gate.                                          | mirror of `validate_design` |
 | `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             | — (local only)              |
 | `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                | — (local only)              |
-| `urbicon primer`               | The always-needed bundle in one call: component selection, the token core, the override ladder.       | —                           |
+| `urbicon primer`               | The always-needed bundle in one call: component selection, token core, override ladder, link recipe.  | —                           |
 | `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog; says so when nothing matches.              | `find_components`           |
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    | `get_component`             |
 | `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                | `find_icons`                |

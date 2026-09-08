@@ -4,8 +4,37 @@
      other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { ArrowRightIcon, Button, DownloadIcon, Kbd, PlusIcon } from '@urbicon-ui/blocks';
+  import {
+    ArrowRightIcon,
+    Button,
+    buttonVariants,
+    DownloadIcon,
+    Kbd,
+    PlusIcon
+  } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
+
+  // The wrapper the page shows. `<\/script>` is escaped: an unescaped closing
+  // tag inside this literal ends the page's own script block.
+  const linkButtonCode = `<!-- LinkButton.svelte -->
+<script lang="ts">
+  import { buttonVariants, type ButtonProps } from '@urbicon-ui/blocks';
+  import type { HTMLAnchorAttributes } from 'svelte/elements';
+
+  let {
+    href,
+    intent = 'neutral',
+    variant = 'filled',
+    size = 'md',
+    class: className,
+    children,
+    ...rest
+  }: HTMLAnchorAttributes & Pick<ButtonProps, 'intent' | 'variant' | 'size' | 'class'> = $props();
+<\/script>
+
+<a {href} class={buttonVariants({ intent, variant, size }).base({ class: className })} {...rest}>
+  {@render children?.()}
+</a>`;
 
   let formats = $state([
     { name: 'Bold', on: true },
@@ -72,6 +101,28 @@
       >
     </CodeExample>
   </div>
+</Section>
+
+<!-- ─── As a link ─── -->
+
+<Section marker id="link" title="As a link">
+  <CodeExample
+    title="Link that looks like a button"
+    description="A Button never takes `href`: a link in a button's clothes is an `<a>` wearing `buttonVariants()`. Keep that in a thin wrapper of your own, so `resolve()`, `target` and `rel` stay decisions of your app — the code below is the wrapper, the two links above it call the same function inline. The anchor gets the variant, intent, size and focus ring; `loading`, `mint` and the `active` / `pressed` ARIA stay with the real Button."
+    code={linkButtonCode}
+    previewClass="flex flex-wrap items-center gap-3"
+  >
+    <a href={resolve('/recipes')} class={buttonVariants({ intent: 'primary' }).base()}>
+      Browse the recipes
+      <ArrowRightIcon size={16} />
+    </a>
+    <a
+      href={resolve('/customization')}
+      class={buttonVariants({ variant: 'outlined', intent: 'neutral' }).base()}
+    >
+      Customization
+    </a>
+  </CodeExample>
 </Section>
 
 <!-- ─── Customization ─── -->

@@ -185,7 +185,9 @@ export interface PaginationProps
 
 /**
  * @description Standalone pagination button, usable outside the Pagination compound.
- * Wraps a Button with pagination-specific semantics (`aria-current="page"`, page click callback).
+ * Without `href` it wraps a Button with pagination-specific semantics (`aria-current="page"`,
+ * page click callback); with `href` it is the `<a>` itself, dressed by `buttonVariants` —
+ * the same look, and nothing interactive inside the link.
  *
  * @tag navigation
  * @related Pagination
@@ -211,9 +213,16 @@ export interface PaginationItemProps
    * is invisible on a transparent surface.
    */
   active?: boolean;
-  /** Prevents interaction and dims the button. */
+  /**
+   * Prevents interaction and dims the button. On the link form: `aria-disabled`,
+   * out of the tab order, and activation is cancelled.
+   */
   disabled?: boolean;
-  /** Shows a loading spinner inside the button. */
+  /**
+   * Shows a loading spinner inside the button. The link form draws none — it
+   * keeps its label, takes the wait cursor, sets `aria-busy` and cancels
+   * activation while set.
+   */
   loading?: boolean;
 
   /** Button dimensions. @default 'md' */
@@ -222,16 +231,30 @@ export interface PaginationItemProps
   variant?: 'outlined' | 'filled' | 'ghost';
   /** Semantic color of the button. */
   intent?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';
-  /** Semantic radius tier forwarded to the inner Button. */
+  /** Semantic radius tier; read from the wrapping `TierContext` when unset. */
   tier?: InteractiveTier;
 
-  /** Render as a link instead of a button. Useful for SEO-friendly pagination. */
+  /**
+   * Render an `<a>` instead of a button: the anchor itself carries the button
+   * look, with no button inside it. Useful for crawlable pagination.
+   * `onPageClick` does not fire in this form — the browser navigates.
+   *
+   * The anchor resolves no provider cascade, and there is no app-wide route to
+   * it: a `defaults.Button` rule dresses the button form only, `Pagination`
+   * renders no linked items to hand a rule down to, and this component has no
+   * provider name of its own. What reaches the link form is `class` per
+   * instance, a `<BlocksProvider unstyled>` (which strips it like any other),
+   * and a stylesheet rule on the `blocks-intent-*` class it carries.
+   */
   href?: string;
-  /** Fires when the item is clicked. Receives the page number. */
+  /**
+   * Fires when the item is clicked. Receives the page number. Button form only —
+   * with `href` the browser navigates instead.
+   */
   onPageClick?: (page?: number) => void;
 
   /**
-   * Micro-interaction preset forwarded to the inner Button.
+   * Micro-interaction preset, applied to whichever element the item renders.
    * @default 'none'
    */
   mint?: MintProp;
@@ -240,25 +263,28 @@ export interface PaginationItemProps
   children?: Snippet;
 
   /**
-   * Additional CSS classes on the element this item actually renders as: the
-   * `<button>` when there is no `href`, and the wrapping `<a>` when there is —
-   * in that branch the inner Button is decorative and receives none.
+   * Additional CSS classes on the element this item renders as — the `<button>`
+   * without `href`, the `<a>` with it. Either is the root; the label sits in a
+   * `content` span inside it that neither `class` nor `slotClasses` reaches.
    */
   class?: string;
 
   /**
-   * Strip all default styles. Forwarded by `Pagination`'s own `unstyled`, and it
-   * reaches whichever elements this item renders: the inner Button, plus — with
-   * `href` — the anchor's own chrome. Three semantic hooks stay on the Button
-   * either way (`blocks-button`, `blocks-intent-primary`,
-   * `[--blocks-press-scale:1]`), so this is not "only `class` remains".
-   *
-   * In the `href` branch the focus ring goes with the rest, on the anchor *and*
-   * on the button (measured) — and the anchor is the element that takes focus.
-   * Put one back through `class`, which lands there in that branch.
+   * Strip all default styles. Forwarded by `Pagination`'s own `unstyled`. Without
+   * `href` it reaches the inner Button, which keeps three semantic hooks
+   * (`blocks-button`, `blocks-intent-*`, `[--blocks-press-scale:1]`); with `href`
+   * the anchor keeps the last two and loses everything else, the focus ring
+   * included — put one back through `class`.
    * @default false
    */
   unstyled?: boolean;
+
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ Button: {...} }}>`
+   * — this item's page buttons resolve under `Button`. Button form only: the
+   * anchor of the `href` form resolves no cascade, so it takes none.
+   */
+  preset?: string;
 }
 
 export { default as Pagination } from './Pagination.svelte';

@@ -24,6 +24,12 @@ export {
   parsePatternEntry
 } from './design-system.js';
 export {
+  HREF_FREE_CONTROLS,
+  LINK_AS_BUTTON,
+  LINK_AS_BUTTON_TITLE,
+  linkRecipeNote
+} from './link-as-button.js';
+export {
   CLASS_OVER_SLOT_CLASSES,
   OVERRIDE_CASCADE,
   OVERRIDE_LADDER,

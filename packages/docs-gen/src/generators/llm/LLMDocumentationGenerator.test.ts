@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import {
   CLASS_OVER_SLOT_CLASSES,
+  linkRecipeNote,
   PROVIDER_BELOW_INSTANCE
 } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -290,5 +291,66 @@ describe('LLMDocumentationGenerator override precedence', () => {
     // must not send an agent to write one.
     expect(bare).not.toContain(PROVIDER_BELOW_INSTANCE);
     expect(bare.split(CLASS_OVER_SLOT_CLASSES)).toHaveLength(3);
+  });
+});
+
+describe('LLMDocumentationGenerator link recipe', () => {
+  let tmp: string;
+  let scopeDir: string;
+
+  beforeEach(async () => {
+    tmp = await mkdtemp(path.join(tmpdir(), 'docs-gen-link-recipe-'));
+    scopeDir = path.join(tmp, 'blocks');
+  });
+
+  afterEach(async () => {
+    await rm(tmp, { recursive: true, force: true });
+  });
+
+  const component = (name: string): EnrichedComponentInfo =>
+    ({
+      name,
+      packageName: '@urbicon-ui/blocks',
+      filePath: `/src/lib/primitives/${name}/${name}.svelte`,
+      description: `The ${name} component.`,
+      crossReferences: [],
+      examples: []
+    }) as unknown as EnrichedComponentInfo;
+
+  const apiEntry = (name: string) =>
+    ({
+      name,
+      props: [],
+      variants: [],
+      inheritance: [],
+      examples: [],
+      stats: { total: 0, direct: 0, variant: 0, inherited: 0 },
+      group: 'primitives'
+    }) as unknown as ComponentAPIData;
+
+  it('puts the pointer under the description of a control that takes no href, and nowhere else', async () => {
+    const generator = new LLMDocumentationGenerator(baseConfig(scopeDir));
+    await generator.generate([component('Button'), component('Input')], {
+      components: { Button: apiEntry('Button'), Input: apiEntry('Input') },
+      types: [],
+      metadata: {}
+    } as unknown as APIData);
+    const read = (name: string) =>
+      readFile(path.join(scopeDir, 'primitives', name, 'llm.txt'), 'utf-8');
+
+    const button = await read('button');
+    const note = linkRecipeNote('Button');
+    expect(note).toBeDefined();
+    // Directly under the description — the part `get-component --section
+    // overview` returns — and once.
+    expect(button).toContain(`The Button component.\n${note}\n`);
+    expect(button.split(note as string)).toHaveLength(2);
+
+    // Positive control in the same run: a component the rule does not name gets
+    // no sentence, so the assertion above cannot pass on a generator that stamps
+    // every file.
+    const input = await read('input');
+    expect(input).toContain('The Input component.\n\n**Import:**');
+    expect(input).not.toContain('href');
   });
 });
