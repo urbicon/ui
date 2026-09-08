@@ -1,18 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
-import { __resetSeenSecretsForTests, createAuthDeps } from './deps.js';
+import { createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
 import { sharedLimiter } from './rate-limit.js';
 import { lockoutFor, rateLimitFor } from './security-defaults.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
-
-// The repeat-secret registry is process-wide and this file builds dozens of
-// bundles from `secret: 's'`. Without the reset the one-shot warning lands on
-// whichever test happens to make the file's second call — measured: the second
-// test in file order, and only that one — so a `not.toHaveBeenCalled()` there
-// would depend on test order. The reset makes each sink see only its own test.
-beforeEach(() => __resetSeenSecretsForTests());
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
   return {
@@ -267,7 +260,7 @@ describe('createAuthDeps called again with a secret it has seen', () => {
     expect(logger.warn).toHaveBeenCalledTimes(1);
     const [message] = logger.warn.mock.calls[0] as [string];
     expect(message).toContain('createAuthDeps');
-    expect(message).toContain('first bundle');
+    expect(message).toContain('share their rate-limit counters');
     expect(message).toContain('once, at module scope');
     expect(message).toContain('AUTH.md');
     // The hot-reload clause: a dev-server reload makes a second call too.

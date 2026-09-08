@@ -1,5 +1,5 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import type { Repositories } from './adapters/types.js';
 import {
@@ -8,14 +8,10 @@ import {
   isSecureDeployment
 } from './cookie-policy.js';
 import { ensureCsrfCookie } from './csrf.js';
-import { __resetSeenSecretsForTests, createAuthDeps } from './deps.js';
+import { createAuthDeps } from './deps.js';
 import { createAuthHandle } from './handle.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
 import { setPending2faCookie } from './two-factor.js';
-
-// Every bundle here is built from `secret: 's'`; the process-wide repeat
-// registry would otherwise warn on the unmocked console from the second on.
-beforeEach(() => __resetSeenSecretsForTests());
 
 function cookieJar() {
   const store = new Map<string, string>();

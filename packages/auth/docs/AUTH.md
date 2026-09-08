@@ -430,22 +430,47 @@ dozen requests per second saturate the thread pool that login's own hashing shar
 
 Two endpoints that read one key share **one** counter (`verifyEmail` covers both
 verify-email and verify-email-change; `passkeyAuth` covers options and verify). The
-counters live for the process and are keyed on the `jwt.secret` (a fingerprint of
-it — the secret itself is never retained), so every bundle built for one secret
-reads the same counters and the same in-memory store per key; a `createAuthDeps`
-call per request cannot reset them. Still **call `createAuthDeps` once**, at module
-scope, and pass `deps` around: one secret is one auth instance per process, and the
-limiter for a key is built by the _first_ bundle that reads it, with that bundle's
-`max`, `windowMs` and `store` — a later bundle with a different `rateLimit` slice
-keeps the first one's, and every call validates and resolves the config again. The
-same holds under `vite dev`, where the counters survive a hot reload: a `rateLimit`
-edit takes effect on the next restart. A second call with a `jwt.secret` this
-process has already built a bundle for is warned about on the logger — once per
-secret, in production too. A persistent `RateLimitStore` shares the counters across
-processes as well.
+counters live for the process, keyed on the `jwt.secret` (a fingerprint of it — the
+secret itself is never retained), the key and the configured limit: every bundle
+built for one secret with the same `rateLimit` for a key reads the same counter and
+the same in-memory store, so a `createAuthDeps` call per request cannot reset them,
+and a bundle that configures a key differently — an opt-out included — counts on
+its own under its own values; no bundle's limit depends on which was built first.
+Under `vite dev` the counters survive a hot reload of your files — it re-executes
+those, not the package module, whether Vite serves it from its SSR module graph or
+from Node's module cache — so unchanged limits keep their counters across the
+reload, and an edited `rateLimit` counts afresh under its new values on the next
+bundle, without a restart.
+Still **call `createAuthDeps` once**, at module scope, and pass `deps` around: every
+call validates and resolves the config again, and a second call with a `jwt.secret`
+this process has already built a bundle for is warned about on the logger — once
+per secret, in production too. A limit with a persistent `RateLimitStore` is not
+registered at all: its counters live in the store, shared across processes as well.
 
 The wiring is four files: deps → `hooks.server.ts` (`createAuthHandle`) → one
 `+server.ts` per handler (`createLoginHandler`, …) → a `<LoginPage>` route.
+
+#### Testing handlers
+
+The counters are per secret and per process, not per config object, so a test file
+that builds real handlers from one literal secret spends one budget across its
+tests: a `max: 1` test meets the counter a sibling already moved to 1, and a `429`
+is spent before the test that expects it. Two ways out. Reset the registry before
+each test — `resetRateLimiters()` rebuilds every in-memory limiter, with a fresh
+store, the next time a handler factory asks for it — from a setup file or the top
+of the test file:
+
+<!-- typecheck -->
+```ts
+import { resetRateLimiters } from '@urbicon-ui/auth/server';
+import { beforeEach } from 'vitest';
+
+beforeEach(() => resetRateLimiters());
+```
+
+Or hand each test its own `store` (`rateLimit: { login: { windowMs, max, store } }`):
+a limit with a store is never registered, its counters are the store's, and a
+`Map`-backed `RateLimitStore` per test isolates them without touching the registry.
 
 ### Stage 2 — Production
 

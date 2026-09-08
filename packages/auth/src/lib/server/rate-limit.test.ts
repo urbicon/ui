@@ -6,6 +6,7 @@ import {
   enforceRateLimit,
   makeRateLimiter,
   type RateLimitEntry,
+  type RateLimiter,
   type RateLimitStore,
   sharedLimiter
 } from './rate-limit.js';
@@ -254,6 +255,11 @@ describe('sharedLimiter', () => {
   const config = (rateLimit?: AuthConfig['rateLimit']) =>
     ({ appUrl: 'https://app.test', jwt: { secret: 's' }, rateLimit }) as AuthConfig;
   const withSecret = (secret: string) => ({ ...config(), jwt: { secret } }) as AuthConfig;
+  const spend = async (limiter: RateLimiter | null, n: number) => {
+    const allowed: boolean[] = [];
+    for (let i = 0; i < n; i++) allowed.push((await limiter?.check('ip'))?.allowed ?? true);
+    return allowed;
+  };
 
   // Two factories reading one key used to allocate one in-memory Map each, so a
   // configured `max: 3` bought 3 requests at EACH endpoint.
@@ -266,10 +272,7 @@ describe('sharedLimiter', () => {
     const cfg = config({ verifyEmail: { windowMs: 60_000, max: 3 } });
     const a = sharedLimiter(cfg, 'verifyEmail');
     const b = sharedLimiter(cfg, 'verifyEmail');
-    const allowed: boolean[] = [];
-    for (let i = 0; i < 2; i++) allowed.push((await a?.check('ip'))?.allowed ?? true);
-    for (let i = 0; i < 2; i++) allowed.push((await b?.check('ip'))?.allowed ?? true);
-    expect(allowed).toEqual([true, true, true, false]);
+    expect([...(await spend(a, 2)), ...(await spend(b, 2))]).toEqual([true, true, true, false]);
   });
 
   it('keeps different keys on different counters', () => {
@@ -288,10 +291,7 @@ describe('sharedLimiter', () => {
     const limit = { verifyEmail: { windowMs: 60_000, max: 3 } };
     const a = sharedLimiter(config(limit), 'verifyEmail');
     const b = sharedLimiter(config(limit), 'verifyEmail');
-    const allowed: boolean[] = [];
-    for (let i = 0; i < 2; i++) allowed.push((await a?.check('ip'))?.allowed ?? true);
-    for (let i = 0; i < 2; i++) allowed.push((await b?.check('ip'))?.allowed ?? true);
-    expect(allowed).toEqual([true, true, true, false]);
+    expect([...(await spend(a, 2)), ...(await spend(b, 2))]).toEqual([true, true, true, false]);
   });
 
   it('keeps two secrets on two counters', () => {
@@ -300,26 +300,56 @@ describe('sharedLimiter', () => {
     );
   });
 
-  // One secret is one auth instance per process: the first config to read a
-  // key builds its limiter, and a later config's slice for that key is never
-  // consulted.
-  it('keeps the limits of the first config that read a key', async () => {
+  // The configured values are part of the key: a bundle that configures a key
+  // differently counts on its own, and nothing depends on which bundle read
+  // the key first.
+  it('a different config for one key gets its own counter under its own values', async () => {
     const first = sharedLimiter(config({ login: { windowMs: 60_000, max: 1 } }), 'login');
-    const second = sharedLimiter(config({ login: { windowMs: 60_000, max: 100 } }), 'login');
-    expect(second).toBe(first);
-    await first?.check('ip');
-    expect((await second?.check('ip'))?.allowed).toBe(false);
+    const second = sharedLimiter(config({ login: { windowMs: 60_000, max: 2 } }), 'login');
+    expect(second).not.toBe(first);
+    expect(await spend(first, 2)).toEqual([true, false]);
+    expect(await spend(second, 3)).toEqual([true, true, false]);
+  });
+
+  // An opt-out registers nothing under the key, so a bundle that opts out
+  // cannot switch off the limit a later bundle configures for that key.
+  it('a limit configured after an opt-out bundle read the same key still trips', async () => {
+    expect(sharedLimiter(config(null), 'login')).toBeNull();
+    const limiter = sharedLimiter(config({ login: { windowMs: 60_000, max: 5 } }), 'login');
+    expect(limiter).not.toBeNull();
+    expect(await spend(limiter, 6)).toEqual([true, true, true, true, true, false]);
+  });
+
+  // A persistent store holds the counters itself and the wrapper around it is
+  // stateless, so nothing is registered and no cleanup interval is started.
+  it('does not register a limiter that has its own store', async () => {
+    const map = new Map<string, RateLimitEntry>();
+    const store: RateLimitStore = {
+      get: (key) => map.get(key),
+      set: (key, entry) => void map.set(key, entry),
+      delete: (key) => void map.delete(key)
+    };
+    vi.useFakeTimers();
+    try {
+      const a = sharedLimiter(config({ login: { windowMs: 60_000, max: 1, store } }), 'login');
+      const b = sharedLimiter(config({ login: { windowMs: 60_000, max: 1, store } }), 'login');
+      expect(a).not.toBe(b);
+      expect(vi.getTimerCount()).toBe(0);
+      // Both wrappers count in the one store.
+      expect([...(await spend(a, 1)), ...(await spend(b, 1))]).toEqual([true, false]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // The in-memory store starts one cleanup `setInterval` per store, so the
   // timer count is the store count.
-  it('builds one in-memory store per (secret, key) for the process', () => {
+  it('builds one in-memory store per (secret, key, values) for the process', () => {
     vi.useFakeTimers();
     try {
-      const before = vi.getTimerCount();
       sharedLimiter(config(), 'login');
       sharedLimiter(config(), 'login');
-      expect(vi.getTimerCount() - before).toBe(1);
+      expect(vi.getTimerCount()).toBe(1);
     } finally {
       vi.useRealTimers();
     }
@@ -333,5 +363,24 @@ describe('sharedLimiter', () => {
 
   it('returns null for the explicit rateLimit: null opt-out', () => {
     expect(sharedLimiter(config(null), 'login')).toBeNull();
+  });
+
+  // A hand-built AuthDeps never passed assertAuthConfigValid, so this is the
+  // first reader of the secret; the wiring error is named here rather than
+  // surfacing as a TypeError on `secret.length`.
+  it.each([
+    ['undefined', undefined],
+    ['an empty string', ''],
+    ['a non-string', 42]
+  ])('refuses a jwt.secret that is %s with the wiring error', (_label, secret) => {
+    const cfg = { ...config(), jwt: { secret } } as unknown as AuthConfig;
+    expect(() => sharedLimiter(cfg, 'login')).toThrow(
+      /\[auth\] jwt\.secret must be a non-empty string/
+    );
+  });
+
+  it('refuses a config without a jwt block with the same wiring error', () => {
+    const cfg = { appUrl: 'https://app.test' } as unknown as AuthConfig;
+    expect(() => sharedLimiter(cfg, 'login')).toThrow(/jwt\.secret must be a non-empty string/);
   });
 });
