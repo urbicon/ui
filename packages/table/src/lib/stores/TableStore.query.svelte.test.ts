@@ -210,6 +210,35 @@ describe("view — the store reads and writes the consumer's view object", () =>
     expect(store.view.sort).toBeNull();
   });
 
+  it('a sortDescFirst column starts at desc while its neighbour still starts at asc', () => {
+    const columns = [
+      { accessor: 'name', title: 'Name' },
+      { accessor: 'amount', title: 'Amount', sortDescFirst: true }
+    ] as Column[];
+    const store = createTableState(createTableView(), undefined, {
+      source: () => ({ processing: 'client' as const, items: ITEMS }),
+      columns: () => columns
+    });
+
+    // The first click puts the largest amount on top; the rows say so, not
+    // just the axis.
+    store.handleSort('amount');
+    expect(store.view.sort).toEqual({ column: 'amount', direction: 'desc' });
+    expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
+    store.handleSort('amount');
+    expect(store.view.sort).toEqual({ column: 'amount', direction: 'asc' });
+    expect(names(store.paginatedItems)).toEqual(['Grace', 'Barbara', 'Ada']);
+    store.handleSort('amount');
+    expect(store.view.sort).toBeNull();
+
+    // Straight from the desc-first column to the default one: asc, not the
+    // direction the previous column was left in.
+    store.handleSort('amount');
+    store.handleSort('name');
+    expect(store.view.sort).toEqual({ column: 'name', direction: 'asc' });
+    expect(names(store.paginatedItems)).toEqual(['Ada', 'Barbara', 'Grace']);
+  });
+
   it('setSort takes the whole sort, and null clears it', () => {
     const store = createTableState(
       createTableView({ defaults: { sort: { column: 'name', direction: 'desc' } } }),

@@ -145,9 +145,20 @@ describe('useExpansion', () => {
 });
 
 describe('useSorting', () => {
+  // The header click reads the column definition for its first direction, so
+  // the cycle tests need a state that knows the columns — one of them
+  // declaring `sortDescFirst`, the others not.
+  const state = fakeState({
+    columns: [
+      { accessor: 'name', title: 'Name' },
+      { accessor: 'age', title: 'Age' },
+      { accessor: 'createdAt', title: 'Created', sortDescFirst: true }
+    ] as Column[]
+  });
+
   it('contract: handleSort cycles through asc → desc → off', () => {
     const view = fakeView();
-    const sorting = useSorting({} as TableState, view, () => []);
+    const sorting = useSorting(state, view, () => []);
 
     // First click: set column, asc
     sorting.handleSort('name');
@@ -162,12 +173,63 @@ describe('useSorting', () => {
     expect(view.sort).toBeNull();
   });
 
+  it('contract: a sortDescFirst column cycles desc → asc → off', () => {
+    const view = fakeView();
+    const sorting = useSorting(state, view, () => []);
+
+    sorting.handleSort('createdAt');
+    expect(view.sort).toEqual({ column: 'createdAt', direction: 'desc' });
+
+    sorting.handleSort('createdAt');
+    expect(view.sort).toEqual({ column: 'createdAt', direction: 'asc' });
+
+    sorting.handleSort('createdAt');
+    expect(view.sort).toBeNull();
+  });
+
   it('contract: clicking a different column resets to asc', () => {
     const view = fakeView({ sort: { column: 'name', direction: 'desc' } });
-    const sorting = useSorting({} as TableState, view, () => []);
+    const sorting = useSorting(state, view, () => []);
 
     sorting.handleSort('age');
     expect(view.sort).toEqual({ column: 'age', direction: 'asc' });
+  });
+
+  it('contract: leaving a sortDescFirst column for a default one starts that one at asc', () => {
+    // The previous column was left in `desc` — its own first direction, not a
+    // state the next column inherits.
+    const view = fakeView({ sort: { column: 'createdAt', direction: 'desc' } });
+    const sorting = useSorting(state, view, () => []);
+
+    sorting.handleSort('name');
+    expect(view.sort).toEqual({ column: 'name', direction: 'asc' });
+  });
+
+  it('contract: leaving a default column for a sortDescFirst one starts it at desc', () => {
+    const view = fakeView({ sort: { column: 'name', direction: 'asc' } });
+    const sorting = useSorting(state, view, () => []);
+
+    sorting.handleSort('createdAt');
+    expect(view.sort).toEqual({ column: 'createdAt', direction: 'desc' });
+  });
+
+  it('contract: a sortDescFirst column already sitting in asc clears on the next click', () => {
+    // `asc` is that column's second direction, however it got there (a view
+    // default, a URL, the header menu's explicit pick) — the cycle continues
+    // from the state, not from the click count.
+    const view = fakeView({ sort: { column: 'createdAt', direction: 'asc' } });
+    const sorting = useSorting(state, view, () => []);
+
+    sorting.handleSort('createdAt');
+    expect(view.sort).toBeNull();
+  });
+
+  it('a column id the table does not define starts at asc', () => {
+    const view = fakeView();
+    const sorting = useSorting(state, view, () => []);
+
+    sorting.handleSort('unknown');
+    expect(view.sort).toEqual({ column: 'unknown', direction: 'asc' });
   });
 });
 

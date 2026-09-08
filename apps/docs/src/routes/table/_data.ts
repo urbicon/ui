@@ -190,6 +190,7 @@ export const richColumns: Column<Employee>[] = [
     title: 'Salary',
     sortable: true,
     summable: true,
+    sortDescFirst: true,
     dataType: 'number',
     align: 'right'
   },

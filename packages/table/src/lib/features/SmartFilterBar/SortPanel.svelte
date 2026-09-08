@@ -2,6 +2,7 @@
   import { getTableContext, useTableI18n } from '$lib';
   import { RadioGroup, RadioItem, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { toolsSheetVariants } from '$lib/variants';
+  import { firstSortDirectionById } from '$lib/utils/column-capabilities';
   import ToolEmptyNote from './ToolEmptyNote.svelte';
   import { buildSortEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
@@ -35,12 +36,19 @@
   const currentColumn = $derived(tableView.sort?.column ?? '');
   const currentDirection = $derived(tableView.sort?.direction ?? 'asc');
 
+  // Choosing a column is not choosing a direction: a newly chosen column
+  // starts in its own first direction, the same answer the desktop header
+  // click gets from `firstSortDirectionById`. A radio that is already checked
+  // fires no `change`, so this never runs for the column already sorted.
   function handleColumnChange(columnId: string) {
     if (!columnId) {
       setSort(null);
       return;
     }
-    setSort({ column: columnId, direction: currentDirection });
+    setSort({
+      column: columnId,
+      direction: firstSortDirectionById(tableState.allColumns, columnId)
+    });
   }
 
   function handleDirectionChange(direction: string) {
