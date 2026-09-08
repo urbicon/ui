@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.20.0] - 2026-09-08
+
+### Breaking Changes
+- **sveltekit-utils**: WithSearchParams — the pure URL core both param writers share
+> **BREAKING:** `createUrlParam`'s setter — and therefore `useUrlParam` and `useUrlArrayParam` — now hands `goto` a pathname-qualified address (`/films?page=4`) where it previously handed a bare query string (`?page=4`). The two resolve identically unless the document carries a `<base href>`; a test that asserts `goto`'s literal argument must be updated.
+- **blocks**: Badge role follows purpose, dialog title wraps, select placeholder left-aligned
+> **BREAKING:** Badge's `role` prop no longer accepts `"badge"` — it is not an ARIA role and mapped to nothing; drop the prop or pass `"status"`. Badge markup
+- **blocks**: Render the pagination link as the anchor itself, not a button inside it
+> **BREAKING:** `defaults.Button` rules no longer reach `<PaginationItem href>` — they reached its inner Button before. There is no app-wide provider route to the link form: `Pagination` renders no linked items, and this component has no provider name of its own. The anchor takes `class` per instance, a `<BlocksProvider unstyled>`, and a stylesheet rule on its `blocks-intent-*` class.
+
+### Bug Fixes
+- **design-engine**: Find reports no match instead of a best-of
+
+### Documentation
+- **blocks**: Migration notes for 8.20.0 — badge roles and union, the pagination link form
+
+### Features
+- **table**: SortDescFirst — a column says which direction its first header click takes
+- **docs-gen**: Compile the pattern fences, rewrite tab-navigation as link tabs
+
 ## [8.19.0] - 2026-09-08
 
 ### Documentation
