@@ -19,6 +19,7 @@ import {
   base64UrlEncodeString,
   toArrayBuffer
 } from './encoding.js';
+import { assertJwtSecret } from './secret-registry.js';
 import { timingSafeEqual } from './timing-safe.js';
 
 // Internal export: shared with the federated consumer handle
@@ -283,21 +284,10 @@ function warnOncePerConfig(
 export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = console): void {
   // Algorithm-independent: the secret signs the session cookie under HS256 and
   // the package's short-lived tokens under every algorithm, so ES256 does not
-  // excuse it. First, because every later check — and the repeat-secret
-  // registry in createAuthDeps — reads it as a string. The value itself is
-  // never echoed.
-  const secret: unknown = config.secret;
-  if (typeof secret !== 'string' || secret.length === 0) {
-    const received =
-      secret === undefined
-        ? 'undefined — an unset environment variable?'
-        : typeof secret === 'string'
-          ? 'an empty string'
-          : typeof secret;
-    throw new Error(
-      `[auth] jwt.secret must be a non-empty string (received: ${received}). It signs the session cookie under HS256 and the package's short-lived tokens under every algorithm — set config.jwt.secret from your secret store.`
-    );
-  }
+  // excuse it. First, because every later check — and the two registries
+  // keyed on the secret — reads it as a string. The check itself lives with
+  // those registries, so a hand-built AuthDeps meets the same error there.
+  assertJwtSecret(config.secret);
   // Algorithm-independent: a `__Host-`-prefixed cookie name and a cookieDomain
   // are mutually exclusive — a browser rejects a `__Host-` cookie that carries a
   // Domain attribute, so the session cookie would silently never be set.

@@ -161,6 +161,16 @@ interface DerivableMixin {
    */
   sortable?: boolean;
   /**
+   * The first click on this header sorts descending — dates, ratings, counts.
+   * The cycle then runs descending → ascending → unsorted instead of the
+   * default ascending → descending → unsorted. Only the header click reads
+   * it: the header menu and the toolbar's sort tool name their direction
+   * outright. Never inferred from `dataType` — a numeric column sorts
+   * ascending first until it says otherwise.
+   * @default false
+   */
+  sortDescFirst?: boolean;
+  /**
    * Whether the column takes part in the search field's matching and offers a
    * per-column filter. Both follow this one flag: a column kept out of search
    * has no filter entry either.

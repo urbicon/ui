@@ -177,24 +177,33 @@ export function renderInformativeRamp(): string {
 }
 
 const suffixLabel = (suffix: string): string => (suffix === 'base' ? 'base' : `\`-${suffix}\``);
-const tokenFor = (intent: string, suffix: string): string =>
+
+/** The core after `--color-` of an intent's role: `primary` for `base`, else `primary-<suffix>`. */
+export const intentTokenCore = (intent: string, suffix: string): string =>
   suffix === 'base' ? intent : `${intent}-${suffix}`;
 
-/** Which utilities a role is reached through — presentation, keyed by what the role is for. */
-function utilitiesFor(suffix: string): string {
-  const core = tokenFor('<intent>', suffix);
-  if (suffix === 'text') return `\`text-${core}\``;
-  if (suffix === 'emphasis') return `\`bg-${core}\` / \`text-${core}\``;
-  return `\`bg-${core}\``;
+/**
+ * Which utilities a role is reached through — presentation, keyed by what the
+ * role is for: `bg-` for the fill steps, `text-` for `-text`, both for
+ * `-emphasis`, which doubles as a fill.
+ */
+export function intentUtilities(intent: string, suffix: string): readonly string[] {
+  const core = intentTokenCore(intent, suffix);
+  if (suffix === 'text') return [`text-${core}`];
+  if (suffix === 'emphasis') return [`bg-${core}`, `text-${core}`];
+  return [`bg-${core}`];
 }
 
 /** The role table shared by every intent, from the exemplar's `@role` markers. */
 export function renderIntentRoles(): string {
   const rows = SEMANTIC_TOKENS.intents.roles.map(
     (r) =>
-      `| ${suffixLabel(r.suffix)} | \`--color-${tokenFor('<intent>', r.suffix)}\` | ${utilitiesFor(
+      `| ${suffixLabel(r.suffix)} | \`--color-${intentTokenCore('<intent>', r.suffix)}\` | ${intentUtilities(
+        '<intent>',
         r.suffix
-      )} | ${cell(r.role) || '—'} |`
+      )
+        .map((u) => `\`${u}\``)
+        .join(' / ')} | ${cell(r.role) || '—'} |`
   );
   return [
     '| Role | CSS Variable | Tailwind Utility | Purpose |',

@@ -7,10 +7,13 @@
  *
  * `find` is a query, not a gate: it exits 0 even on no matches (only an unreadable
  * catalog is a failure). Pair it with `urbicon get-component <slug>` for the API.
+ *
+ * A result needs a query word the engine says *landed*; when none did, the answer is
+ * "no components match" and whatever still scored prints as `Closest (weak)` (#444).
  */
 
 import type { ComponentCatalog, ComponentCatalogEntry } from '@urbicon-ui/design-engine/search';
-import { isBooleanAxis, matchComponents } from '@urbicon-ui/design-engine/search';
+import { CLOSEST_NOTE, isBooleanAxis, searchComponents } from '@urbicon-ui/design-engine/search';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { loadCatalog } from '../content.js';
 import { type InstallState, installStateFor, readConsumerDependencies } from '../installed.js';
@@ -84,9 +87,9 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     return EXIT.USAGE;
   }
 
-  const listed = query
-    ? matchComponents(components, query, tags, limit)
-    : components.filter((c) => !tags || c.tags.some((t) => tags.includes(t)));
+  const search = query ? searchComponents(components, query, tags, limit) : undefined;
+  const listed =
+    search?.matches ?? components.filter((c) => !tags || c.tags.some((t) => tags.includes(t)));
   // `--limit` used to apply to a query only, so `urbicon find --limit 5` silently
   // listed all 98 components. Honour it in both modes — but only when it was
   // actually passed, so the documented "no query lists all" default is unchanged.
@@ -103,14 +106,38 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     // `propDocs` is the ranker's text, not the entry's identity — it is what
     // `get-component` prints, and inline it multiplies every result by its prop
     // count (`find button --json`: 50 KB with it, measured).
-    const annotated = results.map((entry) => {
+    const annotate = (entry: ComponentCatalogEntry, weak: boolean) => {
       const state = stateOf(entry);
       const { propDocs: _searchText, ...rest } = entry;
-      return { ...rest, installed: state === 'unknown' ? null : state === 'installed' };
-    });
-    console.log(JSON.stringify(annotated, null, 2));
+      const installed = state === 'unknown' ? null : state === 'installed';
+      return weak ? { ...rest, installed, weak: true } : { ...rest, installed };
+    };
+    // An empty array is the one unambiguous "nothing matched" a program can read,
+    // so a no-match query stays `[]` whatever the text surface lists as close.
+    // Only when there ARE matches do the weak entries the text surface prints
+    // follow them, flagged — otherwise a weak entry that outscores every match
+    // is known to the reader of the text surface alone.
+    const nearMisses = results.length > 0 ? (search?.closest ?? []) : [];
+    console.log(
+      JSON.stringify(
+        [...results.map((e) => annotate(e, false)), ...nearMisses.map((e) => annotate(e, true))],
+        null,
+        2
+      )
+    );
     return EXIT.OK;
   }
+
+  // The near misses print whenever the engine hands any back: with no matches they
+  // are the whole answer, and alongside matches they are an entry that outscored
+  // every one of them without landing — invisible otherwise.
+  const printClosest = (): void => {
+    if (!search || search.closest.length === 0) return;
+    console.log(
+      `\nClosest (weak): ${search.closest.map((c) => `${c.name} (${c.slug})`).join(' · ')}` +
+        `\n  ${CLOSEST_NOTE}`
+    );
+  };
 
   if (results.length === 0) {
     console.log(
@@ -118,6 +145,7 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
         ? `No components match "${query}". Try broader terms, or run \`urbicon find\` with no query to list all.`
         : `No components${tag ? ` tagged "${tag}"` : ''} in the catalog.`
     );
+    printClosest();
     return EXIT.OK;
   }
 
@@ -130,6 +158,8 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
   for (const entry of results) {
     console.log(`${formatEntry(entry, stateOf(entry))}\n`);
   }
+
+  printClosest();
 
   // Surface dead ends: matches whose origin package isn't a dependency here.
   const missing = [

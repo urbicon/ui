@@ -198,12 +198,12 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
   intents: {
     exemplar: 'primary',
     roles: [
-      { suffix: 'base', role: 'the FILL — a surface with text-on-fill sitting on it; never a text colour (variants-lint errors on a text-<intent> class)' },
+      { suffix: 'base', role: 'the fill — a surface with text-on-fill sitting on it; never a text colour' },
       { suffix: 'hover', role: 'the hover step of the fill' },
       { suffix: 'active', role: 'the pressed step of the fill' },
       { suffix: 'subtle', role: 'a soft tinted ground in the intent\'s hue — an Alert\'s background, a selected row' },
-      { suffix: 'text', role: 'the intent as TEXT on a reading surface — the nearest stop that clears AA 4.5:1 on every reading surface and the intent\'s own -subtle' },
-      { suffix: 'emphasis', role: 'the near-ink tier — strong statements as text, and doubles as a fill; the Radix steps 11/12 split with -text' }
+      { suffix: 'text', role: 'the intent as text on a reading surface — the nearest stop that clears AA 4.5:1 on every reading surface and the intent\'s own -subtle' },
+      { suffix: 'emphasis', role: 'the near-ink tier — strong statements as text, and doubles as a fill' }
     ],
     entries: [
       {
@@ -408,7 +408,7 @@ export const SEMANTIC_TOKENS: SemanticTokens = {
     ],
     notes: [
       { intent: 'warning', suffix: 'text', note: 'the light stop is -800, the only rung of a yellow ramp that reads on white — it lands amber-brown while the fill stays yellow' },
-      { intent: 'danger', suffix: 'text', note: 'the light stop is the base stop, red already reads on paper; dark needs -300 because sRGB red is too dim on the lightened panels at -400' }
+      { intent: 'danger', suffix: 'text', note: 'the light stop is the fill\'s stop, red already reads on paper; dark needs -300 because sRGB red is too dim on the lightened panels at -400' }
     ],
     absent: [
       { intent: 'neutral', suffix: 'text', reason: 'its base already clears AA as text on every ground in every theme, so a -text role would only alias the base' }

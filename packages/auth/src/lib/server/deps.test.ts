@@ -1,17 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
-import { __resetSeenSecretsForTests, createAuthDeps } from './deps.js';
+import { createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
+import { sharedLimiter } from './rate-limit.js';
 import { lockoutFor, rateLimitFor } from './security-defaults.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
-
-// The repeat-secret registry is process-wide and this file builds dozens of
-// bundles from `secret: 's'`. Without the reset the one-shot warning lands on
-// whichever test happens to make the file's second call — measured: the second
-// test in file order, and only that one — so a `not.toHaveBeenCalled()` there
-// would depend on test order. The reset makes each sink see only its own test.
-beforeEach(() => __resetSeenSecretsForTests());
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
   return {
@@ -249,9 +243,10 @@ describe('forgot-password rate-limit default', () => {
 });
 
 describe('createAuthDeps called again with a secret it has seen', () => {
-  // The rate-limit counters key on the config OBJECT this function returns
-  // (sharedLimiter), so a second call is a second, empty set of counters. The
-  // warning is process-wide by design — that is the scope of the bug.
+  // The rate-limit counters are per secret (sharedLimiter), so a second bundle
+  // keeps the limits — with the first bundle's max/window for every key, and
+  // validation and resolution run again. The warning is process-wide by
+  // design — that is the scope of the registry.
   const sink = () => ({ warn: vi.fn(), error: vi.fn() });
   const wiring = (secret: string, logger: ReturnType<typeof sink>) =>
     baseDeps({ logger, jwt: { secret } });
@@ -265,7 +260,7 @@ describe('createAuthDeps called again with a secret it has seen', () => {
     expect(logger.warn).toHaveBeenCalledTimes(1);
     const [message] = logger.warn.mock.calls[0] as [string];
     expect(message).toContain('createAuthDeps');
-    expect(message).toContain('rate limit');
+    expect(message).toContain('share their rate-limit counters');
     expect(message).toContain('once, at module scope');
     expect(message).toContain('AUTH.md');
     // The hot-reload clause: a dev-server reload makes a second call too.
@@ -291,6 +286,24 @@ describe('createAuthDeps called again with a secret it has seen', () => {
     createAuthDeps(dev());
     expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('createAuthDeps'));
+  });
+
+  // The seam the warning guards: the config object is new per call, the
+  // counters behind it are not. Eight bundles at max 5 admit 5.
+  it('per-request bundles share one set of counters, so the limit still trips', async () => {
+    const logger = sink();
+    const allowed: boolean[] = [];
+    for (let i = 0; i < 8; i++) {
+      const deps = createAuthDeps(
+        baseDeps({
+          logger,
+          jwt: { secret: 'per-request' },
+          rateLimit: { login: { windowMs: 60_000, max: 5 } }
+        })
+      );
+      allowed.push((await sharedLimiter(deps.config, 'login')?.check('ip'))?.allowed ?? true);
+    }
+    expect(allowed.filter(Boolean)).toHaveLength(5);
   });
 
   it('does not count a call that threw at validation', () => {

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.19.0] - 2026-09-08
+
+### Documentation
+- Record the kino decisions — href only where structure is, accent only on the primary action
+
+### Features
+- **design-engine**: Export the intent role derivation; the tokens page renders from it
+- **auth**: Rate-limit counters key on the secret and its limits, not on the config object
+
 ## [8.18.0] - 2026-09-05
 
 ### Breaking Changes

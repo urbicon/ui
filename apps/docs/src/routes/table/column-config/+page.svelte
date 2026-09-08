@@ -10,18 +10,24 @@
     { id: 'column-visibility', title: 'Column Visibility' }
   ];
 
-  // How the five capability flags relate — which is page material, not
-  // per-prop material: three of them fall back to another flag, and a reader
-  // deciding what to declare needs them side by side. The per-flag contract is
-  // the JSDoc on `DerivableMixin` / `BaseColumn` in packages/table, which is
-  // what an editor shows on hover. It does not reach the generated Types
-  // section: docs-gen slices an interface's own members and does not follow
-  // `extends`, so `Column` there resolves to `id` + `accessor` and nothing else.
-  const capabilityFlags = [
+  // How the six per-column flags relate — which is page material, not per-prop
+  // material: three of them fall back to another flag, and a reader deciding
+  // what to declare needs them side by side. The per-flag contract is the JSDoc
+  // on `DerivableMixin` / `BaseColumn` in packages/table, which is what an
+  // editor shows on hover. It does not reach the generated Types section:
+  // docs-gen slices an interface's own members and does not follow `extends`,
+  // so `Column` there resolves to `id` + `accessor` and nothing else.
+  const columnFlags = [
     {
       name: 'sortable',
       unset: 'sorts',
       governs: 'the header click, the header menu, the toolbar’s sort tool'
+    },
+    {
+      name: 'sortDescFirst',
+      unset: 'the first click sorts ascending',
+      governs:
+        'the direction of the first sort step — on a header click, and when the sort tool’s column list picks this column'
     },
     {
       name: 'searchable',
@@ -113,6 +119,7 @@ const columns: Column<Employee>[] = [
     title: 'Salary',
     sortable: true,
     summable: true,        // offer Sum / Avg / Min / Max / Count
+    sortDescFirst: true,   // the first header click puts the highest on top
     dataType: 'number',
     align: 'right'         // 'left' (default) | 'center' | 'right'
   },
@@ -153,8 +160,10 @@ const columns: Column<Employee>[] = [
           >searchable</code
         >/<code class="text-text-primary">groupable</code>/<code class="text-text-primary"
           >summable</code
-        >/<code class="text-text-primary">dataType</code>: there is no value to operate on, and the
-        type rejects those flags at compile time.
+        >/<code class="text-text-primary">dataType</code>: there is no value to operate on. A
+        literal typed as <code class="text-text-primary">SyntheticColumn</code> rejects those flags
+        at compile time; against the <code class="text-text-primary">Column</code> union they pass unnoticed,
+        and the capability predicates answer for an accessor-less column at runtime.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -182,9 +191,11 @@ const columns: Column<Employee>[] = [
       </p>
 
       <p class="text-text-secondary text-sm">
-        Five flags decide what a column can be asked to do. They are not independent, and two of
+        Six flags decide what a column can be asked to do, and how. They are not independent: two of
         them, <code class="text-text-primary">groupable</code> and
-        <code class="text-text-primary">summable</code>, are off until something turns them on:
+        <code class="text-text-primary">summable</code>, are off until something turns them on, and
+        <code class="text-text-primary">sortDescFirst</code> only has an effect while the column sorts
+        at all.
       </p>
 
       <div class="border-border-hairline overflow-x-auto border-y">
@@ -197,7 +208,7 @@ const columns: Column<Employee>[] = [
             </tr>
           </thead>
           <tbody class="text-text-secondary divide-border-hairline divide-y">
-            {#each capabilityFlags as flag (flag.name)}
+            {#each columnFlags as flag (flag.name)}
               <tr>
                 <td class="py-2 pr-4"><code class="text-text-primary">{flag.name}</code></td>
                 <td class="py-2 pr-4">{flag.unset}</td>

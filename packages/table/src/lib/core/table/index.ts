@@ -124,7 +124,10 @@ export interface TableContext {
 
   // ── Sorting ──
 
-  /** The column-header click: cycles the column asc → desc → unsorted. */
+  /**
+   * The column-header click: cycles the column asc → desc → unsorted — or
+   * desc → asc → unsorted for a column that declares `sortDescFirst`.
+   */
   handleSort(column: string): void;
   /**
    * Set an exact sort, no cycling — for controls without a header to click.

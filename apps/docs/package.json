@@ -25,6 +25,7 @@
     "@fontsource/special-elite": "^5.2.0",
     "@urbicon-ui/auth": "workspace:*",
     "@urbicon-ui/blocks": "workspace:*",
+    "@urbicon-ui/design-engine": "workspace:*",
     "@urbicon-ui/docs": "workspace:*",
     "@urbicon-ui/i18n": "workspace:*",
     "@urbicon-ui/shared-types": "workspace:*",

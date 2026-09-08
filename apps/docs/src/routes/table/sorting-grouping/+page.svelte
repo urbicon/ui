@@ -64,7 +64,9 @@
   <Section id="sorting-grouping" title="Sorting & Grouping">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
-        Every data column sorts on a header click, cycling ascending, descending, unsorted. One
+        Every data column sorts on a header click, cycling ascending, descending, unsorted — or
+        descending first for a column that declares
+        <code class="text-text-primary">sortDescFirst: true</code>: a date, a rating, a count. One
         column at a time: a click on another header moves the sort there.
         <code class="text-text-primary">sortable: false</code> takes that away, and a synthetic
         column (one with no <code class="text-text-primary">accessor</code>) has no value to sort by

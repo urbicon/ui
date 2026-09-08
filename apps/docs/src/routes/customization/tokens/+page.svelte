@@ -2,6 +2,12 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import {
+    formatStop,
+    intentTokenCore,
+    intentUtilities,
+    SEMANTIC_TOKENS
+  } from '@urbicon-ui/design-engine/reference';
   import { parseInteractionTokens } from '$lib/interaction-tokens';
   // The shipped stylesheet itself, so the tables below cannot quote a value
   // the library does not have.
@@ -167,6 +173,27 @@
         'Hue of the neutral intent chrome (bg-neutral / text-neutral / neutral borders). Keeps the warm-neutral ramp lightness; only the hue moves, so contrast is untouched.'
     }
   ];
+
+  // The intent roles and the exemplar's stops, from the module behind
+  // `urbicon css-reference`. The role sentences are the `@role` / `@absent`
+  // markers in blocks/src/lib/style/semantic.css: reword one there and run
+  // `bun run tokens:reference`; nothing in this table is a copy.
+  const { exemplar, roles, entries, notes, absent } = SEMANTIC_TOKENS.intents;
+  const exemplarEntry = entries.find((e) => e.name === exemplar);
+  if (!exemplarEntry) {
+    throw new Error(`SEMANTIC_TOKENS names ${exemplar} as exemplar, which entries does not carry`);
+  }
+  const intentRoles = roles.map((role) => {
+    const stop = exemplarEntry.stops[role.suffix];
+    if (!stop) throw new Error(`${exemplar} carries no ${role.suffix} stop`);
+    return {
+      ...role,
+      core: intentTokenCore(exemplar, role.suffix),
+      utilities: intentUtilities(exemplar, role.suffix),
+      light: formatStop(stop.light),
+      dark: formatStop(stop.dark)
+    };
+  });
 </script>
 
 <!-- urbicon-ignore placeholder-content — 'The quick brown fox' is a type
@@ -192,8 +219,8 @@
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">light-dark()</code>; the
       <strong>interaction</strong> layer times motion and stacks depth. How to write, scope and
       switch a theme is the
-      <a href={resolve('/customization/themes')} class="text-primary hover:underline">Themes</a> page;
-      this one lists what exists.
+      <a href={resolve('/customization/themes')} class="text-primary-text hover:underline">Themes</a
+      > page; this one lists what exists.
     </p>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -239,11 +266,12 @@
           That is a job for
           <code class="bg-surface-base rounded-modify px-1.5 py-0.5">class</code>,
           <code class="bg-surface-base rounded-modify px-1.5 py-0.5">slotClasses</code> and
-          <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
-            >BlocksProvider</a
+          <a
+            href={resolve('/customization/blocks-provider')}
+            class="text-primary-text hover:underline">BlocksProvider</a
           >, never for
           <code class="bg-surface-base rounded-modify px-1.5 py-0.5">!</code> color overrides; the
-          <a href={resolve('/customization')} class="text-primary hover:underline"
+          <a href={resolve('/customization')} class="text-primary-text hover:underline"
             >Customization hub</a
           > carries the decision table.
         </li>
@@ -258,12 +286,14 @@
     <p class="text-text-tertiary mt-6 text-sm leading-relaxed">
       <span id="custom-theming"></span><span id="dark-mode"></span>Custom theming and dark mode used
       to live on this page. They moved to
-      <a href={`${resolve('/customization/themes')}#create`} class="text-primary hover:underline"
-        >Themes → Write Your Own Theme</a
+      <a
+        href={`${resolve('/customization/themes')}#create`}
+        class="text-primary-text hover:underline">Themes → Write Your Own Theme</a
       >
       and
-      <a href={`${resolve('/customization/themes')}#dark-mode`} class="text-primary hover:underline"
-        >Themes → Dark Mode</a
+      <a
+        href={`${resolve('/customization/themes')}#dark-mode`}
+        class="text-primary-text hover:underline">Themes → Dark Mode</a
       >.
     </p>
   </Section>
@@ -327,6 +357,104 @@
       {/each}
     </div>
 
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Intent Roles</h3>
+    <p class="text-text-secondary mb-4">
+      The {exemplar} intent carries {roles.length} roles, listed below; every other intent carries them
+      under the same suffixes{#if absent.length > 0}, and the gaps are listed under the table{/if}.
+      Solid things (a button, a badge, a progress bar) take the base fill,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary</code>, with
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-text-on-fill</code>
+      as the label on it. Text in the intent's colour on a reading surface (a page, a card, a panel) or
+      on the intent's own
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">-subtle</code>
+      tint takes
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>,
+      the stop that clears AA there. Tailwind also emits
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary</code> from
+      the fill token and nothing flags it; as text it lands below AA (4.28:1 on
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">bg-primary-subtle</code
+      >), so write
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>.
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >text-primary-emphasis</code
+      >
+      is the near-ink step for a heading or a strong statement. The two classes that look alike do opposite
+      jobs:
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-primary-text</code>
+      is text in the primary colour,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-text-on-fill</code>
+      (or its primary-only alias
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >text-text-on-primary</code
+      >) is the label on a primary fill. The swatches render in whatever theme is active, on this
+      site the docs skin's own primary; the light and dark stops under each token are the library's
+      own.
+    </p>
+    <div class="border-border-subtle bg-surface-base rounded-contain mb-4 overflow-hidden border">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Utility</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Purpose</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each intentRoles as row (row.suffix)}
+              <tr>
+                <td class="px-4 py-3 font-mono text-xs">
+                  <span class="flex items-center gap-2 whitespace-nowrap">
+                    <span
+                      class="rounded-modify h-4 w-4 shrink-0"
+                      style="background: var(--color-{row.core})"
+                    ></span>
+                    <span class="text-primary-text">--color-{row.core}</span>
+                  </span>
+                  <span class="text-text-tertiary mt-1 block">
+                    <span class="whitespace-nowrap">light {row.light}</span>
+                    ·
+                    <span class="whitespace-nowrap">dark {row.dark}</span>
+                  </span>
+                </td>
+                <td class="text-text-secondary px-4 py-3 font-mono text-xs">
+                  {#each row.utilities as utility (utility)}
+                    <span class="block whitespace-nowrap">{utility}</span>
+                  {/each}
+                </td>
+                <td class="text-text-tertiary px-4 py-3">{row.role}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul class="text-text-secondary mb-4 space-y-1 text-sm">
+      {#each absent as gap (`${gap.intent}-${gap.suffix}`)}
+        <li>
+          <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">{gap.intent}</code>
+          has no
+          <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">-{gap.suffix}</code>
+          token: {gap.reason}
+        </li>
+      {/each}
+      {#each notes as note (`${note.intent}-${note.suffix}`)}
+        <li>
+          <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">{note.intent}</code>
+          <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">-{note.suffix}</code
+          >: {note.note}
+        </li>
+      {/each}
+    </ul>
+    <p class="text-text-secondary mb-8 text-sm">
+      Run <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >urbicon css-reference intents</code
+      >
+      (the
+      <a href={resolve('/ai')} class="text-primary-text hover:underline">urbicon CLI</a>) for the
+      stops of every other intent.
+    </p>
+
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Intent Chrome</h3>
     <p class="text-text-secondary mb-4">
       The neutral intent (<code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
@@ -374,7 +502,7 @@
       Urbicon UI does not ship a custom spacing token layer. It uses
       <a
         href="https://tailwindcss.com/docs/padding"
-        class="text-primary hover:underline"
+        class="text-primary-text hover:underline"
         target="_blank"
         rel="noreferrer">Tailwind's built-in spacing scale</a
       >
@@ -402,7 +530,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each spacingScale as step (step.utility)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-primary-text px-4 py-3 font-mono">{step.utility}</td>
                 <td class="text-text-secondary px-4 py-3 font-mono">{step.value}</td>
                 <td class="text-text-tertiary px-4 py-3">{step.pixels}</td>
                 <td class="px-4 py-3">
@@ -426,7 +554,7 @@
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> variables;
       override them alongside your color ramps (<a
         href={resolve('/customization/themes')}
-        class="text-primary hover:underline">Themes → Typography</a
+        class="text-primary-text hover:underline">Themes → Typography</a
       >, including the paired
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >--text-*--line-height</code
@@ -450,7 +578,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each typographyScale as step (step.utility)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-primary-text px-4 py-3 font-mono">{step.utility}</td>
                 <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
                   >{step.variable}</td
                 >
@@ -484,7 +612,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each weightScale as step (step.utility)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-primary-text px-4 py-3 font-mono">{step.utility}</td>
                 <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
                   >{step.variable}</td
                 >
@@ -519,7 +647,7 @@
     <p class="text-text-secondary mb-6">
       Components consume a 3-tier semantic vocabulary, not raw radii. Re-tint the three tier
       variables to reshape the whole library at once (the full cascade:
-      <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
+      <a href={resolve('/customization/tier-system')} class="text-primary-text hover:underline"
         >Radius Tiers</a
       >). A fourth token,
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--radius-bridge</code>,
@@ -538,7 +666,8 @@
           <tbody class="divide-border-subtle divide-y">
             {#each semanticRadiusTokens as token (token.name)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono whitespace-nowrap">{token.name}</td>
+                <td class="text-primary-text px-4 py-3 font-mono whitespace-nowrap">{token.name}</td
+                >
                 <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
                   >{token.value}</td
                 >
@@ -586,7 +715,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each durations as token (token.name)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-primary-text px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-secondary px-4 py-3 font-mono">{token.value}</td>
               </tr>
             {/each}
@@ -605,7 +734,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each shadows as token (token.name)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-primary-text px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
               </tr>
             {/each}
@@ -624,7 +753,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each easings as token (token.name)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-primary-text px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
               </tr>
             {/each}
@@ -643,7 +772,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each overridePoints as token (token.name)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-primary-text px-4 py-3 font-mono text-xs">{token.name}</td>
                 <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.value}</td>
               </tr>
             {/each}
@@ -674,7 +803,7 @@
           <tbody class="divide-border-subtle divide-y">
             {#each chromaTokens as token (token.name)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono text-xs whitespace-nowrap"
+                <td class="text-primary-text px-4 py-3 font-mono text-xs whitespace-nowrap"
                   >{token.name}</td
                 >
                 <td class="text-text-secondary px-4 py-3 font-mono text-xs">{token.value}</td>

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertGuideSlug,
   closesFence,
+  dedentFenceLine,
   demoteHeadings,
   guidePlaceholder,
   injectSemanticTokens,
@@ -134,6 +135,15 @@ describe('guide-injection', () => {
       expect(parseFenceDelimiter('`` not a fence')).toBeNull();
       // a backtick info string cannot contain a backtick — that is inline code
       expect(parseFenceDelimiter('```a `b`')).toBeNull();
+    });
+
+    it("de-indents a fence line by at most the opener's own indentation", () => {
+      // CommonMark: the opener's indentation is stripped where it is present,
+      // and deeper indentation inside the fence survives as content
+      expect(dedentFenceLine('      <p>deep</p>', 4)).toBe('  <p>deep</p>');
+      expect(dedentFenceLine('  <p>shallower than the opener</p>', 4)).toBe(
+        '<p>shallower than the opener</p>'
+      );
     });
 
     it('closes only on the same character, at least as long, without info', () => {
