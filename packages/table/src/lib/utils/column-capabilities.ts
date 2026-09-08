@@ -1,6 +1,9 @@
 /**
  * What a column may be asked to do: sort, search, group, summarize — one
- * predicate per axis, and the only place each question is answered.
+ * predicate per axis, and the only place each question is answered. The sort
+ * axis asks a second question — which way its *first* step goes
+ * ({@link firstSortDirection}) — and it lives here for the module's own reason,
+ * below.
  *
  * WHY ONE MODULE. Every axis is asked from at least two surfaces that a reader
  * experiences as one feature: the column's `⋮` header menu and the filter bar's
@@ -29,6 +32,8 @@
  * value to sort, match, bucket or reduce. That check leads every predicate.
  */
 import type { Column } from '../types';
+import type { ViewSort } from '../view/view.svelte';
+import { findColumnById } from './index';
 
 /** The column shapes that carry data — everything except the synthetic one. */
 type DataColumn = Exclude<Column, { accessor?: never }>;
@@ -49,6 +54,47 @@ function asDataColumn(col: Column): DataColumn | null {
 export function isColumnSortable(col: Column): boolean {
   const dataCol = asDataColumn(col);
   return dataCol !== null && dataCol.sortable !== false;
+}
+
+/**
+ * Which direction a column's **first** sort step takes: `desc` when it declares
+ * `sortDescFirst`, `asc` otherwise.
+ *
+ * Not a capability — the sort axis's second question, and here for the module's
+ * first reason. Every surface that picks a direction *for a column the reader
+ * just chose* must ask it, and there are two: the header click, and the filter
+ * bar's sort panel, which is the only sort control the mobile card layout has
+ * (`TableMobile` renders no header to click).
+ *
+ * Controls that **name** a direction do not ask — the header menu's two items,
+ * the sort panel's asc/desc segments, the wide bar's `column · direction`
+ * options. The reader already said which way.
+ *
+ * An accessor-less column answers `asc`, the way every predicate above answers
+ * `false`. It *can* carry the flag: against the `Column` union an accessor-less
+ * literal is checked for excess properties against every arm, so a key some arm
+ * declares passes (only a `SyntheticColumn`-annotated literal is rejected). It
+ * still has no value to sort by, and `useSorting` skips the sort entirely.
+ */
+export function firstSortDirection(col: Column): ViewSort['direction'] {
+  const dataCol = asDataColumn(col);
+  return dataCol?.sortDescFirst === true ? 'desc' : 'asc';
+}
+
+/**
+ * {@link firstSortDirection} for a column *id* — the shape every calling
+ * surface actually holds.
+ *
+ * Hand it `state.allColumns`, never the visible subset: a sort survives its
+ * column being hidden, so the definition behind it has to survive too (#253).
+ * An id naming no column answers `asc`.
+ */
+export function firstSortDirectionById(
+  columns: readonly Column[],
+  id: string
+): ViewSort['direction'] {
+  const column = findColumnById(columns, id);
+  return column === undefined ? 'asc' : firstSortDirection(column);
 }
 
 /**

@@ -12,7 +12,7 @@
  * `describe` to keep both pipelines happy.
  */
 import { describe, expectTypeOf, it } from 'vitest';
-import type { Column, TableProps } from '../types/index';
+import type { Column, SyntheticColumn, TableProps } from '../types/index';
 import { TableColumns } from './TableColumns';
 import { TypedColumnBuilder } from './TypedColumnBuilder';
 
@@ -51,6 +51,20 @@ describe('Table generic preservation', () => {
     expectTypeOf<TableProps<Apartment>['onSelectionChange']>().toEqualTypeOf<
       ((selectedItems: Apartment[], selectedIds: Array<string | number>) => void) | undefined
     >();
+  });
+
+  it('sortDescFirst lives on the data arms, not on SyntheticColumn', () => {
+    // No accessor, nothing to sort, so no first direction either. Pinned on
+    // the arm itself: against the `Column` union an accessor-less literal
+    // carries no discriminant, so TypeScript's excess-property check accepts
+    // any key some arm declares and this flag would pass there unnoticed.
+    const synthetic: SyntheticColumn<Apartment> = {
+      id: 'actions',
+      title: '',
+      // @ts-expect-error sortDescFirst does not exist on SyntheticColumn
+      sortDescFirst: true
+    };
+    expectTypeOf(synthetic).toEqualTypeOf<SyntheticColumn<Apartment>>();
   });
 
   it('Column<Apartment>[] from the builder is directly assignable to TableProps<Apartment>.columns', () => {

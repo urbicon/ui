@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Column } from '$lib/types/tableTypes';
 import { resolveColumnId } from '$lib/utils';
 import { TableColumns } from './TableColumns';
 
@@ -176,6 +177,79 @@ describe('TableColumns factory', () => {
     it('is threaded by the text factory (columnProps path)', () => {
       const col = TableColumns.text<TestItem>('name', 'Name', { hideable: false });
       expect(col.hideable).toBe(false);
+    });
+  });
+
+  describe('sortDescFirst flag', () => {
+    const sampleItem: TestItem = {
+      id: 1,
+      name: 'Alice',
+      status: 'active',
+      email: 'a@b.com',
+      amount: 100,
+      created: '2024-01-01',
+      url: 'https://example.com'
+    };
+
+    // Every data factory, because each one destructures its options by hand:
+    // a factory that forgets the flag would drop it from the column AND leak
+    // it into the cell component's props, and only a per-factory check sees
+    // either.
+    //
+    // The third tuple field is whether the factory produces a `componentProps`
+    // at all — `text` renders through a formatter and has none, so its leak
+    // assertion would otherwise read an empty object and pass for any
+    // implementation. Declared here so it is asserted rather than assumed: a
+    // `text` that grows a cell component fails the roster instead of quietly
+    // going vacuous.
+    const dataFactories: Array<
+      [string, (opts: { sortDescFirst?: boolean }) => Column<TestItem>, boolean]
+    > = [
+      ['userAvatar', (o) => TableColumns.userAvatar<TestItem>('name', 'User', o), true],
+      ['status', (o) => TableColumns.status<TestItem>('status', 'Status', o), true],
+      ['copy', (o) => TableColumns.copy<TestItem>('email', 'Email', o), true],
+      ['custom', (o) => TableColumns.custom<TestItem>('name', 'Name', o), true],
+      ['date', (o) => TableColumns.date<TestItem>('created', 'Created', o), true],
+      ['link', (o) => TableColumns.link<TestItem>('url', 'URL', o), true],
+      ['number', (o) => TableColumns.number<TestItem>('amount', 'Amount', o), true],
+      ['text', (o) => TableColumns.text<TestItem>('name', 'Name', o), false]
+    ];
+
+    it.each(dataFactories)(
+      '%s: is undefined by default (the first click sorts ascending)',
+      (_, make) => {
+        const col = make({});
+        expect('sortDescFirst' in col ? col.sortDescFirst : undefined).toBeUndefined();
+      }
+    );
+
+    it.each(dataFactories)(
+      '%s: threads sortDescFirst onto the column, not into componentProps',
+      (_, make, hasCellProps) => {
+        const col = make({ sortDescFirst: true });
+        expect('sortDescFirst' in col && col.sortDescFirst).toBe(true);
+
+        const props = col.componentProps?.(sampleItem);
+        expect(props !== undefined).toBe(hasCellProps);
+        expect('sortDescFirst' in (props ?? {})).toBe(false);
+      }
+    );
+
+    it('is never derived from the data type — a date column starts ascending until told otherwise', () => {
+      const col = TableColumns.date<TestItem>('created', 'Created');
+      expect('sortDescFirst' in col ? col.sortDescFirst : undefined).toBeUndefined();
+      expect('dataType' in col && col.dataType).toBe('date');
+    });
+
+    it('the actions factory rejects the flag rather than forwarding it to the cell', () => {
+      // Synthetic: no header sort to give a direction to. `actions` names only
+      // the layout options and spreads the rest onto `<ActionButtons>`, so
+      // accepting the flag would put it on the component as an unknown prop.
+      const col = TableColumns.actions<TestItem>('Actions', {
+        // @ts-expect-error sortDescFirst is omitted from ActionButtonsFactoryOptions
+        sortDescFirst: true
+      });
+      expect(col.componentProps?.(sampleItem)).toBeDefined();
     });
   });
 

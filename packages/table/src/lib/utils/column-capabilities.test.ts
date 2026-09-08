@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Column } from '../types';
 import {
+  firstSortDirection,
+  firstSortDirectionById,
   isColumnGroupable,
   isColumnSearchable,
   isColumnSortable,
@@ -39,6 +41,47 @@ describe('isColumnSortable', () => {
   it('never sorts a synthetic column', () => {
     expect(isColumnSortable(synthetic())).toBe(false);
     expect(isColumnSortable(synthetic({ sortable: true }))).toBe(false);
+  });
+});
+
+describe('firstSortDirection', () => {
+  it('is ascending unless the column asks for the other end first', () => {
+    expect(firstSortDirection(col())).toBe('asc');
+    expect(firstSortDirection(col({ sortDescFirst: false }))).toBe('asc');
+    expect(firstSortDirection(col({ sortDescFirst: true }))).toBe('desc');
+  });
+
+  it('never reads the data type — a date column starts ascending until it says otherwise', () => {
+    // TanStack starts numeric columns descending on its own. Here the answer
+    // follows the declaration or nothing, the same rule isColumnSummable pays
+    // for above.
+    expect(firstSortDirection(col({ dataType: 'date' }))).toBe('asc');
+    expect(firstSortDirection(col({ dataType: 'number' }))).toBe('asc');
+  });
+
+  it('answers ascending for an accessor-less column that carries the flag anyway', () => {
+    // Not hypothetical: `Column` is a union, and an accessor-less literal is
+    // excess-property-checked against every arm, so a key the data arms
+    // declare passes. Only a `SyntheticColumn`-annotated literal is rejected
+    // (typed-columns.test.ts pins that half). There is no value to sort by, so
+    // the flag can have no direction to give.
+    expect(firstSortDirection(synthetic({ sortDescFirst: true }))).toBe('asc');
+  });
+});
+
+describe('firstSortDirectionById', () => {
+  const columns = [
+    col({ accessor: 'name' }),
+    col({ accessor: 'created', sortDescFirst: true })
+  ] as Column[];
+
+  it('reads the named column, and answers ascending for an id it does not know', () => {
+    expect(firstSortDirectionById(columns, 'created')).toBe('desc');
+    expect(firstSortDirectionById(columns, 'name')).toBe('asc');
+    // A sort restored from a URL or storage for a column the definition has
+    // since dropped — the same state resolveColumnLabelById tolerates.
+    expect(firstSortDirectionById(columns, 'gone')).toBe('asc');
+    expect(firstSortDirectionById([], 'created')).toBe('asc');
   });
 });
 

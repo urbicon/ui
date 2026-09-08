@@ -1,5 +1,6 @@
 import type { TableItem } from '$lib/types/tableTypes';
 import { findColumnById, resolveValueById } from '$lib/utils';
+import { firstSortDirectionById } from '$lib/utils/column-capabilities';
 import type { TableView, ViewSort } from '$lib/view/view.svelte';
 import type { TableState } from './types';
 
@@ -62,18 +63,25 @@ export function useSorting(
   });
 
   /**
-   * The column-header click: asc → desc → unsorted, on repeat.
+   * The column-header click: the column's first direction → the opposite →
+   * unsorted, on repeat. Which direction comes first is the column's to say,
+   * and the answer is `firstSortDirectionById` in `utils/column-capabilities` —
+   * shared with the filter bar's sort panel, which is the only sort control the
+   * mobile card layout has. A column sitting in its *second* direction clears
+   * on the next click whichever route put it there — a view default, a URL,
+   * the header menu.
    *
    * "Unsorted" is `null` rather than the v7 empty-column sentinel, so the
    * third state cannot leave a direction behind for a column nobody is
    * sorting by.
    */
   function handleSort(column: string) {
+    const first = firstSortDirectionById(state.allColumns, column);
     const sort = view.sort;
     if (sort?.column !== column) {
-      view.sort = { column, direction: 'asc' };
-    } else if (sort.direction === 'asc') {
-      view.sort = { column, direction: 'desc' };
+      view.sort = { column, direction: first };
+    } else if (sort.direction === first) {
+      view.sort = { column, direction: first === 'asc' ? 'desc' : 'asc' };
     } else {
       view.sort = null;
     }

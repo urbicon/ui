@@ -15,6 +15,11 @@ import UserAvatar, { type UserAvatarProps } from '../cells/UserAvatar.svelte';
 /** Common column configuration properties shared across all factory methods. */
 type BaseColumnProps = {
   sortable?: boolean;
+  /**
+   * The first header click sorts descending — dates, ratings, counts. The
+   * contract is on `Column`'s `sortDescFirst`; default `false`.
+   */
+  sortDescFirst?: boolean;
   searchable?: boolean;
   groupable?: boolean;
   summable?: boolean;
@@ -40,7 +45,14 @@ type BaseColumnProps = {
 
 type UserAvatarFactoryOptions<Item> = BaseColumnProps &
   Partial<Omit<UserAvatarProps<Item>, 'item'>>;
-type ActionButtonsFactoryOptions<Item> = BaseColumnProps & Omit<ActionButtonsProps<Item>, 'item'>;
+/**
+ * `actions` builds a synthetic column, and this factory forwards every option
+ * it does not name to the cell component. `sortDescFirst` is therefore excluded
+ * at the type: there is no header sort to give a direction to, and passing it
+ * would land it on `<ActionButtons>` as an unknown prop.
+ */
+type ActionButtonsFactoryOptions<Item> = Omit<BaseColumnProps, 'sortDescFirst'> &
+  Omit<ActionButtonsProps<Item>, 'item'>;
 type StatusBadgeFactoryOptions<Item> = BaseColumnProps &
   Partial<Omit<StatusBadgeProps<Item>, 'item'>>;
 type CopyButtonFactoryOptions<Item> = BaseColumnProps &
@@ -90,6 +102,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -113,6 +126,7 @@ export const TableColumns = {
       }),
 
       sortable: sortable ?? true,
+      sortDescFirst,
       searchable: searchable ?? true,
       groupable: groupable ?? true,
       summable: summable ?? false,
@@ -194,6 +208,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -217,6 +232,7 @@ export const TableColumns = {
         ...componentProps
       }),
       sortable: sortable ?? true,
+      sortDescFirst,
       searchable: searchable ?? true,
       groupable: groupable ?? true,
       summable: summable ?? false,
@@ -240,6 +256,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -263,6 +280,7 @@ export const TableColumns = {
         ...componentProps
       }),
       sortable: sortable ?? false,
+      sortDescFirst,
       searchable: searchable ?? false,
       groupable: groupable ?? false,
       summable: summable ?? false,
@@ -286,6 +304,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -308,6 +327,7 @@ export const TableColumns = {
         ...componentProps
       }),
       sortable: sortable ?? true,
+      sortDescFirst,
       searchable: searchable ?? true,
       groupable: groupable ?? false,
       summable: summable ?? false,
@@ -331,6 +351,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -354,6 +375,7 @@ export const TableColumns = {
         ...componentProps
       }),
       sortable: sortable ?? true,
+      sortDescFirst,
       searchable: searchable ?? true,
       groupable: groupable ?? true,
       summable: summable ?? false,
@@ -377,6 +399,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -400,6 +423,7 @@ export const TableColumns = {
         ...componentProps
       }),
       sortable: sortable ?? true,
+      sortDescFirst,
       searchable: searchable ?? true,
       groupable: groupable ?? false,
       summable: summable ?? false,
@@ -423,6 +447,7 @@ export const TableColumns = {
   ): Column<Item> => {
     const {
       sortable,
+      sortDescFirst,
       searchable,
       groupable,
       summable,
@@ -446,6 +471,7 @@ export const TableColumns = {
         ...componentProps
       }),
       sortable: sortable ?? true,
+      sortDescFirst,
       searchable: searchable ?? true,
       groupable: groupable ?? true,
       summable: summable ?? true,
@@ -490,6 +516,7 @@ export const TableColumns = {
       title,
       formatter,
       sortable: columnProps.sortable ?? true,
+      sortDescFirst: columnProps.sortDescFirst,
       searchable: columnProps.searchable ?? true,
       summable: columnProps.summable ?? isNumeric,
       dataType,
