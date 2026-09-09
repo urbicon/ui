@@ -360,11 +360,15 @@ export async function verifyCurrentPassword<R extends string>(
 /**
  * The wiring-time gate for `deps.email`: returns the transport, or throws
  * naming the factory that needs one. `AuthDeps.email` is optional — an app that
- * mounts no mailing route passes no transport — so every factory whose handler
- * can reach `email.send` calls this **once, at construction**. A missing
- * transport then fails where the route was wired, instead of inside a
- * password-reset or change-email request whose mail work is detached from the
- * response and whose failure never reaches the user.
+ * mounts no mailing route passes no transport — so a factory whose handler
+ * **always** sends calls this once, at construction. A missing transport then
+ * fails where the route was wired, instead of inside a password-reset or
+ * change-email request whose mail work is detached from the response and whose
+ * failure never reaches the user.
+ *
+ * `createInvitationHandlers` deliberately does not call it: its mail hangs on a
+ * per-request flag and the copy-link flow needs no transport at all, so there
+ * the refusal belongs in the request, not at the mount.
  *
  * `factory` is the exported factory's name, so the message points at the call
  * site rather than at this file.
@@ -375,7 +379,7 @@ export function requireEmailTransport<R extends string>(
 ): EmailTransport {
   if (!deps.email) {
     throw new Error(
-      `${factory}: deps.email is required — pass an EmailTransport (createConsoleEmailTransport() in dev).`
+      `${factory}: deps.email is required — pass an EmailTransport (createConsoleEmailTransport() from '@urbicon-ui/auth/server/email/console' in dev).`
     );
   }
   return deps.email;

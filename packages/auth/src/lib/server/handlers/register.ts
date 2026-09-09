@@ -73,8 +73,12 @@ export function createRegisterHandler<R extends string>(
   // route was wired instead of on someone's first signup.
   const verificationTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailVerification');
   // Every signup that is not an auto-verified invited one mails a verification
-  // link, and `autoVerifyInvited` cannot make that unreachable — a copy-link
-  // invitation is never auto-verified.
+  // link. `autoVerifyInvited` skips the mail only for an invitation carrying
+  // `emailedAt`, which this package's own invitation route can set only after a
+  // transport accepted the mail — so within the package the send stays
+  // reachable. (A consumer mailing invitations itself can set `emailedAt`
+  // through the public `markEmailed`; the requirement is then stricter than
+  // that deployment needs.)
   const transport = requireEmailTransport(deps, 'createRegisterHandler');
 
   return privateEndpoints({

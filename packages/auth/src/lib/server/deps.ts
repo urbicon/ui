@@ -44,13 +44,16 @@ export interface AuthDeps<R extends string = string> {
     passkey?: PasskeyRepository;
   };
   /**
-   * Optional — required only when a factory that sends mail is mounted:
-   * `createRegisterHandler`, `createForgotPasswordHandler`,
-   * `createChangeEmailHandler`, `createInvitationHandlers`. Each of those four
-   * throws at wiring time when it is missing; an app that mounts only
-   * login/logout/me/refresh/sessions/2FA/passkeys needs no transport at all.
-   * Pass `createConsoleEmailTransport()` in dev or `createLettermintTransport`
-   * (or your own `EmailTransport`) in production.
+   * Optional — required only when a factory that sends mail is mounted.
+   * `createRegisterHandler`, `createForgotPasswordHandler` and
+   * `createChangeEmailHandler` mail on every request they serve and therefore
+   * throw at wiring time when it is missing. `createInvitationHandlers` mounts
+   * without one — its mail hangs on the per-request `sendEmail` flag, and the
+   * copy-link flow (`inviteUrl` in the `201`) needs no transport — and refuses
+   * only the requests that ask for a mail. An app that mounts none of the four
+   * needs no transport at all. Pass `createConsoleEmailTransport()`
+   * (`@urbicon-ui/auth/server/email/console`) in dev or
+   * `createLettermintTransport` (or your own `EmailTransport`) in production.
    *
    * Because it is optional, code reading it off the bundle — a consumer's own
    * handler — sees `EmailTransport | undefined` and has to narrow.

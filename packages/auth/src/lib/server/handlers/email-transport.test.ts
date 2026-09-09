@@ -62,19 +62,24 @@ const webauthn = {
   challengeStore: createInMemoryChallengeStore()
 };
 
-/** Every factory whose handler can reach `email.send`. */
+/** Every factory that mails on every request it serves. */
 const mailingFactories: [name: string, mount: (deps: AuthDeps) => unknown][] = [
   ['createRegisterHandler', (deps) => createRegisterHandler(deps)],
   ['createForgotPasswordHandler', (deps) => createForgotPasswordHandler(deps)],
-  ['createChangeEmailHandler', (deps) => createChangeEmailHandler(deps)],
+  ['createChangeEmailHandler', (deps) => createChangeEmailHandler(deps)]
+];
+
+/**
+ * Every other factory that takes the bundle, plus the mandatory handle hook.
+ * `createInvitationHandlers` belongs here: its mail is per-request opt-in, so a
+ * transport-less mount is the working copy-link deployment — what it does with
+ * `sendEmail: true` and no transport is pinned in `invitation.test.ts`.
+ */
+const transportFreeFactories: [name: string, mount: (deps: AuthDeps) => unknown][] = [
   [
     'createInvitationHandlers',
     (deps) => createInvitationHandlers(deps, { authorize: () => true, roles: ['admin'] })
-  ]
-];
-
-/** Every other factory that takes the bundle, plus the mandatory handle hook. */
-const transportFreeFactories: [name: string, mount: (deps: AuthDeps) => unknown][] = [
+  ],
   ['createLoginHandler', (deps) => createLoginHandler(deps)],
   ['createLogoutHandler', (deps) => createLogoutHandler(deps)],
   ['createMeHandler', (deps) => createMeHandler(deps)],
@@ -95,17 +100,20 @@ const transportFreeFactories: [name: string, mount: (deps: AuthDeps) => unknown]
   ]
 ];
 
-describe('deps.email is required by the mailing factories only', () => {
+describe('deps.email is required by the always-mailing factories only', () => {
   it('createAuthDeps builds a bundle with no transport', () => {
     expect(depsWithoutEmail().email).toBeUndefined();
   });
 
   it.each(mailingFactories)('%s throws at mount without a transport', (name, mount) => {
     const deps = depsWithoutEmail();
-    // Synchronously, at the factory call — not on the first request. Three of
-    // the four send their mail decoupled from the response, where a throw
-    // reaches the logger at best and the user never.
+    // Synchronously, at the factory call — not on the first request. All three
+    // send their mail decoupled from the response, where a throw reaches the
+    // logger at best and the user never.
     expect(() => mount(deps)).toThrow(`${name}: deps.email is required`);
+    // The way out has to be importable as written: the console transport lives
+    // only behind that subpath, not on the '@urbicon-ui/auth/server' barrel.
+    expect(() => mount(deps)).toThrow("from '@urbicon-ui/auth/server/email/console'");
   });
 
   it.each(mailingFactories)('%s mounts with a transport', (_name, mount) => {

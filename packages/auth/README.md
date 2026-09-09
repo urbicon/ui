@@ -132,9 +132,10 @@ export const authDeps = createAuthDeps({
 ```
 
 `email` is optional. This quickstart mounts `register` and `forgot-password`, which mail a
-link, so it needs a transport — the four factories that send mail (`createRegisterHandler`,
-`createForgotPasswordHandler`, `createChangeEmailHandler`, `createInvitationHandlers`) each
-throw at wiring time without one. An app that mounts only login/logout/me and the session
+link, so it needs a transport — those two and `createChangeEmailHandler` throw at wiring
+time without one. `createInvitationHandlers` mounts without a transport and refuses only
+the invites that ask to be mailed (`sendEmail: true`); the copy-link flow gets its
+`inviteUrl` back and needs none. An app that mounts only login/logout/me and the session
 routes passes no `email` at all.
 
 `createInMemoryRepos()` is a fresh `createInMemoryStore()` with every repository built on it.

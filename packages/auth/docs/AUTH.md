@@ -200,6 +200,34 @@ there is deliberately no live region (it would fire on every keystroke). Set
 `showRequirements={false}` to drop both — a refused password still names the
 rules it missed, so the reason stays reachable.
 
+### Breaking in 8.21.0
+
+**`AuthDeps.email` is optional.** The field went from `email: EmailTransport` to
+`email?: EmailTransport`, so an app that mounts no mailing route no longer has to
+invent a transport it never uses. Passing one is unchanged, and no factory that
+worked before stops working: `createRegisterHandler`,
+`createForgotPasswordHandler` and `createChangeEmailHandler` now say so at wiring
+time when it is missing, which a bundle that carries a transport never reaches.
+
+What breaks is the **reading** side, and only there: `deps.email` is now
+`EmailTransport | undefined`, so a consumer's own handler that calls
+`deps.email.send(…)` off the bundle stops compiling. Narrow it once, the way the
+package's own handlers do —
+
+<!-- typecheck -->
+```ts
+import type { AuthDeps } from '@urbicon-ui/auth/server';
+
+export function createOrderMailer(deps: AuthDeps) {
+  const transport = deps.email;
+  if (!transport) throw new Error('createOrderMailer: deps.email is required');
+  return async (to: string) => transport.send({ to, subject: 'Ordered', html: '…' });
+}
+```
+
+— or keep a reference to the transport you handed `createAuthDeps` and use that
+instead of reading it back off the bundle.
+
 ### Breaking in 8.17.0
 
 Passkeys can be **renamed**. `createPasskeyHandlers` gains `item.PATCH` on
@@ -307,17 +335,18 @@ session (`locals.user`), guards routes, applies the response security headers, a
 enforces CSRF. The handler factories alone do none of that.
 
 **Mail transport:** `deps.email` is optional, like the feature-scoped repositories.
-Exactly four factories send mail — `createRegisterHandler`,
-`createForgotPasswordHandler`, `createChangeEmailHandler` and
-`createInvitationHandlers` — and each throws at wiring time without a transport, the
-way `createPasskeyHandlers` does without `repos.passkey`. An app that mounts only
-login/logout/me/refresh/sessions plus 2FA and passkeys needs none. `createInvitationHandlers`
-is in that list even though its mail hangs on the per-request `sendEmail` flag: the send
-is best-effort, so without the gate a missing transport would answer
-`201 { emailSent: false }` plus one logged error — exactly what a mail outage looks
-like — on every invite, forever. The cost of the optional field is on the reading
-side — `deps.email` is `EmailTransport | undefined` for anyone who takes it off the
-bundle in a handler of their own, and has to narrow before using it.
+Three factories mail on every request they serve — `createRegisterHandler`,
+`createForgotPasswordHandler` and `createChangeEmailHandler` — and each throws at
+wiring time without a transport, the way `createPasskeyHandlers` does without
+`repos.passkey`. `createInvitationHandlers` does **not**: its mail hangs on the
+per-request `sendEmail` flag and the copy-link flow needs no transport at all, so it
+mounts either way and refuses per request — a `sendEmail: true` invite without a
+transport still answers `201` with its `inviteUrl`, `emailSent: false`, and a logged
+error that names the missing wiring instead of reporting a send failure. An app that
+mounts only login/logout/me/refresh/sessions plus 2FA and passkeys needs no transport
+at all. The cost of the optional field is on the reading side — `deps.email` is
+`EmailTransport | undefined` for anyone who takes it off the bundle in a handler of
+their own, and has to narrow before using it.
 
 **Stylesheet:** every stage that mounts a component needs
 `@import '@urbicon-ui/auth/style/index.css';` after the blocks import in the app's
@@ -507,7 +536,7 @@ live.
 - **JWT key rotation** — `jwt.keyId` + `jwt.previousSecrets` roll the signing secret without invalidating live sessions.
 - **Passkeys (WebAuthn)** — mount the `createPasskeyHandlers(deps, webauthn)` route group (the four ceremony groups plus `list`/`item` for `<PasskeyManager>`'s list, rename and remove — `item` carries both `DELETE` and `PATCH` on `…/[credentialId]`; requires `deps.repos.passkey`, throws at wiring time without it) with a `webauthn: WebAuthnConfig` (persistent `challengeStore` at >1 instance; **user verification is enforced by default** — `requireUserVerification: false` opts out for authenticators that cannot do UV, and because passkey logins skip the TOTP gate, that opt-out alongside `config.twoFactor` makes a passkey login single-factor for a TOTP-enrolled user; `createPasskeyHandlers` warns at wiring time when it sees the pair) and add `<PasskeyManager>` + `<LoginPage mode="both">`.
 - **Notifications & Web Push** — register domain events server-side, listen with `<NotificationListener>` + `<NotificationCenter>` client-side. **`notification.url` is untrusted at navigation time** — validate/allow-list it before `goto()`. The list/mark-read/read-all/delete routes that `createNotificationStore` calls are served by `createNotificationsHandlers(service)` — mount its `list`/`read`/`readAll`/`item` groups under the store's `apiPath` (default `/api/notifications`); every method derives `userId` from `locals.user` and goes through the ownership-scoped service methods (IDOR-safe by construction). **Endpoint takeover is key-gated**: `pushSubscription.create` upserts by endpoint, and reassigning the row to a *different* account requires the submitted keys to match the stored ones (compared constant-time on the decoded bytes) — the legitimate user-switch-in-the-same-browser case re-sends the browser's existing subscription (same endpoint *and* keys), while merely knowing the endpoint URL (say, from a log) is refused with `409` and no write (`'rejected'` outcome; all four outcomes — created/updated/reassigned/rejected — are conformance-tested). Endpoint URLs are still worth keeping out of logs (they are the push target), but takeover no longer rides on them alone. `recipients: 'online'` is presence-based, not account-based — it reaches the users with an open SSE stream in this process at send time, and nobody else (renamed from the misleading `'all'`; `send()` throws a migration error on the old value). The registry rejects duplicate keys and the legacy `'all'` value at registration time — note for dev-HMR setups: if you cache the registry on `globalThis` to survive hot reloads, module-scope `register()` calls re-run against the surviving instance and throw; cache the registrations together with the registry (or guard with `registry.get(key)`). A type declared with `recipients: 'admins'` requires a `resolveAdminRecipients` resolver on `createNotificationService` (e.g. `() => repo.findAdminUserIds()`) — the package has no role model of its own, so without it `send()` **throws** rather than silently delivering admin alerts to nobody. Push delivery failures are swallowed so one bad subscription can't break a send; pass `onPushResult` to observe them, and subscriptions the push service reports as gone (410/404) are pruned automatically. The preference/push-subscription endpoints are rate-limited per user by default (30/min PUT resp. 10/min POST+DELETE; `rateLimit: null` opts out), `createPreferencesHandler` requires the registry and rejects unregistered `typeKey`s (bounding per-user preference rows to the registered types), and stored subscriptions are capped per user (`maxSubscriptionsPerUser`, default 10, `409` beyond — re-subscribes of a known endpoint always pass).
-- **Invitations (admin)** — `createInvitationHandlers(deps, { authorize, roles })` is the server half of `<InvitationManager>`: mount `POST` + `GET` on `/api/invitations` and `DELETE` on `/api/invitations/[id]`. `authorize` is **required and fail-closed** (no open default) — registration's account-enumeration defense holds only while invitations stay admin-minted, so any authenticated user must not be able to mint one. `roles` allow-lists the assignable roles, so a crafted request can't escalate past what the UI offers. Every invitation carries a **one-time token** (SHA-256 in the database, raw value returned once) and an **expiry** (`invitationTtlMs`, default 7 days). The `201` returns `inviteUrl` — `${appUrl}/auth/register?token=…&email=…` — because that URL is the only way the invitation reaches anyone when no mail transport is configured, a case this package ships a console transport for. It is not in `GET`: the server keeps only the hash, so an admin who loses the link revokes the invitation and mints a new one. When the client sets `sendEmail`, the handler also mails that link — best-effort: a mail failure still returns `201` with `emailSent: false` (logged), since the invitation row is the durable effect. Override the mail via `inviteEmail`.
+- **Invitations (admin)** — `createInvitationHandlers(deps, { authorize, roles })` is the server half of `<InvitationManager>`: mount `POST` + `GET` on `/api/invitations` and `DELETE` on `/api/invitations/[id]`. `authorize` is **required and fail-closed** (no open default) — registration's account-enumeration defense holds only while invitations stay admin-minted, so any authenticated user must not be able to mint one. `roles` allow-lists the assignable roles, so a crafted request can't escalate past what the UI offers. Every invitation carries a **one-time token** (SHA-256 in the database, raw value returned once) and an **expiry** (`invitationTtlMs`, default 7 days). The `201` returns `inviteUrl` — `${appUrl}/auth/register?token=…&email=…` — because that URL is the only way the invitation reaches anyone when no mail transport is configured, a case this package ships a console transport for. It is not in `GET`: the server keeps only the hash, so an admin who loses the link revokes the invitation and mints a new one. When the client sets `sendEmail`, the handler also mails that link — best-effort: a mail failure still returns `201` with `emailSent: false` (logged), since the invitation row is the durable effect. This group is the one mailing factory that does **not** require `deps.email` at wiring time (the copy-link deployment above is a complete configuration); a `sendEmail: true` request on a bundle without a transport gets the same `201 { emailSent: false }` plus a log line naming the missing wiring, kept distinct from the send-failure one so the two causes stay tellable apart. Override the mail via `inviteEmail`.
 - **Pre-verified invited signups** — an invitation **that was emailed** proves mailbox ownership: the mail went to that address, it carried a secret, and the secret came back. A link the admin copied out of the panel proves nothing of the sort — it travelled whatever channel the admin chose — so `autoVerifyInvited` is honoured only for invitations with an `emailedAt`, and a copy-link signup gets the ordinary verification mail regardless of the setting. Pass `createRegisterHandler(deps, { autoVerifyInvited: true })` to create the account with `emailVerified: true` and skip the verification token **and** the verification mail entirely. Without it, the user — who is auto-logged-in on register — receives a "verify your email" mail *after* already being signed in, and `emailVerified` never flips. Defaults to `false` (backwards-compatible: token + mail issued as before, for consumers that genuinely gate on `emailVerified`). The flag is an option on the register handler's **second argument**, not something threaded through `createAuthHandle` — that hook only resolves the session and guards routes; every handler is mounted with its own `+server.ts`. Email *change* still verifies the new address independently (`createVerifyEmailChangeHandler`); there is no prior proof of ownership for it, so it is unaffected.
 - **Session enrichment** — attach app-specific data (tenant/household id, plan, entitlements) to `locals.user` via `config.hooks.transformUser(user, event)`. It runs in the handle hook on every authenticated request with the sanitized `AuthUser` (never the password hash) and the request event; its return value becomes `locals.user` (type it through your `App.Locals`). `AuthUser` is intentionally fixed and the loaded row carries no custom columns, so load extras here keyed by `user.id` rather than adding a second `handle` that re-resolves the session. A throw fails the request — except on the transparent refresh-rotation path, where the rotation has already committed and its cookies would be lost with it; there the throw is caught and the request continues unauthenticated. Whatever you return lands on `locals.user` — keep secrets out of it if `locals.user` is serialized to the client. **Throw semantics across `config.hooks`:** `transformUser` and `onBeforeAccountDelete` are the only two gates, where a throw aborts; every other hook only reports, so a throw is caught and sent to `config.logger.error` and the handler's outcome stands. Each hook's JSDoc says which it is — read that before wiring one, and don't generalize from these two.
 - **Account management (self-service)** — let a signed-in user manage their own account. Five server handlers (`createChangePasswordHandler`, `createChangeEmailHandler`, `createVerifyEmailChangeHandler`, `createUpdateProfileHandler`, `createDeleteAccountHandler`) plus the `<AccountSettings>` component (mount the first four under `/api/auth/account/*`; the verify-email-change route sits behind the link mailed to the new address). Invariants: every mutation except profile is **re-auth gated** (`verifyCurrentPassword`); `change-password` bumps `tokenVersion` + revokes all refresh families, then re-establishes the _current_ device (others log out — a voluntary change isn't a compromise, so the initiating device stays in, unlike `reset-password` which signs out everywhere); `change-email` verifies the **new** address (notice to the old one) and is account-enumeration safe (token+mail decoupled, always `success: true`, collision = no-op); `delete-account` is a hard delete (GDPR erasure) that fires `hooks.onBeforeAccountDelete` with the sanitized user **before** the row is removed (a throw aborts), with the Prisma adapter dropping sent invitations in the same `$transaction`. Config: `rateLimit.{changePassword,changeEmail,deleteAccount}`, hooks `onEmailChangeRequested` / `onEmailChangeFailed` / `onEmailChanged` / `onBeforeAccountDelete` (`onEmailChangeFailed` surfaces the decoupled token/mail failure, like `onPasswordResetFailed`).
