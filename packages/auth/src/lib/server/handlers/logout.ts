@@ -7,9 +7,11 @@ import { privateEndpoints, requireSessionUser } from './_shared.js';
 
 export interface LogoutHandlerOptions {
   /**
-   * Bump the user's `tokenVersion` on logout, so every access token minted
-   * before it is refused by the generation check `createAuthHandle` runs on
-   * each request.
+   * End **every** session of the account on logout, not just this browser's:
+   * bump the user's `tokenVersion`, so the generation check `createAuthHandle`
+   * runs on each request refuses every access token minted before it, and —
+   * with `config.refreshToken` configured — revoke every refresh family, so
+   * nothing can rotate back in.
    *
    * Without it, logout revokes the refresh token the cookie carries and clears
    * both cookies — which ends the session in *this* browser, while a copy of
@@ -17,15 +19,16 @@ export interface LogoutHandlerOptions {
    * verifying until `jwt.expiresIn` elapses. Nothing about that token is stored
    * server-side, so nothing local can refuse it.
    *
-   * The bump is per user, not per session: it refuses every device's access
-   * token, and with `config.refreshToken` configured, a device whose refresh
-   * cookie is still live rotates into a fresh session on its next request —
-   * only the logging-out browser's refresh token is revoked. Sign a *specific*
-   * device out with `createSessionsHandlers`' `revoke` / `revokeOthers`
-   * instead.
+   * The price is that both writes are per user, not per session. Another
+   * device's API client keeps seeing `401` on the same stale cookie until its
+   * access token expires (`accessTokenTtl`, 15 minutes by default) or its next
+   * page navigation, which clears that cookie and sends it to the login — the
+   * guard answers an API request without resolving, and SvelteKit writes a
+   * cookie a hook staged only on the paths that resolve or redirect. Sign a
+   * *specific* device out with `createSessionsHandlers`' `revoke` /
+   * `revokeOthers` instead; that path leaves `tokenVersion` alone.
    *
-   * Defaults to `false`: no write on the user row, and no effect outside the
-   * browser that called.
+   * Defaults to `false`: no write beyond this browser's own refresh token.
    */
   invalidateAccessTokens?: boolean;
 }
@@ -37,8 +40,9 @@ export interface LogoutHandlerOptions {
  * `{ success: true }` with the cookies dropped.
  *
  * What it cannot end is an access token that left the browser: pass
- * `{ invalidateAccessTokens: true }` to bump `tokenVersion` as well, at the
- * price of refusing every device's access token. See docs/AUTH.md → Logout.
+ * `{ invalidateAccessTokens: true }` to end every session of the account
+ * instead, at the price of signing the user's other devices out. See
+ * docs/AUTH.md → Logout.
  */
 export function createLogoutHandler<R extends string>(
   deps: AuthDeps<R>,
@@ -46,16 +50,27 @@ export function createLogoutHandler<R extends string>(
 ): { POST: RequestHandler } {
   return privateEndpoints({
     POST: async ({ cookies }) => {
-      // Resolves the user from the session cookie, so it has to run before the
-      // `finally` below clears it. Best-effort like the revoke: a failed write
-      // must not keep the cookies alive, and the user is out of this browser
-      // either way.
+      // Resolves the user from the session cookie, so this runs before the
+      // `finally` below clears it. Both writes are best-effort and reported
+      // separately: an operator has to be able to tell a bump that landed
+      // without its family revoke — access tokens dead everywhere, refresh
+      // families alive, so every other device rotates back in on its next page
+      // navigation — from a logout that invalidated nothing.
       if (options.invalidateAccessTokens) {
+        let userId: string | null = null;
         try {
           const user = await requireSessionUser(deps, cookies);
+          userId = user?.id ?? null;
           if (user) await deps.repos.user.incrementTokenVersion(user.id);
         } catch (err) {
           deps.logger.error('[auth] logout: token-version bump failed', err);
+        }
+        if (userId && deps.config.refreshToken && deps.repos.refreshToken) {
+          try {
+            await deps.repos.refreshToken.revokeAllForUser(userId);
+          } catch (err) {
+            deps.logger.error('[auth] logout: refresh-family revoke failed', err);
+          }
         }
       }
 

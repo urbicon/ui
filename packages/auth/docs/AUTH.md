@@ -544,34 +544,54 @@ import { authDeps } from '$lib/server/auth-setup';
 export const { POST } = createLogoutHandler(authDeps, { invalidateAccessTokens: true });
 ```
 
-The handler resolves the user from the session cookie and bumps their
-`tokenVersion` **before** the revoke and before the cookies are cleared, so the
-generation check every request runs in `createAuthHandle` (`user.tokenVersion ===
-session.tokenVersion`) refuses every access token minted before this logout. No
-valid session, no bump — the request still answers `200` with the cookies cleared.
-A repo failure on the bump is logged (`[auth] logout: token-version bump failed`)
-and not propagated, the same best-effort policy the revoke follows: the cookies go
-either way, and the user is out of this browser regardless. `tokenVersion` is one
-counter per user, so an adapter must increment it losslessly — the conformance
-check `user.incrementTokenVersion loses no concurrent increments` is what proves
-yours does.
+The handler resolves the user from the session cookie and, **before** the revoke
+and before the cookies are cleared, makes two writes: it bumps their
+`tokenVersion`, so the generation check every request runs in `createAuthHandle`
+(`user.tokenVersion === session.tokenVersion`) refuses every access token minted
+before this logout, and — with rotation configured — revokes every refresh family
+of that user (`revokeAllForUser`, the pairing `reset-password` uses), so nothing
+can rotate back in. No valid session, no writes — the request still answers `200`
+with the cookies cleared.
 
-**The price: the bump is per user, not per session.** Every other device's access
-token is refused too. With rotation configured they are not signed out — only the
-logging-out browser's refresh token is revoked — so another device is refused for
-exactly one request (the hook clears its stale access cookie) and its next request
-rotates its surviving refresh token into a fresh session. Without rotation there is
-nothing to rotate: the other devices are signed out until they sign in again. Hence
-the default `false`.
+Neither write is propagated on failure, the same best-effort policy the revoke
+follows: the cookies go either way. They report **separately**
+(`[auth] logout: token-version bump failed`,
+`[auth] logout: refresh-family revoke failed`), because the half-done state is
+worth reading in a log — a bump without its family revoke leaves every other
+device's access token dead but its refresh token alive, so that device rotates
+back in on its next page navigation. `tokenVersion` is one counter per user, so an
+adapter must increment it losslessly — the conformance check
+`user.incrementTokenVersion loses no concurrent increments` is what proves yours
+does.
+
+**The price: both writes are per user, not per session.** Every session of the
+account ends — every access token is refused by the generation check, and with
+rotation configured every refresh token is revoked. Another device's API client
+sees `401` until its access token expires (`refreshToken.accessTokenTtl`, 15
+minutes by default) or until its next page navigation, which clears the stale
+cookie and sends it to the login; it does not rotate back in. The delay is
+SvelteKit's cookie handling, not a grace period: the hook stages the clear on
+`event.cookies`, and Kit writes staged cookies only on the paths that resolve or
+redirect — a guarded `/api/…` request is answered with a `401` that does neither,
+so the client keeps sending the same stale cookie. Hence the default `false`.
+
+**A logout that arrives with no valid session invalidates nothing** — the option
+included. Under rotation that case is rare: the hook rotates an expired access
+cookie before the endpoint runs, so the handler reads the fresh session and both
+writes land. Without rotation an expired access token resolves no user, and there
+is nothing left to invalidate anyway — the copy someone took is that same expired
+token.
 
 Which to reach for:
 
-- **`invalidateAccessTokens`** — logout must end this user's access tokens
-  everywhere: single-user tools, shared devices, an admin panel someone signs out
-  of before walking away.
+- **`invalidateAccessTokens`** — logout must end every session of the account:
+  single-user tools, shared devices, an admin panel someone signs out of before
+  walking away.
 - **`createSessionsHandlers(deps)` → `revoke` / `revokeOthers`** — sign a
   _specific_ device out, or every other one, and keep this session. A session is a
-  refresh-token family, so this path needs `config.refreshToken`.
+  refresh-token family, so this path needs `config.refreshToken`. It never touches
+  `tokenVersion`, so a revoked device keeps authenticating with the access token it
+  already holds until that one expires.
 - **`createResetPasswordHandler`** — a compromise, not a logout: it bumps
   `tokenVersion` _and_ revokes every refresh family, so nothing survives anywhere.
 
