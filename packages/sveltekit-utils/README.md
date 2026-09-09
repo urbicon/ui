@@ -225,19 +225,21 @@ export const POST: RequestHandler = async ({ request }) => {
 
 It is the only channel a failing job has. The runner calls it when the `fetch` rejects and when the endpoint answers non-2xx (with the status on `error.status`), and it reports nothing anywhere else — a nightly job that has been answering 403 since a secret rotation looks exactly like a job that works. A missing handler, or one that is not a function, throws a `TypeError` from `createCronRunner`: at wiring time, where a startup failure is read, rather than on the first failed tick at 3 a.m.
 
-A handler that throws does not stop the schedule. The runner catches it and writes both errors — the handler's and the job's — to `console.error`; letting the throw escape the interval callback would end the process as an unhandled rejection, and one broken log call would take every other job with it.
+The handler may be `async` — a webhook, a row in a table — and the runner awaits it. One that throws or rejects does not stop the schedule: the runner writes both errors, the handler's and the job's, to `console.error` and keeps ticking. Letting either escape the interval callback would end the process as an unhandled rejection, and one broken log call would take every other job with it.
 
 **Two runners on one path**
 
-In development the runner warns on `console.warn` when `start()` arms a path another runner in the same process is already ticking — the situation a hot reload produces, where both runners fire and the endpoint sees twice the traffic. `import.meta.hot?.dispose(() => cron.stop())` next to the `start()` call is the fix; the warning names it too. Two runners aimed at one path on purpose (different intervals, say) look the same from the inside and will be warned about as well.
+In development the runner warns on `console.warn` when `start()` arms a path another runner in the same process is already ticking — the situation a hot reload produces, where both runners fire and the endpoint sees twice the traffic. `import.meta.hot?.dispose(() => cron.stop())` next to the `start()` call is the fix; the warning names it too. Two runners aimed at one path on purpose (different intervals, say) look the same from the inside and will be warned about as well. One runner whose `jobs` array names the same path twice is a different mistake — no second runner to stop — and gets its own warning.
 
 **A daily job on an interval runner**
 
-There are intervals here and no cron expressions — no "at 03:00". A job that should happen once a day therefore ticks hourly and lets the endpoint decide whether there is work: the first tick after midnight does the day's work, the twenty-three after it find it done. That holds together when the endpoint is idempotent, which means
+There are intervals here and no cron expressions — no "at 03:00". A job that should happen once a day therefore ticks hourly and lets the endpoint decide whether there is work: the first tick after midnight does the day's work, the rest of the day's ticks find it done. The phase is the boot time, not the full hour, so that first tick lands up to one interval after midnight and every deploy moves it — in exchange, `setInterval` counts duration rather than wall-clock, so a daylight-saving change neither skips a tick nor fires one twice.
 
-- the outcome is a **function of the calendar day**, not a counter that advances once per call;
-- running it twice does nothing twice — the second call recomputes the same values and writes the same row;
-- a restart loses no day: there is no missed appointment, only a state not yet reached, and the next tick reaches it whatever the hour.
+That holds together when the endpoint is idempotent, which means
+
+- the outcome is a **function of the calendar day**, not a counter that advances once per call — and a day needs a zone, so the key below is formatted in one. `toISOString()` would key on UTC, where the day turns at 02:00 local in a Berlin summer and 01:00 in winter;
+- running it twice does nothing twice: the second call writes the same row. Behind a load balancer two instances tick at once, so that write has to be atomic — `INSERT … ON CONFLICT DO UPDATE`, not read-modify-write;
+- a restart loses nothing _within_ a day. Whether it can lose a whole one depends on the shape: a job that computes from state — last activity, say — heals a skipped day on its next tick, while a per-day rollup like the one below only ever writes today and needs a backfill for the day the process was down.
 
 <!-- typecheck -->
 ```typescript
@@ -246,15 +248,19 @@ import { env } from '$env/dynamic/private';
 import { upsertDailyRollup } from '$lib/server/rollup';
 import type { RequestHandler } from './$types';
 
+// Which midnight: the zone your people live in. `en-CA` formats as YYYY-MM-DD.
+const TIME_ZONE = 'Europe/Berlin';
+const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE });
+
 export const POST: RequestHandler = async ({ request }) => {
   if (!env.CRON_SECRET || request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
     return new Response('Forbidden', { status: 403 });
   }
-  // Keyed on the day: the second call of the day rewrites its own row with the
-  // same values instead of adding a second one. No "last run" timestamp — that
-  // would be scheduler state in your schema, and it is exactly what makes a
-  // missed tick turn into a missed day.
-  await upsertDailyRollup(new Date().toISOString().slice(0, 10));
+  // Keyed on the day and written atomically, so the second call of the day —
+  // or the second instance behind the load balancer — rewrites the same row
+  // instead of adding one. No "last run" timestamp: that would be scheduler
+  // state in your schema, and it is what turns a missed tick into a missed day.
+  await upsertDailyRollup(dayKey.format(new Date()));
   return new Response('ok');
 };
 ```

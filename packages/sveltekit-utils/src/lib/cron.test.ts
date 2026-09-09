@@ -7,6 +7,9 @@ import { type CronRunnerConfig, createCronRunner } from './cron';
 // key is the whole reason a hot reload finds the previous evaluation's runners.
 const CRON_REGISTRY = Symbol.for('urbicon-ui.sveltekit-utils.cron');
 
+const registry = () =>
+  (globalThis as { [CRON_REGISTRY]?: Map<string, number> })[CRON_REGISTRY] ?? new Map();
+
 const onError = () => {};
 
 describe('createCronRunner', () => {
@@ -311,6 +314,36 @@ describe('createCronRunner', () => {
       expect(error).toHaveBeenCalledTimes(3);
       runner.stop();
     });
+
+    it('reports an async handler that rejects, and keeps ticking', async () => {
+      vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500, statusText: 'Boom' }));
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const rejection = new Error('webhook refused the report');
+      // The natural shape for a handler that reaches a webhook or a database:
+      // it fails after an await, so a synchronous try/catch around the call
+      // sees nothing and the rejection ends the process instead.
+      const handler = vi.fn(async () => {
+        await Promise.resolve();
+        throw rejection;
+      });
+      const runner = createCronRunner({
+        secret: 's',
+        jobs: [{ path: '/api/fail', intervalSeconds: 5 }],
+        onError: handler
+      });
+
+      runner.start();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0]?.[1]).toBe(rejection);
+
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(error).toHaveBeenCalledTimes(2);
+      runner.stop();
+    });
   });
 
   describe('the double-start warning', () => {
@@ -339,7 +372,7 @@ describe('createCronRunner', () => {
       const message = warn.mock.calls[0]?.[0] as string;
       expect(message).toContain('/api/cron/night');
       expect(message).toContain('import.meta.hot');
-      expect(message).toContain('hot reload made the second call');
+      expect(message).toContain('A hot reload under `vite dev` is the usual cause');
 
       first.stop();
       second.stop();
@@ -361,6 +394,41 @@ describe('createCronRunner', () => {
       expect(warn).not.toHaveBeenCalled();
       a.stop();
       b.stop();
+    });
+
+    it('names the duplicate entry, not a second runner, for one path listed twice', () => {
+      createCronRunner({
+        secret: 's',
+        jobs: [
+          { path: '/api/cron/night', intervalSeconds: 60 },
+          { path: '/api/cron/night', intervalSeconds: 30 }
+        ],
+        onError
+      }).start();
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]?.[0] as string).toContain('twice from one jobs list');
+      // One runner, one claim: the count is what a second runner is compared
+      // against, and a duplicate that inflated it would make the next warning
+      // say "2 other runners are" about a process that has one.
+      expect(registry().get('/api/cron/night')).toBe(1);
+
+      runnerOn('/api/cron/night').start();
+      expect(warn.mock.calls[1]?.[0] as string).toContain('another runner is');
+    });
+
+    it('releases what start() claimed, not what config.jobs says at stop() time', () => {
+      const jobs = [{ path: '/api/cron/night', intervalSeconds: 60 }];
+      const runner = createCronRunner({ secret: 's', jobs, onError });
+      runner.start();
+
+      // The consumer owns this array and may rebuild it between the two calls.
+      jobs.length = 0;
+      runner.stop();
+
+      expect(registry().size).toBe(0);
+      runnerOn('/api/cron/night').start();
+      expect(warn).not.toHaveBeenCalled();
     });
 
     it('stops warning once the first runner has been stopped', () => {

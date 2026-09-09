@@ -44,10 +44,11 @@ export interface CronRunnerConfig {
    *   `error.status` (e.g. `500`, `403`).
    *
    * Required: it is the runner's only outward channel, and nothing else
-   * observes a job that has been answering 403 for weeks. A handler that
-   * throws is reported on `console.error` and does not stop the schedule.
+   * observes a job that has been answering 403 for weeks. May be `async` — the
+   * runner awaits it; one that throws or rejects is reported on `console.error`
+   * and does not stop the schedule.
    */
-  onError: (job: CronJob, error: Error) => void;
+  onError: (job: CronJob, error: Error) => void | Promise<void>;
 }
 
 /** Handle returned by {@link createCronRunner}. */
@@ -56,8 +57,9 @@ export interface CronRunner {
    * Arm every job's interval timer. Idempotent — calling `start()` while
    * already running is a no-op (does not double-schedule).
    *
-   * In development a job path that another runner in this process already
-   * ticks is reported on `console.warn` (see {@link createCronRunner}).
+   * When `import.meta.env.DEV` is set, two wiring mistakes are reported on
+   * `console.warn`: a path another runner in this process already ticks, and
+   * one listed twice in the same `jobs` array.
    */
   start(): void;
   /**
@@ -74,8 +76,8 @@ export interface CronRunner {
 // living in this module's scope: under `vite dev` a server module is
 // re-evaluated on a hot reload, and the fresh evaluation gets a fresh
 // module scope while the previous evaluation's timers keep firing — the very
-// situation the warning below exists for. A registry the reload resets sees
-// nothing to warn about; `globalThis` and a cross-realm-stable key survive it.
+// situation the warning below exists for. `globalThis` survives it, the module
+// scope does not.
 const CRON_REGISTRY: unique symbol = Symbol.for('urbicon-ui.sveltekit-utils.cron');
 
 type RegistryHost = typeof globalThis & { [CRON_REGISTRY]?: Map<string, number> };
@@ -107,7 +109,15 @@ function releasePath(path: string): void {
 function warnDoubleStart(path: string, armed: number): void {
   const others = armed === 1 ? 'another runner is' : `${armed} other runners are`;
   console.warn(
-    `[createCronRunner] start() armed "${path}" while ${others} already ticking it in this process — every one of them fires, and the endpoint sees the traffic of all. Call stop() on the runner you replaced; under \`vite dev\` put \`import.meta.hot?.dispose(() => runner.stop())\` next to the start() call so a hot reload clears the old timers. Two runners on one path on purpose (different intervals, say) look exactly the same from here. If this appeared right after you edited a file under \`vite dev\`, a hot reload made the second call and your wiring is fine; it is only actionable when you see it without having edited anything. Development only.`
+    `[createCronRunner] start() armed "${path}" while ${others} already ticking it in this process — every one of them fires and the endpoint sees the traffic of all. A hot reload under \`vite dev\` is the usual cause: put \`import.meta.hot?.dispose(() => runner.stop())\` next to the start() call. Otherwise call stop() on the runner you replaced.`
+  );
+}
+
+// One runner, one path listed twice: neither remedy above applies, so this is
+// its own sentence rather than a plural of the one above.
+function warnDuplicateJob(path: string): void {
+  console.warn(
+    `[createCronRunner] start() armed "${path}" twice from one jobs list; the endpoint gets every tick twice. Remove the duplicate entry.`
   );
 }
 
@@ -161,20 +171,27 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
   }
 
   const timers: ReturnType<typeof setInterval>[] = [];
+  // What this runner put into the process-wide registry, so `stop()` returns
+  // exactly that — reading `config.jobs` again would release paths this runner
+  // never claimed, and nothing at all if the consumer has since emptied the
+  // array. Empty unless a `start()` claimed, which is also what makes a second
+  // `stop()` a no-op without a flag to ask.
+  let claimed: string[] = [];
   let running = false;
 
-  // The handler is the consumer's error channel, so when it throws there is no
-  // second one to report on — and letting the throw escape this async interval
-  // callback ends the process: an unhandled rejection exits node (25.2.1) and
-  // bun (1.4.2) with code 1, so one broken log call would take the app down and
-  // stop every other job with it. `console.error` is the sink a zero-dependency
-  // package can assume; both errors go out, the schedule keeps running.
-  const report = (job: CronJob, error: Error): void => {
+  // The handler is the consumer's error channel, so when it fails there is no
+  // second one to report on — and letting the failure escape this async
+  // interval callback ends the process: an unhandled rejection exits node
+  // (25.2.1) and bun (1.4.2) with code 1, so one broken log call would take the
+  // app down and stop every other job with it. The `await` is what makes that
+  // hold for an `async` handler too: its rejection reaches no `try` block that
+  // does not await it, and neither does any other thenable's.
+  const report = async (job: CronJob, error: Error): Promise<void> => {
     try {
-      config.onError(job, error);
+      await config.onError(job, error);
     } catch (handlerError) {
       console.error(
-        `[createCronRunner] the onError handler threw while reporting a failure of "${job.path}"; the schedule keeps running. Handler error, then the job error:`,
+        `[createCronRunner] the onError handler threw or rejected while reporting a failure of "${job.path}"; the schedule keeps running. Handler error, then the job error:`,
         handlerError,
         error
       );
@@ -186,11 +203,21 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
       if (running) return;
       running = true;
 
-      for (const job of config.jobs) {
-        if (import.meta.env?.DEV) {
-          const armed = claimPath(job.path);
-          if (armed > 0) warnDoubleStart(job.path, armed);
+      if (import.meta.env?.DEV) {
+        for (const path of config.jobs.map((job) => job.path)) {
+          // One claim per path per runner: the registry counts runners, and a
+          // path listed twice is its own mistake with its own warning.
+          if (claimed.includes(path)) {
+            warnDuplicateJob(path);
+            continue;
+          }
+          claimed.push(path);
+          const armed = claimPath(path);
+          if (armed > 0) warnDoubleStart(path, armed);
         }
+      }
+
+      for (const job of config.jobs) {
         const timer = setInterval(async () => {
           const base = config.baseUrl ?? 'http://localhost:3000';
           let response: Response;
@@ -201,7 +228,7 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
             });
           } catch (err) {
             // Network-level failure (DNS, connection refused, abort): fetch rejected.
-            report(job, err as Error);
+            await report(job, err as Error);
             return;
           }
           // The request completed; a non-2xx status is still a failure.
@@ -210,7 +237,7 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
               `Cron job "${job.path}" returned ${response.status} ${response.statusText}`
             ) as Error & { status: number };
             err.status = response.status;
-            report(job, err);
+            await report(job, err);
           }
         }, job.intervalSeconds * 1000);
         timers.push(timer);
@@ -218,9 +245,8 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
     },
 
     stop() {
-      if (running && import.meta.env?.DEV) {
-        for (const job of config.jobs) releasePath(job.path);
-      }
+      for (const path of claimed) releasePath(path);
+      claimed = [];
       running = false;
       timers.forEach(clearInterval);
       timers.length = 0;
