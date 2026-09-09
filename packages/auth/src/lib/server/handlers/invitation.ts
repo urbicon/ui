@@ -186,34 +186,50 @@ export function createInvitationHandlers<R extends string>(
       // so a caller can surface "created, but email failed".
       let emailSent = false;
       if (sendEmail) {
-        // Build the message OUTSIDE the try: a malformed appUrl or a throwing
-        // consumer-supplied `inviteEmail` builder is a programming error, not a
-        // transient mail outage — let it surface (a real 500 + stack) rather
-        // than masquerade as "email failed to send" on every invite forever.
-        const { t, appName, from } = resolveEmailSettings(deps.config);
-        const built = inviteEmail
-          ? inviteEmail({ email, role: role as R, url: inviteUrl, from, appName, t })
-          : buildInvitationEmail({ url: inviteUrl, appName }, t);
-
-        try {
-          await deps.email.send({ from, ...built, to: email });
-          emailSent = true;
-        } catch (err) {
-          // The invitee — not the API caller — is the one left unable to
-          // register, so surface this loudly (error, not warn) and via the
-          // optional hook so it can reach an error tracker / resend queue,
-          // mirroring `onPasswordResetFailed`.
+        // Unlike the three mailing handlers, this group does not require a
+        // transport at wiring time: the copy-link flow — no `sendEmail`, the
+        // admin passes `inviteUrl` on — is a complete configuration, so
+        // refusing it at boot would deny a working deployment. The ask is
+        // per request, so the refusal is too.
+        const transport = deps.email;
+        if (!transport) {
+          // Deliberately not the send-failure line below: nothing was
+          // attempted, an `onInvitationEmailFailed` consumer's resend queue
+          // cannot fix a missing wire, and this repeats on every invite until
+          // the wiring changes. Name the configuration instead.
           deps.logger.error(
-            `[auth] invitation for ${email} was created but the invite email failed to send:`,
-            err
+            `[auth] invitation for ${email} was created, but sendEmail: true has no transport — deps.email is not configured. The 201 carries inviteUrl; wire an EmailTransport or stop setting sendEmail.`
           );
-          await notifyHook(
-            deps,
-            { site: 'invitation', subject: invitation.id },
-            'onInvitationEmailFailed',
-            email,
-            err
-          );
+        } else {
+          // Build the message OUTSIDE the try: a malformed appUrl or a throwing
+          // consumer-supplied `inviteEmail` builder is a programming error, not a
+          // transient mail outage — let it surface (a real 500 + stack) rather
+          // than masquerade as "email failed to send" on every invite forever.
+          const { t, appName, from } = resolveEmailSettings(deps.config);
+          const built = inviteEmail
+            ? inviteEmail({ email, role: role as R, url: inviteUrl, from, appName, t })
+            : buildInvitationEmail({ url: inviteUrl, appName }, t);
+
+          try {
+            await transport.send({ from, ...built, to: email });
+            emailSent = true;
+          } catch (err) {
+            // The invitee — not the API caller — is the one left unable to
+            // register, so surface this loudly (error, not warn) and via the
+            // optional hook so it can reach an error tracker / resend queue,
+            // mirroring `onPasswordResetFailed`.
+            deps.logger.error(
+              `[auth] invitation for ${email} was created but the invite email failed to send:`,
+              err
+            );
+            await notifyHook(
+              deps,
+              { site: 'invitation', subject: invitation.id },
+              'onInvitationEmailFailed',
+              email,
+              err
+            );
+          }
         }
       }
 

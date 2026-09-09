@@ -131,6 +131,13 @@ export const authDeps = createAuthDeps({
 });
 ```
 
+`email` is optional. This quickstart mounts `register` and `forgot-password`, which mail a
+link, so it needs a transport — those two and `createChangeEmailHandler` throw at wiring
+time without one. `createInvitationHandlers` mounts without a transport and declines to
+mail only the invites that ask for it (`sendEmail: true`, answered `201` with `emailSent:
+false` and the `inviteUrl`); the copy-link flow needs none. An app that mounts only login/logout/me and the session
+routes passes no `email` at all.
+
 `createInMemoryRepos()` is a fresh `createInMemoryStore()` with every repository built on it.
 Need only a piece — the refresh-token repository beside a user store of your own? Build that
 factory on a store handle: `createInMemoryRefreshTokenRepository(createInMemoryStore())`.
@@ -184,7 +191,11 @@ export const { POST } = createLoginHandler(authDeps);
 Repeat for `logout`, `register`, `forgot-password`, `reset-password`, `verify-email`, `me`, and
 `password-policy` (`createPasswordPolicyHandler` — it publishes `config.password`, so the sign-up
 and reset forms gate on the same rules the server checks; without it they fall back to the package
-defaults, min 8 and no character classes).
+defaults, min 8 and no character classes). One option worth knowing here:
+`createLogoutHandler(authDeps, { invalidateAccessTokens: true })` ends every session of the
+account instead of this browser's — it bumps the user's `tokenVersion` and revokes every refresh
+family — so an access token copied before the logout stops verifying, at the price of signing the
+user's other devices out ([AUTH.md → Logout](https://ui.urbicon.de/auth/guide#logout)).
 
 **4. UI page** — `src/routes/auth/login/+page.svelte`:
 

@@ -45,7 +45,8 @@
     },
     "./cron": {
       "types": "./dist/cron.d.ts",
-      "import": "./dist/cron.js"
+      "import": "./dist/cron.js",
+      "default": "./dist/cron.js"
     },
     "./sse": {
       "types": "./dist/sse.d.ts",

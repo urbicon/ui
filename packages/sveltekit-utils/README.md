@@ -171,6 +171,8 @@ The `./table-query` subpath that used to hold a second copy of this codec — sa
 
 Fire HTTP requests against SvelteKit server endpoints on an interval. Pair with a shared-secret header so endpoints can authenticate scheduled calls.
 
+**Import from `@urbicon-ui/sveltekit-utils/cron`**, not from the package root. The runner is wired up in server code — `hooks.server.ts`, or a module it imports — and the root barrel carries `url.svelte` along, whose `$app/navigation` and `$app/state` imports are SvelteKit's client runtime. The subpath reaches no `$app/*` module at all.
+
 <!-- typecheck -->
 ```typescript
 // src/lib/server/cron.ts
@@ -194,7 +196,12 @@ export const cron = createCronRunner({
 });
 
 cron.start();
+// Under `vite dev` this module is re-evaluated on every edit; without the
+// teardown the previous evaluation's timers keep ticking beside the new ones.
+import.meta.hot?.dispose(() => cron.stop());
 ```
+
+The first fire happens **after** one interval: `start()` arms the timers, it does not call anything. A job with `intervalSeconds: 3600` armed at boot first knocks an hour later, so nothing runs at deploy time — if you need work done at startup, do it at startup.
 
 Receive the call and verify the secret inside your endpoint:
 
@@ -210,6 +217,50 @@ export const POST: RequestHandler = async ({ request }) => {
     return new Response('Forbidden', { status: 403 });
   }
   await sendDigest();
+  return new Response('ok');
+};
+```
+
+**`onError` is required**
+
+It is the only channel a failing job has. The runner calls it when the `fetch` rejects and when the endpoint answers non-2xx (with the status on `error.status`), and it reports nothing anywhere else — a nightly job that has been answering 403 since a secret rotation looks exactly like a job that works. A missing handler, or one that is not a function, throws a `TypeError` from `createCronRunner`: at wiring time, where a startup failure is read, rather than on the first failed tick at 3 a.m.
+
+The handler may be `async` — a webhook, a row in a table — and the runner awaits it. One that throws or rejects does not stop the schedule: the runner writes both errors, the handler's and the job's, to `console.error` and keeps ticking. Letting either escape the interval callback would end the process as an unhandled rejection, and one broken log call would take every other job with it.
+
+**Two runners on one path**
+
+In development the runner warns on `console.warn` when `start()` arms a path another runner in the same process is already ticking — the situation a hot reload produces, where both runners fire and the endpoint sees twice the traffic. `import.meta.hot?.dispose(() => cron.stop())` next to the `start()` call is the fix; the warning names it too. Two runners aimed at one path on purpose (different intervals, say) look the same from the inside and will be warned about as well. One runner whose `jobs` array names the same path twice is a different mistake — no second runner to stop — and gets its own warning.
+
+**A daily job on an interval runner**
+
+There are intervals here and no cron expressions — no "at 03:00". A job that should happen once a day therefore ticks hourly and lets the endpoint decide whether there is work: the first tick after midnight does the day's work, the rest of the day's ticks find it done. The phase is the boot time, not the full hour, so that first tick lands up to one interval after midnight and every deploy moves it — in exchange, `setInterval` counts duration rather than wall-clock, so a daylight-saving change neither skips a tick nor fires one twice.
+
+That holds together when the endpoint is idempotent, which means
+
+- the outcome is a **function of the calendar day**, not a counter that advances once per call — and a day needs a zone, so the key below is formatted in one. `toISOString()` would key on UTC, where the day turns at 02:00 local in a Berlin summer and 01:00 in winter;
+- running it twice does nothing twice: the second call writes the same row. Behind a load balancer two instances tick at once, so that write has to be atomic — `INSERT … ON CONFLICT DO UPDATE`, not read-modify-write;
+- a restart loses nothing _within_ a day. Whether it can lose a whole one depends on the shape: a job that computes from state — last activity, say — heals a skipped day on its next tick, while a per-day rollup like the one below only ever writes today and needs a backfill for the day the process was down.
+
+<!-- typecheck -->
+```typescript
+// src/routes/api/cron/daily/+server.ts
+import { env } from '$env/dynamic/private';
+import { upsertDailyRollup } from '$lib/server/rollup';
+import type { RequestHandler } from './$types';
+
+// Which midnight: the zone your people live in. `en-CA` formats as YYYY-MM-DD.
+const TIME_ZONE = 'Europe/Berlin';
+const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE });
+
+export const POST: RequestHandler = async ({ request }) => {
+  if (!env.CRON_SECRET || request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
+    return new Response('Forbidden', { status: 403 });
+  }
+  // Keyed on the day and written atomically, so the second call of the day —
+  // or the second instance behind the load balancer — rewrites the same row
+  // instead of adding one. No "last run" timestamp: that would be scheduler
+  // state in your schema, and it is what turns a missed tick into a missed day.
+  await upsertDailyRollup(dayKey.format(new Date()));
   return new Response('ok');
 };
 ```
@@ -285,7 +336,7 @@ export const POST: RequestHandler = async ({ request }) => {
 | `./cron`          | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                  |
 | `./sse`           | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                   |
 
-`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./search-params` and `./table-view` are SvelteKit-free (they touch no `$app/*`), which is what lets a `load` function and a plain test use them; `./url.svelte` is the half that needs the router — importing it from server code pulls SvelteKit's client runtime in, which is why `withSearchParams` has a subpath of its own as well as the re-export.
+`bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./search-params`, `./table-view` and `./cron` are SvelteKit-free (they touch no `$app/*`), which is what lets a `load` function, `hooks.server.ts` and a plain test use them; `./url.svelte` is the half that needs the router — importing it from server code pulls SvelteKit's client runtime in, which is why `withSearchParams` has a subpath of its own as well as the re-export.
 
 ## Development
 

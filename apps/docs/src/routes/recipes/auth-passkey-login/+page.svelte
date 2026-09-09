@@ -9,14 +9,15 @@
 import { createAuthDeps, createPasskeyHandlers } from '@urbicon-ui/auth/server';
 import type { WebAuthnConfig } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
-import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
 import { env } from '$env/dynamic/private';
 import { prisma } from './prisma';
 
+// No email transport: nothing mounted here sends mail. Add one when you also
+// mount register / forgot-password / change-email — those three throw at wiring
+// time without it.
 export const authDeps = createAuthDeps({
   config: { jwt: { secret: env.JWT_SECRET }, appUrl: env.PUBLIC_APP_URL },
-  repos: createPrismaRepos(prisma),
-  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN })
+  repos: createPrismaRepos(prisma)
 });
 
 const webauthn: WebAuthnConfig = {

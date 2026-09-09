@@ -123,6 +123,7 @@ export { createInvitationHandlers } from './handlers/invitation.js';
 export { createJWKSHandler } from './handlers/jwks.js';
 // Handlers
 export { createLoginHandler } from './handlers/login.js';
+export type { LogoutHandlerOptions } from './handlers/logout.js';
 export { createLogoutHandler } from './handlers/logout.js';
 export { createMeHandler } from './handlers/me.js';
 // Publishes `config.password` as the five-field policy the client forms gate

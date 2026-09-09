@@ -10,7 +10,13 @@ import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateRegisterInput } from '../validation.js';
-import { notifyHook, parseBody, passwordRefusal, privateEndpoints } from './_shared.js';
+import {
+  notifyHook,
+  parseBody,
+  passwordRefusal,
+  privateEndpoints,
+  requireEmailTransport
+} from './_shared.js';
 import { authError } from './errors.js';
 
 export interface RegisterHandlerOptions {
@@ -66,6 +72,14 @@ export function createRegisterHandler<R extends string>(
   // Resolved here, not per request: a malformed `tokenTtl` throws where the
   // route was wired instead of on someone's first signup.
   const verificationTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'emailVerification');
+  // Every signup that is not an auto-verified invited one mails a verification
+  // link. `autoVerifyInvited` skips the mail only for an invitation carrying
+  // `emailedAt`, which this package's own invitation route can set only after a
+  // transport accepted the mail — so within the package the send stays
+  // reachable. (A consumer mailing invitations itself can set `emailedAt`
+  // through the public `markEmailed`; the requirement is then stricter than
+  // that deployment needs.)
+  const transport = requireEmailTransport(deps, 'createRegisterHandler');
 
   return privateEndpoints({
     POST: async (event) => {
@@ -196,7 +210,7 @@ export function createRegisterHandler<R extends string>(
         const { t, appName, from } = resolveEmailSettings(deps.config);
         const ctx = { name, url: verifyUrl.toString(), appName, from, t };
         const built = options.verificationEmail?.(ctx) ?? buildVerificationEmail(ctx, t);
-        await deps.email.send({ from, ...built, to: email });
+        await transport.send({ from, ...built, to: email });
       }
 
       // Post-commit: the row exists and the single-use invitation is spent. A
