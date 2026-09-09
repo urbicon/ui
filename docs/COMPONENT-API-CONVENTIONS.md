@@ -62,14 +62,15 @@ to a component with a sibling, check the sibling's values first.
   Corrected 2026-09-03: the earlier wording "no border, no background" described `bare`, and a
   consumer measured the difference as twelve reset classes (#394)
 - `underline` – bottom border only, transparent background (Input, Textarea, Select, Combobox)
-- `bare` – **decided 2026-09-03, ships with #394** on the four fields that carry `underline`: no
-  frame, no fill, no padding, no fixed height, no shadow; `size` keeps only the type step (a
-  compound per component zeroes the size axis's `px/py/h`); focus is **ring-only in the family
-  colour**, and that ring reads `--blocks-focus-ring-color` — its first component consumer;
-  caret, placeholder and message row stay. The difference to `unstyled`: the a11y minimum is the
-  library's, not the consumer's — the consumer who wrote the reset preset first dropped the ring
-  and violated WCAG 2.4.7. A bare field needs context that marks it as a field (a placeholder, a
-  rule, a marker before it); the docs say so
+- `bare` – **decided 2026-09-03, outline instead of ring 2026-09-09** on the four fields that
+  carry `underline`: no frame, no fill, no padding, no fixed height, no shadow; `size` keeps only
+  the type step (a compound per component zeroes the size axis's `px/py/h`); focus is an
+  **outline** in the family colour — not a ring: forced-colors mode drops `box-shadow`, and `bare`
+  has no border to fall back on — reading `--blocks-focus-ring-color` (its first component
+  consumer) and `--blocks-focus-ring-width`; caret, placeholder and message row stay. The
+  difference to `unstyled`: the a11y minimum is the library's, not the consumer's — the consumer
+  who wrote the reset preset first dropped the ring and violated WCAG 2.4.7. A bare field needs
+  context that marks it as a field (a placeholder, a rule, a marker before it); the docs say so
 - `text` – minimal, text-only (Button, SegmentGroup)
 - `soft` – subtle background tint (Badge only)
 - `card` – boxed card treatment (Accordion, Collapsible)

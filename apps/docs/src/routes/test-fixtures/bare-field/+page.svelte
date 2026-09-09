@@ -15,6 +15,14 @@
     { label: 'Berlin', value: 'berlin' },
     { label: 'Lisbon', value: 'lisbon' }
   ];
+
+  // One label wider than the 240px box, so the trigger text reaches the edge.
+  const longOptions = [
+    {
+      label: 'A label long enough to run the whole width of this narrow field and then some',
+      value: 'long'
+    }
+  ];
 </script>
 
 {#snippet anchor(name: string)}
@@ -67,5 +75,39 @@
   <div class="max-w-md space-y-2" data-probe="combobox-ghost">
     {@render anchor('combobox-ghost')}
     <Combobox variant="ghost" aria-label="Ghost combobox" {options} />
+  </div>
+
+  <!-- The clear-control lane: a narrow box and a value long enough to reach the
+       button, so the spec can ask whether the text ends before it starts. -->
+  <div class="w-[240px] space-y-2" data-probe="select-bare-clearable">
+    {@render anchor('select-bare-clearable')}
+    <Select
+      variant="bare"
+      clearable
+      aria-label="Bare clearable select"
+      value="long"
+      options={longOptions}
+    />
+  </div>
+
+  <div class="w-[240px] space-y-2" data-probe="select-outlined-clearable">
+    {@render anchor('select-outlined-clearable')}
+    <Select
+      variant="outlined"
+      clearable
+      aria-label="Outlined clearable select"
+      value="long"
+      options={longOptions}
+    />
+  </div>
+
+  <div class="w-[240px] space-y-2" data-probe="combobox-bare-value">
+    {@render anchor('combobox-bare-value')}
+    <Combobox
+      variant="bare"
+      clearable
+      aria-label="Bare combobox with a value"
+      options={longOptions}
+    />
   </div>
 </div>

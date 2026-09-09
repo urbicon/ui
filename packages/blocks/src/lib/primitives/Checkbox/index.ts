@@ -60,7 +60,12 @@ export interface CheckboxProps
   /** Prevent interaction and dim the control. */
   disabled?: boolean;
 
-  /** Mark the native input as required for form validation. */
+  /**
+   * Mark the native input as required for form validation. Also draws the
+   * family's required marker beside the label text (never beside the box); it
+   * needs a `label` to sit after, and `slotClasses.requiredMark: 'hidden'`
+   * takes it away.
+   */
   required?: boolean;
 
   /** The `name` attribute of the underlying `<input>`. Used for form submission. */

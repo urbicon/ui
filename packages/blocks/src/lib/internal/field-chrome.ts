@@ -65,20 +65,19 @@ export type FieldFocus = 'focus-visible' | 'focus-within';
 /**
  * The focus-mode fragments, each written out for both modes.
  *
- * Not `` `${f}:ring-2` ``, which is what these used to be. Tailwind's scanner
- * reads source TEXT: a class name that only ever exists as an interpolation is
- * never extracted, so it compiles into no consumer stylesheet, while the fold in
- * `utils/variants.ts` happily resolves a class that names no rule. Measured with
- * the scanner over the shipped `packages/blocks/dist`, four of the strings below
- * had no literal twin anywhere in the package — TimeInput's
- * `focus-within:border-success` / `focus-within:ring-success/20` and their
- * warning pair, so a TimeInput with `intent="success"` coloured its resting
- * frame and dropped the colour the moment the field was used. The rest compiled
- * only because an unrelated component happened to hand-write the same string.
+ * **Never interpolate a class name's prefix** (`` `${f}:ring-2` ``, which is
+ * what these used to be). Tailwind's scanner reads source TEXT, so a class that
+ * exists only as an interpolation is never extracted and compiles into no
+ * consumer stylesheet — while the fold in `utils/variants.ts` resolves it
+ * happily, because it parses the string it is handed rather than the stylesheet.
+ * The two disagree in silence, and `apps/docs` cannot notice: it scans `dist`
+ * and is not a consumer.
  *
- * One `const` per fragment rather than one table of all of them: a component
- * that reaches for the ring must not carry the surfaces and the intents into its
- * bundle, and a bundler can only drop what is separately named.
+ * One `const` per fragment rather than one table of all of them, so a component
+ * that reaches for the ring does not carry the surfaces and the intents into its
+ * bundle — a bundler can only drop what is separately named, which is also why
+ * {@link fieldFilledSurface} and {@link fieldGhostSurface} exist beside
+ * {@link fieldSurfaceVariants}.
  */
 type ByFocus = Readonly<Record<FieldFocus, string>>;
 
@@ -104,9 +103,9 @@ const GHOST_SURFACE: ByFocus = {
 
 const BARE_SURFACE: ByFocus = {
   'focus-visible':
-    'bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(color:--blocks-focus-ring-color)',
+    'bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-[length:var(--blocks-focus-ring-width)] focus-visible:outline-offset-[length:var(--blocks-focus-ring-offset)] focus-visible:outline-(color:--blocks-focus-ring-color)',
   'focus-within':
-    'bg-transparent border-0 rounded-none focus-within:ring-0 focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(color:--blocks-focus-ring-color)'
+    'bg-transparent border-0 rounded-none focus-within:ring-0 focus-within:outline-solid focus-within:outline-[length:var(--blocks-focus-ring-width)] focus-within:outline-offset-[length:var(--blocks-focus-ring-offset)] focus-within:outline-(color:--blocks-focus-ring-color)'
 };
 
 const BARE_ERROR_OUTLINE: ByFocus = {
@@ -141,13 +140,15 @@ export const fieldFocusRing = (f: FieldFocus): string => RING[f];
  * the field, and `bare` has no border to fall back on. An outline is honoured
  * in forced-colors and takes the system highlight colour there.
  *
- * The colour is `--blocks-focus-ring-color` (`style/interaction.css`), so a
- * product whose accent means something else sets the focus colour once instead
- * of once per call site. `outline-solid` is not decoration: it shares the
+ * All three of colour, width and offset come from the `--blocks-focus-ring-*`
+ * tokens (`style/interaction.css`), so a product whose accent means something
+ * else sets the focus look once instead of once per call site — and
+ * `prefers-contrast: more`, which raises the width token to 3px, reaches this
+ * outline for free. `outline-solid` is not decoration: it shares the
  * `outline-style` bucket with the `outline-none` every field's base slot
- * carries, and only a class in that bucket can strip it — `outline-2` writes
- * `outline-style: var(--tw-outline-style)`, which `outline-none` has already
- * set to `none` (measured against the compiler).
+ * carries, and only a class in that bucket can strip it — the width utility
+ * writes `outline-style: var(--tw-outline-style)`, which `outline-none` has
+ * already set to `none` (measured against the compiler).
  *
  * The measure — padding, height, radius' absence — is NOT here: the `size` axis
  * is declared after `variant` and would win it back. See {@link FIELD_BARE_MEASURE}.
@@ -165,6 +166,12 @@ export const fieldBareSurface = (f: FieldFocus): string => BARE_SURFACE[f];
  * the same reason: the `disabled` and `readonly` axes are declared after
  * `variant` and would otherwise fill a field that has no frame to fill.
  * Disabled reads as `opacity-50` + `cursor-not-allowed` on `bare`.
+ *
+ * `p-0` takes the lane an absolutely positioned control sits in with it, so a
+ * component that has one (Select's clear button, Combobox's clear/chevron pair)
+ * puts a `pr-*` back from a later compound — measured, the text ran under the
+ * button otherwise. A longhand after this shorthand composes rather than
+ * replacing it, the same way the icon insets do.
  */
 export const FIELD_BARE_MEASURE = 'h-auto min-h-0 p-0 bg-transparent';
 
@@ -184,14 +191,26 @@ export const FIELD_BARE_NATIVE_FILL = 'disabled:bg-transparent read-only:bg-tran
  */
 export const fieldBareErrorOutline = (f: FieldFocus): string => BARE_ERROR_OUTLINE[f];
 
+/** The `outlined` surface — a constant, no focus mode in it. */
+export const FIELD_OUTLINED_SURFACE = 'border-border-subtle';
+
+/** The `filled` surface, for the given focus mode. */
+export const fieldFilledSurface = (f: FieldFocus): string => FILLED_SURFACE[f];
+
+/** The `ghost` surface, for the given focus mode. */
+export const fieldGhostSurface = (f: FieldFocus): string => GHOST_SURFACE[f];
+
 /**
- * The `outlined | filled | ghost | bare` surface values, parameterised by focus
- * mode. `outlined` is a constant; consumers pick the values they carry (the
- * PIN and time fields take three of the four) and add their own extra variants
- * (the text fields' `underline`) alongside.
+ * The four surface values a text field carries, parameterised by focus mode.
+ *
+ * For the four fields that have `bare` only. PinInput and TimeInput compose
+ * their three from {@link FIELD_OUTLINED_SURFACE}, {@link fieldFilledSurface}
+ * and {@link fieldGhostSurface} instead — measured, taking the record here put
+ * 440 B of `bare` classes into PinInput's bundle that nothing could reach.
+ * Callers add their own extra variants (the text fields' `underline`) alongside.
  */
 export const fieldSurfaceVariants = (f: FieldFocus) => ({
-  outlined: 'border-border-subtle',
+  outlined: FIELD_OUTLINED_SURFACE,
   filled: FILLED_SURFACE[f],
   ghost: GHOST_SURFACE[f],
   bare: BARE_SURFACE[f]
@@ -242,6 +261,11 @@ export const FIELD_LABEL_DISABLED = 'text-text-disabled';
  * all-required form is `slotClasses: { requiredMark: 'hidden' }`. A
  * pseudo-element is reachable only by writing `after:content-none` into the
  * label's own bucket.
+ *
+ * The provider rungs reach eight of the nine: FormField resolves no cascade of
+ * its own (no `resolveSlotClasses`, no `unstyled`, no `preset`), so it takes the
+ * instance `slotClasses` entry and nothing above it. That is a property of
+ * FormField, older than this marker, and its docs page says so.
  *
  * `text-text-secondary`, not the danger tone: nothing has failed yet. The
  * "required" information travels through native `required` / `aria-required`,

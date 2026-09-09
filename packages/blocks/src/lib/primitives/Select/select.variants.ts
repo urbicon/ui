@@ -188,6 +188,13 @@ export const selectVariants = tv({
         requiredMark: FIELD_REQUIRED_MARK
       }
     },
+    // Carried as an axis, not read off the markup, so `bare` can reserve the
+    // lane its absolutely positioned clear button needs. Reserved on
+    // `clearable` rather than on "a value is selected", or the text would jump
+    // the moment the first choice is made.
+    clearable: {
+      true: {}
+    },
     selected: {
       true: {
         // Form-family selected signature (parity with Combobox `optionSelected`):
@@ -214,6 +221,17 @@ export const selectVariants = tv({
       variant: 'bare',
       class: { trigger: FIELD_BARE_MEASURE, clear: 'right-0' }
     },
+    // The lane the clear button sits in, per size, because `p-0` above took the
+    // one the size axis reserved and the button's width is the size's own
+    // (`p-*` + icon: 16/18/20/24/32px). Declared after the measure so the
+    // longhand composes with the shorthand; measured at 240px, the trigger text
+    // ran 20px under the button without it. The chevron needs none — it is a
+    // flex child of the trigger, not an absolute control.
+    { variant: 'bare', clearable: true, size: 'xs', class: { trigger: 'pr-4' } },
+    { variant: 'bare', clearable: true, size: 'sm', class: { trigger: 'pr-5' } },
+    { variant: 'bare', clearable: true, size: 'md', class: { trigger: 'pr-5' } },
+    { variant: 'bare', clearable: true, size: 'lg', class: { trigger: 'pr-6' } },
+    { variant: 'bare', clearable: true, size: 'xl', class: { trigger: 'pr-8' } },
     {
       variant: 'bare',
       error: true,
@@ -228,6 +246,7 @@ export const selectVariants = tv({
     disabled: false,
     error: false,
     required: false,
+    clearable: false,
     selected: false,
     messageType: 'helper'
   }

@@ -217,12 +217,20 @@ chrome.
 
 `bare` is the one value with a real interaction with `size`: the size axis keeps its type step and
 gives up everything else. `size="lg"` on a bare field means `text-lg` and nothing more — no height,
-no padding, no minimum height. That is what lets a bare field sit inside a paragraph without
-pushing the line apart.
+no padding, no minimum height. **Vertically** that is the whole point: the field is as tall as its
+line, so a row of running text keeps its rhythm around it.
+
+Horizontally it is still a block: the field's wrapper is `flex flex-col w-full` and the control
+inside it `w-full`, so a bare field fills the width it is given — put it in a flex row, or hand it a
+`class`, if it should take only the room its text needs. It is not an inline element, and a `<p>`
+is not a valid parent for it (the browser reparents the markup and the field goes full-bleed).
 
 Content that needs room still gets it: an Input with a leading icon keeps the inset the icon
-occupies, and Select's and Combobox's clear and chevron buttons move to the edge the padding no
-longer holds.
+occupies, and a clearable bare field keeps the lane for its clear control — Combobox always, since
+one of its two absolute buttons is always rendered, Select whenever `clearable` is set.
+
+One piece of chrome survives on Textarea: the browser's own resize handle (`resize-y`). Pair `bare`
+with `autoResize` if the corner glyph is more than the field should show.
 
 ### The focus indicator is the one thing `bare` will not give up
 

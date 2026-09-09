@@ -34,31 +34,44 @@ type Resolve = (props: Record<string, unknown>) => string;
  * inside the frame, not the frame.
  */
 const FIELDS: Array<
-  [name: string, resolve: Resolve, focus: 'focus-visible' | 'focus-within', typeStep: Resolve]
+  [
+    name: string,
+    resolve: Resolve,
+    focus: 'focus-visible' | 'focus-within',
+    typeStep: Resolve,
+    /** The one padding class `bare` keeps: the lane of an absolute control. */
+    lane: string | null
+  ]
 > = [
   [
     'Input',
     (p) => inputVariants({ variant: 'bare', ...p }).base(),
     'focus-visible',
-    (p) => inputVariants({ variant: 'bare', ...p }).base()
+    (p) => inputVariants({ variant: 'bare', ...p }).base(),
+    null
   ],
   [
     'Textarea',
     (p) => textareaVariants({ variant: 'bare', ...p }).base(),
     'focus-visible',
-    (p) => textareaVariants({ variant: 'bare', ...p }).base()
+    (p) => textareaVariants({ variant: 'bare', ...p }).base(),
+    null
   ],
   [
     'Select',
     (p) => selectVariants({ variant: 'bare', ...p }).trigger(),
     'focus-visible',
-    (p) => selectVariants({ variant: 'bare', ...p }).trigger()
+    (p) => selectVariants({ variant: 'bare', ...p }).trigger(),
+    // Select's chevron is a flex child; only a `clearable` Select reserves a
+    // lane, which the size sweep below covers on its own.
+    null
   ],
   [
     'Combobox',
     (p) => comboboxVariants({ variant: 'bare', ...p }).input(),
     'focus-visible',
-    (p) => comboboxVariants({ variant: 'bare', ...p }).input()
+    (p) => comboboxVariants({ variant: 'bare', ...p }).input(),
+    'pr-7'
   ],
   // Multi-select moves the frame onto the tokenizer, which lights via
   // focus-within and holds no type step of its own.
@@ -66,11 +79,12 @@ const FIELDS: Array<
     'Combobox (multi)',
     (p) => comboboxVariants({ variant: 'bare', ...p }).control(),
     'focus-within',
-    (p) => comboboxVariants({ variant: 'bare', ...p }).search()
+    (p) => comboboxVariants({ variant: 'bare', ...p }).search(),
+    'pr-7'
   ]
 ];
 
-describe.each(FIELDS)('%s bare', (_name, resolve, focus, typeStep) => {
+describe.each(FIELDS)('%s bare', (_name, resolve, focus, typeStep, lane) => {
   it('carries no frame, no fill, no radius', () => {
     const cls = resolve({ size: 'md' });
     expect(cls).toContain('border-0');
@@ -88,16 +102,21 @@ describe.each(FIELDS)('%s bare', (_name, resolve, focus, typeStep) => {
     expect(classes).toContain('h-auto');
     expect(classes).toContain('p-0');
     expect(classes).toContain('min-h-0');
-    // No measure survives: no height step, no padding step, no minimum height.
+    // No measure survives: no height step, no minimum height, and no padding
+    // beyond the lane an absolutely positioned control needs back.
     expect(classes.filter((c) => /^(h|min-h)-(?!auto$|0$)/.test(c))).toEqual([]);
-    expect(classes.filter((c) => /^(p|px|py|pl|pr|ps|pe|pt|pb)-(?!0$)/.test(c))).toEqual([]);
+    const padding = classes.filter((c) => /^(p|px|py|pl|pr|ps|pe|pt|pb)-(?!0$)/.test(c));
+    expect(padding).toEqual(lane ? [lane] : []);
   });
 
-  it('replaces the tinted ring with an outline in the family colour', () => {
+  it('replaces the tinted ring with an outline built from the focus tokens', () => {
     const cls = resolve({ size: 'md' });
     expect(cls).toContain(`${focus}:outline-solid`);
-    expect(cls).toContain(`${focus}:outline-2`);
-    expect(cls).toContain(`${focus}:outline-offset-2`);
+    // Width and offset come off the tokens, not a literal, so
+    // `prefers-contrast: more` (which raises the width to 3px) reaches them.
+    expect(cls).toContain(`${focus}:outline-[length:var(--blocks-focus-ring-width)]`);
+    expect(cls).toContain(`${focus}:outline-offset-[length:var(--blocks-focus-ring-offset)]`);
+    expect(cls).not.toContain(`${focus}:outline-2`);
     expect(cls).toContain(`${focus}:outline-(color:--blocks-focus-ring-color)`);
     // The base slot's `outline-none` must be gone, or the outline never paints.
     expect(cls).not.toContain(`${focus}:outline-none`);
@@ -153,10 +172,28 @@ describe('bare next to content that needs room', () => {
     expect(selectVariants({ variant: 'outlined', size: 'md' }).clear()).toContain('right-3');
   });
 
-  it('Combobox pulls both absolute buttons in', () => {
+  it.each([
+    ['xs', 'pr-4'],
+    ['sm', 'pr-5'],
+    ['md', 'pr-5'],
+    ['lg', 'pr-6'],
+    ['xl', 'pr-8']
+  ] as const)('Select keeps a %s lane when it is clearable', (size, lane) => {
+    const clearable = selectVariants({ variant: 'bare', size, clearable: true }).trigger();
+    expect(clearable.split(' ')).toContain(lane);
+    // Only when there is a button to make room for …
+    expect(selectVariants({ variant: 'bare', size }).trigger().split(' ')).not.toContain(lane);
+    // … and never on a variant that still has the size axis's own padding.
+    const outlined = selectVariants({ variant: 'outlined', size, clearable: true }).trigger();
+    expect(outlined.split(' ')).not.toContain(lane);
+  });
+
+  it('Combobox keeps the lane unconditionally — one of its two buttons always renders', () => {
     const styles = comboboxVariants({ variant: 'bare', size: 'md' });
     expect(styles.clear()).toContain('right-0');
     expect(styles.chevronButton()).toContain('right-0');
+    expect(styles.input().split(' ')).toContain('pr-7');
+    expect(styles.control().split(' ')).toContain('pr-7');
   });
 });
 

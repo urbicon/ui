@@ -5,19 +5,20 @@ import {
   FIELD_MESSAGE_TONES,
   FIELD_NATIVE_DISABLED,
   FIELD_NATIVE_READONLY,
+  FIELD_OUTLINED_SURFACE,
   FIELD_REQUIRED_MARK,
   FIELD_SURFACE,
   FIELD_TRANSITION,
   fieldErrorFrame,
+  fieldFilledSurface,
   fieldFocusRing,
-  fieldIntentFrames,
-  fieldSurfaceVariants
+  fieldGhostSurface,
+  fieldIntentFrames
 } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 // Each cell is directly focusable, so the ring lives on the cell itself.
 const focus = 'focus-visible';
-const surface = fieldSurfaceVariants(focus);
 const intents = fieldIntentFrames(focus);
 
 export const pinInputVariants = tv({
@@ -46,10 +47,13 @@ export const pinInputVariants = tv({
       modify: { cell: 'rounded-modify' },
       commit: { cell: 'rounded-commit' }
     },
+    // Three of the family's four surfaces, taken one by one rather than off
+    // `fieldSurfaceVariants()`: that record also holds `bare`, which this
+    // component has no value for, and a record is retained whole.
     variant: {
-      outlined: { cell: surface.outlined },
-      filled: { cell: surface.filled },
-      ghost: { cell: surface.ghost }
+      outlined: { cell: FIELD_OUTLINED_SURFACE },
+      filled: { cell: fieldFilledSurface(focus) },
+      ghost: { cell: fieldGhostSurface(focus) }
     },
     size: {
       sm: {

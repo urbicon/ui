@@ -275,8 +275,14 @@ export const comboboxVariants = tv({
     {
       variant: 'bare',
       class: {
-        input: `${FIELD_BARE_MEASURE} ${FIELD_BARE_NATIVE_FILL}`,
-        control: FIELD_BARE_MEASURE,
+        // `pr-7` after `p-0`: the field always hosts one of the two absolute
+        // buttons — the clear control while there is a value, the chevron
+        // otherwise — and both are 26/24px wide at every size (their padding and
+        // icon are size-independent). Without the lane the query ran under the
+        // button; measured at 240px, the last 26px of the text were covered.
+        // The longhand composes with the shorthand rather than replacing it.
+        input: `${FIELD_BARE_MEASURE} ${FIELD_BARE_NATIVE_FILL} pr-7`,
+        control: `${FIELD_BARE_MEASURE} pr-7`,
         clear: 'right-0',
         chevronButton: 'right-0'
       }

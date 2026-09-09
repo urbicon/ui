@@ -43,6 +43,18 @@ const FRAME: Record<string, string> = {
   combobox: 'input[role="combobox"]'
 };
 
+/**
+ * The one padding a bare field keeps: the lane an absolutely positioned control
+ * needs back after `p-0` took it. Combobox always hosts one (clear or chevron);
+ * Select's chevron is a flex child, so a non-clearable Select keeps none.
+ */
+const LANE: Record<string, string> = {
+  input: '0px',
+  textarea: '0px',
+  select: '0px',
+  combobox: '28px'
+};
+
 interface Chrome {
   borderTopWidth: string;
   borderBottomWidth: string;
@@ -165,7 +177,7 @@ for (const component of ['input', 'textarea', 'select', 'combobox'] as const) {
     expect(bare.borderLeftWidth).toBe('0px');
     expect(bare.boxShadow).toBe('none');
     expect(bare.paddingTop).toBe('0px');
-    expect(bare.paddingRight).toBe('0px');
+    expect(bare.paddingRight).toBe(LANE[component]);
     expect(bare.paddingBottom).toBe('0px');
     expect(bare.paddingLeft).toBe('0px');
     expect(bare.borderRadius).toBe('0px');
@@ -215,6 +227,68 @@ for (const component of ['input', 'textarea', 'select', 'combobox'] as const) {
   });
 }
 
+/**
+ * Where the text ends and where the absolutely positioned control starts.
+ *
+ * `p-0` takes the lane the size axis reserved for that control with it, so
+ * without a `pr-*` put back the two overlap — which is a geometry question and
+ * has no answer in a class string.
+ */
+function lane(
+  page: import('@playwright/test').Page,
+  probe: string,
+  textSelector: string
+): Promise<{ textRight: number; buttonLeft: number; button: string }> {
+  return page.evaluate(
+    ({ probe: name, textSelector: text }) => {
+      const host = document.querySelector(`[data-probe="${name}"]`);
+      const textEl = host?.querySelector(text);
+      // The LAST button in the probe: the anchor comes first, the field's own
+      // control last (`:last-of-type` picks per parent and would find the
+      // anchor, which is a sibling rather than a descendant of the field).
+      const buttonEl = [...(host?.querySelectorAll('button') ?? [])].at(-1);
+      if (!textEl || !buttonEl) throw new Error(`probe "${name}" is missing text or button`);
+      const textBox = textEl.getBoundingClientRect();
+      // The CONTENT box, not the border box: the lane is padding, so a full-width
+      // field's border box reaches the button by design and only its content
+      // edge says whether the text has room. `truncate` and an input's own clip
+      // stop the painted glyphs early, so the box is the honest measure.
+      const padRight = Number.parseFloat(getComputedStyle(textEl).paddingRight) || 0;
+      return {
+        textRight: textBox.right - padRight,
+        buttonLeft: buttonEl.getBoundingClientRect().left,
+        button: buttonEl.getAttribute('aria-label') ?? buttonEl.className
+      };
+    },
+    { probe, textSelector }
+  );
+}
+
+test('a clearable bare Select keeps the lane its clear button sits in', async ({ page }) => {
+  const bare = await lane(page, 'select-bare-clearable', '[class*="truncate"]');
+  const outlined = await lane(page, 'select-outlined-clearable', '[class*="truncate"]');
+
+  expect(bare.textRight).toBeLessThanOrEqual(bare.buttonLeft);
+  // The control: the framed twin has always had the lane.
+  expect(outlined.textRight).toBeLessThanOrEqual(outlined.buttonLeft);
+});
+
+test('a bare Combobox keeps the lane its chevron sits in', async ({ page }) => {
+  await page
+    .locator('[data-probe="combobox-bare-value"] input')
+    .fill('A label long enough to run the whole width of this narrow field and then some');
+  const { textRight, buttonLeft } = await lane(page, 'combobox-bare-value', 'input');
+  // The input's text is clipped by the input box itself, so the box edge is the
+  // measurement: it must stop before the button.
+  expect(textRight).toBeLessThanOrEqual(buttonLeft);
+});
+
+test('the focus outline takes its width from the token, not a literal', async ({ page }) => {
+  await tabInto(page, 'input-bare', FRAME.input);
+  const normal = await read(page, 'input-bare', FRAME.input);
+  expect(normal.outlineWidth).toBe('2px');
+});
+
 test('an invalid bare field focuses in the failure tone', async ({ page }) => {
   const family = await focusRingColor(page);
 
@@ -228,4 +302,31 @@ test('an invalid bare field focuses in the failure tone', async ({ page }) => {
     'aria-invalid',
     'true'
   );
+});
+
+/**
+ * The reason the width and the offset are tokens rather than `outline-2`:
+ * `prefers-contrast: more` raises `--blocks-focus-ring-width` to 3px (and moves
+ * the colour to the ink), and a literal would have ignored both.
+ */
+test.describe('under prefers-contrast: more', () => {
+  // `page.emulateMedia`, not `test.use({ contrast })` — measured, the fixture
+  // option did not reach `matchMedia('(prefers-contrast: more)')` in this
+  // Playwright version and the test would have passed on the default styling.
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ contrast: 'more' });
+    await page.goto(URL);
+    await expect(page.getByTestId('bare-field-fixtures')).toBeVisible();
+  });
+
+  test('the bare outline thickens with the token', async ({ page }) => {
+    await tabInto(page, 'input-bare', FRAME.input);
+    const focused = await read(page, 'input-bare', FRAME.input);
+
+    expect(focused.focusVisible).toBe(true);
+    expect(focused.outlineStyle).toBe('solid');
+    expect(focused.outlineWidth).toBe('3px');
+    // The colour follows the same token block, so it is no longer the accent.
+    expect(focused.outlineColor).toBe(await focusRingColor(page));
+  });
 });

@@ -230,6 +230,7 @@
     disabled: disabled,
     error: !!error,
     required: required || undefined,
+    clearable: clearable || undefined,
     messageType: error ? 'error' : 'helper'
   });
 

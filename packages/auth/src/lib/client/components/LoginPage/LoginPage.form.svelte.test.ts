@@ -110,7 +110,7 @@ describe('LoginPage — form paths', () => {
     // signed in.
     expect(onSuccess).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Two-step verification' })).toBeTruthy();
-    expect(screen.queryByLabelText('Password')).toBeNull();
+    expect(screen.queryByLabelText(labelled('Password'))).toBeNull();
 
     await userEvent.type(screen.getByLabelText(labelled('Authentication code')), '123456');
     await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
@@ -182,7 +182,7 @@ describe('LoginPage — form paths', () => {
   it('hides the password form in passkey-only mode', () => {
     render({ mode: 'passkey', passkeyApiPath: '/api/auth/passkey', fetcher: fetcherReturning() });
 
-    expect(screen.queryByLabelText('Email address')).toBeNull();
+    expect(screen.queryByLabelText(labelled('Email address'))).toBeNull();
     expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
   });
 
