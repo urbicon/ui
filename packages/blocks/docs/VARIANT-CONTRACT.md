@@ -236,16 +236,19 @@ with `autoResize` if the corner glyph is more than the field should show.
 
 A field with no frame has nothing to tint, so the focus indicator is all a keyboard user has. On
 `bare` it is an `outline` — not a `ring`, which is a `box-shadow` and is dropped entirely in
-forced-colors mode — and its colour comes from one custom property:
+forced-colors mode — and its colour, width and offset come from three custom properties:
 
 ```css
 :root {
   --blocks-focus-ring-color: var(--color-text-primary); /* default: var(--color-primary) */
+  --blocks-focus-ring-width: 3px; /* default: 2px; the library raises it to 3px under prefers-contrast: more */
+  --blocks-focus-ring-offset: 2px;
 }
 ```
 
-Set it once if the accent colour means something else in your product. A `preset` that removes the
-ring instead is the mistake this variant exists to prevent (WCAG 2.4.7).
+Set the colour once if the accent colour means something else in your product; the width follows
+`prefers-contrast: more` on its own. A `preset` that removes the ring instead is the mistake this
+variant exists to prevent (WCAG 2.4.7).
 
 While the field is invalid the outline switches to the danger tone. Everything else the error state
 would paint — the frame — has nowhere to go on `bare`, so validation feedback travels through the

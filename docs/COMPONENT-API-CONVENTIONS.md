@@ -67,7 +67,8 @@ to a component with a sibling, check the sibling's values first.
   the type step (a compound per component zeroes the size axis's `px/py/h`); focus is an
   **outline** in the family colour — not a ring: forced-colors mode drops `box-shadow`, and `bare`
   has no border to fall back on — reading `--blocks-focus-ring-color` (its first component
-  consumer) and `--blocks-focus-ring-width`; caret, placeholder and message row stay. The
+  consumer), `--blocks-focus-ring-width` and `--blocks-focus-ring-offset`; caret, placeholder and
+  message row stay. The
   difference to `unstyled`: the a11y minimum is the library's, not the consumer's — the consumer
   who wrote the reset preset first dropped the ring and violated WCAG 2.4.7. A bare field needs
   context that marks it as a field (a placeholder, a rule, a marker before it); the docs say so
