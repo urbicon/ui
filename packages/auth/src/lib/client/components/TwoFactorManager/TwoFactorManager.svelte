@@ -192,6 +192,14 @@
 
   // Styling helper: in `unstyled` mode only the slot override applies.
   const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
+
+  // The library ring on the programmatic focus targets below, keyboard-only.
+  // The un-gated `focus:outline-none` is what Safari needs: it paints its
+  // default outline on a programmatically focused element where Chrome and
+  // Firefox gate on `:focus-visible` and paint nothing — same construct and
+  // same fix as `Guide`'s article title (guide.variants.ts).
+  const STEP_HEADING =
+    'focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50';
 </script>
 
 {#if user}
@@ -199,7 +207,10 @@
     bind:this={panel}
     class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}
   >
-    <h2 tabindex="-1" class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}>
+    <h2
+      tabindex="-1"
+      class={cls(`text-text-primary text-lg font-semibold ${STEP_HEADING}`, slotClasses.title)}
+    >
       {t.twoFactor.title}
     </h2>
 
@@ -215,7 +226,10 @@
         <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={disable}>
           <h3
             tabindex="-1"
-            class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
+            class={cls(
+              `text-text-primary text-sm font-semibold ${STEP_HEADING}`,
+              slotClasses.sectionTitle
+            )}
           >
             {t.twoFactor.disableTitle}
           </h3>
@@ -262,7 +276,10 @@
       <!-- Setup: scan the QR / enter the key, then confirm a code -->
       <h3
         tabindex="-1"
-        class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
+        class={cls(
+          `text-text-primary text-sm font-semibold ${STEP_HEADING}`,
+          slotClasses.sectionTitle
+        )}
       >
         {t.twoFactor.setupTitle}
       </h3>
@@ -328,7 +345,10 @@
       <!-- One-time backup codes -->
       <h3
         tabindex="-1"
-        class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
+        class={cls(
+          `text-text-primary text-sm font-semibold ${STEP_HEADING}`,
+          slotClasses.sectionTitle
+        )}
       >
         {t.twoFactor.backupTitle}
       </h3>

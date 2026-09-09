@@ -37,7 +37,7 @@
     intent="danger"
     variant="filled"
     size="sm"
-    interactive
+    interactive={!!onclick}
     {onclick}
     {unstyled}
     class={resolveClassChain(slotClasses.root, className)}

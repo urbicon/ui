@@ -1,6 +1,6 @@
 <!--
-  Internal: the one page skeleton (wrapper → Card → h1 → aria-live error
-  region) every auth page renders through, so their spacing cannot drift
+  Internal: the one page skeleton (wrapper → Card → h1 → the pair of outcome
+  regions) every auth page renders through, so their spacing cannot drift
   apart. Owns the `root`/`card`/`title`/`error` slots; page-specific content
   renders as children. Not exported from the package.
 -->
@@ -15,20 +15,21 @@
     /** Page heading (h1). */
     title: string;
     /**
-     * Error text for the shared aria-live region below the heading. Pass the
-     * page's error state (empty string = silent region); omit entirely when the
-     * page manages its own feedback region (VerifyEmailPage).
+     * Error text for the assertive `role="alert"` region below the heading.
+     * Pass the page's error state (empty string = the region renders empty, as
+     * it must to be able to announce a later insertion); omit entirely when the
+     * page manages its own regions (VerifyEmailPage).
      */
     error?: string;
     /**
-     * Success text for the same region (ForgotPasswordPage, ResetPasswordPage):
-     * announced where the error would have been, so a screen reader hears the
-     * outcome either way.
+     * Success text for the polite `role="status"` region beside it
+     * (ForgotPasswordPage, ResetPasswordPage), so the outcome reaches a reader
+     * either way without a confirmation interrupting.
      */
     success?: string;
     /** Center the card's text (VerifyEmailPage). */
     centered?: boolean;
-    /** Rendered between the heading and the error region. */
+    /** Rendered between the heading and the outcome regions. */
     header?: Snippet;
     children: Snippet;
     unstyled?: boolean;

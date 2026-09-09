@@ -72,15 +72,19 @@
       <Note title="Focus is handed on when the card closes">
         <p>
           Enabling or dismissing unmounts the whole card, so the button that was pressed goes with
-          it. Before that happens the prompt moves focus back to whatever held it when the prompt
-          appeared, and if that element is gone, to the nearest heading above the card — given
-          <code class="text-text-primary">tabindex="-1"</code> for the purpose. Focus never falls
-          back to <code class="text-text-primary">&lt;body&gt;</code>, where the next
-          <Kbd keys="Tab" /> would start over at the top of the page. A user who clicked elsewhere while
-          the request ran keeps their place: the prompt only moves focus it still holds. On a page with
-          no heading above the prompt there is nothing to move to, and
-          <code class="text-text-primary">onDismissed</code> /
-          <code class="text-text-primary">onSubscribed</code> are the place to do it yourself.
+          it and the next <Kbd keys="Tab" /> would otherwise start over at the top of the page. The prompt
+          moves focus to the element that held it when the prompt appeared; if that element is gone, to
+          the next tab stop after the card; failing that, to the one before it. Controls that are disabled
+          or not rendered are skipped, and nothing outside the card is modified on the way — no page heading
+          is made focusable to catch the ring. A page whose only controls were inside the card keeps none,
+          so focus lands where the browser puts it.
+        </p>
+        <p>
+          Your callback runs first. <code class="text-text-primary">onDismissed</code>,
+          <code class="text-text-primary">onSubscribed</code> and
+          <code class="text-text-primary">onUnavailable</code> are called before the prompt looks for
+          a landing spot, and it only moves focus that is still on its own two buttons — so a callback
+          that places focus itself wins, and so does a user who clicked elsewhere while the request ran.
         </p>
       </Note>
     </NoteList>

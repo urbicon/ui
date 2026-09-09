@@ -26,8 +26,9 @@ export const successMessage = (scope: ParentNode = document.body): HTMLElement =
 
 /**
  * Every live region from `node` up to the document root, `node` itself
- * included. The contract is exactly one: a live region nested inside another is
- * announced twice, or not at all, depending on the reader.
+ * included. The contract is exactly one: nesting them leaves the same text
+ * carrying two urgencies at once (`role="alert"` is implicitly assertive, the
+ * region around it was explicitly polite), and ARIA does not say which wins.
  */
 export function liveRegionsAround(node: Element): HTMLElement[] {
   const regions: HTMLElement[] = [];

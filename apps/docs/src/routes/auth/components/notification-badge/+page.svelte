@@ -66,13 +66,15 @@
           With an <code class="text-text-primary">onclick</code> the badge is a
           <code class="text-text-primary">role="button"</code> with
           <code class="text-text-primary">tabindex="0"</code>, activated by
-          <Kbd keys="Enter" /> or <Kbd keys="Space" />. Without one it is a
-          <code class="text-text-primary">role="status"</code> — a polite live region, so a count
-          that changes announces itself — and it stays out of the tab order rather than being a
-          focus stop on which every key is dead. Pass <code class="text-text-primary">role</code>
-          explicitly to override either. The badge keeps the interactive styling (pointer cursor, hover
-          scale) in both cases, so a decorative count still looks clickable; wrap it in your own button
-          where that would mislead.
+          <Kbd keys="Enter" /> or <Kbd keys="Space" />, and it carries the pressable styling —
+          pointer cursor, hover and active scale. Without one it is a
+          <code class="text-text-primary">role="status"</code>, a polite live region: it stays out
+          of the tab order rather than being a focus stop on which every key is dead, and it drops
+          the pressable styling with the semantics, so a decorative count does not look clickable.
+          The <code class="text-text-primary">role</code> prop narrows what is announced; it does
+          not make the badge operable, so
+          <code class="text-text-primary">role="button"</code> without a handler is a button nothing
+          can activate — pass an <code class="text-text-primary">onclick</code> for a button.
         </p>
       </Note>
       <Note title="It names itself">
@@ -80,11 +82,14 @@
           The visible content is <code class="text-text-primary">3</code> or
           <code class="text-text-primary">99+</code>, and the accessible name is the localized
           <code class="text-text-primary">notifications.badge.unread</code> with that same text
-          substituted — "Unread notifications: 3" — so the badge never announces a bare number. Past
-          the cap the name says <code class="text-text-primary">99+</code> too, not the real count:
-          a voice-control user can only say the label they can read. Your own
+          substituted — "Unread notifications: 3" — so the name is never a bare number. Past the cap
+          it says <code class="text-text-primary">99+</code> too, not the real count: a
+          voice-control user can only say the label they can read. Your own
           <code class="text-text-primary">aria-label</code> wins over it, as does a
-          <code class="text-text-primary">t</code> override of the string.
+          <code class="text-text-primary">t</code> override of the string. The
+          <code class="text-text-primary">status</code> region exists from the first unread on — at zero
+          the badge renders nothing at all — so a change between two non-zero counts happens inside a
+          region that was already there, while the first unread arrives together with it.
         </p>
       </Note>
     </NoteList>

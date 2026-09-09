@@ -27,6 +27,7 @@ describe('placeholder contracts', () => {
     (_name, bundle) => {
       expect(bundle.auth.passwordRequirements.rules.minLength).toContain('{n}');
       expect(bundle.auth.passwordRequirements.failed).toContain('{rules}');
+      expect(bundle.notifications.badge.unread).toContain('{n}');
       expect(bundle.common.timeAgo.minutes).toContain('{n}');
       expect(bundle.common.timeAgo.hours).toContain('{n}');
       expect(bundle.common.timeAgo.days).toContain('{n}');

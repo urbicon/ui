@@ -66,9 +66,9 @@
           announced change; a rejected link goes to the assertive
           <code class="text-text-primary">role="alert"</code> region beside it. The
           <code class="text-text-primary">Spinner</code> is a live region in its own right, and here it
-          renders without one — nested regions are announced twice, or not at all, depending on the reader.
-          The page keeps to its own regions instead of the shell's shared ones, which would put two announcements
-          on the page for the same event.
+          renders without one: nested regions leave the same text carrying two urgencies at once, and
+          ARIA does not say which wins. The page keeps to its own regions instead of the shell's shared
+          ones, which would put two regions on the page for the same event.
         </p>
       </Note>
       <Note title="The spinner has words next to it">

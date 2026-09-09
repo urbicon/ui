@@ -67,8 +67,8 @@
         <p>
           The unread dot is <code class="text-text-primary">aria-hidden="true"</code> — it is
           decoration — and the localized "Unread" sits beside it as visually hidden text inside the
-          row's button, ahead of the title. A reader tabbing the list hears "Unread, Deploy
-          finished" where a sighted user sees the dot. The
+          row's button, ahead of the title, so the button's accessible name begins with it — "Unread
+          Deploy finished …" where a sighted user sees the dot. The
           <code class="text-text-primary">data-unread</code>
           attribute stays for CSS, and the hidden word survives
           <code class="text-text-primary">unstyled</code>: it is the state, not a default look. A

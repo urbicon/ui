@@ -154,11 +154,25 @@ describe('PushPermissionPrompt (component)', () => {
 describe('PushPermissionPrompt — focus after the card closes', () => {
   const dismissButton = () => screen.getByRole('button', { name: 'Not now' });
 
-  it('hands focus to the heading above it instead of dropping it on the body', async () => {
-    const heading = document.createElement('h2');
-    heading.textContent = 'Notifications';
-    document.body.append(heading);
+  /** A control the page owns, placed after the card (mounted into `document.body`). */
+  function controlAfter(label = 'Next'): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.textContent = label;
+    document.body.append(button);
+    return button;
+  }
+
+  /** A control before the card — appended before the mount. */
+  function controlBefore(label = 'Earlier'): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.textContent = label;
+    document.body.append(button);
+    return button;
+  }
+
+  it('lands on the next tab stop after the card', async () => {
     render({});
+    const next = controlAfter();
 
     await userEvent.click(dismissButton());
     await settle();
@@ -166,8 +180,41 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
     // The card is gone; without this the focus ring is on <body> and the next
     // Tab starts over at the top of the page.
     expect(document.activeElement).not.toBe(document.body);
-    expect(document.activeElement).toBe(heading);
-    expect(heading.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(next);
+  });
+
+  it('falls back to the tab stop before the card when nothing follows it', async () => {
+    const earlier = controlBefore();
+    render({});
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    expect(document.activeElement).toBe(earlier);
+  });
+
+  it('skips a control that is not rendered, and touches no element it does not own', async () => {
+    const earlier = controlBefore();
+    const heading = document.createElement('h2');
+    heading.textContent = 'Notifications';
+    document.body.append(heading);
+    render({});
+    const hidden = controlAfter('Hidden');
+    hidden.style.display = 'none';
+    const inHiddenBox = document.createElement('div');
+    inHiddenBox.style.display = 'none';
+    const nested = document.createElement('button');
+    inHiddenBox.append(nested);
+    document.body.append(inHiddenBox);
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // Neither hidden control can take the ring, so the one before the card does.
+    expect(document.activeElement).toBe(earlier);
+    // A heading is not a tab stop and is not made into one: nothing outside the
+    // card is mutated, so a page's own markup keeps its focus behaviour.
+    expect(heading.hasAttribute('tabindex')).toBe(false);
   });
 
   it('gives focus back to the control that had it when the prompt appeared', async () => {
@@ -177,12 +224,54 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
     opener.focus();
     subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
     render({ fetcher: fetcherAnswering(200, {}) });
+    controlAfter();
 
     await userEvent.click(enableButton());
     await settle();
 
     expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+    // The restore target wins over the neighbour: it is where the user was.
     expect(document.activeElement).toBe(opener);
+  });
+
+  it('leaves focus where a dismissal callback put it', async () => {
+    const consumerTarget = controlBefore('Consumer');
+    render({ onDismissed: () => consumerTarget.focus() });
+    controlAfter();
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // The docs send a consumer to `onDismissed` to place focus; the callback
+    // runs first and the prompt must not override it a tick later.
+    expect(document.activeElement).toBe(consumerTarget);
+  });
+
+  it('leaves focus where an unavailable callback put it', async () => {
+    const consumerTarget = controlBefore('Consumer');
+    subscribeToPush.mockResolvedValue({ status: 'unsupported' });
+    render({ onUnavailable: () => consumerTarget.focus() });
+    controlAfter();
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(document.activeElement).toBe(consumerTarget);
+  });
+
+  it('leaves focus where a subscribe callback put it', async () => {
+    const consumerTarget = controlBefore('Consumer');
+    subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
+    render({
+      fetcher: fetcherAnswering(200, {}),
+      onSubscribed: () => consumerTarget.focus()
+    });
+    controlAfter();
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(document.activeElement).toBe(consumerTarget);
   });
 
   it('leaves focus alone when the user moved it away while enabling', async () => {

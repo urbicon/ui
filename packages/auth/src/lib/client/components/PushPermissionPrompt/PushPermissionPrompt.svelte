@@ -45,7 +45,7 @@
 
   // A decision unmounts the whole card, so the button that carried the focus
   // ring goes with it and focus falls to `<body>` — the reader loses its place
-  // in the page. The landing spot has to be picked while the card is still
+  // in the page. The neighbours have to be read while the card is still
   // mounted, focus moved once it is gone, and only while it is still ours.
   let restoreTarget: HTMLElement | null = null;
 
@@ -56,38 +56,69 @@
     restoreTarget = held instanceof HTMLElement && held !== document.body ? held : null;
   });
 
+  /** Tab stops, as the browser counts them; `disabled` is filtered separately. */
+  const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
   /**
-   * Where focus goes when the card is torn down: back to the element that had
-   * it before the prompt appeared, else the nearest heading above the prompt,
-   * which gets `tabindex="-1"` — without it `focus()` on a heading does
-   * nothing, and with it the heading still stays out of the tab order. Null
-   * when the page offers neither, which leaves the browser's own behaviour.
+   * Whether the element is laid out. `offsetParent` is the usual test, but it is
+   * null for a `position: fixed` element and — measured — for every element
+   * under jsdom, so there it can reject nothing. Walking the ancestors' computed
+   * `display` / `visibility` answers the same question in both: an element's own
+   * computed `display` keeps its specified value under a hidden parent, so the
+   * walk is what catches the hidden ancestor.
    */
-  function landingSpot(inside: HTMLElement): HTMLElement | null {
-    if (restoreTarget?.isConnected && !inside.contains(restoreTarget)) return restoreTarget;
-    let nearest: HTMLElement | null = null;
-    const headings = document.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6');
-    for (const heading of Array.from(headings)) {
-      const precedes =
-        (inside.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
-      if (precedes && !inside.contains(heading)) nearest = heading;
+  function isRendered(el: HTMLElement): boolean {
+    for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
     }
-    if (nearest) nearest.tabIndex = -1;
-    return nearest;
+    return true;
   }
 
   /**
-   * Hand the focus on before the card disappears. `trigger` is the pressed
-   * button, and its parent is the actions row — the card's whole focusable
-   * surface, so containment answers "is the focus still ours". A user who
-   * clicked elsewhere while the request ran did not ask to come back.
+   * The focusables around the pressed button, in document order, read while the
+   * card is still in the DOM. The card's own controls are in these lists and
+   * drop out by themselves: they are disconnected by the time `reachable` runs.
+   */
+  function neighbours(trigger: HTMLElement): { after: HTMLElement[]; before: HTMLElement[] } {
+    const all = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE));
+    const at = all.indexOf(trigger);
+    if (at === -1) return { after: all, before: [] };
+    return { after: all.slice(at + 1), before: all.slice(0, at).reverse() };
+  }
+
+  /** The first candidate still in the document, enabled and rendered. */
+  function reachable(candidates: HTMLElement[]): HTMLElement | null {
+    for (const el of candidates) {
+      if (!el.isConnected || el.hasAttribute('disabled') || !isRendered(el)) continue;
+      return el;
+    }
+    return null;
+  }
+
+  /**
+   * Hand the focus on before the card disappears: back to the element that held
+   * it when the prompt appeared, else the next tab stop after the card, else the
+   * one before it. A page with no other control gets nothing — the caller's
+   * callback has already run and may have placed focus itself. No element
+   * outside the card is mutated on the way.
+   *
+   * `trigger` is the pressed button and its parent is the actions row — the
+   * card's whole focusable surface, so containment answers "is the focus still
+   * ours". Whoever moved focus elsewhere, user or callback, keeps it.
    */
   async function releaseFocus(trigger: HTMLElement | null) {
     const actions = trigger?.parentElement ?? null;
     const held = document.activeElement;
     const ours = held === null || held === document.body || actions?.contains(held) === true;
-    const target = ours && actions ? landingSpot(actions) : null;
+    if (!ours || !trigger) return;
+    const { after, before } = neighbours(trigger);
+    // After the flush, not before: the card's own two buttons are still
+    // connected until then, and focusing one of them lands on `<body>` a moment
+    // later when it is removed.
     await tick();
+    const restored = restoreTarget?.isConnected && isRendered(restoreTarget) ? restoreTarget : null;
+    const target = restored ?? reachable(after) ?? reachable(before);
     target?.focus();
   }
 
@@ -105,8 +136,10 @@
         // close, and tell the caller which it was so it can persist the outcome
         // instead of remounting the prompt on every visit.
         visible = false;
-        void releaseFocus(trigger);
+        // The caller's callback runs first on every closing path: a consumer
+        // that places focus itself must not be overridden a tick later.
         onUnavailable?.(result.status);
+        void releaseFocus(trigger);
         return;
       }
       if (result.status === 'error') {
@@ -167,9 +200,10 @@
   }
 
   function handleDismiss(event: MouseEvent) {
+    const trigger = event.currentTarget as HTMLElement | null;
     visible = false;
-    void releaseFocus(event.currentTarget as HTMLElement | null);
     onDismissed?.();
+    void releaseFocus(trigger);
   }
 </script>
 

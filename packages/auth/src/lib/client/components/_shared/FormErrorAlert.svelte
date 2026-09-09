@@ -4,17 +4,18 @@
   (through AuthPageShell), a manager, or one of AccountSettings' four per-form
   regions. Not exported from the package.
 
-  Two regions, one per urgency, both always in the DOM: a screen reader
-  announces a content change only inside a live region that already existed
-  when the content arrived. An error lands in the assertive `role="alert"`
+  Two regions, one per urgency, both always in the DOM: ARIA announces a
+  content change only inside a live region that was already there when the
+  content arrived. An error lands in the assertive `role="alert"`
   region, a success and the pending `children` in the polite `role="status"`
   one, so a "saved" message does not interrupt whatever is being read.
 
   The inner `Alert` carries no role of its own (`role={undefined}` removes the
-  one it hard-codes): a live region inside a live region is announced twice, or
-  not at all, depending on the reader. Error and success stay exclusive by
-  construction (the error wins), so a component cannot leave a stale success
-  next to a fresh error.
+  one it hard-codes). Nested regions leave the same text carrying two
+  contradictory urgencies — `role="alert"` is implicitly `aria-live="assertive"`
+  and it sat inside an explicitly polite region — with nothing in ARIA saying
+  which one wins. Error and success stay exclusive by construction (the error
+  wins), so a component cannot leave a stale success next to a fresh error.
 
   One wrapper around both regions, not two siblings: the managers and the
   AccountSettings forms place this component in a `flex flex-col gap-*` column,

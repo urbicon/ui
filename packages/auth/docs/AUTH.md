@@ -235,9 +235,11 @@ instead of reading it back off the bundle.
 `_shared/FormErrorAlert.svelte` — the single place a request outcome becomes
 markup, reached by every page, every manager, and each of AccountSettings' four
 forms — used to wrap blocks' `<Alert>` (which hard-codes `role="alert"`) in a
-`<div aria-live="polite">`. That is a live region inside a live region, which
-readers announce twice or not at all, and it made every success as urgent as
-every failure.
+`<div aria-live="polite">`. That is a live region inside a live region: the
+same text carried two urgencies at once — `role="alert"` is implicitly
+`aria-live="assertive"`, the wrapper was explicitly polite — with nothing in
+ARIA saying which one wins. It also made every success as urgent as every
+failure.
 
 It now renders two sibling regions, both mounted from the first paint and empty
 until something happens:
@@ -253,26 +255,42 @@ The `<Alert>` inside carries no role of its own, so the message is announced
 once, by the region that was already there when it arrived.
 
 **What a consumer's test or selector has to do now.** A query for
-`[aria-live="polite"]` matches nothing: use `[role="status"]` for a success or a
-pending state and `[role="alert"]` for a failure. `getByRole('alert')` still
-finds the failure — but it now also matches while there is _no_ failure, because
-the empty region is always present, and on `<AccountSettings>` it matches four
-times. Assert on the region's content (`errorRegion().textContent`), scope the
-query to one form, or query `getByRole('status')` for a success that used to
-answer to `getByRole('alert')`. A component's `error` / `success` slot classes
-are unchanged: they still land on the inner `Alert`, never on the region.
+`[aria-live="polite"]` matches nothing; the two regions are `[role="alert"]` and
+`[role="status"]`. Neither is a presence test any more: both are in the DOM from
+the first paint whether or not there is anything in them, `<AccountSettings>`
+renders four of each (one pair per form), and `role="status"` is also what every
+`Spinner` carries, so a loading manager has one more. So `getByRole('alert')` no
+longer means "an error is shown" and `getByRole('status')` never did mean "a
+success is shown".
+
+Query the region and read its text, scoped to the form or panel you mean:
+
+```ts
+const region = (form: HTMLElement) => form.querySelector('[role="alert"]') as HTMLElement;
+expect(region(profileForm).textContent).toContain('Current password is incorrect.');
+expect(region(emailForm).textContent?.trim()).toBe(''); // the other forms stay quiet
+```
+
+A success reads the same way through `[role="status"]` — scoped, because an
+unscoped one may find a spinner. A component's `error` / `success` slot classes
+are unchanged: they still land on the inner `Alert`, never on the region, so
+`region(form).firstElementChild` is the message element they style.
 
 **`<VerifyEmailPage>`'s spinner** renders without its own `role="status"` for
 the same reason — it sits inside the page's region.
 
 **`<NotificationBadge>` has an accessible name and passes attributes through.**
-It used to announce a bare "3", and its five props accepted nothing else. It now
-takes the localized `notifications.badge.unread` as its `aria-label` (with the
-_shown_ text substituted, so past the cap the name says `99+` too) and spreads
-the rest of its attributes onto the badge root, so your own `aria-label`, `id`
-or `data-*` reach it. A test asserting the badge's accessible name is the number
-has to read the text content instead. Its ARIA role is `Badge`'s to derive and
-did not change here: `button` with an `onclick`, `status` without one.
+Its accessible name used to be the bare "3", and its declared props accepted
+nothing else. It now takes the localized `notifications.badge.unread` as its
+`aria-label` (with the _shown_ text substituted, so past the cap the name says
+`99+` too) and spreads the rest of its attributes onto the badge root, so your
+own `aria-label`, `id` or `data-*` reach it. A test asserting that the badge's
+accessible name is the number has to read the text content instead. Its ARIA
+role is `Badge`'s to derive and did not change here: `button` with an `onclick`,
+`status` without one — but the **interactive styling now follows the handler
+too**: without an `onclick` the badge no longer renders `cursor-pointer` or the
+hover/active scale and colour, because it is neither a button nor a tab stop. A
+visual snapshot of a handler-less badge changes.
 
 **Row actions name their row.** `<NotificationCenter>`'s delete button is now
 "Delete — {title}" and `<SessionManager>`'s revoke "Sign out — {device}",
@@ -289,13 +307,18 @@ a heading, which is where focus now lands). Consumers passing a
 `PartialAuthLocale` override are unaffected.
 
 **Two components move focus where they did not before.**
-`<PushPermissionPrompt>` hands focus on before it unmounts — back to whatever
-held it when the prompt appeared, else the nearest heading above the card, which
-is given `tabindex="-1"` for the purpose — instead of dropping it on `<body>`.
-`<TwoFactorManager>` moves focus to the heading of the step it just opened (each
-step heading is now focusable). Both only move focus they still hold: a user who
-clicked elsewhere while the request ran keeps their place, and a refused code
-changes no step, so the caret stays in the field.
+`<PushPermissionPrompt>` hands focus on as it unmounts instead of dropping it on
+`<body>`: back to whatever held it when the prompt appeared, else the next tab
+stop after the card, else the one before it — skipping controls that are
+disabled or not rendered, and mutating no element it does not own. On a page
+with no other control it moves nothing. Your `onDismissed` / `onSubscribed` /
+`onUnavailable` callback runs **first** on every closing path, so a callback
+that places focus itself wins: the prompt only moves focus that is still on its
+own buttons. `<TwoFactorManager>` moves focus to the heading of the step it just
+opened (each step heading is now focusable, with the library's keyboard-only
+focus ring). Both only move focus they still hold: a user who clicked elsewhere
+while the request ran keeps their place, and a refused code changes no step, so
+the caret stays in the field.
 
 ### Breaking in 8.17.0
 
