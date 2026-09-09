@@ -140,7 +140,8 @@ same shape on `lastError` (cleared by the next success), returns `false` from
 failed operations instead of silently no-opping, and a failed `load` keeps the
 existing list rather than blanking it into a fake empty inbox. `logout` clears
 the local state unconditionally but still reports whether the server revoked
-the session (threading the failure body's wire contract). `checkStatus`
+the session (threading the failure body's wire contract; what that call ends
+server-side, and what it leaves alive, is [Logout](#logout)). `checkStatus`
 distinguishes "signed out" from "could not ask": a 200 or the me-contract's
 `401 { user: null }` resolves the user and reports success, while a transport
 failure or non-contract error leaves the current user untouched and reports
@@ -557,6 +558,96 @@ registry.register({
   recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
+
+### Logout
+
+`createLogoutHandler(deps)` revokes the refresh token the request's cookie carries
+(when `refreshToken` rotation is configured) and clears both cookies. It requires no
+valid session — a client whose access token has already expired still gets
+`{ success: true }` with its cookies dropped — and a repo failure on the revoke is
+logged, not propagated: the cookies are cleared in a `finally`, so a transient
+database problem cannot leave a live refresh cookie behind.
+
+**What it cannot end is the access token.** A session JWT is verified from its
+signature rather than looked up, so a copy taken before the logout — a `curl`
+session, a shared machine, a synced browser profile — keeps authenticating until
+`jwt.expiresIn` elapses: 15 minutes under `refreshToken` rotation
+(`refreshToken.accessTokenTtl`), 7 days without it. Nothing server-side refuses it,
+because nothing server-side knows it exists. That is the stateless-JWT trade-off,
+and the reason rotation shortens the access-token TTL in the first place.
+
+Close the window at the price below:
+
+<!-- typecheck -->
+```ts
+// src/routes/api/auth/logout/+server.ts
+import { createLogoutHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth-setup';
+
+export const { POST } = createLogoutHandler(authDeps, { invalidateAccessTokens: true });
+```
+
+The handler resolves the user from the session cookie and, **before** the revoke
+and before the cookies are cleared, makes two writes: it bumps their
+`tokenVersion`, so the generation check every request runs in `createAuthHandle`
+(`user.tokenVersion === session.tokenVersion`) refuses every access token minted
+before this logout, and — with rotation configured — revokes every refresh family
+of that user (`revokeAllForUser`, the pairing `reset-password` uses), so nothing
+can rotate back in. No valid session, no writes — the request still answers `200`
+with the cookies cleared.
+
+Neither write is propagated on failure, the same best-effort policy the revoke
+follows: the cookies go either way. They report **separately**
+(`[auth] logout: token-version bump failed`,
+`[auth] logout: refresh-family revoke failed`), because the half-done state is
+worth reading in a log — a bump without its family revoke leaves every other
+device's access token dead but its refresh token alive, so that device rotates
+back in on its next page navigation. `tokenVersion` is one counter per user, so an
+adapter must increment it losslessly — the conformance check
+`user.incrementTokenVersion loses no concurrent increments` is what proves yours
+does.
+
+**The price: both writes are per user, not per session.** Every session of the
+account ends — every access token is refused by the generation check, and with
+rotation configured every refresh token is revoked. Another device is signed out
+until someone signs in again: its API client keeps sending the same stale access
+cookie until that expires (`refreshToken.accessTokenTtl`, 15 minutes by default),
+after which the same request is refused on its revoked refresh token instead —
+the status never changes, and it does not rotate back in. A page navigation
+clears the stale cookie and sends the device to the login. Until one happens, a
+polling API client on that device costs one no-op family revoke per request
+(the refresh cookie is still sent and still lands on the revoked row), so a
+dashboard tab polling every few seconds keeps writing until its tab is
+navigated. The delay is
+SvelteKit's cookie handling, not a grace period: the hook stages the clear on
+`event.cookies`, and Kit writes staged cookies only on the paths that resolve or
+redirect — a guarded `/api/…` request is answered with a `401` that does neither,
+so the client keeps sending the same stale cookie. Hence the default `false`.
+
+**A logout that arrives with no valid session invalidates nothing** — the option
+included. Under rotation that case is rare: the hook rotates an expired access
+cookie before the endpoint runs, so the handler reads the fresh session and both
+writes land. Without rotation an expired access token resolves no user, and there
+is nothing left to invalidate anyway — the copy someone took is that same expired
+token.
+
+Which to reach for:
+
+- **`invalidateAccessTokens`** — logout must end every session of the account:
+  single-user tools, shared devices, an admin panel someone signs out of before
+  walking away.
+- **`createSessionsHandlers(deps)` → `revoke` / `revokeOthers`** — sign a
+  _specific_ device out, or every other one, and keep this session. A session is a
+  refresh-token family, so this path needs `config.refreshToken`. It never touches
+  `tokenVersion`, so a revoked device keeps authenticating with the access token it
+  already holds until that one expires.
+- **`createResetPasswordHandler`** — a compromise, not a logout: it bumps
+  `tokenVersion` _and_ revokes every refresh family, so nothing survives anywhere.
+
+In a federated deployment the option is **IdP-side only**. Consumers verify the
+IdP's tokens against its published key and never learn of a `tokenVersion` bump, so
+a token a consumer holds stays verifiable there until `exp` — see
+[Limitations](#limitations-deliberate-v1-scope).
 
 ### Machine callers
 
