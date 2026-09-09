@@ -195,6 +195,93 @@ no such fields — what used to be a DEV warning is a shape that cannot be writt
 
 ---
 
+## 9 · Form fields
+
+The field family — Input, Textarea, Select, Combobox — shares one `variant` vocabulary. PinInput
+and TimeInput carry the first three; the last two need a single continuous line to sit on, which a
+row of cells and a segmented time field do not have.
+
+| `variant` | At rest | On focus | Reach for it when |
+| --- | --- | --- | --- |
+| `outlined` *(default)* | `border-subtle` frame on `surface-base` | Frame turns primary + a 2px ring at 20 % alpha | The default form field |
+| `filled` | `surface-interactive` fill, transparent border | Fill drops back to `surface-base`, frame + ring | Dense toolbars, fields on a tinted zone |
+| `ghost` | Transparent — border and background are *transparent*, not absent | **Becomes an outlined field**: `surface-base`, `border-subtle`, frame + ring | The chrome should stay out of the way until the field is used |
+| `underline` | Bottom border only, no radius | Bottom border turns primary, no ring | Editorial knob strips, docs playgrounds |
+| `bare` | Nothing: no frame, no fill, no padding, no fixed height, no radius | An **outline** in the family focus colour, and nothing else | The field should read as the text it sits in |
+
+`ghost` is not `bare`. It keeps the `size` axis's padding and height, takes a hover tint, and
+reveals its frame on focus — a field that hides its chrome until you use it, not a field without
+chrome.
+
+### `bare` has no measure, only a type size
+
+`bare` is the one value with a real interaction with `size`: the size axis keeps its type step and
+gives up everything else. `size="lg"` on a bare field means `text-lg` and nothing more — no height,
+no padding, no minimum height. That is what lets a bare field sit inside a paragraph without
+pushing the line apart.
+
+Content that needs room still gets it: an Input with a leading icon keeps the inset the icon
+occupies, and Select's and Combobox's clear and chevron buttons move to the edge the padding no
+longer holds.
+
+### The focus indicator is the one thing `bare` will not give up
+
+A field with no frame has nothing to tint, so the focus indicator is all a keyboard user has. On
+`bare` it is an `outline` — not a `ring`, which is a `box-shadow` and is dropped entirely in
+forced-colors mode — and its colour comes from one custom property:
+
+```css
+:root {
+  --blocks-focus-ring-color: var(--color-text-primary); /* default: var(--color-primary) */
+}
+```
+
+Set it once if the accent colour means something else in your product. A `preset` that removes the
+ring instead is the mistake this variant exists to prevent (WCAG 2.4.7).
+
+While the field is invalid the outline switches to the danger tone. Everything else the error state
+would paint — the frame — has nowhere to go on `bare`, so validation feedback travels through the
+message row and `aria-invalid`, both unchanged.
+
+### `bare` is not `unstyled`
+
+`unstyled` drops *all* library classes, focus and disabled styling with them, and hands you an empty
+element. `bare` keeps the a11y minimum: the focus outline, the caret, the placeholder tone, the
+message row, the disabled and readonly cues (opacity and cursor, since there is no fill to grey).
+
+A bare field needs context that marks it as a field — a placeholder, a rule under the line, a label
+or a marker before it. Without one, nothing tells a reader that the text can be typed over.
+
+### The required marker
+
+Every field with a label draws the same marker: `<span aria-hidden="true">*</span>` on a
+`requiredMark` slot, in `text-text-secondary`. It is `aria-hidden` because the information already
+travels through native `required` / `aria-required`, and it is the resting tone rather than the
+danger tone because nothing has failed yet.
+
+Being a slot puts it on the override ladder. A form where every field is required marks nothing:
+
+```svelte
+<BlocksProvider
+  defaults={{
+    Input: { slotClasses: { requiredMark: 'hidden' } },
+    Select: { slotClasses: { requiredMark: 'hidden' } }
+  }}
+>
+```
+
+or, to reach only the required case of one component:
+
+```svelte
+<BlocksProvider
+  defaults={{
+    Input: { overrides: [{ required: true, class: { requiredMark: 'hidden' } }] }
+  }}
+>
+```
+
+---
+
 ## Naming history
 
 Several of these values were renamed on the way to v6 so siblings would agree. If you are

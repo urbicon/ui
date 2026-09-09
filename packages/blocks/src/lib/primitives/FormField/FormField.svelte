@@ -16,8 +16,6 @@
     ...rest
   }: FormFieldProps = $props();
 
-  const styles = formFieldVariants();
-
   const propsId = $props.id();
   // ARIA wiring is shared with every individual form primitive — see
   // `useFormField` / XC-2 for the contract.
@@ -28,13 +26,14 @@
     required,
     disabled
   }));
+
+  const styles = $derived(formFieldVariants({ required: ff.required }));
 </script>
 
 <div {...rest} class={styles.wrapper({ class: [slotClasses.wrapper, className] })}>
   {#if label}
     <label for={ff.fieldId} class={styles.label({ class: slotClasses.label })}>
-      {label}
-      {#if ff.required}<span
+      {label}{#if ff.required}<span
           class={styles.requiredMark({ class: slotClasses.requiredMark })}
           aria-hidden="true">*</span
         >{/if}

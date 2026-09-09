@@ -1,3 +1,4 @@
+import { FIELD_REQUIRED_MARK } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const radioGroupVariants = tv({
@@ -5,6 +6,7 @@ export const radioGroupVariants = tv({
     root: ['flex flex-col gap-1.5'],
     group: ['flex gap-3'],
     label: ['block font-medium text-text-secondary text-sm'],
+    requiredMark: [],
     message: ['text-xs text-text-tertiary']
   },
   variants: {
@@ -14,7 +16,7 @@ export const radioGroupVariants = tv({
     },
     required: {
       true: {
-        label: "after:content-['*'] after:ml-1 after:text-danger-text"
+        requiredMark: FIELD_REQUIRED_MARK
       }
     },
     error: {

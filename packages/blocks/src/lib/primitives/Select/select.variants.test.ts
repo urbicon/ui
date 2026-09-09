@@ -74,10 +74,12 @@ describe('selectVariants', () => {
     expect(trigger).not.toContain('border-border-subtle');
   });
 
-  it('applies required asterisk to label', () => {
-    const label = selectVariants({ required: true }).label();
-    expect(label).toContain("after:content-['*']");
-    expect(label).toContain('after:text-danger');
+  it('puts the required marker on its own slot, in the resting tone', () => {
+    const styles = selectVariants({ required: true });
+    expect(styles.requiredMark()).toContain('text-text-secondary');
+    expect(styles.requiredMark()).not.toContain('danger');
+    expect(styles.label()).not.toContain("after:content-['*']");
+    expect(selectVariants({ required: false }).requiredMark()).toBe('');
   });
 
   it('shows check icon when selected', () => {

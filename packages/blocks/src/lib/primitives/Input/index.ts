@@ -6,7 +6,8 @@ import type { InputSlots, InputVariants } from './input.variants';
 /**
  * @summary The single-line text field, with label, validation and icons.
  * @description Text input with labels, validation states, icons, and clearable functionality.
- * Supports outlined, filled, and ghost visual variants with automatic ARIA linking.
+ * Supports the outlined, filled, ghost, underline and bare visual variants, with
+ * automatic ARIA linking.
  *
  * @tag form
  * @related Textarea
@@ -90,7 +91,7 @@ export interface InputProps
   /**
    * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
    * what `class` also targets) | container | base (the `<input>` element) |
-   * label | message | iconContainer | iconButton | iconDecoration.
+   * label | requiredMark | message | iconContainer | iconButton | iconDecoration.
    */
   slotClasses?: Partial<Record<InputSlots, string>>;
 

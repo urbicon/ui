@@ -1,3 +1,4 @@
+import { FIELD_REQUIRED_MARK } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const formFieldVariants = tv({
@@ -7,11 +8,21 @@ export const formFieldVariants = tv({
     /** The <label> above the control. */
     label: ['text-text-secondary block text-sm font-medium'],
     /** Required marker inside the label. */
-    requiredMark: ['text-danger-text ml-0.5'],
+    requiredMark: [],
     /** Error message below the control. */
     message: ['text-danger-text text-xs'],
     /** Helper text below the control. */
     helper: ['text-text-tertiary text-xs']
+  },
+  variants: {
+    required: {
+      true: {
+        requiredMark: FIELD_REQUIRED_MARK
+      }
+    }
+  },
+  defaultVariants: {
+    required: false
   }
 });
 

@@ -1,11 +1,19 @@
-import { FIELD_MESSAGE_TONES, fieldErrorFrame } from '$lib/internal/field-chrome';
+import {
+  FIELD_BARE_MEASURE,
+  FIELD_BARE_NATIVE_FILL,
+  FIELD_MESSAGE_TONES,
+  FIELD_REQUIRED_MARK,
+  fieldBareErrorOutline,
+  fieldBareSurface,
+  fieldErrorFrame
+} from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const comboboxVariants = tv({
   slots: {
     base: 'flex w-full flex-col gap-1.5',
     label: 'text-text-secondary block text-sm font-medium',
-    requiredMark: 'text-danger-text ml-0.5',
+    requiredMark: '',
     inputWrapper: 'relative w-full',
     input: [
       // Radius driven by `tier` axis below; the `underline` variant overrides
@@ -159,6 +167,12 @@ export const comboboxVariants = tv({
           'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0',
         control:
           'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-within:ring-0'
+      },
+      // Both frames again: the visible frame moves between modes (see `error`
+      // below), and the tokenizer lights via `focus-within`.
+      bare: {
+        input: fieldBareSurface('focus-visible'),
+        control: fieldBareSurface('focus-within')
       }
     },
     size: {
@@ -246,15 +260,44 @@ export const comboboxVariants = tv({
         input: fieldErrorFrame('focus-visible'),
         control: fieldErrorFrame('focus-within')
       }
+    },
+    required: {
+      true: {
+        requiredMark: FIELD_REQUIRED_MARK
+      }
     }
   },
+  compoundVariants: [
+    // `bare` keeps only the type step of `size`; the measure has to be taken
+    // off here because `size` is declared after `variant` and would win it back.
+    // The two absolute buttons come with it: their `right-*` inset is the width
+    // of the padding lane the field no longer has.
+    {
+      variant: 'bare',
+      class: {
+        input: `${FIELD_BARE_MEASURE} ${FIELD_BARE_NATIVE_FILL}`,
+        control: FIELD_BARE_MEASURE,
+        clear: 'right-0',
+        chevronButton: 'right-0'
+      }
+    },
+    {
+      variant: 'bare',
+      error: true,
+      class: {
+        input: fieldBareErrorOutline('focus-visible'),
+        control: fieldBareErrorOutline('focus-within')
+      }
+    }
+  ],
   defaultVariants: {
     tier: 'modify',
     variant: 'outlined',
     size: 'md',
     open: false,
     disabled: false,
-    error: false
+    error: false,
+    required: false
   }
 });
 

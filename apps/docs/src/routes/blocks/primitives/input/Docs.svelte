@@ -16,6 +16,7 @@
   let passwordValue = $state('');
   let passwordVisible = $state(false);
   let brandedSearch = $state('Design tokens');
+  let bareValue = $state('');
 
   const takenAddresses = ['ada@example.com'];
   let emailError = $state('');
@@ -136,6 +137,41 @@
         {/snippet}
       </Input>
     </CodeExample>
+
+    <CodeExample
+      title="A field that reads as the text around it"
+      description="The `bare` variant drops the frame, the fill, the padding and the fixed height — `size` keeps only the type step. It needs context that says it is a field: a placeholder, a rule under the line, a label before it. The one thing it does not drop is the focus indicator: an outline whose colour is `--blocks-focus-ring-color`, so a product where the accent means something else sets the focus colour once instead of per call site."
+      isolate
+      previewClass="flex flex-col gap-4 max-w-md"
+    >
+      <div
+        class="text-text-primary border-border-subtle flex items-baseline gap-1 border-b pb-1 text-base"
+      >
+        <span>Remind me to</span>
+        <Input
+          variant="bare"
+          bind:value={bareValue}
+          placeholder="write the release note"
+          aria-label="Reminder"
+          class="flex-1"
+        />
+      </div>
+    </CodeExample>
+
+    <CodeExample
+      title="A form where everything is required"
+      description="The required asterisk is a `requiredMark` slot, so hiding it once covers the whole app — the GOV.UK convention of marking nothing when every field is required. Use `overrides` instead of `slotClasses` when only the required state should change."
+      language="svelte"
+      preview={false}
+      code={`<BlocksProvider
+  defaults={{
+    Input: { slotClasses: { requiredMark: 'hidden' } },
+    Select: { overrides: [{ required: true, class: { requiredMark: 'hidden' } }] }
+  }}
+>
+  <SignupForm />
+</BlocksProvider>`}
+    />
 
     <p class="text-text-secondary text-sm leading-relaxed">
       A treatment every field should share belongs on a

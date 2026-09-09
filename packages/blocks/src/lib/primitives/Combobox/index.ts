@@ -24,8 +24,22 @@ export interface ComboboxGroup<T extends SelectValue = string> {
  * against `multiple`.
  */
 interface ComboboxBaseProps<T extends SelectValue = string>
-  extends Omit<ComboboxVariants, 'error'>,
+  extends Omit<ComboboxVariants, 'error' | 'variant'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+  /**
+   * Visual style, at parity with Input / Textarea / Select.
+   * - `outlined` (default) — visible border, surface-base background
+   * - `filled` — surface-interactive fill, no border
+   * - `ghost` — transparent until hover/focus
+   * - `underline` — bottom-line only, no border-box
+   * - `bare` — no frame, no fill, no padding, no fixed height: an inline
+   *   autocomplete that reads as the text it sits in. `size` keeps only the
+   *   type step, and focus is an outline in `--blocks-focus-ring-color`
+   *
+   * @default 'outlined'
+   * @summary How the search field (single) or the tokenizer box (multi) is framed.
+   */
+  variant?: ComboboxVariants['variant'];
   /** Array of selectable options. Each needs a unique `value`. */
   options?: ComboboxOption<T>[];
   /**

@@ -5,7 +5,7 @@ import {
   FIELD_MESSAGE_TONES,
   FIELD_NATIVE_DISABLED,
   FIELD_NATIVE_READONLY,
-  FIELD_REQUIRED_LABEL,
+  FIELD_REQUIRED_MARK,
   FIELD_SURFACE,
   FIELD_TRANSITION,
   fieldErrorFrame,
@@ -24,6 +24,7 @@ export const pinInputVariants = tv({
   slots: {
     root: ['flex flex-col gap-1.5'],
     label: [FIELD_LABEL],
+    requiredMark: [],
     group: ['flex items-center'],
     cell: [
       'box-border text-center font-medium tabular-nums caret-primary',
@@ -99,7 +100,7 @@ export const pinInputVariants = tv({
       }
     },
     required: {
-      true: { label: FIELD_REQUIRED_LABEL }
+      true: { requiredMark: FIELD_REQUIRED_MARK }
     }
   },
   compoundVariants: [

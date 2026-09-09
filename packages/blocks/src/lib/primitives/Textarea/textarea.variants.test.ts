@@ -94,10 +94,12 @@ describe('textareaVariants', () => {
     expect(base).toContain('overflow-hidden');
   });
 
-  it('applies required asterisk to label', () => {
-    const label = textareaVariants({ required: true }).label();
-    expect(label).toContain("after:content-['*']");
-    expect(label).toContain('after:text-danger');
+  it('puts the required marker on its own slot, in the resting tone', () => {
+    const styles = textareaVariants({ required: true });
+    expect(styles.requiredMark()).toContain('text-text-secondary');
+    expect(styles.requiredMark()).not.toContain('danger');
+    expect(styles.label()).not.toContain("after:content-['*']");
+    expect(textareaVariants({ required: false }).requiredMark()).toBe('');
   });
 
   it('applies counter warning state', () => {

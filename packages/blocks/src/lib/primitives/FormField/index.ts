@@ -69,7 +69,10 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    */
   class?: string;
 
-  /** Per-slot class overrides. */
+  /**
+   * Per-slot class overrides. Slots: wrapper (what `class` also targets) |
+   * label | requiredMark | message | helper.
+   */
   slotClasses?: Partial<Record<FormFieldSlots, string>>;
 
   /**

@@ -316,7 +316,8 @@
     // `|| undefined` rather than a plain `false`, matching Input: these props
     // are also matched against `BlocksProvider` `overrides`, where an entry
     // keyed `{ error: false }` must not fire on a valid field.
-    error: ff.invalid
+    error: ff.invalid,
+    required: ff.required
   });
   const styles = $derived(comboboxVariants(variantProps));
 
@@ -647,8 +648,7 @@
       for={ff.fieldId}
       class={unstyled ? (slotClasses?.label ?? '') : styles.label({ class: slotClasses?.label })}
     >
-      {label}
-      {#if ff.required}<span
+      {label}{#if ff.required}<span
           class={unstyled
             ? (slotClasses?.requiredMark ?? '')
             : styles.requiredMark({ class: slotClasses?.requiredMark })}

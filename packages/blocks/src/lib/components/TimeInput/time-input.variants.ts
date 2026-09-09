@@ -3,7 +3,7 @@ import {
   FIELD_LABEL,
   FIELD_LABEL_DISABLED,
   FIELD_MESSAGE_TONES,
-  FIELD_REQUIRED_LABEL,
+  FIELD_REQUIRED_MARK,
   FIELD_SURFACE,
   FIELD_TRANSITION,
   fieldErrorFrame,
@@ -23,6 +23,7 @@ export const timeInputVariants = tv({
   slots: {
     wrapper: ['flex flex-col gap-1.5 w-full'],
     label: [FIELD_LABEL],
+    requiredMark: [],
     // The bordered container reads as a single field; the segment inputs inside
     // are borderless. The focus ring lives here via focus-within so tabbing
     // between segments keeps the whole field lit.
@@ -112,7 +113,7 @@ export const timeInputVariants = tv({
       }
     },
     required: {
-      true: { label: FIELD_REQUIRED_LABEL }
+      true: { requiredMark: FIELD_REQUIRED_MARK }
     },
     fullWidth: {
       true: { field: 'w-full justify-start' }

@@ -42,5 +42,7 @@ Reach for the lowest rung that solves the problem — lower rungs preserve more 
 4. **\`overrides\`** — style only one variant / intent / state (prop-conditional — what unconditional \`slotClasses\` cannot express).
 5. **\`unstyled\` + \`slotClasses\`** — strip every default and rebuild the look.
 
+Worked example — a form where every field is required, so the asterisk marks nothing. The marker is a slot, so rung 3 hides it for a component type (\`defaults: { Input: { slotClasses: { requiredMark: 'hidden' } } }\`) and rung 4 hides it only in the state that draws it (\`overrides: [{ required: true, class: { requiredMark: 'hidden' } }]\`).
+
 ${OVERRIDE_CASCADE}
 `;

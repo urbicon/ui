@@ -89,7 +89,7 @@
   <div class="space-y-6">
     <CodeExample
       title="A quieter field"
-      description="The bare-line look is the `underline` variant, so it costs no classes at all. What is left for `slotClasses` is the counter row underneath, addressed by the `footer` and `counter` slots."
+      description="The single-rule look is the `underline` variant, so it costs no classes at all. What is left for `slotClasses` is the counter row underneath, addressed by the `footer` and `counter` slots."
       isolate
       previewClass="flex flex-col gap-3 max-w-md"
     >
@@ -108,6 +108,18 @@
         }}
       />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A field that should read as the text it sits in is the
+      <code class="text-text-primary">bare</code> variant, not a stack of reset classes: no frame,
+      no fill, no padding, no fixed height, and <code class="text-text-primary">size</code> keeps
+      only its type step. It needs context that says it is a field — a placeholder, a rule under the
+      line, a label before it — and it keeps the one thing such a reset usually loses, a focus
+      outline, whose colour is the <code class="text-text-primary">--blocks-focus-ring-color</code>
+      custom property. Worked through on the
+      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>
+      page.
+    </p>
 
     <p class="text-text-secondary text-sm leading-relaxed">
       A treatment the whole form shares belongs on a

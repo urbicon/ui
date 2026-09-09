@@ -111,7 +111,7 @@ export interface PinInputProps
   unstyled?: boolean;
   /**
    * Per-slot class overrides merged with tv() styles. Slots: root (what `class`
-   * also targets) | label | group | cell | separator | message.
+   * also targets) | label | requiredMark | group | cell | separator | message.
    */
   slotClasses?: Partial<Record<PinInputSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ PinInput: {...} }}>`. */

@@ -1,3 +1,4 @@
+import { FIELD_REQUIRED_MARK } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const checkboxVariants = tv({
@@ -34,6 +35,7 @@ export const checkboxVariants = tv({
       '[&_path]:transition-[stroke-dashoffset] [&_path]:duration-[var(--blocks-duration-normal)] [&_path]:ease-out'
     ],
     label: ['text-text-primary select-none'],
+    requiredMark: [],
     message: ['text-xs text-text-tertiary']
   },
   variants: {
@@ -98,6 +100,11 @@ export const checkboxVariants = tv({
     error: {
       true: {
         message: 'text-danger-text'
+      }
+    },
+    required: {
+      true: {
+        requiredMark: FIELD_REQUIRED_MARK
       }
     }
   },
@@ -278,7 +285,8 @@ export const checkboxVariants = tv({
     checked: false,
     indeterminate: false,
     disabled: false,
-    error: false
+    error: false,
+    required: false
   }
 });
 

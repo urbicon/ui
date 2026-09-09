@@ -78,7 +78,7 @@ export interface CheckboxProps
   /**
    * Per-slot class overrides merged with (or replacing, when `unstyled`) the
    * default styles. Slots: wrapper (root — what `class` also targets) | control |
-   * box | icon | label | message.
+   * box | icon | label | requiredMark | message.
    */
   slotClasses?: Partial<Record<CheckboxSlots, string>>;
 

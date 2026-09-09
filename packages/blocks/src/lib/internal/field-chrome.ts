@@ -21,15 +21,16 @@
  * whole field via `focus-within:`. That is why the ring / variant / intent /
  * error fragments are parameterised by {@link FieldFocus} rather than fixed.
  *
- * Select and Combobox draw only on the validation subset ({@link fieldErrorFrame}
- * and {@link FIELD_MESSAGE_TONES}) — their frames are otherwise their own (a
+ * Textarea takes the surfaces too. Select and Combobox draw on the validation
+ * subset ({@link fieldErrorFrame} and {@link FIELD_MESSAGE_TONES}) plus
+ * {@link fieldBareSurface} — their resting frames are otherwise their own (a
  * trigger button, a tokenizer box). That subset is what kept drifting: Select
  * hand-copied the error frame and Combobox had none at all, so an invalid
  * Combobox announced itself through `aria-invalid` and looked untouched.
  *
  * NOT covered here (deliberately component-local): the per-component frame
  * prefix (Input's `w-full`, PinInput's cell content styles, TimeInput's
- * `inline-flex` container), Input's `underline` variant and `placeholder`
+ * `inline-flex` container), the `underline` variant and Input's `placeholder`
  * colour, PinInput's `focus-visible:z-10`, TimeInput's `fullWidth` and its
  * cursor-free readonly. The shared label/message MARKUP in the `.svelte` files
  * is a separate, larger cut (see technical-debt "Field chrome…" part b).
@@ -61,19 +62,139 @@ export const FIELD_NATIVE_READONLY = 'read-only:bg-surface-subtle read-only:curs
  */
 export type FieldFocus = 'focus-visible' | 'focus-within';
 
+/**
+ * The focus-mode fragments, each written out for both modes.
+ *
+ * Not `` `${f}:ring-2` ``, which is what these used to be. Tailwind's scanner
+ * reads source TEXT: a class name that only ever exists as an interpolation is
+ * never extracted, so it compiles into no consumer stylesheet, while the fold in
+ * `utils/variants.ts` happily resolves a class that names no rule. Measured with
+ * the scanner over the shipped `packages/blocks/dist`, four of the strings below
+ * had no literal twin anywhere in the package — TimeInput's
+ * `focus-within:border-success` / `focus-within:ring-success/20` and their
+ * warning pair, so a TimeInput with `intent="success"` coloured its resting
+ * frame and dropped the colour the moment the field was used. The rest compiled
+ * only because an unrelated component happened to hand-write the same string.
+ *
+ * One `const` per fragment rather than one table of all of them: a component
+ * that reaches for the ring must not carry the surfaces and the intents into its
+ * bundle, and a bundler can only drop what is separately named.
+ */
+type ByFocus = Readonly<Record<FieldFocus, string>>;
+
+const RING: ByFocus = {
+  'focus-visible':
+    'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20',
+  'focus-within': 'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
+};
+
+const FILLED_SURFACE: ByFocus = {
+  'focus-visible':
+    'bg-surface-interactive border-transparent hover:bg-surface-interactive-hover focus-visible:bg-surface-base',
+  'focus-within':
+    'bg-surface-interactive border-transparent hover:bg-surface-interactive-hover focus-within:bg-surface-base'
+};
+
+const GHOST_SURFACE: ByFocus = {
+  'focus-visible':
+    'bg-transparent hover:bg-surface-hover focus-visible:bg-surface-base focus-visible:border-border-subtle',
+  'focus-within':
+    'bg-transparent hover:bg-surface-hover focus-within:bg-surface-base focus-within:border-border-subtle'
+};
+
+const BARE_SURFACE: ByFocus = {
+  'focus-visible':
+    'bg-transparent border-0 rounded-none focus-visible:ring-0 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(color:--blocks-focus-ring-color)',
+  'focus-within':
+    'bg-transparent border-0 rounded-none focus-within:ring-0 focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(color:--blocks-focus-ring-color)'
+};
+
+const BARE_ERROR_OUTLINE: ByFocus = {
+  'focus-visible': 'focus-visible:outline-(color:--color-danger)',
+  'focus-within': 'focus-within:outline-(color:--color-danger)'
+};
+
+const SUCCESS_FRAME: ByFocus = {
+  'focus-visible': 'border-success focus-visible:border-success focus-visible:ring-success/20',
+  'focus-within': 'border-success focus-within:border-success focus-within:ring-success/20'
+};
+
+const WARNING_FRAME: ByFocus = {
+  'focus-visible': 'border-warning focus-visible:border-warning focus-visible:ring-warning/20',
+  'focus-within': 'border-warning focus-within:border-warning focus-within:ring-warning/20'
+};
+
+const DANGER_FRAME: ByFocus = {
+  'focus-visible': 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
+  'focus-within': 'border-danger focus-within:border-danger focus-within:ring-danger/20'
+};
+
 /** The primary focus ring (border + 2px ring at 20% alpha), for the given mode. */
-export const fieldFocusRing = (f: FieldFocus): string =>
-  `${f}:border-primary ${f}:ring-2 ${f}:ring-primary/20`;
+export const fieldFocusRing = (f: FieldFocus): string => RING[f];
 
 /**
- * The `outlined | filled | ghost` surface values, parameterised by focus mode.
- * `outlined` is a constant; consumers add their own extra variants (Input's
- * `underline`) alongside.
+ * The `bare` surface: a field that reads as the text it sits in.
+ *
+ * No frame, no fill, no radius — and the focus indicator is an **outline**, not
+ * a `ring-*`. A ring is a `box-shadow`, and forced-colors mode drops box-shadow
+ * entirely; every other variant survives that because its border still marks
+ * the field, and `bare` has no border to fall back on. An outline is honoured
+ * in forced-colors and takes the system highlight colour there.
+ *
+ * The colour is `--blocks-focus-ring-color` (`style/interaction.css`), so a
+ * product whose accent means something else sets the focus colour once instead
+ * of once per call site. `outline-solid` is not decoration: it shares the
+ * `outline-style` bucket with the `outline-none` every field's base slot
+ * carries, and only a class in that bucket can strip it — `outline-2` writes
+ * `outline-style: var(--tw-outline-style)`, which `outline-none` has already
+ * set to `none` (measured against the compiler).
+ *
+ * The measure — padding, height, radius' absence — is NOT here: the `size` axis
+ * is declared after `variant` and would win it back. See {@link FIELD_BARE_MEASURE}.
+ */
+export const fieldBareSurface = (f: FieldFocus): string => BARE_SURFACE[f];
+
+/**
+ * What `bare` takes off the axes that fold after `variant`: *bare has no
+ * measure, only a type size.* Emit it from a `compoundVariants` entry keyed on
+ * `{ variant: 'bare' }` — compounds fold after every axis, so one entry covers
+ * all five sizes, while the same classes on the `variant` axis would be
+ * overwritten by whichever `size` the caller passes.
+ *
+ * `bg-transparent` repeats what {@link fieldBareSurface} already says, and for
+ * the same reason: the `disabled` and `readonly` axes are declared after
+ * `variant` and would otherwise fill a field that has no frame to fill.
+ * Disabled reads as `opacity-50` + `cursor-not-allowed` on `bare`.
+ */
+export const FIELD_BARE_MEASURE = 'h-auto min-h-0 p-0 bg-transparent';
+
+/**
+ * The same for the two native pseudo-class fills a directly-editable field
+ * carries in its base slot ({@link FIELD_NATIVE_DISABLED},
+ * {@link FIELD_NATIVE_READONLY}). Only Input and Textarea have them; a trigger
+ * button and a tokenizer div do not.
+ */
+export const FIELD_BARE_NATIVE_FILL = 'disabled:bg-transparent read-only:bg-transparent';
+
+/**
+ * `bare`'s focus outline in the failure tone. `bare` has no frame for
+ * {@link fieldErrorFrame} to tint, so the one mark it does draw carries the
+ * state instead — emitted from the compound stage, after the `error` axis, the
+ * same place the frame is emitted from on every other variant.
+ */
+export const fieldBareErrorOutline = (f: FieldFocus): string => BARE_ERROR_OUTLINE[f];
+
+/**
+ * The `outlined | filled | ghost | bare` surface values, parameterised by focus
+ * mode. `outlined` is a constant; consumers pick the values they carry (the
+ * PIN and time fields take three of the four) and add their own extra variants
+ * (the text fields' `underline`) alongside.
  */
 export const fieldSurfaceVariants = (f: FieldFocus) => ({
   outlined: 'border-border-subtle',
-  filled: `bg-surface-interactive border-transparent hover:bg-surface-interactive-hover ${f}:bg-surface-base`,
-  ghost: `bg-transparent hover:bg-surface-hover ${f}:bg-surface-base ${f}:border-border-subtle`
+  filled: FILLED_SURFACE[f],
+  ghost: GHOST_SURFACE[f],
+  bare: BARE_SURFACE[f]
 });
 
 /**
@@ -82,9 +203,9 @@ export const fieldSurfaceVariants = (f: FieldFocus) => ({
  * their own empty `default: {}` slot entry.
  */
 export const fieldIntentFrames = (f: FieldFocus) => ({
-  success: `border-success ${f}:border-success ${f}:ring-success/20`,
-  warning: `border-warning ${f}:border-warning ${f}:ring-warning/20`,
-  danger: `border-danger ${f}:border-danger ${f}:ring-danger/20`
+  success: SUCCESS_FRAME[f],
+  warning: WARNING_FRAME[f],
+  danger: DANGER_FRAME[f]
 });
 
 /**
@@ -99,8 +220,7 @@ export const fieldIntentFrames = (f: FieldFocus) => ({
  * Configs without an `intent` axis (Select, Combobox) can keep it on the axis —
  * but must move it the day one is added. Reference: input.variants.ts.
  */
-export const fieldErrorFrame = (f: FieldFocus): string =>
-  `border-danger ${f}:border-danger ${f}:ring-danger/20`;
+export const fieldErrorFrame = (f: FieldFocus): string => DANGER_FRAME[f];
 
 /** Frame classes when the whole control is disabled (the `disabled` variant). */
 export const FIELD_DISABLED_FRAME =
@@ -112,8 +232,22 @@ export const FIELD_LABEL = 'block font-medium text-text-secondary text-sm';
 /** Label colour when the control is disabled. */
 export const FIELD_LABEL_DISABLED = 'text-text-disabled';
 
-/** Required-marker asterisk appended after the label. */
-export const FIELD_REQUIRED_LABEL = "after:content-['*'] after:ml-1 after:text-danger-text";
+/**
+ * The required marker's own classes, worn by the `requiredMark` slot of every
+ * field that has a label.
+ *
+ * A slot rather than an `after:content-['*']` pseudo-element on the label,
+ * because only a slot is on the override ladder: `slotClasses`, presets,
+ * `defaults` and `overrides` all reach it, and hiding the glyph on an
+ * all-required form is `slotClasses: { requiredMark: 'hidden' }`. A
+ * pseudo-element is reachable only by writing `after:content-none` into the
+ * label's own bucket.
+ *
+ * `text-text-secondary`, not the danger tone: nothing has failed yet. The
+ * "required" information travels through native `required` / `aria-required`,
+ * which is why the glyph itself is `aria-hidden`.
+ */
+export const FIELD_REQUIRED_MARK = 'ml-1 text-text-secondary';
 
 /** The two `messageType` message tones (error wins the fold when both apply). */
 export const FIELD_MESSAGE_TONES = {

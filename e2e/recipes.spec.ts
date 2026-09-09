@@ -42,6 +42,18 @@ async function toggleViaLabel(page: Page, input: Locator) {
   await page.locator(`label[for="${id}"]`).click();
 }
 
+/**
+ * The password field's label, anchored.
+ *
+ * Anchored at the start because the toggle beside the field is named "Show
+ * password" / "Hide password" and `getByLabel` matches substrings — an
+ * unanchored match resolves to two elements. Anchored at the end *through* an
+ * optional `*` because `getByLabel` reads the label's text, and a required
+ * field's label carries the required marker's glyph in it since blocks 8.21
+ * (`aria-hidden`, so the accessible name is unchanged — this query is not).
+ */
+const PASSWORD_LABEL = /^Password\*?$/;
+
 test.describe('Recipe: login', () => {
   test('flags an invalid email and refuses to submit', async ({ page }) => {
     await gotoRecipe(page, 'login');
@@ -63,7 +75,7 @@ test.describe('Recipe: login', () => {
     const p = preview(page);
 
     await p.getByLabel('Email').fill('demo@example.com');
-    await p.getByLabel('Password', { exact: true }).fill('wrong-password');
+    await p.getByLabel(PASSWORD_LABEL).fill('wrong-password');
     await p.getByRole('button', { name: 'Sign in' }).click();
 
     // 1.5 s fake latency sits inside the default expect timeout.
@@ -76,7 +88,7 @@ test.describe('Recipe: login', () => {
     const p = preview(page);
 
     await p.getByLabel('Email').fill('demo@example.com');
-    await p.getByLabel('Password', { exact: true }).fill('password123');
+    await p.getByLabel(PASSWORD_LABEL).fill('password123');
     const submit = p.getByRole('button', { name: 'Sign in' });
     await submit.click();
 
@@ -91,11 +103,7 @@ test.describe('Recipe: login', () => {
     await gotoRecipe(page, 'login');
     const p = preview(page);
 
-    // `exact`, because the toggle beside the field is named "Show password" /
-    // "Hide password" and getByLabel matches substrings — without it this
-    // resolves to two elements. It used to resolve to one only because the
-    // toggle had no name at all, which was the defect, not the contract.
-    const password = p.getByLabel('Password', { exact: true });
+    const password = p.getByLabel(PASSWORD_LABEL);
     await password.fill('secret123');
     await expect(password).toHaveAttribute('type', 'password');
 

@@ -28,9 +28,12 @@ export interface TextareaProps
    * - `filled` — surface-interactive fill, no border
    * - `ghost` — transparent until hover/focus
    * - `underline` — bottom-line only, no border-box (editorial style)
+   * - `bare` — no frame, no fill, no padding, no fixed height: the field reads as
+   *   the text it sits in. `size` keeps only the type step, and focus is an
+   *   outline in `--blocks-focus-ring-color`
    *
    * @default 'outlined'
-   * @summary Visual style of the field: bordered, filled, transparent, or a bottom line.
+   * @summary Visual style of the field: bordered, filled, transparent, a bottom line, or nothing.
    */
   variant?: TextareaVariants['variant'];
 
@@ -86,7 +89,7 @@ export interface TextareaProps
   /**
    * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
    * what `class` also targets) | base (the `<textarea>` element) | label |
-   * footer | message | counter.
+   * requiredMark | footer | message | counter.
    */
   slotClasses?: Partial<Record<TextareaSlots, string>>;
   /**
