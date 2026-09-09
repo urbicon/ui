@@ -85,8 +85,8 @@
       <Note title="One error region for the form and the list">
         <p>
           Sending and deleting share the always-mounted
-          <code class="text-text-primary">aria-live="polite"</code> region below the heading, so a failure
-          from either path is announced without focus leaving where the user was working.
+          <code class="text-text-primary">role="alert"</code> region below the heading, so a failure from
+          either path is announced without focus leaving where the user was working.
         </p>
       </Note>
     </NoteList>

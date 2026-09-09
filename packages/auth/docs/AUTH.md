@@ -104,10 +104,12 @@ All components use `@urbicon-ui/blocks` primitives and support:
   come from the consumer's blocks stylesheet; this package's own
   `@urbicon-ui/auth/style/index.css` adds only the Tailwind `@source` for its components.
 - The five pages share one internal skeleton (`_shared/AuthPageShell.svelte`: wrapper →
-  Card → h1 → aria-live error region); the region itself is
+  Card → h1 → outcome regions); the regions themselves are
   `_shared/FormErrorAlert.svelte`, the one place a request outcome (error or success)
   becomes markup — every component reports into it, AccountSettings once per form.
-  Neither is a public export.
+  It renders two live regions, both always mounted: an assertive `role="alert"` for the
+  error and a polite `role="status"` for the success and for pending content. Neither is
+  a public export.
 
 | Component            | Purpose                                     |
 | -------------------- | ------------------------------------------- |
@@ -199,6 +201,74 @@ description added to an already-focused field is not reliably re-announced, and
 there is deliberately no live region (it would fire on every keystroke). Set
 `showRequirements={false}` to drop both — a refused password still names the
 rules it missed, so the reason stays reachable.
+
+### Breaking in 8.21.0
+
+**Every outcome now sits in exactly one live region, and successes are polite.**
+`_shared/FormErrorAlert.svelte` — the single place a request outcome becomes
+markup, reached by every page, every manager, and each of AccountSettings' four
+forms — used to wrap blocks' `<Alert>` (which hard-codes `role="alert"`) in a
+`<div aria-live="polite">`. That is a live region inside a live region, which
+readers announce twice or not at all, and it made every success as urgent as
+every failure.
+
+It now renders two sibling regions, both mounted from the first paint and empty
+until something happens:
+
+```html
+<div>
+  <div role="alert"><!-- the error, when there is one --></div>
+  <div role="status"><!-- the success, or the pending content --></div>
+</div>
+```
+
+The `<Alert>` inside carries no role of its own, so the message is announced
+once, by the region that was already there when it arrived.
+
+**What a consumer's test or selector has to do now.** A query for
+`[aria-live="polite"]` matches nothing: use `[role="status"]` for a success or a
+pending state and `[role="alert"]` for a failure. `getByRole('alert')` still
+finds the failure — but it now also matches while there is _no_ failure, because
+the empty region is always present, and on `<AccountSettings>` it matches four
+times. Assert on the region's content (`errorRegion().textContent`), scope the
+query to one form, or query `getByRole('status')` for a success that used to
+answer to `getByRole('alert')`. A component's `error` / `success` slot classes
+are unchanged: they still land on the inner `Alert`, never on the region.
+
+**`<VerifyEmailPage>`'s spinner** renders without its own `role="status"` for
+the same reason — it sits inside the page's region.
+
+**`<NotificationBadge>` has an accessible name and passes attributes through.**
+It used to announce a bare "3", and its five props accepted nothing else. It now
+takes the localized `notifications.badge.unread` as its `aria-label` (with the
+_shown_ text substituted, so past the cap the name says `99+` too) and spreads
+the rest of its attributes onto the badge root, so your own `aria-label`, `id`
+or `data-*` reach it. A test asserting the badge's accessible name is the number
+has to read the text content instead. Its ARIA role is `Badge`'s to derive and
+did not change here: `button` with an `onclick`, `status` without one.
+
+**Row actions name their row.** `<NotificationCenter>`'s delete button is now
+"Delete — {title}" and `<SessionManager>`'s revoke "Sign out — {device}",
+matching what `<PasskeyManager>` and `<InvitationManager>` already did. A query
+for the exact name `'Delete'` or `'Sign out'` no longer matches; `/^Delete/`
+does. Unread rows additionally carry a visually hidden "Unread" inside the row
+button, so its accessible name begins with that word.
+
+**The locale bundle grew three keys**, so a hand-written `AuthLocale` stops
+compiling until it carries them — the intended signal:
+`notifications.badge.unread` (`{n}` is the badge's own text),
+`notifications.center.unread`, and `twoFactor.setupTitle` (the setup step gained
+a heading, which is where focus now lands). Consumers passing a
+`PartialAuthLocale` override are unaffected.
+
+**Two components move focus where they did not before.**
+`<PushPermissionPrompt>` hands focus on before it unmounts — back to whatever
+held it when the prompt appeared, else the nearest heading above the card, which
+is given `tabindex="-1"` for the purpose — instead of dropping it on `<body>`.
+`<TwoFactorManager>` moves focus to the heading of the step it just opened (each
+step heading is now focusable). Both only move focus they still hold: a user who
+clicked elsewhere while the request ran keeps their place, and a refused code
+changes no step, so the caret stays in the field.
 
 ### Breaking in 8.17.0
 

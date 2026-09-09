@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button, Card, getBlocksConfig, resolveClassChain } from '@urbicon-ui/blocks';
+  import { tick } from 'svelte';
   import { subscribeToPush } from '../../utils/service-worker.js';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -42,7 +43,58 @@
   // a <form>, and this prompt has no form, so `onclick` is the only way in.
   let busy = $state(false);
 
-  async function handleEnable() {
+  // A decision unmounts the whole card, so the button that carried the focus
+  // ring goes with it and focus falls to `<body>` — the reader loses its place
+  // in the page. The landing spot has to be picked while the card is still
+  // mounted, focus moved once it is gone, and only while it is still ours.
+  let restoreTarget: HTMLElement | null = null;
+
+  $effect(() => {
+    // Once, at mount — whatever held the focus before the prompt appeared.
+    // `document.activeElement` is not reactive, so nothing re-runs this.
+    const held = document.activeElement;
+    restoreTarget = held instanceof HTMLElement && held !== document.body ? held : null;
+  });
+
+  /**
+   * Where focus goes when the card is torn down: back to the element that had
+   * it before the prompt appeared, else the nearest heading above the prompt,
+   * which gets `tabindex="-1"` — without it `focus()` on a heading does
+   * nothing, and with it the heading still stays out of the tab order. Null
+   * when the page offers neither, which leaves the browser's own behaviour.
+   */
+  function landingSpot(inside: HTMLElement): HTMLElement | null {
+    if (restoreTarget?.isConnected && !inside.contains(restoreTarget)) return restoreTarget;
+    let nearest: HTMLElement | null = null;
+    const headings = document.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6');
+    for (const heading of Array.from(headings)) {
+      const precedes =
+        (inside.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+      if (precedes && !inside.contains(heading)) nearest = heading;
+    }
+    if (nearest) nearest.tabIndex = -1;
+    return nearest;
+  }
+
+  /**
+   * Hand the focus on before the card disappears. `trigger` is the pressed
+   * button, and its parent is the actions row — the card's whole focusable
+   * surface, so containment answers "is the focus still ours". A user who
+   * clicked elsewhere while the request ran did not ask to come back.
+   */
+  async function releaseFocus(trigger: HTMLElement | null) {
+    const actions = trigger?.parentElement ?? null;
+    const held = document.activeElement;
+    const ours = held === null || held === document.body || actions?.contains(held) === true;
+    const target = ours && actions ? landingSpot(actions) : null;
+    await tick();
+    target?.focus();
+  }
+
+  async function handleEnable(event: MouseEvent) {
+    // Read before the first await: `currentTarget` is only set while the event
+    // is being dispatched.
+    const trigger = event.currentTarget as HTMLElement | null;
     error = null;
     busy = true;
     try {
@@ -53,6 +105,7 @@
         // close, and tell the caller which it was so it can persist the outcome
         // instead of remounting the prompt on every visit.
         visible = false;
+        void releaseFocus(trigger);
         onUnavailable?.(result.status);
         return;
       }
@@ -83,6 +136,7 @@
           // caller into thinking push delivery is set up.
           onSubscribed?.(result.subscription);
           visible = false;
+          void releaseFocus(trigger);
         } else {
           // Deterministic refusals get precise messages via the machine code
           // ("please try again" would loop forever on a 409); everything else
@@ -112,8 +166,9 @@
     }
   }
 
-  function handleDismiss() {
+  function handleDismiss(event: MouseEvent) {
     visible = false;
+    void releaseFocus(event.currentTarget as HTMLElement | null);
     onDismissed?.();
   }
 </script>

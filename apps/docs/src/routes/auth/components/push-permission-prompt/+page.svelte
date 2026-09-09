@@ -9,6 +9,7 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '$lib/component-links';
   import { componentData } from './api';
@@ -62,19 +63,24 @@
       </Note>
       <Note title="Failures are announced, dismissals are not">
         <p>
-          The <code class="text-text-primary">aria-live="polite"</code> region inside the card is always
-          mounted while the prompt is visible, so a rejected VAPID key, a conflicting endpoint or a rate
-          limit is announced in place and the prompt stays open to retry. A denied browser permission
-          is not an error and closes the prompt instead.
+          The <code class="text-text-primary">role="alert"</code> region inside the card is always mounted
+          while the prompt is visible, so a rejected VAPID key, a conflicting endpoint or a rate limit
+          is announced in place and the prompt stays open to retry. A denied browser permission is not
+          an error and closes the prompt instead.
         </p>
       </Note>
-      <Note title="Focus is dropped when the card closes">
+      <Note title="Focus is handed on when the card closes">
         <p>
-          Enabling or dismissing unmounts the whole card. If focus was on either button it falls
-          back to <code class="text-text-primary">&lt;body&gt;</code>; the component does not move
-          it to a sensible neighbour. Where the prompt sits mid-page, move focus yourself in
+          Enabling or dismissing unmounts the whole card, so the button that was pressed goes with
+          it. Before that happens the prompt moves focus back to whatever held it when the prompt
+          appeared, and if that element is gone, to the nearest heading above the card — given
+          <code class="text-text-primary">tabindex="-1"</code> for the purpose. Focus never falls
+          back to <code class="text-text-primary">&lt;body&gt;</code>, where the next
+          <Kbd keys="Tab" /> would start over at the top of the page. A user who clicked elsewhere while
+          the request ran keeps their place: the prompt only moves focus it still holds. On a page with
+          no heading above the prompt there is nothing to move to, and
           <code class="text-text-primary">onDismissed</code> /
-          <code class="text-text-primary">onSubscribed</code>.
+          <code class="text-text-primary">onSubscribed</code> are the place to do it yourself.
         </p>
       </Note>
     </NoteList>

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetcherAnswering, mounter, settle } from '../__fixtures__/fetcher.js';
+import { errorMessage, errorRegion } from '../__fixtures__/live-regions.js';
 import type { PushPermissionPromptProps } from './index.js';
 import PushPermissionPrompt from './PushPermissionPrompt.svelte';
 
@@ -70,7 +71,7 @@ describe('PushPermissionPrompt (component)', () => {
 
     await userEvent.click(enableButton());
     await settle();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
 
     // The prompt deliberately stays open on an operational failure, so the busy
     // flag must clear — a second click has to reach `subscribeToPush` again, or
@@ -92,7 +93,7 @@ describe('PushPermissionPrompt (component)', () => {
 
     await userEvent.click(enableButton());
     await settle();
-    expect(screen.getByRole('alert').textContent).toContain('already registered');
+    expect(errorRegion().textContent).toContain('already registered');
 
     await userEvent.click(enableButton());
     await settle();
@@ -114,7 +115,7 @@ describe('PushPermissionPrompt (component)', () => {
       // Same user-facing text either way — what separates the two paths is
       // that a request which *reached* the server is not a request failure,
       // so nothing may be logged as one.
-      expect(screen.getByRole('alert').textContent).toContain('Enabling push notifications failed');
+      expect(errorRegion().textContent).toContain('Enabling push notifications failed');
       expect(console.error).not.toHaveBeenCalled();
     }
   );
@@ -125,12 +126,15 @@ describe('PushPermissionPrompt (component)', () => {
 
     // Same contract as every other component's `error` slot: it styles the
     // message, so it must not exist while there is no message.
-    const region = document.body.querySelector('[aria-live="polite"]') as HTMLElement;
+    const region = errorRegion();
     expect(region.className).not.toContain('qa-error');
+    expect(region.textContent?.trim()).toBe('');
     await userEvent.click(enableButton());
     await settle();
 
-    expect(screen.getByRole('alert').className).toContain('qa-error');
+    // The message lands in the region that was already there, not in a new one.
+    expect(errorRegion()).toBe(region);
+    expect(errorMessage().className).toContain('qa-error');
     expect(region.className).not.toContain('qa-error');
   });
 
@@ -144,5 +148,64 @@ describe('PushPermissionPrompt (component)', () => {
 
     expect(onUnavailable).toHaveBeenCalledWith('unsupported');
     expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+  });
+});
+
+describe('PushPermissionPrompt — focus after the card closes', () => {
+  const dismissButton = () => screen.getByRole('button', { name: 'Not now' });
+
+  it('hands focus to the heading above it instead of dropping it on the body', async () => {
+    const heading = document.createElement('h2');
+    heading.textContent = 'Notifications';
+    document.body.append(heading);
+    render({});
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // The card is gone; without this the focus ring is on <body> and the next
+    // Tab starts over at the top of the page.
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(heading);
+    expect(heading.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('gives focus back to the control that had it when the prompt appeared', async () => {
+    const opener = document.createElement('button');
+    opener.textContent = 'Notification settings';
+    document.body.append(opener);
+    opener.focus();
+    subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
+    render({ fetcher: fetcherAnswering(200, {}) });
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('leaves focus alone when the user moved it away while enabling', async () => {
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+    let release: (() => void) | undefined;
+    subscribeToPush.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ status: 'subscribed', subscription });
+        })
+    );
+    render({ fetcher: fetcherAnswering(200, {}) });
+
+    await userEvent.click(enableButton());
+    const elsewhere = document.createElement('input');
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    release?.();
+    await settle();
+
+    // A settled request is not a reason to move someone who has moved on.
+    expect(document.activeElement).toBe(elsewhere);
   });
 });

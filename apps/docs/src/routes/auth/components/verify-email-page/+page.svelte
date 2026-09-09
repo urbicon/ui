@@ -61,10 +61,14 @@
       <Note title="One region for a process the user never started">
         <p>
           Verification fires on mount from the token in the URL, so the user takes no action and has
-          nothing to watch. All three states (spinner, success, failure) render inside a single
-          <code class="text-text-primary">aria-live="polite"</code> wrapper, so the outcome is announced
-          when it arrives. It keeps to this one region instead of the shell's shared error region, which
-          would put two live regions on the page competing to report the same event.
+          nothing to watch. The spinner and the success share one polite
+          <code class="text-text-primary">role="status"</code> region, so their swap is a single
+          announced change; a rejected link goes to the assertive
+          <code class="text-text-primary">role="alert"</code> region beside it. The
+          <code class="text-text-primary">Spinner</code> is a live region in its own right, and here it
+          renders without one — nested regions are announced twice, or not at all, depending on the reader.
+          The page keeps to its own regions instead of the shell's shared ones, which would put two announcements
+          on the page for the same event.
         </p>
       </Note>
       <Note title="The spinner has words next to it">

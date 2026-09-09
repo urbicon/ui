@@ -149,11 +149,15 @@ export const de = {
     }
   },
   notifications: {
+    badge: {
+      unread: 'Ungelesene Benachrichtigungen: {n}'
+    },
     center: {
       title: 'Benachrichtigungen',
       empty: 'Keine Benachrichtigungen',
       markAllRead: 'Alle als gelesen markieren',
-      delete: 'Löschen'
+      delete: 'Löschen',
+      unread: 'Ungelesen'
     },
     push: {
       prompt: 'Push-Benachrichtigungen aktivieren?',
@@ -251,6 +255,7 @@ export const de = {
     statusEnabled: 'Die Zwei-Faktor-Authentifizierung ist aktiv.',
     enable: 'Zwei-Faktor-Authentifizierung aktivieren',
     disable: 'Zwei-Faktor-Authentifizierung deaktivieren',
+    setupTitle: 'Zwei-Faktor-Authentifizierung einrichten',
     setupScan:
       'Scanne diesen QR-Code mit deiner Authenticator-App oder gib den Schlüssel manuell ein.',
     setupSecret: 'Einrichtungsschlüssel',
