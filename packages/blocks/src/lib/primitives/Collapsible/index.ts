@@ -10,6 +10,11 @@ import type { CollapsibleSlots, CollapsibleVariants } from './collapsible.varian
  * and full ARIA support. Can be used standalone or as the foundation for compound
  * components like Accordion.
  *
+ * Need the wiring without the layout — trigger and content as siblings, e.g. two
+ * rows of one grid? `useDisclosure()` from `@urbicon-ui/blocks` is the same
+ * contract without the markup: open state, one toggle, and the attribute records
+ * to spread. Collapsible itself is built on it.
+ *
  * @tag layout
  * @related Accordion
  * @related Card

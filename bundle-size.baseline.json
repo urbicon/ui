@@ -24,25 +24,25 @@
       "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
-      "min": 510061,
-      "gz": 130148,
+      "min": 510012,
+      "gz": 130144,
       "net": {
-        "min": 493839,
-        "gz": 124991
+        "min": 493790,
+        "gz": 124987
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3246
       },
       "pkg": "blocks",
       "exports": ["A2UIView", "urbiconA2uiCatalog"]
     },
     "Accordion": {
-      "min": 29338,
-      "gz": 8973,
+      "min": 29289,
+      "gz": 8967,
       "net": {
-        "min": 13125,
-        "gz": 3788
+        "min": 13076,
+        "gz": 3783
       },
       "lazy": {
         "min": 0,
@@ -280,29 +280,29 @@
       "exports": ["Chat"]
     },
     "ChatMessage": {
-      "min": 162520,
-      "gz": 44844,
+      "min": 162471,
+      "gz": 44838,
       "net": {
-        "min": 146308,
-        "gz": 39667
+        "min": 146259,
+        "gz": 39662
       },
       "lazy": {
         "min": 7502,
-        "gz": 3243
+        "gz": 3245
       },
       "pkg": "blocks",
       "exports": ["ChatMessage"]
     },
     "ChatMessageList": {
-      "min": 172737,
-      "gz": 47449,
+      "min": 172688,
+      "gz": 47443,
       "net": {
-        "min": 156523,
-        "gz": 42266
+        "min": 156474,
+        "gz": 42262
       },
       "lazy": {
         "min": 7502,
-        "gz": 3243
+        "gz": 3245
       },
       "pkg": "blocks",
       "exports": ["ChatMessageList"]
@@ -364,11 +364,11 @@
       "exports": ["CodeBlock"]
     },
     "Collapsible": {
-      "min": 24056,
-      "gz": 7914,
+      "min": 24007,
+      "gz": 7908,
       "net": {
-        "min": 7841,
-        "gz": 2731
+        "min": 7792,
+        "gz": 2725
       },
       "lazy": {
         "min": 0,
@@ -920,11 +920,11 @@
       "exports": ["RadioGroup", "RadioItem"]
     },
     "ReasoningDisclosure": {
-      "min": 76866,
-      "gz": 23613,
+      "min": 76817,
+      "gz": 23607,
       "net": {
-        "min": 60654,
-        "gz": 18436
+        "min": 60605,
+        "gz": 18430
       },
       "lazy": {
         "min": 0,
@@ -1074,11 +1074,11 @@
       "exports": ["Sidebar"]
     },
     "SidebarLayout": {
-      "min": 28324,
-      "gz": 8959,
+      "min": 28375,
+      "gz": 8960,
       "net": {
-        "min": 12111,
-        "gz": 3780
+        "min": 12162,
+        "gz": 3782
       },
       "lazy": {
         "min": 0,
@@ -1200,15 +1200,15 @@
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 400928,
-      "gz": 101553,
+      "min": 400879,
+      "gz": 101546,
       "net": {
-        "min": 384702,
-        "gz": 96356
+        "min": 384653,
+        "gz": 96350
       },
       "lazy": {
         "min": 7502,
-        "gz": 3244
+        "gz": 3245
       },
       "pkg": "table",
       "exports": ["Table"]
@@ -1298,15 +1298,15 @@
       "exports": ["Toolbar"]
     },
     "ToolCallCard": {
-      "min": 61982,
-      "gz": 19108,
+      "min": 61933,
+      "gz": 19109,
       "net": {
-        "min": 45767,
-        "gz": 13930
+        "min": 45718,
+        "gz": 13922
       },
       "lazy": {
         "min": 9895,
-        "gz": 4057
+        "gz": 4058
       },
       "pkg": "blocks",
       "exports": ["ToolCallCard"]

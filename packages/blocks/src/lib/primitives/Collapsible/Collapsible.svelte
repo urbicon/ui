@@ -130,11 +130,15 @@
   <!-- `inert` while collapsed (Popover's pattern): the clipped children stay
        mounted for the grid-rows animation, so without it a keyboard user tabs
        into invisible controls (e.g. a CodeBlock copy button inside a collapsed
-       ToolCallCard — WCAG 2.4.3/2.4.7) and the subtree stays in the a11y tree. -->
+       ToolCallCard — WCAG 2.4.3/2.4.7) and the subtree stays in the a11y tree.
+
+       The role and its name are Collapsible's own: the hook hands out no role,
+       because a bare `<div>` is `generic` and would not expose a name at all.
+       This panel is a section worth landing on, so it takes both. -->
   <div
     id={contentProps.id}
     role="region"
-    aria-labelledby={contentProps['aria-labelledby']}
+    aria-labelledby={triggerId}
     inert={contentProps.inert}
     class={unstyled
       ? (slotClasses?.content ?? '')

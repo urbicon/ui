@@ -6,7 +6,11 @@
   import { useDisclosure } from '$lib/utils/use-disclosure.svelte';
   import { resolveClassChain } from '$lib/utils/variants';
   import type { SidebarForwardKey, SidebarLayoutProps } from './index';
-  import { sidebarLayoutVariants, type SidebarLayoutVariants } from './sidebar-layout.variants';
+  import {
+    SIDEBAR_TOGGLE_GUTTER,
+    sidebarLayoutVariants,
+    type SidebarLayoutVariants
+  } from './sidebar-layout.variants';
 
   let {
     open = $bindable(false),
@@ -41,6 +45,16 @@
   const effectiveWidth = $derived(
     open || (mode === 'responsive' && !isMobile) ? sidebarWidth : '0px'
   );
+
+  // The rail grip only exists where `open` actually moves the panel: a
+  // `responsive` sidebar is permanent on desktop, so a toggle there would
+  // change nothing the user can see. On mobile the header carries the snippet
+  // instead.
+  const railGrip = $derived(!!toggle && mode === 'collapsible');
+  // Widens `main`'s offset by the strip the grip floats in. Placed BEFORE
+  // `slotClasses.main` in the fold, so a consumer override of that padding
+  // still wins.
+  const railGutter = $derived(railGrip ? SIDEBAR_TOGGLE_GUTTER[side] : undefined);
 
   // Variant props feed both the tv() style computation and the slot-class
   // cascade — extracted into one derived so `resolveSlotClasses` can match
@@ -100,13 +114,6 @@
   const propsId = $props.id();
   const panelId = `sidebar-layout-${propsId}-panel`;
 
-  // The desktop grip is `fixed` and would paint over the content column's
-  // leading strip; `main` reserves that strip while — and only while — the grip
-  // is on screen. 3rem clears the icon button the docs example ships (measured
-  // 40px wide); a larger control raises the property from the consumer's side.
-  const railGrip = $derived(!!toggle && mode === 'collapsible');
-  const toggleGutter = $derived(railGrip ? '3rem' : undefined);
-
   // One disclosure per render site of the `toggle` snippet. Both are
   // controlled by the same `open`, so they carry no state of their own and
   // cannot disagree; what differs is only the trigger id, which is what keeps
@@ -133,7 +140,6 @@
     : styles.root({ class: [slotClasses?.root, className] })}
   style:--sidebar-width={sidebarWidth}
   style:--sidebar-effective-width={effectiveWidth}
-  style:--sidebar-toggle-gutter={toggleGutter}
   data-side={side}
   data-mode={mode}
 >
@@ -156,9 +162,6 @@
     {/if}
   </Sidebar>
 
-  <!-- The rail grip only where `open` actually moves the panel: a `responsive`
-       sidebar is permanent on desktop, so a toggle there would change nothing
-       the user can see. On mobile the header below carries the same snippet. -->
   {#if toggle && railGrip}
     <div
       class={unstyled
@@ -198,7 +201,9 @@
 
   <main
     id="main-content"
-    class={unstyled ? (slotClasses?.main ?? '') : styles.main({ class: slotClasses?.main })}
+    class={unstyled
+      ? (slotClasses?.main ?? '')
+      : styles.main({ class: [railGutter, slotClasses?.main] })}
   >
     <div
       class={unstyled ? (slotClasses?.inner ?? '') : styles.inner({ class: slotClasses?.inner })}

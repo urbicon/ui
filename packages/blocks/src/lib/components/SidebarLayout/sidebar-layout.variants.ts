@@ -24,11 +24,11 @@ export const sidebarLayoutVariants = tv({
     // outer edge, riding the same `--sidebar-effective-width` the panel
     // animates, so grip and rail move as one. `hidden lg:block` is the mirror
     // of `mobileHeader`'s `lg:hidden` — the two render sites of the one snippet
-    // are never visible at the same time, which is what keeps their two trigger
-    // ids from colliding on one screen.
+    // are never visible at the same time — unless `unstyled` strips the
+    // visibility classes, in which case the consumer owns both.
     //
     // It is `fixed`, so it paints over whatever the content column puts in that
-    // strip. `--sidebar-toggle-gutter` below is what stops it from doing so.
+    // strip. `SIDEBAR_TOGGLE_GUTTER` below is what stops it from doing so.
     toggleRail: [
       'fixed top-4 z-[var(--z-sidebar)]',
       'hidden lg:block',
@@ -42,19 +42,13 @@ export const sidebarLayoutVariants = tv({
     inner: ['mx-auto w-full']
   },
   variants: {
-    // `--sidebar-toggle-gutter` is the strip the `toggle` snippet's desktop
-    // grip is parked in; the component sets it only while that grip renders and
-    // it falls back to 0px, so a layout without the snippet keeps the padding
-    // it always had. Measured at 1200px with the shipped example: without the
-    // reservation a collapsed rail put a 40px grip at x 8–48 while the content
-    // column began at x 32, and the first heading rendered under the button.
     side: {
       left: {
-        main: 'lg:pl-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,0px))]',
+        main: 'lg:pl-[var(--sidebar-effective-width)]',
         toggleRail: 'left-[var(--sidebar-effective-width)] pl-2'
       },
       right: {
-        main: 'lg:pr-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,0px))]',
+        main: 'lg:pr-[var(--sidebar-effective-width)]',
         toggleRail: 'right-[var(--sidebar-effective-width)] pr-2'
       }
     },
@@ -72,6 +66,25 @@ export const sidebarLayoutVariants = tv({
     contentMaxWidth: 'xl'
   }
 });
+
+/**
+ * `main`'s offset while the `toggle` snippet's desktop grip is on screen: the
+ * sidebar width plus the strip the floating grip is parked in, on the side the
+ * sidebar is attached to. Folded in over the `side` slot class at the call site
+ * rather than declared as a tv axis — every axis of this config is published as
+ * a component prop (API table, playground knobs, `llm.txt`, MCP catalog), and
+ * this one is not settable from outside.
+ *
+ * The default is the `var()` FALLBACK and not a value the component writes: a
+ * custom property stamped on the root outranks both a consumer's `style`
+ * attribute and any `[--…:…]` class, so the fallback is what leaves it
+ * overridable at all. 3.5rem clears `pl-2` plus the 46px control the docs
+ * example ships.
+ */
+export const SIDEBAR_TOGGLE_GUTTER = {
+  left: 'lg:pl-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,3.5rem))]',
+  right: 'lg:pr-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,3.5rem))]'
+} as const;
 
 export type SidebarLayoutVariants = VariantProps<typeof sidebarLayoutVariants>;
 /** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */

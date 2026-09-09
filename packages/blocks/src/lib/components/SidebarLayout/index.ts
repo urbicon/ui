@@ -42,9 +42,9 @@ export interface SidebarToggleContext {
 }
 
 /**
- * Slot keys for `slotClasses`. The tv-driven slots (`SidebarLayoutSlots`:
- * root | mobileHeader | main | inner) are the layout's own; each remaining key
- * is one slot of the embedded `<Sidebar>` under a `sidebar` prefix.
+ * Slot keys for `slotClasses`. `SidebarLayoutSlots` is the layout's own set,
+ * derived from its `tv()` config; each remaining key is one slot of the
+ * embedded `<Sidebar>` under a `sidebar` prefix.
  *
  * Both halves of that forwarding derive from `sidebarVariants` — this union by
  * template literal, the mapping in `SidebarLayout.svelte` by walking the same
@@ -201,6 +201,9 @@ export interface SidebarLayoutProps extends Omit<HTMLAttributes<HTMLDivElement>,
    * helper to open the sidebar so a hamburger button needs no extra wiring.
    * If omitted, no mobile header is rendered — unless `toggle` is given, which
    * needs the header bar as its mobile seam.
+   *
+   * With `toggle`, the header already carries the sidebar control: leave your
+   * own hamburger out, or the bar shows two of them.
    */
   mobileHeader?: Snippet<[MobileHeaderContext]>;
 
@@ -212,9 +215,10 @@ export interface SidebarLayoutProps extends Omit<HTMLAttributes<HTMLDivElement>,
    * its own `triggerId`.
    *
    * The desktop grip floats over the content column, so while it renders the
-   * layout reserves a `--sidebar-toggle-gutter` strip (`3rem`, room for an icon
-   * button) beside the sidebar. Set that custom property on the layout root to
-   * make room for a wider control.
+   * layout widens the content offset by `--sidebar-toggle-gutter`, which
+   * defaults to `3.5rem` — room for an icon button. A wider control needs a
+   * wider strip: set the property on the layout root, e.g.
+   * `class="[--sidebar-toggle-gutter:5rem]"`.
    *
    * Persistence is deliberately not a prop: `createPersistentState` plus
    * `bind:open` is the two-line version and keeps one storage story in the app.

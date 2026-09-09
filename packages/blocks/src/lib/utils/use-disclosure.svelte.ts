@@ -1,51 +1,3 @@
-/**
- * `useDisclosure` — the show/hide contract of a disclosure (trigger +
- * controlled region) without any of the markup: the open state, the single
- * mutation point, and the ARIA pair that links the two elements.
- *
- * Collapsible already gets that wiring right, but only inside its own layout —
- * a root `<div>` around a trigger and an animated region. A disclosure whose
- * revealed content is a SIBLING (the next row of the same grid, a panel in
- * another column, a detail strip below a virtualised list) cannot use it and
- * has to hand-write `aria-expanded` / `aria-controls` / `inert`. This hook is
- * that wiring on its own; Collapsible consumes it, so both readings come from
- * one place.
- *
- * **The caller owns the ids.** `$props.id()` is only valid as a component
- * top-level initializer, so the two-step pattern stays at the call site and
- * the hook just takes the results. That also keeps it usable from a test or a
- * non-component module.
- *
- * **Controlled vs uncontrolled** follows the same family contract as
- * Collapsible (`docs/COMPONENT-API-CONVENTIONS.md` § Open-state vocabulary):
- * without `open` the hook holds the state itself and `onOpenChange` only
- * reports; with `open` the caller is the source of truth and MUST apply every
- * `onOpenChange` — the hook never writes to a state it does not own.
- *
- * @example
- * ```svelte
- * <script lang="ts">
- *   import { useDisclosure } from '@urbicon-ui/blocks';
- *
- *   let open = $state(false);
- *   const propsId = $props.id();
- *   const detail = useDisclosure(() => ({
- *     open,
- *     triggerId: `row-${propsId}-trigger`,
- *     contentId: `row-${propsId}-detail`,
- *     onOpenChange: (next) => (open = next)
- *   }));
- * </script>
- *
- * <!-- Trigger and content are siblings on one grid, not nested. -->
- * <div class="grid grid-cols-[1fr_auto]">
- *   <span>Rebuild the deployment pipeline</span>
- *   <button {...detail.triggerProps} onclick={detail.toggle}>Details</button>
- *   <div {...detail.contentProps} class="col-span-2">…</div>
- * </div>
- * ```
- */
-
 /** Attributes for the control that opens and closes the region. */
 export interface DisclosureTriggerProps {
   readonly id: string;
@@ -62,10 +14,16 @@ export interface DisclosureTriggerProps {
   readonly 'aria-disabled': true | undefined;
 }
 
-/** Attributes for the region the trigger reveals. */
+/**
+ * Attributes for the region the trigger reveals. No role: a bare `<div>` is
+ * `generic`, which the accessible-name calculation skips, so a name handed to
+ * one would not be exposed. Add `role="region"` plus
+ * `aria-labelledby={triggerId}` yourself where the content is a section worth
+ * landing on (what Collapsible does); a per-row detail strip stays roleless,
+ * because a region per list row is landmark spam.
+ */
 export interface DisclosureContentProps {
   readonly id: string;
-  readonly 'aria-labelledby': string;
   /**
    * `inert` while collapsed. The region is expected to stay mounted (a height
    * or grid-rows animation needs it), and a mounted-but-hidden subtree is both
@@ -121,17 +79,54 @@ export function computeDisclosureAria(input: {
     },
     contentProps: {
       id: input.contentId,
-      'aria-labelledby': input.triggerId,
       inert: !input.open
     }
   };
 }
 
 /**
- * Reactive wrapper around {@link computeDisclosureAria} plus the uncontrolled
- * state. Inputs arrive as ONE getter — the same shape `useFormField` takes —
- * so every field is re-read on each change and a plain value cannot freeze the
- * hook at the state it had on the first render.
+ * The show/hide contract of a disclosure — open state, one mutation point, and
+ * the attributes that link trigger and region — without any markup. Collapsible
+ * has the same wiring but only inside its own layout, so content that must be a
+ * SIBLING of the trigger (the next row of one grid, a panel in another column)
+ * cannot reach it; Collapsible consumes this hook, so both readings come from
+ * one place.
+ *
+ * Inputs arrive as ONE getter — the shape `useFormField` takes — so every field
+ * is re-read on each change and a value cannot freeze the hook at its first
+ * render. `triggerId`/`contentId` come from the caller because `$props.id()` is
+ * only valid as a component top-level initializer; that also keeps the hook
+ * usable outside a component.
+ *
+ * Controlled and uncontrolled follow the family contract
+ * (`docs/COMPONENT-API-CONVENTIONS.md` § Open-state vocabulary): without `open`
+ * the hook holds the state and `onOpenChange` only reports; with `open` the
+ * caller is the source of truth and must apply every `onOpenChange` — the hook
+ * never writes a state it does not own.
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { useDisclosure } from '@urbicon-ui/blocks';
+ *
+ *   let open = $state(false);
+ *   const propsId = $props.id();
+ *
+ *   const detail = useDisclosure(() => ({
+ *     open,
+ *     triggerId: `entry-${propsId}-trigger`,
+ *     contentId: `entry-${propsId}-detail`,
+ *     onOpenChange: (next) => (open = next)
+ *   }));
+ * </script>
+ *
+ * <div class="grid grid-cols-[1fr_auto]">
+ *   <span>Rebuild the deployment pipeline</span>
+ *   <button {...detail.triggerProps} type="button" onclick={detail.toggle}>Details</button>
+ *   <!-- The revealed region is a sibling row spanning both columns. -->
+ *   <div {...detail.contentProps} class="col-span-2">…</div>
+ * </div>
+ * ```
  */
 export function useDisclosure(inputs: () => UseDisclosureInputs): UseDisclosureReturn {
   // Seeded once. A `defaultOpen` that later changes must not clobber an

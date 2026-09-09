@@ -94,22 +94,39 @@ describe('SidebarLayout toggle snippet', () => {
     expect(seen, 'onOpenChange fired before the bindable write reached the parent').toEqual([true]);
   });
 
+  // The grip is `fixed`, so without the reservation it paints over whatever the
+  // content column puts in its leading strip. The reservation is a class, not a
+  // stamped custom property: a property the component writes on the root beats
+  // both a consumer's `style` attribute and any `[--…:…]` class, which would
+  // make the documented override impossible.
+  const mainPadding = (target: HTMLElement) => target.querySelector('main')?.className ?? '';
+
   it('reserves the content strip the floating grip sits in', () => {
-    // The grip is `fixed`, so without the reservation it paints over whatever
-    // the content column puts in its leading strip — measured at 1200px: a
-    // collapsed rail put the 40px grip at x 8–48 over a heading starting at 32.
+    expect(mainPadding(render())).toContain(
+      'lg:pl-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,3.5rem))]'
+    );
+  });
+
+  it('mirrors the reservation for a right-hand sidebar', () => {
+    expect(mainPadding(render({ side: 'right' }))).toContain(
+      'lg:pr-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,3.5rem))]'
+    );
+  });
+
+  it('writes no custom property of its own — the default is the var() fallback', () => {
     const root = render().querySelector<HTMLElement>('[data-mode]');
-    expect(root?.style.getPropertyValue('--sidebar-toggle-gutter')).toBe('3rem');
+    expect(root?.style.getPropertyValue('--sidebar-toggle-gutter')).toBe('');
   });
 
   it('reserves nothing where no grip renders', () => {
-    const root = render({ withToggle: false }).querySelector<HTMLElement>('[data-mode]');
-    expect(root?.style.getPropertyValue('--sidebar-toggle-gutter')).toBe('');
+    expect(mainPadding(render({ withToggle: false }))).toContain(
+      'lg:pl-[var(--sidebar-effective-width)]'
+    );
+    expect(mainPadding(render({ withToggle: false }))).not.toContain('--sidebar-toggle-gutter');
   });
 
   it('reserves nothing in responsive mode, where the rail carries no grip', () => {
-    const root = render({ mode: 'responsive' }).querySelector<HTMLElement>('[data-mode]');
-    expect(root?.style.getPropertyValue('--sidebar-toggle-gutter')).toBe('');
+    expect(mainPadding(render({ mode: 'responsive' }))).not.toContain('--sidebar-toggle-gutter');
   });
 
   it('keeps only the header seam in responsive mode — a permanent rail has nothing to toggle', () => {

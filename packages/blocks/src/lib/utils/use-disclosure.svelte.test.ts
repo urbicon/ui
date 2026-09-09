@@ -20,12 +20,19 @@ import {
 const ids = { triggerId: 'row-trigger', contentId: 'row-panel' };
 
 describe('computeDisclosureAria', () => {
-  it('links trigger and region in both directions', () => {
+  it('points the trigger at the region it controls', () => {
     const { triggerProps, contentProps } = computeDisclosureAria({ open: false, ...ids });
     expect(triggerProps.id).toBe('row-trigger');
     expect(triggerProps['aria-controls']).toBe('row-panel');
     expect(contentProps.id).toBe('row-panel');
-    expect(contentProps['aria-labelledby']).toBe('row-trigger');
+  });
+
+  it('gives the region no role and no name', () => {
+    // A bare `<div>` is `generic`, which the accessible-name calculation skips —
+    // a name handed out here would reach nobody. The caller adds `role="region"`
+    // plus `aria-labelledby` where the content earns a landmark (Collapsible).
+    const { contentProps } = computeDisclosureAria({ open: false, ...ids });
+    expect(Object.keys(contentProps).sort()).toEqual(['id', 'inert']);
   });
 
   it('reports the open state on the trigger', () => {
@@ -80,14 +87,21 @@ describe('useDisclosure (uncontrolled)', () => {
 
   it('seeds from defaultOpen and ignores later changes to it', () => {
     withRoot(() => {
-      let defaultOpen = $state(true);
+      let defaultOpen = $state(false);
       const d = useDisclosure(() => ({ ...ids, defaultOpen }));
-      expect(d.open).toBe(true);
-      // A seed that kept tracking would silently undo the user's interaction.
+      expect(d.open).toBe(false);
+
       d.toggle();
+      expect(d.open).toBe(true);
+
+      // The seed now moves in both directions. A hook that kept tracking it
+      // would land on the last value it saw and silently undo the toggle above;
+      // one that re-seeds on any change would land on `false`.
       defaultOpen = true;
       flushSync();
-      expect(d.open).toBe(false);
+      defaultOpen = false;
+      flushSync();
+      expect(d.open).toBe(true);
     });
   });
 
