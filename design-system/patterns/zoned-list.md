@@ -23,7 +23,7 @@ Do NOT use when:
 - **An empty zone disappears; it never shows "0".** A zone that stays behind as a counter is a scoreboard. Two exceptions earn their place: a zone that carries the way in (the capture row) and a zone that answers in a sentence ("Nothing since yesterday.") — a zero says only that the number is small.
 - **Air goes between zones, not between rows.** Rows sit flush against each other and carry their own height; `gap-8`–`gap-10` between sections, one small step between an eyebrow and its first row. Two vertical rhythms — one between rows, one between zones — read as two lists.
 - **The height lives in `min-h-*` on the row, never in padding — and it is a floor, not a cap.** Three steps carry most screens: ~44 px for a zone you work in, ~32 px for a long list you still act on, ~28 px for one you only skim. A row whose title runs long grows past its floor and the rest keep the rhythm; a padding-driven height comes apart the moment a row gains its second line.
-- **A child row is one indent step, and the indent is an edge.** The step is the marker plus its gap — 16 px + 14 px = 30 px, `pl-7.5` — so the child's marker lands on the parent's key column, or on its content where the screen has no key column. That is what makes the grouping read without a line, a box or a tint.
+- **A child row is one indent step, and the indent is an edge.** The step is the marker column plus its gap, and the marker column grows on touch — so put its width in one custom property (`--row-marker`: `1rem`, the touch floor under `pointer-coarse:`) and read it in both places: the marker is `w-[var(--row-marker)]`, the indent is `pl-[calc(var(--row-marker)+0.875rem)]`. That is 30 px on a fine pointer and 58 px on a coarse one, and the two cannot drift apart. A flat `pl-7.5` would put the child's marker in the middle of the marker column on exactly the devices the touch floor exists for. Aligned, it lands on the parent's key column — or on its content where the screen has no key column — and the grouping reads without a line, a box or a tint.
 - **Lines only where the heights differ.** A list of near-equal rows separates by rhythm alone; a flowing list (anatomy B) needs the `border-border-hairline` divider, because its rows are genuinely different heights.
 
 ## The row anatomy
@@ -101,8 +101,14 @@ Both anatomies are the same sentence; they take the opposite decision on six axe
   }
 </script>
 
-<section aria-labelledby={labelId}>
-  <h2 id={labelId} class="text-text-tertiary pl-7.5 text-xs font-medium tracking-wide uppercase">
+<section
+  aria-labelledby={labelId}
+  class="[--row-marker:1rem] pointer-coarse:[--row-marker:var(--blocks-touch-target-min)]"
+>
+  <h2
+    id={labelId}
+    class="text-text-tertiary pl-[calc(var(--row-marker)+0.875rem)] text-xs font-medium tracking-wide uppercase"
+  >
     Today
   </h2>
 
@@ -119,15 +125,17 @@ Both anatomies are the same sentence; they take the opposite decision on six axe
         class={[
           'group flex min-h-11 items-center',
           'focus-visible:ring-primary/50 focus-visible:ring-2 focus-visible:outline-none',
-          item.child && 'pl-7.5'
+          item.child && 'pl-[calc(var(--row-marker)+0.875rem)]'
         ]}
         onkeydown={(event) => onRowKey(event, item.id)}
       >
-        <!-- `--blocks-touch-target-min` is 44 px on a coarse pointer and 0 on a
+        <!-- The marker column's width is one property, read here and by every
+             indent below, so the column and the indents cannot disagree.
+             `--blocks-touch-target-min` is 44 px on a coarse pointer and 0 on a
              fine one, so the floor costs the desktop layout nothing. -->
         <button
           type="button"
-          class="text-text-quaternary hover:text-text-primary focus-visible:ring-primary/50 flex min-h-[var(--blocks-touch-target-min)] w-4 min-w-[var(--blocks-touch-target-min)] shrink-0 items-center justify-center focus-visible:ring-2 focus-visible:outline-none"
+          class="text-text-quaternary hover:text-text-primary focus-visible:ring-primary/50 flex min-h-[var(--blocks-touch-target-min)] w-[var(--row-marker)] shrink-0 items-center justify-center focus-visible:ring-2 focus-visible:outline-none"
           aria-label="Complete {item.title}"
           onclick={() => onComplete(item.id)}
         >
@@ -256,7 +264,7 @@ text-text-tertiary text-xs font-medium tracking-wide uppercase
 
 Three things are load-bearing in it. `text-text-tertiary` is the quietest ink the token contract still holds to AA for text; `text-text-quaternary` is held only to the 3:1 UI floor and promises nothing across themes — it is for marks, not for labels. `text-xs` is the smallest step of Tailwind's scale that carries a paired line-height, so the label's box follows its size; the library's own sub-xs steps (`--text-2xs`, `--text-3xs`) are deliberately size-only, and a label set in one of them keeps whatever leading it inherits from the cascade. And the tracking is what makes a small uppercase word legible at all.
 
-Indent it onto the column it heads (the key column, not the marker), and give the `<section>` `aria-labelledby` pointing at it. Where the rows below have no marker column, drop the indent — the label aligns to what stands under it, or it is decoration.
+Indent it onto the column it heads (the key column, not the marker) with the same expression the child row uses — `pl-[calc(var(--row-marker)+0.875rem)]`, the marker column plus its gap — and give the `<section>` `aria-labelledby` pointing at it. Where the rows below have no marker column, drop the indent: the label aligns to what stands under it, or it is decoration.
 
 ## Component Selection
 

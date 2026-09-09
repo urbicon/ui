@@ -154,8 +154,16 @@ Do NOT use when:
   }
 </script>
 
-<section aria-labelledby={labelId}>
-  <h2 id={labelId} class="text-text-tertiary text-xs font-medium tracking-wide uppercase">Inbox</h2>
+<section
+  aria-labelledby={labelId}
+  class="[--row-marker:1rem] pointer-coarse:[--row-marker:var(--blocks-touch-target-min)]"
+>
+  <h2
+    id={labelId}
+    class="text-text-tertiary pl-[calc(var(--row-marker)+0.875rem)] text-xs font-medium tracking-wide uppercase"
+  >
+    Inbox
+  </h2>
 
   <div class="border-border-subtle mt-3 flex min-h-11 items-center border-b">
     <Input
@@ -185,7 +193,7 @@ Do NOT use when:
         <div class="flex min-h-11 items-center">
           <button
             type="button"
-            class="text-text-quaternary hover:text-text-primary focus-visible:ring-primary/50 flex min-h-[var(--blocks-touch-target-min)] w-4 min-w-[var(--blocks-touch-target-min)] shrink-0 items-center justify-center focus-visible:ring-2 focus-visible:outline-none"
+            class="text-text-quaternary hover:text-text-primary focus-visible:ring-primary/50 flex min-h-[var(--blocks-touch-target-min)] w-[var(--row-marker)] shrink-0 items-center justify-center focus-visible:ring-2 focus-visible:outline-none"
             aria-label="Complete {entry.title}"
             onclick={() => complete(entry.id)}
           >
@@ -202,7 +210,8 @@ Do NOT use when:
           <!-- The verb of this place stands at rest, in ink. Letting go appears
                beside it — on hover, on focus, and permanently where there is no
                pointer — never in its place. `--blocks-touch-target-min` is 44 px
-               on a coarse pointer and 0 on a fine one. -->
+               on a coarse pointer and 0 on a fine one, so the floor costs the
+               desktop layout nothing. -->
           <div class="ml-4 flex shrink-0 items-center gap-3">
             <Button
               variant="text"
@@ -236,7 +245,7 @@ Do NOT use when:
           <div
             id="{uid}-step-{entry.id}"
             data-step={entry.id}
-            class="flex min-h-11 items-center gap-3 pl-7.5"
+            class="flex min-h-11 items-center gap-3 pl-[calc(var(--row-marker)+0.875rem)]"
           >
             <Select
               options={destinations}
@@ -259,9 +268,8 @@ Do NOT use when:
 
 ## Behavioral Rules
 
-- **One step open at a time.** Opening a second closes the first — two open steps under two rows are two answers to one question. The control that opened a step stays rendered and toggles it shut, so `aria-expanded` has something to sit on and Escape has somewhere to return the focus.
-- **The focus follows the decision.** Opening the step moves the focus to its first control, Escape puts it back on the control that opened it, and a made decision moves it on to the next row. A reader who has to hunt for the field after every press is doing the screen's work by hand.
-- **After a decision, the focus goes to the next item**, not back to the field. The reader is going down the list; sending them back to the top costs the place they had.
+- **One step open at a time.** Opening a second closes the first — two open steps under two rows are two answers to one question. The control that opened a step stays rendered and toggles it shut, so `aria-expanded` has something to sit on and Escape has somewhere to return the focus. Escape closes the step, whatever is open inside it — a listbox and its step go together, because the row hears the key either way.
+- **The focus follows the decision.** Opening the step moves the focus to its first control; Escape puts it back on the control that opened it; a made decision moves it on to the next row, not back to the capture field — the reader is going down the list, and sending them to the top costs the place they had.
 - **Letting go is exactly as cheap as filing** — one click, no confirmation, no reason required. That is not an exception to the principles' rule that destructive actions need a `ConfirmDialog`: dropping here is **not destructive**, because the item stays findable and can be brought back. If dropping is irreversible in your product, the confirmation rule from the principles applies and this row is the wrong place for it.
 - **An item can also just be done.** Not everything in the pile needs a destination, so the marker keeps its usual job: it finishes the item where it stands. Without it the reader has to file something first in order to be done with it.
 - **The row does not move while its step is open.** Re-sorting the list under an open step moves the target out from under the pointer. Let the row settle in place and re-sort on the next load.
