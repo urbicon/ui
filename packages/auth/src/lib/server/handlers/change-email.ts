@@ -7,12 +7,14 @@ import { resolveTokenTtlMs } from '../duration.js';
 import type { ChangeEmailNoticeContext, MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
+import type { EmailTransport } from '../email/types.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateChangeEmailInput } from '../validation.js';
 import {
   notifyHook,
   parseBody,
   privateEndpoints,
+  requireEmailTransport,
   requireSessionUser,
   verifyCurrentPassword
 } from './_shared.js';
@@ -46,6 +48,7 @@ export function createChangeEmailHandler<R extends string>(
   deps: AuthDeps<R>,
   options: ChangeEmailHandlerOptions = {}
 ): { POST: RequestHandler } {
+  const transport = requireEmailTransport(deps, 'createChangeEmailHandler');
   const rateLimiter = sharedLimiter(deps.config, 'changeEmail');
   // Resolved here, not per request: a malformed `tokenTtl` throws where the
   // route was wired instead of inside the detached issue-and-mail task, whose
@@ -75,7 +78,7 @@ export function createChangeEmailHandler<R extends string>(
       // longer surface as an HTTP error, so route them to deps.logger.error.
       void (async () => {
         try {
-          await issueEmailChange(deps, user, newEmail, changeTtlMs, options);
+          await issueEmailChange(deps, transport, user, newEmail, changeTtlMs, options);
         } catch (err) {
           deps.logger.error(`[auth] change-email: failed to issue change (user ${user.id})`, err);
           // Surface the decoupled failure through the observability hook (it
@@ -103,6 +106,7 @@ export function createChangeEmailHandler<R extends string>(
  */
 async function issueEmailChange<R extends string>(
   deps: AuthDeps<R>,
+  transport: EmailTransport,
   user: FullAuthUser<R>,
   newEmail: string,
   ttlMs: number,
@@ -128,13 +132,13 @@ async function issueEmailChange<R extends string>(
   // Confirmation link to the NEW address — proves control of it.
   const confirmCtx = { name: user.name, url: verifyUrl.toString(), appName, from, t };
   const confirm = options.verifyEmailChangeEmail?.(confirmCtx) ?? buildChangeEmail(confirmCtx, t);
-  await deps.email.send({ from, ...confirm, to: newEmail });
+  await transport.send({ from, ...confirm, to: newEmail });
 
   // Awareness notice to the OLD address so the real owner can react to a
   // change they didn't initiate (the swap only happens after confirmation).
   const noticeCtx = { name: user.name, appName, from, t, newEmail };
   const notice = options.changeEmailEmail?.(noticeCtx) ?? buildChangeEmailNotice(noticeCtx, t);
-  await deps.email.send({ from, ...notice, to: user.email });
+  await transport.send({ from, ...notice, to: user.email });
 
   // Token and both mails are out. Unguarded, a throw here would land in the
   // caller's catch and be filed as `onEmailChangeFailed` — the opposite of what

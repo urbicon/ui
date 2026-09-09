@@ -306,6 +306,34 @@ blocks each stage swaps in, and the invariants that hold across all of them.
 session (`locals.user`), guards routes, applies the response security headers, and
 enforces CSRF. The handler factories alone do none of that.
 
+**Mail transport:** `deps.email` is optional, and only four factories need it —
+`createRegisterHandler`, `createForgotPasswordHandler`, `createChangeEmailHandler` and
+`createInvitationHandlers`. Each resolves the transport where it is mounted and throws
+naming itself when it is absent (`[auth] deps.email is missing but
+createForgotPasswordHandler sends mail…`), so the requirement sits where the answer to
+"does this app send mail?" is known. A deployment that mounts only sign-in — login,
+logout, `me`, refresh, the account-management routes — hands in none:
+
+<!-- typecheck -->
+```ts
+// src/lib/server/auth.ts
+import { createAuthDeps, createInMemoryRepos, createLogoutHandler } from '@urbicon-ui/auth/server';
+
+const repos = createInMemoryRepos();
+
+export const authDeps = createAuthDeps({
+  config: { appUrl: 'https://app.example', jwt: { secret: 'dev-secret' } },
+  repos: { user: repos.user, invitation: repos.invitation }
+  // No `email`: nothing mounted here sends mail.
+});
+
+// src/routes/api/auth/logout/+server.ts
+export const POST = createLogoutHandler(authDeps).POST;
+```
+
+The optional repositories follow the same rule one level down — `refreshToken`,
+`backupCode` and `passkey` are required only by the features that read them.
+
 **Stylesheet:** every stage that mounts a component needs
 `@import '@urbicon-ui/auth/style/index.css';` after the blocks import in the app's
 Tailwind stylesheet (see [README → Installation](../README.md#installation)). The file
@@ -514,6 +542,62 @@ registry.register({
   recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
+
+### Logout
+
+`createLogoutHandler(deps)` revokes the refresh token the request carries (when
+`config.refreshToken` rotation is configured), clears the session and refresh cookies,
+and answers `{ success: true, invalidated }`. Repository failures are logged to
+`config.logger` and never propagated: once the cookies are gone the user is signed out
+of this browser, and a `500` there would leave them looking signed in.
+
+**What that does not reach is a copy of the access token.** The session JWT is
+stateless — it is verified against its signature and its `tokenVersion` claim, not
+against a server-side session table — so a copy taken before the logout (a value
+lifted out of a devtools panel, a shared machine, a proxy log) stays valid until its
+`exp` — up to `jwt.expiresIn`, or, when rotation is configured and `jwt.expiresIn` is
+left unset, `refreshToken.accessTokenTtl` (default `15m`). That is what a stateless
+session buys its statelessness with, and it is the default because it costs no write.
+
+`invalidateAccessTokens: true` closes that window:
+
+<!-- typecheck -->
+```ts
+// src/routes/api/auth/logout/+server.ts
+import { createLogoutHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth';
+
+export const POST = createLogoutHandler(authDeps, { invalidateAccessTokens: true }).POST;
+```
+
+It performs the teardown `reset-password` performs, minus the password: it increments
+the user's `tokenVersion` — which the handle hook and every authenticated handler
+compare against the token's claim, so **every** access token issued to this account is
+refused from the next request on — and revokes every refresh-token family, because a
+family that survived would re-read the row and mint a fresh session on the _new_
+version, undoing the bump on the next rotation. Two writes per logout, and the account
+is signed out on every device it was signed in on.
+
+Which of the three to reach for:
+
+- **This browser out, and the token window is acceptable** — `createLogoutHandler(deps)`.
+- **This browser out, and nothing that was ever issued to this account still works** — `createLogoutHandler(deps, { invalidateAccessTokens: true })`.
+- **The other devices out, this one still signed in** — `createSessionsHandlers(deps).revokeOthers` (needs `config.refreshToken` rotation, since a session is a refresh-token family).
+
+`invalidated` in the response reports whether the account-wide teardown actually ran. It
+is `false` when the option is off; when the option is on but the request carried no
+resolvable session — an access token past its `exp` names no user to bump, and the
+cookies are cleared anyway; and when a repository write failed. It never claims the
+tokens are dead when they are not.
+
+One place the option does not reach at all: a **federated consumer** app
+(`createFederatedAuthHandle`) cannot see the IdP's `tokenVersion`, so a session logged
+out at the IdP stays verifiable there until `exp` — bound that window with
+`maxTokenAge` (see [Federated Identity](#federated-identity-sso)).
+
+None of this is the client store's `logout`, which clears local state unconditionally
+and reports whether the server call succeeded (see [Client stores](#client-stores)).
+The endpoint above is what ends the session; the store only calls it.
 
 ### Machine callers
 
@@ -1163,6 +1247,10 @@ The package deliberately avoids revealing whether an account exists, via either 
 - **SvelteKit's built-in `csrf.checkOrigin` is a separate gate that runs _before_ this package's check.** SvelteKit's request kernel performs its own Origin-CSRF check *before* the `handle` hook runs (`@sveltejs/kit` → `src/runtime/server/respond.js`), so `csrf.exempt` cannot reach it: a cross-origin, form-encoded `POST` — an OAuth 2.1 token endpoint, a third-party webhook — is answered `403 "Cross-site POST form submissions are forbidden"` before your hook (and therefore this package's `validateCsrf`) ever runs. It fires on form content types only, cannot be disabled per route from a hook, admits no header-less caller through `trustedOrigins`, and is **skipped under `vite dev`, never in a build** (guaranteed by the package's `@sveltejs/kit ^2.70.1` peer range — older Kits compiled the gate out of non-production-`NODE_ENV` builds, [sveltejs/kit#16313](https://github.com/sveltejs/kit/pull/16313)), so the 403 typically first surfaces *after deploy*, never in local development. Which callers it stops, the build-time off-switch (`kit.csrf: { trustedOrigins: ['*'] }`) and the two conditions under which disabling it is safe: [Machine callers](#machine-callers). The exemption from *this* package's gate is `csrf.exempt` on `createAuthHandle` — never a route mounted around the hook.
 - **SSE presence is process-local** — `createSSEManager` registers connections in this process only; there is no cross-instance seam. On multi-instance/serverless deployments, `isOnline` false-negatives make `send()` skip the live SSE event for users connected to another instance and fall back to push (delivery still happens, via the heavier channel, provided a push subscription exists), and `recipients: 'online'` broadcasts only reach the users connected to the instance running `send()`. Treat the notification system as single-instance until a shared presence backend exists — the same class of assumption as the in-memory rate-limit store.
 - **In-memory adapter grows unbounded** — `createInMemoryRepos` doesn't clean up notifications/push subscriptions and doesn't call `deleteExpired` for refresh tokens automatically. `user.delete` is not one of these: every repository built on one `createInMemoryStore()` shares its tables, and the delete removes a user's dependent rows from all of them, the same end state the Prisma adapter gets from `onDelete: Cascade` — both are pinned by the conformance suite. This is fine for the declared dev/test scope; for long-lived processes use a persistent adapter.
+
+### Session Revocation
+
+- **A logout does not reach a copied access token** — the session JWT is stateless, so `createLogoutHandler` clears the cookies while a copy taken beforehand stays verifiable until its `exp` (up to `jwt.expiresIn`, or `refreshToken.accessTokenTtl` under rotation). `invalidateAccessTokens: true` closes the window at the price of signing the account out on **every** device, which is why it is opt-in; a federated consumer never sees it at all. What each mechanism reaches, and which to pick: [Logout](#logout).
 
 ### Production-Readiness Checklist
 

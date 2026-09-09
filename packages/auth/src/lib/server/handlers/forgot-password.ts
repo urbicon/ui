@@ -7,9 +7,10 @@ import { resolveTokenTtlMs } from '../duration.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
+import type { EmailTransport } from '../email/types.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateEmailInput } from '../validation.js';
-import { notifyHook, parseBody, privateEndpoints } from './_shared.js';
+import { notifyHook, parseBody, privateEndpoints, requireEmailTransport } from './_shared.js';
 
 export interface ForgotPasswordHandlerOptions {
   /**
@@ -24,6 +25,7 @@ export function createForgotPasswordHandler<R extends string>(
   deps: AuthDeps<R>,
   options: ForgotPasswordHandlerOptions = {}
 ): { POST: RequestHandler } {
+  const transport = requireEmailTransport(deps, 'createForgotPasswordHandler');
   const rateLimiter = sharedLimiter(deps.config, 'forgotPassword');
   // Resolved here, not per request: a malformed `tokenTtl` throws where the
   // route was wired instead of inside the detached issue-and-mail task, whose
@@ -56,7 +58,7 @@ export function createForgotPasswordHandler<R extends string>(
         // delivery stays durable.
         void (async () => {
           try {
-            await issuePasswordReset(deps, user, resetTtlMs, options.resetEmail);
+            await issuePasswordReset(deps, transport, user, resetTtlMs, options.resetEmail);
           } catch (err) {
             // Log by user id, not email — keep PII out of stderr where the
             // consumer's logger may not redact it; the hook gets the address.
@@ -89,6 +91,7 @@ export function createForgotPasswordHandler<R extends string>(
  */
 async function issuePasswordReset<R extends string>(
   deps: AuthDeps<R>,
+  transport: EmailTransport,
   user: FullAuthUser<R>,
   ttlMs: number,
   resetEmail?: MailBuilder
@@ -105,5 +108,5 @@ async function issuePasswordReset<R extends string>(
   const { t, appName, from } = resolveEmailSettings(deps.config);
   const ctx = { name: user.name, url: resetUrl.toString(), appName, from, t };
   const built = resetEmail?.(ctx) ?? buildPasswordResetEmail(ctx, t);
-  await deps.email.send({ from, ...built, to: user.email });
+  await transport.send({ from, ...built, to: user.email });
 }

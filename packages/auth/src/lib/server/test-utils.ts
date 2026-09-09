@@ -154,7 +154,11 @@ export function createMockAuthDeps<R extends string>(opts?: {
   backupCode?: BackupCodeRepository;
   passkey?: PasskeyRepository;
   email?: EmailTransport;
-}): AuthDeps<R> {
+  // `AuthDeps.email` is optional (the mailing factories require it themselves),
+  // but this fixture always fills one — so tests can assert on `deps.email.send`
+  // without a non-null assertion. A test that needs the missing transport
+  // destructures it away.
+}): AuthDeps<R> & { email: EmailTransport } {
   return {
     // Quiet by default so expected-failure tests don't spam the run; assert on
     // deps.logger.error/warn (they are plain vi.fn mocks) to pin log output.

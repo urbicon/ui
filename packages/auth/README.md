@@ -138,6 +138,12 @@ Repositories on one store share its rows, and `user.delete` erases across all of
 store carries the role type — `createInMemoryStore<'ADMIN' | 'USER'>()` — and every factory
 infers it from the handle; a role-typed factory on an untyped store is a type error.
 
+`email` is optional. Only four factories send mail — `createRegisterHandler`,
+`createForgotPasswordHandler`, `createChangeEmailHandler`, `createInvitationHandlers` — and
+each throws at mount, naming itself, when the transport is missing. This quickstart mounts
+all of them and therefore passes one; an app that mounts only sign-in passes none (see
+[AUTH.md → Consumer Integration](docs/AUTH.md#consumer-integration--staged-setup)).
+
 `createAuthDeps` fills in **secure brute-force defaults automatically** (login rate-limit
 5 / 15 min + lockout 5 / 15 min) — even the quickstart isn't an open door. **Every**
 `rateLimit` key gets a default, and configuring some keys is a merge rather than a

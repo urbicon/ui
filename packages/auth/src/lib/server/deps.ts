@@ -43,7 +43,17 @@ export interface AuthDeps<R extends string = string> {
      */
     passkey?: PasskeyRepository;
   };
-  email: EmailTransport;
+  /**
+   * Optional — required only by the four factories that send mail:
+   * `createRegisterHandler`, `createForgotPasswordHandler`,
+   * `createChangeEmailHandler` and `createInvitationHandlers`. Each resolves it
+   * once at wiring time and throws naming itself when it is absent, so a
+   * consumer who mounts none of them (login + logout, say) hands in no
+   * transport at all — the same rule the optional repositories above follow.
+   * Pass `createLettermintTransport(…)`, or `createConsoleEmailTransport()` in
+   * dev.
+   */
+  email?: EmailTransport;
   /**
    * Resolved log sink (`config.logger ?? console`) — `createAuthDeps` always
    * fills it, so handlers log operational failures through one seam instead

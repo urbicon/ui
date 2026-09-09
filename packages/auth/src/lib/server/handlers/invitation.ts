@@ -7,7 +7,13 @@ import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
 import { validateInvitationInput } from '../validation.js';
-import { notifyHook, parseBody, privateEndpoints, requireSessionUser } from './_shared.js';
+import {
+  notifyHook,
+  parseBody,
+  privateEndpoints,
+  requireEmailTransport,
+  requireSessionUser
+} from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -98,6 +104,12 @@ export function createInvitationHandlers<R extends string>(
   deps: AuthDeps<R>,
   options: InvitationHandlerOptions<R>
 ): { POST: RequestHandler; GET: RequestHandler; DELETE: RequestHandler } {
+  // Unconditional, though `sendEmail` is a per-request flag: the shipped
+  // `<InvitationManager>` offers the mail with the box ticked, so a bundle
+  // mounted without a transport would answer `emailSent: false` on the first
+  // invite an admin sends. A deployment that only ever hands out the returned
+  // `inviteUrl` still has to name a transport it never reaches.
+  const transport = requireEmailTransport(deps, 'createInvitationHandlers');
   const { authorize, roles, inviteEmail } = options;
   // A non-finite or non-positive TTL fails OPEN, which is the wrong direction
   // for the thing that bounds an invitation's life: `Infinity` produced an
@@ -196,7 +208,7 @@ export function createInvitationHandlers<R extends string>(
           : buildInvitationEmail({ url: inviteUrl, appName }, t);
 
         try {
-          await deps.email.send({ from, ...built, to: email });
+          await transport.send({ from, ...built, to: email });
           emailSent = true;
         } catch (err) {
           // The invitee — not the API caller — is the one left unable to

@@ -10,7 +10,13 @@ import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateRegisterInput } from '../validation.js';
-import { notifyHook, parseBody, passwordRefusal, privateEndpoints } from './_shared.js';
+import {
+  notifyHook,
+  parseBody,
+  passwordRefusal,
+  privateEndpoints,
+  requireEmailTransport
+} from './_shared.js';
 import { authError } from './errors.js';
 
 export interface RegisterHandlerOptions {
@@ -62,6 +68,10 @@ export function createRegisterHandler<R extends string>(
   deps: AuthDeps<R>,
   options: RegisterHandlerOptions = {}
 ): { POST: RequestHandler } {
+  // Unconditional, `autoVerifyInvited` included: that flag skips the mail only
+  // for an invitation that carries an `emailedAt`, which is per-invitation
+  // runtime state, so this factory can always reach a send.
+  const transport = requireEmailTransport(deps, 'createRegisterHandler');
   const rateLimiter = sharedLimiter(deps.config, 'register');
   // Resolved here, not per request: a malformed `tokenTtl` throws where the
   // route was wired instead of on someone's first signup.
@@ -196,7 +206,7 @@ export function createRegisterHandler<R extends string>(
         const { t, appName, from } = resolveEmailSettings(deps.config);
         const ctx = { name, url: verifyUrl.toString(), appName, from, t };
         const built = options.verificationEmail?.(ctx) ?? buildVerificationEmail(ctx, t);
-        await deps.email.send({ from, ...built, to: email });
+        await transport.send({ from, ...built, to: email });
       }
 
       // Post-commit: the row exists and the single-use invitation is spent. A

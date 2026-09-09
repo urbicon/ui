@@ -3,6 +3,7 @@ import { resolvePasswordPolicy, unmetPasswordRules } from '../../password-policy
 import type { AuthConfig, AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
+import type { EmailTransport } from '../email/types.js';
 import { passwordRuleMessage, verifyPasswordWithMigration } from '../password.js';
 import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, type ValidationError, type ValidationResult } from '../validation.js';
@@ -284,6 +285,34 @@ function stampEndpoints(node: Record<string, unknown>, seen: WeakSet<object>): v
       stampEndpoints(value, seen);
     }
   }
+}
+
+/**
+ * The mail transport a factory needs, or a throw that names the factory.
+ *
+ * `deps.email` is optional because a consumer who mounts no mailing route has
+ * nothing to hand in, so the requirement moves to the four factories that know
+ * they mail. Each resolves it **once, where it is mounted**, and keeps the
+ * non-optional result in its closure — reading `deps.email?.send(…)` at the
+ * call site instead would turn a missing transport into a mail that is quietly
+ * never sent, and two of those paths (forgot-password, change-email) run
+ * detached from the response, where nothing would surface it.
+ *
+ * `factory` is the exported name the consumer wrote, so the message says both
+ * what to pass and what to drop instead.
+ */
+export function requireEmailTransport(
+  deps: { email?: EmailTransport },
+  factory: string
+): EmailTransport {
+  if (!deps.email) {
+    throw new Error(
+      `[auth] deps.email is missing but ${factory} sends mail. Pass an EmailTransport to ` +
+        'createAuthDeps (createLettermintTransport(config) in production, ' +
+        `createConsoleEmailTransport() in dev), or do not mount ${factory}.`
+    );
+  }
+  return deps.email;
 }
 
 /**
