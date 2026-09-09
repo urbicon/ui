@@ -154,16 +154,12 @@ describe('PushPermissionPrompt (component)', () => {
 describe('PushPermissionPrompt — focus after the card closes', () => {
   const dismissButton = () => screen.getByRole('button', { name: 'Not now' });
 
-  /** A control the page owns, placed after the card (mounted into `document.body`). */
-  function controlAfter(label = 'Next'): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.textContent = label;
-    document.body.append(button);
-    return button;
-  }
-
-  /** A control before the card — appended before the mount. */
-  function controlBefore(label = 'Earlier'): HTMLButtonElement {
+  /**
+   * A control the page owns. Everything mounts into `document.body`, so append
+   * order is document position: called before `render` it sits before the card,
+   * called after it sits after.
+   */
+  function pageControl(label: string): HTMLButtonElement {
     const button = document.createElement('button');
     button.textContent = label;
     document.body.append(button);
@@ -172,7 +168,7 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
 
   it('lands on the next tab stop after the card', async () => {
     render({});
-    const next = controlAfter();
+    const next = pageControl('Next');
 
     await userEvent.click(dismissButton());
     await settle();
@@ -184,7 +180,7 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
   });
 
   it('falls back to the tab stop before the card when nothing follows it', async () => {
-    const earlier = controlBefore();
+    const earlier = pageControl('Earlier');
     render({});
 
     await userEvent.click(dismissButton());
@@ -194,12 +190,12 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
   });
 
   it('skips a control that is not rendered, and touches no element it does not own', async () => {
-    const earlier = controlBefore();
+    const earlier = pageControl('Earlier');
     const heading = document.createElement('h2');
     heading.textContent = 'Notifications';
     document.body.append(heading);
     render({});
-    const hidden = controlAfter('Hidden');
+    const hidden = pageControl('Hidden');
     hidden.style.display = 'none';
     const inHiddenBox = document.createElement('div');
     inHiddenBox.style.display = 'none';
@@ -217,6 +213,25 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
     expect(heading.hasAttribute('tabindex')).toBe(false);
   });
 
+  it('takes a control that overrides its hidden container, visibility being inherited', async () => {
+    pageControl('Earlier');
+    render({});
+    const hiddenBox = document.createElement('div');
+    hiddenBox.style.visibility = 'hidden';
+    const shown = document.createElement('button');
+    shown.textContent = 'Shown';
+    shown.style.visibility = 'visible';
+    hiddenBox.append(shown);
+    document.body.append(hiddenBox);
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // `visibility: visible` on the control wins over the container, so it is
+    // rendered and focusable — the next tab stop after the card.
+    expect(document.activeElement).toBe(shown);
+  });
+
   it('gives focus back to the control that had it when the prompt appeared', async () => {
     const opener = document.createElement('button');
     opener.textContent = 'Notification settings';
@@ -224,7 +239,7 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
     opener.focus();
     subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
     render({ fetcher: fetcherAnswering(200, {}) });
-    controlAfter();
+    pageControl('Next');
 
     await userEvent.click(enableButton());
     await settle();
@@ -235,9 +250,9 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
   });
 
   it('leaves focus where a dismissal callback put it', async () => {
-    const consumerTarget = controlBefore('Consumer');
+    const consumerTarget = pageControl('Consumer');
     render({ onDismissed: () => consumerTarget.focus() });
-    controlAfter();
+    pageControl('Next');
 
     await userEvent.click(dismissButton());
     await settle();
@@ -248,10 +263,10 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
   });
 
   it('leaves focus where an unavailable callback put it', async () => {
-    const consumerTarget = controlBefore('Consumer');
+    const consumerTarget = pageControl('Consumer');
     subscribeToPush.mockResolvedValue({ status: 'unsupported' });
     render({ onUnavailable: () => consumerTarget.focus() });
-    controlAfter();
+    pageControl('Next');
 
     await userEvent.click(enableButton());
     await settle();
@@ -260,13 +275,13 @@ describe('PushPermissionPrompt — focus after the card closes', () => {
   });
 
   it('leaves focus where a subscribe callback put it', async () => {
-    const consumerTarget = controlBefore('Consumer');
+    const consumerTarget = pageControl('Consumer');
     subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
     render({
       fetcher: fetcherAnswering(200, {}),
       onSubscribed: () => consumerTarget.focus()
     });
-    controlAfter();
+    pageControl('Next');
 
     await userEvent.click(enableButton());
     await settle();

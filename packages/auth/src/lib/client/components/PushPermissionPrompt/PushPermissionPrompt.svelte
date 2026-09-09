@@ -56,21 +56,30 @@
     restoreTarget = held instanceof HTMLElement && held !== document.body ? held : null;
   });
 
-  /** Tab stops, as the browser counts them; `disabled` is filtered separately. */
+  /**
+   * Focusable elements in document order — the tab order too, unless the page
+   * uses a positive `tabindex`; `disabled` is filtered separately.
+   */
   const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
   /**
-   * Whether the element is laid out. `offsetParent` is the usual test, but it is
-   * null for a `position: fixed` element and — measured — for every element
-   * under jsdom, so there it can reject nothing. Walking the ancestors' computed
-   * `display` / `visibility` answers the same question in both: an element's own
-   * computed `display` keeps its specified value under a hidden parent, so the
-   * walk is what catches the hidden ancestor.
+   * Whether the element is laid out. `checkVisibility` is the platform's own
+   * answer and also sees `content-visibility`, which is how a closed
+   * `<details>` hides its content. jsdom has neither it nor a working
+   * `offsetParent` (measured: null for every element there), so under the test
+   * runner the computed styles stand in — `display` is not inherited, so every
+   * ancestor is read; `visibility` is, so the element's own value already
+   * answers for its ancestors and honours an override inside a hidden box.
    */
   function isRendered(el: HTMLElement): boolean {
+    const platform = el.checkVisibility?.({
+      contentVisibilityAuto: true,
+      visibilityProperty: true
+    });
+    if (platform !== undefined) return platform;
+    if (getComputedStyle(el).visibility === 'hidden') return false;
     for (let node: HTMLElement | null = el; node; node = node.parentElement) {
-      const style = getComputedStyle(node);
-      if (style.display === 'none' || style.visibility === 'hidden') return false;
+      if (getComputedStyle(node).display === 'none') return false;
     }
     return true;
   }
