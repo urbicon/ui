@@ -82,7 +82,11 @@
     successClass={slotClasses.success}
   >
     <div class={cls('flex flex-col items-center gap-3 py-8')}>
-      <Spinner size="lg" {unstyled} />
+      <!-- The spinner is a `role="status"` live region of its own, and this one
+           already sits inside the page's. Stripped here so the pending state is
+           announced once: what is read out is the sr-only label plus the line
+           below it, from the region that also carries the outcome. -->
+      <Spinner size="lg" role={undefined} aria-live={undefined} {unstyled} />
       <p class={cls('text-text-secondary text-sm')}>
         {t.auth.verifyEmail.verifying}
       </p>

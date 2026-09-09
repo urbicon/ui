@@ -10,6 +10,13 @@ import {
   mounter,
   settle
 } from '../__fixtures__/fetcher.js';
+import {
+  errorMessage,
+  errorRegion,
+  liveRegionsAround,
+  statusRegion,
+  successMessage
+} from '../__fixtures__/live-regions.js';
 import type { ResetPasswordPageProps } from './index.js';
 import ResetPasswordPage from './ResetPasswordPage.svelte';
 
@@ -22,8 +29,6 @@ const render = (props: Partial<ResetPasswordPageProps> = {}) =>
     passwordPolicy: DEFAULT_PASSWORD_POLICY,
     ...props
   } as ResetPasswordPageProps);
-
-const liveRegion = () => document.body.querySelector('[aria-live="polite"]') as HTMLElement;
 
 async function reset(password = 'hunter2hunter2', confirm = password) {
   await userEvent.type(screen.getByLabelText(labelled('New password')), password);
@@ -45,8 +50,9 @@ describe('ResetPasswordPage', () => {
     expect(screen.getByLabelText(labelled('Confirm new password')).getAttribute('type')).toBe(
       'password'
     );
-    expect(liveRegion()).toBeTruthy();
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(errorRegion()).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).toBe('');
+    expect(statusRegion().textContent?.trim()).toBe('');
   });
 
   it('sends the token and the new password, then swaps the form for the confirmation', async () => {
@@ -61,10 +67,10 @@ describe('ResetPasswordPage', () => {
       token: 'reset-1',
       password: 'hunter2hunter2'
     });
-    const alert = screen.getByRole('alert');
-    expect(alert.textContent).toContain('Your password has been reset.');
-    expect(alert.className).toContain('qa-success');
-    expect(liveRegion().contains(alert)).toBe(true);
+    const message = successMessage();
+    expect(message.textContent).toContain('Your password has been reset.');
+    expect(message.className).toContain('qa-success');
+    expect(liveRegionsAround(message)).toHaveLength(1);
     expect(screen.queryByRole('button', { name: 'Reset password' })).toBeNull();
     // The one link that appears only now: the user has a password to use.
     expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe('/auth/login');
@@ -77,7 +83,7 @@ describe('ResetPasswordPage', () => {
     await reset('hunter2hunter2', 'hunter2hunter3');
 
     expect(fetcher).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toContain('Passwords do not match.');
+    expect(errorRegion().textContent).toContain('Passwords do not match.');
   });
 
   it('announces an expired link in the live region and keeps the form', async () => {
@@ -88,10 +94,10 @@ describe('ResetPasswordPage', () => {
 
     await reset();
 
-    const alert = screen.getByRole('alert');
-    expect(liveRegion().contains(alert)).toBe(true);
-    expect(alert.textContent).toContain('This link is invalid or has expired.');
-    expect(alert.className).toContain('qa-error');
+    const message = errorMessage();
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(message.textContent).toContain('This link is invalid or has expired.');
+    expect(message.className).toContain('qa-error');
     expect(screen.getByRole('button', { name: 'Reset password' })).toBeTruthy();
   });
 });

@@ -55,13 +55,12 @@
     <NoteList>
       <Note title="Both outcomes are announced">
         <p>
-          The error region below the heading is always mounted and
-          <code class="text-text-primary">aria-live="polite"</code>, so a server or network failure
-          is announced without moving focus. On success the form is replaced by an
-          <code class="text-text-primary">Alert</code> with
-          <code class="text-text-primary">role="alert"</code>, so the outcome reaches the reader on
-          either path and focus stays where the user left it. The success screen appears whether or
-          not the address has an account, so the page never reveals which emails are registered.
+          Two regions below the heading are always mounted: failures land in the assertive
+          <code class="text-text-primary">role="alert"</code> one, and the confirmation that
+          replaces the form in the polite <code class="text-text-primary">role="status"</code> one. The
+          outcome reaches the reader on either path, urgently only where it has to be, and focus stays
+          where the user left it. The success screen appears whether or not the address has an account,
+          so the page never reveals which emails are registered.
         </p>
       </Note>
       <Note title="A single labelled field">

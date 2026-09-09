@@ -7,9 +7,10 @@ import { resolveTokenTtlMs } from '../duration.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
+import type { EmailTransport } from '../email/types.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
 import { validateEmailInput } from '../validation.js';
-import { notifyHook, parseBody, privateEndpoints } from './_shared.js';
+import { notifyHook, parseBody, privateEndpoints, requireEmailTransport } from './_shared.js';
 
 export interface ForgotPasswordHandlerOptions {
   /**
@@ -29,6 +30,7 @@ export function createForgotPasswordHandler<R extends string>(
   // route was wired instead of inside the detached issue-and-mail task, whose
   // failures never reach the client.
   const resetTtlMs = resolveTokenTtlMs(deps.config.tokenTtl, 'passwordReset');
+  const transport = requireEmailTransport(deps, 'createForgotPasswordHandler');
 
   return privateEndpoints({
     POST: async ({ request, getClientAddress }) => {
@@ -56,7 +58,7 @@ export function createForgotPasswordHandler<R extends string>(
         // delivery stays durable.
         void (async () => {
           try {
-            await issuePasswordReset(deps, user, resetTtlMs, options.resetEmail);
+            await issuePasswordReset(deps, user, resetTtlMs, transport, options.resetEmail);
           } catch (err) {
             // Log by user id, not email — keep PII out of stderr where the
             // consumer's logger may not redact it; the hook gets the address.
@@ -91,6 +93,7 @@ async function issuePasswordReset<R extends string>(
   deps: AuthDeps<R>,
   user: FullAuthUser<R>,
   ttlMs: number,
+  transport: EmailTransport,
   resetEmail?: MailBuilder
 ): Promise<void> {
   const token = generateSecureToken();
@@ -105,5 +108,5 @@ async function issuePasswordReset<R extends string>(
   const { t, appName, from } = resolveEmailSettings(deps.config);
   const ctx = { name: user.name, url: resetUrl.toString(), appName, from, t };
   const built = resetEmail?.(ctx) ?? buildPasswordResetEmail(ctx, t);
-  await deps.email.send({ from, ...built, to: user.email });
+  await transport.send({ from, ...built, to: user.email });
 }

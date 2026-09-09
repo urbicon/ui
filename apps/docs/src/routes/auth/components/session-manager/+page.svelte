@@ -84,12 +84,15 @@
           <code class="text-text-primary">aria-busy</code> on the row that is actually working.
         </p>
       </Note>
-      <Note title="The sign-out buttons share one accessible name">
+      <Note title="Every sign-out button names its device">
         <p>
-          Each row's sign-out button takes its accessible name from the localized "Sign out" with no
-          per-row <code class="text-text-primary">aria-label</code>, so several sessions produce
-          several identically named buttons and a screen-reader user tells them apart through list
-          navigation rather than the button name.
+          The visible text is just "Sign out", but each button carries an
+          <code class="text-text-primary">aria-label</code> with the row's device description appended
+          — "Sign out — Chrome · macOS". A reader tabbing the list hears which session each button ends
+          instead of several identically named buttons, and because the name still begins with the visible
+          word, voice control ("click Sign out") keeps working. The device string is the same heuristic
+          the row shows, so an unrecognised user agent names the button "Sign out — Unknown device" rather
+          than inventing one.
         </p>
       </Note>
     </NoteList>

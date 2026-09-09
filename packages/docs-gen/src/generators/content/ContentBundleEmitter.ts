@@ -64,12 +64,10 @@ export interface ContentBundleResult {
   /** The `@urbicon-ui/design-content` package version the bundle ships under. */
   version: string;
   /**
-   * First 12 hex chars of the catalog's SHA-256. Scoped to the catalog, not to
-   * the bundle: of the 138 files emitted, only `component-catalog.json` reaches
-   * this. Measured — a prop description that lands in
-   * `blocks/components/planner/llm.txt` but not in the catalog leaves it
-   * unmoved. Reproducible since the `generated` stamp came out of it, which is
-   * what makes it worth stating how far it reaches.
+   * First 12 hex chars of a SHA-256 over every file the bundle ships, keyed by
+   * relative path — catalog, llm.txt tree, principles, patterns, verbs, guides
+   * and icons alike. Reproducible: the catalog's `generated` wall-clock stamp is
+   * parsed out before hashing, so two runs over an unchanged tree agree.
    */
   contentHash: string;
 }
@@ -173,19 +171,9 @@ export class ContentBundleEmitter {
     const icons = parseIconRegistry(registry);
     await fs.writeFile(path.join(outputDir, 'icons.json'), JSON.stringify(icons, null, 2), 'utf-8');
 
-    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a catalog fingerprint.
+    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a fingerprint of the bundle.
     const version = await this.readVersion(outputDir);
-    // The catalog carries its own `generated` wall-clock stamp, so hashing it
-    // whole yielded a fingerprint that could not reproduce — two runs of an
-    // unchanged tree disagreed on it. That stamp describes the run, not the
-    // content, and `builtAt` on the next line already says when. Parsed rather
-    // than text-stripped so the hash does not depend on where in the document
-    // the stamp sits or how it is spaced.
-    const { generated: _generated, ...catalogContent } = JSON.parse(catalogRaw);
-    const contentHash = createHash('sha256')
-      .update(JSON.stringify(catalogContent))
-      .digest('hex')
-      .slice(0, 12);
+    const contentHash = await this.fingerprint(outputDir, catalogRaw);
     const meta = { version, builtAt: new Date().toISOString(), contentHash };
     await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
 
@@ -199,6 +187,35 @@ export class ContentBundleEmitter {
       version,
       contentHash
     };
+  }
+
+  /**
+   * SHA-256 over every file the bundle ships, keyed by relative path: a changed
+   * pattern, guide, verb, icon set or llm.txt moves the fingerprint, not only a
+   * changed catalog. Scoping it to the catalog left 212 lines of new pattern
+   * text with the hash they had before, which is the one thing a fingerprint
+   * must not do.
+   *
+   * Two things keep it reproducible. The catalog goes in without its `generated`
+   * wall-clock stamp — that stamp describes the run, not the content, and
+   * `builtAt` beside the hash already says when; it is parsed out rather than
+   * text-stripped so the hash does not depend on where in the document the stamp
+   * sits. And `meta.json` is skipped: it carries the hash, so hashing it would
+   * make the result depend on itself the moment this call moves after the write.
+   */
+  private async fingerprint(outputDir: string, catalogRaw: string): Promise<string> {
+    const { generated: _generated, ...catalogContent } = JSON.parse(catalogRaw);
+    const files = (await glob('**/*', { cwd: outputDir, nodir: true })).sort();
+    const hash = createHash('sha256');
+    for (const rel of files) {
+      if (rel === 'meta.json') continue;
+      const body =
+        rel === 'component-catalog.json'
+          ? JSON.stringify(catalogContent)
+          : await fs.readFile(path.join(outputDir, rel), 'utf-8');
+      hash.update(rel).update('\0').update(body).update('\0');
+    }
+    return hash.digest('hex').slice(0, 12);
   }
 
   /**

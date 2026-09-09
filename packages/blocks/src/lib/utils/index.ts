@@ -68,6 +68,14 @@ export {
 } from './tier-context';
 export * from './types';
 export {
+  computeDisclosureAria,
+  type DisclosureContentProps,
+  type DisclosureTriggerProps,
+  type UseDisclosureInputs,
+  type UseDisclosureReturn,
+  useDisclosure
+} from './use-disclosure.svelte';
+export {
   type FloatingPanelOptions,
   type FloatingPanelState,
   floatingPanelHidden,

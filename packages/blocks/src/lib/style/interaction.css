@@ -173,8 +173,14 @@
 
 @media (pointer: fine) {
   :root {
-    --blocks-touch-target-min: 0;
-    --blocks-touch-spacing: 0;
+    /* `0px`, not `0`: a math function rejects the unitless zero, so
+       `max(1rem, var(--blocks-touch-target-min))` dropped the whole declaration
+       on every fine pointer — measured in Chromium and WebKit. With the unit,
+       the same expression yields the 1rem floor there and the touch floor on a
+       coarse pointer, which is what a consumer computing a column width or an
+       indent from these tokens needs. */
+    --blocks-touch-target-min: 0px;
+    --blocks-touch-spacing: 0px;
   }
 }
 

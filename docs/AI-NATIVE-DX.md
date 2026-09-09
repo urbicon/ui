@@ -55,8 +55,8 @@ server.
 `design-system/` holds layers 4 and 5 of the five-layer design model:
 
 - `principles.md` — heuristics, paradigm profiles, the change decision tree
-- `patterns/*.md` — composition patterns: settings page, dashboard, form page, tab
-  navigation, onboarding guide
+- `patterns/*.md` — composition patterns, one file per page archetype; `urbicon pattern`
+  with no name lists what the bundle ships
 
 Served locally by `urbicon principles` / `urbicon pattern`, remotely by
 `get_design_principles` / `get_pattern`, both out of the `design-content` bundle.

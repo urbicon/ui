@@ -6,6 +6,8 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Button, ClipboardListIcon, Collapsible, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
+  import { SiblingRowDisclosure } from './examples';
+  import siblingRowDisclosureCode from './examples/SiblingRowDisclosure.svelte?raw';
 
   let controlledOpen = $state(false);
 </script>
@@ -137,6 +139,26 @@
       </div>
     </CodeExample>
   </div>
+</Section>
+
+<!-- ─── Without the layout ─── -->
+
+<Section marker id="disclosure" title="Without the layout">
+  <p class="text-text-secondary mb-6 text-sm leading-relaxed">
+    Collapsible wraps trigger and content in one element. When the revealed content has to be a
+    sibling instead — the next row of the same grid, a panel in another column —
+    <code class="text-text-primary">useDisclosure</code> gives you the same wiring on its own: the open
+    state, one toggle, and the two attribute records to spread. Everything else, including the layout
+    and the animation, is yours.
+  </p>
+
+  <CodeExample
+    title="Detail row on the same grid"
+    description="The hook takes the ids you generate and hands back triggerProps and contentProps. Reach for it only when the sibling layout is the point; inside one wrapper, Collapsible is less code."
+    code={siblingRowDisclosureCode}
+  >
+    <SiblingRowDisclosure />
+  </CodeExample>
 </Section>
 
 <!-- ─── Customization ─── -->

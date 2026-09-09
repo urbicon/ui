@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetcherAnswering, mounter, settle } from '../__fixtures__/fetcher.js';
+import { errorMessage, errorRegion } from '../__fixtures__/live-regions.js';
 import type { PushPermissionPromptProps } from './index.js';
 import PushPermissionPrompt from './PushPermissionPrompt.svelte';
 
@@ -70,7 +71,7 @@ describe('PushPermissionPrompt (component)', () => {
 
     await userEvent.click(enableButton());
     await settle();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
 
     // The prompt deliberately stays open on an operational failure, so the busy
     // flag must clear — a second click has to reach `subscribeToPush` again, or
@@ -92,7 +93,7 @@ describe('PushPermissionPrompt (component)', () => {
 
     await userEvent.click(enableButton());
     await settle();
-    expect(screen.getByRole('alert').textContent).toContain('already registered');
+    expect(errorRegion().textContent).toContain('already registered');
 
     await userEvent.click(enableButton());
     await settle();
@@ -114,7 +115,7 @@ describe('PushPermissionPrompt (component)', () => {
       // Same user-facing text either way — what separates the two paths is
       // that a request which *reached* the server is not a request failure,
       // so nothing may be logged as one.
-      expect(screen.getByRole('alert').textContent).toContain('Enabling push notifications failed');
+      expect(errorRegion().textContent).toContain('Enabling push notifications failed');
       expect(console.error).not.toHaveBeenCalled();
     }
   );
@@ -125,12 +126,15 @@ describe('PushPermissionPrompt (component)', () => {
 
     // Same contract as every other component's `error` slot: it styles the
     // message, so it must not exist while there is no message.
-    const region = document.body.querySelector('[aria-live="polite"]') as HTMLElement;
+    const region = errorRegion();
     expect(region.className).not.toContain('qa-error');
+    expect(region.textContent?.trim()).toBe('');
     await userEvent.click(enableButton());
     await settle();
 
-    expect(screen.getByRole('alert').className).toContain('qa-error');
+    // The message lands in the region that was already there, not in a new one.
+    expect(errorRegion()).toBe(region);
+    expect(errorMessage().className).toContain('qa-error');
     expect(region.className).not.toContain('qa-error');
   });
 
@@ -144,5 +148,168 @@ describe('PushPermissionPrompt (component)', () => {
 
     expect(onUnavailable).toHaveBeenCalledWith('unsupported');
     expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+  });
+});
+
+describe('PushPermissionPrompt — focus after the card closes', () => {
+  const dismissButton = () => screen.getByRole('button', { name: 'Not now' });
+
+  /**
+   * A control the page owns. Everything mounts into `document.body`, so append
+   * order is document position: called before `render` it sits before the card,
+   * called after it sits after.
+   */
+  function pageControl(label: string): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.textContent = label;
+    document.body.append(button);
+    return button;
+  }
+
+  it('lands on the next tab stop after the card', async () => {
+    render({});
+    const next = pageControl('Next');
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // The card is gone; without this the focus ring is on <body> and the next
+    // Tab starts over at the top of the page.
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(next);
+  });
+
+  it('falls back to the tab stop before the card when nothing follows it', async () => {
+    const earlier = pageControl('Earlier');
+    render({});
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    expect(document.activeElement).toBe(earlier);
+  });
+
+  it('skips a control that is not rendered, and touches no element it does not own', async () => {
+    const earlier = pageControl('Earlier');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Notifications';
+    document.body.append(heading);
+    render({});
+    const hidden = pageControl('Hidden');
+    hidden.style.display = 'none';
+    const inHiddenBox = document.createElement('div');
+    inHiddenBox.style.display = 'none';
+    const nested = document.createElement('button');
+    inHiddenBox.append(nested);
+    document.body.append(inHiddenBox);
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // Neither hidden control can take the ring, so the one before the card does.
+    expect(document.activeElement).toBe(earlier);
+    // A heading is not a tab stop and is not made into one: nothing outside the
+    // card is mutated, so a page's own markup keeps its focus behaviour.
+    expect(heading.hasAttribute('tabindex')).toBe(false);
+  });
+
+  it('takes a control that overrides its hidden container, visibility being inherited', async () => {
+    pageControl('Earlier');
+    render({});
+    const hiddenBox = document.createElement('div');
+    hiddenBox.style.visibility = 'hidden';
+    const shown = document.createElement('button');
+    shown.textContent = 'Shown';
+    shown.style.visibility = 'visible';
+    hiddenBox.append(shown);
+    document.body.append(hiddenBox);
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // `visibility: visible` on the control wins over the container, so it is
+    // rendered and focusable — the next tab stop after the card.
+    expect(document.activeElement).toBe(shown);
+  });
+
+  it('gives focus back to the control that had it when the prompt appeared', async () => {
+    const opener = document.createElement('button');
+    opener.textContent = 'Notification settings';
+    document.body.append(opener);
+    opener.focus();
+    subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
+    render({ fetcher: fetcherAnswering(200, {}) });
+    pageControl('Next');
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+    // The restore target wins over the neighbour: it is where the user was.
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('leaves focus where a dismissal callback put it', async () => {
+    const consumerTarget = pageControl('Consumer');
+    render({ onDismissed: () => consumerTarget.focus() });
+    pageControl('Next');
+
+    await userEvent.click(dismissButton());
+    await settle();
+
+    // The docs send a consumer to `onDismissed` to place focus; the callback
+    // runs first and the prompt must not override it a tick later.
+    expect(document.activeElement).toBe(consumerTarget);
+  });
+
+  it('leaves focus where an unavailable callback put it', async () => {
+    const consumerTarget = pageControl('Consumer');
+    subscribeToPush.mockResolvedValue({ status: 'unsupported' });
+    render({ onUnavailable: () => consumerTarget.focus() });
+    pageControl('Next');
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(document.activeElement).toBe(consumerTarget);
+  });
+
+  it('leaves focus where a subscribe callback put it', async () => {
+    const consumerTarget = pageControl('Consumer');
+    subscribeToPush.mockResolvedValue({ status: 'subscribed', subscription });
+    render({
+      fetcher: fetcherAnswering(200, {}),
+      onSubscribed: () => consumerTarget.focus()
+    });
+    pageControl('Next');
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(document.activeElement).toBe(consumerTarget);
+  });
+
+  it('leaves focus alone when the user moved it away while enabling', async () => {
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+    let release: (() => void) | undefined;
+    subscribeToPush.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ status: 'subscribed', subscription });
+        })
+    );
+    render({ fetcher: fetcherAnswering(200, {}) });
+
+    await userEvent.click(enableButton());
+    const elsewhere = document.createElement('input');
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    release?.();
+    await settle();
+
+    // A settled request is not a reason to move someone who has moved on.
+    expect(document.activeElement).toBe(elsewhere);
   });
 });

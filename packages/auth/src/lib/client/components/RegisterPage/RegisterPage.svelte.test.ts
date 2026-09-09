@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { screen, within } from '@testing-library/dom';
+import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PASSWORD_POLICY } from '../../../password-policy.js';
@@ -10,6 +10,7 @@ import {
   mounter,
   settle
 } from '../__fixtures__/fetcher.js';
+import { errorMessage, errorRegion, liveRegionsAround } from '../__fixtures__/live-regions.js';
 import type { RegisterPageProps } from './index.js';
 import RegisterPage from './RegisterPage.svelte';
 
@@ -24,8 +25,6 @@ const render = (props: Partial<RegisterPageProps> = {}) =>
     token: 'inv-1',
     ...props
   } as RegisterPageProps);
-
-const liveRegion = () => document.body.querySelector('[aria-live="polite"]') as HTMLElement;
 
 async function fill(password = 'hunter2hunter2', confirm = password) {
   await userEvent.type(screen.getByLabelText(labelled('Full name')), 'Ada');
@@ -96,7 +95,7 @@ describe('RegisterPage', () => {
     // Same guard as createAuthStore.register: a success body without the
     // account it created is a captive portal or a broken proxy, not a login.
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toContain('Something went wrong');
+    expect(errorRegion().textContent).toContain('Something went wrong');
   });
 
   it('refuses mismatching passwords before any request', async () => {
@@ -112,7 +111,7 @@ describe('RegisterPage', () => {
     expect(screen.getByLabelText(labelled('Confirm password')).getAttribute('aria-invalid')).toBe(
       'true'
     );
-    expect(within(liveRegion()).getByRole('alert').textContent).toContain('Passwords do not match');
+    expect(errorRegion().textContent).toContain('Passwords do not match');
   });
 
   it('refuses a password below the policy before any request, naming the rule', async () => {
@@ -123,7 +122,7 @@ describe('RegisterPage', () => {
     await submit();
 
     expect(fetcher).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toContain('At least 8 characters');
+    expect(errorRegion().textContent).toContain('At least 8 characters');
   });
 
   it('announces a refusal in the live region and keeps onSuccess unfired', async () => {
@@ -137,10 +136,10 @@ describe('RegisterPage', () => {
     await fill();
     await submit();
 
-    const alert = screen.getByRole('alert');
-    expect(liveRegion().contains(alert)).toBe(true);
-    expect(alert.textContent).toContain('This email is already registered.');
-    expect(alert.className).toContain('qa-error');
+    const message = errorMessage();
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(message.textContent).toContain('This email is already registered.');
+    expect(message.className).toContain('qa-error');
     expect(onSuccess).not.toHaveBeenCalled();
   });
 });

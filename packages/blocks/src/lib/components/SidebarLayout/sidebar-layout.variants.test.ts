@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { sidebarLayoutVariants } from './sidebar-layout.variants';
+import { SIDEBAR_TOGGLE_GUTTER, sidebarLayoutVariants } from './sidebar-layout.variants';
 
-const SLOTS = ['root', 'mobileHeader', 'main', 'inner'] as const;
+// Read off the config rather than listed: a slot added to the layout joins the
+// "no dark:" sweep and the smoke test on its own instead of leaving behind a
+// case nobody wrote.
+const SLOTS = Object.keys(sidebarLayoutVariants.config.slots ?? {});
+/** `Object.keys` widens to `string`, which the slot record does not admit. */
+const slotFns = (variants = sidebarLayoutVariants()) =>
+  variants as unknown as Record<string, () => string>;
 
 describe('sidebarLayoutVariants', () => {
   it('provides all slot functions', () => {
-    const styles = sidebarLayoutVariants();
+    const styles = slotFns();
     for (const slot of SLOTS) {
       expect(typeof styles[slot]).toBe('function');
     }
@@ -22,6 +28,35 @@ describe('sidebarLayoutVariants', () => {
     );
   });
 
+  it('replaces that gutter with the rail-grip strip when the component folds it in', () => {
+    // The strip is not a variant axis — every axis of this config ships as a component prop — so
+    // the component folds the class in at the call site. What matters is that it REPLACES the
+    // plain padding rather than joining it: two `lg:pl-*` would leave the stylesheet's emit order
+    // deciding. The default sits in the var() fallback, because a custom property stamped on the
+    // root would outrank both a consumer's `style` attribute and any `[--…:…]` class.
+    const left = sidebarLayoutVariants({ side: 'left' }).main({
+      class: SIDEBAR_TOGGLE_GUTTER.left
+    });
+    expect(left).toContain(SIDEBAR_TOGGLE_GUTTER.left);
+    expect(left).not.toContain('lg:pl-[var(--sidebar-effective-width)]');
+
+    const right = sidebarLayoutVariants({ side: 'right' }).main({
+      class: SIDEBAR_TOGGLE_GUTTER.right
+    });
+    expect(right).toContain(SIDEBAR_TOGGLE_GUTTER.right);
+    expect(right).not.toContain('lg:pr-[var(--sidebar-effective-width)]');
+  });
+
+  it('lets a consumer slotClass beat the rail-grip strip', () => {
+    // The component passes the strip before `slotClasses.main`, so an override of that padding
+    // still wins — the order is the whole contract here.
+    const folded = sidebarLayoutVariants({ side: 'left' }).main({
+      class: [SIDEBAR_TOGGLE_GUTTER.left, 'lg:pl-0']
+    });
+    expect(folded).toContain('lg:pl-0');
+    expect(folded).not.toContain(SIDEBAR_TOGGLE_GUTTER.left);
+  });
+
   it('caps the content column per contentMaxWidth', () => {
     expect(sidebarLayoutVariants({ contentMaxWidth: 'none' }).inner()).toContain('max-w-none');
     expect(sidebarLayoutVariants({ contentMaxWidth: 'md' }).inner()).toContain('max-w-5xl');
@@ -36,8 +71,25 @@ describe('sidebarLayoutVariants', () => {
     expect(styles.root()).toContain('bg-surface-base');
   });
 
+  it('parks the toggle rail on the sidebar edge, desktop only', () => {
+    // The grip rides the same custom property the panel animates, on the side
+    // the panel is attached to — otherwise it drifts away from the rail it
+    // belongs to whenever the sidebar collapses.
+    expect(sidebarLayoutVariants({ side: 'left' }).toggleRail()).toContain(
+      'left-[var(--sidebar-effective-width)]'
+    );
+    expect(sidebarLayoutVariants({ side: 'right' }).toggleRail()).toContain(
+      'right-[var(--sidebar-effective-width)]'
+    );
+    // Mirror of mobileHeader's `lg:hidden`: exactly one of the two seams that
+    // render the `toggle` snippet is visible at any width.
+    const rail = sidebarLayoutVariants().toggleRail();
+    expect(rail).toContain('hidden');
+    expect(rail).toContain('lg:block');
+  });
+
   it('never emits dark: overrides', () => {
-    const styles = sidebarLayoutVariants();
+    const styles = slotFns();
     for (const slot of SLOTS) {
       expect(styles[slot]()).not.toMatch(/\bdark:/);
     }

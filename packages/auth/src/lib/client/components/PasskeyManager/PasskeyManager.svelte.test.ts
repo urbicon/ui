@@ -5,6 +5,7 @@ import { type ComponentProps, tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { MAX_DISPLAY_NAME_LENGTH } from '../../../display-name.js';
 import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
+import { errorRegion, statusRegion } from '../__fixtures__/live-regions.js';
 import ProviderHarness from '../__fixtures__/ProviderHarness.svelte';
 import type { PasskeyManagerProps } from './index.js';
 import PasskeyManager from './PasskeyManager.svelte';
@@ -46,7 +47,7 @@ describe('PasskeyManager (component)', () => {
     // "No passkeys registered." next to a 401 would invite the user to add a
     // key they may already have.
     expect(screen.queryByText('No passkeys registered.')).toBeNull();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
   });
 
   it('never leaves the list region blank and silent after a failed load', async () => {
@@ -62,7 +63,7 @@ describe('PasskeyManager (component)', () => {
     render({ fetcher: fetcher as unknown as typeof globalThis.fetch });
     await settle();
 
-    expect(screen.queryByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
     expect(screen.queryByText('No passkeys registered.')).toBeNull();
 
     await userEvent.click(screen.getByRole('button', { name: 'Add passkey' }));
@@ -92,7 +93,7 @@ describe('PasskeyManager (component)', () => {
 
     // A failed delete is not a failed load: the rows on screen are still valid.
     expect(screen.getByText('MacBook')).toBeTruthy();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
   });
 
   it('drops the passkey once the server confirms the delete', async () => {
@@ -127,7 +128,7 @@ describe('PasskeyManager (component)', () => {
 
       // The server answered; a body that is valid JSON but not an object must
       // not be reported as "check your connection".
-      expect(screen.getByRole('alert').textContent).toContain('An error occurred');
+      expect(errorRegion().textContent).toContain('An error occurred');
     }
   );
 
@@ -152,7 +153,7 @@ describe('PasskeyManager (component)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add passkey' }));
     await settle();
 
-    expect(screen.getByRole('alert').textContent).toContain('The passkey prompt was cancelled.');
+    expect(errorRegion().textContent).toContain('The passkey prompt was cancelled.');
     // `registering` must be cleared on the failure path too — a stuck busy flag
     // would leave the only way to add a passkey permanently disabled.
     expect(screen.getByRole('button', { name: 'Add passkey' }).hasAttribute('disabled')).toBe(
@@ -282,10 +283,10 @@ describe('PasskeyManager — inline rename', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await settle();
 
-    // The row's text changes silently for a screen reader; the panel's live
-    // region is what reports it. `FormErrorAlert` renders success through the
-    // same `Alert`, which carries `role="alert"` for every intent.
-    expect(screen.getByRole('alert').textContent).toContain('Passkey renamed.');
+    // The row's text changes silently for a screen reader; the panel's polite
+    // region is what reports it — a completed rename is not an alert.
+    expect(statusRegion().textContent).toContain('Passkey renamed.');
+    expect(errorRegion().textContent?.trim()).toBe('');
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: /Rename — Work laptop/ })
     );
@@ -305,7 +306,7 @@ describe('PasskeyManager — inline rename', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await settle();
 
-    expect(screen.getByRole('alert').textContent).toContain('Name is required.');
+    expect(errorRegion().textContent).toContain('Name is required.');
     // Still editing: the user has to be able to correct the name in place.
     expect(field().value).toBe('x');
     // And the row keeps the name the server still holds.
@@ -324,7 +325,7 @@ describe('PasskeyManager — inline rename', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await settle();
 
-    expect(screen.getByRole('alert').textContent).toContain('Network error');
+    expect(errorRegion().textContent).toContain('Network error');
   });
 
   it('re-reads the list when a 2xx carries no row', async () => {
@@ -356,13 +357,13 @@ describe('PasskeyManager — inline rename', () => {
     await openRename();
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await settle();
-    expect(screen.getByRole('alert').textContent).toContain('Passkey renamed.');
+    expect(statusRegion().textContent).toContain('Passkey renamed.');
 
     await userEvent.click(screen.getByRole('button', { name: /Rename — Renamed/ }));
     await settle();
     // "Passkey renamed." next to a form that has not been submitted yet would
     // report a write that has not happened.
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(statusRegion().textContent?.trim()).toBe('');
   });
 
   it('resolves the rename slots through the provider cascade', async () => {

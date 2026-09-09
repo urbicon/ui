@@ -60,9 +60,9 @@
     <NoteList>
       <Note title="The error region outlives the step it came from">
         <p>
-          The <code class="text-text-primary">aria-live="polite"</code> region sits directly under the
-          heading, above the idle/setup/backup branch rather than inside it. An error raised while confirming
-          a code is therefore still announced after the view changes; a region nested in the branch would
+          The <code class="text-text-primary">role="alert"</code> region sits directly under the heading,
+          above the idle/setup/backup branch rather than inside it. An error raised while confirming a
+          code is therefore still announced after the view changes; a region nested in the branch would
           unmount with the step before the reader heard it.
         </p>
       </Note>
@@ -85,14 +85,19 @@
           numeric keypad and lets the OS offer the code directly.
         </p>
       </Note>
-      <Note title="Advancing a step does not move focus">
+      <Note title="Advancing a step moves focus to its heading">
         <p>
-          Moving from idle to setup to backup codes swaps the content in place without moving focus,
-          and the live region above carries only errors; on a successful step it is cleared first,
-          so it is empty exactly when the view changes. A screen-reader user gets no cue that the
-          step advanced, so move focus to the new step yourself if this flow matters to you. The QR
-          code is your snippet, so its alternative text is yours to provide; the secret sits next to
-          it as text for anyone who cannot scan.
+          Moving from idle to setup to backup codes swaps the content in place, so the button that
+          was pressed is gone. Each step opens with an
+          <code class="text-text-primary">&lt;h3&gt;</code> carrying
+          <code class="text-text-primary">tabindex="-1"</code>, and focus lands there once the new
+          step has rendered — the reader hears "Save your backup codes" instead of falling to
+          <code class="text-text-primary">&lt;body&gt;</code>. Turning 2FA off does the same: the
+          disable form is replaced by the enable button, and focus goes to the panel heading, which
+          is also where a cancelled setup returns. A refused code changes no step, so nothing moves
+          and the caret stays in the field being corrected. The QR code is your snippet, so its
+          alternative text is yours to provide; the secret sits next to it as text for anyone who
+          cannot scan.
         </p>
       </Note>
     </NoteList>

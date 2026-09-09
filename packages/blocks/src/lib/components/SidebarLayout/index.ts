@@ -1,6 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
+import type { DisclosureTriggerProps } from '$lib/utils/use-disclosure.svelte';
 import type { SidebarLayoutSlots, SidebarLayoutVariants } from './sidebar-layout.variants';
 
 /**
@@ -11,14 +12,39 @@ import type { SidebarLayoutSlots, SidebarLayoutVariants } from './sidebar-layout
 export interface MobileHeaderContext {
   /** Open the sidebar (mobile overlay or collapsible panel). */
   openSidebar: () => void;
+  /** Flip the sidebar open or closed. The `toggle` snippet is the wired-up version of this. */
+  toggle: () => void;
   /** Current open state of the sidebar. */
   sidebarOpen: boolean;
 }
 
 /**
- * Slot keys for `slotClasses`. The tv-driven slots (`SidebarLayoutSlots`:
- * root | mobileHeader | main | inner) are the layout's own; each remaining key
- * is one slot of the embedded `<Sidebar>` under a `sidebar` prefix.
+ * Snippet payload for the `toggle` slot — Collapsible's `trigger` vocabulary
+ * (`open`, `toggle`, `triggerId`, `contentId`) plus the ready-made attribute
+ * record from `useDisclosure`.
+ *
+ * The layout renders the snippet at both seams it owns (the rail edge on
+ * desktop, the header on mobile) and hands each render its **own**
+ * `triggerId`, so spreading `triggerProps` on both cannot produce a duplicate
+ * id. `contentId` is the sidebar panel and is the same for both.
+ */
+export interface SidebarToggleContext {
+  /** Whether the sidebar is currently open. */
+  open: boolean;
+  /** Flip it. */
+  toggle: () => void;
+  /** DOM id for this render of the trigger — already inside `triggerProps`. */
+  triggerId: string;
+  /** DOM id of the sidebar panel this trigger controls. */
+  contentId: string;
+  /** `id` / `aria-expanded` / `aria-controls` — spread these onto your button. */
+  triggerProps: DisclosureTriggerProps;
+}
+
+/**
+ * Slot keys for `slotClasses`. `SidebarLayoutSlots` is the layout's own set,
+ * derived from its `tv()` config; each remaining key is one slot of the
+ * embedded `<Sidebar>` under a `sidebar` prefix.
  *
  * Both halves of that forwarding derive from `sidebarVariants` — this union by
  * template literal, the mapping in `SidebarLayout.svelte` by walking the same
@@ -90,13 +116,30 @@ export type SidebarForwardKey = `sidebar${Capitalize<SidebarSlots>}`;
  * </SidebarLayout>
  * ```
  *
- * @example Collapsible — toggleable on all viewports
+ * @example Collapsible — the toggle snippet, remembered across reloads
  * ```svelte
- * <SidebarLayout bind:open={sidebarOpen} mode="collapsible" sidebarWidth="16rem">
+ * <script>
+ *   import { SidebarLayout, Button, MenuIcon, createPersistentState } from '@urbicon-ui/blocks';
+ *
+ *   const railOpen = createPersistentState({ key: 'sidebar', defaultValue: true });
+ * </script>
+ *
+ * <SidebarLayout bind:open={railOpen.value} mode="collapsible" sidebarWidth="16rem">
  *   {#snippet sidebarHeader()}<span class="font-semibold">App</span>{/snippet}
  *   {#snippet sidebar()}<nav class="p-3"><!-- … --></nav>{/snippet}
  *
- *   <Button onclick={() => (sidebarOpen = !sidebarOpen)}>Toggle</Button>
+ *   {#snippet toggle(rail)}
+ *     <Button
+ *       variant="ghost"
+ *       size="sm"
+ *       {...rail.triggerProps}
+ *       onclick={rail.toggle}
+ *       aria-label={rail.open ? 'Collapse sidebar' : 'Expand sidebar'}
+ *     >
+ *       <MenuIcon />
+ *     </Button>
+ *   {/snippet}
+ *
  *   <!-- main content -->
  * </SidebarLayout>
  * ```
@@ -156,9 +199,32 @@ export interface SidebarLayoutProps extends Omit<HTMLAttributes<HTMLDivElement>,
   /**
    * Mobile header bar, hidden on desktop in `responsive` mode. Receives a
    * helper to open the sidebar so a hamburger button needs no extra wiring.
-   * If omitted, no mobile header is rendered.
+   * If omitted, no mobile header is rendered — unless `toggle` is given, which
+   * needs the header bar as its mobile seam.
+   *
+   * With `toggle`, the header already carries the sidebar control: leave your
+   * own hamburger out, or the bar shows two of them.
    */
   mobileHeader?: Snippet<[MobileHeaderContext]>;
+
+  /**
+   * The control that opens and closes the sidebar, rendered by the layout at
+   * the seams it owns: the rail edge on desktop (`mode="collapsible"` only —
+   * a `responsive` sidebar is permanent there and `open` would toggle nothing)
+   * and the header bar on mobile. One snippet, both places, each render with
+   * its own `triggerId`.
+   *
+   * The desktop grip floats over the content column, so while it renders the
+   * layout widens the content offset by `--sidebar-toggle-gutter`, which
+   * defaults to `3.5rem` — room for an icon button. A wider control needs a
+   * wider strip: set the property on the layout root, e.g.
+   * `class="[--sidebar-toggle-gutter:5rem]"`.
+   *
+   * Persistence is deliberately not a prop: `createPersistentState` plus
+   * `bind:open` is the two-line version and keeps one storage story in the app.
+   * @summary The open/close control for the sidebar, placed by the layout at the rail and header.
+   */
+  toggle?: Snippet<[SidebarToggleContext]>;
 
   /** Page content rendered inside the centered main column. */
   children?: Snippet;

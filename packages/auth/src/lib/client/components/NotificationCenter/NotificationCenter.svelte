@@ -28,6 +28,18 @@
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
   const unreadCount = $derived(notifications.filter((n) => !n.readAt).length);
 
+  /**
+   * The machine-readable half of `<time>`: the reader gets the exact instant,
+   * the label the rounded one. `toISOString()` throws on an unparseable date
+   * and would take the whole list down with it, so a record whose timestamp
+   * does not parse loses the attribute instead — the same record the relative
+   * label already renders as best it can.
+   */
+  function iso(date: Date | string): string | undefined {
+    const value = date instanceof Date ? date : new Date(date);
+    return Number.isNaN(value.getTime()) ? undefined : value.toISOString();
+  }
+
   function timeAgo(date: Date | string): string {
     const now = Date.now();
     const then = (date instanceof Date ? date : new Date(date)).getTime();
@@ -96,6 +108,12 @@
                     class={cls('bg-primary mr-1.5 inline-block h-2 w-2 rounded-full')}
                     aria-hidden="true"
                   ></span>
+                  <!-- The dot carries the unread state visually and nothing
+                       else; this is the same state for a reader, so it joins
+                       the row button's name, ahead of the title. `sr-only` is
+                       literal, not routed through `cls()`: dropped in
+                       `unstyled` mode the text would become visible. -->
+                  <span class="sr-only">{t.notifications.center.unread}</span>
                 {/if}
                 {notification.title}
               </span>
@@ -104,7 +122,10 @@
                   {notification.body}
                 </span>
               {/if}
-              <time class={cls('text-text-tertiary text-xs')}>
+              <time
+                class={cls('text-text-tertiary text-xs')}
+                datetime={iso(notification.createdAt)}
+              >
                 {timeAgo(notification.createdAt)}
               </time>
             </button>
@@ -115,7 +136,7 @@
               onclick={() => onDelete?.(notification.id)}
               {unstyled}
               class={cls('shrink-0')}
-              aria-label={t.notifications.center.delete}
+              aria-label={`${t.notifications.center.delete} — ${notification.title}`}
             >
               &times;
             </Button>

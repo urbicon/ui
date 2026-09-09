@@ -9,6 +9,7 @@ import {
   mounter,
   settle
 } from '../__fixtures__/fetcher.js';
+import { errorMessage, errorRegion, liveRegionsAround } from '../__fixtures__/live-regions.js';
 import type { LoginPageProps } from './index.js';
 import LoginPage from './LoginPage.svelte';
 
@@ -20,8 +21,6 @@ import LoginPage from './LoginPage.svelte';
 const mountInBody = mounter();
 const render = (props: Partial<LoginPageProps> = {}) =>
   mountInBody(LoginPage, props as LoginPageProps);
-
-const liveRegion = () => document.body.querySelector('[aria-live="polite"]') as HTMLElement;
 
 async function signIn(email = 'ada@example.com', password = 'hunter2hunter2') {
   await userEvent.type(screen.getByLabelText(labelled('Email address')), email);
@@ -49,10 +48,10 @@ describe('LoginPage — form paths', () => {
     expect(screen.getByRole('link', { name: 'Create account' }).getAttribute('href')).toBe(
       '/auth/register'
     );
-    // The region exists before there is anything to say — that is what makes
-    // a later error an announcement rather than a silent DOM change.
-    expect(liveRegion()).toBeTruthy();
-    expect(screen.queryByRole('alert')).toBeNull();
+    // Both regions exist before there is anything to say — that is what makes
+    // a later message an announcement rather than a silent DOM change.
+    expect(errorRegion()).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).toBe('');
   });
 
   it('calls onSuccess once the server accepts the credentials', async () => {
@@ -89,10 +88,10 @@ describe('LoginPage — form paths', () => {
 
     await signIn();
 
-    const alert = screen.getByRole('alert');
-    expect(liveRegion().contains(alert)).toBe(true);
-    expect(alert.textContent).toContain('Invalid email or password');
-    expect(alert.className).toContain('qa-error');
+    const message = errorMessage();
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(message.textContent).toContain('Invalid email or password');
+    expect(message.className).toContain('qa-error');
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
@@ -134,7 +133,7 @@ describe('LoginPage — form paths', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
     await settle();
 
-    expect(screen.getByRole('alert').textContent).toContain('Invalid code');
+    expect(errorRegion().textContent).toContain('Invalid code');
     expect(screen.getByLabelText(labelled('Authentication code'))).toBeTruthy();
   });
 
@@ -148,7 +147,7 @@ describe('LoginPage — form paths', () => {
     // reporting success would send the consumer into a navigate → guard-bounce
     // loop with no session and no feedback.
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toContain('Something went wrong');
+    expect(errorRegion().textContent).toContain('Something went wrong');
   });
 
   it('does not treat a 200 without a user as a verified code either', async () => {
@@ -167,7 +166,7 @@ describe('LoginPage — form paths', () => {
     await settle();
 
     expect(onSuccess).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toContain('Something went wrong');
+    expect(errorRegion().textContent).toContain('Something went wrong');
     expect(screen.getByLabelText(labelled('Authentication code'))).toBeTruthy();
   });
 
@@ -176,7 +175,7 @@ describe('LoginPage — form paths', () => {
 
     await signIn();
 
-    expect(screen.getByRole('alert').textContent).toContain('Network error');
+    expect(errorRegion().textContent).toContain('Network error');
   });
 
   it('hides the password form in passkey-only mode', () => {
@@ -220,7 +219,7 @@ describe('LoginPage — form paths', () => {
 
         // The server refused before any ceremony ran — "sign-in failed" would
         // point the user at their authenticator, which was never asked.
-        expect(screen.getByRole('alert').textContent).toContain('An error occurred');
+        expect(errorRegion().textContent).toContain('An error occurred');
       }
     );
   });

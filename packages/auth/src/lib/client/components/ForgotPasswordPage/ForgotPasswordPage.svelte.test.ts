@@ -9,14 +9,19 @@ import {
   mounter,
   settle
 } from '../__fixtures__/fetcher.js';
+import {
+  errorMessage,
+  errorRegion,
+  liveRegionsAround,
+  statusRegion,
+  successMessage
+} from '../__fixtures__/live-regions.js';
 import ForgotPasswordPage from './ForgotPasswordPage.svelte';
 import type { ForgotPasswordPageProps } from './index.js';
 
 const mountInBody = mounter();
 const render = (props: Partial<ForgotPasswordPageProps> = {}) =>
   mountInBody(ForgotPasswordPage, props as ForgotPasswordPageProps);
-
-const liveRegion = () => document.body.querySelector('[aria-live="polite"]') as HTMLElement;
 
 async function request(email = 'ada@example.com') {
   await userEvent.type(screen.getByLabelText(labelled('Email address')), email);
@@ -34,10 +39,11 @@ describe('ForgotPasswordPage', () => {
     expect(screen.getByRole('link', { name: 'Back to sign in' }).getAttribute('href')).toBe(
       '/auth/login'
     );
-    // The region exists before there is anything to say — that is what makes
-    // a later error an announcement rather than a silent DOM change.
-    expect(liveRegion()).toBeTruthy();
-    expect(screen.queryByRole('alert')).toBeNull();
+    // Both regions exist before there is anything to say — that is what makes
+    // a later message an announcement rather than a silent DOM change.
+    expect(errorRegion()).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).toBe('');
+    expect(statusRegion().textContent?.trim()).toBe('');
   });
 
   it('replaces the form with the enumeration-safe confirmation on success', async () => {
@@ -46,11 +52,13 @@ describe('ForgotPasswordPage', () => {
 
     await request();
 
-    const alert = screen.getByRole('alert');
-    expect(alert.textContent).toContain('If an account with that email exists');
-    expect(alert.className).toContain('qa-success');
-    // Announced through the same region an error would use.
-    expect(liveRegion().contains(alert)).toBe(true);
+    // A confirmation is not urgent: it goes to the polite region, and to only
+    // that one.
+    const message = successMessage();
+    expect(message.textContent).toContain('If an account with that email exists');
+    expect(message.className).toContain('qa-success');
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(errorRegion().textContent?.trim()).toBe('');
     expect(screen.queryByRole('button', { name: 'Send reset link' })).toBeNull();
     const [, init] = vi.mocked(fetcher).mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string)).toEqual({ email: 'ada@example.com' });
@@ -64,10 +72,10 @@ describe('ForgotPasswordPage', () => {
 
     await request();
 
-    const alert = screen.getByRole('alert');
-    expect(liveRegion().contains(alert)).toBe(true);
-    expect(alert.textContent).toContain('Too many requests');
-    expect(alert.className).toContain('qa-error');
+    const message = errorMessage();
+    expect(message.textContent).toContain('Too many requests');
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(message.className).toContain('qa-error');
     expect(screen.getByRole('button', { name: 'Send reset link' })).toBeTruthy();
   });
 
@@ -76,6 +84,6 @@ describe('ForgotPasswordPage', () => {
 
     await request();
 
-    expect(screen.getByRole('alert').textContent).toContain('Network error');
+    expect(errorRegion().textContent).toContain('Network error');
   });
 });
