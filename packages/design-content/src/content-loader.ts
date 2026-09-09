@@ -100,7 +100,7 @@ export interface ContentMeta {
   version: string;
   /** ISO-8601 timestamp of the build. */
   builtAt: string;
-  /** Short fingerprint of the bundled catalog content. */
+  /** Short fingerprint of everything the bundle ships — catalog, llm.txt, design system, verbs, guides, icons. */
   contentHash: string;
 }
 
