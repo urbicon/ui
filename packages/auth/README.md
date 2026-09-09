@@ -184,7 +184,11 @@ export const { POST } = createLoginHandler(authDeps);
 Repeat for `logout`, `register`, `forgot-password`, `reset-password`, `verify-email`, `me`, and
 `password-policy` (`createPasswordPolicyHandler` — it publishes `config.password`, so the sign-up
 and reset forms gate on the same rules the server checks; without it they fall back to the package
-defaults, min 8 and no character classes).
+defaults, min 8 and no character classes). One option worth knowing here:
+`createLogoutHandler(authDeps, { invalidateAccessTokens: true })` also bumps the user's
+`tokenVersion`, so an access token copied before the logout stops verifying — at the price of
+refusing every other device's access token too
+([AUTH.md → Logout](https://ui.urbicon.de/auth/guide#logout)).
 
 **4. UI page** — `src/routes/auth/login/+page.svelte`:
 

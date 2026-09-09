@@ -140,7 +140,8 @@ same shape on `lastError` (cleared by the next success), returns `false` from
 failed operations instead of silently no-opping, and a failed `load` keeps the
 existing list rather than blanking it into a fake empty inbox. `logout` clears
 the local state unconditionally but still reports whether the server revoked
-the session (threading the failure body's wire contract). `checkStatus`
+the session (threading the failure body's wire contract; what that call ends
+server-side, and what it leaves alive, is [Logout](#logout)). `checkStatus`
 distinguishes "signed out" from "could not ask": a 200 or the me-contract's
 `401 { user: null }` resolves the user and reports success, while a transport
 failure or non-contract error leaves the current user untouched and reports
@@ -514,6 +515,70 @@ registry.register({
   recipients: async (data) => [data.userId as string] // data is Record<string, unknown>
 });
 ```
+
+### Logout
+
+`createLogoutHandler(deps)` revokes the refresh token the request's cookie carries
+(when `refreshToken` rotation is configured) and clears both cookies. It requires no
+valid session — a client whose access token has already expired still gets
+`{ success: true }` with its cookies dropped — and a repo failure on the revoke is
+logged, not propagated: the cookies are cleared in a `finally`, so a transient
+database problem cannot leave a live refresh cookie behind.
+
+**What it cannot end is the access token.** A session JWT is verified from its
+signature rather than looked up, so a copy taken before the logout — a `curl`
+session, a shared machine, a synced browser profile — keeps authenticating until
+`jwt.expiresIn` elapses: 15 minutes under `refreshToken` rotation
+(`refreshToken.accessTokenTtl`), 7 days without it. Nothing server-side refuses it,
+because nothing server-side knows it exists. That is the stateless-JWT trade-off,
+and the reason rotation shortens the access-token TTL in the first place.
+
+Close the window at the price below:
+
+<!-- typecheck -->
+```ts
+// src/routes/api/auth/logout/+server.ts
+import { createLogoutHandler } from '@urbicon-ui/auth/server';
+import { authDeps } from '$lib/server/auth-setup';
+
+export const { POST } = createLogoutHandler(authDeps, { invalidateAccessTokens: true });
+```
+
+The handler resolves the user from the session cookie and bumps their
+`tokenVersion` **before** the revoke and before the cookies are cleared, so the
+generation check every request runs in `createAuthHandle` (`user.tokenVersion ===
+session.tokenVersion`) refuses every access token minted before this logout. No
+valid session, no bump — the request still answers `200` with the cookies cleared.
+A repo failure on the bump is logged (`[auth] logout: token-version bump failed`)
+and not propagated, the same best-effort policy the revoke follows: the cookies go
+either way, and the user is out of this browser regardless. `tokenVersion` is one
+counter per user, so an adapter must increment it losslessly — the conformance
+check `user.incrementTokenVersion loses no concurrent increments` is what proves
+yours does.
+
+**The price: the bump is per user, not per session.** Every other device's access
+token is refused too. With rotation configured they are not signed out — only the
+logging-out browser's refresh token is revoked — so another device is refused for
+exactly one request (the hook clears its stale access cookie) and its next request
+rotates its surviving refresh token into a fresh session. Without rotation there is
+nothing to rotate: the other devices are signed out until they sign in again. Hence
+the default `false`.
+
+Which to reach for:
+
+- **`invalidateAccessTokens`** — logout must end this user's access tokens
+  everywhere: single-user tools, shared devices, an admin panel someone signs out
+  of before walking away.
+- **`createSessionsHandlers(deps)` → `revoke` / `revokeOthers`** — sign a
+  _specific_ device out, or every other one, and keep this session. A session is a
+  refresh-token family, so this path needs `config.refreshToken`.
+- **`createResetPasswordHandler`** — a compromise, not a logout: it bumps
+  `tokenVersion` _and_ revokes every refresh family, so nothing survives anywhere.
+
+In a federated deployment the option is **IdP-side only**. Consumers verify the
+IdP's tokens against its published key and never learn of a `tokenVersion` bump, so
+a token a consumer holds stays verifiable there until `exp` — see
+[Limitations](#limitations-deliberate-v1-scope).
 
 ### Machine callers
 
