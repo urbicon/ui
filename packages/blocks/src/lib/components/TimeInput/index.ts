@@ -92,8 +92,8 @@ export interface TimeInputProps extends Omit<TimeInputVariants, 'error'> {
   unstyled?: boolean;
   /**
    * Per-slot class overrides merged with tv() styles. Slots: wrapper (what
-   * `class` also targets) | label | field | icon | segment | separator |
-   * meridiem | message.
+   * `class` also targets) | label | requiredMark | field | icon | segment |
+   * separator | meridiem | message.
    */
   slotClasses?: Partial<Record<TimeInputSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ TimeInput: {...} }}>`. */

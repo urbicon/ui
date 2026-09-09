@@ -49,7 +49,7 @@ export const URBICON_AXES: Readonly<Record<string, Readonly<Record<string, Urbic
   Input: {
     intent: { values: ["danger", "default", "success", "warning"], default: "default" },
     size: { values: ["lg", "md", "sm", "xl", "xs"], default: "md" },
-    variant: { values: ["filled", "ghost", "outlined", "underline"], default: "outlined" },
+    variant: { values: ["bare", "filled", "ghost", "outlined", "underline"], default: "outlined" },
   },
   Progress: {
     intent: { values: ["danger", "neutral", "primary", "secondary", "success", "warning"], default: "primary" },
@@ -60,7 +60,7 @@ export const URBICON_AXES: Readonly<Record<string, Readonly<Record<string, Urbic
   },
   Select: {
     size: { values: ["lg", "md", "sm", "xl", "xs"], default: "md" },
-    variant: { values: ["filled", "ghost", "outlined", "underline"], default: "outlined" },
+    variant: { values: ["bare", "filled", "ghost", "outlined", "underline"], default: "outlined" },
   },
   Separator: {
     orientation: { values: ["horizontal", "vertical"], default: "horizontal" },

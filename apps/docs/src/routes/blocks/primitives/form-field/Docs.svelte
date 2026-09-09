@@ -83,11 +83,21 @@
       FormField takes <code class="text-text-primary">class</code> on its outer element and
       <code class="text-text-primary">slotClasses</code> keyed by
       <code class="text-text-primary">wrapper</code>, <code class="text-text-primary">label</code>,
+      <code class="text-text-primary">requiredMark</code>,
       <code class="text-text-primary">helper</code> and
-      <code class="text-text-primary">message</code>, which is the error. It carries no
-      <code class="text-text-primary">tv()</code> config of its own, so
-      <code class="text-text-primary">unstyled</code> and
-      <code class="text-text-primary">preset</code> stop at this one block.
+      <code class="text-text-primary">message</code>, which is the error. It takes no
+      <code class="text-text-primary">unstyled</code> or
+      <code class="text-text-primary">preset</code> prop and resolves no provider cascade, so its look
+      is set at the call site and nowhere else.
+    </p>
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">requiredMark</code> is the asterisk beside the label. Because
+      it is a slot, a form where every field is required marks nothing —
+      <code class="text-text-primary">slotClasses={'{'}{'{'} requiredMark: 'hidden' {'}'}{'}'}</code
+      >
+      here, and — on the fields that do resolve a provider cascade — the same entry under
+      <code class="text-text-primary">defaults</code> on a
+      <code class="text-text-primary">BlocksProvider</code>.
     </p>
     <p class="text-text-secondary text-sm leading-relaxed">
       See <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>

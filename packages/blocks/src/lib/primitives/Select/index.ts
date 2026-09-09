@@ -134,6 +134,9 @@ interface SelectBaseProps<T extends SelectValue = string>
    * - `ghost` — transparent until hover/focus (dense menus, inline editors)
    * - `underline` — bottom-line only, no border-box (editorial knob-strips,
    *   docs playgrounds)
+   * - `bare` — no frame, no fill, no padding, no fixed height: an inline word
+   *   choice that keeps the listbox role. `size` keeps only the type step, and
+   *   focus is an outline in `--blocks-focus-ring-color`
    *
    * @default 'outlined'
    * @summary How the closed trigger is framed.
@@ -294,7 +297,7 @@ interface SelectBaseProps<T extends SelectValue = string>
    * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
    * what `class` also targets) | base | trigger | triggerText | placeholder |
    * chevron | clear | listbox | option | optionLabel | optionCheck |
-   * optionCheckbox | group | groupLabel | label | message.
+   * optionCheckbox | group | groupLabel | label | requiredMark | message.
    */
   slotClasses?: Partial<Record<SelectSlots, string>>;
 

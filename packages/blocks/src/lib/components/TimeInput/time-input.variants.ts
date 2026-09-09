@@ -3,26 +3,28 @@ import {
   FIELD_LABEL,
   FIELD_LABEL_DISABLED,
   FIELD_MESSAGE_TONES,
-  FIELD_REQUIRED_LABEL,
+  FIELD_OUTLINED_SURFACE,
+  FIELD_REQUIRED_MARK,
   FIELD_SURFACE,
   FIELD_TRANSITION,
   fieldErrorFrame,
+  fieldFilledSurface,
   fieldFocusRing,
-  fieldIntentFrames,
-  fieldSurfaceVariants
+  fieldGhostSurface,
+  fieldIntentFrames
 } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 // Borderless segments live inside a bordered container, so the ring lights the
 // whole field via focus-within rather than focus-visible on one element.
 const focus = 'focus-within';
-const surface = fieldSurfaceVariants(focus);
 const intents = fieldIntentFrames(focus);
 
 export const timeInputVariants = tv({
   slots: {
     wrapper: ['flex flex-col gap-1.5 w-full'],
     label: [FIELD_LABEL],
+    requiredMark: [],
     // The bordered container reads as a single field; the segment inputs inside
     // are borderless. The focus ring lives here via focus-within so tabbing
     // between segments keeps the whole field lit.
@@ -57,10 +59,13 @@ export const timeInputVariants = tv({
       modify: { field: 'rounded-modify' },
       commit: { field: 'rounded-commit' }
     },
+    // Three of the family's four surfaces, taken one by one rather than off
+    // `fieldSurfaceVariants()`: that record also holds `bare`, which this
+    // component has no value for, and a record is retained whole.
     variant: {
-      outlined: { field: surface.outlined },
-      filled: { field: surface.filled },
-      ghost: { field: surface.ghost }
+      outlined: { field: FIELD_OUTLINED_SURFACE },
+      filled: { field: fieldFilledSurface(focus) },
+      ghost: { field: fieldGhostSurface(focus) }
     },
     size: {
       sm: {
@@ -112,7 +117,7 @@ export const timeInputVariants = tv({
       }
     },
     required: {
-      true: { label: FIELD_REQUIRED_LABEL }
+      true: { requiredMark: FIELD_REQUIRED_MARK }
     },
     fullWidth: {
       true: { field: 'w-full justify-start' }

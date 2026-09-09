@@ -11,6 +11,93 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.21.0
+
+### The required marker is a `<span>` on its own slot, in the resting tone
+
+Every field with a label used to draw the asterisk in one of three ways: a pseudo-element on the
+`label` slot (Input, PinInput, TimeInput), a verbatim hand copy of the same string (Textarea,
+Select, RadioGroup), or a `<span aria-hidden>` (Combobox, FormField). Checkbox drew nothing. All
+nine now render the same span on a `requiredMark` slot:
+
+```html
+<span aria-hidden="true" class="text-text-secondary ml-1">*</span>
+```
+
+Two visible consequences. **The colour moved from `text-danger-text` to `text-text-secondary`** —
+nothing has failed yet, and the failure tone before a failure reads as an error. And **the
+pseudo-element is gone**, so anything that reached it stops working:
+
+```css
+/* before: reached the asterisk on every field */
+label[class*='after:content-']::after {
+  color: var(--color-text-quaternary);
+}
+```
+
+```svelte
+<!-- after: the marker is a slot, so it takes the override ladder -->
+<BlocksProvider defaults={{ Input: { slotClasses: { requiredMark: 'text-text-quaternary' } } }}>
+```
+
+Hiding it entirely — the "mark nothing on an all-required form" convention — is the same shape with
+`hidden`, per component or, if only the required case should change, as a conditional rule:
+
+```svelte
+<BlocksProvider
+  defaults={{
+    Input: { slotClasses: { requiredMark: 'hidden' } },
+    Select: { overrides: [{ required: true, class: { requiredMark: 'hidden' } }] }
+  }}
+>
+```
+
+`after:content-none` written into a field's `label` slot no longer suppresses anything, because
+there is no pseudo-element left to suppress. **Nothing reports either change** — grep your app CSS
+for `after:content-` and your `slotClasses` for a `label` entry carrying `after:`.
+
+**Checkbox now draws the marker too**, beside its label text (never beside the box), so a
+`required` Checkbox that previously showed nothing shows an asterisk.
+`slotClasses={{ requiredMark: 'hidden' }}` is the way back.
+
+**One test query sees the glyph.** `getByLabelText('Email')` matches the label element's *text
+content*, which now ends in `*` on a required field. The accessible name is unchanged — the span is
+`aria-hidden`, so `getByRole('textbox', { name: 'Email' })` is unaffected — but the text query is
+not, and it fails with "Unable to find a label with the text of". Match the marker or drop the
+anchor:
+
+```ts
+screen.getByLabelText(/^Email$|^Email\*$/);
+// or, unambiguously, by role and accessible name
+screen.getByRole('textbox', { name: 'Email' });
+```
+
+### `bare` joins the field variants
+
+Input, Textarea, Select and Combobox take a fifth `variant` value: no frame, no fill, no padding, no
+fixed height, no radius — the field reads as the text it sits in, and `size` keeps only its type
+step. Nothing existing changes. But if you carried a preset that reset a field down to its text —
+
+```svelte
+<!-- before: twelve reset classes, and a focus ring you had to remember to rebuild -->
+<Input
+  slotClasses={{
+    base: 'h-auto rounded-none border-0 bg-transparent px-0 py-0 shadow-none hover:border-0 hover:bg-transparent focus-visible:border-0 focus-visible:bg-transparent'
+  }}
+/>
+```
+
+```svelte
+<!-- after -->
+<Input variant="bare" />
+```
+
+— `bare` keeps the focus indicator such a preset tends to lose: an outline in
+`--blocks-focus-ring-color`, which a product sets once instead of writing ring classes per preset.
+See
+[VARIANT-CONTRACT.md § 9](https://github.com/urbicon/ui/blob/main/packages/blocks/docs/VARIANT-CONTRACT.md)
+for the whole field vocabulary.
+
 ## 8.20.0
 
 ### `Badge` announces a role only where it has one

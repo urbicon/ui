@@ -41,7 +41,8 @@
           { label: 'outlined', value: 'outlined' },
           { label: 'filled', value: 'filled' },
           { label: 'ghost', value: 'ghost' },
-          { label: 'underline', value: 'underline' }
+          { label: 'underline', value: 'underline' },
+          { label: 'bare', value: 'bare' }
         ],
         defaultValue: 'outlined'
       },

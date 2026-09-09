@@ -230,6 +230,7 @@
     disabled: disabled,
     error: !!error,
     required: required || undefined,
+    clearable: clearable || undefined,
     messageType: error ? 'error' : 'helper'
   });
 
@@ -483,7 +484,12 @@
       for={triggerId}
       class={unstyled ? (slotClasses?.label ?? '') : styles.label({ class: slotClasses?.label })}
     >
-      {label}
+      {label}{#if ff.required}<span
+          class={unstyled
+            ? (slotClasses?.requiredMark ?? '')
+            : styles.requiredMark({ class: slotClasses?.requiredMark })}
+          aria-hidden="true">*</span
+        >{/if}
     </label>
   {/if}
 

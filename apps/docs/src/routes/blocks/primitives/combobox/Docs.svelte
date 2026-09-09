@@ -347,6 +347,18 @@ ${asyncScriptClose}
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
+      A field that should read as the text it sits in is the
+      <code class="text-text-primary">bare</code> variant, not a stack of reset classes: no frame,
+      no fill, no padding, no fixed height, and <code class="text-text-primary">size</code> keeps
+      only its type step. It needs context that says it is a field — a placeholder, a rule under the
+      line, a label before it — and it keeps the one thing such a reset usually loses, a focus
+      outline, whose colour is the <code class="text-text-primary">--blocks-focus-ring-color</code>
+      custom property. Worked through on the
+      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>
+      page.
+    </p>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
       <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
       for <code class="text-text-primary">class</code>,

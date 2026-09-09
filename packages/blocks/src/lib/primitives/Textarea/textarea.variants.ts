@@ -1,5 +1,16 @@
-import { fieldErrorFrame } from '$lib/internal/field-chrome';
+import {
+  FIELD_BARE_MEASURE,
+  FIELD_BARE_NATIVE_FILL,
+  FIELD_REQUIRED_MARK,
+  fieldBareErrorOutline,
+  fieldErrorFrame,
+  fieldSurfaceVariants
+} from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+
+// The textarea is the focusable element, so the ring lives on it directly.
+const focus = 'focus-visible';
+const surface = fieldSurfaceVariants(focus);
 
 export const textareaVariants = tv({
   slots: {
@@ -22,6 +33,7 @@ export const textareaVariants = tv({
       'read-only:bg-surface-subtle read-only:cursor-default read-only:resize-none'
     ],
     label: ['block font-medium text-text-secondary text-sm'],
+    requiredMark: [],
     footer: ['flex items-center justify-between gap-2'],
     message: ['text-xs'],
     counter: ['text-xs text-text-tertiary tabular-nums ml-auto shrink-0']
@@ -40,16 +52,19 @@ export const textareaVariants = tv({
     },
     variant: {
       outlined: {
-        base: 'border-border-subtle'
+        base: surface.outlined
       },
       filled: {
-        base: 'bg-surface-interactive border-transparent hover:bg-surface-interactive-hover focus-visible:bg-surface-base'
+        base: surface.filled
       },
       ghost: {
-        base: 'bg-transparent border-transparent hover:bg-surface-hover focus-visible:bg-surface-base focus-visible:border-border-subtle'
+        base: surface.ghost
       },
       underline: {
         base: 'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0'
+      },
+      bare: {
+        base: surface.bare
       }
     },
     size: {
@@ -107,7 +122,7 @@ export const textareaVariants = tv({
     },
     required: {
       true: {
-        label: "after:content-['*'] after:ml-1 after:text-danger-text"
+        requiredMark: FIELD_REQUIRED_MARK
       }
     },
     counterState: {
@@ -126,13 +141,26 @@ export const textareaVariants = tv({
     // (it used to hinge purely on `error` being DECLARED after `intent`).
     {
       error: true,
-      class: { base: fieldErrorFrame('focus-visible') }
+      class: { base: fieldErrorFrame(focus) }
     },
+    // Ghost keeps a transparent border in its resting state — even when an
+    // intent would otherwise colour it. The error state intentionally drops
+    // this override so validation feedback (`border-danger`) stays visible.
     {
       variant: 'ghost',
-      intent: ['success', 'warning', 'danger'],
       error: false,
       class: { base: 'border-transparent' }
+    },
+    // `bare` keeps only the type step of `size`; the measure has to be taken
+    // off here because `size` is declared after `variant` and would win it back.
+    {
+      variant: 'bare',
+      class: { base: `${FIELD_BARE_MEASURE} ${FIELD_BARE_NATIVE_FILL}` }
+    },
+    {
+      variant: 'bare',
+      error: true,
+      class: { base: fieldBareErrorOutline(focus) }
     }
   ],
   defaultVariants: {

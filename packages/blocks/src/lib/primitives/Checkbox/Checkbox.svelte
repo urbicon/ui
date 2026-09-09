@@ -81,7 +81,8 @@
     checked,
     indeterminate,
     disabled,
-    error: !!error
+    error: !!error,
+    required
   });
 
   const styles = $derived(checkboxVariants(variantProps));
@@ -183,8 +184,14 @@
     {#if label}
       <span
         class={unstyled ? (slotClasses?.label ?? '') : styles.label({ class: slotClasses?.label })}
-        >{label}</span
       >
+        {label}{#if required}<span
+            class={unstyled
+              ? (slotClasses?.requiredMark ?? '')
+              : styles.requiredMark({ class: slotClasses?.requiredMark })}
+            aria-hidden="true">*</span
+          >{/if}
+      </span>
     {/if}
   </label>
 

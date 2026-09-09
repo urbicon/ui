@@ -2,7 +2,13 @@
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
+import {
+  fetcherReturning,
+  jsonResponse,
+  labelled,
+  mounter,
+  settle
+} from '../__fixtures__/fetcher.js';
 import {
   errorMessage,
   errorRegion,
@@ -18,7 +24,7 @@ const render = (props: Partial<ForgotPasswordPageProps> = {}) =>
   mountInBody(ForgotPasswordPage, props as ForgotPasswordPageProps);
 
 async function request(email = 'ada@example.com') {
-  await userEvent.type(screen.getByLabelText('Email address'), email);
+  await userEvent.type(screen.getByLabelText(labelled('Email address')), email);
   await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }));
   await settle();
 }
@@ -28,7 +34,7 @@ describe('ForgotPasswordPage', () => {
     render({ fetcher: fetcherReturning() });
 
     expect(screen.getByRole('heading', { name: 'Forgot password' })).toBeTruthy();
-    expect(screen.getByLabelText('Email address').getAttribute('type')).toBe('email');
+    expect(screen.getByLabelText(labelled('Email address')).getAttribute('type')).toBe('email');
     expect(screen.getByText(/Enter your email address/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Back to sign in' }).getAttribute('href')).toBe(
       '/auth/login'

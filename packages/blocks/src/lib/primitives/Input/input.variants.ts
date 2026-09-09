@@ -1,13 +1,16 @@
 import {
+  FIELD_BARE_MEASURE,
+  FIELD_BARE_NATIVE_FILL,
   FIELD_DISABLED_FRAME,
   FIELD_LABEL,
   FIELD_LABEL_DISABLED,
   FIELD_MESSAGE_TONES,
   FIELD_NATIVE_DISABLED,
   FIELD_NATIVE_READONLY,
-  FIELD_REQUIRED_LABEL,
+  FIELD_REQUIRED_MARK,
   FIELD_SURFACE,
   FIELD_TRANSITION,
+  fieldBareErrorOutline,
   fieldErrorFrame,
   fieldFocusRing,
   fieldIntentFrames,
@@ -34,6 +37,7 @@ export const inputVariants = tv({
       FIELD_NATIVE_READONLY
     ],
     label: [FIELD_LABEL],
+    requiredMark: [],
     message: ['text-xs mt-1.5'],
     iconContainer: [
       'absolute top-0 bottom-0 flex items-center justify-center z-10 pointer-events-none'
@@ -71,6 +75,9 @@ export const inputVariants = tv({
       },
       underline: {
         base: 'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0'
+      },
+      bare: {
+        base: surface.bare
       }
     },
     size: {
@@ -151,7 +158,7 @@ export const inputVariants = tv({
     },
     required: {
       true: {
-        label: FIELD_REQUIRED_LABEL
+        requiredMark: FIELD_REQUIRED_MARK
       }
     },
     hasLeftIcon: { true: {} },
@@ -183,6 +190,19 @@ export const inputVariants = tv({
       variant: 'ghost',
       error: false,
       class: { base: 'border-transparent' }
+    },
+    // `bare` keeps only the type step of `size`. Declared before the icon
+    // compounds so a bare field with an icon still insets its text: `p-0` is
+    // the shorthand, `pl-10` the longhand, and Tailwind's own cascade resolves
+    // the left side (the fold leaves both standing on purpose).
+    {
+      variant: 'bare',
+      class: { base: `${FIELD_BARE_MEASURE} ${FIELD_BARE_NATIVE_FILL}` }
+    },
+    {
+      variant: 'bare',
+      error: true,
+      class: { base: fieldBareErrorOutline(focus) }
     },
     { hasLeftIcon: true, size: 'xs', class: { base: 'pl-7' } },
     { hasLeftIcon: true, size: 'sm', class: { base: 'pl-8' } },

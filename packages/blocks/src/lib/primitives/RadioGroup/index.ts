@@ -88,7 +88,10 @@ export interface RadioGroupProps
   /** Remove all default tv() classes. Only user-provided classes apply. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with tv() styles. */
+  /**
+   * Per-slot class overrides merged with tv() styles. Slots: root (what `class`
+   * also targets) | group | label | requiredMark | message.
+   */
   slotClasses?: Partial<Record<RadioGroupSlots, string>>;
 
   /**

@@ -2,7 +2,13 @@
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
+import {
+  fetcherReturning,
+  jsonResponse,
+  labelled,
+  mounter,
+  settle
+} from '../__fixtures__/fetcher.js';
 import { errorMessage, errorRegion, liveRegionsAround } from '../__fixtures__/live-regions.js';
 import type { LoginPageProps } from './index.js';
 import LoginPage from './LoginPage.svelte';
@@ -17,8 +23,8 @@ const render = (props: Partial<LoginPageProps> = {}) =>
   mountInBody(LoginPage, props as LoginPageProps);
 
 async function signIn(email = 'ada@example.com', password = 'hunter2hunter2') {
-  await userEvent.type(screen.getByLabelText('Email address'), email);
-  await userEvent.type(screen.getByLabelText('Password'), password);
+  await userEvent.type(screen.getByLabelText(labelled('Email address')), email);
+  await userEvent.type(screen.getByLabelText(labelled('Password')), password);
   await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
   await settle();
 }
@@ -34,8 +40,8 @@ describe('LoginPage — form paths', () => {
     render({ fetcher: fetcherReturning() });
 
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeTruthy();
-    expect(screen.getByLabelText('Email address').getAttribute('type')).toBe('email');
-    expect(screen.getByLabelText('Password').getAttribute('type')).toBe('password');
+    expect(screen.getByLabelText(labelled('Email address')).getAttribute('type')).toBe('email');
+    expect(screen.getByLabelText(labelled('Password')).getAttribute('type')).toBe('password');
     expect(screen.getByRole('link', { name: 'Forgot password?' }).getAttribute('href')).toBe(
       '/auth/forgot-password'
     );
@@ -66,7 +72,7 @@ describe('LoginPage — form paths', () => {
     const fetcher = fetcherReturning(jsonResponse(200, { user: { id: 'u1' } }));
     render({ rememberMe: true, fetcher });
 
-    await userEvent.click(screen.getByLabelText('Remember me'));
+    await userEvent.click(screen.getByLabelText(labelled('Remember me')));
     await signIn();
 
     expect(lastRequestBody(fetcher)).toMatchObject({ rememberMe: true });
@@ -103,9 +109,9 @@ describe('LoginPage — form paths', () => {
     // signed in.
     expect(onSuccess).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Two-step verification' })).toBeTruthy();
-    expect(screen.queryByLabelText('Password')).toBeNull();
+    expect(screen.queryByLabelText(labelled('Password'))).toBeNull();
 
-    await userEvent.type(screen.getByLabelText('Authentication code'), '123456');
+    await userEvent.type(screen.getByLabelText(labelled('Authentication code')), '123456');
     await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
     await settle();
 
@@ -123,12 +129,12 @@ describe('LoginPage — form paths', () => {
     });
 
     await signIn();
-    await userEvent.type(screen.getByLabelText('Authentication code'), '000000');
+    await userEvent.type(screen.getByLabelText(labelled('Authentication code')), '000000');
     await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
     await settle();
 
     expect(errorRegion().textContent).toContain('Invalid code');
-    expect(screen.getByLabelText('Authentication code')).toBeTruthy();
+    expect(screen.getByLabelText(labelled('Authentication code'))).toBeTruthy();
   });
 
   it('does not treat a 200 without a user as signed in', async () => {
@@ -155,13 +161,13 @@ describe('LoginPage — form paths', () => {
     });
 
     await signIn();
-    await userEvent.type(screen.getByLabelText('Authentication code'), '123456');
+    await userEvent.type(screen.getByLabelText(labelled('Authentication code')), '123456');
     await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
     await settle();
 
     expect(onSuccess).not.toHaveBeenCalled();
     expect(errorRegion().textContent).toContain('Something went wrong');
-    expect(screen.getByLabelText('Authentication code')).toBeTruthy();
+    expect(screen.getByLabelText(labelled('Authentication code'))).toBeTruthy();
   });
 
   it('reports a thrown fetch as a network error', async () => {
@@ -175,7 +181,7 @@ describe('LoginPage — form paths', () => {
   it('hides the password form in passkey-only mode', () => {
     render({ mode: 'passkey', passkeyApiPath: '/api/auth/passkey', fetcher: fetcherReturning() });
 
-    expect(screen.queryByLabelText('Email address')).toBeNull();
+    expect(screen.queryByLabelText(labelled('Email address'))).toBeNull();
     expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
   });
 
