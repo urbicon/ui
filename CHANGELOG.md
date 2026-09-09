@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.21.0] - 2026-09-09
+
+### Breaking Changes
+- **auth**: Email is optional at wiring, the mailing factories require it at mount
+> **BREAKING:** `deps.email` reads as `EmailTransport | undefined` in the shipped `.d.ts`; code that takes it off the bundle in its own handler must narrow, or keep the reference it passed to `createAuthDeps`. Passing a transport is unchanged. See packages/auth/docs/AUTH.md → Breaking in 8.21.0.
+- **sveltekit-utils**: Cron reports every failure and names the second runner
+> **BREAKING:** `onError` is required in `CronRunnerConfig`. A `createCronRunner` call without it no longer type-checks and throws a `TypeError` at wiring time — pass a handler, e.g.
+- **auth**: One live region per outcome, nameable badge, named row actions, focus after a step
+> **BREAKING:** consumer tests and selectors on `[aria-live="polite"]`, `getByRole('alert')` on a success (the empty error region now always exists, four times on `<AccountSettings>`), the exact row-action names and the badge's accessible name change; a hand-written `AuthLocale` needs three new keys. See packages/auth/docs/AUTH.md → Breaking in 8.21.0.
+- **blocks**: One required marker on the override ladder, and `bare` as the fifth field variant
+> **BREAKING:** the required marker is no longer a pseudo-element, so a
+
+### Features
+- **auth**: Logout option that refuses every earlier access token and ends every session
+- **design**: Three composition patterns for list screens
+- **blocks**: UseDisclosure, and a sidebar layout that ships its own toggle
+
 ## [8.20.0] - 2026-09-08
 
 ### Breaking Changes
