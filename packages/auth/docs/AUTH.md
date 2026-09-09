@@ -566,10 +566,16 @@ does.
 
 **The price: both writes are per user, not per session.** Every session of the
 account ends — every access token is refused by the generation check, and with
-rotation configured every refresh token is revoked. Another device's API client
-sees `401` until its access token expires (`refreshToken.accessTokenTtl`, 15
-minutes by default) or until its next page navigation, which clears the stale
-cookie and sends it to the login; it does not rotate back in. The delay is
+rotation configured every refresh token is revoked. Another device is signed out
+until someone signs in again: its API client keeps sending the same stale access
+cookie until that expires (`refreshToken.accessTokenTtl`, 15 minutes by default),
+after which the same request is refused on its revoked refresh token instead —
+the status never changes, and it does not rotate back in. A page navigation
+clears the stale cookie and sends the device to the login. Until one happens, a
+polling API client on that device costs one no-op family revoke per request
+(the refresh cookie is still sent and still lands on the revoked row), so a
+dashboard tab polling every few seconds keeps writing until its tab is
+navigated. The delay is
 SvelteKit's cookie handling, not a grace period: the hook stages the clear on
 `event.cookies`, and Kit writes staged cookies only on the paths that resolve or
 redirect — a guarded `/api/…` request is answered with a `401` that does neither,
