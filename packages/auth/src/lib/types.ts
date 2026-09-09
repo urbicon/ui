@@ -374,7 +374,7 @@ export interface EmailConfig {
   /**
    * Default `From` for all auth emails — a bare address (`auth@example.com`) or
    * an RFC-5322 display-name form (`"Acme <auth@example.com>"`). Threaded into
-   * every handler's `deps.email.send({ from })` call; a per-mail builder hook
+   * every `EmailTransport.send({ from })` call a handler makes; a per-mail builder hook
    * (e.g. `inviteEmail`) may still override it. When omitted, the transport's
    * own default applies (e.g. a Lettermint verified sender), so this is optional
    * but recommended in production for a consistent, deliverable sender.

@@ -43,7 +43,24 @@ export interface AuthDeps<R extends string = string> {
      */
     passkey?: PasskeyRepository;
   };
-  email: EmailTransport;
+  /**
+   * Optional — required only when a factory that sends mail is mounted.
+   * `createRegisterHandler`, `createForgotPasswordHandler` and
+   * `createChangeEmailHandler` mail whenever they act at all — the caller can
+   * neither ask for nor opt out of the mail, and its failure never reaches
+   * them — and therefore throw at wiring time when it is missing.
+   * `createInvitationHandlers` mounts without one — its mail hangs on the
+   * per-request `sendEmail` flag, and the copy-link flow (`inviteUrl` in the
+   * `201`) needs no transport — and declines to mail only the invites that ask
+   * for one, saying so in the log. An app that mounts none of the four
+   * needs no transport at all. Pass `createConsoleEmailTransport()`
+   * (`@urbicon-ui/auth/server/email/console`) in dev or
+   * `createLettermintTransport` (or your own `EmailTransport`) in production.
+   *
+   * Because it is optional, code reading it off the bundle — a consumer's own
+   * handler — sees `EmailTransport | undefined` and has to narrow.
+   */
+  email?: EmailTransport;
   /**
    * Resolved log sink (`config.logger ?? console`) — `createAuthDeps` always
    * fills it, so handlers log operational failures through one seam instead
