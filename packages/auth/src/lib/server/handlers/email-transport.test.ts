@@ -62,7 +62,7 @@ const webauthn = {
   challengeStore: createInMemoryChallengeStore()
 };
 
-/** Every factory that mails on every request it serves. */
+/** Every factory that mails whenever it acts — the caller cannot ask for or opt out. */
 const mailingFactories: [name: string, mount: (deps: AuthDeps) => unknown][] = [
   ['createRegisterHandler', (deps) => createRegisterHandler(deps)],
   ['createForgotPasswordHandler', (deps) => createForgotPasswordHandler(deps)],

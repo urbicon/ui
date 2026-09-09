@@ -361,7 +361,8 @@ export async function verifyCurrentPassword<R extends string>(
  * The wiring-time gate for `deps.email`: returns the transport, or throws
  * naming the factory that needs one. `AuthDeps.email` is optional — an app that
  * mounts no mailing route passes no transport — so a factory whose handler
- * **always** sends calls this once, at construction. A missing transport then
+ * mails whenever it acts, with no way for the caller to ask for or opt out of
+ * the mail, calls this once, at construction. A missing transport then
  * fails where the route was wired, instead of inside a password-reset or
  * change-email request whose mail work is detached from the response and whose
  * failure never reaches the user.

@@ -335,12 +335,13 @@ session (`locals.user`), guards routes, applies the response security headers, a
 enforces CSRF. The handler factories alone do none of that.
 
 **Mail transport:** `deps.email` is optional, like the feature-scoped repositories.
-Three factories mail on every request they serve — `createRegisterHandler`,
-`createForgotPasswordHandler` and `createChangeEmailHandler` — and each throws at
-wiring time without a transport, the way `createPasskeyHandlers` does without
+Three factories mail whenever they act at all — `createRegisterHandler`,
+`createForgotPasswordHandler` and `createChangeEmailHandler`; the caller can neither
+ask for nor opt out of the mail, and its failure never reaches them — and each throws
+at wiring time without a transport, the way `createPasskeyHandlers` does without
 `repos.passkey`. `createInvitationHandlers` does **not**: its mail hangs on the
 per-request `sendEmail` flag and the copy-link flow needs no transport at all, so it
-mounts either way and refuses per request — a `sendEmail: true` invite without a
+mounts either way and declines to mail per request — a `sendEmail: true` invite without a
 transport still answers `201` with its `inviteUrl`, `emailSent: false`, and a logged
 error that names the missing wiring instead of reporting a send failure. An app that
 mounts only login/logout/me/refresh/sessions plus 2FA and passkeys needs no transport
