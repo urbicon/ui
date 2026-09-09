@@ -57,11 +57,12 @@
     <NoteList>
       <Note title="Errors announce without stealing focus">
         <p>
-          The shared error region below the heading is always in the DOM as
-          <code class="text-text-primary">&lt;div aria-live="polite"&gt;</code>, empty until
-          something fails: a screen reader only announces changes inside a live region that already
-          exists, so a region created together with its first error stays silent. A failed sign-in
-          therefore reaches the reader while the caret stays in the password field.
+          Below the heading sit two regions that are always in the DOM and empty until something
+          happens: an assertive <code class="text-text-primary">&lt;div role="alert"&gt;</code> for
+          failures and a polite <code class="text-text-primary">&lt;div role="status"&gt;</code> for everything
+          else. A screen reader only announces changes inside a live region that already exists, so a
+          region created together with its first error stays silent. A failed sign-in therefore reaches
+          the reader while the caret stays in the password field.
         </p>
       </Note>
       <Note title="Autofill hints on every field">

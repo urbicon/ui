@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthUser } from '../../../types.js';
 import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
+import { errorMessage, errorRegion } from '../__fixtures__/live-regions.js';
 import type { TwoFactorManagerProps } from './index.js';
 import TwoFactorManager from './TwoFactorManager.svelte';
 
@@ -35,7 +36,7 @@ describe('TwoFactorManager', () => {
     await userEvent.click(enableButton());
     await settle();
 
-    expect(screen.getByRole('alert').className).toContain('qa-error');
+    expect(errorMessage().className).toContain('qa-error');
   });
 
   it('refuses a 200 that carries no TOTP material instead of opening a dead setup view', async () => {
@@ -47,7 +48,7 @@ describe('TwoFactorManager', () => {
     // An empty QR payload and an empty key would be a setup screen nothing can
     // be confirmed from.
     expect(screen.queryByText('Setup key')).toBeNull();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
   });
 
   it('walks setup → code → backup codes → enabled, reporting onEnabled once', async () => {
@@ -103,5 +104,79 @@ describe('TwoFactorManager', () => {
 
     expect(onDisabled).toHaveBeenCalledTimes(1);
     expect(enableButton()).toBeTruthy();
+  });
+});
+
+describe('TwoFactorManager — focus across steps', () => {
+  const setupThenCode = () =>
+    fetcherReturning(
+      jsonResponse(200, { secret: 'JBSWY3DPEHPK3PXP', otpauthUri: 'otpauth://totp/x?secret=J' }),
+      jsonResponse(400, { code: 'two_factor_setup_code_invalid' })
+    );
+
+  it('moves focus to the heading of the step it opened', async () => {
+    render({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { secret: 'JBSWY3DPEHPK3PXP', otpauthUri: 'otpauth://totp/x?secret=J' }),
+        jsonResponse(200, { backupCodes: ['aaaa-1111'] })
+      )
+    });
+
+    await userEvent.click(enableButton());
+    await settle();
+    // The button that was pressed is gone; without this the focus sits on
+    // <body> and a reader has no idea a new step opened.
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Set up two-factor authentication' })
+    );
+
+    await userEvent.type(screen.getByLabelText('Enter the 6-digit code'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm and enable' }));
+    await settle();
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Save your backup codes' })
+    );
+  });
+
+  it('leaves the caret in the code field when the code is refused', async () => {
+    render({ fetcher: setupThenCode() });
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    // Submitted from the field itself (Enter), which is where the caret is
+    // when a code is typed — the case a focus move would hurt.
+    const field = screen.getByLabelText('Enter the 6-digit code');
+    await userEvent.type(field, '000000{Enter}');
+    await settle();
+
+    // The step did not change, so nothing may move: pulling focus to the
+    // heading here would take the caret out of the field mid-correction.
+    expect(document.activeElement).toBe(field);
+    expect(errorRegion().textContent?.trim()).not.toBe('');
+  });
+
+  it('does not chase focus a user moved out of the panel', async () => {
+    // The step opens while the request is still in flight, so the focus has to
+    // move away *before* the panel would take it — a fetcher that answers on
+    // its own would already have switched steps inside the click.
+    let release: ((res: Response) => void) | undefined;
+    const fetcher = vi.fn(
+      () => new Promise<Response>((resolve) => (release = resolve))
+    ) as unknown as typeof globalThis.fetch;
+    render({ fetcher });
+
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+
+    await userEvent.click(enableButton());
+    elsewhere.focus();
+    release?.(
+      jsonResponse(200, { secret: 'JBSWY3DPEHPK3PXP', otpauthUri: 'otpauth://totp/x?secret=J' })
+    );
+    await settle();
+
+    expect(screen.getByRole('heading', { name: 'Set up two-factor authentication' })).toBeTruthy();
+    expect(document.activeElement).toBe(elsewhere);
   });
 });

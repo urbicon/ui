@@ -63,33 +63,36 @@
           <Kbd keys="Space" /> without any extra ARIA.
         </p>
       </Note>
-      <Note title="Unread state does not reach assistive tech">
+      <Note title="Unread rows say so">
         <p>
-          The unread dot is <code class="text-text-primary">aria-hidden="true"</code>, so it is
-          decoration. Nothing replaces it: the read/unread distinction lives only in that dot, a
-          background tint, and a <code class="text-text-primary">data-unread</code> attribute for
-          CSS, so a screen-reader user cannot currently tell a read notification from an unread one.
-          Use the
-          <code class="text-text-primary">item</code> snippet if your application needs that distinction
-          spoken.
+          The unread dot is <code class="text-text-primary">aria-hidden="true"</code> — it is
+          decoration — and the localized "Unread" sits beside it as visually hidden text inside the
+          row's button, ahead of the title, so the button's accessible name begins with it — "Unread
+          Deploy finished …" where a sighted user sees the dot. The
+          <code class="text-text-primary">data-unread</code>
+          attribute stays for CSS, and the hidden word survives
+          <code class="text-text-primary">unstyled</code>: it is the state, not a default look. A
+          custom <code class="text-text-primary">item</code> snippet replaces the whole row, so the marker
+          is yours to render there.
         </p>
       </Note>
-      <Note title="The delete button is icon-only and generically named">
+      <Note title="The delete button names its notification">
         <p>
-          It renders a <code class="text-text-primary">×</code> glyph, so an
-          <code class="text-text-primary">aria-label</code> is present, but it is the bare localized "Delete"
-          without the notification's title. In a list of ten notifications that is ten identically named
-          buttons, and a reader tells them apart through list position rather than the button name.
+          It renders a <code class="text-text-primary">×</code> glyph, so the name comes from an
+          <code class="text-text-primary">aria-label</code>: the localized "Delete" with the
+          notification's title appended — "Delete — Deploy finished". Ten notifications are ten
+          distinguishable buttons rather than ten identical ones, and the name still begins with the
+          visible word, so voice control ("click Delete") keeps working.
         </p>
       </Note>
-      <Note title="The list is announced; the timestamp is text only">
+      <Note title="The list is announced, and the timestamp is machine-readable">
         <p>
           Items sit in a <code class="text-text-primary">&lt;ul&gt;</code>, so the count is
-          announced before the contents. The relative age uses a
-          <code class="text-text-primary">&lt;time&gt;</code> element but supplies no
-          <code class="text-text-primary">datetime</code> attribute, and its text ("1h ago") is not a
-          valid datetime string, so the element carries no machine-readable date and gives assistive tech
-          nothing the plain text would not. Treat it as styling, not semantics.
+          announced before the contents. The relative age renders in a
+          <code class="text-text-primary">&lt;time&gt;</code> element whose
+          <code class="text-text-primary">datetime</code> attribute carries the ISO instant behind the
+          rounded label, so "1h ago" has an exact time attached to it. A record whose timestamp does not
+          parse drops the attribute rather than the row.
         </p>
       </Note>
     </NoteList>

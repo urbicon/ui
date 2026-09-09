@@ -230,6 +230,7 @@
               onclick={() => revokeSession(session.id)}
               {unstyled}
               class={cls('shrink-0')}
+              aria-label={`${t.sessions.signOut} — ${describeDevice(session.userAgent)}`}
             >
               {t.sessions.signOut}
             </Button>

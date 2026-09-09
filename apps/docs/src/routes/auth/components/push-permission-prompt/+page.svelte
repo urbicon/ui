@@ -9,6 +9,7 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '$lib/component-links';
   import { componentData } from './api';
@@ -62,19 +63,28 @@
       </Note>
       <Note title="Failures are announced, dismissals are not">
         <p>
-          The <code class="text-text-primary">aria-live="polite"</code> region inside the card is always
-          mounted while the prompt is visible, so a rejected VAPID key, a conflicting endpoint or a rate
-          limit is announced in place and the prompt stays open to retry. A denied browser permission
-          is not an error and closes the prompt instead.
+          The <code class="text-text-primary">role="alert"</code> region inside the card is always mounted
+          while the prompt is visible, so a rejected VAPID key, a conflicting endpoint or a rate limit
+          is announced in place and the prompt stays open to retry. A denied browser permission is not
+          an error and closes the prompt instead.
         </p>
       </Note>
-      <Note title="Focus is dropped when the card closes">
+      <Note title="Focus is handed on when the card closes">
         <p>
-          Enabling or dismissing unmounts the whole card. If focus was on either button it falls
-          back to <code class="text-text-primary">&lt;body&gt;</code>; the component does not move
-          it to a sensible neighbour. Where the prompt sits mid-page, move focus yourself in
-          <code class="text-text-primary">onDismissed</code> /
-          <code class="text-text-primary">onSubscribed</code>.
+          Enabling or dismissing unmounts the whole card, so the button that was pressed goes with
+          it and the next <Kbd keys="Tab" /> would otherwise start over at the top of the page. The prompt
+          moves focus to the element that held it when the prompt appeared; if that element is gone, to
+          the next tab stop after the card; failing that, to the one before it. Controls that are disabled
+          or not rendered are skipped, and nothing outside the card is modified on the way — no page heading
+          is made focusable to catch the ring. A page whose only controls were inside the card keeps none,
+          so focus lands where the browser puts it.
+        </p>
+        <p>
+          Your callback runs first. <code class="text-text-primary">onDismissed</code>,
+          <code class="text-text-primary">onSubscribed</code> and
+          <code class="text-text-primary">onUnavailable</code> are called before the prompt looks for
+          a landing spot, and it only moves focus that is still on its own two buttons — so a callback
+          that places focus itself wins, and so does a user who clicked elsewhere while the request ran.
         </p>
       </Note>
     </NoteList>

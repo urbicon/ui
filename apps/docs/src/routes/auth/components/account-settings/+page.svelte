@@ -61,11 +61,13 @@
     <NoteList>
       <Note title="One live region per block">
         <p>
-          Profile, email and password each have a separate
-          <code class="text-text-primary">aria-live="polite"</code> region inside their own
-          <code class="text-text-primary">&lt;form&gt;</code>, and account deletion has a fourth in
-          its section. With three save buttons on one page, one region per form is what lets a
-          reader tell which save just succeeded.
+          Profile, email and password each have their own pair of regions inside their own
+          <code class="text-text-primary">&lt;form&gt;</code> — an assertive
+          <code class="text-text-primary">role="alert"</code> for the refusal and a polite
+          <code class="text-text-primary">role="status"</code> for the confirmation — and account deletion
+          has a fourth pair in its section. With three save buttons on one page, one pair per form is
+          what lets a reader tell which save just succeeded; "Profile updated." is announced politely,
+          so it waits for whatever the reader is saying.
         </p>
       </Note>
       <Note title="The danger zone is a named landmark">

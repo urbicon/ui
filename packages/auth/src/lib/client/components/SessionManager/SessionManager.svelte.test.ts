@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
+import { errorMessage, errorRegion, liveRegionsAround } from '../__fixtures__/live-regions.js';
 import type { SessionManagerProps } from './index.js';
 import SessionManager from './SessionManager.svelte';
 
@@ -23,7 +24,8 @@ const mountInBody = mounter();
 const render = (props: Partial<SessionManagerProps> = {}) =>
   mountInBody(SessionManager, props as SessionManagerProps);
 
-const liveRegion = () => document.body.querySelector('[aria-live="polite"]') as HTMLElement;
+// Every row carries the same UA, so every revoke button carries this name.
+const SIGN_OUT_ROW = 'Sign out — Chrome · macOS';
 
 describe('SessionManager (component)', () => {
   it('renders one row per session, naming the device and marking this one', async () => {
@@ -42,8 +44,10 @@ describe('SessionManager (component)', () => {
     // read here is a device the user cannot recognise and will not sign out.
     expect(rows[0].textContent).toContain('Chrome · macOS');
     expect(within(rows[0]).getByText('This device')).toBeTruthy();
-    expect(within(rows[0]).queryByRole('button', { name: 'Sign out' })).toBeNull();
-    expect(within(rows[1]).getByRole('button', { name: 'Sign out' })).toBeTruthy();
+    expect(within(rows[0]).queryByRole('button', { name: SIGN_OUT_ROW })).toBeNull();
+    // The row action names its row: "Sign out" alone is the same name on every
+    // row, and a reader moving by button hears no difference between them.
+    expect(within(rows[1]).getByRole('button', { name: SIGN_OUT_ROW })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Sign out other devices' })).toBeTruthy();
   });
 
@@ -56,10 +60,10 @@ describe('SessionManager (component)', () => {
 
     // "No active sessions." next to a 401 would read as a clean slate.
     expect(screen.queryByText('No active sessions.')).toBeNull();
-    const alert = screen.getByRole('alert');
-    expect(liveRegion().contains(alert)).toBe(true);
-    expect(alert.textContent).toContain('Please sign in to continue.');
-    expect(alert.className).toContain('qa-error');
+    const message = errorMessage();
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(message.textContent).toContain('Please sign in to continue.');
+    expect(message.className).toContain('qa-error');
   });
 
   it('explains an unavailable session history instead of showing an empty list', async () => {
@@ -79,7 +83,7 @@ describe('SessionManager (component)', () => {
     });
     await settle();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    await userEvent.click(screen.getByRole('button', { name: SIGN_OUT_ROW }));
     await settle();
 
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
@@ -96,13 +100,13 @@ describe('SessionManager (component)', () => {
     });
     await settle();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    await userEvent.click(screen.getByRole('button', { name: SIGN_OUT_ROW }));
     await settle();
 
     // An optimistic remove would show a device as signed out while its session
     // is still valid on the server.
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion().textContent?.trim()).not.toBe('');
   });
 
   it('reloads the list after signing out the other devices', async () => {
@@ -135,12 +139,12 @@ describe('SessionManager (component)', () => {
       });
       await settle();
 
-      await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+      await userEvent.click(screen.getByRole('button', { name: SIGN_OUT_ROW }));
       await settle();
 
       // The server answered; a body that is valid JSON but not an object must
       // not be reported as "check your connection".
-      expect(screen.getByRole('alert').textContent).toContain('An error occurred');
+      expect(errorRegion().textContent).toContain('An error occurred');
     }
   );
 });

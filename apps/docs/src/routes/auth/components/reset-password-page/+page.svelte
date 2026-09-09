@@ -56,9 +56,11 @@
       <Note title="Both failures land in the same place">
         <p>
           The mismatch check runs in the browser before anything is sent, and it writes to the same
-          page-level <code class="text-text-primary">aria-live="polite"</code> region as the server's
-          invalid-token error. One region means a reader learns every way this page can fail from one
-          spot, instead of having to hunt for which of two messages appeared.
+          page-level <code class="text-text-primary">role="alert"</code> region as the server's
+          invalid-token error. One region means a reader learns every way this page can fail from
+          one spot, instead of having to hunt for which of two messages appeared. The confirmation
+          after a successful reset uses the polite
+          <code class="text-text-primary">role="status"</code> region beside it, so a success never interrupts.
         </p>
       </Note>
       <Note title="A mismatch is reported at the page level">

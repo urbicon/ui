@@ -237,11 +237,18 @@ export interface AuthLocale {
     };
   };
   notifications: {
+    /** Name of the unread-count badge. `{n}` is the badge's own text, so `99+` stays `99+`. */
+    badge: {
+      unread: string;
+    };
     center: {
       title: string;
       empty: string;
       markAllRead: string;
+      /** Row action; the component appends ` — {title}` so the name says which row. */
       delete: string;
+      /** Visually hidden marker inside an unread row — the coloured dot is decorative. */
+      unread: string;
     };
     push: {
       prompt: string;
@@ -340,6 +347,7 @@ export interface AuthLocale {
     title: string;
     thisDevice: string;
     lastActive: string;
+    /** Row action; the component appends ` — {device}` so the name says which session. */
     signOut: string;
     signOutOthers: string;
     unknownDevice: string;
@@ -354,6 +362,8 @@ export interface AuthLocale {
     enable: string;
     disable: string;
     // Setup
+    /** Heading of the setup step — the element focus moves to when the step opens. */
+    setupTitle: string;
     setupScan: string;
     setupSecret: string;
     setupCode: string;

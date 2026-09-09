@@ -87,9 +87,11 @@
         <p>
           WebAuthn failures (a cancelled prompt, an unsupported authenticator, a rejected
           registration) land in the always-mounted
-          <code class="text-text-primary">aria-live="polite"</code> region above the list, so the outcome
-          of a flow that ran inside the browser's own credential UI is announced back on the page. A completed
-          rename reports there too: the row's own text changes without a word otherwise.
+          <code class="text-text-primary">role="alert"</code> region above the list, so the outcome
+          of a flow that ran inside the browser's own credential UI is announced back on the page. A
+          completed rename reports through the polite
+          <code class="text-text-primary">role="status"</code> region beside it — the row's own text changes
+          without a word otherwise, and a finished rename is not worth interrupting for.
         </p>
       </Note>
       <Note title="The list is a list">
