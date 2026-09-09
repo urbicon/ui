@@ -1,10 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCronRunner } from './cron';
+import { type CronRunnerConfig, createCronRunner } from './cron';
+
+// The registry's address is part of the contract — `globalThis` under this
+// well-known symbol — and is spelled out here rather than reached through an
+// export: a test that imported the key could not notice it changing, and the
+// key is the whole reason a hot reload finds the previous evaluation's runners.
+const CRON_REGISTRY = Symbol.for('urbicon-ui.sveltekit-utils.cron');
+
+const onError = () => {};
 
 describe('createCronRunner', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })));
+    // Every start() registers its paths process-wide; without this a runner
+    // one test left armed makes the next one warn about a double start.
+    delete (globalThis as { [CRON_REGISTRY]?: unknown })[CRON_REGISTRY];
   });
 
   afterEach(() => {
@@ -15,7 +26,8 @@ describe('createCronRunner', () => {
   it('should not be running initially', () => {
     const runner = createCronRunner({
       secret: 'test-secret',
-      jobs: [{ path: '/api/test', intervalSeconds: 60 }]
+      jobs: [{ path: '/api/test', intervalSeconds: 60 }],
+      onError
     });
     expect(runner.isRunning()).toBe(false);
   });
@@ -23,7 +35,8 @@ describe('createCronRunner', () => {
   it('should be running after start()', () => {
     const runner = createCronRunner({
       secret: 'test-secret',
-      jobs: [{ path: '/api/test', intervalSeconds: 60 }]
+      jobs: [{ path: '/api/test', intervalSeconds: 60 }],
+      onError
     });
     runner.start();
     expect(runner.isRunning()).toBe(true);
@@ -33,7 +46,8 @@ describe('createCronRunner', () => {
   it('should not be running after stop()', () => {
     const runner = createCronRunner({
       secret: 'test-secret',
-      jobs: [{ path: '/api/test', intervalSeconds: 60 }]
+      jobs: [{ path: '/api/test', intervalSeconds: 60 }],
+      onError
     });
     runner.start();
     runner.stop();
@@ -43,7 +57,8 @@ describe('createCronRunner', () => {
   it('should not start twice', () => {
     const runner = createCronRunner({
       secret: 'test-secret',
-      jobs: [{ path: '/api/test', intervalSeconds: 10 }]
+      jobs: [{ path: '/api/test', intervalSeconds: 10 }],
+      onError
     });
     runner.start();
     runner.start();
@@ -60,10 +75,13 @@ describe('createCronRunner', () => {
       jobs: [
         { path: '/api/job-a', intervalSeconds: 10 },
         { path: '/api/job-b', intervalSeconds: 20, method: 'GET' }
-      ]
+      ],
+      onError
     });
 
     runner.start();
+    // No leading call: start() arms the timers and fires nothing.
+    expect(fetch).not.toHaveBeenCalled();
 
     // At 10s: job-a fires
     await vi.advanceTimersByTimeAsync(10_000);
@@ -87,7 +105,8 @@ describe('createCronRunner', () => {
   it('should use default baseUrl when not provided', async () => {
     const runner = createCronRunner({
       secret: 's',
-      jobs: [{ path: '/api/ping', intervalSeconds: 5 }]
+      jobs: [{ path: '/api/ping', intervalSeconds: 5 }],
+      onError
     });
     runner.start();
 
@@ -100,7 +119,8 @@ describe('createCronRunner', () => {
     const runner = createCronRunner({
       secret: 'abc',
       secretHeader: 'x-internal-key',
-      jobs: [{ path: '/api/test', intervalSeconds: 5 }]
+      jobs: [{ path: '/api/test', intervalSeconds: 5 }],
+      onError
     });
     runner.start();
 
@@ -116,33 +136,33 @@ describe('createCronRunner', () => {
     const error = new Error('Network error');
     vi.mocked(fetch).mockRejectedValueOnce(error);
 
-    const onError = vi.fn();
+    const handler = vi.fn();
     const job = { path: '/api/fail', intervalSeconds: 5 };
     const runner = createCronRunner({
       secret: 's',
       jobs: [job],
-      onError
+      onError: handler
     });
 
     runner.start();
     await vi.advanceTimersByTimeAsync(5_000);
 
-    expect(onError).toHaveBeenCalledWith(job, error);
+    expect(handler).toHaveBeenCalledWith(job, error);
     runner.stop();
   });
 
   it('should not call onError when fetch succeeds', async () => {
-    const onError = vi.fn();
+    const handler = vi.fn();
     const runner = createCronRunner({
       secret: 's',
       jobs: [{ path: '/api/ok', intervalSeconds: 5 }],
-      onError
+      onError: handler
     });
 
     runner.start();
     await vi.advanceTimersByTimeAsync(5_000);
 
-    expect(onError).not.toHaveBeenCalled();
+    expect(handler).not.toHaveBeenCalled();
     runner.stop();
   });
 
@@ -151,19 +171,19 @@ describe('createCronRunner', () => {
       new Response(null, { status: 500, statusText: 'Internal Server Error' })
     );
 
-    const onError = vi.fn();
+    const handler = vi.fn();
     const job = { path: '/api/fail', intervalSeconds: 5 };
     const runner = createCronRunner({
       secret: 's',
       jobs: [job],
-      onError
+      onError: handler
     });
 
     runner.start();
     await vi.advanceTimersByTimeAsync(5_000);
 
-    expect(onError).toHaveBeenCalledTimes(1);
-    const [passedJob, err] = onError.mock.calls[0] as [unknown, Error & { status?: number }];
+    expect(handler).toHaveBeenCalledTimes(1);
+    const [passedJob, err] = handler.mock.calls[0] as [unknown, Error & { status?: number }];
     expect(passedJob).toBe(job);
     expect(err).toBeInstanceOf(Error);
     expect(err.status).toBe(500);
@@ -175,68 +195,29 @@ describe('createCronRunner', () => {
       new Response(null, { status: 403, statusText: 'Forbidden' })
     );
 
-    const onError = vi.fn();
+    const handler = vi.fn();
     const job = { path: '/api/forbidden', intervalSeconds: 5 };
     const runner = createCronRunner({
       secret: 's',
       jobs: [job],
-      onError
+      onError: handler
     });
 
     runner.start();
     await vi.advanceTimersByTimeAsync(5_000);
 
-    expect(onError).toHaveBeenCalledTimes(1);
-    const err = onError.mock.calls[0]?.[1] as Error & { status?: number };
+    expect(handler).toHaveBeenCalledTimes(1);
+    const err = handler.mock.calls[0]?.[1] as Error & { status?: number };
     expect(err).toBeInstanceOf(Error);
     expect(err.status).toBe(403);
-    runner.stop();
-  });
-
-  it('should call a throwing onError exactly once on a non-2xx (no re-invoke via catch)', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 500, statusText: 'Boom' }));
-
-    // A misbehaving handler that itself throws must not be re-invoked by the
-    // surrounding try/catch — the non-2xx path lives outside the fetch try.
-    const onError = vi.fn(() => {
-      throw new Error('handler boom');
-    });
-    // The deliberate throw escapes as an unhandled rejection by design (symmetric
-    // with the network-rejection path); swallow it so it doesn't fail the suite.
-    const swallow = vi.fn();
-    process.on('unhandledRejection', swallow);
-
-    const runner = createCronRunner({
-      secret: 's',
-      jobs: [{ path: '/api/fail', intervalSeconds: 5 }],
-      onError
-    });
-
-    runner.start();
-    await vi.advanceTimersByTimeAsync(5_000);
-
-    expect(onError).toHaveBeenCalledTimes(1);
-    runner.stop();
-    process.off('unhandledRejection', swallow);
-  });
-
-  it('should not throw when a non-2xx response has no onError configured', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-    const runner = createCronRunner({
-      secret: 's',
-      jobs: [{ path: '/api/missing', intervalSeconds: 5 }]
-    });
-
-    runner.start();
-    await expect(vi.advanceTimersByTimeAsync(5_000)).resolves.not.toThrow();
     runner.stop();
   });
 
   it('should stop all timers and not fire after stop()', async () => {
     const runner = createCronRunner({
       secret: 's',
-      jobs: [{ path: '/api/test', intervalSeconds: 5 }]
+      jobs: [{ path: '/api/test', intervalSeconds: 5 }],
+      onError
     });
 
     runner.start();
@@ -246,5 +227,190 @@ describe('createCronRunner', () => {
     runner.stop();
     await vi.advanceTimersByTimeAsync(15_000);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  describe('onError is required', () => {
+    // The `@ts-expect-error` is half the test: the type rejects the call, and
+    // the throw is what the JS consumer the type system never reaches gets.
+    const withoutHandler = { secret: 's', jobs: [{ path: '/api/test', intervalSeconds: 5 }] };
+
+    it('throws a TypeError naming onError when it is missing', () => {
+      // @ts-expect-error — onError is required.
+      expect(() => createCronRunner(withoutHandler)).toThrow(/onError is required/);
+    });
+
+    it('throws for a non-function onError', () => {
+      const config = {
+        secret: 's',
+        jobs: [{ path: '/api/test', intervalSeconds: 5 }],
+        onError: 'log it'
+      } as unknown as CronRunnerConfig;
+
+      expect(() => createCronRunner(config)).toThrow(TypeError);
+      expect(() => createCronRunner(config)).toThrow(/received string/);
+    });
+
+    it('arms no timer when the check throws', async () => {
+      // @ts-expect-error — as above.
+      expect(() => createCronRunner(withoutHandler)).toThrow();
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a throwing onError', () => {
+    it('keeps the schedule running and reports both errors on a non-2xx', async () => {
+      vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500, statusText: 'Boom' }));
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const handlerError = new Error('handler boom');
+      const handler = vi.fn(() => {
+        throw handlerError;
+      });
+      const runner = createCronRunner({
+        secret: 's',
+        jobs: [{ path: '/api/fail', intervalSeconds: 5 }],
+        onError: handler
+      });
+
+      runner.start();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(error).toHaveBeenCalledTimes(1);
+      const [message, thrown, jobError] = error.mock.calls[0] as [string, unknown, Error];
+      expect(message).toContain('/api/fail');
+      expect(thrown).toBe(handlerError);
+      expect((jobError as Error & { status?: number }).status).toBe(500);
+
+      // The tick that follows must still fire: a broken handler is a consumer
+      // bug, not the end of the schedule.
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(handler).toHaveBeenCalledTimes(2);
+      runner.stop();
+    });
+
+    it('keeps the schedule running when fetch rejects', async () => {
+      vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const handler = vi.fn(() => {
+        throw new Error('handler boom');
+      });
+      const runner = createCronRunner({
+        secret: 's',
+        jobs: [{ path: '/api/fail', intervalSeconds: 5 }],
+        onError: handler
+      });
+
+      runner.start();
+      await vi.advanceTimersByTimeAsync(15_000);
+
+      expect(handler).toHaveBeenCalledTimes(3);
+      expect(error).toHaveBeenCalledTimes(3);
+      runner.stop();
+    });
+  });
+
+  describe('the double-start warning', () => {
+    const spyOnWarn = () => vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let warn: ReturnType<typeof spyOnWarn>;
+
+    beforeEach(() => {
+      warn = spyOnWarn();
+      // The warning is `import.meta.env?.DEV`-gated; without DEV every
+      // assertion below would hold for the wrong reason.
+      expect(import.meta.env.DEV).toBe(true);
+    });
+
+    const runnerOn = (path: string, intervalSeconds = 60) =>
+      createCronRunner({ secret: 's', jobs: [{ path, intervalSeconds }], onError });
+
+    it('warns once when a second runner arms a path this process already ticks', () => {
+      const first = runnerOn('/api/cron/night');
+      const second = runnerOn('/api/cron/night', 30);
+
+      first.start();
+      expect(warn).not.toHaveBeenCalled();
+
+      second.start();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const message = warn.mock.calls[0]?.[0] as string;
+      expect(message).toContain('/api/cron/night');
+      expect(message).toContain('import.meta.hot');
+      expect(message).toContain('hot reload made the second call');
+
+      first.stop();
+      second.stop();
+    });
+
+    it('does not warn for a repeated start() on one runner', () => {
+      const runner = runnerOn('/api/cron/night');
+      runner.start();
+      runner.start();
+      expect(warn).not.toHaveBeenCalled();
+      runner.stop();
+    });
+
+    it('does not warn for different paths', () => {
+      const a = runnerOn('/api/cron/a');
+      const b = runnerOn('/api/cron/b');
+      a.start();
+      b.start();
+      expect(warn).not.toHaveBeenCalled();
+      a.stop();
+      b.stop();
+    });
+
+    it('stops warning once the first runner has been stopped', () => {
+      const first = runnerOn('/api/cron/night');
+      first.start();
+      first.stop();
+
+      runnerOn('/api/cron/night').start();
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('keeps warning while any other runner still ticks the path', () => {
+      const first = runnerOn('/api/cron/night');
+      const second = runnerOn('/api/cron/night');
+      first.start();
+      second.start();
+      expect(warn).toHaveBeenCalledTimes(1);
+
+      // One of the two is gone; the other still ticks the path, so a third
+      // start is still a double start — a boolean flag would have forgotten.
+      first.stop();
+      runnerOn('/api/cron/night').start();
+      expect(warn).toHaveBeenCalledTimes(2);
+
+      second.stop();
+    });
+
+    it('warns across a module re-evaluation — the HMR case', async () => {
+      runnerOn('/api/cron/night').start();
+      // The warning below has to come from the reloaded module's start(), not
+      // from a path some earlier test left in a registry this file cannot
+      // clear: with a module-scoped registry that leaks, the count would reach
+      // 1 here and the assertion at the end would pass for the wrong reason.
+      expect(warn).not.toHaveBeenCalled();
+
+      vi.resetModules();
+      const reloaded = await import('./cron');
+      // Control: without a genuinely fresh module instance this test would
+      // hold for a module-scoped registry too, which is the thing it denies.
+      expect(reloaded.createCronRunner).not.toBe(createCronRunner);
+
+      reloaded
+        .createCronRunner({
+          secret: 's',
+          jobs: [{ path: '/api/cron/night', intervalSeconds: 60 }],
+          onError
+        })
+        .start();
+
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
   });
 });

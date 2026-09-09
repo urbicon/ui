@@ -43,10 +43,11 @@ export interface CronRunnerConfig {
    *   an `Error` naming the job and status, with the numeric code attached as
    *   `error.status` (e.g. `500`, `403`).
    *
-   * Without a handler both failure modes are swallowed silently — pass one to
-   * observe per-run outcomes.
+   * Required: it is the runner's only outward channel, and nothing else
+   * observes a job that has been answering 403 for weeks. A handler that
+   * throws is reported on `console.error` and does not stop the schedule.
    */
-  onError?: (job: CronJob, error: Error) => void;
+  onError: (job: CronJob, error: Error) => void;
 }
 
 /** Handle returned by {@link createCronRunner}. */
@@ -54,6 +55,9 @@ export interface CronRunner {
   /**
    * Arm every job's interval timer. Idempotent — calling `start()` while
    * already running is a no-op (does not double-schedule).
+   *
+   * In development a job path that another runner in this process already
+   * ticks is reported on `console.warn` (see {@link createCronRunner}).
    */
   start(): void;
   /**
@@ -63,6 +67,48 @@ export interface CronRunner {
   stop(): void;
   /** Whether the runner is currently armed (between `start()` and `stop()`). */
   isRunning(): boolean;
+}
+
+// Which job paths this process currently ticks, and how many runners tick each.
+// The registry hangs off `globalThis` under a `Symbol.for` key rather than
+// living in this module's scope: under `vite dev` a server module is
+// re-evaluated on a hot reload, and the fresh evaluation gets a fresh
+// module scope while the previous evaluation's timers keep firing — the very
+// situation the warning below exists for. A registry the reload resets sees
+// nothing to warn about; `globalThis` and a cross-realm-stable key survive it.
+const CRON_REGISTRY: unique symbol = Symbol.for('urbicon-ui.sveltekit-utils.cron');
+
+type RegistryHost = typeof globalThis & { [CRON_REGISTRY]?: Map<string, number> };
+
+function armedPaths(): Map<string, number> {
+  const host = globalThis as RegistryHost;
+  const known = host[CRON_REGISTRY];
+  if (known) return known;
+  const paths = new Map<string, number>();
+  host[CRON_REGISTRY] = paths;
+  return paths;
+}
+
+/** Register one armed path; returns how many runners already ticked it. */
+function claimPath(path: string): number {
+  const paths = armedPaths();
+  const armed = paths.get(path) ?? 0;
+  paths.set(path, armed + 1);
+  return armed;
+}
+
+function releasePath(path: string): void {
+  const paths = armedPaths();
+  const armed = (paths.get(path) ?? 1) - 1;
+  if (armed > 0) paths.set(path, armed);
+  else paths.delete(path);
+}
+
+function warnDoubleStart(path: string, armed: number): void {
+  const others = armed === 1 ? 'another runner is' : `${armed} other runners are`;
+  console.warn(
+    `[createCronRunner] start() armed "${path}" while ${others} already ticking it in this process — every one of them fires, and the endpoint sees the traffic of all. Call stop() on the runner you replaced; under \`vite dev\` put \`import.meta.hot?.dispose(() => runner.stop())\` next to the start() call so a hot reload clears the old timers. Two runners on one path on purpose (different intervals, say) look exactly the same from here. If this appeared right after you edited a file under \`vite dev\`, a hot reload made the second call and your wiring is fine; it is only actionable when you see it without having edited anything. Development only.`
+  );
 }
 
 /**
@@ -75,8 +121,14 @@ export interface CronRunner {
  * for scale-out point a real scheduler (BullMQ, a platform cron) at the same
  * endpoints instead. The runner starts idle — call `start()` explicitly.
  *
- * @param config - Secret/header, base URL, and the jobs to schedule.
+ * Import from `@urbicon-ui/sveltekit-utils/cron`, not from the package root:
+ * the root barrel carries `url.svelte`, whose `$app/*` imports have no business
+ * in `hooks.server.ts`.
+ *
+ * @param config - Secret/header, base URL, the jobs to schedule, and the
+ *   required `onError` handler.
  * @returns A {@link CronRunner} handle (`start` / `stop` / `isRunning`).
+ * @throws TypeError if `onError` is not a function.
  * @example
  * ```typescript
  * // src/lib/server/cron.ts
@@ -98,11 +150,36 @@ export interface CronRunner {
  * });
  *
  * cron.start();
+ * import.meta.hot?.dispose(() => cron.stop());
  * ```
  */
 export function createCronRunner(config: CronRunnerConfig): CronRunner {
+  if (typeof config.onError !== 'function') {
+    throw new TypeError(
+      `[createCronRunner] onError is required and must be a function (received ${typeof config.onError}). It is the only channel a failing job has: without it a 403 or a 500 on every tick is indistinguishable from a job that works. Pass \`onError: (job, err) => console.error(job.path, err)\` if the server log is where you read it.`
+    );
+  }
+
   const timers: ReturnType<typeof setInterval>[] = [];
   let running = false;
+
+  // The handler is the consumer's error channel, so when it throws there is no
+  // second one to report on — and letting the throw escape this async interval
+  // callback ends the process: an unhandled rejection exits node (25.2.1) and
+  // bun (1.4.2) with code 1, so one broken log call would take the app down and
+  // stop every other job with it. `console.error` is the sink a zero-dependency
+  // package can assume; both errors go out, the schedule keeps running.
+  const report = (job: CronJob, error: Error): void => {
+    try {
+      config.onError(job, error);
+    } catch (handlerError) {
+      console.error(
+        `[createCronRunner] the onError handler threw while reporting a failure of "${job.path}"; the schedule keeps running. Handler error, then the job error:`,
+        handlerError,
+        error
+      );
+    }
+  };
 
   return {
     start() {
@@ -110,6 +187,10 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
       running = true;
 
       for (const job of config.jobs) {
+        if (import.meta.env?.DEV) {
+          const armed = claimPath(job.path);
+          if (armed > 0) warnDoubleStart(job.path, armed);
+        }
         const timer = setInterval(async () => {
           const base = config.baseUrl ?? 'http://localhost:3000';
           let response: Response;
@@ -120,19 +201,16 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
             });
           } catch (err) {
             // Network-level failure (DNS, connection refused, abort): fetch rejected.
-            config.onError?.(job, err as Error);
+            report(job, err as Error);
             return;
           }
-          // The request completed; a non-2xx status is still a failure. Handle it
-          // outside the try so a throwing `onError` escapes as an unhandled
-          // rejection rather than being re-caught and re-invoked here — symmetric
-          // with the rejection path above.
+          // The request completed; a non-2xx status is still a failure.
           if (!response.ok) {
             const err = new Error(
               `Cron job "${job.path}" returned ${response.status} ${response.statusText}`
             ) as Error & { status: number };
             err.status = response.status;
-            config.onError?.(job, err);
+            report(job, err);
           }
         }, job.intervalSeconds * 1000);
         timers.push(timer);
@@ -140,6 +218,9 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
     },
 
     stop() {
+      if (running && import.meta.env?.DEV) {
+        for (const job of config.jobs) releasePath(job.path);
+      }
       running = false;
       timers.forEach(clearInterval);
       timers.length = 0;
