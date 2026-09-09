@@ -131,6 +131,12 @@ export const authDeps = createAuthDeps({
 });
 ```
 
+`email` is optional. This quickstart mounts `register` and `forgot-password`, which mail a
+link, so it needs a transport — the four factories that send mail (`createRegisterHandler`,
+`createForgotPasswordHandler`, `createChangeEmailHandler`, `createInvitationHandlers`) each
+throw at wiring time without one. An app that mounts only login/logout/me and the session
+routes passes no `email` at all.
+
 `createInMemoryRepos()` is a fresh `createInMemoryStore()` with every repository built on it.
 Need only a piece — the refresh-token repository beside a user store of your own? Build that
 factory on a store handle: `createInMemoryRefreshTokenRepository(createInMemoryStore())`.

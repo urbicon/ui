@@ -306,6 +306,19 @@ blocks each stage swaps in, and the invariants that hold across all of them.
 session (`locals.user`), guards routes, applies the response security headers, and
 enforces CSRF. The handler factories alone do none of that.
 
+**Mail transport:** `deps.email` is optional, like the feature-scoped repositories.
+Exactly four factories send mail — `createRegisterHandler`,
+`createForgotPasswordHandler`, `createChangeEmailHandler` and
+`createInvitationHandlers` — and each throws at wiring time without a transport, the
+way `createPasskeyHandlers` does without `repos.passkey`. An app that mounts only
+login/logout/me/refresh/sessions plus 2FA and passkeys needs none. `createInvitationHandlers`
+is in that list even though its mail hangs on the per-request `sendEmail` flag: the send
+is best-effort, so without the gate a missing transport would answer
+`201 { emailSent: false }` plus one logged error — exactly what a mail outage looks
+like — on every invite, forever. The cost of the optional field is on the reading
+side — `deps.email` is `EmailTransport | undefined` for anyone who takes it off the
+bundle in a handler of their own, and has to narrow before using it.
+
 **Stylesheet:** every stage that mounts a component needs
 `@import '@urbicon-ui/auth/style/index.css';` after the blocks import in the app's
 Tailwind stylesheet (see [README → Installation](../README.md#installation)). The file

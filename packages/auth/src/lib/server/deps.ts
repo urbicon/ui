@@ -43,7 +43,19 @@ export interface AuthDeps<R extends string = string> {
      */
     passkey?: PasskeyRepository;
   };
-  email: EmailTransport;
+  /**
+   * Optional — required only when a factory that sends mail is mounted:
+   * `createRegisterHandler`, `createForgotPasswordHandler`,
+   * `createChangeEmailHandler`, `createInvitationHandlers`. Each of those four
+   * throws at wiring time when it is missing; an app that mounts only
+   * login/logout/me/refresh/sessions/2FA/passkeys needs no transport at all.
+   * Pass `createConsoleEmailTransport()` in dev or `createLettermintTransport`
+   * (or your own `EmailTransport`) in production.
+   *
+   * Because it is optional, code reading it off the bundle — a consumer's own
+   * handler — sees `EmailTransport | undefined` and has to narrow.
+   */
+  email?: EmailTransport;
   /**
    * Resolved log sink (`config.logger ?? console`) — `createAuthDeps` always
    * fills it, so handlers log operational failures through one seam instead

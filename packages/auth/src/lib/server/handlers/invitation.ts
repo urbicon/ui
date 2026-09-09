@@ -7,7 +7,13 @@ import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
 import { validateInvitationInput } from '../validation.js';
-import { notifyHook, parseBody, privateEndpoints, requireSessionUser } from './_shared.js';
+import {
+  notifyHook,
+  parseBody,
+  privateEndpoints,
+  requireEmailTransport,
+  requireSessionUser
+} from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -113,6 +119,13 @@ export function createInvitationHandlers<R extends string>(
   }
   const invitationTtlMs = configuredTtl ?? DEFAULT_INVITATION_TTL_MS;
 
+  // Required at mount even though `sendEmail` is a per-request flag: the send
+  // sits inside the best-effort try below, which turns a missing transport into
+  // the same `201 { emailSent: false }` plus one logged error that a mail
+  // outage produces — so without this gate the misconfiguration would be
+  // indistinguishable from one, on every invite, forever.
+  const transport = requireEmailTransport(deps, 'createInvitationHandlers');
+
   // Resolve the caller from the session cookie and run the authorization gate.
   // Returns the sanitized user, or a Response the handler must return as-is.
   async function authorizedUser(
@@ -196,7 +209,7 @@ export function createInvitationHandlers<R extends string>(
           : buildInvitationEmail({ url: inviteUrl, appName }, t);
 
         try {
-          await deps.email.send({ from, ...built, to: email });
+          await transport.send({ from, ...built, to: email });
           emailSent = true;
         } catch (err) {
           // The invitee — not the API caller — is the one left unable to

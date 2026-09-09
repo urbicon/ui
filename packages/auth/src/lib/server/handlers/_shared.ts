@@ -3,6 +3,7 @@ import { resolvePasswordPolicy, unmetPasswordRules } from '../../password-policy
 import type { AuthConfig, AuthLogger, JwtConfig, PasswordConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
+import type { EmailTransport } from '../email/types.js';
 import { passwordRuleMessage, verifyPasswordWithMigration } from '../password.js';
 import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, type ValidationError, type ValidationResult } from '../validation.js';
@@ -354,4 +355,28 @@ export async function verifyCurrentPassword<R extends string>(
     deps.config.password
   );
   return result.valid;
+}
+
+/**
+ * The wiring-time gate for `deps.email`: returns the transport, or throws
+ * naming the factory that needs one. `AuthDeps.email` is optional — an app that
+ * mounts no mailing route passes no transport — so every factory whose handler
+ * can reach `email.send` calls this **once, at construction**. A missing
+ * transport then fails where the route was wired, instead of inside a
+ * password-reset or change-email request whose mail work is detached from the
+ * response and whose failure never reaches the user.
+ *
+ * `factory` is the exported factory's name, so the message points at the call
+ * site rather than at this file.
+ */
+export function requireEmailTransport<R extends string>(
+  deps: AuthDeps<R>,
+  factory: string
+): EmailTransport {
+  if (!deps.email) {
+    throw new Error(
+      `${factory}: deps.email is required — pass an EmailTransport (createConsoleEmailTransport() in dev).`
+    );
+  }
+  return deps.email;
 }
