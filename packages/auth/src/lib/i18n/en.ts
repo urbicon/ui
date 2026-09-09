@@ -143,11 +143,15 @@ export const en = {
     }
   },
   notifications: {
+    badge: {
+      unread: 'Unread notifications: {n}'
+    },
     center: {
       title: 'Notifications',
       empty: 'No notifications',
       markAllRead: 'Mark all as read',
-      delete: 'Delete'
+      delete: 'Delete',
+      unread: 'Unread'
     },
     push: {
       prompt: 'Enable push notifications?',
@@ -244,6 +248,7 @@ export const en = {
     statusEnabled: 'Two-factor authentication is on.',
     enable: 'Enable two-factor authentication',
     disable: 'Disable two-factor authentication',
+    setupTitle: 'Set up two-factor authentication',
     setupScan: 'Scan this QR code with your authenticator app, or enter the key manually.',
     setupSecret: 'Setup key',
     setupCode: 'Enter the 6-digit code',

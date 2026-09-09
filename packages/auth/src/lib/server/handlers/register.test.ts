@@ -148,6 +148,7 @@ describe('createRegisterHandler', () => {
       .fn()
       .mockResolvedValueOnce(null) // existing-user check
       .mockResolvedValueOnce(createMockUser({ id: 'u-new', email: 'new@test.com' })); // re-read
+    const send = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({
       config: { hooks: { onUserCreated } },
       user: {
@@ -160,7 +161,8 @@ describe('createRegisterHandler', () => {
           emailVerified: false
         })
       },
-      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) }
+      invitation: { findByTokenHash: vi.fn().mockResolvedValue(invited()) },
+      email: { send: send as unknown as EmailTransport['send'] }
     });
 
     const res = await createRegisterHandler(deps).POST(event(validBody));
@@ -168,7 +170,7 @@ describe('createRegisterHandler', () => {
     expect(res.status).toBe(201);
     expect(deps.repos.invitation.markUsedIfUnused).toHaveBeenCalledWith('inv-1');
     expect(deps.repos.user.create).toHaveBeenCalledTimes(1);
-    expect(deps.email.send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
     expect(onUserCreated).toHaveBeenCalledWith(expect.objectContaining({ id: 'u-new' }));
     const data = await res.json();
     expect(data.user).not.toHaveProperty('passwordHash');

@@ -12,6 +12,12 @@ import {
   mounter,
   settle
 } from '../__fixtures__/fetcher.js';
+import {
+  errorMessage,
+  errorRegion,
+  liveRegionsAround,
+  successMessage
+} from '../__fixtures__/live-regions.js';
 import AccountSettings from './AccountSettings.svelte';
 import type { AccountSettingsProps } from './index.js';
 
@@ -36,12 +42,11 @@ const render = (props: Partial<AccountSettingsProps> = {}) =>
 
 // Three sections ask for the current password; the danger zone is the one that
 // is a named landmark, which is how its field and trigger are told apart here.
-const dangerZone = () => within(screen.getByRole('region', { name: 'Delete account' }));
+const dangerZoneSection = () => screen.getByRole('region', { name: 'Delete account' });
+const dangerZone = () => within(dangerZoneSection());
 
-/** The form a labelled field belongs to, and the live region inside it. */
+/** The form a labelled field belongs to; each carries its own pair of regions. */
 const formOf = (label: string) => screen.getByLabelText(label).closest('form') as HTMLFormElement;
-const liveRegionOf = (form: HTMLElement) =>
-  form.querySelector('[aria-live="polite"]') as HTMLElement;
 
 /** Fill the password and walk the danger zone up to the open confirm dialog. */
 async function openDeleteConfirm() {
@@ -82,11 +87,13 @@ describe('AccountSettings — forms', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await settle();
 
-    const alert = screen.getByRole('alert');
-    expect(alert.textContent).toContain('Profile updated.');
-    // Four forms, four regions: the message belongs next to the form it
-    // answers, not in a shared banner that could be scrolled out of view.
-    expect(liveRegionOf(formOf('Name')).contains(alert)).toBe(true);
+    // Four forms, four region pairs: the message belongs next to the form it
+    // answers, not in a shared banner that could be scrolled out of view. A
+    // saved profile is not urgent, so it is the polite one — and only that one.
+    const message = successMessage(formOf('Name'));
+    expect(message.textContent).toContain('Profile updated.');
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    expect(errorRegion(formOf('Name')).textContent?.trim()).toBe('');
     expect(onProfileUpdated).toHaveBeenCalledWith(updated);
   });
 
@@ -102,10 +109,12 @@ describe('AccountSettings — forms', () => {
     await userEvent.click(within(form).getByRole('button', { name: 'Change email' }));
     await settle();
 
-    const alert = screen.getByRole('alert');
-    expect(alert.textContent).toContain('Current password is incorrect.');
-    expect(liveRegionOf(form).contains(alert)).toBe(true);
-    expect(liveRegionOf(formOf('Name')).querySelector('[role="alert"]')).toBeNull();
+    const message = errorMessage(form);
+    expect(message.textContent).toContain('Current password is incorrect.');
+    expect(liveRegionsAround(message)).toHaveLength(1);
+    // The other forms' regions stay empty — a failure in one is not an
+    // announcement in all four.
+    expect(errorRegion(formOf('Name')).textContent?.trim()).toBe('');
   });
 });
 
@@ -150,6 +159,6 @@ describe('AccountSettings — danger zone', () => {
     await settle();
 
     expect(onDeleted).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(errorRegion(dangerZoneSection()).textContent?.trim()).not.toBe('');
   });
 });

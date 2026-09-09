@@ -16,7 +16,7 @@
  * 30 635 B today, 873 B of it the ladder block and 1 114 B the link recipe.
  *
  * What is deliberately NOT here: patterns and recipes. Those are task-dependent
- * (a settings page needs `settings-page`, not all seven), so bundling them would
+ * (a settings page needs `settings-page`, not the whole set), so bundling them would
  * be the mistake this command exists to avoid — paying for context nobody reads.
  * Component APIs are likewise on demand: `get-component <slug> --section api`.
  */
@@ -49,7 +49,7 @@ const CORE_SECTIONS = ['surfaces', 'text', 'borders', 'intents', 'shadows'] as c
  * costs ~1.2 kB against a 13.6 kB bundle, cached after the first round.
  *
  * Still deliberately absent: patterns and recipes. Those *are* task-dependent
- * (a settings page needs `settings-page`, not all seven), so bundling them would
+ * (a settings page needs `settings-page`, not the whole set), so bundling them would
  * be the mistake this command exists to avoid.
  */
 const CORE_PRINCIPLES = ['component-selection', 'layout'] as const;

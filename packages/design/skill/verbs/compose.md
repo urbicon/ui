@@ -8,10 +8,10 @@ Do not skip steps. The value is in the loop, not any one generation.
 
 1. **Context.** `urbicon context` (or read `./design.manifest.md`) — honour the
    paradigm, theme, density, the Product Intent (design *toward* its voice and
-   references, *away* from its anti-references), and the recorded ADRs. Then, if a
-   composition pattern fits the brief, `urbicon pattern <name>` (settings-page,
-   dashboard, form-page, tab-navigation, onboarding-guide, planning-board; MCP:
-   `get_pattern`) and follow its layout, component-selection, and behavioural rules.
+   references, *away* from its anti-references), and the recorded ADRs. Then
+   `urbicon pattern` (no name) to see which composition patterns exist, and
+   `urbicon pattern <name>` for the one that fits the brief (MCP: `get_pattern`) —
+   follow its layout, component-selection, and behavioural rules.
 2. **Ground rules.** `urbicon principles` for the heuristics, `urbicon principles
    --topic theming` for the paradigm's token profile, and `urbicon css-reference`
    for the exact token names (MCP: `get_design_principles` / `get_css_reference`).

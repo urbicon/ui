@@ -61,25 +61,35 @@
           the next control instead of stopping on an empty badge.
         </p>
       </Note>
-      <Note title="It is always a button, even without a handler">
+      <Note title="The handler decides what it is">
         <p>
-          The badge always takes <code class="text-text-primary">role="button"</code> and
-          <code class="text-text-primary">tabindex="0"</code>, but
-          <code class="text-text-primary">onclick</code> is optional and the key handler fires only
-          when one was given. A badge with no handler is still a focusable stop that announces as a
-          button and does nothing on
-          <Kbd keys="Enter" /> or <Kbd keys="Space" />, so pass an
-          <code class="text-text-primary">onclick</code>, or wrap the count in your own button
-          rather than leaving the badge to stand alone.
+          With an <code class="text-text-primary">onclick</code> the badge is a
+          <code class="text-text-primary">role="button"</code> with
+          <code class="text-text-primary">tabindex="0"</code>, activated by
+          <Kbd keys="Enter" /> or <Kbd keys="Space" />, and it carries the pressable styling —
+          pointer cursor, hover and active scale. Without one it is a
+          <code class="text-text-primary">role="status"</code>, a polite live region: it stays out
+          of the tab order rather than being a focus stop on which every key is dead, and it drops
+          the pressable styling with the semantics, so a decorative count does not look clickable.
+          The <code class="text-text-primary">role</code> prop narrows what is announced; it does
+          not make the badge operable, so
+          <code class="text-text-primary">role="button"</code> without a handler is a button nothing
+          can activate — pass an <code class="text-text-primary">onclick</code> for a button.
         </p>
       </Note>
-      <Note title="The accessible name is only the number">
+      <Note title="It names itself">
         <p>
-          The badge's entire content is <code class="text-text-primary">3</code> or
-          <code class="text-text-primary">99+</code>, and it takes no
-          <code class="text-text-primary">aria-label</code> of its own, so alone it announces a bare number.
-          Give the bell button the name instead: label it "Notifications" and let the badge supply the
-          count inside it.
+          The visible content is <code class="text-text-primary">3</code> or
+          <code class="text-text-primary">99+</code>, and the accessible name is the localized
+          <code class="text-text-primary">notifications.badge.unread</code> with that same text
+          substituted — "Unread notifications: 3" — so the name is never a bare number. Past the cap
+          it says <code class="text-text-primary">99+</code> too, not the real count: a
+          voice-control user can only say the label they can read. Your own
+          <code class="text-text-primary">aria-label</code> wins over it, as does a
+          <code class="text-text-primary">t</code> override of the string. The
+          <code class="text-text-primary">status</code> region exists from the first unread on — at zero
+          the badge renders nothing at all — so a change between two non-zero counts happens inside a
+          region that was already there, while the first unread arrives together with it.
         </p>
       </Note>
     </NoteList>

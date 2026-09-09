@@ -1,6 +1,24 @@
+import type { BadgeProps } from '@urbicon-ui/blocks';
+import type { HTMLAttributes } from 'svelte/elements';
+import type { PartialAuthLocale } from '../../../i18n/keys.js';
+
 /**
  * @summary The unread count on a bell, invisible at zero.
  * @description An unread-count badge that renders nothing when the count is 0.
+ * The visible text is the count, capped at `99+`; the accessible name is the
+ * localized `notifications.badge.unread` string with that same text substituted
+ * for `{n}`, so the badge's accessible name is "Unread notifications: 3"
+ * instead of a bare number. Pass your own `aria-label` (or any other attribute — the rest spread
+ * reaches the badge root) to override it.
+ *
+ * The ARIA role follows the handler, because `Badge` derives it: with an
+ * `onclick` the badge is a `button` and a tab stop; without one it is a
+ * `status` — a polite live region that exists from the first unread on, so a
+ * change between two non-zero counts happens inside a region that was already
+ * there. The first unread is not such a change: at zero the badge renders
+ * nothing, so the region arrives together with its text. The interactive look
+ * follows the handler too — without one the badge is not pressable and does
+ * not look it.
  *
  * @tag feedback
  * @related NotificationCenter
@@ -10,10 +28,16 @@
  * <NotificationBadge count={store.unreadCount} onclick={() => (open = !open)} />
  * ```
  */
-export interface NotificationBadgeProps {
+export interface NotificationBadgeProps
+  extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'class' | 'onclick' | 'role'> {
+  /**
+   * Locale overrides, deep-merged over the active built-in bundle (resolved
+   * from the i18n context). Pass any subset, from a single string to a whole tree.
+   */
+  t?: PartialAuthLocale;
   /** Number of unread notifications. Badge hidden when 0. */
   count: number;
-  /** Click handler (e.g. toggle notification center). */
+  /** Click handler (e.g. toggle notification center). Also what makes the badge a `button` and a tab stop. */
   onclick?: () => void;
   /** Strip all default styling. */
   unstyled?: boolean;
@@ -28,6 +52,15 @@ export interface NotificationBadgeProps {
   preset?: string;
   /** Extra classes on the root element. */
   class?: string;
+  /**
+   * ARIA role, passed straight to `Badge` — its type, so the two cannot drift.
+   * Leave unset to take the derived one: `button` with an `onclick`, `status`
+   * (a polite live region) without. It narrows what the badge is announced as;
+   * it does not make it operable, so `role="button"` without an `onclick` is a
+   * button nothing can activate.
+   * @summary Announced role; without it the badge is a button when clickable, a polite status otherwise.
+   */
+  role?: BadgeProps['role'];
 }
 
 export { default as NotificationBadge } from './NotificationBadge.svelte';

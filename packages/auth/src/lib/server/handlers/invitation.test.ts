@@ -49,6 +49,8 @@ function setup(opts?: {
   invitation?: Partial<InvitationRepository>;
   userRepo?: Partial<UserRepository>;
   email?: EmailTransport;
+  /** A deployment with no `deps.email` at all — the copy-link configuration. */
+  noTransport?: boolean;
   inviteEmail?: InvitationHandlerInviteEmail;
   hooks?: AuthConfig['hooks'];
   from?: string;
@@ -75,6 +77,9 @@ function setup(opts?: {
     },
     email: opts?.email
   });
+  // `createMockAuthDeps` always fills a transport, so the no-transport
+  // deployment has to be produced by taking it back off.
+  if (opts?.noTransport) deps.email = undefined;
   const handlers = createInvitationHandlers(deps, {
     authorize: opts?.authorize ?? ((u) => u.role === 'admin'),
     roles: ROLES,
@@ -369,6 +374,48 @@ describe('createInvitationHandlers — POST', () => {
     expect(res.status).toBe(201);
     expect((await res.json()).emailSent).toBe(false);
     expect(deps.logger.error).toHaveBeenCalled();
+  });
+
+  it('refuses sendEmail: true without a transport, naming the wiring, not an outage', async () => {
+    const { deps, user, handlers } = setup({ noTransport: true });
+    const res = await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'a@b.com', role: 'member', sendEmail: true }
+      })
+    );
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.emailSent).toBe(false);
+    // The invitation is still usable — which is why this is a per-request
+    // refusal and not a throw at mount.
+    expect(data.inviteUrl).toContain('/auth/register?token=');
+    expect(deps.logger.error).toHaveBeenCalledTimes(1);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('deps.email is not configured')
+    );
+    // The two causes have to stay tellable apart in a log: this one is not the
+    // send-failure line, and it carries no error object to attach a stack to.
+    expect(deps.logger.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('failed to send'),
+      expect.anything()
+    );
+  });
+
+  it('mints a copy-link invitation without a transport and logs nothing', async () => {
+    const { deps, user, handlers } = setup({ noTransport: true });
+    const res = await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'a@b.com', role: 'member' }
+      })
+    );
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.emailSent).toBe(false);
+    expect(data.inviteUrl).toContain('/auth/register?token=');
+    expect(deps.logger.error).not.toHaveBeenCalled();
+    expect(deps.repos.invitation.markEmailed).not.toHaveBeenCalled();
   });
 
   it('propagates a throwing inviteEmail builder instead of masking it as a send failure', async () => {
