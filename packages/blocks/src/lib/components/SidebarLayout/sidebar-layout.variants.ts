@@ -20,6 +20,20 @@ export const sidebarLayoutVariants = tv({
       'px-4',
       'lg:hidden'
     ],
+    // The desktop seam of the `toggle` snippet: a box parked on the sidebar's
+    // outer edge, riding the same `--sidebar-effective-width` the panel
+    // animates, so grip and rail move as one. `hidden lg:block` is the mirror
+    // of `mobileHeader`'s `lg:hidden` — the two render sites of the one snippet
+    // are never visible at the same time, which is what keeps their two trigger
+    // ids from colliding on one screen.
+    //
+    // It is `fixed`, so it paints over whatever the content column puts in that
+    // strip. `--sidebar-toggle-gutter` below is what stops it from doing so.
+    toggleRail: [
+      'fixed top-4 z-[var(--z-sidebar)]',
+      'hidden lg:block',
+      'transition-[left,right] duration-(--blocks-duration-normal) ease-(--blocks-ease-confident)'
+    ],
     main: [
       'min-h-screen',
       'pb-[env(safe-area-inset-bottom)]',
@@ -28,9 +42,21 @@ export const sidebarLayoutVariants = tv({
     inner: ['mx-auto w-full']
   },
   variants: {
+    // `--sidebar-toggle-gutter` is the strip the `toggle` snippet's desktop
+    // grip is parked in; the component sets it only while that grip renders and
+    // it falls back to 0px, so a layout without the snippet keeps the padding
+    // it always had. Measured at 1200px with the shipped example: without the
+    // reservation a collapsed rail put a 40px grip at x 8–48 while the content
+    // column began at x 32, and the first heading rendered under the button.
     side: {
-      left: { main: 'lg:pl-[var(--sidebar-effective-width)]' },
-      right: { main: 'lg:pr-[var(--sidebar-effective-width)]' }
+      left: {
+        main: 'lg:pl-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,0px))]',
+        toggleRail: 'left-[var(--sidebar-effective-width)] pl-2'
+      },
+      right: {
+        main: 'lg:pr-[calc(var(--sidebar-effective-width)+var(--sidebar-toggle-gutter,0px))]',
+        toggleRail: 'right-[var(--sidebar-effective-width)] pr-2'
+      }
     },
     contentMaxWidth: {
       none: { inner: 'max-w-none' },

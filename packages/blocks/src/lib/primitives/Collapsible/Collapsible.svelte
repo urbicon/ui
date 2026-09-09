@@ -3,6 +3,7 @@
   import { collapsibleVariants, type CollapsibleVariants } from './collapsible.variants';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
+  import { useDisclosure } from '$lib/utils/use-disclosure.svelte';
   import { resolveClassChain } from '$lib/utils/variants';
   import type { CollapsibleProps } from './index';
 
@@ -37,33 +38,6 @@
     transitionDuration != null ? `${transitionDuration}ms` : undefined
   );
 
-  // Uncontrolled seed: capture only the initial `defaultOpen`; later changes
-  // must not clobber user interaction.
-  // svelte-ignore state_referenced_locally
-  let internalOpen = $state(defaultOpen ?? false);
-  const isOpen = $derived(open !== undefined ? open : internalOpen);
-
-  // Single mutation point. Family contract (COMPONENT-API-CONVENTIONS.md
-  // §Open-state vocabulary): the transition is applied optimistically — `open`
-  // (or the uncontrolled seed) is written *before* `onOpenChange` fires, once
-  // per transition. With `bind:open` that write is the propagation. A consumer
-  // passing `open` without `bind:` must mirror every `onOpenChange` back into
-  // its state (Svelte can't distinguish `open={x}` from `bind:open={x}` at
-  // runtime, so a rejected transition is undetectable from in here). To veto
-  // transitions, own them instead: drive `open` from your source of truth and
-  // toggle it from a custom `trigger` snippet — see AccordionItem's
-  // collapsible=false handling.
-  function toggle() {
-    if (disabled) return;
-    const next = !isOpen;
-    if (open !== undefined) {
-      open = next;
-    } else {
-      internalOpen = next;
-    }
-    onOpenChange?.(next);
-  }
-
   const variantProps: CollapsibleVariants = $derived({ variant, size });
   const styles = $derived(collapsibleVariants(variantProps));
 
@@ -83,6 +57,42 @@
   const uid = $derived(name ?? fallbackName);
   const triggerId = $derived(`${uid}-trigger`);
   const contentId = $derived(`${uid}-content`);
+
+  // The open state and the trigger↔region ARIA pair come from the public
+  // `useDisclosure` hook, so a consumer whose revealed content is a sibling
+  // rather than a child reads the same wiring out of `utils/` instead of
+  // hand-writing it.
+  const disclosure = useDisclosure(() => ({
+    open,
+    defaultOpen,
+    disabled,
+    triggerId,
+    contentId,
+    onOpenChange: applyOpen
+  }));
+  const isOpen = $derived(disclosure.open);
+
+  // Single mutation point. Family contract (COMPONENT-API-CONVENTIONS.md
+  // §Open-state vocabulary): the transition is applied optimistically — `open`
+  // is written *before* `onOpenChange` fires, once per transition (the
+  // uncontrolled seed is the hook's own and is written before it calls this).
+  // With `bind:open` that write is the propagation. A consumer passing `open`
+  // without `bind:` must mirror every `onOpenChange` back into its state
+  // (Svelte can't distinguish `open={x}` from `bind:open={x}` at runtime, so a
+  // rejected transition is undetectable from in here). To veto transitions, own
+  // them instead: drive `open` from your source of truth and toggle it from a
+  // custom `trigger` snippet — see AccordionItem's collapsible=false handling.
+  function applyOpen(next: boolean) {
+    if (open !== undefined) open = next;
+    onOpenChange?.(next);
+  }
+
+  // Read field by field rather than spread: the default trigger is a native
+  // `<button>` and keeps the native `disabled`, so it must not also carry the
+  // hook's `aria-disabled`. The region follows the same form so both halves of
+  // the wiring read alike.
+  const triggerProps = $derived(disclosure.triggerProps);
+  const contentProps = $derived(disclosure.contentProps);
 </script>
 
 <div
@@ -95,18 +105,18 @@
   {...restProps}
 >
   {#if trigger}
-    {@render trigger({ open: isOpen, toggle, disabled, triggerId, contentId })}
+    {@render trigger({ open: isOpen, toggle: disclosure.toggle, disabled, triggerId, contentId })}
   {:else}
     <button
-      id={triggerId}
+      id={triggerProps.id}
       type="button"
       class={unstyled
         ? (slotClasses?.trigger ?? '')
         : styles.trigger({ class: slotClasses?.trigger })}
-      aria-expanded={isOpen}
-      aria-controls={contentId}
+      aria-expanded={triggerProps['aria-expanded']}
+      aria-controls={triggerProps['aria-controls']}
       {disabled}
-      onclick={toggle}
+      onclick={disclosure.toggle}
     >
       <span>{title ?? ''}</span>
       <ChevronDownIcon
@@ -122,10 +132,10 @@
        into invisible controls (e.g. a CodeBlock copy button inside a collapsed
        ToolCallCard — WCAG 2.4.3/2.4.7) and the subtree stays in the a11y tree. -->
   <div
-    id={contentId}
+    id={contentProps.id}
     role="region"
-    aria-labelledby={triggerId}
-    inert={!isOpen}
+    aria-labelledby={contentProps['aria-labelledby']}
+    inert={contentProps.inert}
     class={unstyled
       ? (slotClasses?.content ?? '')
       : styles.content({ class: slotClasses?.content })}

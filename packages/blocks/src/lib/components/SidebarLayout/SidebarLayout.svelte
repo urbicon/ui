@@ -3,6 +3,7 @@
   import { Sidebar, type SidebarProps, sidebarVariants } from '$lib/primitives/Sidebar';
   import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { useDisclosure } from '$lib/utils/use-disclosure.svelte';
   import { resolveClassChain } from '$lib/utils/variants';
   import type { SidebarForwardKey, SidebarLayoutProps } from './index';
   import { sidebarLayoutVariants, type SidebarLayoutVariants } from './sidebar-layout.variants';
@@ -20,6 +21,7 @@
     sidebar,
     sidebarFooter,
     mobileHeader,
+    toggle,
     children,
     class: className = '',
     unstyled: unstyledProp = false,
@@ -94,6 +96,34 @@
     open = next;
     onOpenChange?.(next);
   }
+
+  const propsId = $props.id();
+  const panelId = `sidebar-layout-${propsId}-panel`;
+
+  // The desktop grip is `fixed` and would paint over the content column's
+  // leading strip; `main` reserves that strip while — and only while — the grip
+  // is on screen. 3rem clears the icon button the docs example ships (measured
+  // 40px wide); a larger control raises the property from the consumer's side.
+  const railGrip = $derived(!!toggle && mode === 'collapsible');
+  const toggleGutter = $derived(railGrip ? '3rem' : undefined);
+
+  // One disclosure per render site of the `toggle` snippet. Both are
+  // controlled by the same `open`, so they carry no state of their own and
+  // cannot disagree; what differs is only the trigger id, which is what keeps
+  // the rail and header copies of the snippet from writing the same DOM id
+  // (both are in the document at once — only CSS hides one).
+  const railToggle = useDisclosure(() => ({
+    open,
+    triggerId: `sidebar-layout-${propsId}-rail-toggle`,
+    contentId: panelId,
+    onOpenChange: handleSidebarOpenChange
+  }));
+  const headerToggle = useDisclosure(() => ({
+    open,
+    triggerId: `sidebar-layout-${propsId}-header-toggle`,
+    contentId: panelId,
+    onOpenChange: handleSidebarOpenChange
+  }));
 </script>
 
 <div
@@ -103,11 +133,13 @@
     : styles.root({ class: [slotClasses?.root, className] })}
   style:--sidebar-width={sidebarWidth}
   style:--sidebar-effective-width={effectiveWidth}
+  style:--sidebar-toggle-gutter={toggleGutter}
   data-side={side}
   data-mode={mode}
 >
   <Sidebar
     bind:open
+    id={toggle ? panelId : undefined}
     {mode}
     {side}
     width={sidebarWidth}
@@ -124,13 +156,43 @@
     {/if}
   </Sidebar>
 
-  {#if mobileHeader}
+  <!-- The rail grip only where `open` actually moves the panel: a `responsive`
+       sidebar is permanent on desktop, so a toggle there would change nothing
+       the user can see. On mobile the header below carries the same snippet. -->
+  {#if toggle && railGrip}
+    <div
+      class={unstyled
+        ? (slotClasses?.toggleRail ?? '')
+        : styles.toggleRail({ class: slotClasses?.toggleRail })}
+    >
+      {@render toggle({
+        open,
+        toggle: railToggle.toggle,
+        triggerId: railToggle.triggerProps.id,
+        contentId: panelId,
+        triggerProps: railToggle.triggerProps
+      })}
+    </div>
+  {/if}
+
+  {#if mobileHeader || toggle}
     <header
       class={unstyled
         ? (slotClasses?.mobileHeader ?? '')
         : styles.mobileHeader({ class: slotClasses?.mobileHeader })}
     >
-      {@render mobileHeader({ openSidebar, sidebarOpen: open })}
+      {#if toggle}
+        {@render toggle({
+          open,
+          toggle: headerToggle.toggle,
+          triggerId: headerToggle.triggerProps.id,
+          contentId: panelId,
+          triggerProps: headerToggle.triggerProps
+        })}
+      {/if}
+      {#if mobileHeader}
+        {@render mobileHeader({ openSidebar, toggle: headerToggle.toggle, sidebarOpen: open })}
+      {/if}
     </header>
   {/if}
 

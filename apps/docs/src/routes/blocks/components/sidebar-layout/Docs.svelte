@@ -155,20 +155,32 @@
     />
 
     <CodeExample
-      title="Collapsible mode (toggle on all viewports)"
-      description="Set mode='collapsible' to make the sidebar toggleable on desktop too. The panel animates its width via --sidebar-effective-width and the main content offset transitions in lockstep."
+      title="Collapsible mode, with the toggle where the layout owns the seam"
+      description="mode='collapsible' makes the sidebar toggleable on desktop too, and the toggle snippet is the control for it. The layout renders that one snippet twice — on the rail edge above 1024px, in the header bar below it — and gives each render its own triggerId, so the two never write the same DOM id. createPersistentState keeps the choice across reloads; persistence is deliberately not a prop."
       preview={false}
-      code={`<SidebarLayout
-  bind:open={sidebarOpen}
-  mode="collapsible"
-  sidebarWidth="16rem"
->
+      code={`<script>
+  import { SidebarLayout, Button, MenuIcon, createPersistentState } from '@urbicon-ui/blocks';
+
+  const railOpen = createPersistentState({ key: 'sidebar', defaultValue: true });
+<\/script>
+
+<SidebarLayout bind:open={railOpen.value} mode="collapsible" sidebarWidth="16rem">
   {#snippet sidebarHeader()}<span class="font-semibold">App</span>{/snippet}
   {#snippet sidebar()}<nav class="p-3"><!-- … --></nav>{/snippet}
 
-  <Button onclick={() => (sidebarOpen = !sidebarOpen)}>
-    {sidebarOpen ? 'Collapse' : 'Expand'} sidebar
-  </Button>
+  {#snippet toggle(rail)}
+    <Button
+      variant="ghost"
+      size="sm"
+      {...rail.triggerProps}
+      onclick={rail.toggle}
+      aria-label={rail.open ? 'Collapse sidebar' : 'Expand sidebar'}
+    >
+      <MenuIcon class="h-5 w-5" />
+    </Button>
+  {/snippet}
+
+  <!-- page content -->
 </SidebarLayout>`}
     />
 
@@ -263,6 +275,18 @@
         Inherits the <code class="text-text-primary">Sidebar</code> primitive's behavior: rendered
         as <code class="text-text-primary">&lt;aside&gt;</code> and marked
         <code class="text-text-primary">aria-hidden="true"</code> while the mobile overlay is closed.
+      </p>
+    </Note>
+    <Note title="Toggle wiring">
+      <p>
+        The <code class="text-text-primary">toggle</code> snippet receives
+        <code class="text-text-primary">triggerProps</code>
+        — <code class="text-text-primary">id</code>,
+        <code class="text-text-primary">aria-expanded</code> and
+        <code class="text-text-primary">aria-controls</code> pointing at the sidebar panel. Spread
+        it onto your control and the announcement is correct in both states. Each of the two render
+        sites gets its own <code class="text-text-primary">id</code>, so the rail and header copies
+        never collide.
       </p>
     </Note>
     <Note title="Mobile overlay">
