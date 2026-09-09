@@ -3,9 +3,14 @@
   import { Sidebar, type SidebarProps, sidebarVariants } from '$lib/primitives/Sidebar';
   import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { useDisclosure } from '$lib/utils/use-disclosure.svelte';
   import { resolveClassChain } from '$lib/utils/variants';
   import type { SidebarForwardKey, SidebarLayoutProps } from './index';
-  import { sidebarLayoutVariants, type SidebarLayoutVariants } from './sidebar-layout.variants';
+  import {
+    SIDEBAR_TOGGLE_GUTTER,
+    sidebarLayoutVariants,
+    type SidebarLayoutVariants
+  } from './sidebar-layout.variants';
 
   let {
     open = $bindable(false),
@@ -20,6 +25,7 @@
     sidebar,
     sidebarFooter,
     mobileHeader,
+    toggle,
     children,
     class: className = '',
     unstyled: unstyledProp = false,
@@ -39,6 +45,16 @@
   const effectiveWidth = $derived(
     open || (mode === 'responsive' && !isMobile) ? sidebarWidth : '0px'
   );
+
+  // The rail grip only exists where `open` actually moves the panel: a
+  // `responsive` sidebar is permanent on desktop, so a toggle there would
+  // change nothing the user can see. On mobile the header carries the snippet
+  // instead.
+  const railGrip = $derived(!!toggle && mode === 'collapsible');
+  // Widens `main`'s offset by the strip the grip floats in. Placed BEFORE
+  // `slotClasses.main` in the fold, so a consumer override of that padding
+  // still wins.
+  const railGutter = $derived(railGrip ? SIDEBAR_TOGGLE_GUTTER[side] : undefined);
 
   // Variant props feed both the tv() style computation and the slot-class
   // cascade — extracted into one derived so `resolveSlotClasses` can match
@@ -94,6 +110,27 @@
     open = next;
     onOpenChange?.(next);
   }
+
+  const propsId = $props.id();
+  const panelId = `sidebar-layout-${propsId}-panel`;
+
+  // One disclosure per render site of the `toggle` snippet. Both are
+  // controlled by the same `open`, so they carry no state of their own and
+  // cannot disagree; what differs is only the trigger id, which is what keeps
+  // the rail and header copies of the snippet from writing the same DOM id
+  // (both are in the document at once — only CSS hides one).
+  const railToggle = useDisclosure(() => ({
+    open,
+    triggerId: `sidebar-layout-${propsId}-rail-toggle`,
+    contentId: panelId,
+    onOpenChange: handleSidebarOpenChange
+  }));
+  const headerToggle = useDisclosure(() => ({
+    open,
+    triggerId: `sidebar-layout-${propsId}-header-toggle`,
+    contentId: panelId,
+    onOpenChange: handleSidebarOpenChange
+  }));
 </script>
 
 <div
@@ -108,6 +145,7 @@
 >
   <Sidebar
     bind:open
+    id={toggle ? panelId : undefined}
     {mode}
     {side}
     width={sidebarWidth}
@@ -124,19 +162,48 @@
     {/if}
   </Sidebar>
 
-  {#if mobileHeader}
+  {#if toggle && railGrip}
+    <div
+      class={unstyled
+        ? (slotClasses?.toggleRail ?? '')
+        : styles.toggleRail({ class: slotClasses?.toggleRail })}
+    >
+      {@render toggle({
+        open,
+        toggle: railToggle.toggle,
+        triggerId: railToggle.triggerProps.id,
+        contentId: panelId,
+        triggerProps: railToggle.triggerProps
+      })}
+    </div>
+  {/if}
+
+  {#if mobileHeader || toggle}
     <header
       class={unstyled
         ? (slotClasses?.mobileHeader ?? '')
         : styles.mobileHeader({ class: slotClasses?.mobileHeader })}
     >
-      {@render mobileHeader({ openSidebar, sidebarOpen: open })}
+      {#if toggle}
+        {@render toggle({
+          open,
+          toggle: headerToggle.toggle,
+          triggerId: headerToggle.triggerProps.id,
+          contentId: panelId,
+          triggerProps: headerToggle.triggerProps
+        })}
+      {/if}
+      {#if mobileHeader}
+        {@render mobileHeader({ openSidebar, toggle: headerToggle.toggle, sidebarOpen: open })}
+      {/if}
     </header>
   {/if}
 
   <main
     id="main-content"
-    class={unstyled ? (slotClasses?.main ?? '') : styles.main({ class: slotClasses?.main })}
+    class={unstyled
+      ? (slotClasses?.main ?? '')
+      : styles.main({ class: [railGutter, slotClasses?.main] })}
   >
     <div
       class={unstyled ? (slotClasses?.inner ?? '') : styles.inner({ class: slotClasses?.inner })}

@@ -18,6 +18,7 @@
   const navigation = [
     { id: 'playground', title: 'Playground' },
     { id: 'examples', title: 'Examples' },
+    { id: 'disclosure', title: 'Without the layout' },
     { id: 'customization', title: 'Customization' },
     { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },

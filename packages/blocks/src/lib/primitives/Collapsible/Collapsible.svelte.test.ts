@@ -98,6 +98,26 @@ describe('Collapsible (component interaction)', () => {
     expect(expanded()).toBe('true');
   });
 
+  it('keeps the collapsed region out of reach and lets it back in when open', () => {
+    // The region stays mounted for the grid-rows animation, so `inert` is the
+    // only thing keeping a keyboard user out of it (WCAG 2.4.3/2.4.7). jsdom
+    // does not implement the attribute — `'inert' in element` is false — so
+    // Svelte's property write is what this reads.
+    renderCollapsible();
+    const region = screen.getByRole('region') as HTMLElement & { inert?: boolean };
+    expect(region.inert).toBe(true);
+    expect(region.parentElement?.dataset.state).toBe('closed');
+
+    dispose?.();
+    dispose = undefined;
+    document.body.replaceChildren();
+
+    renderCollapsible({ open: true });
+    const openRegion = screen.getByRole('region') as HTMLElement & { inert?: boolean };
+    expect(openRegion.inert).toBe(false);
+    expect(openRegion.parentElement?.dataset.state).toBe('open');
+  });
+
   it('does not toggle or fire the callback when disabled', async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
