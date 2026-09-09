@@ -129,6 +129,12 @@ describe('SidebarLayout toggle snippet', () => {
     expect(mainPadding(render({ mode: 'responsive' }))).not.toContain('--sidebar-toggle-gutter');
   });
 
+  it('lets a consumer slotClass on main beat the strip — at the call site, not only in the engine', () => {
+    const cls = mainPadding(render({ slotClasses: { main: 'lg:pl-8' } }));
+    expect(cls).toContain('lg:pl-8');
+    expect(cls).not.toContain('--sidebar-toggle-gutter');
+  });
+
   it('keeps only the header seam in responsive mode — a permanent rail has nothing to toggle', () => {
     const target = render({ mode: 'responsive' });
     const found = triggers(target);

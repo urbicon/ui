@@ -73,7 +73,9 @@ export const sidebarLayoutVariants = tv({
  * sidebar is attached to. Folded in over the `side` slot class at the call site
  * rather than declared as a tv axis — every axis of this config is published as
  * a component prop (API table, playground knobs, `llm.txt`, MCP catalog), and
- * this one is not settable from outside.
+ * this one is not settable from outside. The price: it sits outside
+ * `variants:lint`, which reads tv configs only — the tests that fold it through
+ * `styles.main()` are its whole guard.
  *
  * The default is the `var()` FALLBACK and not a value the component writes: a
  * custom property stamped on the root outranks both a consumer's `style`
