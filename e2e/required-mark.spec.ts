@@ -61,6 +61,21 @@ test.describe('required marker', () => {
     });
   }
 
+  test('selecting the label copies no *', async ({ page }) => {
+    // Generated content is not part of a selection, so a user copying the
+    // label gets the label. The control is the 8.21.0 build, a text node,
+    // which travels with the selection.
+    const selected = (probe: string) =>
+      page.locator(`[data-probe="${probe}"] label`).evaluate((label) => {
+        const selection = window.getSelection();
+        if (!selection) throw new Error('no selection API');
+        selection.selectAllChildren(label);
+        return selection.toString().trim();
+      });
+    expect(await selected('input')).toBe('Email');
+    expect(await selected('control-text')).toBe('Email*');
+  });
+
   test('the glyph is not part of the accessible name', async ({ page }) => {
     await expect(
       page.locator('[data-probe="input"]').getByRole('textbox', { name: 'Email', exact: true })

@@ -80,6 +80,14 @@
     <Input required label="Email" slotClasses={{ requiredMark: "after:content-['(required)']" }} />
   </div>
 
+  <!-- Control: the 8.21.0 build, a text-node glyph. What a selection would have copied. -->
+  <div class="max-w-md" data-probe="control-text">
+    <label for="control-text" class="text-text-secondary block text-sm font-medium">
+      Email<span aria-hidden="true" class="ml-1">*</span>
+    </label>
+    <input id="control-text" class="border-border-default block rounded border px-2 py-1" />
+  </div>
+
   <!-- Control: the same generated content on a span that is NOT aria-hidden. -->
   <div class="max-w-md" data-probe="control-exposed">
     <label for="control-exposed" class="text-text-secondary block text-sm font-medium">
