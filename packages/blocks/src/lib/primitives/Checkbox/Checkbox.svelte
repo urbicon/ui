@@ -189,8 +189,8 @@
             class={unstyled
               ? (slotClasses?.requiredMark ?? '')
               : styles.requiredMark({ class: slotClasses?.requiredMark })}
-            aria-hidden="true">*</span
-          >{/if}
+            aria-hidden="true"
+          ></span>{/if}
       </span>
     {/if}
   </label>

@@ -45,14 +45,12 @@ async function toggleViaLabel(page: Page, input: Locator) {
 /**
  * The password field's label, anchored.
  *
- * Anchored at the start because the toggle beside the field is named "Show
- * password" / "Hide password" and `getByLabel` matches substrings — an
- * unanchored match resolves to two elements. Anchored at the end *through* an
- * optional `*` because `getByLabel` reads the label's text, and a required
- * field's label carries the required marker's glyph in it since blocks 8.21
- * (`aria-hidden`, so the accessible name is unchanged — this query is not).
+ * `getByLabel` matches substrings, and the toggle beside the field is named
+ * "Show password" / "Hide password" — an unanchored match resolves to two
+ * elements. The required marker's `*` is the span's `::after`, not text, so
+ * the label's text is the label and the anchor at the end is plain.
  */
-const PASSWORD_LABEL = /^Password\*?$/;
+const PASSWORD_LABEL = /^Password$/;
 
 test.describe('Recipe: login', () => {
   test('flags an invalid email and refuses to submit', async ({ page }) => {

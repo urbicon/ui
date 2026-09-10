@@ -3,13 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthUser } from '../../../types.js';
-import {
-  fetcherReturning,
-  jsonResponse,
-  labelled,
-  mounter,
-  settle
-} from '../__fixtures__/fetcher.js';
+import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import { errorMessage, errorRegion } from '../__fixtures__/live-regions.js';
 import type { TwoFactorManagerProps } from './index.js';
 import TwoFactorManager from './TwoFactorManager.svelte';
@@ -73,7 +67,7 @@ describe('TwoFactorManager', () => {
     // Nothing to confirm yet.
     expect(confirm.hasAttribute('disabled')).toBe(true);
 
-    await userEvent.type(screen.getByLabelText(labelled('Enter the 6-digit code')), '123456');
+    await userEvent.type(screen.getByLabelText('Enter the 6-digit code'), '123456');
     await userEvent.click(screen.getByRole('button', { name: 'Confirm and enable' }));
     await settle();
 
@@ -89,7 +83,7 @@ describe('TwoFactorManager', () => {
     // round-trip, so the state has to have been flipped locally.
     expect(screen.queryByText('aaaa-1111')).toBeNull();
     expect(screen.getByText('Two-factor authentication is on.')).toBeTruthy();
-    expect(screen.getByLabelText(labelled('Current password'))).toBeTruthy();
+    expect(screen.getByLabelText('Current password')).toBeTruthy();
   });
 
   it('turns 2FA off with the current password and reports onDisabled', async () => {
@@ -102,7 +96,7 @@ describe('TwoFactorManager', () => {
 
     const disable = () => screen.getByRole('button', { name: 'Disable' });
     expect(disable().hasAttribute('disabled')).toBe(true);
-    await userEvent.type(screen.getByLabelText(labelled('Current password')), 'hunter2');
+    await userEvent.type(screen.getByLabelText('Current password'), 'hunter2');
     expect(disable().hasAttribute('disabled')).toBe(false);
 
     await userEvent.click(disable());
@@ -136,7 +130,7 @@ describe('TwoFactorManager — focus across steps', () => {
       screen.getByRole('heading', { name: 'Set up two-factor authentication' })
     );
 
-    await userEvent.type(screen.getByLabelText(labelled('Enter the 6-digit code')), '123456');
+    await userEvent.type(screen.getByLabelText('Enter the 6-digit code'), '123456');
     await userEvent.click(screen.getByRole('button', { name: 'Confirm and enable' }));
     await settle();
     expect(document.activeElement).toBe(
@@ -152,7 +146,7 @@ describe('TwoFactorManager — focus across steps', () => {
 
     // Submitted from the field itself (Enter), which is where the caret is
     // when a code is typed — the case a focus move would hurt.
-    const field = screen.getByLabelText(labelled('Enter the 6-digit code'));
+    const field = screen.getByLabelText('Enter the 6-digit code');
     await userEvent.type(field, '000000{Enter}');
     await settle();
 

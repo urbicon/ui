@@ -3,13 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PASSWORD_POLICY } from '../../../password-policy.js';
-import {
-  fetcherReturning,
-  jsonResponse,
-  labelled,
-  mounter,
-  settle
-} from '../__fixtures__/fetcher.js';
+import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import {
   errorMessage,
   errorRegion,
@@ -31,8 +25,8 @@ const render = (props: Partial<ResetPasswordPageProps> = {}) =>
   } as ResetPasswordPageProps);
 
 async function reset(password = 'hunter2hunter2', confirm = password) {
-  await userEvent.type(screen.getByLabelText(labelled('New password')), password);
-  await userEvent.type(screen.getByLabelText(labelled('Confirm new password')), confirm);
+  await userEvent.type(screen.getByLabelText('New password'), password);
+  await userEvent.type(screen.getByLabelText('Confirm new password'), confirm);
   await userEvent.click(screen.getByRole('button', { name: 'Reset password' }));
   await settle();
 }
@@ -42,14 +36,12 @@ describe('ResetPasswordPage', () => {
     render({ fetcher: fetcherReturning() });
 
     expect(screen.getByRole('heading', { name: 'Reset password' })).toBeTruthy();
-    const password = screen.getByLabelText(labelled('New password'));
+    const password = screen.getByLabelText('New password');
     expect(password.getAttribute('type')).toBe('password');
     const describedBy = password.getAttribute('aria-describedby') ?? '';
     const requirements = document.getElementById(describedBy);
     expect(requirements?.getAttribute('aria-label')).toBe('Password requirements');
-    expect(screen.getByLabelText(labelled('Confirm new password')).getAttribute('type')).toBe(
-      'password'
-    );
+    expect(screen.getByLabelText('Confirm new password').getAttribute('type')).toBe('password');
     expect(errorRegion()).toBeTruthy();
     expect(errorRegion().textContent?.trim()).toBe('');
     expect(statusRegion().textContent?.trim()).toBe('');

@@ -9,7 +9,6 @@ import {
   fetcherAnswering,
   fetcherReturning,
   jsonResponse,
-  labelled,
   mounter,
   settle
 } from '../__fixtures__/fetcher.js';
@@ -47,12 +46,11 @@ const dangerZoneSection = () => screen.getByRole('region', { name: 'Delete accou
 const dangerZone = () => within(dangerZoneSection());
 
 /** The form a labelled field belongs to; each carries its own pair of regions. */
-const formOf = (label: string) =>
-  screen.getByLabelText(labelled(label)).closest('form') as HTMLFormElement;
+const formOf = (label: string) => screen.getByLabelText(label).closest('form') as HTMLFormElement;
 
 /** Fill the password and walk the danger zone up to the open confirm dialog. */
 async function openDeleteConfirm() {
-  await userEvent.type(dangerZone().getByLabelText(labelled('Current password')), 'hunter2');
+  await userEvent.type(dangerZone().getByLabelText('Current password'), 'hunter2');
   await tick();
   await userEvent.click(dangerZone().getByRole('button', { name: 'Delete account' }));
   await tick();
@@ -71,7 +69,7 @@ describe('AccountSettings — forms', () => {
     render({ fetcher: fetcherReturning(), passwordPolicy: DEFAULT_PASSWORD_POLICY });
 
     const describedBy =
-      screen.getByLabelText(labelled('New password')).getAttribute('aria-describedby') ?? '';
+      screen.getByLabelText('New password').getAttribute('aria-describedby') ?? '';
     expect(document.getElementById(describedBy)?.getAttribute('aria-label')).toBe(
       'Password requirements'
     );
@@ -106,8 +104,8 @@ describe('AccountSettings — forms', () => {
     });
 
     const form = formOf('New email');
-    await userEvent.type(within(form).getByLabelText(labelled('New email')), 'new@example.com');
-    await userEvent.type(within(form).getByLabelText(labelled('Current password')), 'wrong');
+    await userEvent.type(within(form).getByLabelText('New email'), 'new@example.com');
+    await userEvent.type(within(form).getByLabelText('Current password'), 'wrong');
     await userEvent.click(within(form).getByRole('button', { name: 'Change email' }));
     await settle();
 
@@ -127,7 +125,7 @@ describe('AccountSettings — danger zone', () => {
     const trigger = () => dangerZone().getByRole('button', { name: 'Delete account' });
     expect(trigger().hasAttribute('disabled')).toBe(true);
 
-    await userEvent.type(dangerZone().getByLabelText(labelled('Current password')), 'hunter2');
+    await userEvent.type(dangerZone().getByLabelText('Current password'), 'hunter2');
     await tick();
     expect(trigger().hasAttribute('disabled')).toBe(false);
   });

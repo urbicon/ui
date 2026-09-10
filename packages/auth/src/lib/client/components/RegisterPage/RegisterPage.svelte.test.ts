@@ -3,13 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PASSWORD_POLICY } from '../../../password-policy.js';
-import {
-  fetcherReturning,
-  jsonResponse,
-  labelled,
-  mounter,
-  settle
-} from '../__fixtures__/fetcher.js';
+import { fetcherReturning, jsonResponse, mounter, settle } from '../__fixtures__/fetcher.js';
 import { errorMessage, errorRegion, liveRegionsAround } from '../__fixtures__/live-regions.js';
 import type { RegisterPageProps } from './index.js';
 import RegisterPage from './RegisterPage.svelte';
@@ -27,10 +21,10 @@ const render = (props: Partial<RegisterPageProps> = {}) =>
   } as RegisterPageProps);
 
 async function fill(password = 'hunter2hunter2', confirm = password) {
-  await userEvent.type(screen.getByLabelText(labelled('Full name')), 'Ada');
-  await userEvent.type(screen.getByLabelText(labelled('Email address')), 'ada@example.com');
-  await userEvent.type(screen.getByLabelText(labelled('Password')), password);
-  await userEvent.type(screen.getByLabelText(labelled('Confirm password')), confirm);
+  await userEvent.type(screen.getByLabelText('Full name'), 'Ada');
+  await userEvent.type(screen.getByLabelText('Email address'), 'ada@example.com');
+  await userEvent.type(screen.getByLabelText('Password'), password);
+  await userEvent.type(screen.getByLabelText('Confirm password'), confirm);
 }
 
 async function submit() {
@@ -43,9 +37,9 @@ describe('RegisterPage', () => {
     render({ fetcher: fetcherReturning() });
 
     expect(screen.getByRole('heading', { name: 'Create account' })).toBeTruthy();
-    expect(screen.getByLabelText(labelled('Full name'))).toBeTruthy();
-    expect(screen.getByLabelText(labelled('Email address')).getAttribute('type')).toBe('email');
-    const password = screen.getByLabelText(labelled('Password'));
+    expect(screen.getByLabelText('Full name')).toBeTruthy();
+    expect(screen.getByLabelText('Email address').getAttribute('type')).toBe('email');
+    const password = screen.getByLabelText('Password');
     expect(password.getAttribute('type')).toBe('password');
     // The checklist is the field's description, or a screen reader never hears
     // which rules the password has to meet.
@@ -59,7 +53,7 @@ describe('RegisterPage', () => {
   it('seeds the email from the invite link and leaves it editable', () => {
     render({ defaultEmail: 'invitee@example.com', fetcher: fetcherReturning() });
 
-    const email = screen.getByLabelText(labelled('Email address')) as HTMLInputElement;
+    const email = screen.getByLabelText('Email address') as HTMLInputElement;
     expect(email.value).toBe('invitee@example.com');
     expect(email.hasAttribute('readonly')).toBe(false);
   });
@@ -108,9 +102,7 @@ describe('RegisterPage', () => {
     expect(fetcher).not.toHaveBeenCalled();
     // Twice, on purpose: the field flags itself while typing (its own alert,
     // `aria-invalid`), and the submit is refused through the page's region.
-    expect(screen.getByLabelText(labelled('Confirm password')).getAttribute('aria-invalid')).toBe(
-      'true'
-    );
+    expect(screen.getByLabelText('Confirm password').getAttribute('aria-invalid')).toBe('true');
     expect(errorRegion().textContent).toContain('Passwords do not match');
   });
 

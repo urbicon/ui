@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { getAllByLabelText } from '@testing-library/dom';
 import { type Component, createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import PinInput from '$lib/components/PinInput/PinInput.svelte';
@@ -21,12 +22,21 @@ import CascadeHost from '$lib/provider/__fixtures__/CascadeHost.svelte';
  * file answers per component is not "is there an asterisk" but "can a consumer
  * reach it": through `slotClasses`, and through the provider.
  *
- * jsdom, because the answer is markup — which element carries the glyph, what
- * classes it wears, and whether it exists at all when there is no label.
+ * The glyph is the span's `::after`, not a text node. The oracle for that is
+ * the query that reads a label's text content — `getByLabelText('Email')` —
+ * which a text node breaks on every required field (8.21.0 shipped one).
+ *
+ * jsdom, because the answer is markup — which element carries the glyph class,
+ * what else it wears, and whether it exists at all when there is no label.
+ * Whether the class paints a `*` is the browser's answer: e2e/required-mark.spec.ts.
  */
 
+const GLYPH = "after:content-['*']";
+
 const emptyChildren = createRawSnippet(() => ({ render: () => '<span></span>' }));
-const fieldChildren = createRawSnippet(() => ({ render: () => '<input />' }));
+const fieldChildren = createRawSnippet<[{ id: string }]>((ctx) => ({
+  render: () => `<input id="${ctx().id}" />`
+}));
 
 const OPTIONS = [
   { value: 'a', label: 'Alpha' },
@@ -65,16 +75,19 @@ function render(component: Component<never>, props: Record<string, unknown>): vo
 
 /**
  * The marker, wherever it sits. `aria-hidden` alone does not identify it —
- * Checkbox's box and Select's chevron are hidden too — so the glyph decides.
+ * Checkbox's box and Select's chevron are hidden too — so the glyph class
+ * decides. `getAttribute`, not `className`: on an SVG element that is an
+ * `SVGAnimatedString`, and Select, Combobox, Checkbox and TimeInput all render
+ * an icon.
  */
 function markers(): HTMLElement[] {
-  return [...document.querySelectorAll<HTMLElement>('span[aria-hidden="true"]')].filter(
-    (el) => el.textContent === '*'
+  return [...document.querySelectorAll<HTMLElement>('span[aria-hidden="true"]')].filter((el) =>
+    (el.getAttribute('class') ?? '').includes(GLYPH)
   );
 }
 
 describe.each(FIELDS)('%s required marker', (_name, component, props) => {
-  it('draws exactly one aria-hidden asterisk when required', () => {
+  it('draws exactly one aria-hidden marker when required', () => {
     render(component, { ...props, label: 'Field label', required: true });
 
     const found = markers();
@@ -82,6 +95,25 @@ describe.each(FIELDS)('%s required marker', (_name, component, props) => {
     // The tone is the resting one: nothing has failed yet.
     expect(found[0].className).toContain('text-text-secondary');
     expect(found[0].className).not.toContain('danger');
+  });
+
+  it('keeps the glyph out of the text: the span is empty and the label query resolves', () => {
+    render(component, { ...props, label: 'Field label', required: true });
+
+    // The query that reads a label's text content, with the exact string a
+    // consumer writes. A text-node glyph fails it with "Unable to find a label".
+    expect(getAllByLabelText(document.body, 'Field label').length).toBeGreaterThan(0);
+    expect(markers()[0].textContent).toBe('');
+    expect(document.body.textContent).not.toContain('*');
+  });
+
+  it('puts the glyph class on the span alone, never on the label', () => {
+    render(component, { ...props, label: 'Field label', required: true });
+
+    const carriers = [...document.querySelectorAll('[class]')].filter((el) =>
+      (el.getAttribute('class') ?? '').includes(GLYPH)
+    );
+    expect(carriers).toEqual(markers());
   });
 
   it('draws nothing when the field is not required', () => {
@@ -94,18 +126,6 @@ describe.each(FIELDS)('%s required marker', (_name, component, props) => {
     expect(markers().length).toBe(0);
   });
 
-  it('leaves the label free of a pseudo-element asterisk', () => {
-    render(component, { ...props, label: 'Field label', required: true });
-
-    // `getAttribute`, not `className` — on an SVG element that is an
-    // `SVGAnimatedString`, and Select, Combobox, Checkbox and TimeInput all
-    // render an icon.
-    const pseudo = [...document.querySelectorAll('[class]')].filter((el) =>
-      (el.getAttribute('class') ?? '').includes("after:content-['*']")
-    );
-    expect(pseudo).toEqual([]);
-  });
-
   it('is reachable through slotClasses', () => {
     render(component, {
       ...props,
@@ -115,6 +135,28 @@ describe.each(FIELDS)('%s required marker', (_name, component, props) => {
     });
 
     expect(markers()[0]?.className).toContain('hidden');
+  });
+});
+
+describe('required marker under unstyled', () => {
+  const span = (): HTMLElement | null => document.querySelector('label span[aria-hidden="true"]');
+
+  it('renders the span empty: no class, no glyph', () => {
+    render(Input as never, { label: 'Field label', required: true, unstyled: true });
+
+    expect(span()?.getAttribute('class') ?? '').toBe('');
+    expect(span()?.textContent).toBe('');
+  });
+
+  it("is the consumer's content class", () => {
+    render(Input as never, {
+      label: 'Field label',
+      required: true,
+      unstyled: true,
+      slotClasses: { requiredMark: GLYPH }
+    });
+
+    expect(span()?.getAttribute('class')).toBe(GLYPH);
   });
 });
 
