@@ -262,16 +262,22 @@ export const FIELD_LABEL_DISABLED = 'text-text-disabled';
  * pseudo-element is reachable only by writing `after:content-none` into the
  * label's own bucket.
  *
+ * The glyph itself is the span's `::after`, not a text node: the label's text
+ * content stays the label, so `getByLabelText('Email')` resolves a required
+ * field and copied text carries no `*`. Generated content is read by assistive
+ * technology, which is why the span stays `aria-hidden` — the "required"
+ * information travels through native `required` / `aria-required`. Under
+ * `unstyled` the span renders empty and the consumer's own content class is
+ * the marker; a wording such as "(optional)" is a content class away.
+ *
  * The provider rungs reach eight of the nine: FormField resolves no cascade of
  * its own (no `resolveSlotClasses`, no `unstyled`, no `preset`), so it takes the
  * instance `slotClasses` entry and nothing above it. That is a property of
  * FormField, older than this marker, and its docs page says so.
  *
- * `text-text-secondary`, not the danger tone: nothing has failed yet. The
- * "required" information travels through native `required` / `aria-required`,
- * which is why the glyph itself is `aria-hidden`.
+ * `text-text-secondary`, not the danger tone: nothing has failed yet.
  */
-export const FIELD_REQUIRED_MARK = 'ml-1 text-text-secondary';
+export const FIELD_REQUIRED_MARK = "ml-1 text-text-secondary after:content-['*']";
 
 /** The two `messageType` message tones (error wins the fold when both apply). */
 export const FIELD_MESSAGE_TONES = {

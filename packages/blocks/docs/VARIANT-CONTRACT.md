@@ -265,10 +265,12 @@ or a marker before it. Without one, nothing tells a reader that the text can be 
 
 ### The required marker
 
-Every field with a label draws the same marker: `<span aria-hidden="true">*</span>` on a
-`requiredMark` slot, in `text-text-secondary`. It is `aria-hidden` because the information already
-travels through native `required` / `aria-required`, and it is the resting tone rather than the
-danger tone because nothing has failed yet.
+Every field with a label draws the same marker: an `aria-hidden` `<span>` on a `requiredMark` slot
+whose `::after` is the `*`, in `text-text-secondary`. The glyph is CSS rather than a text node so the
+label's text stays the label — `getByLabelText('Email')` resolves a required field, and copied text
+carries no `*`. It is `aria-hidden` because the information already travels through native
+`required` / `aria-required`, and generated content would otherwise join the accessible name; it is
+the resting tone rather than the danger tone because nothing has failed yet.
 
 Being a slot puts it on the override ladder. A form where every field is required marks nothing:
 
@@ -289,6 +291,13 @@ or, to reach only the required case of one component:
     Input: { overrides: [{ required: true, class: { requiredMark: 'hidden' } }] }
   }}
 >
+```
+
+Under `unstyled` the span renders empty — no stylesheet, no glyph — and the consumer's own content
+class is the marker:
+
+```svelte
+<Input unstyled required label="Email" slotClasses={{ requiredMark: "after:content-['*']" }} />
 ```
 
 ---

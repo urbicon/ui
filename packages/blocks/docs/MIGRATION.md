@@ -11,6 +11,27 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.22.0
+
+### The required marker's glyph is CSS again
+
+8.21.0 put the asterisk into the `requiredMark` span as a text node. The span stays — it is the
+slot, and everything on the override ladder still reaches it — but the glyph is now its `::after`
+(`after:content-['*']`). Nothing changes on screen. Two things change off screen:
+
+- **The label's text content is the label again.** `getByLabelText('Email')` resolves a required
+  field, and copied label text carries no `*`. The regex the 8.21.0 note asked for
+  (`/^Email$|^Email\*$/`) keeps working and is no longer needed.
+- **Under `unstyled` the marker disappears**, because no stylesheet supplies the content. The span
+  still renders; give it a content class:
+
+```svelte
+<Input unstyled required label="Email" slotClasses={{ requiredMark: "after:content-['*']" }} />
+```
+
+`slotClasses={{ requiredMark: 'hidden' }}`, the provider `defaults` and the `overrides` rule on
+`required: true` work as before.
+
 ## 8.21.0
 
 ### The required marker is a `<span>` on its own slot, in the resting tone

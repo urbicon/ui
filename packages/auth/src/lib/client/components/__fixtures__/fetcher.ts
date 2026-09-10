@@ -63,15 +63,3 @@ export function mounter() {
     flushSync();
   };
 }
-
-/**
- * A field's label as a matcher for `getByLabelText`, required marker included.
- *
- * `getByLabelText` matches the label element's TEXT CONTENT, and a required
- * field's label carries the marker's `*` in there since blocks 8.21. The glyph
- * is `aria-hidden`, so the accessible name is unchanged and a `getByRole`
- * lookup by name is unaffected — this is the one query shape that sees it.
- * Anchored at both ends so `Password` still does not match `Confirm password`.
- */
-export const labelled = (text: string): RegExp =>
-  new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*?$`);
