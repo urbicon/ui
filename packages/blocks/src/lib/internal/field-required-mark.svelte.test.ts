@@ -100,11 +100,11 @@ describe.each(FIELDS)('%s required marker', (_name, component, props) => {
   it('keeps the glyph out of the text: the span is empty and the label query resolves', () => {
     render(component, { ...props, label: 'Field label', required: true });
 
-    expect(markers()[0].textContent).toBe('');
-    expect(document.body.textContent).not.toContain('*');
     // The query that reads a label's text content, with the exact string a
     // consumer writes. A text-node glyph fails it with "Unable to find a label".
     expect(getAllByLabelText(document.body, 'Field label').length).toBeGreaterThan(0);
+    expect(markers()[0].textContent).toBe('');
+    expect(document.body.textContent).not.toContain('*');
   });
 
   it('puts the glyph class on the span alone, never on the label', () => {

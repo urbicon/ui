@@ -268,7 +268,9 @@ export const FIELD_LABEL_DISABLED = 'text-text-disabled';
  * technology, which is why the span stays `aria-hidden` — the "required"
  * information travels through native `required` / `aria-required`. Under
  * `unstyled` the span renders empty and the consumer's own content class is
- * the marker; a wording such as "(optional)" is a content class away.
+ * the marker. A wording on the required field — "(required)" — is a content
+ * class away; marking the *optional* fields instead is still the mode the
+ * slot cannot express, because the span renders only under `required` (#395).
  *
  * The provider rungs reach eight of the nine: FormField resolves no cascade of
  * its own (no `resolveSlotClasses`, no `unstyled`, no `preset`), so it takes the
