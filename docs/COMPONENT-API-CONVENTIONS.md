@@ -623,7 +623,12 @@ A component is promoted when all five hold:
    A purely additive change that brings the component *onto* a convention in
    this document does not restart the clock — it removes a deviation rather
    than exploring a design. Renaming a prop, changing its type, or changing
-   what an existing one means does restart it.
+   what an existing one means does restart it — and so does a commit with
+   `!` in its subject that touches the component's directory, even when
+   `index.ts` is untouched: a rendered contract a consumer's selector depends
+   on (a role, an accessible name, a live region) is public API too, and the
+   2026-09-09 auth a11y pass changed exactly that on five `beta` managers
+   without touching a single `index.ts`. Take the later of the two dates.
 4. The conventions in this document hold — in particular the standard props of
    § Common props. `stable` is defined by that sentence, so the criteria have
    to ask it: eleven components in `blocks` take no `restProps`, and one of
@@ -643,3 +648,13 @@ component is an issue against the component, not a quiet tag flip.
 - Set `aria-invalid` only when there is an actual error – not as `aria-invalid="false"`
 - For hidden native inputs (Checkbox, Toggle), use `peer` on the input and `peer-focus-visible:` on the visible element to relay the focus ring
 - Compound components: use correct ARIA roles (`radiogroup`/`radio` for single-select, `group`/`checkbox` for multi-select)
+- **Live-region roles follow the prop that names the message's purpose, and an explicit `role`
+  always wins.** `Badge` derives its role from `purpose` (8.20.0: `status` for a state marker, none
+  for a tag, a count or a chip, `button` only with an `onclick`). `Alert` derives it from `intent`
+  (decided 2026-09-10, ships as a `fix(blocks)!`): `danger` and `warning` render `role="alert"`
+  (implicitly assertive), every other intent renders `role="status"` (polite) — a saved-message
+  must not interrupt what is being read. A static callout that announces nothing passes
+  `role="note"` or `role={undefined}`. One live region per outcome: never nest a `role="alert"`
+  inside an `aria-live` region; the region exists before its content changes. Reference:
+  auth's `_shared/FormErrorAlert.svelte` (an assertive and a polite region, both persistent, the
+  inner `Alert` role removed through the pass-through).

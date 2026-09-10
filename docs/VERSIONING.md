@@ -39,7 +39,9 @@ What it means for anyone on 8.x:
   a future major.
 - **Every breaking commit carries `!` in its subject.** The subject is the signal a `git log`
   reader gets without opening the commit; git-cliff groups on it and on a `BREAKING CHANGE:`
-  footer alike (`cliff.toml` reads the footer — a `body` matcher never sees one).
+  footer alike (`cliff.toml` reads the footer — a `body` matcher never sees one). **Write the
+  footer as one line**: git-cliff takes only the footer's first line into the changelog, so a
+  wrapped note ships truncated (v8.21.0 shipped two that way and two complete ones).
 
 The window closes with the launch announcement: that release is **9.0.0**, and from then on the
 table applies without exception.
