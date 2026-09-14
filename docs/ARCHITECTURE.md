@@ -895,8 +895,9 @@ only the `:all` run performs the final assembly that rebuilds `llms-full.txt` an
 component catalog. A per-target run writes only that scope's outputs.
 
 Generated outputs (`**/api.ts`, `llms-full.txt`, `static/**/_catalog.json`, `static/mcp/`)
-are **git-ignored** and rebuilt by `bun run build`. Only the curated `llms.txt` index is
-tracked.
+are **git-ignored** and rebuilt by `bun run build`. `llms.txt` (root and `apps/docs/static/`)
+is generated from the component catalog too, but tracked: `llms:check` (`git diff --exit-code`
+after `build:ts`) fails the gates job when a commit skipped `docs:gen`.
 
 Components may provide a `docs.svelte` with custom content and a `docsConfig` export.
 Conventions: `packages/docs-gen/docs/component-structure-guidelines.md`.
@@ -916,7 +917,7 @@ failure it catches was silent:
 | `registry:lint` | A docs page missing from any of its three hand-maintained registration points |
 | `examples:lint` | Every `@example` block type-checked as a real `.svelte` file; every `svelte` fence of `design-system/patterns/*.md` compiled as a whole component |
 | `i18n:check` | Unused / used-but-undefined keys, hardcoded strings |
-| `size --check` | Per-component bundle growth against the baseline |
+| `size --check` | Per-component bundle growth against the baseline — runs in `scripts/bump.sh` before the release commit, not per PR; CI's `size-report` job prints the table without `--check` |
 
 `registry:lint`, `playgrounds:lint` and `summary:lint` read the generated catalogs — run
 `docs:gen:all` first. `examples:lint` is slow (two `svelte-check` passes per package) and is
@@ -927,8 +928,10 @@ a pre-merge gate, not a per-commit one.
 `bun run size` reports per-component tree-shaken min+gzip size across blocks/table/auth, net
 of Svelte **and** of the shared foundation — the `net` column is what a component adds to a
 project already using the library. It needs all three `dist/` directories. `--check` gates
-solo `gz` against `bundle-size.baseline.json`; `--update-baseline` after intentional growth.
-It reports any catalogue component it never measured.
+solo `gz` against `bundle-size.baseline.json` at the release bump (`scripts/bump.sh` aborts with
+the table; `--update-baseline` after judging the growth intentional, staged into the release
+commit). Per PR, CI's `size-report` job runs it without `--check` and tees the table into the
+run summary. It reports any catalogue component it never measured.
 
 ### Versioning
 
@@ -944,7 +947,7 @@ at build time) and the full changelog at `/changelog` (via the `virtual:changelo
 
 | Artifact | Purpose |
 | --- | --- |
-| `/llms.txt` | Brief library overview (llms.txt standard) — curated, tracked |
+| `/llms.txt` | Brief library overview (llms.txt standard) — generated from the catalog, tracked, `llms:check`-gated |
 | `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
 | `urbicon` CLI | The primary surface — see §4 |
 | `design-system/` | Design principles and composition patterns, served by CLI and MCP |

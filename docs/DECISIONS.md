@@ -44,7 +44,7 @@ entrypoint.
 ## Stricter TS flags are not raised centrally
 
 `tsconfig.base.json` holds the shared baseline (`strict`, `esModuleInterop`,
-`moduleResolution`, `allowJs`/`checkJs`, …). Of the seven `tsc`-built packages, six raise
+`moduleResolution`, `allowJs`/`checkJs`, …). Of the seven `tsc`-checked packages, six raise
 stronger flags: `noUncheckedIndexedAccess` and `verbatimModuleSyntax` in `design`,
 `design-content`, `design-engine`, `docs-gen`, `mcp-server` and `sv`, plus
 `exactOptionalPropertyTypes` in `docs-gen` alone. The seventh, `shared-types`, is built the
