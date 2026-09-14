@@ -423,9 +423,9 @@ jobs:
       # unmeasuredCatalogEntries check reads to warn on a catalogue component
       # this script never measured — silent without it.
       - run: bun run docs:gen:ci
-      # shell: bash adds -o pipefail, so a failing size fails the step instead of
-      # tee reporting success; the fence keeps the fixed-width table readable in
-      # the GFM-rendered summary.
+      # shell: bash runs -eo pipefail: errexit aborts the group at a failing size,
+      # pipefail carries that status past tee (either flag alone reports success).
+      # The fence keeps the fixed-width table readable in the GFM-rendered summary.
       - shell: bash
         run: |
           { echo '```'; bun run size; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
