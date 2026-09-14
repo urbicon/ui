@@ -9,16 +9,20 @@ packages/blocks/src/lib/primitives/[ComponentName]/
 ├── index.ts                 # Props interface + re-exports (single source of truth)
 ├── [ComponentName].svelte   # Svelte 5 implementation
 ├── [component].variants.ts  # in-house tv() (variants) definition
-└── docs/                    # Optional: examples, playground config
+└── [ComponentName].svelte.test.ts
 ```
 
-A component must not import another public component's `.svelte` for a trivial
-embedded control (close ×, loading spinner, icon-only nav button) — use the
-behaviour-only cores in `src/lib/internal/core/` (`CoreIconButton`,
-`CoreSpinner`) and put the control's look into an own variants slot
-(`closeButton`, `removeButton`, …). Essential compositions (ConfirmDialog →
-Dialog, DatePicker → Calendar) stay public-to-public but need an allowlist
-entry in `scripts/imports-lint.ts` (`bun run imports:lint`). See
+A compound component adds one file per part plus a `[component].context.ts`; a
+`__fixtures__/` folder holds the mount hosts its tests need. There is no
+per-component `docs/` folder.
+
+**Never import another public component's `.svelte` for a trivial embedded
+control** (close ×, loading spinner, icon-only nav button) — reach for the
+behaviour-only cores in `src/lib/internal/core/` and give the control a variants
+slot of your own (`closeButton`, `removeButton`, …). Essential compositions stay
+public-to-public but need an allowlist entry in
+`packages/blocks/scripts/imports-lint.ts` (`bun run imports:lint`). Which cores
+exist and what each owns:
 [ARCHITECTURE.md → The internal core layer](ARCHITECTURE.md#the-internal-core-layer).
 
 ## index.ts
@@ -101,6 +105,7 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
   import { componentVariants, type ComponentVariants } from './component.variants';
 
   let {
+    id: idProp,
     children,
     variant = 'filled',
     size = 'md',
@@ -113,23 +118,23 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
     ...restProps
   }: ComponentNameProps = $props();
 
+  // 🔴 IDs: never `Math.random()` — it mismatches on hydration. `$props.id()`
+  // is valid only as a top-level initializer (`props_id_invalid_placement`
+  // otherwise), so a component with an `id` prop takes it in two steps.
+  // Details: SVELTE5-PATTERNS.md § IDs.
+  const propsId = $props.id();
+  const fieldId = $derived(idProp ?? `componentname-${propsId}`);
+
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // Variant props feed both the tv() style computation and the slot-class
-  // cascade — extracted into one derived so `resolveSlotClasses` can match
-  // conditional `overrides` against the component's active variants.
-  // The `: ComponentVariants` annotation is MANDATORY: without it, the
-  // string-literal ternaries below widen to `string` and stop matching the
-  // tv() variant keys (silent loss of styling + overrides).
-  // The KEYS of this object are the axes this component speaks for: a key that
-  // is here can be matched by an `overrides` rule, a key that is absent cannot.
-  // Name every axis the component is actually in — and only those. An axis that
-  // belongs to a sibling sharing the same config, or one handed to a slot
-  // function per element, stays out: the rule is resolved once and applied to
-  // every slot, so naming it here would claim it of all of them.
-  // Boolean axes carry the raw value — never `disabled || undefined`; both
-  // spellings work, the raw one says what it means.
+  // One object feeds both the tv() call and `resolveSlotClasses`, so the
+  // rendered classes and a prop-conditional `overrides` rule can never match
+  // against different variants. The `: ComponentVariants` annotation is
+  // MANDATORY — without it the string-literal ternaries widen to `string` and
+  // silently stop matching the tv() keys. Which keys belong in here is a rule
+  // of its own: COMPONENT-API-CONVENTIONS.md § variantProps and the house axis
+  // order.
   const variantProps: ComponentVariants = $derived({
     variant,
     size,
@@ -139,10 +144,9 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
 
   const styles = $derived(componentVariants(variantProps));
 
-  // The last argument is the component's own tv() config, and it is required:
-  // it is what answers a key written as `undefined` with that axis's default,
-  // so a rule can address the state the component is actually in. It must be
-  // the config `styles` above was built from — nothing checks that pairing.
+  // The last argument is this component's own tv() config, and it is required:
+  // it answers a key written as `undefined` with that axis's default. It must
+  // be the config `styles` above was built from — nothing checks that pairing.
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,
@@ -155,14 +159,17 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
   );
 </script>
 
+<!-- restProps spreads FIRST; the component's own attributes come after it and win.
+     See COMPONENT-API-CONVENTIONS.md § restProps ordering. -->
 <button
+  {...restProps}
+  id={fieldId}
   class={[
     'blocks-componentname',
     unstyled
       ? [slotClasses?.base, className].filter(Boolean).join(' ')
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
-  {...restProps}
 >
   {@render children?.()}
 </button>
@@ -181,9 +188,11 @@ The root slot folds `class` and `slotClasses.base` together (so `class` reaches 
 
 **Every declared tv-slot must be wired in the markup.** A slot that exists in `*.variants.ts` (and therefore in `ComponentSlots`) but is never rendered with `styles.<slot>(…)` / `slotClasses?.<slot>` is dead surface — it autocompletes for the consumer but silently does nothing. Typed == wired.
 
+**IDs, in full.** `$props.id()` is the only ID source; `Math.random()` causes an SSR hydration mismatch in the consumer's app. The two-step shape above is required because the rune may appear only as a top-level initializer. The rest of the mandatory Svelte 5 patterns — reactive collections from `svelte/reactivity`, `createContext<T>()` over string keys, stable `{#each}` keys, `{@attach}` over `use:` — are in [SVELTE5-PATTERNS.md](SVELTE5-PATTERNS.md).
+
 ## component.variants.ts
 
-Uses the in-house `tv()` engine (`$lib/utils/variants`, ~600 LoC, zero-dep) with slots, variants, and semantic design tokens (see [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md)):
+Uses the in-house `tv()` engine (`$lib/utils/variants`, zero-dep) with slots, variants, and semantic design tokens (see [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md)):
 
 ```typescript
 import { tv, type SlotNames, type VariantProps } from '$lib/utils/variants';
@@ -207,11 +216,9 @@ export type ComponentSlots = SlotNames<typeof componentVariants>;
 
 ### Variant Interactions — axis order is semantic
 
-The `tv()` engine folds an ordered list of sources: `slots.base` → **each variant axis in declaration order** → **each `compoundVariant` in array order** → the call-site `class`, itself one source per top-level array element. Every later source strips the conflicting Tailwind buckets of everything before it, so the winner of a shared bucket is decided by the config and by the call site's own order, not by stylesheet order. A library class written into that array therefore belongs before the consumer's rungs, never after.
+The engine folds axes in declaration order and every later source strips the earlier one's Tailwind buckets — [ARCHITECTURE.md § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine) has the pipeline, and [COMPONENT-API-CONVENTIONS.md § variantProps and the house axis order](COMPONENT-API-CONVENTIONS.md#variantprops-and-the-house-axis-order) has the order to declare them in. The authoring rules that follow when you write a config:
 
-Authoring rules that follow:
-
-1. **Declare the axis that must win a shared bucket later.** The house order is `tier → variant → size → intent → structural flags (hasIcon, striped, …) → state axes (disabled, readonly, messageType, error, pressed, active, connected)` — states last, because a state must dominate the resting look. Deviate deliberately and leave a comment (see Button's `pressed` before `variant`, table's `sortable` after `sorted`).
+1. **Declare the axis that must win a shared bucket later** — follow the house order, and leave a comment where you deviate.
 2. **Shared styles may live in the base slot** — any axis overrides them cleanly (`bg-surface-base` in base, `bg-transparent` in ghost).
 3. **Within one class string nothing is stripped** — intentional pairings like `rounded-md rounded-t-none` stay intact.
 4. **A class every reachable combination strips is dead** and fails `bun run variants:lint`. Don't leave aspirational tokens in an axis that a later axis always overrides — move them to a compound or delete them.
@@ -246,16 +253,7 @@ Each size step must differ noticeably from adjacent sizes. Identical values for 
 
 ### Tier-aware components
 
-If the component belongs to the Action / Form / Navigation / Container family ([COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md)), it accepts an optional `tier` prop and reads `<TierContext>` from a wrapping container. Standard wiring in `ComponentName.svelte`:
-
-```ts
-import { getTierContext } from '$lib/utils';
-
-const tierCtx = getTierContext();
-const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // family default
-```
-
-The variant file consumes `tier` like any other variant axis:
+Whether your component takes a `tier` prop at all, which values it may carry and whether it reads the tier context is decided in [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system); the prop's shape and the resolution order are in [COMPONENT-API-CONVENTIONS.md § `tier` Prop](COMPONENT-API-CONVENTIONS.md#tier-prop). What belongs here is the variants-file half — `tier` is an ordinary axis, declared first:
 
 ```ts
 // componentname.variants.ts
@@ -268,9 +266,7 @@ variants: {
 defaultVariants: { tier: 'commit' /* or 'modify' per family */ }
 ```
 
-Vorbild: `Toggle/toggle.variants.ts` + `Toggle.svelte` (Action family, commit default). Compound components (`Stepper`, `Tab`, `SegmentGroup`, `RadioGroup`) set the tier on their own context so the children pick it up — see [`Tab/tab.context.ts`](../packages/blocks/src/lib/primitives/Tab/tab.context.ts).
-
-Feedback / Ambient and Identity components do **not** take a `tier` prop — they have fixed geometry. Badge is the only exception (`tier` exposed because Badge-in-Toolbar wants to flatten).
+Vorbild: `Toggle/toggle.variants.ts` + `Toggle.svelte` (Action family, commit default). A compound puts the resolved tier on its own context so the parts pick it up — see [`Tab/tab.context.ts`](../packages/blocks/src/lib/primitives/Tab/tab.context.ts).
 
 ## JSDoc Quality
 

@@ -66,7 +66,7 @@ Tokens defined in `foundation.css`:
 | **Checkbox, Toggle** | `control` wrapper has `min-h-11` (44px) |
 | **Select / Combobox / Menu items** | Per-size token: `sm` 2rem · `md` 2.5rem · `lg` 3rem. Touch-target ≥ 44 px is guaranteed by the parent `control` wrappers (button/input) on coarse pointers, not by individual list rows — list density is optimised for desktop scanning. |
 | **Focusable text inputs (Input, Combobox, Textarea, CommandPalette)** | Font-size floored to **≥16px on coarse pointers** via `pointer-coarse:text-base` on the sub-16px `xs`/`sm` variants. Below 16px iOS Safari auto-zooms the field on focus and never restores the zoom (page stays scrolled sideways). Fine pointers keep the designed 12/14px. **Any new focusable text input must carry this floor** — never use `maximum-scale`/`user-scalable=no` on the viewport, which breaks accessibility. |
-| **Breadcrumb links** | `min-h-11` via touch padding |
+| **Breadcrumb links** | **No touch padding today** — `breadcrumb.variants.ts` sets neither a `min-h` nor vertical padding, so a crumb is only as tall as its line box. Treat a breadcrumb trail as a desktop affordance, and give it padding yourself where it has to be the primary touch target |
 | **Button** | `md` (40px) acceptable for desktop; avoid `2xs`/`xs` as sole touch targets |
 
 ---
@@ -78,9 +78,11 @@ Tokens defined in `foundation.css`:
 On mobile (base), modals and dialogs render as bottom sheets:
 
 ```
-Base (mobile):  Full-width, items-end, rounded-t-xl, max-h-[85dvh]
-sm+ (tablet):   Centered, max-w from size prop, rounded-xl
+Base (mobile):  Full-width, items-end, rounded-t-contain, max-h-[85dvh]
+sm+ (tablet):   Centered, max-w from size prop, rounded-contain
 ```
+
+The radius is the container tier token, not a raw Tailwind size, so a brand that retunes `--radius-contain` moves the sheet with every other panel ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
 
 Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 

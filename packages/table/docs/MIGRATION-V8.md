@@ -373,7 +373,7 @@ What no longer appears on the type, and where its job went:
 | `setGroupOrder` | the `groupOrder` prop |
 | `toggleAdvancedSearch` | gone — nothing read it since the tools sheet replaced the advanced-search panel |
 | `getNestedValue` / `resolveColumnId` / `resolveColumnValue` / `resolveValueById` / `findColumnById` | the standalone package exports of the same names |
-| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle; to reset a table's preferences, remove its `urbicon_table_*_<key>_v1` storage entries |
+| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle. To reset a table's **preferences**, remove its `table_summary_configs_<tableId>`, `table_hidden_columns_<tableId>`, `table_column_order_<tableId>` and `table_selection_<tableId>` entries — no `urbicon_` prefix, no `_v1` suffix. Those are a different channel from the **view** entry (`urbicon_table_view_<key>_v1`), which a storage binding owns and `reset()` clears |
 | `setTableContext()` | gone — `<Table>` (via its `TableProvider`) is what establishes the context |
 
 The store barrel also stopped re-exporting its wiring wholesale: `createTableState`,
@@ -411,8 +411,11 @@ What follows from it:
 1. **Defaults are never written back to storage.** In v7 an `initial*` seed was synced into
    storage on first render. Now storage only ever holds what the reader changed — so after a
    deploy with different defaults, users who never touched an axis get the new default.
-2. **`pageSize` is persisted; `page` never is.** v7 persisted no pagination at all. "Yesterday's
-   page size is still set" is squarely what a storage binding promises; the page number is not.
+2. **`pageSize` is persisted by default; `page` is not.** v7 persisted no pagination at all.
+   "Yesterday's page size is still set" is squarely what a storage binding promises; the page
+   number is not, so `page` is the one axis `STORAGE_DEFAULT_AXES` leaves out. It is not
+   forbidden — the binding stores and restores any axis you list, `page` included, so
+   `bindViewToStorage(view, { key, axes: [...STORAGE_DEFAULT_AXES, 'page'] })` opts in.
 3. **The v7 per-axis storage keys are abandoned.** `table_sort_*`, `table_search_*`,
    `table_filters_*` and `table_group_by_*` are orphaned; v8 writes one entry per view
    (`urbicon_table_view_<key>_v1`). Stored views do not carry over — readers start from your

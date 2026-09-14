@@ -2,6 +2,10 @@
 
 This document defines the API conventions for all Urbicon UI components. Follow these guidelines when creating new components or refactoring existing ones.
 
+**How to read it.** A rule without a marker describes behaviour that ships today. A rule that runs ahead of its implementation carries a blockquote marker — `> **Decided <date>, pending #N** — …` — and the prose around it keeps describing the current behaviour as current; the marker names what is to replace it.
+
+This file owns the **API surface**: which props a component offers, what they are called and what they are typed as. The mechanisms behind them are documented once elsewhere and linked from here — the styling props in [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade), the tier model in [§ The tier system](ARCHITECTURE.md#the-tier-system), and what each `variant` value means across the library in [VARIANT-CONTRACT.md](../packages/blocks/docs/VARIANT-CONTRACT.md).
+
 ## Props Pattern
 
 ### `intent` (Color Intent)
@@ -51,32 +55,18 @@ value for the same visual treatment: the boxed disclosure treatment is `card` on
 Accordion and Collapsible (Accordion's former `separated` was renamed). When adding a variant
 to a component with a sibling, check the sibling's values first.
 
-**Common values:**
+**Common values** — one line each. What a value **means**, which components carry it and why, is [VARIANT-CONTRACT.md](../packages/blocks/docs/VARIANT-CONTRACT.md):
 
 - `filled` – solid background (highest emphasis)
 - `outlined` – border only, transparent background
-- `ghost` – transparent at rest: border and background are *transparent*, not absent. Hover adds
-  a tint, and a field's focus reveals its frame (`focus-visible:bg-surface-base` +
-  `border-border-subtle` + the ring, `internal/field-chrome.ts`). That reveal is deliberate — a
-  ghost field is a field that hides its chrome until you use it, not a field without chrome.
-  Corrected 2026-09-03: the earlier wording "no border, no background" described `bare`, and a
-  consumer measured the difference as twelve reset classes (#394)
+- `ghost` – transparent **at rest**: border and background are transparent, not absent, and a field's focus reveals its frame. Not the same as `bare`
 - `underline` – bottom border only, transparent background (Input, Textarea, Select, Combobox)
-- `bare` – **decided 2026-09-03, outline instead of ring 2026-09-09** on the four fields that
-  carry `underline`: no frame, no fill, no padding, no fixed height, no shadow; `size` keeps only
-  the type step (a compound per component zeroes the size axis's `px/py/h`); focus is an
-  **outline** in the family colour — not a ring: forced-colors mode drops `box-shadow`, and `bare`
-  has no border to fall back on — reading `--blocks-focus-ring-color` (its first component
-  consumer), `--blocks-focus-ring-width` and `--blocks-focus-ring-offset`; caret, placeholder and
-  message row stay. The
-  difference to `unstyled`: the a11y minimum is the library's, not the consumer's — the consumer
-  who wrote the reset preset first dropped the ring and violated WCAG 2.4.7. A bare field needs
-  context that marks it as a field (a placeholder, a rule, a marker before it); the docs say so
+- `bare` – no frame, no fill, no padding, no fixed height, no radius; `size` keeps only the type step, and the focus indicator is the one thing it will not give up
 - `text` – minimal, text-only (Button, SegmentGroup)
-- `soft` – subtle background tint (Badge only)
+- `soft` – subtle background tint (Badge, and the default on Alert)
 - `card` – boxed card treatment (Accordion, Collapsible)
 
-**Default:** `filled` for action elements, `outlined` for form elements, `elevated` for containers.
+**Defaults:** `filled` for action elements, `outlined` for form fields. Containers set theirs per component rather than by family — `Card` defaults `quiet`, `Alert` `soft`, `Accordion` and `Collapsible` `default`, and `Dialog`, `Drawer` and `Popover` carry no `variant` axis at all.
 
 ### `size`
 
@@ -91,6 +81,8 @@ Controls the physical dimensions. All components should follow a consistent scal
 | `xl` | h-14   | text-xl   | Hero sections     |
 
 **Default:** `md` for all components.
+
+One documented deviation: the text fields **Input, Select and Combobox use `h-7` at `xs`**, not `h-6`. Every other step on those components matches the table.
 
 Most components support a subset of this scale. Current component sizes (from the `size` axis of each `*.variants.ts` — regenerate this table from those files, not from memory):
 
@@ -129,7 +121,7 @@ Three props, three jobs — they do not overlap, and their precedence is a rule,
 
 **Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone. `aria-invalid` and the `role="alert"` message still follow `error`, exactly as on the fields.
 
-**The required marker is one build** — decided 2026-09-03; #395 brought every field onto it. `<span aria-hidden="true" class={slot('requiredMark')}></span>`, class `FIELD_REQUIRED_MARK` from `internal/field-chrome.ts`: the glyph is the span's `::after` (`after:content-['*']`), the default colour `text-text-secondary`. The information travels through native `required` / `aria-required`; the glyph is visual, so it lives in CSS, not in a text node — the label's text content stays the label, which is what `getByLabelText('Email')` and copied text read (decided 2026-09-10: 8.21.0 had shipped the glyph as a text node, and every exact text query on a required field failed on it). Generated content joins the accessible name, which is why the span stays `aria-hidden`. Input, Textarea, Select, Combobox, RadioGroup, PinInput, TimeInput, FormField **and Checkbox** draw it the same way. Because the marker is a **slot**, it sits on the override ladder: an all-required form hides it once, `defaults: { Input: { slotClasses: { requiredMark: 'hidden' } } }` (or an `overrides` rule on `required: true`), and that reaches auth's `LoginPage` through the consumer's provider. A pseudo-element on the `label` slot is not an option — only a consumer who knows to write `after:content-none` into the same bucket can reach it. Under `unstyled` the span renders empty and the consumer's own content class is the marker. No `requiredIndicator` prop: the slot covers "asterisk", "none" and, as a content class, a wording on the required field such as "(required)"; marking the *optional* fields instead is still the one mode the slot cannot express, because the span renders only under `required` (#395 records why).
+**The required marker is a slot, not a prop.** Every field with a label draws the same `aria-hidden` `<span>` on a `requiredMark` slot; the build and its reasoning are [VARIANT-CONTRACT § The required marker](../packages/blocks/docs/VARIANT-CONTRACT.md). The API rule that follows: there is **no `requiredIndicator` prop**. Being a slot puts the marker on the override ladder, which covers "asterisk", "none" and — as a content class — a wording such as "(required)". Marking the **optional** fields instead is the one mode the slot cannot express, because the span renders only under `required` (#395 records why).
 
 ## Discriminated unions for mutually exclusive props
 
@@ -253,21 +245,13 @@ Always use `focus-visible:` (not `focus:`). This ensures focus rings only show o
 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2
 ```
 
+That is the house ring for action, navigation and container surfaces. **Form fields do not write it by hand** — they take theirs from `internal/field-chrome.ts`, which is a 2px ring at 20 % alpha in the field's own tone (`ring-primary/20`, `ring-danger/20`, …) and no offset. Reach for the constant, not for the snippet, on anything with a field frame.
+
 ### Border Radius
 
-Components map to **tier tokens**, not raw Tailwind sizes. The tier expresses semantics ("this is an action" vs. "this is a container"); the actual pixel value is set in `foundation.css` and can be re-tuned by a brand without touching component code. See [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system) for the model.
+**Never write a raw Tailwind radius.** A component's radius comes from a tier token — `rounded-commit`, `rounded-modify`, `rounded-contain`, `rounded-bridge` — so a brand can re-tune the pixel value in `foundation.css` without touching component code. `rounded-full` is the one raw exception, for shapes that are circles by definition (Avatar's `circle`, Toggle's thumb, status dots), and `--radius-control` carries the radio indicator.
 
-| Family / Element | Tier | Class |
-| --- | --- | --- |
-| Action — Button, Menu, ButtonGroup, Toolbar, Toggle | commit | `rounded-commit` |
-| Form — Input, Select, Checkbox, Combobox, Textarea, RadioGroup, Slider | modify | `rounded-modify` |
-| Container — Card, Dialog, Drawer, Popover, Accordion, Collapsible | contain | `rounded-contain` |
-| Navigation — SegmentGroup, Stepper, Tab | tier-aware (commit or modify per component) | `rounded-{tier}` |
-| Menu panel (adjacency), ChatMessage bubble + `Card tier="bridge"` (optical size) | bridge | `rounded-bridge` |
-| Avatar.circle, Toggle thumb dot, status indicators | shape | `rounded-full` |
-| Feedback — Toast, Spinner, Progress, Skeleton, Badge | fixed per component | (per-component) |
-
-Tier-aware components honour a wrapping `<TierContext>` — a `<Toolbar tier="modify">` pulls its tier-aware children to `rounded-modify`. The per-instance `tier` prop overrides context.
+Which tier a given component belongs on, and whether it reads the tier context or is pinned, is [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system) — a `rounded-xl` on an individual component is the anti-pattern that section exists to prevent.
 
 ## Bindable State Props
 
@@ -292,7 +276,7 @@ The canonical pair is **`open` (bindable) + `onOpenChange(open: boolean)`** — 
 
 **Optimistic transitions — the controlled contract:** every member applies an interaction-driven transition by writing the bindable `open` *before* firing `onOpenChange`; the component never waits for consumer approval. With `bind:open` that write is what propagates the change, so accepted transitions need no handler at all, and a veto is still possible by writing the previous value back inside `onOpenChange` (synchronous, no paint in between). A consumer that passes `open={value}` **without** `bind:` must mirror every `onOpenChange` into its state — nothing re-syncs an ignored change, so the component and the consumer's source of truth silently diverge. This is by design, not detectable: Svelte cannot distinguish `open={x}` from `bind:open={x}` at runtime, and from inside the component a rejected unbound transition is indistinguishable from an accepted bound one. To conditionally reject transitions from plain controlled state, own the transition instead: keep `open` driven by your source of truth and attach your own handler to the trigger rather than calling the provided `toggle` — AccordionItem's `collapsible=false` handling (custom `trigger` snippet calling `ctx.toggle`) is the in-repo reference.
 
-**Deliberate deviation:** Dialog, Drawer, and ConfirmDialog expose `onClose` instead of `onOpenChange`. These components have no internal "open" path — opening happens exclusively through the consumer setting `open = true` — so an `onOpenChange` could only ever report `false`. `onClose` names the single transition they own. Do not "fix" this by adding `onOpenChange` to them; a change-callback that can never fire for half its domain is more misleading than an asymmetric name.
+**Deliberate deviation:** Dialog and Drawer expose `onClose` instead of `onOpenChange`. These components have no internal "open" path — opening happens exclusively through the consumer setting `open = true` — so an `onOpenChange` could only ever report `false`. `onClose` names the single transition they own. Do not "fix" this by adding `onOpenChange` to them; a change-callback that can never fire for half its domain is more misleading than an asymmetric name. `ConfirmDialog` takes the same shape one step further: it has no `onClose` of its own either, because its two exits are already named — `onConfirm` (which may be `async`, with a rejection going to `onError`) and `onCancel`, which is what it hands the inner Dialog as `onClose`.
 
 The granular dismiss-path callbacks (`onEscape`, `onClickOutside`) remain separate where offered (Select, Combobox, Popover): they identify *why* the overlay closed, while `onOpenChange` reports *that* it opened or closed.
 
@@ -307,18 +291,24 @@ Interactive components with distinct visual states expose a `data-state` attribu
 
 Use `data-[state=checked]:` in `slotClasses` or consumer CSS to style based on state.
 
-## `interactive` Prop Pattern
+## The "make it operable" boolean
 
-Components that can be interactive (Badge, Avatar, Card) use an explicit `interactive` boolean. It is also auto-enabled when an `onclick` handler is provided:
+A component that **can** be operable but need not be exposes one boolean for it, auto-enabled when an `onclick` handler is provided:
 
 ```typescript
 let { interactive = false, onclick, ...rest }: BadgeProps = $props();
 const isInteractive = $derived(interactive || !!onclick);
 ```
 
-This allows hover/focus/cursor styles to be enabled without requiring a click handler (e.g. for drag targets).
+That lets hover/focus/cursor styles be enabled without a click handler — a drag target, for instance.
 
-## `slotClasses`
+**The name follows what the component becomes.** `Badge` calls it `interactive`: the badge stays a `<span>` and gains the look, a tab stop and `role="button"`. `Avatar` and `Card` call it **`clickable`**, because it forces the root element to `<button>`. The two are not interchangeable — on `Card`, `interactive` is an internal `tv()` axis that `clickable`, `onclick` and `href` all resolve to. It is addressable (`overrides: [{ interactive: true, … }]`) and deliberately **not** settable: a card made to look operable without being operable is the WCAG 3.2 failure the split exists to prevent.
+
+## Styling props (`class`, `unstyled`, `slotClasses`, `preset`)
+
+Every visible component ships all four. What they **do** — the order they fold in, what `overrides` match against, how `unstyled` propagates, how a wrapper and a compound part are addressed — is [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade). This section is the surface: how each is typed, and which element each reaches.
+
+### `slotClasses`
 
 Per-slot class overrides typed as `Partial<Record<XSlots, string>>`, where the key union is **derived from the component's `tv()` slots** — never a hand-maintained literal union (which silently drifts when a slot is added or renamed). The `*.variants.ts` exports the slot-name type alongside its `VariantProps`:
 
@@ -345,23 +335,9 @@ No component lacks a `tv()` config to derive from, and a hand-written slot name 
 
 The third shape fails the most quietly, which is worth knowing before reaching for it: a filter name that matches nothing silently **widens** the prop by a slot under `Exclude`, and silently collapses it to `never` under `Extract` — measured, both leave `bun run check` at 0 errors. Exactly one such typo is caught today, and by accident rather than by design: a `@ts-expect-error` in `provider/component-slots.types.test.ts` asserts that `SegmentGroup` has no `item`, so breaking that one name surfaces as an *unused directive* somewhere else entirely.
 
-Where a component forwards slot classes to one it embeds, `SidebarLayout` is the shape to copy rather than any of the three: its union is `` `sidebar${Capitalize<SidebarSlots>}` `` and the runtime map walks the same config, so neither the slot names nor the prefix is written twice, and `SidebarLayout.svelte.test.ts` asserts that each key reaches the slot it names — identified by the classes Sidebar's own config paints there, because a crossed pair keeps every marker landing on a distinct element and passes a check that asks only whether it landed. `ConfirmDialog` (a pre-configured Dialog) is in neither shape — it reuses `DialogSlots` and forwards `unstyled` verbatim to the inner Dialog. Its `preset` is the exception to "forwards verbatim": a forwarded `preset` resolves inside Dialog, under `Dialog`, so a preset written for the confirmation would style every dialog under the provider. The name `ConfirmDialog` is handed down beside it instead, and Dialog resolves that cascade under that name and folds it in where the instance `slotClasses` sit — the same shape `NumberInput` and `CurrencyInput` use over `Input`, and `LocaleSwitcher` over `Select`.
+Where a component forwards slot classes to one it embeds, `SidebarLayout` is the shape to copy rather than any of the three: its union is `` `sidebar${Capitalize<SidebarSlots>}` `` and the runtime map walks the same config, so neither the slot names nor the prefix is written twice, and `SidebarLayout.svelte.test.ts` asserts that each key reaches the slot it names — identified by the classes Sidebar's own config paints there, because a crossed pair keeps every marker landing on a distinct element and passes a check that asks only whether it landed. `ConfirmDialog` is in neither shape: it reuses `DialogSlots` outright.
 
-**Why a wrapper resolves nothing itself.** It runs before the component it wraps, so it can only rebuild that component's variants out of what its caller wrote — and an axis the inner component derives (`tier`, off a context; `messageType`, from `error`), coerces (`error` is a `string` prop and a boolean axis) or only learns from the child (`open` on Select is `$bindable`, so a wrapper may hold it — but reads it before the child sets it) is not reconstructable that way. A rule keyed on one of those then fires on a state the component is not in, which paints and so reads as a success. The four pass their name, `preset` and instance `slotClasses` **down** instead (`provider/wrapper-cascade.ts`, internal to the package), and the inner component resolves that cascade against its own `variantProps`. Downward and not upward: a wrapper reading the child's resolved state back would run its `$derived` first, and the server pass would paint different classes from the first client pass.
-
-**Writing your own wrapper** takes the same two steps minus that mechanism, which is not exported: destructure `preset` and `slotClasses` out of the rest spread, then hand the inner component `slotClasses={resolveSlotClasses(config, 'YourWrapper', preset, writtenProps, slotClasses, innerVariants.config)}` and no `preset`. `writtenProps` names the axes your wrapper can speak for — not `label`, which the inner condition object never carries either — and `resolveSlotClasses` answers the ones it left out from the same `innerVariants.config`.
-
-Most of what the internal mechanism buys the library's four is still yours to write, because *derived* does not mean *hidden*: `error: !!error` and `messageType: error ? 'error' : 'helper'` are computed from a prop you hold, and `getTierContext()` is exported, so `tier: tierProp ?? getTierContext()?.tier ?? 'modify'` reads the same context `Input` reads. `DatePicker` is the worked example in this package — it hands `resolveSlotClasses` a condition object it builds by hand, `error: !!effectiveError` included. `hasLeftIcon` is in that group too — it is `!!leftIcon` (`Input.svelte:98`), nothing else feeds it. Two stay out of reach: `open` on Select is the component's own runtime state, and `hasRightIcon` diverges in one direction — `clearable` with a value renders a clear button, which makes the axis `true` on a field whose wrapper passed no `rightIcon` (measured), while the wrapper's `!!rightIcon` says `false`. Swapping a passed `rightIcon` for the clear button is not a divergence; the axis reads `true` either way. For those two, put the rule under the inner component's name.
-
-When `unstyled` is `false`, `slotClasses` values are merged with the default tv() classes; when `unstyled` is `true`, they replace them entirely. Components resolve the value through `resolveSlotClasses(blocksConfig, 'Name', preset, variantProps, slotClassesProp, nameVariants.config)`, which composes every rung the provider owns — up to and including the instance `slotClasses`. The call site adds the last one, so the full cascade reads (weakest → strongest):
-
-`defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance.slotClasses → class`
-
-Conflicts are resolved per Tailwind bucket (the later source wins for a given property; non-conflicting classes accumulate) — so an instance `rounded-none` deterministically defeats a provider-default `rounded-full` instead of leaving the winner to stylesheet order. The last arrow is no exception: the call sites hand `tv()` an **array** (`styles.base({ class: [slotClasses?.base, className] })`) and the engine reads each top-level array element as its own source, so `class="py-4"` strips a `slotClasses={{ base: 'py-8' }}`. Under `unstyled` there is no `tv()` pass, and the same list folds through the exported `resolveClassChain(...)` instead — the flag changes what is left to resolve, never how.
-
-A library-authored class written into that array is a source like any other, so it belongs **before** the consumer's rungs (`Button`'s `pressCueClass`), never after; better still, it belongs in a variant axis. Two classes that are meant to coexist go in the *same* array element — within one element nothing is stripped.
-
-For **project-wide** overrides, register them on `BlocksProvider` rather than repeating `slotClasses` at each call site: `defaults` (unconditional, every instance), `presets` (opt-in, named), or `overrides` (prop-conditional — e.g. only `variant="outlined"`). See [ARCHITECTURE.md → The override cascade](./ARCHITECTURE.md#the-override-cascade).
+Values merge with the tv() defaults when `unstyled` is `false` and replace them when it is `true`. They sit second-from-last in one chain, conflict-resolved per Tailwind bucket with the later source winning: `defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance slotClasses → instance class`. Everything about that chain — why a wrapper such as `NumberInput` carries two provider names at once, and how to write your own wrapper that resolves it — is [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade).
 
 To restyle an embedded component (e.g. make an Input look borderless inside a custom container), override the visual boundary slot:
 
@@ -379,52 +355,12 @@ Do not read "root slot" as "the first slot the `tv()` config declares". The two 
 
 ### The override ladder
 
-Reach for the lowest rung that solves the problem — lower rungs preserve more of the system's behavior (dark mode, hover/active cascade, focus rings):
+The five rungs a consumer reaches for, the rule that their numbering is blast radius rather than cascade strength, and how `unstyled` propagates are in [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade). Two consequences bind the **prop surface** and belong here:
 
-1. **`class`** — restyle one element (the one its `class` prop names — usually the root slot) on one instance.
-2. **`slotClasses.<slot>`** — restyle an inner element on one instance.
-3. **`preset` / `BlocksProvider` defaults** — app-wide look for a component type.
-4. **`overrides`** — style only one variant / intent / state (prop-conditional — what unconditional `slotClasses` cannot express).
-5. **`unstyled` + `slotClasses`** — strip every default and rebuild the look.
+- **`unstyled` is a plain `boolean` on every visible component**, defaulting to `false`, and it is OR-ed with the provider flag (`unstyledProp || blocksConfig?.unstyled`). A component that renders other blocks components forwards it; one that renders consumer `children` does not.
+- **Its JSDoc must not promise an empty element.** `unstyled` removes the `tv()` pass, not every class: a component's own semantic hooks survive, as does the plumbing of any [internal core](ARCHITECTURE.md#the-internal-core-layer) it embeds. "Remove the default variant classes" is accurate; "only user classes apply" is not.
 
-`unstyled` propagates by prop, and only along markup the component writes itself: a
-composing component hands it to the blocks components it renders (`DatePicker` →
-`Input`/`Popover`/`Calendar`, `ChatMessage` → `Avatar`/`Alert`/`Tooltip`, `Pagination` →
-its page buttons), so a bare frame around a fully dressed field is not a state one instance
-can be in. It deliberately stops at anything the consumer hands in as `children` or a
-snippet — that would be action at a distance from a prop written at the call site. For a
-whole subtree, `<BlocksProvider unstyled>`. Which components this covers is measured rather
-than listed: route H of `provider/provider-cascade.svelte.test.ts` mounts a component twice
-and requires the instance flag to remove exactly what the provider flag removes. It answers
-for the markup that mount renders and no more — measured, it is blind to a child that only
-appears in a state the mount does not reach: `AvatarGroup`'s avatars (no `items`), and
-`CalendarHeader`'s overlays and `FileUpload`'s progress bar (both closed). That is why the
-roster is *also* derived from the source rather than read off the sweep, and why the three
-are listed as `ROUTE_H_BLIND` in the sweep itself — a mount fixture that reaches the child
-takes a component off that list, as `Guide`'s tour fixture did.
-
-One scoping note: controls embedded via the internal core layer (Badge's
-remove ×, Dialog/Drawer's close ×, embedded loading spinners) are styled by
-their host's variants slot (`removeButton`, `closeButton`, `spinner`) — rungs
-1–5 of the *host* apply to them, but Button/Spinner presets and provider
-defaults do not reach inside (they never were the documented path). The cores'
-few structural plumbing classes (flex centring, cursor, disabled inertness)
-sit outside the ladder entirely: they are behaviour, not an override surface,
-and `unstyled` leaves them alone under either flag. A core that renders a
-*public* component is the other case — `CoreDateGridHeader`'s today-button
-`Tooltip` has a `tv()` config of its own, so the core relays `unstyled` to it.
-
-A second scoping note, for rung 3: a **compound part** is addressed under the
-provider name of the component it renders inside of, never one of its own.
-`defaults.Calendar.slotClasses` reaches `CalendarHeader`'s header, nav and
-title, the way `MenuItem` and `CalendarDay` are reached under `Menu` and
-`Calendar`. A **wrapper** is the other shape and carries both names at once:
-`defaults.NumberInput.slotClasses.stepperButton` reaches its own two buttons and
-`defaults.NumberInput.slotClasses.base` reaches the `<Input>` it wraps, because
-the wrapper's *name* travels down and that Input resolves the cascade under it;
-only the resolved record comes back the other way, for the wrapper's own slots.
-`defaults.Input` still reaches the field on its own. An entry under a name
-nothing resolves as matches no lookup and is silently never read.
+### `variantProps` and the house axis order
 
 The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, and the same `xVariants.config` goes to `tv()` and to the resolver — so the `tv()` output and the prop-conditional `overrides` cannot match against different variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys.
 
@@ -436,11 +372,15 @@ Three rules follow, and the first is the one that decides the other two: **the k
 
 A **wrapper** names no axes at all. It hands its name to the component it wraps, and that component's `variantProps` — this same object — is what the wrapper's rules are matched against, so one rule gets one answer under both names instead of two. An item beside its siblings speaks only for the axes it names, and must not stand in for its neighbour's.
 
+**The house axis order** in `*.variants.ts` is `tier → variant → size → intent → structural flags (hasIcon, striped, …) → state axes (disabled, readonly, messageType, error, pressed, active, connected)`. States come last because a state must dominate the resting look, and the order is load-bearing rather than cosmetic: the engine folds axes in declaration order and every later one strips the earlier one's Tailwind buckets ([ARCHITECTURE.md § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine)). Deviate deliberately and leave a comment — Button declares `pressed` before `variant`, the table `sortable` after `sorted`.
+
 ## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)
 
-A component takes `href` only when it owns **structure** the consumer cannot rebuild from the exported variants function alone — `Card` (header · content · footer) today, a `ListRow` with slots if one is ever built. Single-box controls never swap their root element: a `Button` always renders `<button>`, a `Badge` always renders `<span>`, a `Toggle` always renders `<button role="switch">`. Where the whole component *is* the anchor and nothing else, the Navigation family's `Link` (#429 — always `<a>`, never polymorphic) is the member to reach for.
+A component takes `href` only when it owns **structure** the consumer cannot rebuild from the exported variants function alone — `Card` (header · content · footer) today, a `ListRow` with slots if one is ever built. Single-box controls never swap their root element: a `Button` always renders `<button>`, a `Badge` always renders `<span>`, a `Toggle` always renders `<button role="switch">`. Where the whole component **is** the anchor and nothing else, write the wrapper below; the library ships no anchor component today.
 
-The line sits there because a swappable root has three real costs, and only structure pays for them (decided 2026-09-08, kino consumer feedback): the props type splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes` and forces a `Record<string, unknown>` cast; the `no-navigation-without-resolve` rule has to be scoped off for the component; and internal-vs-external URL, `resolve()`, `target`/`rel` are app-routing decisions the library cannot see. `Card` pays all three, and it is worth it, because an `<a>` around a `cardVariants()` shell would have to rebuild three slots. An `<a>` around `buttonVariants()` rebuilds nothing — so that is the recipe, and the library holds itself to it (#427).
+> **Decided 2026-09-08, pending #429** — a Navigation-family `Link`, always `<a>` and never polymorphic, is to become the member to reach for in that case.
+
+The line sits there because a swappable root has three real costs, and only structure pays for them (decided 2026-09-08, kino consumer feedback): the props type splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes` and forces a `Record<string, unknown>` cast; navigation-resolution lint rules have to be scoped off for the component; and internal-vs-external URL, `resolve()`, `target`/`rel` are app-routing decisions the library cannot see. `Card` pays all three, and it is worth it, because an `<a>` around a `cardVariants()` shell would have to rebuild three slots. An `<a>` around `buttonVariants()` rebuilds nothing — so that is the recipe, and the library holds itself to it (#427).
 
 When you need a link that looks like a button, write a thin wrapper in your app and reuse the exported variant function:
 
@@ -478,19 +418,26 @@ Components that accept per-row content (most prominently `Table` via `column.cel
 Prefer the **component** form when:
 
 - The cell is non-trivial (state, effects, lifecycle, deeper trees).
-- You hit `eslint-plugin-svelte` parser bugs on snippet type annotations like `{#snippet name(item: T, _value: unknown)}` (this is a known plugin issue at the time of writing; `svelte-check` accepts the syntax). Component cells sidestep the snippet-arg parser entirely.
+- A tool in your own pipeline chokes on snippet type annotations like `{#snippet name(item: T, _value: unknown)}` — `svelte-check` accepts the syntax, and this repo runs no `.svelte` ESLint pass any more, but component cells sidestep the snippet-arg parser entirely either way.
 - You want full TypeScript inference on the cell's `Item` generic without leaning on `T`-typed snippet arguments.
 
 Each cell component should accept `item: Item` plus any extra props passed through `componentProps`, and stay agnostic of the table's surrounding context.
 
 ## `tier` Prop
 
-Tier-aware primitives accept an optional `tier` prop that selects the radius semantics of the component. The value comes from the wrapping `<TierContext>` by default; the prop overrides it.
+The tier model — the three tokens, the two axes that share the name, which components read the context and which only sit on a fixed tier — is [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system). The API rules:
 
-Two different axes share the name, deliberately — the vocabulary is the same, the values are not:
+- The prop is **optional** and its type is the narrow one for the component's axis: `'commit' | 'modify'` for an interactive tier, `'contain' | 'bridge'` for a container tier. Never a six-value union covering both.
+- **Per-instance beats context beats the family default**, always resolved the same way:
 
-- **Interactive tier** (`'commit' | 'modify'`) — Action, Form and Navigation families. This is the one that cascades through `<TierContext>`.
-- **Container tier** (`'contain' | 'bridge'`) — currently `Card` only. It does **not** read `TierContext` (a Toolbar's `commit` must not reshape a Card inside it) and exists for one decision: `bridge` when a surface is too small for the container radius to read as intentional. Every other container is `contain` by construction.
+  ```ts
+  import { getTierContext } from '$lib/utils';
+
+  const tierCtx = getTierContext();
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // family default
+  ```
+
+- A component with **fixed geometry exposes no `tier` prop at all** — Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and Identity (Avatar). `Badge` is the lone Feedback exception, because a Badge inside a `<Toolbar tier="modify">` does want to flatten.
 
 ```svelte
 <!-- Default: Button is commit-tier (pill) -->
@@ -506,19 +453,6 @@ Two different axes share the name, deliberately — the vocabulary is the same, 
   <Checkbox label="Wrap" />
 </Toolbar>
 ```
-
-**Default-Tier by family:** Action `commit` · Form `modify` · Navigation per component (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain` (only `Card` exposes the prop). Full table in [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
-
-**Standard implementation pattern** (in `ComponentName.svelte`):
-
-```ts
-import { getTierContext } from '$lib/utils';
-
-const tierCtx = getTierContext();
-const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // family default
-```
-
-Feedback / Ambient components (Toast, Spinner, Progress, Skeleton) and Identity (Avatar) do **not** take a `tier` prop — they have fixed geometry by design (see [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md)). Badge is the lone Feedback exception (Badge inside a `<Toolbar tier="modify">` does want to flatten), but the family-level rule remains: Feedback geometry is per-component.
 
 ## Docs Theme Hooks
 
@@ -650,11 +584,17 @@ component is an issue against the component, not a quiet tag flip.
 - Compound components: use correct ARIA roles (`radiogroup`/`radio` for single-select, `group`/`checkbox` for multi-select)
 - **Live-region roles follow the prop that names the message's purpose, and an explicit `role`
   always wins.** `Badge` derives its role from `purpose` (8.20.0: `status` for a state marker, none
-  for a tag, a count or a chip, `button` only with an `onclick`). `Alert` derives it from `intent`
-  (decided 2026-09-10, ships as a `fix(blocks)!`): `danger` and `warning` render `role="alert"`
-  (implicitly assertive), every other intent renders `role="status"` (polite) — a saved-message
-  must not interrupt what is being read. A static callout that announces nothing passes
-  `role="note"` or `role={undefined}`. One live region per outcome: never nest a `role="alert"`
-  inside an `aria-live` region; the region exists before its content changes. Reference:
-  auth's `_shared/FormErrorAlert.svelte` (an assertive and a polite region, both persistent, the
-  inner `Alert` role removed through the pass-through).
+  for a tag, a count or a chip, `button` only with an `onclick`). `Alert` does **not** derive one
+  yet: it renders a static `role="alert"` at every intent, so a polite callout needs an explicit
+  `role="status"`, and a static one that announces nothing needs `role="note"` or
+  `role={undefined}`.
+
+  > **Decided 2026-09-10, pending #462** — `Alert` is to derive its role from
+  > `intent`: `danger` and `warning` render `role="alert"` (implicitly assertive), every other
+  > intent renders `role="status"` (polite), because a saved-message must not interrupt what is
+  > being read. It lands as a `fix(blocks)!`.
+
+  One live region per outcome, in either world: never nest a `role="alert"` inside an `aria-live`
+  region; the region exists before its content changes. Reference: auth's
+  `_shared/FormErrorAlert.svelte` (an assertive and a polite region, both persistent, the inner
+  `Alert` role removed through the pass-through).

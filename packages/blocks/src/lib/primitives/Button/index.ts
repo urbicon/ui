@@ -110,7 +110,13 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
    */
   class?: string;
 
-  /** Remove the default variant classes. Only user classes apply. */
+  /**
+   * Remove the default variant classes and apply yours instead. Not an empty
+   * element: three semantic hooks stay on the root so a stylesheet can still
+   * reach the button — `blocks-button`, `blocks-intent-*` and the press-cue
+   * custom property (`[--blocks-press-scale:1]`, only with `mint="none"`).
+   * @default false
+   */
   unstyled?: boolean;
   /**
    * Per-slot class overrides merged with tv styles. Slots: base | content | spinner.

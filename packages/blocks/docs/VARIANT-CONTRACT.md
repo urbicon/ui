@@ -63,10 +63,10 @@ values because there are exactly two answers:
 | `contain` *(default)* | `--radius-contain` | The card is architecture — a panel, a section, a page-level surface |
 | `bridge` | `--radius-bridge` | The card is a small tinted **content** tile — a chip, a stat cell, a compact list card |
 
-The distinction is optical, not decorative. Radius scales with the area it turns: the hairline
-edge that reads as *precise* on a 600 px panel reads as an untouched rectangle on a 200 px tile.
-That is the same reasoning behind ChatMessage's bubble and a Menu panel under a pill trigger —
-`bridge` simply gives it a name on the component a consumer composes at any size.
+The distinction is optical, not decorative: radius scales with the area it turns, so the edge that
+reads as **precise** on a 600 px panel reads as an untouched rectangle on a 200 px tile. `--radius-bridge`
+is the shared middle rung for exactly that, and `tier="bridge"` is how a consumer reaches it on a
+component composed at any size.
 
 It is **not** a way to give one card a different look. Card weight is `variant`; a project-wide
 Card treatment is `BlocksProvider` `defaults`; a project-wide shape change is the tier token
@@ -150,13 +150,18 @@ The prop is unchanged — `intent="warning"` still works; only the default visua
 Two families of border, picked by whether the border reads as **architecture** or as an
 **input affordance**:
 
-- **Container surfaces** (Card, Alert, Dialog, Drawer, Popover, Menu, Toast, Sidebar,
-  Collapsible, FileUpload, CommandPalette, SidebarLayout, Calendar, …) use
-  `border-hairline` — ~8 % alpha in light, 6 % in dark. It auto-upgrades under
-  `prefers-contrast: more`.
+- **Container surfaces** (Dialog, Drawer, Popover, Menu, Sidebar, Collapsible, Accordion,
+  FileUpload, CommandPalette, SidebarLayout, Calendar, …) use `border-hairline` — ~8 % alpha
+  in light, 6 % in dark. It auto-upgrades under `prefers-contrast: more`.
 - **Form primitives** (Input, Select, Combobox, Textarea, Checkbox, RadioGroup) keep
   `border-subtle`. An input's frame is an affordance: it has to be visible enough to read
   as "you can type here".
+
+Two containers are worth naming because they are not simply on the hairline: **`Card` uses both**
+— `border-default` on its `outlined` variant, where the border **is** the card and must read as a
+deliberate frame, and `border-hairline` for the internal `dividers` between header, body and
+footer. And **`Alert` and `Toast` emit no border token at all**; an Alert's `inline` variant draws
+an intent-coloured left rule (`border-l-*`) and its other variants draw nothing.
 
 Override per component via `class` / `slotClasses` when a heavier border is wanted.
 
@@ -165,8 +170,8 @@ Action components are the third case — they source their borders from **Intent
 reads as a container. That holds where the border is a boundary: the `outlined` variants,
 and the divider between the members of a connected `ButtonGroup`. A **filled** surface
 takes `border-transparent` instead — there the intent colour is already the fill, and a
-border repeating it would only be left behind when hover and press move the fill on. See
-[COMPONENT-FAMILIES.md] in the repo for the full family → border-source mapping.
+border repeating it would only be left behind when hover and press move the fill on. The
+repository's `docs/COMPONENT-FAMILIES.md` carries the full family → border-source mapping.
 
 ---
 
@@ -256,9 +261,13 @@ message row and `aria-invalid`, both unchanged.
 
 ### `bare` is not `unstyled`
 
-`unstyled` drops *all* library classes, focus and disabled styling with them, and hands you an empty
-element. `bare` keeps the a11y minimum: the focus outline, the caret, the placeholder tone, the
-message row, the disabled and readonly cues (opacity and cursor, since there is no fill to grey).
+`unstyled` drops the whole variant pass — focus and disabled styling with it — and hands you an
+element to dress yourself. What survives is not nothing: a component keeps the few semantic hooks a
+stylesheet can target (`blocks-button`, `blocks-intent-*` and the press-cue custom property on a
+Button, for instance) and the structural plumbing of any internal core it embeds. Nothing that
+**looks** like something survives. `bare`, by contrast, keeps the a11y minimum on purpose: the focus
+outline, the caret, the placeholder tone, the message row, and the disabled and readonly cues
+(opacity and cursor, since there is no fill to grey).
 
 A bare field needs context that marks it as a field — a placeholder, a rule under the line, a label
 or a marker before it. Without one, nothing tells a reader that the text can be typed over.

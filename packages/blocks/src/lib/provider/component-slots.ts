@@ -72,9 +72,9 @@ export type ComponentSlotMap = {
  *
  * A name the library does not know widens to `string`, which is what keeps a
  * consumer's own wrapper working: `resolveSlotClasses(config, 'MoneyField', …)`
- * is a documented path (COMPONENT-API-CONVENTIONS.md → "Writing your own
- * wrapper"), and its slot names live in that consumer's markup, where nothing
- * here can see them.
+ * is a documented path (ARCHITECTURE.md § The override cascade → "Writing your
+ * own wrapper"), and its slot names live in that consumer's markup, where
+ * nothing here can see them.
  *
  * Not distributive: `[K] extends [keyof …]` keeps a union key from being taken
  * apart, so a `Record<string, …>` handed to the provider stays the permissive

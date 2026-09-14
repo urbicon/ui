@@ -4,7 +4,7 @@ Mandatory best practices for the Urbicon UI codebase. This file is the detailed 
 
 > **Context:** A 2026-05 review found five recurring anti-patterns (`Math.random()` IDs, `setContext('string')`, `$state(new Map())`, index keys, `class:foo`) in an otherwise fully Svelte-5-migrated codebase. All were fixed — this file prevents regressions. Source for the rules themselves: the official Svelte 5 documentation.
 >
-> **2026-08:** all 185 `$effect` in the repo were inventoried and the rules below measured against real SSR output. The "State sync" row had named `$derived` as the replacement but said nothing about values with **other writers** — a silence that led one issue to conclude a derivation was "architecturally impossible". It is not: deriveds are overridable as of 5.25. See "Prop-derived state" below.
+> **2026-08:** every `$effect` in the repo was inventoried and the rules below measured against real SSR output. The "State sync" row had named `$derived` as the replacement but said nothing about values with **other writers** — a silence that led one issue to conclude a derivation was "architecturally impossible". It is not: deriveds are overridable as of 5.25. See "Prop-derived state" below.
 
 ## Anti-Patterns (do NOT do)
 
@@ -115,7 +115,7 @@ Role models: `Tab/tab.context.ts`, `Accordion/accordion.context.ts`, `Stepper/st
 | `Tab` → `TabItem`                   | `BlocksProvider` → any component (presets, defaults)  |
 | `Accordion` → `AccordionItem`       | `IconProvider` → `Icon` (registry override)           |
 | `RadioGroup` → `RadioItem`          | `ButtonGroup` → individual `Button` (selection state) |
-| `Stepper` → `StepperItem`           | `Calendar` → `CalendarDay` (read-only style context)  |
+| `Stepper` → `StepperStep`           | `Calendar` → `CalendarDay` (read-only style context)  |
 
 ```ts
 // menu.context.ts — compound, throws without a parent
@@ -296,7 +296,7 @@ For future reviews and pre-merge checks:
 
 ```bash
 # 0. Effect used as a trigger — a bare `void x;` is hand-written dependency
-#    tracking, i.e. "I want to react to a change", which is a $derived (53 hits, 46 outside tests; 2026-08)
+#    tracking, i.e. "I want to react to a change", which is a $derived (141 hits, 115 outside tests; 2026-09)
 rg "^\s*void [a-zA-Z]" packages/ apps/
 
 # 0b. Element decoration written the long way — `bind:this` ref + null guard + teardown.
@@ -304,7 +304,8 @@ rg "^\s*void [a-zA-Z]" packages/ apps/
 #     cannot cross the newline. Without it the guard matches nothing, forever.
 rg -U "\\\$effect\(\(\) => \{\s*if \([a-zA-Z]+(El|Ref|Element)" packages/
 
-# 1. Math.random for IDs (🔴) — expect 1 hit: utils/id.ts (documented non-component fallback, not a violation)
+# 1. Math.random for IDs (🔴) — expect 2 hits, both utils/id.ts (a documented
+#    non-component fallback plus the comment above it), not a violation
 rg "Math\.random\(\)" packages/
 
 # 2. setContext with a string key (🟠)

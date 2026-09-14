@@ -50,7 +50,8 @@ accumulated.
 - **An existing icon already carries the meaning.** Prefer adding keywords to `ICON_METADATA` over
   adding a glyph — a synonym costs one line and makes the existing drawing findable, and
   `find_icons` searches keywords, not names. Two icons for one idea are only allowed as declared
-  semantic aliases (`checkCircle`/`successCircle`), never as near-duplicates.
+  semantic aliases — the registry keys `checkCircle` and `success` are the pair — never as
+  near-duplicates.
 
 Rule of thumb: an icon whose only justification is "another set has it" fails all four tests.
 
@@ -272,5 +273,5 @@ this document — change them together.
 
 ---
 
-See also: `CLAUDE.md` → *Icon Design Rules* (summary + pointer here),
+See also: `AGENTS.md` → *Icons* (summary + pointer here; `CLAUDE.md` is a symlink to it),
 `packages/blocks/src/lib/icons/icon-registry.ts` (registry & metadata), `icon.context.ts` (override context + `resolveIcon`).

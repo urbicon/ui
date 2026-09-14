@@ -8,11 +8,11 @@
 
 ## Why families exist
 
-The library exposes 40 primitives and 28 components. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
+The library exposes 39 primitives and 27 components. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
 
 1. **ARIA role** — what assistive technology calls it.
-2. **Tier membership** — does its radius react to a wrapping `tier`-aware context (commit/modify/contain), is it hardcoded to one tier, or does it sit outside the tier system entirely?
-3. **Border-token source** — does the border read as **interactive** (Intent tokens, high contrast) or as **architectural** (Surface tokens, low contrast)?
+2. **Tier membership** — which radius tier the family sits on, and whether its members read the tier context. The model itself is [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system); this page only says which family lands where.
+3. **Border-token source** — does the border read as **interactive** (Intent tokens, high contrast) or as **architectural** (Surface tokens, low contrast)? The token contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md).
 
 Picking the right family up-front avoids the most common categorical bugs: a button that looks like an input, a menu that doubles as a listbox, an avatar that mutates when the brand flattens commit-radii.
 
@@ -22,13 +22,13 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 
 | Family | Members | ARIA role | Tier behaviour | Border source |
 |---|---|---|---|---|
-| [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | tier-aware (commit default) | **Intent** (`border-neutral` etc.) |
-| [Form](#form) | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | tier-aware (modify default) | **Surface** (`border-border-subtle`) |
-| [Navigation](#navigation) | Breadcrumb · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | tier-aware (commit or modify per component) | mixed (route-context dependent) |
-| [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | tier-aware (contain default) | **Surface** or **Hairline** |
-| [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge | `status`, `alert`, `progressbar` | **not tier-aware** — fixed geometry per component | **Intent** (status-tinted) or **none** |
+| [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | `commit`, read from the tier context | **Intent** (`border-neutral` etc.) |
+| [Form](#form) | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | `modify` from the context; `Slider` and `FormField` opt out | **Surface** (`border-border-subtle`) |
+| [Navigation](#navigation) | Breadcrumb · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | `commit` or `modify` per component, from the context; `Breadcrumb` and `JourneyTimeline` opt out | mixed (route-context dependent) |
+| [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline** |
+| [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge | `status`, `alert`, `progressbar` | **not tier-aware** — fixed geometry; `Badge` is the one exception | **Intent** (status-tinted) or **none** |
 | [Identity](#identity) | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`) | none (avatar is its own surface) |
-| [Conversation](#conversation) | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `article`, `textbox`, `region` | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | **Surface**, and only on the OUTERMOST frame |
+| [Conversation](#conversation) | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `textbox`, `region` | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | **Surface**, and only on the OUTERMOST frame |
 
 The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and MCP filtering, the family decides architecture.
 
@@ -40,9 +40,9 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 **ARIA:** `role="button"`, `role="menu"` + `role="menuitem"`, `role="toolbar"`, `role="switch"` (Toggle).
 
-**Tier:** Default `commit` — buttons, menu triggers, toolbar surfaces declare identity and want the pill (or pill-adjacent) radius. All five components read `tier` from the wrapping `<TierContext>` (set by `<Toolbar tier="modify">` for compact strips, by `<Menu tier="modify">` for inline action lists), so a wrapping context cascades down.
+**Tier:** Default `commit` — buttons, menu triggers and toolbar surfaces declare identity and want the pill (or pill-adjacent) radius. All five read the tier context, and `Toolbar` and `ButtonGroup` are the two containers that set it (`<Toolbar tier="modify">` flattens a compact strip). [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
 
-**Border source:** **Intent**, wherever the border is a boundary — the `outlined` variants and the divider inside a connected `ButtonGroup`. Action borders must read as interactive even in their neutral state — `border-neutral` is `~neutral-500` in light mode, deliberately darker than the surface borders below. A **filled** action surface is the exception: its border is `transparent`, because the intent colour is already the fill and a second copy of it would sit on the resting stop while hover and press move the fill away.
+**Border source:** **Intent**, wherever the border is a boundary — the `outlined` variants and the divider inside a connected `ButtonGroup`. Action borders must read as interactive even in their neutral state, which is why they are deliberately darker than the surface borders the other families use ([VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md)).
 
 **Industry analogue:** Radix `DropdownMenu`, Headless UI `Menu`, Material `MenuItem`. The key trait: items dispatch `onSelect` callbacks; nothing holds a value.
 
@@ -50,9 +50,9 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 - "Click this and something happens" → `Button`.
 - "Open a list of one-off actions" → `Menu`.
 - "Group several action triggers" → `ButtonGroup` (single/multi-select segmentation) or `Toolbar` (free-form toolbar).
-- "Two complementary states (bold/italic, mute/unmute)" → `Toggle` with `pressed`. Persistent selection (a sort column, the current tool) uses `active`.
+- "Two complementary states (bold/italic, mute/unmute)" → `Toggle`, whose state prop is `checked`. A **Button** that carries a complementary state uses `pressed`, and one that carries a persistent selection (a sort column, the current tool) uses `active` — three props, three jobs, on two components.
 
-**Bridge token.** Menu's panel container is the canonical *adjacency* case: the trigger is a pill (`commit`-tier) but the panel sits between the pill edge and the `contain`-tier surface beneath. The library exposes `--radius-bridge` to keep that radius tunable, and it also covers the *optical-size* case — a surface too small for the container radius to read as intentional: the `ChatMessage` bubble, `Textarea` at `tier="commit"`, and `Card tier="bridge"`. It was tokenised rather than hard-coded so a brand that flattens `--radius-commit` keeps the panel visually attached to its trigger. See [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system) for the token and the [tier-system doc page §Bridge Token](../apps/docs/src/routes/customization/tier-system/+page.svelte) for the live demo.
+**Bridge token.** Menu's panel is the canonical **adjacency** case for `--radius-bridge`, the rung between `commit` and `contain`. What the token is for and where else it applies: [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system), with a live demo on the [tier-system doc page](../apps/docs/src/routes/customization/tier-system/+page.svelte).
 
 **Not in this family:** `SegmentGroup` (looks like ButtonGroup, but holds a value — see Navigation).
 
@@ -62,11 +62,11 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 **Members:** `Input`, `Select`, `Combobox`, `Textarea`, `Checkbox`, `RadioGroup`, `Slider`, `FormField`.
 
-**ARIA:** `role="textbox"`, `role="listbox"`, `role="combobox"`, `role="checkbox"`, `role="radio"`, `role="slider"`. `FormField` is a wrapper that ties `label` / `description` / `error` to the inner control's `aria-describedby` / `aria-errormessage` plumbing.
+**ARIA:** `role="textbox"`, `role="listbox"`, `role="combobox"`, `role="checkbox"`, `role="radio"`, `role="slider"`. `FormField` is a wrapper that ties `label` / `description` / `error` to the inner control's `aria-describedby` plumbing; the library sets `aria-invalid` and points `aria-describedby` at the error node rather than using `aria-errormessage`, which appears nowhere in `blocks`.
 
-**Tier:** Default `modify` — inputs, selects, checkboxes are "tap surfaces" that read as editable, not as commit-decisions. Tier-aware via context — a `<Toolbar tier="commit">` pulls Form children up to `commit` if the inline layout calls for pill-shaped inputs.
+**Tier:** Default `modify` — inputs, selects and checkboxes are "tap surfaces" that read as editable, not as commit-decisions. A `<Toolbar tier="commit">` pulls the tier-aware members up to `commit` when an inline layout calls for pill-shaped fields; `Slider` and `FormField` do not take part.
 
-**Border source:** **Surface**. Form borders must read as containers, not buttons — `border-border-subtle` is `~neutral-200` in light mode, low-contrast so a frame is not mistaken for a CTA.
+**Border source:** **Surface** — `border-border-subtle`, low-contrast so a field frame is not mistaken for a CTA ([VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md)).
 
 **Industry analogue:** Radix `Select`/`Combobox`, Headless UI `Listbox`/`Combobox`, MUI `TextField`. The key trait: the control holds a value and emits `onValueChange` / `bind:value`.
 
@@ -102,7 +102,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page. `JourneyTimeline` is an `<ol>` with `aria-current="step"` on the active-status node and disclosure semantics (`aria-expanded`/`aria-controls`) on the focused node's trigger.
 
-**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`. All tier-aware via context. `JourneyTimeline` is not tier-aware — its cards/panel sit on the fixed `contain` radius.
+**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `PaginationItem` read the tier context. `Breadcrumb` and `JourneyTimeline` do not — the timeline's cards and panel sit on the fixed `contain` radius, and a breadcrumb trail draws no box to round.
 
 **Border source:** Mixed. `SegmentGroup` indicator uses Intent (the active item is action-like). `Tab` `line` variant has no border. Breadcrumb uses no border by default.
 
@@ -110,7 +110,9 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **When to reach for:**
 - Section selection *inside one document* — panels that swap in place, no URL involved → `Tab` with `TabItem` / `TabPanel` and `bind:value` (`variant="line"` for editorial). `SegmentGroup` with `SegmentItem` for an inline value picker (list / grid, a filter) on the same page.
-- Route and sub-route navigation → **no member of this family**: a `<nav aria-label>` of `<a href>` carrying `aria-current="page"`. `TabItem` renders a `<button role="tab">`, so an `<a>` inside a trigger is an interactive element inside another one and `role="tab"` promises a panel that never arrives; `SegmentGroup` is a `radiogroup` announcing a chosen value, not a location. The Navigation atom that will own the anchor styling is `Link` (#429); until it ships the tab bar is anchors plus utilities — see the `tab-navigation` pattern.
+- Route and sub-route navigation → **no member of this family**: a `<nav aria-label>` of `<a href>` carrying `aria-current="page"`. `TabItem` renders a `<button role="tab">`, so an `<a>` inside a trigger is an interactive element inside another one and `role="tab"` promises a panel that never arrives; `SegmentGroup` is a `radiogroup` announcing a chosen value, not a location. A tab bar is therefore anchors plus utilities today — see the `tab-navigation` pattern.
+
+  > **Decided 2026-09-08, pending #429** — a `Link` atom is to join this family and own the anchor styling.
 - Linear progress through a process the user *completes* (wizard, checkout) → `Stepper`.
 - Retrospective record of a sequence the user *observes* (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
 - Position context inside a route → `Breadcrumb`.
@@ -124,11 +126,11 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Members:** `Card`, `Alert`, `Accordion`, `Collapsible`, `Dialog`, `Drawer`, `Popover`, `Tooltip`, `Sidebar`, `Separator`, `ConfirmDialog`.
 
-**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` or `role="status"` (Alert, Toast — Toast lives in Feedback though), `<aside>` (Sidebar), `<details>` / `aria-expanded` (Accordion, Collapsible). Card is `<article>` or `<a>` depending on `href`/`onclick`.
+**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` (Alert, at every intent today), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
 
-**Tier:** Default `contain` — containers are architectural surfaces, not interactive affordances. They read as low-key panels that hold content; the radius signal is "this is a frame", not "this is a button". All tier-aware via context (typical: a `tier="modify"` wrapping context pulls Cards from `contain` to `modify` for denser inline layouts).
+**Tier:** Fixed `contain` — containers are architectural surfaces, not interactive affordances; the radius signal is "this is a frame", not "this is a button". **No Container member reads the tier context**, deliberately: a Toolbar's `commit` must not reshape a Card standing inside it. `Card` is the only one with a `tier` prop at all, and its two values are `contain | bridge` — the optical-size decision, not the interactive one ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
 
-**Border source:** **Surface** (`border-border-subtle`/`border-border-default`) or **Hairline** (`border-border-hairline`, for editorial separator lines). Never Intent in the default state — Container borders that read as buttons indicate a family mismatch.
+**Border source:** **Surface** or **Hairline** — `Card`'s `outlined` variant takes `border-default`, the floating panels take `border-hairline`, and `Alert` and `Toast` emit no border token of their own. Never Intent in the default state: a Container border that reads as a button indicates a family mismatch. Full mapping: [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md).
 
 **Industry analogue:** Radix `Dialog`, Headless UI `Disclosure`, Material `Card`, Bootstrap `Modal`. The key trait: they hold content; they don't dispatch or pick.
 
@@ -142,11 +144,11 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Members:** `Toast`, `Spinner`, `Progress`, `Skeleton`, `Badge`.
 
-**ARIA:** `role="alert"` / `role="status"` (Toast; Badge for `purpose="status"`, the dot, and any Badge without a `purpose` — a tag, counter or chip Badge carries no role), `role="progressbar"` (Progress, Skeleton with implicit busy semantics). Spinner inherits `aria-busy` from its host.
+**ARIA:** `role="alert"` / `role="status"` (Toast; Badge for `purpose="status"`, the dot, and any Badge without a `purpose` — a tag, counter or chip Badge carries no role), `role="progressbar"` (Progress). `Skeleton` is `role="status"`, not a progressbar: it reports that something is loading, and has no value to report. Spinner inherits `aria-busy` from its host.
 
-**Tier:** **Not tier-aware.** Feedback components have fixed geometry that does *not* react to `<TierContext>`. Rationale: a Toast pops over the page chrome and must keep its visual identity even if the host page is themed `tier="modify"`; a Spinner is a circular affordance that the user reads at-a-glance — flipping it to `modify` would defeat the affordance. Badge is the only edge case (the `tier` prop *is* exposed because a Badge inside a `<Toolbar tier="modify">` does want to flatten to `rounded-modify`), but the family-level rule remains: Feedback geometry is per-component, not per-context.
+**Tier:** **Not tier-aware.** A Toast pops over the page chrome and must keep its identity even where the host page is themed `tier="modify"`; a Spinner is a circular affordance read at a glance, and flattening it would defeat that. `Badge` is the one exception — it exposes `tier` and reads the context, because a Badge inside a `<Toolbar tier="modify">` does want to flatten — but the family rule stands: Feedback geometry is per-component, not per-context.
 
-**Border source:** **Intent** (status-tinted) for Alert/Badge in their `outlined` variants; **none** for Spinner / Progress / Skeleton — they read as pure surface.
+**Border source:** **Intent** (status-tinted) for `Badge`'s `outlined` variant; **none** for Spinner, Progress and Skeleton, which read as pure surface. `Toast` draws no border token either.
 
 **Industry analogue:** Radix `Toast`, Material `Skeleton`, Sonner. The key trait: ephemeral status communication; pulled in by the framework, not arranged by the consumer.
 
@@ -176,9 +178,9 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Members:** `Chat`, `ChatMessageList`, `ChatMessage`, `PromptInput`, `StreamingMarkdown`, `CodeBlock`, `ToolCallCard`, `ReasoningDisclosure`, `CitationChip`, `A2UIView` (the `ai` JSDoc tag).
 
-**ARIA:** `role="log"` with `aria-live="off"` for the conversation (token-by-token live output would flood a screen reader — a separate polite region announces start and completion once each), `<article>` per message, `<textarea>` for the composer, `role="region"` for the scrollable code body.
+**ARIA:** `role="log"` with `aria-live="off"` for the conversation (token-by-token live output would flood a screen reader — a separate polite region announces start and completion once each), `<textarea>` for the composer, `role="region"` for the scrollable code body. A message is a plain `<div>` carrying `data-role` and `data-status`, not an `<article>`: it is a turn in one conversation, not a self-contained document.
 
-**Tier:** Mixed, and deliberately so — this family is the one place where three tiers meet inside one component tree. The bubble is `bridge` (6 px): it is *content*, and `contain` at 2 px reads as a rectangle at bubble size, because optical radius scales with the area it turns. The framed blocks (a standalone CodeBlock, `ToolCallCard variant="card"`) are `contain` — they are panels. The composer is `modify`, like any other editable surface. The parts that report *how* an answer was produced draw no frame at all by default: `ToolCallCard` (`quiet`) and `ReasoningDisclosure` are muted single lines, because machinery is not content.
+**Tier:** Mixed, and deliberately so — this family is the one place where three tiers meet inside one component tree. The bubble is `bridge` (6 px): it is *content*, and `contain` at 2 px reads as a rectangle at bubble size, because optical radius scales with the area it turns. The framed blocks (a standalone CodeBlock, `ToolCallCard variant="card"`) are `contain` — they are panels. The composer is `modify`, like any other editable surface. The parts that report **how** an answer was produced draw no frame at all by default: `ToolCallCard`'s default variant is `plain` (the other is `card`) and `ReasoningDisclosure` is a muted single line, because machinery is not content.
 
 **Phrasing content.** This is the family where the rule first came up — `MdInline` puts a `CitationChip` in the middle of `MdBlock`'s `<p>` — but it is not confined here: `Tooltip` (Container) is documented for inline targets, so the rule below governs it too. A `<div>` start tag closes an open `<p>` while the parser repairs the document, so an SSR'd answer that cites a source used to emit invalid HTML and diverge from the client tree (`node_invalid_placement_ssr` → `hydration_mismatch`). A `<span>` wrapper alone does not suffice, because the rule is about the whole subtree, not the immediate element — and which remedy that leaves you depends on one question: **is the panel's content phrasing by construction?**
 
@@ -210,7 +212,13 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
 | `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
-**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent sits in a component's defaults only on the *primary action of its surface* — the confirm button, the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Not on the `EmptyState` icon disc (#434), not on the required-field marker (#395), and `ConfirmDialog` no longer promotes `neutral` to `primary` (#433). The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy; this paragraph carries the issue trail.
+**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the confirm button, the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. The required-field marker is already off it and draws in the resting tone (#395). Two places still carry the accent and are to lose it:
+
+> **Decided 2026-09-08, pending #434** — the `EmptyState` icon disc, today `bg-primary-subtle text-primary-text`, is to drop to a neutral tone.
+>
+> **Decided 2026-09-08, pending #433** — `ConfirmDialog`, which today promotes a `neutral` intent to `primary` on its confirm button, is to stop doing so.
+
+The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy; this paragraph carries the issue trail.
 
 ---
 
