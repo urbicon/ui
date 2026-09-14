@@ -8,7 +8,7 @@ and rules are the ones shipped with the `@urbicon-ui/*` version you installed, a
 the filesystem operations (reading/writing your project's `design.manifest.md`)
 run on your machine — things a public, stateless remote MCP server structurally
 cannot do. Under the hood it wraps the zero-dependency
-[`@urbicon-ui/design-engine`](../design-engine/); the same engine backs the remote
+[`@urbicon-ui/design-engine`](https://github.com/urbicon/ui/blob/main/packages/design-engine/README.md); the same engine backs the remote
 `validate_design` MCP tool, so local and remote verdicts agree.
 
 **What the loop buys, measured.** One A/B pair on v8.3.1 (2026-08-18): Haiku 4.5
@@ -67,7 +67,7 @@ bun add -d @urbicon-ui/design   # then:
 bunx urbicon init               # wire the project into the design loop
 ```
 
-> Starting from scratch? The [`@urbicon-ui/sv`](../sv/) add-on (beta) does the mechanical
+> Starting from scratch? The [`@urbicon-ui/sv`](https://github.com/urbicon/ui/blob/main/packages/sv/README.md) add-on (beta) does the mechanical
 > setup in one line — `bunx sv create my-app --add @urbicon-ui` installs blocks + this CLI and
 > wires the Tailwind stylesheet — and then hands over to `urbicon init --hook` below.
 
@@ -97,7 +97,7 @@ the link-as-button recipe — one call),
 `urbicon validate` what it produced.
 
 > The component knowledge is **local and version-pinned**: `@urbicon-ui/design` pulls in the
-> [`@urbicon-ui/design-content`](../design-content/) bundle, so `find` / `get-component` match the
+> [`@urbicon-ui/design-content`](https://github.com/urbicon/ui/blob/main/packages/design-content/README.md) bundle, so `find` / `get-component` match the
 > library version you installed — no extra install, no skew against the latest-only hosted MCP.
 
 ## Commands
@@ -117,9 +117,9 @@ the link-as-button recipe — one call),
 | `urbicon pattern [name]`       | Composition patterns per page archetype.                                                              | `get_pattern`               |
 | `urbicon principles`           | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric.                                   | `get_design_principles`     |
 | `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns.                                                | `get_css_reference`         |
-| `urbicon context`              | Print the project's `design.manifest.md` summary.                                                     | `get_design_context`        |
-| `urbicon record-decision …`    | Append an ADR to the manifest.                                                                        | `record_design_decision`    |
-| `urbicon sync-manifest`        | Re-index `data-design-pattern` markers into the manifest.                                             | `sync_design_manifest`      |
+| `urbicon context`              | Print the project's `design.manifest.md` summary.                                                     | — (local only)              |
+| `urbicon record-decision …`    | Append an ADR to the manifest.                                                                        | — (local only)              |
+| `urbicon sync-manifest`        | Re-index `data-design-pattern` markers into the manifest.                                             | — (local only)              |
 | `urbicon verbs`                | List the design verbs (recipes over the design loop).                                                 | the MCP prompts             |
 | `urbicon verb <name>`          | Print one verb recipe to stdout.                                                                      | the MCP prompts             |
 
@@ -350,11 +350,11 @@ bunx urbicon validate src/ --json              # correctness gate (blocking)
   under `skill/` (package-relative, still no content-bundle dependency);
   `css-reference` and `principles --rubric` come straight from the engine.
 - `find` / `get-component` / `icons` / `recipe` / `guide` / `pattern` / `principles`
-  read the version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (a
+  read the version-pinned [`@urbicon-ui/design-content`](https://github.com/urbicon/ui/blob/main/packages/design-content/README.md) bundle (a
   runtime dependency). The guided onboarding _interview_ lives in the `adopt` /
   `onboard` verbs.
 
 ## Related
 
-- [`@urbicon-ui/design-engine`](../design-engine/) — the deterministic engine this CLI wraps
-- [`@urbicon-ui/mcp-server`](../mcp-server/) — the remote MCP adapter over the same engine
+- [`@urbicon-ui/design-engine`](https://github.com/urbicon/ui/blob/main/packages/design-engine/README.md) — the deterministic engine this CLI wraps
+- [`@urbicon-ui/mcp-server`](https://github.com/urbicon/ui/blob/main/packages/mcp-server/README.md) — the remote MCP adapter over the same engine

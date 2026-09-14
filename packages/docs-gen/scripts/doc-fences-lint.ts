@@ -14,22 +14,30 @@
  *
  * Opt-in, not check-all: most `ts` fences are deliberate excerpts with
  * elided parts and free identifiers, and a skip list over them would be the
- * hand-maintained list this repo argues against. A fence is checked when the
- * line directly above it is
+ * hand-maintained list this repo argues against. A fence is checked when its
+ * marker is
  *
  *     <!-- typecheck -->
  *     <!-- typecheck: stub drizzle-orm -->
  *
+ * with only blank lines allowed between the marker and the fence — never
+ * prose, a heading, or another block. Blank lines are allowed, not required,
+ * so the state a whole-file prettier reformat produces (it inserts exactly
+ * one blank line after a standalone HTML comment) and the state a hand-typed
+ * marker produces both count as marked; no `prettier-ignore` wrapper needed
+ * to keep a marker "opted in" through a reformat.
+ *
  * `stub <pkg>` adds `scripts/fence-stubs/<pkg>.d.ts` — an ambient declaration
  * of a third-party module the repo does not depend on — to that document's
  * program. Everything that would make a marker silently invisible is an error
- * instead: a marker not followed by a `ts`/`typescript` fence, an unknown
- * directive, a missing stub file, a stub file no fence uses, a line that looks
- * like a marker but is not one (`<!-- Typecheck -->`, `<!-- typecheck stub x -->`),
- * a fence never closed, and a run that found no marked fence at all. CRLF
- * files are normalised before the scan (same line count, so the line mapping
- * holds); fences indented inside a list item are de-indented by the opening
- * line's indentation, as CommonMark reads them.
+ * instead: a marker not eventually followed by a `ts`/`typescript` fence
+ * (blank lines aside), an unknown directive, a missing stub file, a stub file
+ * no fence uses, a line that looks like a marker but is not one
+ * (`<!-- Typecheck -->`, `<!-- typecheck stub x -->`), a fence never closed,
+ * and a run that found no marked fence at all. CRLF files are normalised
+ * before the scan (same line count, so the line mapping holds); fences
+ * indented inside a list item are de-indented by the opening line's
+ * indentation, as CommonMark reads them.
  *
  * How it compiles: a throwaway consumer project under `.doc-fences-lint/`
  * whose `node_modules/@urbicon-ui/<pkg>` are symlinks to the workspace
@@ -165,6 +173,24 @@ const isTsFence = (delim: FenceDelimiter) => TS_LANGS.has(delim.info.split(/\s+/
 /** Anything that mentions `typecheck` inside an HTML comment and is not the marker. */
 const MARKER_LOOKALIKE = /<!--[^>]*typecheck/i;
 
+/**
+ * Index of the next non-blank line from `i`, stepping by `dir` (±1) — blank
+ * lines between a marker and its fence are the only thing a whole-file
+ * prettier reformat inserts there, so they must not break the pairing in
+ * either direction. Prose, a heading, or another fence stops the walk
+ * immediately (that line is not blank), which is what makes those an error.
+ * "Blank" is whitespace-only (`trim() === ''`), not just `''`: a line with a
+ * single trailing space is invisible in an editor but is not `===` to `''`,
+ * and would otherwise read as content and break the pairing. Explicit bounds
+ * check because `''.trim() === ''` — without it, walking off either end of
+ * `lines` would loop forever instead of stopping like the old `=== ''` did.
+ */
+function skipBlank(lines: string[], i: number, dir: 1 | -1): number {
+  let j = i;
+  while (j >= 0 && j < lines.length && (lines[j] ?? '').trim() === '') j += dir;
+  return j;
+}
+
 function extract(path: string): Doc {
   const rel = relative(REPO, path);
   // CRLF → LF keeps the line count, so document lines stay what the editor shows
@@ -193,10 +219,11 @@ function extract(path: string): Doc {
 
     const marker = line.match(TYPECHECK_MARKER);
     if (marker) {
-      const next = parseFenceDelimiter(lines[i + 1] ?? '');
+      const nextLine = skipBlank(lines, i + 1, 1);
+      const next = parseFenceDelimiter(lines[nextLine] ?? '');
       if (!next || !isTsFence(next))
         doc.errors.push(
-          `${rel}:${i + 1}: <!-- typecheck --> must sit on the line directly above a \`\`\`ts fence`
+          `${rel}:${i + 1}: <!-- typecheck --> must be followed by a \`\`\`ts fence, with nothing but blank lines in between`
         );
       continue;
     }
@@ -211,7 +238,8 @@ function extract(path: string): Doc {
     if (delim) {
       const isTs = isTsFence(delim);
       if (isTs) tsIndex++;
-      const prev = (lines[i - 1] ?? '').match(TYPECHECK_MARKER);
+      const prevLine = skipBlank(lines, i - 1, -1);
+      const prev = (lines[prevLine] ?? '').match(TYPECHECK_MARKER);
       open = { delim, line: i + 1, marker: isTs && prev ? (prev[1] ?? null) : undefined };
     }
   }

@@ -8,30 +8,29 @@ The TypeScript types behind the Urbicon UI documentation tooling. Pure types, ze
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/shared-types
 ```
 
 ## Exports
 
 Each subpath is consumable on its own so consumers pull in only what they need:
 
-| Subpath | Contents |
-|---|---|
-| `.` | Barrel — re-exports everything below except `documentation-core` and `globals`. Includes the component model: `ComponentInfo`, `ComponentStats`, `PropInfo`, `PropSource`, `PropExample`, `VariantInfo`, `VariantExample`, `InheritanceInfo`, `CrossReference`, `PackageInfo` |
-| `./documentation` | `ComponentMetadata`, `DeprecationInfo`, `ComponentBadge`, `SectionOrder`, `LLMConfig` |
-| `./docs-config` | `SvelteDocsConfig`, `DocsPlaygroundConfig`, `VariantsConfig`, `ExamplesConfig`, `ApiConfig`, `OverviewConfig`, `UsageConfig`, `DocsMetadata` |
-| `./documentation-core` | `ComponentDocumentation`, `ComponentDocumentationFiles`, `DocumentationMetadata`, `LLMSettings` and the section-structure config types (`AutoSectionsConfig`, `CustomSection`, `SectionStructure`, `ParentSectionConfig`) |
-| `./examples` | `ComponentExample`, `UsagePattern`, `ExampleCollection`, `ExampleGroup` |
-| `./playground` | `PlaygroundConfig`, `ControlDefinition`, `ControlType`, `ControlOption`, `ControlCondition`, `CodeGenerator`, `CodeGeneratorConfig`, `ImportStatement`, `PlaygroundExample`, `PlaygroundMetadata`, `PlaygroundFeature` |
-| `./navigation` | `NavigationItem`, `NavigationMetadata`, `NavigationState`, `NavigationBadge`, `TableOfContents`, `TOCItem`, `TOCSettings`, `Breadcrumb`, `BreadcrumbItem`, `BreadcrumbSettings`, `SiteNavigation`, `NavigationContext`, `NavigationSearchResult`, `SearchMatch` |
-| `./globals` | Monorepo-wide branded types and constants |
+| Subpath                | Contents                                                                                                                                                                                                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.`                    | Barrel — re-exports everything below except `documentation-core` and `globals`. Includes the component model: `ComponentInfo`, `ComponentStats`, `PropInfo`, `PropSource`, `PropExample`, `VariantInfo`, `VariantExample`, `InheritanceInfo`, `CrossReference`, `PackageInfo` |
+| `./documentation`      | `ComponentMetadata`, `DeprecationInfo`, `ComponentBadge`, `SectionOrder`, `LLMConfig`                                                                                                                                                                                         |
+| `./docs-config`        | `SvelteDocsConfig`, `DocsPlaygroundConfig`, `VariantsConfig`, `ExamplesConfig`, `ApiConfig`, `OverviewConfig`, `UsageConfig`, `DocsMetadata`                                                                                                                                  |
+| `./documentation-core` | `ComponentDocumentation`, `ComponentDocumentationFiles`, `DocumentationMetadata`, `LLMSettings` and the section-structure config types (`AutoSectionsConfig`, `CustomSection`, `SectionStructure`, `ParentSectionConfig`)                                                     |
+| `./examples`           | `ComponentExample`, `UsagePattern`, `ExampleCollection`, `ExampleGroup`                                                                                                                                                                                                       |
+| `./playground`         | `PlaygroundConfig`, `ControlDefinition`, `ControlType`, `ControlOption`, `ControlCondition`, `CodeGenerator`, `CodeGeneratorConfig`, `ImportStatement`, `PlaygroundExample`, `PlaygroundMetadata`, `PlaygroundFeature`                                                        |
+| `./navigation`         | `NavigationItem`, `NavigationMetadata`, `NavigationState`, `NavigationBadge`, `TableOfContents`, `TOCItem`, `TOCSettings`, `Breadcrumb`, `BreadcrumbItem`, `BreadcrumbSettings`, `SiteNavigation`, `NavigationContext`, `NavigationSearchResult`, `SearchMatch`               |
+| `./globals`            | `declare global` augmentation (Svelte's `svelteHTML.HTMLAttributes` extended with `onoutclick`) — a side-effect import, exports nothing itself                                                                                                                                |
 
 ## Usage
 
 <!-- typecheck -->
+
 ```typescript
 import type { ComponentInfo, PropInfo } from '@urbicon-ui/shared-types';
 import type { PlaygroundConfig } from '@urbicon-ui/shared-types/playground';
@@ -60,7 +59,7 @@ The root barrel export is convenient but pulls all namespaces in; prefer the sub
 
 ## Versioning
 
-Unified with the monorepo version (see root [CHANGELOG.md](../../CHANGELOG.md)). Breaking changes to exported types are treated as semver-major for the whole workspace.
+Unified with the monorepo version (see root [CHANGELOG.md](https://github.com/urbicon/ui/blob/main/CHANGELOG.md)). Breaking changes to exported types are treated as semver-major for the whole workspace.
 
 ## Development
 
@@ -72,5 +71,5 @@ bun --filter='@urbicon-ui/shared-types' run dev       # watch mode
 
 ## Related
 
-- [Architecture Overview](../../docs/ARCHITECTURE.md) — how the types feed docs-gen and docs
-- [Component API Conventions](../../docs/COMPONENT-API-CONVENTIONS.md) — canonical prop patterns reflected in these types
+- [Architecture Overview](https://github.com/urbicon/ui/blob/main/docs/ARCHITECTURE.md) — how the types feed docs-gen and docs
+- [Component API Conventions](https://github.com/urbicon/ui/blob/main/docs/COMPONENT-API-CONVENTIONS.md) — canonical prop patterns reflected in these types

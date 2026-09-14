@@ -15,7 +15,7 @@ Currently shipping:
 bun add @urbicon-ui/sveltekit-utils
 ```
 
-Peer dependencies: `svelte` (^5), `@sveltejs/kit`.
+Peer dependencies: `svelte` (^5.57.0), `@sveltejs/kit`.
 
 The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well; the incorrect-peer warning `bun add` prints there is expected and stays until Kit 3 has a release candidate, when the range widens.
 
@@ -47,6 +47,7 @@ Bind a typed, reactive value to a URL search param. When the value changes, the 
 Low-level escape hatch if you prefer to update multiple params at once:
 
 <!-- typecheck -->
+
 ```typescript
 import { updateUrlSearchParams } from '@urbicon-ui/sveltekit-utils/url.svelte';
 
@@ -56,6 +57,7 @@ updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 A link needs an address, not a setter. `withSearchParams(url, patch)` is the pure core that `updateUrlSearchParams` and `createUrlParam`'s setter navigate to: the address `url` has after `patch` — a scalar `set`s its key, an array `append`s each element, `null` removes the key, every other param stays as it is. An empty string is a value and keeps its key (`?a=`); an empty array appends nothing and so removes it. It reads nothing from the page and navigates nowhere, so the same call builds a link's `href` and a redirect's location.
 
 <!-- typecheck -->
+
 ```typescript
 import { withSearchParams } from '@urbicon-ui/sveltekit-utils/search-params';
 
@@ -69,6 +71,7 @@ withSearchParams(url, { sort: null, page: null }); // '/archive'
 `./search-params` is the import path that reaches no `$app/*` module, so a `load`, a form action or a plain test can use it; importing `withSearchParams` from `./url.svelte` (or from the package root) is the same function, but pulls SvelteKit's client runtime along:
 
 <!-- typecheck -->
+
 ```typescript
 // src/routes/archive/+page.server.ts
 import { withSearchParams } from '@urbicon-ui/sveltekit-utils/search-params';
@@ -136,7 +139,7 @@ The second argument is optional; every option has a default:
 
 Because the binding re-reads the URL rather than capturing it, the browser's back button works: navigating back to a URL that no longer names `?sort` returns the table to its default sort.
 
-The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewSnapshot` from `./table-view`: it takes the *same* defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client, and it hands back the very shape a managed `source.query` receives.
+The pure serializers work without SvelteKit — e.g. to parse the incoming query in a server `load` and fetch the first page during SSR. Use `searchParamsToViewSnapshot` from `./table-view`: it takes the _same_ defaults object the component hands `createTableView`, so the server cannot resolve an absent param differently from the client, and it hands back the very shape a managed `source.query` receives.
 
 ```typescript
 // src/lib/view-defaults.ts — imported by the component and by the load function.
@@ -145,6 +148,7 @@ export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'de
 ```
 
 <!-- typecheck -->
+
 ```typescript
 // src/routes/users/+page.server.ts
 import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
@@ -161,7 +165,7 @@ The `./table-query` subpath that used to hold a second copy of this codec — sa
 
 **Design notes**
 
-- **Default elision** — an axis whose value equals its default is not written; a table in its default state leaves the URL clean. The baseline *is* `view.defaults`, read off the object the binding decorates, so there is no second copy of the defaults to keep in step with the table's own.
+- **Default elision** — an axis whose value equals its default is not written; a table in its default state leaves the URL clean. The baseline _is_ `view.defaults`, read off the object the binding decorates, so there is no second copy of the defaults to keep in step with the table's own.
 - **Read tolerant, write strict** — an unparsable value on a param the URL actually carries falls back to that axis' default, and malformed `filter` entries are skipped individually. `assertValidViewSnapshot` is the strict half: it throws on a structurally invalid view (non-positive page, unknown operator) instead of writing corrupt state, and `applyViewToSearchParams` calls it. `viewSnapshotToSearchParams` deliberately does not — it runs inside the binding on every view change, where a throw would cost the page rather than the URL.
 - **Namespacing** — `prefix: 't_'` scopes all keys (`?t_q=…`) for multiple bound tables on one page; unrelated params are always preserved. Two prefixless bindings would manage the same keys, so that throws at registration instead of producing a link that loads the wrong table.
 - **One writer per page** — every binding submits into one coalescing URL writer, so two tables land in a single navigation, each replacing only its own keys. A landing URL the writer itself sent is not applied back onto the view: an edit made while that navigation was in flight survives instead of being overwritten by the URL it raced.
@@ -174,6 +178,7 @@ Fire HTTP requests against SvelteKit server endpoints on an interval. Pair with 
 **Import from `@urbicon-ui/sveltekit-utils/cron`**, not from the package root. The runner is wired up in server code — `hooks.server.ts`, or a module it imports — and the root barrel carries `url.svelte` along, whose `$app/navigation` and `$app/state` imports are SvelteKit's client runtime. The subpath reaches no `$app/*` module at all.
 
 <!-- typecheck -->
+
 ```typescript
 // src/lib/server/cron.ts
 import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
@@ -206,6 +211,7 @@ The first fire happens **after** one interval: `start()` arms the timers, it doe
 Receive the call and verify the secret inside your endpoint:
 
 <!-- typecheck -->
+
 ```typescript
 // src/routes/api/cron/send-digest/+server.ts
 import { env } from '$env/dynamic/private';
@@ -242,6 +248,7 @@ That holds together when the endpoint is idempotent, which means
 - a restart loses nothing _within_ a day. Whether it can lose a whole one depends on the shape: a job that computes from state — last activity, say — heals a skipped day on its next tick, while a per-day rollup like the one below only ever writes today and needs a backfill for the day the process was down.
 
 <!-- typecheck -->
+
 ```typescript
 // src/routes/api/cron/daily/+server.ts
 import { env } from '$env/dynamic/private';
@@ -288,7 +295,8 @@ try {
     else if (ev.event === 'error') throw new Error(JSON.parse(ev.data).message);
   }
 } catch (err) {
-  if (err instanceof SseRequestError) showError(err.body); // raw response body
+  if (err instanceof SseRequestError)
+    showError(err.body); // raw response body
   else if ((err as Error).name !== 'AbortError') throw err;
 }
 
@@ -299,6 +307,7 @@ controller.abort();
 Emit the matching frames from the endpoint:
 
 <!-- typecheck -->
+
 ```typescript
 // src/routes/api/chat/+server.ts
 import { runModel } from '$lib/server/model';
@@ -327,14 +336,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
 ## Exports
 
-| Subpath           | Contents                                                                                                                                         |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.`               | Barrel of all modules                                                                                                                            |
-| `./url.svelte`    | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `bindViewToUrl`, types (re-exports `withSearchParams`)             |
-| `./search-params` | `withSearchParams`, `SearchParamsPatch` — no `$app/*` import                                                                                     |
+| Subpath           | Contents                                                                                                                                                                                                                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.`               | Barrel of all modules                                                                                                                                                                                                                                      |
+| `./url.svelte`    | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `bindViewToUrl`, types (re-exports `withSearchParams`)                                                                                                                       |
+| `./search-params` | `withSearchParams`, `SearchParamsPatch` — no `$app/*` import                                                                                                                                                                                               |
 | `./table-view`    | `searchParamsToViewSnapshot`, `searchParamsToViewPartial`, `viewSnapshotToSearchParams`, `applyViewToSearchParams`, `assertValidViewSnapshot`, `viewAxesNamedBy`, `viewAxisKeys`, `TABLE_VIEW_AXES`, `TABLE_VIEW_FILTER_OPERATORS`, `TableViewLike`, types |
-| `./cron`          | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                  |
-| `./sse`           | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                   |
+| `./cron`          | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                                                                                                                                                            |
+| `./sse`           | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                                                                                                                                                             |
 
 `bindViewToUrl` lives in its own module (`view-binding.svelte.ts`) and is re-exported from `./url.svelte`, which is its documented import path — it has no subpath of its own. `./search-params`, `./table-view` and `./cron` are SvelteKit-free (they touch no `$app/*`), which is what lets a `load` function, `hooks.server.ts` and a plain test use them; `./url.svelte` is the half that needs the router — importing it from server code pulls SvelteKit's client runtime in, which is why `withSearchParams` has a subpath of its own as well as the re-export.
 

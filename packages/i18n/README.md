@@ -14,7 +14,7 @@ The locale lives in **context**, not a module-global singleton — so concurrent
 bun add @urbicon-ui/i18n
 ```
 
-Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context). No SvelteKit needed: the package imports neither `$app/*` nor `@sveltejs/kit`, so it works in any Svelte 5 project — the request-scoped locale below is what keeps it SSR-correct wherever you render.
+Peer dependencies: `svelte` (^5.57.0 — uses runes + `createContext`-era context). No SvelteKit needed: the package imports neither `$app/*` nor `@sveltejs/kit`, so it works in any Svelte 5 project — the request-scoped locale below is what keeps it SSR-correct wherever you render.
 
 ## Quick Start
 
@@ -33,6 +33,7 @@ Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context)
 ```
 
 <!-- typecheck -->
+
 ```ts
 // +layout.server.ts — resolve the locale per request (SSR), cookie + Accept-Language
 import { resolveLocale } from '@urbicon-ui/i18n';
@@ -110,9 +111,13 @@ import en from '../translations/en';
 
 // en is the eager base; de is a lazy dynamic-import loader (see "Locale
 // code-splitting" below), so English-only apps never bundle the de catalog.
-export const blocksI18n = createPackageI18n('blocks', { en }, {
-  loaders: { de: () => import('../translations/de').then((m) => m.default) }
-});
+export const blocksI18n = createPackageI18n(
+  'blocks',
+  { en },
+  {
+    loaders: { de: () => import('../translations/de').then((m) => m.default) }
+  }
+);
 
 // The context-scoped hook (re-exported for components)
 export const useBlocksI18n = blocksI18n.useTranslate;
@@ -193,7 +198,7 @@ resolveLocale(request, {
 
 ## Formatting with `Intl` — `resolveDateLocale`
 
-Building your own date or number component? Never hand `Intl` an `undefined` locale: it follows the *runtime*, which is your server process during SSR and the user's browser after hydration, so the same value renders two ways across the boundary. `resolveDateLocale` is the chain the library's own components use:
+Building your own date or number component? Never hand `Intl` an `undefined` locale: it follows the _runtime_, which is your server process during SSR and the user's browser after hydration, so the same value renders two ways across the boundary. `resolveDateLocale` is the chain the library's own components use:
 
 ```ts
 import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
@@ -231,11 +236,12 @@ Vite/Rollup splits each dynamic import into its own chunk, so only the active lo
 
 ### SSR: eager-register the lazy locale for non-base apps
 
-The provider's on-mount load runs in a **client-only** `$effect`. So under SSR a lazy non-base initial locale (e.g. a German app) renders the *fallback* (English) on the server and the first client paint, then flips to German once the chunk lands — a text flash and a possible hydration text mismatch. That is not acceptable as the default for a server-rendered app in that locale.
+The provider's on-mount load runs in a **client-only** `$effect`. So under SSR a lazy non-base initial locale (e.g. a German app) renders the _fallback_ (English) on the server and the first client paint, then flips to German once the chunk lands — a text flash and a possible hydration text mismatch. That is not acceptable as the default for a server-rendered app in that locale.
 
 The fix is to register the bundle **eagerly, once at server/app start**. The registry is module-global and holds only static, request-identical translation data, so a single startup registration is SSR-safe (it carries no per-request state). Every package factory returns `registerLocale(locale, bundle)` for this; `@urbicon-ui/blocks` re-exports it as `registerBlocksLocale`:
 
 <!-- typecheck -->
+
 ```ts
 // src/hooks.server.ts (or any module evaluated once at server start)
 import { registerBlocksLocale } from '@urbicon-ui/blocks';
@@ -294,6 +300,7 @@ it('en/de key parity', () => {
 ## API Surface
 
 <!-- typecheck -->
+
 ```ts
 // Provider + hooks + server helper
 import {
@@ -376,7 +383,7 @@ urbicon i18n audit src/ --translations src/lib/translations  # parity + unused +
 urbicon i18n unused --dynamic-keys 'errors.*' --json         # just the scan, allowlisting dynamic key families
 ```
 
-It gates (exit 1) on parity errors + used-but-undefined; unused keys and hardcoded strings are advisory (`--strict` gates them too). The pure scanner core — `scanSources`, `findUnusedKeys`, `findHardcodedStrings` — is on the `@urbicon-ui/i18n/audit` subpath for programmatic use, with `typescript` + `svelte` as optional peers it lazily imports. See the [CI gate template](../design/templates/ci-github.yml).
+It gates (exit 1) on parity errors + used-but-undefined; unused keys and hardcoded strings are advisory (`--strict` gates them too). The pure scanner core — `scanSources`, `findUnusedKeys`, `findHardcodedStrings` — is on the `@urbicon-ui/i18n/audit` subpath for programmatic use, with `typescript` + `svelte` as optional peers it lazily imports. See the [CI gate template](https://github.com/urbicon/ui/blob/main/packages/design/templates/ci-github.yml).
 
 ## Development
 
@@ -388,10 +395,10 @@ bun --filter='@urbicon-ui/i18n' run test:run   # vitest
 
 ## Related
 
-- [`@urbicon-ui/blocks`](../blocks/) — consumes this package; exports `useBlocksI18n`, `<LocaleSwitcher>`
-- [`@urbicon-ui/table`](../table/) — ships its own namespace (`table.*`), exports `useTableI18n`
-- [`@urbicon-ui/auth`](../auth/) — ships EN/DE bundles; exports `useAuthLocale`
-- [Architecture Overview](../../docs/ARCHITECTURE.md#i18n)
+- [`@urbicon-ui/blocks`](https://github.com/urbicon/ui/blob/main/packages/blocks/README.md) — consumes this package; exports `useBlocksI18n`, `<LocaleSwitcher>`
+- [`@urbicon-ui/table`](https://github.com/urbicon/ui/blob/main/packages/table/README.md) — ships its own namespace (`table.*`), exports `useTableI18n`
+- [`@urbicon-ui/auth`](https://github.com/urbicon/ui/blob/main/packages/auth/README.md) — ships EN/DE bundles; exports `useAuthLocale`
+- [Architecture Overview](https://github.com/urbicon/ui/blob/main/docs/ARCHITECTURE.md#i18n)
 
 ```
 

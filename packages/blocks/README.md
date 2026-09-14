@@ -25,7 +25,7 @@ bun add @urbicon-ui/blocks
 
 That one import carries the design tokens **and** the Tailwind `@source` directives that make the components' classes reachable — no consumer-side `@source` needed. Import `style/index.css`, never the `foundation`/`semantic`/`interaction` subfiles: they omit those directives, which is the usual cause of responsive utilities going missing in production.
 
-Peer dependencies: `svelte` (^5), `@urbicon-ui/i18n`. Load the stylesheet wherever your app loads CSS — `+layout.svelte` in SvelteKit, `main.js` in a plain Vite + Svelte app.
+Peer dependencies: `svelte` (^5.57.0), `@urbicon-ui/i18n`. Load the stylesheet wherever your app loads CSS — `+layout.svelte` in SvelteKit, `main.js` in a plain Vite + Svelte app.
 
 Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x minor may carry breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window)); each one is listed under **Breaking Changes** in the changelog and, where nothing reports it, in [docs/MIGRATION.md](./docs/MIGRATION.md), which ships in this package.
 
@@ -47,11 +47,11 @@ AreaChart, AvatarGroup, BarChart, Calendar, ChartFrame, Chat, CommandPalette, Co
 
 Portal, ClickOutside, ContextIsolation — low-level primitives used by overlay components.
 
-All primitives and components support `unstyled` + `slotClasses` + `preset` for full style control. `unstyled` on a composing component (`DatePicker`, `ChatMessage`, `CommandPalette`, …) also strips the blocks components it renders itself; components you hand in as `children` keep their look — `<BlocksProvider unstyled>` covers a whole subtree. See the [Component API Conventions](../../docs/COMPONENT-API-CONVENTIONS.md) for `intent`, `variant`, `size`, callbacks, and styling patterns.
+All primitives and components support `unstyled` + `slotClasses` + `preset` for full style control. `unstyled` on a composing component (`DatePicker`, `ChatMessage`, `CommandPalette`, …) also strips the blocks components it renders itself; components you hand in as `children` keep their look — `<BlocksProvider unstyled>` covers a whole subtree. See the [Component API Conventions](https://github.com/urbicon/ui/blob/main/docs/COMPONENT-API-CONVENTIONS.md) for `intent`, `variant`, `size`, callbacks, and styling patterns.
 
 ## Styling
 
-Components use a **custom `tv()` variant engine** (`src/lib/utils/variants.ts`, ~600 LoC, zero-dependency replacement for `tailwind-variants`). Design tokens live in `src/lib/style/` as a three-layer OKLCH system (foundation → semantic → interaction). See the [Architecture Overview](../../docs/ARCHITECTURE.md) for details.
+Components use a **custom `tv()` variant engine** (`src/lib/utils/variants.ts`, ~1,350 LoC, zero-dependency replacement for `tailwind-variants`). Design tokens live in `src/lib/style/` as a three-layer OKLCH system (foundation → semantic → interaction). See the [Architecture Overview](https://github.com/urbicon/ui/blob/main/docs/ARCHITECTURE.md) for details.
 
 ## Theming
 
@@ -123,7 +123,7 @@ A rule is matched against the component's **effective** variants — the axes th
 
 The keys are the component's variant axes. For most axes that is the prop you already write (`variant`, `size`, `intent`, `disabled`); a few are computed rather than received and are listed with each component's variants — `hasRightIcon` and `messageType` on the fields, `open` on the overlays, `interactive` on Card (the axis `clickable`, `onclick` and `href` all resolve to, so one rule covers a card made operable by any of the three).
 
-Two kinds of axis are deliberately not addressable. A component whose look carries no axes at all — `Chat`, `ChatMessageList`, the `Guide*` parts — has nothing to match on; style those with unconditional `slotClasses` or a preset. And an axis that belongs to a *part* rather than the component is only addressable where the state lives: a rule on `{ disabled: … }` under `SegmentItem` selects the item that is disabled, but the same key under `Menu` selects nothing, because Menu's rows carry their own `disabled` per row.
+Two kinds of axis are deliberately not addressable. A component whose look carries no axes at all — `Chat`, `ChatMessageList`, the `Guide*` parts — has nothing to match on; style those with unconditional `slotClasses` or a preset. And an axis that belongs to a _part_ rather than the component is only addressable where the state lives: a rule on `{ disabled: … }` under `SegmentItem` selects the item that is disabled, but the same key under `Menu` selects nothing, because Menu's rows carry their own `disabled` per row.
 
 ## Icons
 
@@ -150,6 +150,7 @@ Re-exports `@urbicon-ui/i18n`. Components with text content (Pagination, Menu, C
 **English is bundled eagerly; German is lazy.** The `de` catalog is a dynamic-import chunk, so an English-only app never bundles it. Before that chunk loads, `de` keys resolve to the English fallback (never the raw key). The provider loads `de` client-side on mount, which means a **server-rendered German app** would paint English first and flip on hydration. Fix it by registering `de` eagerly once at server start:
 
 <!-- typecheck -->
+
 ```ts
 // src/hooks.server.ts (evaluated once at server start — SSR-safe, static data)
 import { registerBlocksLocale } from '@urbicon-ui/blocks';
@@ -158,7 +159,7 @@ import de from '@urbicon-ui/blocks/i18n/de';
 registerBlocksLocale('de', de);
 ```
 
-For the provider/hook API, typed keys, SSR locale resolution, and the code-splitting + eager-register details see the [@urbicon-ui/i18n](../i18n/) package.
+For the provider/hook API, typed keys, SSR locale resolution, and the code-splitting + eager-register details see the [@urbicon-ui/i18n](https://github.com/urbicon/ui/blob/main/packages/i18n/README.md) package.
 
 ## Development
 

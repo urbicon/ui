@@ -8,9 +8,9 @@ Reusable documentation UI components — the pieces the [Urbicon UI docs site](h
 bun add @urbicon-ui/docs @urbicon-ui/blocks @urbicon-ui/table @urbicon-ui/i18n @urbicon-ui/shared-types shiki @shikijs/langs
 ```
 
-All of these (plus `svelte` ^5) are **peer dependencies** — the package bundles none of them:
+All of these (plus `svelte` ^5.57.0) are **peer dependencies** — the package bundles none of them:
 
-- **`shiki`** (^4.4.1) + **`@shikijs/langs`** — syntax highlighting. `CodePanel` / `CodeExample` highlight through a shared, **synchronous** highlighter (`highlighterService`) with the package's editorial light/dark themes: Shiki's `Sync` core, its JavaScript regex engine, and ten statically imported grammars. Synchronous is the point — an awaited highlighter can only be driven from an effect, effects do not run during SSR, and the prerendered page then carries a spinner where the code should be. It also costs less over the wire: measured on this project's built bundles, ~333 → 121 KB gz for a page with code, because Vite inlines Shiki's oniguruma WASM as a 225 KB gz JavaScript chunk that the JS engine makes unnecessary. The eager half grows in exchange (44 → 121 KB gz); the full measurement is at the top of `utils/highlighter.ts`. Both are peers so your app controls the version and the grammars are not double-bundled next to an app-level install.
+- **`shiki`** (^4.4.3) + **`@shikijs/langs`** — syntax highlighting. `CodePanel` / `CodeExample` highlight through a shared, **synchronous** highlighter (`highlighterService`) with the package's editorial light/dark themes: Shiki's `Sync` core, its JavaScript regex engine, and ten statically imported grammars. Synchronous is the point — an awaited highlighter can only be driven from an effect, effects do not run during SSR, and the prerendered page then carries a spinner where the code should be. It also costs less over the wire: measured on this project's built bundles, ~333 → 121 KB gz for a page with code, because Vite inlines Shiki's oniguruma WASM as a 225 KB gz JavaScript chunk that the JS engine makes unnecessary. The eager half grows in exchange (44 → 121 KB gz); the full measurement is at the top of `utils/highlighter.ts`. Both are peers so your app controls the version and the grammars are not double-bundled next to an app-level install.
 - **`@urbicon-ui/blocks`** — the components compose blocks primitives (Card, Badge, Button, …) and the semantic token layer.
 - **`@urbicon-ui/table`** — `ApiReference` and `TypesReference` render their prop/type tables via `<Table>`.
 - **`@urbicon-ui/i18n`** — built-in strings ship as a package-scoped `docs.*` namespace (EN/DE).
@@ -67,23 +67,23 @@ export default defineConfig({
 
 ## Components
 
-| Component               | Purpose                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `DocsLayout`            | Page layout: header, breadcrumbs + collapsing sticky bar, stability badge, responsive ToC column               |
-| `Section`               | Content section with anchor `id`, title/subtitle, badges, optional semantic footer                             |
-| `TableOfContents`       | Sticky "On this page" nav with scrollspy, optional related-links block and global code toggle                  |
-| `CodeExample`           | Code example with optional live preview, syntax highlighting, and copy-to-clipboard                            |
-| `CodePanel`             | Shared code-display primitive: Shiki highlighting, collapsible panel, auto line numbers, copy button           |
-| `ApiReference`          | Structured props table (rendered via `@urbicon-ui/table`) with source/required badges and opt-in type links    |
-| `TypesReference`        | Expandable type definitions with literal-value badges and cross-links to the API reference                     |
-| `PlaygroundConfigurator`| Interactive prop playground: live preview, control panel, generated code                                       |
-| `InfoCard`              | Memo-style callout card for notes and tips; renders as a link when `href` is set                               |
+| Component                | Purpose                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `DocsLayout`             | Page layout: header, breadcrumbs + collapsing sticky bar, stability badge, responsive ToC column            |
+| `Section`                | Content section with anchor `id`, title/subtitle, badges, optional semantic footer                          |
+| `TableOfContents`        | Sticky "On this page" nav with scrollspy, optional related-links block and global code toggle               |
+| `CodeExample`            | Code example with optional live preview, syntax highlighting, and copy-to-clipboard                         |
+| `CodePanel`              | Shared code-display primitive: Shiki highlighting, collapsible panel, auto line numbers, copy button        |
+| `ApiReference`           | Structured props table (rendered via `@urbicon-ui/table`) with source/required badges and opt-in type links |
+| `TypesReference`         | Expandable type definitions with literal-value badges and cross-links to the API reference                  |
+| `PlaygroundConfigurator` | Interactive prop playground: live preview, control panel, generated code                                    |
+| `InfoCard`               | Memo-style callout card for notes and tips; renders as a link when `href` is set                            |
 
 Also exported: `CodeVisibilityStore` (+ context helpers) for a page-global expand/collapse-all-code toggle, `ScrollSpy` for active-section tracking, `extractPlaygroundDocs` / `extractLiteralValues` for deriving playground control metadata from generated API props, and `highlighterService` — the shared Shiki singleton the code components highlight through (`highlightCode(code, language)` returns a string, not a promise).
 
 ## Styling
 
-`ApiReference`, `CodeExample`, `CodePanel`, `DocsLayout`, `PlaygroundConfigurator`, `TableOfContents`, and `TypesReference` support `unstyled` + per-slot `slotClasses`, following the [blocks styling conventions](../blocks/). `Section` and `InfoCard` are styled via variant props and `class`. All components accept `class` on the root element.
+`ApiReference`, `CodeExample`, `CodePanel`, `DocsLayout`, `PlaygroundConfigurator`, `TableOfContents`, and `TypesReference` support `unstyled` + per-slot `slotClasses`, following the [blocks styling conventions](https://github.com/urbicon/ui/blob/main/packages/blocks/README.md). `Section` and `InfoCard` are styled via variant props and `class`. All components accept `class` on the root element.
 
 ## i18n
 
@@ -101,6 +101,6 @@ bun --filter='@urbicon-ui/docs' run check   # svelte-check
 ## Related
 
 - [Urbicon UI docs site](https://ui.urbicon.de) — its documentation chrome is built with these components
-- [`@urbicon-ui/blocks`](../blocks/) — the component library these docs components compose
-- [`@urbicon-ui/table`](../table/) — renders the API/type reference tables
-- [`@urbicon-ui/i18n`](../i18n/) — locale provider the `docs.*` namespace plugs into
+- [`@urbicon-ui/blocks`](https://github.com/urbicon/ui/blob/main/packages/blocks/README.md) — the component library these docs components compose
+- [`@urbicon-ui/table`](https://github.com/urbicon/ui/blob/main/packages/table/README.md) — renders the API/type reference tables
+- [`@urbicon-ui/i18n`](https://github.com/urbicon/ui/blob/main/packages/i18n/README.md) — locale provider the `docs.*` namespace plugs into

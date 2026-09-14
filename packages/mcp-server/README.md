@@ -3,7 +3,7 @@
 Model Context Protocol server for the Urbicon UI design system. Gives LLMs first-class access to the component catalog, design tokens, recipes, and implementation guidance.
 
 > **Status (Option B, 2026-07-10): built, green, not advertised.** The consumer-facing
-> surface is the `urbicon` CLI in [`@urbicon-ui/design`](../design/) — one dev-dependency,
+> surface is the `urbicon` CLI in [`@urbicon-ui/design`](https://github.com/urbicon/ui/blob/main/packages/design/README.md) — one dev-dependency,
 > version-pinned, covers the full knowledge/judgment/memory surface locally. This server is
 > the thin **remote adapter** over the same engine (`@urbicon-ui/design-engine`) and content
 > bundle (`@urbicon-ui/design-content`), kept for the launch decision of hosting a public
@@ -75,50 +75,50 @@ For Cursor: see [Cursor's MCP docs](https://docs.cursor.com/context/model-contex
 
 ## Tools
 
-All tools are read-only (`readOnlyHint: true`) — this server never touches the consumer's filesystem. Queries are Zod-validated. (Manifest read/write moved to the `urbicon` CLI in [`@urbicon-ui/design`](../design/); a stateless remote server cannot reach a consumer's repo.)
+All tools are read-only (`readOnlyHint: true`) — this server never touches the consumer's filesystem. Queries are Zod-validated. (Manifest read/write moved to the `urbicon` CLI in [`@urbicon-ui/design`](https://github.com/urbicon/ui/blob/main/packages/design/README.md); a stateless remote server cannot reach a consumer's repo.)
 
-| Tool                           | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `find_components`              | Fuzzy search across component names, tags, and descriptions. Filterable by package (`blocks`, `table`, `auth`). A hit needs a whole, distinctive query word, or two ordinary ones meeting on one component: when none lands, the answer is "no components found" plus the weak near misses that still scored, which are also listed beside the matches when one of them outranks the lot.                                                          |
-| `get_component`                | Full per-component documentation: props, variants, slots, examples, source link. Optional `section` argument for streamed chunks (overview / examples / variants / api / slots).                                                                                                                                                                                                                                                                   |
-| `get_recipe`                   | Full production-ready recipe (login-form, dashboard, settings-page, etc.) with component tree, code, and notes.                                                                                                                                                                                                                                                                                                                                    |
-| `suggest_implementation`       | Takes a natural-language goal and returns a component-tree suggestion, relevant recipes, Style-Patterns guide, and the implementation checklist.                                                                                                                                                                                                                                                                                                   |
-| `get_implementation_checklist` | Design-Quality checklist (visual weight, intent semantics, spacing, radius, data-driven styling, dominance, identity) — embedded directly so the LLM can self-verify.                                                                                                                                                                                                                                                                              |
-| `get_css_reference`            | Full token reference — surface, text, border, intent, feedback tokens, radii, z-index. Includes an explicit "do not invent tokens" guardrail.                                                                                                                                                                                                                                                                                                      |
-| `find_icons`                   | Browse the 315-icon catalog by keyword, category, or name.                                                                                                                                                                                                                                                                                                                                                                                         |
-| `get_design_principles`        | Design heuristics (Layer 5): visual hierarchy, interaction, component selection, layout, accessibility, theming (paradigms, change decision tree). Call first when generating UI. `as="rubric"` returns the 8-criterion 1–5 scoring rubric for judging a generated UI.                                                                                                                                                                             |
-| `get_pattern`                  | Composition patterns (Layer 4) for page archetypes. Call it without a `name` to list what the bundle ships.                                                                                                                                                                                                                                                                                                                                        |
+| Tool                           | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `find_components`              | Fuzzy search across component names, tags, and descriptions. Filterable by package (`blocks`, `table`, `auth`). A hit needs a whole, distinctive query word, or two ordinary ones meeting on one component: when none lands, the answer is "no components found" plus the weak near misses that still scored, which are also listed beside the matches when one of them outranks the lot.                                                                                                              |
+| `get_component`                | Full per-component documentation: props, variants, slots, examples, source link. Optional `section` argument for streamed chunks (overview / examples / variants / api / slots).                                                                                                                                                                                                                                                                                                                       |
+| `get_recipe`                   | Full production-ready recipe (login-form, dashboard, settings-page, etc.) with component tree, code, and notes.                                                                                                                                                                                                                                                                                                                                                                                        |
+| `suggest_implementation`       | Takes a natural-language goal and returns a component-tree suggestion, relevant recipes, Style-Patterns guide, and the implementation checklist.                                                                                                                                                                                                                                                                                                                                                       |
+| `get_implementation_checklist` | Design-Quality checklist (visual weight, intent semantics, spacing, radius, data-driven styling, dominance, identity) — embedded directly so the LLM can self-verify.                                                                                                                                                                                                                                                                                                                                  |
+| `get_css_reference`            | Full token reference — surface, text, border, intent, feedback tokens, radii, z-index. Includes an explicit "do not invent tokens" guardrail.                                                                                                                                                                                                                                                                                                                                                          |
+| `find_icons`                   | Browse the 358-icon catalog by keyword, category, or name.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `get_design_principles`        | Design heuristics (Layer 5): visual hierarchy, interaction, component selection, layout, accessibility, theming (paradigms, change decision tree). Call first when generating UI. `as="rubric"` returns the 8-criterion 1–5 scoring rubric for judging a generated UI.                                                                                                                                                                                                                                 |
+| `get_pattern`                  | Composition patterns (Layer 4) for page archetypes. Call it without a `name` to list what the bundle ships.                                                                                                                                                                                                                                                                                                                                                                                            |
 | `validate_design`              | Lint generated markup on two axes — **correctness** (raw colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, foreign-library component APIs, unlabelled icon buttons; the blocking gate) and the **craft** axis (20 system-agnostic "looks generic" heuristics: generic fonts, animated dimensions, grey-on-colour, touch targets, …; advisory). Returns a correctness score + a craft score and per-finding fixes for a generate → validate → fix loop. |
 
 ## Resources
 
-| URI                              | Purpose                                                                                            |
-| -------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `urbicon://catalog`              | Full component catalog in Markdown — used as the LLM's default context                             |
-| `urbicon://guide/api-grammar`    | Canonical prop conventions (`intent`, `variant`, `size`, callbacks)                                |
-| `urbicon://guide/design-quality` | AVOID/INSTEAD design-quality patterns — spacing, hierarchy, colour and shape discipline           |
-| `urbicon://guide/component-families` | Six-family component taxonomy - ARIA roles and per-family border-token source                      |
-| `urbicon://guide/customization`  | `unstyled` / `slotClasses` / `preset` override system + `BlocksProvider` overrides                 |
-| `urbicon://guide/auth`           | Complete auth reference - served verbatim from the bundled, tarball-canonical `AUTH.md`            |
-| `urbicon://guide/style-patterns` | Reusable style presets and composition templates                                                   |
-| `urbicon://guide/tokens`         | OKLCH token reference, same data as `get_css_reference`                                            |
+| URI                                  | Purpose                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| `urbicon://catalog`                  | Full component catalog in Markdown — used as the LLM's default context                  |
+| `urbicon://guide/api-grammar`        | Canonical prop conventions (`intent`, `variant`, `size`, callbacks)                     |
+| `urbicon://guide/design-quality`     | AVOID/INSTEAD design-quality patterns — spacing, hierarchy, colour and shape discipline |
+| `urbicon://guide/component-families` | Six-family component taxonomy - ARIA roles and per-family border-token source           |
+| `urbicon://guide/customization`      | `unstyled` / `slotClasses` / `preset` override system + `BlocksProvider` overrides      |
+| `urbicon://guide/auth`               | Complete auth reference - served verbatim from the bundled, tarball-canonical `AUTH.md` |
+| `urbicon://guide/style-patterns`     | Reusable style presets and composition templates                                        |
+| `urbicon://guide/tokens`             | OKLCH token reference, same data as `get_css_reference`                                 |
 
 ## Prompts
 
-The full design-verb table (DESIGN-MCP-V2 §8) — client-agnostic workflows you invoke from any MCP client to run a multi-step recipe over the four design planes rather than a single-shot generation. Each recipe is the same text the local `@urbicon-ui/design` skill ships (single source, bundled via `@urbicon-ui/design-content`): it opens by reading the project's `design.manifest.md`, does the work through the read-only tools above, and closes by writing the decision back.
+The full design-verb table — client-agnostic workflows you invoke from any MCP client to run a multi-step recipe over the four design planes rather than a single-shot generation; see [AI-NATIVE-DX.md § The design loop](https://github.com/urbicon/ui/blob/main/docs/AI-NATIVE-DX.md#the-design-loop) for how the verbs fit the rest of the loop. Each recipe is the same text the local `@urbicon-ui/design` skill ships (single source, bundled via `@urbicon-ui/design-content`): it opens by reading the project's `design.manifest.md`, does the work through the read-only tools above, and closes by writing the decision back.
 
-| Prompt     | Arguments                      | Purpose                                                                                    |
-| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
-| `onboard`  | `brief?`                       | Greenfield: interview product intent + intake, seed the manifest.                          |
-| `adopt`    | `brief?`                       | Brownfield: infer the design language from code, measure drift, seed the manifest.         |
-| `compose`  | `brief?`, `variants?`          | New page via generate → validate → judge → synthesise (variants + rubric + linter gate).   |
-| `redesign` | `brief?`, `code?`, `variants?` | Diagnose with linter + rubric, fix exactly the flagged weaknesses, preserve behaviour.     |
-| `polish`   | `brief?`, `code?`              | Small token-level fixes that raise the craft score without restructuring.             |
+| Prompt     | Arguments                      | Purpose                                                                                     |
+| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
+| `onboard`  | `brief?`                       | Greenfield: interview product intent + intake, seed the manifest.                           |
+| `adopt`    | `brief?`                       | Brownfield: infer the design language from code, measure drift, seed the manifest.          |
+| `compose`  | `brief?`, `variants?`          | New page via generate → validate → judge → synthesise (variants + rubric + linter gate).    |
+| `redesign` | `brief?`, `code?`, `variants?` | Diagnose with linter + rubric, fix exactly the flagged weaknesses, preserve behaviour.      |
+| `polish`   | `brief?`, `code?`              | Small token-level fixes that raise the craft score without restructuring.                   |
 | `critique` | `brief?`, `code?`              | Judge without changing: correctness + craft + rubric → a prioritised, verb-tagged fix-list. |
-| `fix`      | `brief?`, `code?`              | Repair correctness defects (raw colours, `dark:`/`focus:`, z-index, hallucinated tokens).  |
-| `retheme`  | `brief?`                       | Rebrand: change the token layer once, propagate across every affected file.                |
-| `audit`    | `brief?`                       | App-wide sweep: validate the tree, check pattern cohorts, report drift over time.          |
-| `migrate`  | `brief?`                       | Roll out a pattern/library change across every site, gated per file.                       |
+| `fix`      | `brief?`, `code?`              | Repair correctness defects (raw colours, `dark:`/`focus:`, z-index, hallucinated tokens).   |
+| `retheme`  | `brief?`                       | Rebrand: change the token layer once, propagate across every affected file.                 |
+| `audit`    | `brief?`                       | App-wide sweep: validate the tree, check pattern cohorts, report drift over time.           |
+| `migrate`  | `brief?`                       | Roll out a pattern/library change across every site, gated per file.                        |
 
 ## Server Options
 
@@ -155,7 +155,7 @@ src/
 └── utils/                   search, format-catalog
 ```
 
-The server reads its data from the version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (built by [`@urbicon-ui/docs-gen`](../docs-gen/): `component-catalog.json` with recipes, per-component `llm.txt`, design-system, guide template, `icons.json`). That means JSDoc in a component's `index.ts` is the **single source of truth**: one edit propagates to the docs site, `llms-full.txt`, and every MCP tool.
+The server reads its data from the version-pinned [`@urbicon-ui/design-content`](https://github.com/urbicon/ui/blob/main/packages/design-content/README.md) bundle (built by [`@urbicon-ui/docs-gen`](https://github.com/urbicon/ui/blob/main/packages/docs-gen/README.md): `component-catalog.json` with recipes, per-component `llm.txt`, design-system, guide template, `icons.json`). That means JSDoc in a component's `index.ts` is the **single source of truth**: one edit propagates to the docs site, `llms-full.txt`, and every MCP tool.
 
 ## Development
 
@@ -179,4 +179,4 @@ Smoke tests for catalog loading, tool wiring, and fuzzy search are already in pl
 
 ## Related
 
-- [`@urbicon-ui/docs-gen`](../docs-gen/) — produces the catalog and llms.txt files this server reads
+- [`@urbicon-ui/docs-gen`](https://github.com/urbicon/ui/blob/main/packages/docs-gen/README.md) — produces the catalog and llms.txt files this server reads
