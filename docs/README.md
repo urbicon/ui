@@ -1,8 +1,10 @@
 # Urbicon UI — Documentation
 
 Reference and architecture docs for the Urbicon UI monorepo, written in English. This folder
-is the canonical documentation set; the machine-readable API surface (`llms-full.txt`, MCP
-catalog) is generated from component JSDoc, not from here — `llms.txt` is hand-written.
+is the canonical documentation set; the machine-readable API surface (`llms.txt`,
+`llms-full.txt`, MCP catalog) is generated from component JSDoc, not from here — `llms.txt`
+combines the component catalog with a small hand-written template
+(`packages/docs-gen/templates/llms-template.md`), checked by `bun run llms:check`.
 
 > Agent-facing conventions live in the root [`AGENTS.md`](../AGENTS.md) (symlinked as
 > `CLAUDE.md`). Start there for coding rules; use this index for the deep references it

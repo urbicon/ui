@@ -7,7 +7,7 @@ surface is the one consumers actually install.
 
 | Surface | What it is |
 | --- | --- |
-| `llms.txt` | Brief library overview (llms.txt standard) — curated, tracked |
+| `llms.txt` | Brief library overview (llms.txt standard) — generated from the component catalog + a small template, tracked, checked by `llms:check` |
 | `llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
 | **`urbicon` CLI** (`packages/design`) | **The primary, consumer-facing surface**: one dev-dependency, version-pinned knowledge |
 | MCP server (`packages/mcp-server`) | A thin remote adapter over the same engine and content |

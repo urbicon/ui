@@ -3,6 +3,8 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ContentBundleEmitter } from '../generators/content/ContentBundleEmitter';
 import type { PackageGuide } from '../generators/llm/guide-injection';
+import type { LlmsAssemblerConfig } from '../generators/llm/LlmsAssembler';
+import { LlmsAssembler } from '../generators/llm/LlmsAssembler';
 import { LlmsFullAssembler } from '../generators/llm/LlmsFullAssembler';
 import { MCPCatalogAssembler } from '../generators/mcp/MCPCatalogAssembler';
 import { ConfigurationFactory } from '../schema/ConfigurationBuilder';
@@ -84,15 +86,34 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
   }
 ];
 
+/** Every generated per-scope `llms.txt` (blocks/table/auth/docs), listed under root llms.txt's "Resources". */
+const LLMS_SCOPES = [
+  { label: 'Blocks', urlSegment: 'blocks' },
+  { label: 'Table', urlSegment: 'table' },
+  { label: 'Auth', urlSegment: 'auth' },
+  { label: 'Docs', urlSegment: 'docs' }
+];
+
+/**
+ * The packages whose catalog entries get a `- [Name](url): summary` line in
+ * root llms.txt — `docs` is deliberately absent: its components are
+ * docs-tooling, not library surface (`MCPCatalogAssembler` already excludes
+ * them from `component-catalog.json` via `INTERNAL_PACKAGE`).
+ */
+const LLMS_PACKAGES = LLMS_SCOPES.filter((s) => s.label !== 'Docs').map((s) => ({
+  ...s,
+  packageId: `@urbicon-ui/${s.urlSegment}`
+}));
+
 /**
  * The `docs-gen` command-line interface (the package `bin`, driving
  * `bun run docs:gen:*` from the repo root). Commands:
  *
  * - `generate` / `build` (default) — run the pipeline for one target
  *   (`--target blocks|docs|table|auth`) or all. The `all` run additionally
- *   assembles the cross-target artifacts: `llms-full.txt`, the MCP component
- *   catalog, and the `@urbicon-ui/design-content` bundle — which is why JSDoc
- *   edits require `docs:gen:all`, not a single target.
+ *   assembles the cross-target artifacts: `llms-full.txt`, root `llms.txt`,
+ *   the MCP component catalog, and the `@urbicon-ui/design-content` bundle —
+ *   which is why JSDoc edits require `docs:gen:all`, not a single target.
  * - `scaffold <Name> [--group primitives|components]` — create the docs
  *   route skeleton (+page.svelte / Docs.svelte) for a new component.
  * - `help` — usage text.
@@ -278,6 +299,14 @@ export class DocsGeneratorCLI {
       `✅ MCP catalog assembled (${catalogResult.componentCount} components, ${catalogResult.recipeCount} recipes)`
     );
 
+    // Root llms.txt — reads the component-catalog.json just written above,
+    // so this MUST run after the MCP catalog assembly.
+    console.log('\n📝 Assembling llms.txt...');
+
+    const llmsAssembler = new LlmsAssembler(await this.buildLlmsAssemblerConfig());
+    const llmsResult = await llmsAssembler.assemble();
+    console.log(`✅ llms.txt assembled (${llmsResult.componentCount} components)`);
+
     // Bundle the generated catalog + llm.txt tree + authored design-system, template
     // and icon metadata into the version-pinned @urbicon-ui/design-content package, so
     // the MCP server and the urbicon CLI read self-contained content (no sibling paths).
@@ -304,6 +333,37 @@ export class DocsGeneratorCLI {
     console.log(
       `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.verbCount} verbs, ${bundleResult.guideCount} guides, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
     );
+  }
+
+  /** Config for the `LlmsAssembler` call in `assembleLlmsFull`. */
+  private async buildLlmsAssemblerConfig(): Promise<LlmsAssemblerConfig> {
+    const rootPkgRaw = await fs.readFile(resolveFromDocsGen('..', '..', 'package.json'), 'utf-8');
+    const siteUrl: unknown = JSON.parse(rootPkgRaw).homepage;
+    if (typeof siteUrl !== 'string') {
+      throw new Error(
+        'llms.txt: root package.json has no string "homepage" — cannot stamp absolute site links.'
+      );
+    }
+
+    return {
+      templatePath: resolveFromDocsGen('templates', 'llms-template.md'),
+      catalogPath: resolveFromDocsGen(
+        '..',
+        '..',
+        'apps',
+        'docs',
+        'static',
+        'mcp',
+        'component-catalog.json'
+      ),
+      siteUrl,
+      outputPaths: [
+        resolveFromDocsGen('..', '..', 'llms.txt'),
+        resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', 'llms.txt')
+      ],
+      scopes: LLMS_SCOPES,
+      packages: LLMS_PACKAGES
+    };
   }
 
   /**
