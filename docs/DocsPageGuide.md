@@ -47,10 +47,9 @@ continuously across both files, in render order — still rendered as two digits
 hand-written form it replaced.** The Playground carries no `marker` at all, so numbering starts at
 Examples and runs through `Docs.svelte`, picking back up in `+page.svelte` for API Reference and
 Installation (Button: `01` on Examples through `06` on Installation). A string literal still wins,
-for the rare page that must number by hand — the hand-written literals it replaced were wrong on
-four shipped pages and nothing reported it (see
-`packages/docs/src/lib/components/Section/section-numbering.svelte.ts`). A marker is editorial, not
-structural — nothing reads its value.
+for the rare page that must number by hand (see the `marker` prop's JSDoc in
+`packages/docs/src/lib/components/Section/index.ts`). A marker is editorial, not structural —
+nothing reads its value.
 
 The Playground does carry a **title**, though. Add `titleHidden` to keep the heading in the outline
 and in the screen-reader layer while the stage speaks for itself visually, or show it — either is
@@ -495,7 +494,7 @@ Semantic tokens automatically adapt between light and dark mode.
 
 - [ ] `+page.svelte`: `breadcrumbs` prop with `resolve()` links (not a snippet, not a hand-rolled row)
 - [ ] `+page.svelte`: `navigation` array matching the sections — `bun run sections:lint` is green
-- [ ] `+page.svelte`: `<SeoMeta title description />`, description a single concise non-marketing sentence, identical in `SeoMeta` and `DocsPageLayout`; longer orientation sits in a section below, not the hero
+- [ ] `+page.svelte`: `<SeoMeta title description />` — the hero-length and tone rule is [EDITORIAL.md](EDITORIAL.md) § Page shape (item 1); identical text in `SeoMeta` and `DocsPageLayout`; longer orientation sits in a section below, not the hero
 - [ ] `+page.svelte`: `stability` / `sourceHref` / `related` wired from `componentData`
 - [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`, in `Playground.svelte` if it is more than a handful of controls
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)
