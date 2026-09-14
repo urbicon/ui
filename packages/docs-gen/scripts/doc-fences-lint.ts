@@ -179,10 +179,15 @@ const MARKER_LOOKALIKE = /<!--[^>]*typecheck/i;
  * prettier reformat inserts there, so they must not break the pairing in
  * either direction. Prose, a heading, or another fence stops the walk
  * immediately (that line is not blank), which is what makes those an error.
+ * "Blank" is whitespace-only (`trim() === ''`), not just `''`: a line with a
+ * single trailing space is invisible in an editor but is not `===` to `''`,
+ * and would otherwise read as content and break the pairing. Explicit bounds
+ * check because `''.trim() === ''` — without it, walking off either end of
+ * `lines` would loop forever instead of stopping like the old `=== ''` did.
  */
 function skipBlank(lines: string[], i: number, dir: 1 | -1): number {
   let j = i;
-  while (lines[j] === '') j += dir;
+  while (j >= 0 && j < lines.length && (lines[j] ?? '').trim() === '') j += dir;
   return j;
 }
 

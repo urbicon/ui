@@ -63,12 +63,30 @@ describe('doc-fences-lint', () => {
     expect(stdout).toContain('✔ every marked fence compiles');
   }, 60_000);
 
-  it('rejects a marker that is not directly above a ts fence', () => {
+  it('rejects a marker separated from its fence by prose', () => {
     const { status, stderr } = run('misplaced-marker.md');
     expect(status).toBe(1);
     expect(stderr).toContain(
-      'misplaced-marker.md:3: <!-- typecheck --> must sit on the line directly above'
+      'misplaced-marker.md:3: <!-- typecheck --> must be followed by a ```ts fence, with nothing but blank lines in between'
     );
+  }, 60_000);
+
+  it('counts a marker as marked across blank lines before the fence', () => {
+    const { status, stdout, stderr } = run('blank-lines.md');
+    expect(stderr).toBe('');
+    expect(status).toBe(0);
+    expect(stdout).toContain('blank-lines.md — 1 fence(s) in the tsc program (--listFiles)');
+    expect(stdout).toContain('doc-fences-lint: 1 marked fence(s) in 1 document(s)');
+    expect(stdout).toContain('✔ every marked fence compiles');
+  }, 60_000);
+
+  it('treats a whitespace-only line between marker and fence as blank', () => {
+    const { status, stdout, stderr } = run('whitespace-line.md');
+    expect(stderr).toBe('');
+    expect(status).toBe(0);
+    expect(stdout).toContain('whitespace-line.md — 1 fence(s) in the tsc program (--listFiles)');
+    expect(stdout).toContain('doc-fences-lint: 1 marked fence(s) in 1 document(s)');
+    expect(stdout).toContain('✔ every marked fence compiles');
   }, 60_000);
 
   // ── the ways a harness goes green for the wrong reason ───────────────────
