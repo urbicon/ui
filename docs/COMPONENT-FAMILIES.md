@@ -3,6 +3,8 @@
 > A taxonomy of the Urbicon UI primitives. Every component belongs to exactly one family, and the family determines its ARIA role, its border-token source, its tier-system membership, and the question a consumer should ask before reaching for it.
 >
 > This page is the canonical reference. Doc-page JSDoc `@tag` annotations follow the same taxonomy so that the MCP server, `llms.txt`, and the documentation site all agree.
+>
+> **How to read it.** A rule without a marker describes behaviour that ships today; a rule ahead of its implementation carries a `> **Decided <date>, pending #N**` blockquote, and the prose around it keeps describing the current behaviour as current. The convention is set out in [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md).
 
 ---
 
@@ -12,7 +14,7 @@ The library exposes 39 primitives and 27 components. Without a shared mental mod
 
 1. **ARIA role** — what assistive technology calls it.
 2. **Tier membership** — which radius tier the family sits on, and whether its members read the tier context. The model itself is [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system); this page only says which family lands where.
-3. **Border-token source** — does the border read as **interactive** (Intent tokens, high contrast) or as **architectural** (Surface tokens, low contrast)? The token contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md).
+3. **Border-token source** — does the border read as **interactive** (Intent tokens, high contrast) or as **architectural** (Surface tokens, low contrast)? The token contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle).
 
 Picking the right family up-front avoids the most common categorical bugs: a button that looks like an input, a menu that doubles as a listbox, an avatar that mutates when the brand flattens commit-radii.
 
@@ -22,7 +24,7 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 
 | Family | Members | ARIA role | Tier behaviour | Border source |
 |---|---|---|---|---|
-| [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | `commit`, read from the tier context | **Intent** (`border-neutral` etc.) |
+| [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | `commit`, read from the tier context — except `Toolbar`, which **sets** it and is itself `contain` | **Intent** (`border-neutral` etc.) |
 | [Form](#form) | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | `modify` from the context; `Slider` and `FormField` opt out | **Surface** (`border-border-subtle`) |
 | [Navigation](#navigation) | Breadcrumb · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | `commit` or `modify` per component, from the context; `Breadcrumb` and `JourneyTimeline` opt out | mixed (route-context dependent) |
 | [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline** |
@@ -40,9 +42,9 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 **ARIA:** `role="button"`, `role="menu"` + `role="menuitem"`, `role="toolbar"`, `role="switch"` (Toggle).
 
-**Tier:** Default `commit` — buttons, menu triggers and toolbar surfaces declare identity and want the pill (or pill-adjacent) radius. All five read the tier context, and `Toolbar` and `ButtonGroup` are the two containers that set it (`<Toolbar tier="modify">` flattens a compact strip). [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
+**Tier:** Default `commit` — buttons and menu triggers declare identity and want the pill (or pill-adjacent) radius. Four of the five read the tier context. **`Toolbar` is the exception in both directions:** it reads none, its own surface is `rounded-contain`, and its `tier` prop (default `modify`) is a **propagation** value — it calls `setTierContext` so `<Toolbar tier="modify">` flattens the controls inside it, not the strip itself. `ButtonGroup` both reads and sets. [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
 
-**Border source:** **Intent**, wherever the border is a boundary — the `outlined` variants and the divider inside a connected `ButtonGroup`. Action borders must read as interactive even in their neutral state, which is why they are deliberately darker than the surface borders the other families use ([VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md)).
+**Border source:** **Intent**, wherever the border is a boundary — the `outlined` variants and the divider inside a connected `ButtonGroup`. Action borders must read as interactive even in their neutral state, which is why they are deliberately darker than the surface borders the other families use ([VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle)).
 
 **Industry analogue:** Radix `DropdownMenu`, Headless UI `Menu`, Material `MenuItem`. The key trait: items dispatch `onSelect` callbacks; nothing holds a value.
 
@@ -66,7 +68,7 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 **Tier:** Default `modify` — inputs, selects and checkboxes are "tap surfaces" that read as editable, not as commit-decisions. A `<Toolbar tier="commit">` pulls the tier-aware members up to `commit` when an inline layout calls for pill-shaped fields; `Slider` and `FormField` do not take part.
 
-**Border source:** **Surface** — `border-border-subtle`, low-contrast so a field frame is not mistaken for a CTA ([VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md)).
+**Border source:** **Surface** — `border-border-subtle`, low-contrast so a field frame is not mistaken for a CTA ([VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle)).
 
 **Industry analogue:** Radix `Select`/`Combobox`, Headless UI `Listbox`/`Combobox`, MUI `TextField`. The key trait: the control holds a value and emits `onValueChange` / `bind:value`.
 
@@ -130,7 +132,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Tier:** Fixed `contain` — containers are architectural surfaces, not interactive affordances; the radius signal is "this is a frame", not "this is a button". **No Container member reads the tier context**, deliberately: a Toolbar's `commit` must not reshape a Card standing inside it. `Card` is the only one with a `tier` prop at all, and its two values are `contain | bridge` — the optical-size decision, not the interactive one ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
 
-**Border source:** **Surface** or **Hairline** — `Card`'s `outlined` variant takes `border-default`, the floating panels take `border-hairline`, and `Alert` and `Toast` emit no border token of their own. Never Intent in the default state: a Container border that reads as a button indicates a family mismatch. Full mapping: [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md).
+**Border source:** **Surface** or **Hairline** — `Card`'s `outlined` variant takes `border-default`, the floating panels take `border-hairline`, and `Alert` and `Toast` emit no border token of their own. Never Intent in the default state: a Container border that reads as a button indicates a family mismatch. Full mapping: [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle).
 
 **Industry analogue:** Radix `Dialog`, Headless UI `Disclosure`, Material `Card`, Bootstrap `Modal`. The key trait: they hold content; they don't dispatch or pick.
 
@@ -146,7 +148,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **ARIA:** `role="alert"` / `role="status"` (Toast; Badge for `purpose="status"`, the dot, and any Badge without a `purpose` — a tag, counter or chip Badge carries no role), `role="progressbar"` (Progress). `Skeleton` is `role="status"`, not a progressbar: it reports that something is loading, and has no value to report. Spinner inherits `aria-busy` from its host.
 
-**Tier:** **Not tier-aware.** A Toast pops over the page chrome and must keep its identity even where the host page is themed `tier="modify"`; a Spinner is a circular affordance read at a glance, and flattening it would defeat that. `Badge` is the one exception — it exposes `tier` and reads the context, because a Badge inside a `<Toolbar tier="modify">` does want to flatten — but the family rule stands: Feedback geometry is per-component, not per-context.
+**Tier:** **Not tier-aware** — geometry is per-component here, not per-context, with `Badge` the one exception. Why, and what that costs: [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
 
 **Border source:** **Intent** (status-tinted) for `Badge`'s `outlined` variant; **none** for Spinner, Progress and Skeleton, which read as pure surface. `Toast` draws no border token either.
 

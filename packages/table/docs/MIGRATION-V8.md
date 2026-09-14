@@ -373,7 +373,7 @@ What no longer appears on the type, and where its job went:
 | `setGroupOrder` | the `groupOrder` prop |
 | `toggleAdvancedSearch` | gone — nothing read it since the tools sheet replaced the advanced-search panel |
 | `getNestedValue` / `resolveColumnId` / `resolveColumnValue` / `resolveValueById` / `findColumnById` | the standalone package exports of the same names |
-| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle. To reset a table's **preferences**, remove its `table_summary_configs_<tableId>`, `table_hidden_columns_<tableId>`, `table_column_order_<tableId>` and `table_selection_<tableId>` entries — no `urbicon_` prefix, no `_v1` suffix. Those are a different channel from the **view** entry (`urbicon_table_view_<key>_v1`), which a storage binding owns and `reset()` clears |
+| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle. To reset a table's **preferences**, remove its `urbicon_table_*_<tableId>_v1` entries — `urbicon_table_summary_configs_<tableId>_v1`, `urbicon_table_hidden_columns_<tableId>_v1`, `urbicon_table_column_order_<tableId>_v1`, `urbicon_table_selection_<tableId>_v1`. `createPersistentState` builds every key as `` `urbicon_${key}_v${version}` ``, so the name passed at the call site is the middle of the stored key, not the whole of it. Preferences are a separate channel from the **view** entry (`urbicon_table_view_<key>_v1`), which a storage binding owns and its `reset()` clears |
 | `setTableContext()` | gone — `<Table>` (via its `TableProvider`) is what establishes the context |
 
 The store barrel also stopped re-exporting its wiring wholesale: `createTableState`,
@@ -416,12 +416,15 @@ What follows from it:
    number is not, so `page` is the one axis `STORAGE_DEFAULT_AXES` leaves out. It is not
    forbidden — the binding stores and restores any axis you list, `page` included, so
    `bindViewToStorage(view, { key, axes: [...STORAGE_DEFAULT_AXES, 'page'] })` opts in.
-3. **The v7 per-axis storage keys are abandoned.** `table_sort_*`, `table_search_*`,
-   `table_filters_*` and `table_group_by_*` are orphaned; v8 writes one entry per view
+3. **The v7 per-axis storage keys are abandoned.** `urbicon_table_sort_*_v1`,
+   `urbicon_table_search_*_v1`, `urbicon_table_filters_*_v1` and
+   `urbicon_table_group_by_*_v1` are orphaned — written by nothing and read by nothing, so a
+   stale one cannot leak back in; v8 writes one entry per view
    (`urbicon_table_view_<key>_v1`). Stored views do not carry over — readers start from your
    defaults once, then their own state accrues again. Preference keys
-   (`table_hidden_columns_*`, `table_column_order_*`, `table_summary_configs_*`,
-   `table_selection_*`) are unchanged and survive the upgrade.
+   (`urbicon_table_hidden_columns_*_v1`, `urbicon_table_column_order_*_v1`,
+   `urbicon_table_summary_configs_*_v1`, `urbicon_table_selection_*_v1`) are unchanged and
+   survive the upgrade.
 4. **A direct field write does not reset the page.** `view.search = 'x'` changes only the
    search; the table's own handlers still reset to page 1 on a new search, filter or
    grouping. Write `view.page = 1` alongside if you want the reset.

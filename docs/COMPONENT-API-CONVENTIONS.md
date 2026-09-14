@@ -55,7 +55,7 @@ value for the same visual treatment: the boxed disclosure treatment is `card` on
 Accordion and Collapsible (Accordion's former `separated` was renamed). When adding a variant
 to a component with a sibling, check the sibling's values first.
 
-**Common values** — one line each. What a value **means**, which components carry it and why, is [VARIANT-CONTRACT.md](../packages/blocks/docs/VARIANT-CONTRACT.md):
+**Common values** — one line each. What a value **means**, which components carry it and why, is [VARIANT-CONTRACT.md](../packages/blocks/docs/VARIANT-CONTRACT.md) — the field vocabulary in [§ 9](../packages/blocks/docs/VARIANT-CONTRACT.md#9--form-fields):
 
 - `filled` – solid background (highest emphasis)
 - `outlined` – border only, transparent background
@@ -121,7 +121,7 @@ Three props, three jobs — they do not overlap, and their precedence is a rule,
 
 **Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone. `aria-invalid` and the `role="alert"` message still follow `error`, exactly as on the fields.
 
-**The required marker is a slot, not a prop.** Every field with a label draws the same `aria-hidden` `<span>` on a `requiredMark` slot; the build and its reasoning are [VARIANT-CONTRACT § The required marker](../packages/blocks/docs/VARIANT-CONTRACT.md). The API rule that follows: there is **no `requiredIndicator` prop**. Being a slot puts the marker on the override ladder, which covers "asterisk", "none" and — as a content class — a wording such as "(required)". Marking the **optional** fields instead is the one mode the slot cannot express, because the span renders only under `required` (#395 records why).
+**The required marker is a slot, not a prop.** Nine components draw the same `aria-hidden` `<span>` on a `requiredMark` slot — the eight field primitives (Input, Textarea, Select, Combobox, Checkbox, RadioGroup, PinInput, TimeInput) plus `FormField`; `Toggle` takes `required` and draws none. The build and its reasoning are [VARIANT-CONTRACT § The required marker](../packages/blocks/docs/VARIANT-CONTRACT.md#the-required-marker). The API rule that follows: there is **no `requiredIndicator` prop**. Being a slot puts the marker on the override ladder, which covers "asterisk", "none" and — as a content class — a wording such as "(required)". Marking the **optional** fields instead is the one mode the slot cannot express, because the span renders only under `required` (#395 records why).
 
 ## Discriminated unions for mutually exclusive props
 
@@ -293,16 +293,24 @@ Use `data-[state=checked]:` in `slotClasses` or consumer CSS to style based on s
 
 ## The "make it operable" boolean
 
-A component that **can** be operable but need not be exposes one boolean for it, auto-enabled when an `onclick` handler is provided:
+A component that **can** be operable but need not be exposes one boolean for it. It resolves into two separate derivations, and keeping them separate is the whole point:
 
 ```typescript
-let { interactive = false, onclick, ...rest }: BadgeProps = $props();
-const isInteractive = $derived(interactive || !!onclick);
+// Badge.svelte — the look
+const isInteractive = $derived(purpose === 'chip' || interactive || !!onclick);
+// …and, independently, the semantics
+const isActivatable = $derived(!!onclick && !disabled);
 ```
 
-That lets hover/focus/cursor styles be enabled without a click handler — a drag target, for instance.
+**The boolean buys the look, not the semantics.** `interactive` (and `purpose="chip"`) turn on the interactive **appearance** — pointer cursor, hover scale, mint — so a drag target or a decorative chip can read as touchable without a handler. They hand out **no** `role="button"` and **no** tab stop. Only a real activation path does that: on `Badge`, `role="button"` and `tabindex={0}` follow `onclick && !disabled`, because a focus stop on which every key is dead helps nobody (#201). A disabled badge is inert and never a button.
 
-**The name follows what the component becomes.** `Badge` calls it `interactive`: the badge stays a `<span>` and gains the look, a tab stop and `role="button"`. `Avatar` and `Card` call it **`clickable`**, because it forces the root element to `<button>`. The two are not interchangeable — on `Card`, `interactive` is an internal `tv()` axis that `clickable`, `onclick` and `href` all resolve to. It is addressable (`overrides: [{ interactive: true, … }]`) and deliberately **not** settable: a card made to look operable without being operable is the WCAG 3.2 failure the split exists to prevent.
+**The prop name does not tell you which element you get.** Three components carry this pattern, with three answers — and only one of them swaps its root:
+
+- **`Badge`** — `interactive` only. Stays a `<span>`; gains the button role and a tab stop when activatable, per above.
+- **`Avatar`** — carries **both** `interactive` and `clickable`, as aliases: they fold together with `onclick` into one `isInteractive`. It stays a `<div>` that takes `role="button"` + `tabindex={0}` when interactive, and never renders a `<button>`.
+- **`Card`** — `clickable` is the public prop and the one that genuinely changes the element: `<a>` with `href`, `<button>` under `clickable` or `onclick`, `<div>` otherwise. Card's `interactive` is an internal `tv()` axis those three resolve to — addressable (`overrides: [{ interactive: true, … }]`) and deliberately **not** settable, because a card made to look operable without being operable is the WCAG 3.2 failure the split exists to prevent.
+
+For anything new, prefer a native `<button>` root to `role="button"` on a `<div>`. The two above predate that preference and keep it for their own reasons: an Avatar is an image first, a Badge is text in a flow.
 
 ## Styling props (`class`, `unstyled`, `slotClasses`, `preset`)
 
@@ -437,7 +445,7 @@ The tier model — the three tokens, the two axes that share the name, which com
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // family default
   ```
 
-- A component with **fixed geometry exposes no `tier` prop at all** — Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and Identity (Avatar). `Badge` is the lone Feedback exception, because a Badge inside a `<Toolbar tier="modify">` does want to flatten.
+- A component with **fixed geometry exposes no `tier` prop at all** — which families those are, and why `Badge` is the one exception, is [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
 
 ```svelte
 <!-- Default: Button is commit-tier (pill) -->

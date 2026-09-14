@@ -4,7 +4,7 @@ Mandatory best practices for the Urbicon UI codebase. This file is the detailed 
 
 > **Context:** A 2026-05 review found five recurring anti-patterns (`Math.random()` IDs, `setContext('string')`, `$state(new Map())`, index keys, `class:foo`) in an otherwise fully Svelte-5-migrated codebase. All were fixed — this file prevents regressions. Source for the rules themselves: the official Svelte 5 documentation.
 >
-> **2026-08:** every `$effect` in the repo was inventoried and the rules below measured against real SSR output. The "State sync" row had named `$derived` as the replacement but said nothing about values with **other writers** — a silence that led one issue to conclude a derivation was "architecturally impossible". It is not: deriveds are overridable as of 5.25. See "Prop-derived state" below.
+> **2026-08:** the inventory of the then 185 `$effect` in the repo measured the rules below against real SSR output. The "State sync" row had named `$derived` as the replacement but said nothing about values with **other writers** — a silence that led one issue to conclude a derivation was "architecturally impossible". It is not: deriveds are overridable as of 5.25. See "Prop-derived state" below.
 
 ## Anti-Patterns (do NOT do)
 

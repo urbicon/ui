@@ -26,8 +26,9 @@ Every arrow is a `peerDependency`, not a runtime dependency — every package th
 consumer's bundle has a `dependencies` field that is literally `{}`. Consumers install what
 they use; the workspace wires the same edges as `workspace:*` devDependencies for local
 development. Three dev-time tools sit outside the rule, because nothing about them ships into
-an app: `docs-gen` (`glob`), `mcp-server` (the MCP SDK, `zod`) and the `urbicon` CLI in
-`design` (`design-engine`, `design-content`, `i18n`).
+an app: `docs-gen` (`glob`, plus `design-engine` and `shared-types`), `mcp-server` (the MCP
+SDK, `zod`, plus `design-engine` and `design-content`) and the `urbicon` CLI in `design`
+(`design-engine`, `design-content`, `i18n`).
 
 ```mermaid
 graph TD
@@ -162,7 +163,7 @@ container variant means is documented in the shipped
 ### The tier system
 
 > **Canon.** This section is the one description of the tier mechanism; the border-token half
-> of the contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md).
+> of the contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle).
 > Other docs link here instead of restating the rules.
 
 Radius semantics follow a three-tier model. A component picks the tier whose *semantics*
@@ -184,7 +185,10 @@ other container is `contain` by construction and exposes no prop.
 **Defaults by family:** Action `commit` · Form `modify` · Navigation per component
 (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain`.
 Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and Identity (Avatar) are **not**
-tier-aware — fixed geometry by design; Badge is the lone Feedback exception. A family
+tier-aware: a Toast pops over the page chrome and must keep its identity even where the host
+page is themed `tier="modify"`, and a Spinner is a circular affordance read at a glance, which
+flattening would defeat. `Badge` is the lone Feedback exception — it exposes `tier` and reads
+the context, because a Badge inside a `<Toolbar tier="modify">` does want to flatten. A family
 default is not the same as reading the context, and the two come apart: `Slider`,
 `FormField`, `Breadcrumb` and every Container including `Card` sit on a fixed tier without
 consulting it. The live roster is whatever calls `getTierContext()` — grep it in
@@ -209,7 +213,10 @@ status-chip look for checklists.
 **Context propagation.** The tier context is a context, not a component: a wrapping container
 calls `setTierContext()` for all its descendants and a tier-aware primitive reads it with
 `getTierContext()` (both exported from `$lib/utils`, defined in `utils/tier-context.ts`).
-`Toolbar` and `ButtonGroup` are the two containers that set it today.
+`Toolbar` and `ButtonGroup` are the two that set it today, and they differ: `ButtonGroup`
+both sets and reads, while **`Toolbar` only sets**. Its own surface is `rounded-contain` and
+its `tier` prop (default `modify`) is a propagation value — it dresses the controls inside
+the strip, never the strip.
 
 ```svelte
 <Toolbar tier="modify">
@@ -466,11 +473,24 @@ source rather than read off the sweep, and why those three are listed as `ROUTE_
 the sweep itself — a mount fixture that reaches the child takes a component off that list, as
 `Guide`'s tour fixture did.
 
-**What `unstyled` does not remove.** It drops the `tv()` pass, not every class: a component's
-own semantic hooks stay — `blocks-button`, `blocks-intent-*` and the press-cue custom property
-on a `Button` (measured: 2 of `PaginationItem`'s 39 root classes survive a provider
-`unstyled`) — and so does the structural plumbing of any core it embeds. Those hooks are the
-documented handle for styling a stripped tree from a stylesheet.
+**What `unstyled` does not remove — stated once, here.** It drops the `tv()` pass, not every
+class. Two kinds of thing survive it, and a stylesheet styling a stripped tree targets them:
+
+1. **The component's `blocks-*` hooks.** `Button` writes `blocks-button` + `blocks-intent-*`,
+   `Avatar` writes `blocks-avatar` + `blocks-intent-*`, `PaginationItem`'s anchor writes
+   `blocks-intent-*` alone. Most of the library carries none, and those components really do
+   reduce to the classes the consumer wrote — `Input` and `Combobox` among them.
+2. **The press-cue custom property** `[--blocks-press-scale:1]`, but only while the mint is
+   off — `isMintOff` is true for `undefined`, `''` and `'none'`. It therefore depends on a
+   default that differs per component: `Button`'s `mint` is `'scale'`, so the property is
+   absent unless a consumer turns the mint off; `PaginationItem`'s is `'none'`, so it is
+   present.
+
+Both measured cases come to two surviving classes, for different reasons — `Button` two hooks
+and no press cue, `PaginationItem`'s anchor one hook plus the press cue (the sweep's C row:
+2 of that anchor's 39 root classes). Do not carry a count into a prop's JSDoc; name the hooks
+and link here. The structural plumbing of an embedded core survives as well —
+`CoreIconButton` takes no `unstyled` prop at all.
 
 Key files: `provider/BlocksProvider.svelte`, `provider/blocks-context.ts`,
 `utils/variants.ts`. Which props a component must expose for all of this, and how they are

@@ -44,11 +44,11 @@ entrypoint.
 ## Stricter TS flags are not raised centrally
 
 `tsconfig.base.json` holds the shared baseline (`strict`, `esModuleInterop`,
-`moduleResolution`, `allowJs`/`checkJs`, …). Stronger flags are raised **only** in the six
-`tsc`-built packages: `noUncheckedIndexedAccess` and `verbatimModuleSyntax` in `design`,
+`moduleResolution`, `allowJs`/`checkJs`, …). Of the seven `tsc`-built packages, six raise
+stronger flags: `noUncheckedIndexedAccess` and `verbatimModuleSyntax` in `design`,
 `design-content`, `design-engine`, `docs-gen`, `mcp-server` and `sv`, plus
-`exactOptionalPropertyTypes` in `docs-gen` alone. `shared-types` raises none of them — it
-declares types and has nothing to index or narrow.
+`exactOptionalPropertyTypes` in `docs-gen` alone. The seventh, `shared-types`, is built the
+same way and raises none of them — it declares types and has nothing to index or narrow.
 
 Raising them centrally would mean migrating the SvelteKit packages, and that effort is not
 yet justified.

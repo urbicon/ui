@@ -123,11 +123,17 @@ A single `highlight(topicId)` in the engine serves **both** tour steps **and** t
 hover — one mechanism, multiple surfaces.
 
 **The anchor layer (D3).** The `data-guide` anchors say **where** an element is, and being
-declarative and distributed is the point — an anchor lives next to the element it names. What a
-tour or an article **is** comes from the other direction: you hand `GuideTour` / `GuideArticle`
-objects to the controller, and each step names an anchor id. Nothing resolves targets ahead of
-time, which is what makes the DEV-mode warning valuable (a step names id X, the engine cannot find
-X in the DOM → warning).
+declarative and distributed is the point — an anchor lives next to the element it names.
+Structure comes from the other direction, and its two halves are shaped differently:
+
+- **A tour is data.** Build a `GuideTour` object whose steps name anchor ids and hand it to
+  `controller.startTour(tour)`.
+- **An article is markup.** `GuideArticle` is a component placed as a child of `GuidePanel`,
+  carrying an `id` and a `title`. The controller only ever holds the active article's **id** —
+  `openPanel(article?: string)`, `setArticle(id | null)` — and articles have no steps.
+
+Nothing resolves targets ahead of time, which is what makes the DEV-mode warning valuable (a step
+names id X, the engine cannot find X in the DOM → warning).
 
 The plan additionally carried an optional typed **structure layer** — a `defineGuide([...])`
 manifest declaring which tours and articles exist in what order, with the anchor ids as a string
@@ -231,9 +237,9 @@ rule in `index.css`):
 - **D2 — Marker naming: `GuideMarker`.** The interactive "ⓘ" is **not** a "Badge" (collision with
   the non-interactive status `Badge` primitive). It may still *look* like "ⓘ".
 - **D3 — Topic definition: declarative anchors.** Anchors stay declarative & distributed;
-  structure (tours/articles/order) comes from typed `GuideTour` / `GuideArticle` objects whose
-  steps reference `data-guide` ids (§3). The `defineGuide([...])` manifest the plan paired them
-  with was never built.
+  structure comes from typed `GuideTour` objects whose steps reference `data-guide` ids, and
+  from `GuideArticle` components mounted inside `GuidePanel` (§3). The `defineGuide([...])`
+  manifest the plan paired them with was never built.
 - **D4 — z-index: token `--z-guide: 1550`** for the spotlight bubble; stacking vs. native
   `<dialog>` comes from the `overlayStack.depth` pause, not z-index (§6).
 - **D5 — Direction-B highlight: additive `outline` ring, no scrim.** Tour = subtractive, highlight

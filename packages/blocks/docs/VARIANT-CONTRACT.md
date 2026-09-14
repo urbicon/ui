@@ -262,10 +262,9 @@ message row and `aria-invalid`, both unchanged.
 ### `bare` is not `unstyled`
 
 `unstyled` drops the whole variant pass — focus and disabled styling with it — and hands you an
-element to dress yourself. What survives is not nothing: a component keeps the few semantic hooks a
-stylesheet can target (`blocks-button`, `blocks-intent-*` and the press-cue custom property on a
-Button, for instance) and the structural plumbing of any internal core it embeds. Nothing that
-**looks** like something survives. `bare`, by contrast, keeps the a11y minimum on purpose: the focus
+element to dress yourself. What survives is not nothing: where a component carries `blocks-*`
+hooks they stay, so a stylesheet can still find it, and so does the structural plumbing of any
+internal core it embeds. Nothing that **looks** like something survives. `bare`, by contrast, keeps the a11y minimum on purpose: the focus
 outline, the caret, the placeholder tone, the message row, and the disabled and readonly cues
 (opacity and cursor, since there is no fill to grey).
 
@@ -274,8 +273,10 @@ or a marker before it. Without one, nothing tells a reader that the text can be 
 
 ### The required marker
 
-Every field with a label draws the same marker: an `aria-hidden` `<span>` on a `requiredMark` slot
-whose `::after` is the `*`, in `text-text-secondary`. The glyph is CSS rather than a text node so the
+Nine components draw the same marker — Input, Textarea, Select, Combobox, Checkbox, RadioGroup,
+PinInput, TimeInput and FormField: an `aria-hidden` `<span>` on a `requiredMark` slot whose
+`::after` is the `*`, in `text-text-secondary`. (`Toggle` takes `required` too, and draws none: a
+switch is on or off, so there is no empty state to mark.) The glyph is CSS rather than a text node so the
 label's text stays the label — `getByLabelText('Email')` resolves a required field, and copied text
 carries no `*`. It is `aria-hidden` because the information already travels through native
 `required` / `aria-required`, and generated content would otherwise join the accessible name; it is

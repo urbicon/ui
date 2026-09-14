@@ -271,10 +271,11 @@ export interface PaginationItemProps
 
   /**
    * Strip all default styles. Forwarded by `Pagination`'s own `unstyled`. Without
-   * `href` it reaches the inner Button, which keeps three semantic hooks
-   * (`blocks-button`, `blocks-intent-*`, `[--blocks-press-scale:1]`); with `href`
-   * the anchor keeps the last two and loses everything else, the focus ring
-   * included — put one back through `class`.
+   * `href` it reaches the inner Button, which keeps its `blocks-*` hooks; with
+   * `href` the anchor keeps `blocks-intent-*` and the press-cue token (its `mint`
+   * defaults to `none`) and loses everything else, the focus ring included — put
+   * one back through `class`. What survives `unstyled` and why:
+   * ARCHITECTURE.md § The override cascade.
    * @default false
    */
   unstyled?: boolean;

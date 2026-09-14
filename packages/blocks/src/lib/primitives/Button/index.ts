@@ -112,9 +112,9 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
 
   /**
    * Remove the default variant classes and apply yours instead. Not an empty
-   * element: three semantic hooks stay on the root so a stylesheet can still
-   * reach the button — `blocks-button`, `blocks-intent-*` and the press-cue
-   * custom property (`[--blocks-press-scale:1]`, only with `mint="none"`).
+   * element: the `blocks-*` hooks stay on the root (`blocks-button`,
+   * `blocks-intent-*`) so a stylesheet can still reach the button — see
+   * ARCHITECTURE.md § The override cascade.
    * @default false
    */
   unstyled?: boolean;
