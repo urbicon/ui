@@ -423,7 +423,12 @@ jobs:
       # unmeasuredCatalogEntries check reads to warn on a catalogue component
       # this script never measured — silent without it.
       - run: bun run docs:gen:ci
-      - run: bun run size | tee -a "$GITHUB_STEP_SUMMARY"
+      # shell: bash adds -o pipefail, so a failing size fails the step instead of
+      # tee reporting success; the fence keeps the fixed-width table readable in
+      # the GFM-rendered summary.
+      - shell: bash
+        run: |
+          { echo '```'; bun run size; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
 
   # THE ONE REQUIRED CHECK. Branch protection names this job and nothing else,
   # so the shard count can go from four to six and a gate can be added, renamed
