@@ -41,15 +41,13 @@ describe('override ladder', () => {
 });
 
 /**
- * Two files carry the sentence by hand because nothing renders them: `.cursorrules`
- * is read raw by Cursor, and `design-system/principles.md` is read raw from the
- * repo by the MCP server's design-system loader as well as copied into the bundle.
- * In-repo only — the engine ships standalone, so the files are absent downstream.
+ * `design-system/principles.md` carries the sentence by hand because nothing renders
+ * it: read raw from the repo by the MCP server's design-system loader as well as
+ * copied into the bundle. In-repo only — the engine ships standalone, so the file is
+ * absent downstream.
  */
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const HAND_COPIES = ['.cursorrules', 'design-system/principles.md'].map((rel) =>
-  resolve(REPO_ROOT, rel)
-);
+const HAND_COPIES = ['design-system/principles.md'].map((rel) => resolve(REPO_ROOT, rel));
 
 describe.skipIf(!HAND_COPIES.every((file) => existsSync(file)))('hand-carried copies', () => {
   for (const file of HAND_COPIES) {

@@ -7,8 +7,8 @@ surface is the one consumers actually install.
 
 | Surface | What it is |
 | --- | --- |
-| `llms.txt` / `llms-full.txt` | LLM-readable API reference, generated from component JSDoc (llms.txt standard) |
-| `.cursorrules` | Cursor IDE rules — imports, API grammar, tokens, do/don't |
+| `llms.txt` | Brief library overview (llms.txt standard) — curated, tracked |
+| `llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
 | **`urbicon` CLI** (`packages/design`) | **The primary, consumer-facing surface**: one dev-dependency, version-pinned knowledge |
 | MCP server (`packages/mcp-server`) | A thin remote adapter over the same engine and content |
 
