@@ -44,12 +44,14 @@ canon for the PR-based form.
 - `svelte-autofixer` after every `.svelte` edit; `bun --filter='<pkg>' run
   test`, never bare `bun test`.
 - **Derive the gate list from `.github/workflows/ci.yml`, not from
-  memory.** The two that got forgotten in this wave's first two PRs, each
-  costing a red CI cycle: `bun --filter='@urbicon-ui/docs-app' run test`
-  (counting oracles over blocks sources — a new `text-xs` use fails a
-  published claim) and `bun run size --check` (after intentional growth:
-  `--update-baseline` with the measured number, **measured on top of
-  merged main**, or the baseline freezes a stale sibling package).
+  memory.** `bun --filter='@urbicon-ui/docs-app' run test` (counting
+  oracles over blocks sources — a new `text-xs` use fails a published
+  claim) got forgotten in this wave's first two PRs, each costing a red CI
+  cycle. `size` is a per-PR **report** only (CI's `size-report` job runs
+  it without `--check`) — it does not gate a PR. The `--check` gate and any
+  `--update-baseline` happen at the release bump (`scripts/bump.sh`),
+  **measured on top of merged main**, or the baseline freezes a stale
+  sibling package.
 - **Every risk you already see goes into BOTH briefings** — the
   implementation one (build the harness that would expose it) and the
   review one (probe it). In this wave the grid/menu keyboard collision sat

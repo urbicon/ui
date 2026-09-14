@@ -403,18 +403,12 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
-  # Advisory only — NOT in `ci-green`'s `needs` below, so a PR that grows a
-  # bundle never blocks on it. `size --check` used to run in `build` and fail
-  # it on any drift past tolerance; 10 of 37 CI failures in an 8-week window
-  # were this step, and 9 were answered with a `chore: re-measure the size
-  # baseline` commit — it caught intentional growth, never a regression that
-  # wasn't already visible in the diff (docs/internal/META-AUDIT-2026-09-14.md
-  # Anhang A §3). The number still needs a place to be judged; that place is
-  # now `scripts/bump.sh`, which blocks the release commit a consumer's
-  # install actually reflects, not every PR along the way. Reuses no artifact
-  # from `build` — this job only needs blocks/table/auth dist, not the full
-  # `bun run build` (docs-app + mcp-dist), so `build:packages` alone is
-  # cheaper than waiting on that job's output.
+  # Advisory only — not in `ci-green`'s `needs` below, so a PR never blocks on
+  # it. The blocking check moved to the release bump (`scripts/bump.sh`),
+  # which is the point a consumer's install actually reflects the number.
+  # Builds its own blocks/table/auth dist via `build:packages` rather than
+  # depending on `build` — the full `bun run build` (docs-app + mcp-dist) is
+  # more than this job needs.
   size-report:
     name: Bundle size (report)
     runs-on: ubuntu-latest
@@ -425,7 +419,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build:packages
-      - run: bun run size
+      # Populates apps/docs/static/*/_catalog.json, which `size`'s
+      # unmeasuredCatalogEntries check reads to warn on a catalogue component
+      # this script never measured — silent without it.
+      - run: bun run docs:gen:ci
+      - run: bun run size | tee -a "$GITHUB_STEP_SUMMARY"
 
   # THE ONE REQUIRED CHECK. Branch protection names this job and nothing else,
   # so the shard count can go from four to six and a gate can be added, renamed
