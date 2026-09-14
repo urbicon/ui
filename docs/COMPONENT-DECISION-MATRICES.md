@@ -139,7 +139,7 @@ wrong component isn't a styling nuance — it mis-announces the interaction cont
 ### Code anchors
 
 - Select in a form context: [/recipes/settings](../apps/docs/src/routes/recipes/settings/+page.svelte) — grouped settings page with Select fields.
-- Menu on a dashboard card: [/recipes/dashboard](../apps/docs/src/routes/recipes/dashboard/+page.svelte) — per-widget action menu.
+- Menu as a one-off action list: [/blocks/primitives/menu](../apps/docs/src/routes/blocks/primitives/menu/examples/BasicSingle.svelte) — trigger plus verbs, nothing holding a value. (The `/recipes/dashboard` page renders no `<Menu>`; its widget headers carry a `MenuIcon` glyph only.)
 - Async Combobox: [/blocks/primitives/combobox#async-search](../apps/docs/src/routes/blocks/primitives/combobox/Docs.svelte) — live demo against a deterministic mock backend (loading, empty, error, abort); the `queryFn` JSDoc in `packages/blocks/src/lib/primitives/Combobox/index.ts` remains the canonical contract.
 - Doctrine: [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) §Action / §Form — border source, tier behaviour, ARIA per family.
 

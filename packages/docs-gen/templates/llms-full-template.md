@@ -197,21 +197,33 @@ Every primitive belongs to exactly one of six families. The family decides ARIA 
 - `Popover` vs `Tooltip` — Popover hosts a focus-trapped panel for click-interactions, Tooltip is non-focusable for hover-descriptions.
 - `Alert` vs `Toast` — Alert is in-page (`role="alert"`), Toast is system-level + stacking.
 
-### Tier-aware components (read context from `<TierContext>`)
+### Tier-aware components (read the tier context)
 
-Seven primitives expose a `tier` prop AND inherit from a wrapping context when unset:
+The tier context is a context, not a component: a wrapping container calls `setTierContext()` and a tier-aware component reads it with `getTierContext()`. Seventeen components expose a `tier` prop AND inherit from a wrapping context when it is unset:
 
-| Component | Default tier | Family |
-|---|---|---|
-| Button | `commit` | Action |
-| Toggle | `commit` | Action |
-| SegmentGroup | `commit` | Navigation |
-| Stepper | `commit` | Navigation |
-| RadioGroup | `commit` | Form |
-| Checkbox | `modify` | Form |
-| Tab | `modify` | Navigation |
+| Component      | Default tier | Family     |
+| -------------- | ------------ | ---------- |
+| Button         | `commit`     | Action     |
+| ButtonGroup    | `commit`     | Action     |
+| Menu           | `commit`     | Action     |
+| Toggle         | `commit`     | Action     |
+| Badge          | `commit`     | Feedback   |
+| SegmentGroup   | `commit`     | Navigation |
+| Stepper        | `commit`     | Navigation |
+| PaginationItem | `commit`     | Navigation |
+| Tab            | `modify`     | Navigation |
+| RadioGroup     | `commit`     | Form       |
+| Checkbox       | `modify`     | Form       |
+| Input          | `modify`     | Form       |
+| Select         | `modify`     | Form       |
+| Combobox       | `modify`     | Form       |
+| Textarea       | `modify`     | Form       |
+| PinInput       | `modify`     | Form       |
+| TimeInput      | `modify`     | Form       |
 
-All other primitives use a fixed tier per family (see family table above) — Container components are `contain`, Form components are `modify`, Action components are `commit`, Feedback / Identity components are not tier-aware at all.
+Two components **set** the context: `Toolbar`, which only sets — its own surface is `rounded-contain` and its `tier` prop dresses the controls inside the strip rather than the strip — and `ButtonGroup`, which both sets and reads.
+
+Everything else sits on a fixed tier and never consults the context: Container components are `contain` (only `Card` takes a `tier` prop, with the different values `contain | bridge`), `Slider` and `FormField` sit outside the Form cascade, `Breadcrumb` and `JourneyTimeline` outside the Navigation one, and Feedback / Identity components are not tier-aware at all — `Badge` excepted, above.
 
 ---
 

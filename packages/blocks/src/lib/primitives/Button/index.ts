@@ -110,7 +110,13 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
    */
   class?: string;
 
-  /** Remove the default variant classes. Only user classes apply. */
+  /**
+   * Remove the default variant classes and apply yours instead. Not an empty
+   * element: the `blocks-*` hooks stay on the root (`blocks-button`,
+   * `blocks-intent-*`) so a stylesheet can still reach the button — see
+   * ARCHITECTURE.md § The override cascade.
+   * @default false
+   */
   unstyled?: boolean;
   /**
    * Per-slot class overrides merged with tv styles. Slots: base | content | spinner.

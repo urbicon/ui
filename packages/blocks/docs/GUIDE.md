@@ -122,13 +122,23 @@ step, a hint, a marker, and a mention can all point at one id:
 A single `highlight(topicId)` in the engine serves **both** tour steps **and** the Mention→UI
 hover — one mechanism, multiple surfaces.
 
-**Two layers (D3).** The `data-guide` anchors are the **anchor layer** (*where* an element is —
-necessarily declarative & distributed). On top sits an optional, typed **structure layer**: a
-`defineGuide([...])` manifest describing *which* tours/articles exist in *what* order, referencing
-`data-guide` ids as a string union. The manifest does **not** resolve targets itself — that
-separation is what makes the DEV-mode warning valuable (manifest names id X, engine can't find X
-in the DOM → warning). Repo precedent: `TypedColumnBuilder` (table columns), `createPackageI18n`
-(i18n).
+**The anchor layer (D3).** The `data-guide` anchors say **where** an element is, and being
+declarative and distributed is the point — an anchor lives next to the element it names.
+Structure comes from the other direction, and its two halves are shaped differently:
+
+- **A tour is data.** Build a `GuideTour` object whose steps name anchor ids and hand it to
+  `controller.startTour(tour)`.
+- **An article is markup.** `GuideArticle` is a component placed as a child of `GuidePanel`,
+  carrying an `id` and a `title`. The controller only ever holds the active article's **id** —
+  `openPanel(article?: string)`, `setArticle(id | null)` — and articles have no steps.
+
+Nothing resolves targets ahead of time, which is what makes the DEV-mode warning valuable (a step
+names id X, the engine cannot find X in the DOM → warning).
+
+The plan additionally carried an optional typed **structure layer** — a `defineGuide([...])`
+manifest declaring which tours and articles exist in what order, with the anchor ids as a string
+union. **It was never built**, and nothing in the package exports that name. Declare your tours as
+plain typed objects instead.
 
 **Resilience.** In DEV, any tour step / mention / highlight pointing at an id that can't be
 resolved logs a warning instead of failing silently. A lazily-rendered target is observed and
@@ -226,9 +236,10 @@ rule in `index.css`):
   which must hover a mention *and simultaneously* highlight the element behind the panel.
 - **D2 — Marker naming: `GuideMarker`.** The interactive "ⓘ" is **not** a "Badge" (collision with
   the non-interactive status `Badge` primitive). It may still *look* like "ⓘ".
-- **D3 — Topic definition: declarative anchors + a typed manifest (both, layered).** Anchors stay
-  declarative & distributed; structure (tours/articles/order) comes from an optional typed
-  `defineGuide([...])` manifest referencing `data-guide` ids (§3).
+- **D3 — Topic definition: declarative anchors.** Anchors stay declarative & distributed;
+  structure comes from typed `GuideTour` objects whose steps reference `data-guide` ids, and
+  from `GuideArticle` components mounted inside `GuidePanel` (§3). The `defineGuide([...])`
+  manifest the plan paired them with was never built.
 - **D4 — z-index: token `--z-guide: 1550`** for the spotlight bubble; stacking vs. native
   `<dialog>` comes from the `overlayStack.depth` pause, not z-index (§6).
 - **D5 — Direction-B highlight: additive `outline` ring, no scrim.** Tour = subtractive, highlight
@@ -474,7 +485,10 @@ Deliberately **out** of the first cut (avoiding over-engineering):
 run via Playwright against `apps/docs/src/routes/test-fixtures/guide/`
 (`e2e/guide.spec.ts`); the visual baselines are CI-optional (`e2e/snapshots/guide.spec.ts-snapshots/`).
 
-**docs-gen caveat.** docs-gen extracts only local `*Props`/`*Variants`, not types imported from
-`utils`. So `GuideController` / `GuideTour` / `GuideStep` / the analytics-event payloads are **not**
-auto-expanded into the generated `api.ts` / `llms.txt`; the hand-authored API tables on the doc
-page are the source of truth for them until docs-gen does cross-file type resolution.
+**docs-gen coverage.** docs-gen resolves a component's type-only imports through the shared
+`ts.Program` and follows type references transitively, so `GuideController`, `GuideTour`,
+`GuideStep` and the analytics-event payloads **are** expanded into the generated `api.ts` /
+`llms.txt` alongside the local `*Props` / `*Variants` (`LocalTypesExtractor`, `scope: 'imported'`,
+bounded by depth and a per-component ceiling so a hub file like `$lib/utils` cannot flood the
+table). The hand-authored API tables on the doc page document behaviour the generated shapes do not
+show; they are no longer the only place those types appear.

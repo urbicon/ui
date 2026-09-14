@@ -174,10 +174,12 @@ export const A2UI_ISSUE_CODES = {
    */
   SURFACE_RECREATED: 'SURFACE_RECREATED',
   /**
-   * An `options` `{ path }` binding resolved to a value that is not a list of
-   * `{ label, value }` options — the control renders empty. Not emitted while
-   * the path is still `undefined`: the agent is expected to fill it in with a
-   * later `updateDataModel`, and an empty chooser mid-flow is normal.
+   * An `options` `{ path }` binding resolved to a value that is not an **array**
+   * — the control renders empty. The check is `Array.isArray` and nothing more:
+   * an array whose items are not `{ label, value }` passes here and surfaces in
+   * the renderer instead. Not emitted while the path is still `undefined`: the
+   * agent is expected to fill it in with a later `updateDataModel`, and an empty
+   * chooser mid-flow is normal.
    */
   OPTIONS_NOT_A_LIST: 'OPTIONS_NOT_A_LIST'
 } as const;

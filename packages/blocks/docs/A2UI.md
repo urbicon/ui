@@ -106,8 +106,10 @@ data model and bind the chooser to it, rather than rewriting the component for e
 ```
 
 While `/slots` is still absent the chooser renders empty and stays silent — that is the normal
-mid-flow state. Once it resolves to something that is not a list of `{ label, value }`, the view
-reports `OPTIONS_NOT_A_LIST` so the agent can repair it.
+mid-flow state. Once it resolves to something that is not an **array**, the view reports
+`OPTIONS_NOT_A_LIST` so the agent can repair it. The check is the array-ness of the binding and
+nothing more: an array whose items are not `{ label, value }` passes validation and reaches the
+renderer, which is where a malformed item shows up.
 
 ## Reporting problems back
 

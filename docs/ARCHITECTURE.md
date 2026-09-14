@@ -18,13 +18,17 @@ callbacks) · [ComponentStructureStandard.md](ComponentStructureStandard.md) (fi
 
 Urbicon UI is a vertically integrated platform: UI primitives, a data table, auth, i18n,
 documentation tooling and an AI-native developer surface, all under one version and with
-**zero runtime dependencies** in every published package.
+**zero runtime dependencies** in every package that can reach a consumer's bundle.
 
 ### The package map
 
-Every arrow is a `peerDependency`, not a runtime dependency — each package's
-`dependencies` field is literally `{}`. Consumers install what they use; the workspace
-wires the same edges as `workspace:*` devDependencies for local development.
+Every arrow is a `peerDependency`, not a runtime dependency — every package that can reach a
+consumer's bundle has a `dependencies` field that is literally `{}`. Consumers install what
+they use; the workspace wires the same edges as `workspace:*` devDependencies for local
+development. Three dev-time tools sit outside the rule, because nothing about them ships into
+an app: `docs-gen` (`glob`, plus `design-engine` and `shared-types`), `mcp-server` (the MCP
+SDK, `zod`, plus `design-engine` and `design-content`) and the `urbicon` CLI in `design`
+(`design-engine`, `design-content`, `i18n`).
 
 ```mermaid
 graph TD
@@ -43,7 +47,6 @@ graph TD
 
     I18N --> BL
     BL --> TB
-    SKU --> TB
     BL --> AU
     I18N --> AU
     BL --> DOCS
@@ -70,10 +73,10 @@ graph TD
 | --- | --- | --- |
 | `shared-types` | Docs-tooling types (playground, docs-config, navigation) for `docs` and `docs-gen`, no runtime code | `src/index.ts` |
 | `i18n` | Runes-based localization + translation audit | `src/lib/i18n/registry.svelte.ts` |
-| `blocks` | 40 primitives + 28 components, the token system, the `tv()` engine | `src/lib/index.ts` |
+| `blocks` | 39 primitives + 27 components, the token system, the `tv()` engine | `src/lib/index.ts` |
 | `table` | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode | `src/lib/stores/TableStore.svelte.ts` |
 | `auth` | JWT sessions, refresh rotation, passkeys, Web Push, notifications | `src/lib/server/index.ts` |
-| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes) | `src/lib/index.ts` |
+| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes). No arrow in the map: nothing peer-depends on it, and its table-view types are a deliberate mirror guarded by a parity test rather than an import | `src/lib/index.ts` |
 | `docs` | Reusable documentation UI components | `src/lib/index.ts` |
 | `docs-gen` | AST-based documentation generator (CLI) | `src/cli/index.ts` |
 | `design-engine` | Zero-dep design linter, manifest parser, rubric | `src/linter/index.ts` |
@@ -159,6 +162,10 @@ container variant means is documented in the shipped
 
 ### The tier system
 
+> **Canon.** This section is the one description of the tier mechanism; the border-token half
+> of the contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle).
+> Other docs link here instead of restating the rules.
+
 Radius semantics follow a three-tier model. A component picks the tier whose *semantics*
 match its purpose, never a fixed pixel value — so a brand can re-tune a tier's physical
 radius without touching component code.
@@ -169,10 +176,24 @@ radius without touching component code.
 | `modify` | `--radius-modify` | Tap surfaces — inputs, selects, checkboxes, tabs. Reads as editable, not as a commit-decision. | Soft (`var(--radius-sm)`) |
 | `contain` | `--radius-contain` | Architectural surfaces — cards, dialogs, drawers, alerts, popovers, tooltips. Reads as a frame holding content. (`Sidebar` sits outside: a full-height panel flush to the viewport edge has no corner to turn.) | Subtle (`var(--radius-xs)`) |
 
-**Defaults by family:** Action `commit` · Form `modify` · Container `contain` ·
-Navigation per component. Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and
-Identity (Avatar) are **not** tier-aware — fixed geometry by design. Badge is the lone
-Feedback exception. Full taxonomy: [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md).
+**Two axes share the name `tier`, deliberately — same vocabulary, different values.** The
+**interactive tier** (`commit | modify`) is the one that cascades, on Action, Form and
+Navigation primitives. The **container tier** (`contain | bridge`) is `Card`'s alone and
+does **not** read the context: a Toolbar's `commit` must not reshape a Card inside it. Every
+other container is `contain` by construction and exposes no prop.
+
+**Defaults by family:** Action `commit` · Form `modify` · Navigation per component
+(SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain`.
+Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and Identity (Avatar) are **not**
+tier-aware: a Toast pops over the page chrome and must keep its identity even where the host
+page is themed `tier="modify"`, and a Spinner is a circular affordance read at a glance, which
+flattening would defeat. `Badge` is the lone Feedback exception — it exposes `tier` and reads
+the context, because a Badge inside a `<Toolbar tier="modify">` does want to flatten. A family
+default is not the same as reading the context, and the two come apart: `Slider`,
+`FormField`, `Breadcrumb` and every Container including `Card` sit on a fixed tier without
+consulting it. The live roster is whatever calls `getTierContext()` — grep it in
+`packages/blocks/src/lib` rather than trusting a list here. Full taxonomy:
+[COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md).
 
 **One shape sits outside the tiers: `--radius-control`, the radio indicator.** It
 defaults to the same pill as `commit` but is not tied to it, because the circle is the
@@ -189,8 +210,13 @@ not: a squared radio is damage a theme inflicts on a control it was not aiming a
 a pill-shaped checkbox is what a consumer asked for by writing `tier="commit"` — the
 status-chip look for checklists.
 
-**Context propagation.** Tier-aware primitives read their effective tier from
-`<TierContext>` (`utils/tier-context.ts`); a wrapping container sets it for all descendants:
+**Context propagation.** The tier context is a context, not a component: a wrapping container
+calls `setTierContext()` for all its descendants and a tier-aware primitive reads it with
+`getTierContext()` (both exported from `$lib/utils`, defined in `utils/tier-context.ts`).
+`Toolbar` and `ButtonGroup` are the two that set it today, and they differ: `ButtonGroup`
+both sets and reads, while **`Toolbar` only sets**. Its own surface is `rounded-contain` and
+its `tier` prop (default `modify`) is a propagation value — it dresses the controls inside
+the strip, never the strip.
 
 ```svelte
 <Toolbar tier="modify">
@@ -222,8 +248,12 @@ Anything that genuinely *is* a panel, dialog or container stays on `contain`.
 
 ### The tv() variant engine
 
+> **Canon.** The fold order below is described once, here.
+> [ComponentStructureStandard.md](ComponentStructureStandard.md) links to it for the
+> authoring rules that follow from it.
+
 All variant logic runs through a **custom `tv()` engine**
-(`packages/blocks/src/lib/utils/variants.ts`, ~600 LoC, zero-dependency replacement for
+(`packages/blocks/src/lib/utils/variants.ts`, ~1,350 LoC, zero-dependency replacement for
 `tailwind-variants`). Each component has a `*.variants.ts` defining slots, variants, sizes,
 intents, compound variants and defaults.
 
@@ -238,7 +268,9 @@ rungs and resolves as one.
 So `slotClasses={{ box: 'rounded-full' }}` deterministically defeats a base `rounded-sm`,
 and an active-state compound's `bg-neutral` defeats an outlined variant's `bg-transparent`.
 **Axis and compound order are therefore semantic**: declare the axis that must win a shared
-bucket later.
+bucket later. The house axis order that follows from it, and the `variantProps` rules that
+decide which axes a component may be addressed on, are in
+[COMPONENT-API-CONVENTIONS.md § variantProps and the house axis order](COMPONENT-API-CONVENTIONS.md#variantprops-and-the-house-axis-order).
 
 The resolver works on **bucket equality** — two classes conflict only if they normalize to
 the same key (`bg-color`, `border-t-width`, `text-size`, `opacity`, …). Modifier prefixes
@@ -274,6 +306,11 @@ Coverage limits and why they are deliberate: [DECISIONS.md](DECISIONS.md#the-tv-
 
 ### The override cascade
 
+> **Canon.** The cascade, the ladder, `slotClasses`, `preset`, `overrides` and `unstyled` are
+> described once — here. [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md) carries
+> the API-surface half (which props a component must offer, how they are named and typed) and
+> links back for the mechanism.
+
 Consumers restyle components through one ordered chain, conflict-resolved per Tailwind
 bucket so a later source always wins — the instance `class` prop included, which reaches
 `tv()` as a source of its own rather than glued to the resolved `slotClasses` string:
@@ -286,6 +323,23 @@ graph LR
     D --> E["instance<br/>.slotClasses"]
     E --> F["instance<br/>.class"]
 ```
+
+**Which rung to reach for.** Take the narrowest one that solves the problem — the narrower
+rungs preserve more of the system's behaviour (dark mode, the hover/active cascade, focus
+rings):
+
+1. **`class`** — restyle one element (the one that component's `class` prop names, usually
+   the root slot) on one instance.
+2. **`slotClasses.<slot>`** — restyle an inner element on one instance.
+3. **`preset` / `BlocksProvider` defaults** — an app-wide look for a component type.
+4. **`overrides`** — style only one variant / intent / state; prop-conditional, which is
+   what unconditional `slotClasses` cannot express.
+5. **`unstyled` + `slotClasses`** — strip every default and rebuild the look.
+
+**That numbering is blast radius, not cascade strength, and the two run opposite ways.**
+Rung 1 changes the least and also **wins** the most: the instance `class` is the last source
+the fold sees, so `class="py-4"` strips a `slotClasses={{ base: 'py-8' }}`, which in turn
+strips a provider default. Reaching higher up the list buys reach, never precedence.
 
 `slotClasses` (unconditional) and `presets` (opt-in, named) are registered on
 `BlocksProvider`; a preset is consumed via the `preset` prop on any component:
@@ -317,12 +371,10 @@ matches by equality, `string[]` as "one of"; multiple matching entries merge add
 Naming is the boundary, and it is deliberately narrower than `tv()`'s own fold. `tv()` may
 fill in an axis the object never mentioned, because it styles one slot call at a time; an
 `overrides` rule is resolved **once per component** and applied to every slot, so an axis
-the object does not carry is one the component cannot speak for. Two shapes make that
-concrete: a config shared by several components (`segmentGroupVariants` belongs to
-`SegmentGroup` and `SegmentItem` alike — any config imported by more than one component), and
-an axis handed to a slot function per element (`iconPosition` on Input, `disabled` on
-Menu's rows). Folding either in would state something about the component that nothing
-measured — a rule painting the disabled sibling, or the left icon on a right-icon field.
+the object does not carry is one the component cannot speak for. Which keys a component
+therefore puts in its `variantProps`, and why an axis shared with a sibling or handed to a
+single slot call stays out, is the authoring rule in
+[COMPONENT-API-CONVENTIONS.md § variantProps and the house axis order](COMPONENT-API-CONVENTIONS.md#variantprops-and-the-house-axis-order).
 
 The keys are variant **axis** names. Those are the component's public prop names wherever
 it has a prop for the axis, and internal where the axis is computed rather than received
@@ -340,9 +392,10 @@ than a list: a **wrapper** calls it indirectly — it hands its name down and th
 wraps makes the call (below); `CalendarHeader` and `FormField` read their slot classes from
 elsewhere (the Calendar context, and their own prop) yet still declare a `slotClasses` prop,
 so an entry under either name type-checks, narrows, and arrives nowhere; and
-`PaginationItem` declares neither `slotClasses` nor `preset`, so it has no provider name at
-all — routes A–C of `provider/provider-cascade.svelte.test.ts` pin what that leaves
-unaddressable. Which names exist is derived from the components themselves in
+`PaginationItem` has no provider name of its own — it declares no `slotClasses`, and the
+`preset` it does declare resolves under `Button`, for its button form only, because the
+`href` form dresses its own anchor with `buttonVariants()` and resolves no cascade. Routes
+A–C of `provider/provider-cascade.svelte.test.ts` pin what that leaves unaddressable. Which names exist is derived from the components themselves in
 `provider/component-slots.ts`, never listed here.
 
 The name is not always the component's own. A **compound part** — `CalendarHeader`,
@@ -365,16 +418,29 @@ other way, for a wrapper that has slots of its own: NumberInput's stepper render
 name nothing resolves as matches no lookup and is never read, with nothing reported — the
 same silence a misspelt component name buys.
 
-The call sites spell the chain's last two rungs as an array —
-`styles.base({ class: [slotClasses?.base, className] })` — and `tv()` reads **each
-top-level array element as one source**, so a library class placed in that array belongs
-*before* the consumer's rungs (`Button`'s `pressCueClass`), never after. The `unstyled`
-branch has no `tv()` to fold through and folds the same list with `resolveClassChain`
-instead. The two are separate expressions per slot, so their agreement is a thing the
-sweep asserts (route G) rather than a thing the shape guarantees: a one-line edit to
-either branch parts them, and only route G notices. Within one element nothing is
-stripped: an author who
-wants two classes to coexist writes them in the same element.
+**Writing your own wrapper** takes the same two steps minus that context, which is internal
+to the package: destructure `preset` and `slotClasses` out of the rest spread, then hand the
+inner component
+`slotClasses={resolveSlotClasses(config, 'YourWrapper', preset, writtenProps, slotClasses, innerVariants.config)}`
+and no `preset`. `writtenProps` names the axes your wrapper can speak for — not `label`,
+which the inner condition object never carries either — and `resolveSlotClasses` answers the
+ones it left out from the same `innerVariants.config`. Most of what the internal path buys
+the library's four wrappers is still yours to write, because a derived axis is not a
+hidden one: `error: !!error` and `messageType: error ? 'error' : 'helper'` are computed from a
+prop you hold, and `getTierContext()` is exported, so
+`tier: tierProp ?? getTierContext()?.tier ?? 'modify'` reads the same context `Input` reads.
+`DatePicker` is the worked example in this package. Two axes stay out of reach: Select's
+`open` is the component's own runtime state, and `hasRightIcon` diverges in one direction —
+`clearable` with a value renders a clear button, which makes the axis `true` on a field whose
+wrapper passed no `rightIcon` (measured), while the wrapper's `!!rightIcon` says `false`. For
+those two, put the rule under the inner component's name.
+
+The chain's last two rungs are the call site's array (above), so a library class placed in it
+belongs **before** the consumer's rungs (`Button`'s `pressCueClass`), never after. The
+`unstyled` branch has no `tv()` to fold through and folds the same list with
+`resolveClassChain` instead. The two are separate expressions per slot, so their agreement is
+a thing the sweep asserts (route G) rather than a thing the shape guarantees: a one-line edit
+to either branch parts them, and only route G notices.
 
 An element with **state slots** carries a library default *and* a consumer entry on each,
 and all of them share that one array. The order is every library state first, then the
@@ -395,19 +461,50 @@ blocks components it renders itself (DatePicker → Input/Popover/Calendar, Chat
 Avatar/Alert/Tooltip, …), so a half-stripped widget is not a state one instance can be in.
 It deliberately does **not** reach components the consumer hands in as `children` or a
 snippet: that would be action at a distance from a prop written on the wrapper.
-`<BlocksProvider unstyled>` is the tool for a whole subtree. Measured per component by
-route H of `provider/provider-cascade.svelte.test.ts`.
+`<BlocksProvider unstyled>` is the tool for a whole subtree.
+
+Which components that covers is measured rather than listed: route H of
+`provider/provider-cascade.svelte.test.ts` mounts a component twice and requires the instance
+flag to remove exactly what the provider flag removes. It answers for the markup that mount
+renders and no more — measured, it is blind to a child that appears only in a state the mount
+does not reach: `AvatarGroup`'s avatars (no `items`), `CalendarHeader`'s overlays and
+`FileUpload`'s progress bar (both closed). That is why the roster is *also* derived from the
+source rather than read off the sweep, and why those three are listed as `ROUTE_H_BLIND` in
+the sweep itself — a mount fixture that reaches the child takes a component off that list, as
+`Guide`'s tour fixture did.
+
+**What `unstyled` does not remove — stated once, here.** It drops the `tv()` pass, not every
+class. Two kinds of thing survive it, and a stylesheet styling a stripped tree targets them:
+
+1. **The component's `blocks-*` hooks.** `Button` writes `blocks-button` + `blocks-intent-*`,
+   `Avatar` writes `blocks-avatar` + `blocks-intent-*`, `PaginationItem`'s anchor writes
+   `blocks-intent-*` alone. Most of the library carries none, and those components really do
+   reduce to the classes the consumer wrote — `Input` and `Combobox` among them.
+2. **The press-cue custom property** `[--blocks-press-scale:1]`, but only while the mint is
+   off — `isMintOff` is true for `undefined`, `''` and `'none'`. It therefore depends on a
+   default that differs per component: `Button`'s `mint` is `'scale'`, so the property is
+   absent unless a consumer turns the mint off; `PaginationItem`'s is `'none'`, so it is
+   present.
+
+Both measured cases come to two surviving classes, for different reasons — `Button` two hooks
+and no press cue, `PaginationItem`'s anchor one hook plus the press cue (the sweep's C row:
+2 of that anchor's 39 root classes). Do not carry a count into a prop's JSDoc; name the hooks
+and link here. The structural plumbing of an embedded core survives as well —
+`CoreIconButton` takes no `unstyled` prop at all.
 
 Key files: `provider/BlocksProvider.svelte`, `provider/blocks-context.ts`,
-`utils/variants.ts`. The consumer-facing override ladder ("reach for the lowest rung"):
-[COMPONENT-API-CONVENTIONS.md § slotClasses](COMPONENT-API-CONVENTIONS.md#slotclasses).
+`utils/variants.ts`. Which props a component must expose for all of this, and how they are
+named and typed: [COMPONENT-API-CONVENTIONS.md § Styling props](COMPONENT-API-CONVENTIONS.md#styling-props-class-unstyled-slotclasses-preset).
 
 ### The internal core layer
+
+> **Canon.** The core layer is described once, here. ComponentStructureStandard and
+> COMPONENT-API-CONVENTIONS each keep one sentence and a link.
 
 Public components never import each other for trivial embedded controls — that made every
 Badge ship Button's full variants matrix and every Button ship the whole Spinner (measured:
 Badge −29 %, Dialog/Drawer −30 % gz after the extraction). Shared behaviour lives in
-`src/lib/internal/core/` instead:
+`src/lib/internal/core/` instead — four cores today:
 
 - **`CoreSpinner`** — the spinner arc (geometry shared with the public `Spinner` via
   `spinner-geometry.ts`) plus spin animation. No role/aria: the embedding context carries
@@ -416,12 +513,26 @@ Badge −29 %, Dialog/Drawer −30 % gz after the extraction). Shared behaviour 
   inertness, focus-visible reset). Visual identity comes entirely from the call site's
   variants slot (`removeButton`, `closeButton`, `navButton`, …); the core runs no tv()/mint
   pass, so it stays a few hundred bytes.
-- **`CoreFieldMessage`** — the helper/error line under a form field, shared by all ten
-  Form-family components. It owns error-beats-helper precedence, `role="alert"` on the error
-  arm only, and putting the right id on the right arm. The **label** is deliberately not
-  extracted alongside it: `<label for>` vs `<span id>` behind `aria-labelledby` vs a nested
-  label are dictated by how many focusable elements the field has, so unifying them would be
-  an a11y regression.
+- **`CoreFieldMessage`** — the helper/error line under a field. Its ten consumers are the
+  components that render such a line, which is not the Form family: Input, Textarea,
+  Select, Combobox, Checkbox, RadioGroup, Slider, PinInput, TimeInput and `Toggle` (Action
+  by family), while `FormField` — Form family, and the wrapper the name suggests — is not
+  among them. It owns error-beats-helper precedence, `role="alert"` on the error arm only,
+  and putting the right id on the right arm. The **label** is deliberately not extracted
+  alongside it: `<label for>` vs `<span id>` behind `aria-labelledby` vs a nested label are
+  dictated by how many focusable elements the field has, so unifying them would be an a11y
+  regression.
+- **`CoreDateGridHeader`** — the month/year navigation strip shared by `Calendar` and the
+  `Planner`/`ResourceTimeline` grids. It is the one core that renders a **public** component
+  (its today button carries a `Tooltip`, which has a `tv()` config of its own), so unlike the
+  other three it relays `unstyled` onward.
+
+**The cores' own plumbing sits outside the override ladder.** The few structural classes they
+write — flex centring, cursor, disabled inertness — are behaviour, not an override surface,
+and `unstyled` leaves them alone under either flag. What a consumer styles instead is the
+host's variants slot (`removeButton`, `closeButton`, `navButton`, `spinner`), which is on the
+**host's** ladder; `Button`/`Spinner` presets and provider defaults never reach inside, and
+never were the documented path.
 
 Genuine compositions (ConfirmDialog = Dialog + Buttons, Menu → Popover, DatePicker →
 Calendar, PaginationItem *is a* Button) remain public-to-public — the rule targets
@@ -655,7 +766,7 @@ Each package's own README is the authoritative reference; these are orientation 
 
 ### `blocks`
 
-40 primitives and 28 components, the token system, the `tv()` engine, the Mint system, the
+39 primitives and 27 components, the token system, the `tv()` engine, the Mint system, the
 icon set (358 icons) and the provider. Everything in §2 lives here.
 
 Icons are tree-shaking-sensitive: **never call `getIcon('name')` inside a component** — the

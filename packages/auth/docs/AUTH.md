@@ -1078,7 +1078,7 @@ Three further cross-cutting conventions round the contract off. **Owner-first pa
 
 ### Structural boundary — the `XLike` pattern
 
-`createPrismaRepos<AppRole>(prisma)` accepts the consumer's generated client through a structural interface (`PrismaLike`). Every method returns `Promise<PrismaRow>` where `PrismaRow = any` — a single, intentional `eslint-disable` at the module boundary.
+`createPrismaRepos<AppRole>(prisma)` accepts the consumer's generated client through a structural interface (`PrismaLike`). Every method returns `Promise<PrismaRow>` where `PrismaRow = any` — a single, intentional `biome-ignore lint/suspicious/noExplicitAny` at the module boundary.
 
 `PrismaLike` lists what the adapter actually calls, so it moves when the adapter does. It now asks for `deleteMany` on `notification` and `passkey`, and no longer asks for the single-row `delete` on `notification`, `passkey` and `invitation`, nor `update` on `notification` and `passkey` — those scoped writes moved to the `…Many` operations (see the id contract above). A generated client satisfies both versions; only a hand-written stand-in needs the two new methods. It buys wider version coverage in exchange: the old calls needed Prisma's extended `WhereUniqueInput` (`update({ where: { credentialId, userId } })`, GA in 5.0), while `updateMany`/`deleteMany` take an ordinary filter.
 
