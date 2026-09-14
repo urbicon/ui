@@ -642,7 +642,7 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
     console.log(line);
   // Claude Code is wired above; what remains is every other tool, which we cannot
   // detect and whose context file we will not guess at.
-  const pasteTargets = ['CLAUDE.md', '.cursorrules']
+  const pasteTargets = ['CLAUDE.md']
     .filter((n) => n.toLowerCase() !== targetName.toLowerCase())
     .filter((n) => !(wireClaude && CLAUDE_NAME.test(n)))
     .join(' / ');

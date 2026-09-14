@@ -219,3 +219,28 @@ Total for a page with code: ~333 → 121 KB gz.
 **Known consequence:** `shiki` and `@shikijs/langs` are both peers of `@urbicon-ui/docs`, and
 a language outside the ten bundled grammars renders unhighlighted (DEV warns). Adding one is
 an import in `utils/highlighter.ts`, not a config option.
+
+## No round-trip / codegen tool for domain projection
+
+A two-day spike (`experiment/domain-projection`, frozen at `b4d766c`) asked whether an
+AI-driven meta-system that projects a consumer's domain model onto the library, keeping
+changes cheap as that model evolves, is worth building. **Decision: no round-trip/codegen
+tool.** Determinism belongs in verification — drift linters, types, `validate_design` as
+gates — not in generation; the AI sits at the upper seam as the *executor* of changes, never
+as a generator whose output then has to be kept in sync with hand edits.
+
+A UI's skeleton falls out almost entirely from the schema (Drizzle + Zod); the value that is
+hard to get is concentrated in a few seams — labels/i18n, layout, FK options, list
+composition — and those live in a presentation/intent layer a projection cannot shortcut. A
+thin hand-written `.svelte` file converges on the shape a generator would have produced
+(`presentation.ts` + `seams.ts`); the only real difference is addressable data versus merged
+markup, which was never the generator's value. A UI is an inhabited artefact — generated code
+a person then hand-edits degrades the way Sencha-style codegen did — and a good library plus
+an LLM already closes most of the gap a round-trip tool would have bought.
+
+**Revisit only if:** the library grows dozens of consumers with "domain → app" as a product
+in its own right (then the answer is LLM generation plus deterministic verification, not
+deterministic projection), or hundreds of near-identical entities need scaffolding (then a
+config-driven library extension, not a projection tool). The full write-up lives on the
+frozen branch at `docs/internal/domain-projection/DECISION.md`; reactivate with
+`git worktree add ../ui-domain-projection experiment/domain-projection && bun install`.

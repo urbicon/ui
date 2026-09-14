@@ -37,32 +37,17 @@ urbicon record-decision --title …  # write a decision the next session will se
 # Per-component docs with 5 sections:
 #   overview | examples | variants | api | slots
 # e.g. /primitives/button/llm.txt`;
-
-  const cursorrulesExample = `# .cursorrules — AI-specific guidance
-
-# Imports: ALWAYS barrel imports
-import { Button, Input } from '@urbicon-ui/blocks';
-
-# Styling: ALWAYS semantic tokens
-class="bg-surface-base text-text-primary"
-
-# Focus: ALWAYS focus-visible (not focus)
-class="focus-visible:ring-2 focus-visible:ring-primary"
-
-# Svelte 5: ALWAYS runes
-let { variant, intent } = $props();`;
 </script>
 
 <SeoMeta
   title="AI & Developer Experience"
-  description="AI-native developer experience: the urbicon CLI puts version-matched design knowledge, a design linter and project memory next to your agent — plus per-component llms.txt and .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
+  description="AI-native developer experience: the urbicon CLI puts version-matched design knowledge, a design linter and project memory next to your agent — plus per-component llms.txt. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
 <div class="mx-auto max-w-4xl px-6 pt-12">
   <div class="flex flex-wrap gap-2">
     <Badge variant="soft" intent="primary">urbicon CLI</Badge>
     <Badge variant="soft" intent="secondary">llms.txt</Badge>
-    <Badge variant="soft" intent="neutral">.cursorrules</Badge>
   </div>
 </div>
 
@@ -183,22 +168,6 @@ let { variant, intent } = $props();`;
         View llms.txt
       </a>
     </div>
-  </section>
-
-  <!-- .cursorrules -->
-  <section class="mb-12" aria-labelledby="cursorrules-title">
-    <h2 id="cursorrules-title" class="text-text-primary mb-2 text-2xl font-bold">.cursorrules</h2>
-    <p class="text-text-secondary mb-6">
-      IDE-specific guidance for AI code generation. Ensures generated code follows project
-      conventions: barrel imports, semantic tokens, Svelte 5 runes, focus-visible, and more.
-    </p>
-
-    <CodeExample
-      title="AI Coding Conventions"
-      code={cursorrulesExample}
-      language="typescript"
-      preview={false}
-    />
   </section>
 
   <!-- Architecture -->

@@ -835,7 +835,6 @@ at build time) and the full changelog at `/changelog` (via the `virtual:changelo
 | --- | --- |
 | `/llms.txt` | Brief library overview (llms.txt standard) — curated, tracked |
 | `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
-| `/.cursorrules` | Cursor IDE rules: imports, API grammar, tokens, common mistakes |
 | `urbicon` CLI | The primary surface — see §4 |
 | `design-system/` | Design principles and composition patterns, served by CLI and MCP |
 
