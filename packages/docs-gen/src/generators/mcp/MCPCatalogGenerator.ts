@@ -167,7 +167,13 @@ export class MCPCatalogGenerator {
     const group = (compApi.group || 'primitives') as 'primitives' | 'components' | 'core';
     const slug = toSlug(component.name);
 
-    const llmTxtPath = group ? `${group}/${slug}/llm.txt` : `${slug}/llm.txt`;
+    // The raw (un-defaulted) group, not the display default above — matching
+    // the write loop in LLMDocumentationGenerator, which joins a group segment
+    // onto the path only when the component actually has one. Using the
+    // defaulted `group` here made the ternary dead (always truthy) and this
+    // path silently disagreed with where the file landed for any component
+    // with no group (`table`'s single entry has none).
+    const llmTxtPath = compApi.group ? `${compApi.group}/${slug}/llm.txt` : `${slug}/llm.txt`;
 
     // Origin tag: every `@urbicon-ui/auth` component is discoverable via the
     // `auth` tag (`find_components({ tags: ['auth'] })`) on top of its functional

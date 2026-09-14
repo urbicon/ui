@@ -159,26 +159,12 @@ export class LLMDocumentationGenerator {
       await fs.writeFile(indexPath, indexContent, 'utf-8');
       writtenFiles.push(indexPath);
 
-      // Also maintain a global aggregator at the static root (one level up).
-      // Fail loud, no catch: the index content is a pure static string, so the
-      // only fallible operation here is the write itself — and a swallowed
-      // write failure means the published static root keeps serving a stale
-      // (or missing) llms.txt while the run reports success. There is no
-      // legitimate "optional input" to tolerate either: the target directory
-      // necessarily exists, because outputPath (its child) was created above.
-      const staticRoot = path.resolve(outputPath, '..');
-      const globalIndexPath = path.join(staticRoot, 'llms.txt');
-      try {
-        await fs.writeFile(globalIndexPath, this.generateGlobalLlmsTxt(), 'utf-8');
-      } catch (error) {
-        throw new Error(
-          `Failed to write the global llms.txt aggregator at ${globalIndexPath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          { cause: error }
-        );
-      }
-      writtenFiles.push(globalIndexPath);
+      // The static-root aggregator (one level up, apps/docs/static/llms.txt)
+      // is NOT written here: `LlmsAssembler` (CLI.ts's `assembleLlmsFull`,
+      // `--target all` only) is its sole writer, from the full component
+      // catalog rather than one package's slice of it. A single-target run
+      // (`docs:gen:blocks`) therefore leaves it untouched — same contract
+      // `llms-full.txt` and the MCP catalog already have.
 
       const totalSize = await this.calculateTotalSize(writtenFiles);
       return {
@@ -604,35 +590,6 @@ export class LLMDocumentationGenerator {
       const stability = apiData.components[c.name]?.stability;
       const level = stability && stability !== 'stable' ? ` (${stability})` : '';
       lines.push(`- [${c.name}](${href}): Component LLM context${level}`);
-    }
-    return lines.join('\n');
-  }
-
-  /**
-   * Render the static-root `llms.txt` aggregator: a fixed index linking
-   * `llms-full.txt` plus the four per-scope manifests (blocks/docs/table/auth).
-   * Pure string assembly — scope links may briefly dangle until every target
-   * has run, which is the designed single-target behaviour, not an error.
-   */
-  private generateGlobalLlmsTxt(): string {
-    const lines: string[] = [];
-    lines.push('# Urbicon UI');
-    lines.push('');
-    lines.push('> Global LLM resources index.');
-    lines.push('');
-    lines.push(
-      '- [Full API Reference](./llms-full.txt): Complete component props, variants, tokens, and patterns'
-    );
-    lines.push('');
-    lines.push('## Scopes');
-    const scopes = [
-      { name: 'Blocks', path: 'blocks/llms.txt' },
-      { name: 'Docs', path: 'docs/llms.txt' },
-      { name: 'Table', path: 'table/llms.txt' },
-      { name: 'Auth', path: 'auth/llms.txt' }
-    ];
-    for (const s of scopes) {
-      lines.push(`- [${s.name}](./${s.path}): Scope index`);
     }
     return lines.join('\n');
   }

@@ -23,6 +23,10 @@ Tailwind 4 — SvelteKit is **not** required for `blocks`, `table` or `i18n`. In
 project, `bunx sv add tailwindcss=plugins:none @urbicon-ui` does the install and the CSS wiring
 in one non-interactive step (see the Full API Reference below for the complete flow).
 
+For project-wide styling without touching every call site, wrap the app in `BlocksProvider` —
+`defaults` (every instance of a component), named `presets` (opt-in per instance), and
+prop-conditional `overrides` (e.g. style only `variant="outlined"`).
+
 ## Resources
 
 {{RESOURCES}}

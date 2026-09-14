@@ -23,11 +23,16 @@ Tailwind 4 — SvelteKit is **not** required for `blocks`, `table` or `i18n`. In
 project, `bunx sv add tailwindcss=plugins:none @urbicon-ui` does the install and the CSS wiring
 in one non-interactive step (see the Full API Reference below for the complete flow).
 
+For project-wide styling without touching every call site, wrap the app in `BlocksProvider` —
+`defaults` (every instance of a component), named `presets` (opt-in per instance), and
+prop-conditional `overrides` (e.g. style only `variant="outlined"`).
+
 ## Resources
 
 - [Documentation site](https://ui.urbicon.de): Live docs, playgrounds and recipes for every component
 - [Full API Reference](https://ui.urbicon.de/llms-full.txt): Complete component props, variants, tokens, and patterns for every component
 - [AI-native tooling](https://ui.urbicon.de/ai): The `urbicon` CLI — version-pinned component knowledge and a design-token linter for agents
+- [Customization](https://ui.urbicon.de/customization): Project-wide styling — `BlocksProvider` defaults, presets and overrides, design tokens
 - [Blocks — llms.txt](https://ui.urbicon.de/blocks/llms.txt): Scope index
 - [Table — llms.txt](https://ui.urbicon.de/table/llms.txt): Scope index
 - [Auth — llms.txt](https://ui.urbicon.de/auth/llms.txt): Scope index

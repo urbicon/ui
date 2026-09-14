@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { glob } from 'glob';
 import type { ComponentCatalogEntry } from '../mcp/MCPCatalogGenerator';
 import { assertNoPlaceholderLeft, COMPONENTS_PLACEHOLDER } from './guide-injection';
 
@@ -25,17 +24,6 @@ export interface LlmsAssemblerScope {
 export interface LlmsAssemblerPackage extends LlmsAssemblerScope {
   /** The catalog's `package` field, e.g. `'@urbicon-ui/blocks'` — selects this package's entries. */
   packageId: string;
-  /**
-   * Absolute path to this package's generated static `llm.txt` tree
-   * (`apps/docs/static/<pkg>`). The href for each entry is resolved by
-   * globbing this tree rather than trusting the catalog's own `group` field —
-   * `MCPCatalogGenerator` defaults a missing `group` to `'primitives'` for
-   * catalog *display* purposes, which does not always match where the file
-   * was actually written (`table`'s single entry has no group segment on
-   * disk). The filesystem is the oracle, the same stance `hasDocPage` in
-   * `APIDataGenerator` takes for doc-page links.
-   */
-  staticDir: string;
 }
 
 export interface LlmsAssemblerConfig {
@@ -55,16 +43,21 @@ function capitalize(value: string): string {
   return value.length === 0 ? value : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+/** Plain lexicographic (code-unit) order, not `localeCompare` — deterministic across locales/CI. */
+function byName(a: ComponentCatalogEntry, b: ComponentCatalogEntry): number {
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+}
+
 /**
  * Assembles the root `llms.txt` (llmstxt.org shape) from a hand-written
  * template — title, summary, install — plus two generated sections: the
  * "Resources" link list and one `- [Name](url): summary` line per exported
  * component of `blocks`/`table`/`auth`, taken from the same
- * `component-catalog.json` `summary` field (`@summary`) that feeds the docs
- * site and the MCP server. Mirrors {@link LlmsFullAssembler}'s
- * template-plus-placeholder shape; `render()` is split out from `assemble()`
- * so `docs-gen llms-check` can diff the generated content against the
- * tracked file without writing anything.
+ * `component-catalog.json` `summary` field (`@summary`) and `llmTxtPath`
+ * (joined onto the package's `urlSegment`) that feed the docs site and the
+ * MCP server. Mirrors {@link LlmsFullAssembler}'s template-plus-placeholder
+ * shape. `render()` is kept separate from `assemble()` so tests (and any
+ * future in-memory consumer) can get the content without touching disk.
  */
 export class LlmsAssembler {
   private config: LlmsAssemblerConfig;
@@ -88,11 +81,11 @@ export class LlmsAssembler {
     return { outputPaths: this.config.outputPaths, componentCount: count };
   }
 
-  /** Produces the assembled content without writing it — reused by `assemble()` and `llms-check`. */
+  /** Produces the assembled content without writing it. */
   async render(): Promise<{ content: string; count: number }> {
     const template = await this.loadTemplate();
     const entries = await this.loadCatalog();
-    const componentSections = await this.renderComponentSections(entries);
+    const componentSections = this.renderComponentSections(entries);
 
     let assembled = this.inject(template, RESOURCES_PLACEHOLDER, this.renderResources());
     assembled = this.inject(assembled, COMPONENTS_PLACEHOLDER, componentSections.content);
@@ -142,6 +135,9 @@ export class LlmsAssembler {
     lines.push(
       `- [AI-native tooling](${this.config.siteUrl}/ai): The \`urbicon\` CLI — version-pinned component knowledge and a design-token linter for agents`
     );
+    lines.push(
+      `- [Customization](${this.config.siteUrl}/customization): Project-wide styling — \`BlocksProvider\` defaults, presets and overrides, design tokens`
+    );
     for (const scope of this.config.scopes) {
       lines.push(
         `- [${scope.label} — llms.txt](${this.config.siteUrl}/${scope.urlSegment}/llms.txt): Scope index`
@@ -150,9 +146,10 @@ export class LlmsAssembler {
     return lines.join('\n');
   }
 
-  private async renderComponentSections(
-    entries: ComponentCatalogEntry[]
-  ): Promise<{ content: string; count: number }> {
+  private renderComponentSections(entries: ComponentCatalogEntry[]): {
+    content: string;
+    count: number;
+  } {
     const sections: string[] = [];
     let count = 0;
 
@@ -164,8 +161,6 @@ export class LlmsAssembler {
         );
       }
 
-      const hrefBySlug = await this.resolveHrefs(pkg);
-
       const groups = [...new Set(pkgEntries.map((e) => e.group))].sort(
         (a, b) => (GROUP_ORDER[a] ?? 99) - (GROUP_ORDER[b] ?? 99)
       );
@@ -175,20 +170,16 @@ export class LlmsAssembler {
           groups.length > 1 ? `## ${pkg.label} — ${capitalize(group)}` : `## ${pkg.label}`;
         const lines = [heading, ''];
 
-        const groupEntries = pkgEntries
-          .filter((e) => e.group === group)
-          .sort((a, b) => a.name.localeCompare(b.name));
+        const groupEntries = pkgEntries.filter((e) => e.group === group).sort(byName);
 
         for (const entry of groupEntries) {
           if (!entry.summary) {
             throw new Error(`llms.txt: "${entry.name}" has no @summary in the component catalog`);
           }
-          const href = hrefBySlug.get(entry.slug);
-          if (!href) {
-            throw new Error(
-              `llms.txt: no llm.txt on disk for "${entry.name}" (slug "${entry.slug}") under ${pkg.staticDir}`
-            );
+          if (!entry.llmTxtPath) {
+            throw new Error(`llms.txt: "${entry.name}" has no llmTxtPath in the component catalog`);
           }
+          const href = `${this.config.siteUrl}/${pkg.urlSegment}/${entry.llmTxtPath}`;
           const level =
             entry.stability && entry.stability !== 'stable' ? ` (${entry.stability})` : '';
           lines.push(`- [${entry.name}](${href}): ${entry.summary}${level}`);
@@ -200,26 +191,5 @@ export class LlmsAssembler {
     }
 
     return { content: sections.join('\n\n'), count };
-  }
-
-  /**
-   * Maps each entry's `slug` to its real, absolute link by globbing the
-   * package's static tree — see {@link LlmsAssemblerPackage.staticDir}.
-   */
-  private async resolveHrefs(pkg: LlmsAssemblerPackage): Promise<Map<string, string>> {
-    let files: string[];
-    try {
-      files = await glob(path.join(pkg.staticDir, '**/llm.txt'), { absolute: true });
-    } catch {
-      throw new Error(`llms.txt: could not read the static llm.txt tree at ${pkg.staticDir}`);
-    }
-
-    const map = new Map<string, string>();
-    for (const file of files) {
-      const slug = path.basename(path.dirname(file));
-      const rel = path.relative(pkg.staticDir, file).split(path.sep).join('/');
-      map.set(slug, `${this.config.siteUrl}/${pkg.urlSegment}/${rel}`);
-    }
-    return map;
   }
 }

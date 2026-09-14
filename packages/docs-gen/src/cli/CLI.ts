@@ -1,7 +1,4 @@
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import * as fs from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ContentBundleEmitter } from '../generators/content/ContentBundleEmitter';
@@ -20,31 +17,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 function resolveFromDocsGen(...segments: string[]): string {
   return path.resolve(__dirname, '..', '..', ...segments);
-}
-
-/**
- * A unified diff between two in-memory strings, via the system `diff`
- * (present on both the GNU toolchain CI runs and BSD `diff` on macOS dev
- * machines — `-L` twice is the flag both understand; GNU's long `--label`
- * is not). `diff` exits 1 for "differs", which is the expected outcome here,
- * not a failure — only its stdout is read.
- */
-function unifiedDiff(label: string, before: string, after: string): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'llms-check-'));
-  try {
-    const beforePath = path.join(dir, 'tracked');
-    const afterPath = path.join(dir, 'generated');
-    writeFileSync(beforePath, before);
-    writeFileSync(afterPath, after);
-    const result = spawnSync(
-      'diff',
-      ['-u', '-L', `${label} (tracked)`, '-L', `${label} (generated)`, beforePath, afterPath],
-      { encoding: 'utf-8' }
-    );
-    return result.stdout || '(diff produced no output)';
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 }
 
 /**
@@ -130,8 +102,7 @@ const LLMS_SCOPES = [
  */
 const LLMS_PACKAGES = LLMS_SCOPES.filter((s) => s.label !== 'Docs').map((s) => ({
   ...s,
-  packageId: `@urbicon-ui/${s.urlSegment}`,
-  staticDir: resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', s.urlSegment)
+  packageId: `@urbicon-ui/${s.urlSegment}`
 }));
 
 /**
@@ -145,8 +116,6 @@ const LLMS_PACKAGES = LLMS_SCOPES.filter((s) => s.label !== 'Docs').map((s) => (
  *   which is why JSDoc edits require `docs:gen:all`, not a single target.
  * - `scaffold <Name> [--group primitives|components]` — create the docs
  *   route skeleton (+page.svelte / Docs.svelte) for a new component.
- * - `llms-check` — fast drift check for the tracked root `llms.txt` against
- *   the already-generated component catalog; no pipeline re-run (`llms:check`).
  * - `help` — usage text.
  *
  * Any command failure exits with code 1 (fail-loud; CI relies on this).
@@ -169,10 +138,6 @@ export class DocsGeneratorCLI {
 
         case 'scaffold':
           await this.scaffoldCommand(args.slice(1));
-          break;
-
-        case 'llms-check':
-          await this.llmsCheckCommand();
           break;
 
         case 'help':
@@ -370,11 +335,7 @@ export class DocsGeneratorCLI {
     );
   }
 
-  /**
-   * Config shared by the real assembly (`assembleLlmsFull`) and the
-   * standalone `llms-check` command — one place building it keeps the two
-   * from silently disagreeing on paths.
-   */
+  /** Config for the `LlmsAssembler` call in `assembleLlmsFull`. */
   private async buildLlmsAssemblerConfig(): Promise<LlmsAssemblerConfig> {
     const rootPkgRaw = await fs.readFile(resolveFromDocsGen('..', '..', 'package.json'), 'utf-8');
     const siteUrl: unknown = JSON.parse(rootPkgRaw).homepage;
@@ -403,41 +364,6 @@ export class DocsGeneratorCLI {
       scopes: LLMS_SCOPES,
       packages: LLMS_PACKAGES
     };
-  }
-
-  /**
-   * Fast drift check for the tracked root `llms.txt`: renders it in memory
-   * from the already-assembled `component-catalog.json` — no pipeline
-   * re-run, the same assumption `a2ui:axes:check` makes about the
-   * design-content bundle — and diffs against the committed file. Exits 1
-   * with a unified diff on mismatch; `llms:check` runs this in CI right
-   * after `a2ui:axes:check`.
-   */
-  private async llmsCheckCommand(): Promise<void> {
-    const config = await this.buildLlmsAssemblerConfig();
-    const assembler = new LlmsAssembler(config);
-    const { content: generated } = await assembler.render();
-
-    const trackedPath = config.outputPaths[0];
-    if (!trackedPath) {
-      throw new Error('llms.txt: LlmsAssemblerConfig.outputPaths is empty — nothing to check.');
-    }
-    let tracked: string;
-    try {
-      tracked = await fs.readFile(trackedPath, 'utf-8');
-    } catch {
-      tracked = '';
-    }
-
-    if (tracked === generated) {
-      console.log('✅ llms.txt is up to date.');
-      return;
-    }
-
-    console.error('❌ llms.txt is STALE (out of sync with the component catalog).');
-    console.error(unifiedDiff(trackedPath, tracked, generated));
-    console.error('\nRun `bun run docs:gen` to regenerate, then commit the result.');
-    process.exit(1);
   }
 
   /**
@@ -709,7 +635,6 @@ Usage:
 Commands:
   generate, build    Generate documentation (default)
   scaffold <Name>    Scaffold a new docs page for a component
-  llms-check         Check root llms.txt against the component catalog (no rebuild)
   help              Show this help
 
 Options:

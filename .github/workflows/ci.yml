@@ -104,9 +104,11 @@ jobs:
       # here rather than in `lint` because it reads the design-content catalogue,
       # which is a build artefact.
       - run: bun run a2ui:axes:check
-      # Root llms.txt vs. the component catalog it's generated from. Drift
-      # here means an agent reading llms.txt sees a component list that no
-      # longer matches what @summary generates.
+      # `build:ts` just rewrote llms.txt and its static copy from the
+      # component catalog (in-tree, via `docs:gen:ci`) — this checks that the
+      # committed files equal what that run produced (`git diff --exit-code`),
+      # so a PR that edited a component's @summary without regenerating fails
+      # here instead of shipping a stale llms.txt.
       - run: bun run llms:check
       # Component @summary budget.
       - run: bun run summary:lint

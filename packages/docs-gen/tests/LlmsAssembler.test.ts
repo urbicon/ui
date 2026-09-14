@@ -4,11 +4,6 @@ import type { LlmsAssemblerConfig } from '../src/generators/llm/LlmsAssembler';
 import { LlmsAssembler } from '../src/generators/llm/LlmsAssembler';
 
 vi.mock('fs/promises');
-vi.mock('glob', () => ({
-  glob: vi.fn()
-}));
-
-const { glob } = await import('glob');
 
 const TEMPLATE = `# Urbicon UI
 
@@ -32,13 +27,13 @@ const catalogPath = '/repo/apps/docs/static/mcp/component-catalog.json';
 const outputPath = '/repo/llms.txt';
 
 /**
- * Table's single entry mirrors the real catalog anomaly this assembler is
- * built to survive: `MCPCatalogGenerator` defaults a missing `group` to
- * `'primitives'` for display, but the write loop never applied a group
- * segment for `table` on disk (`apps/docs/static/table/table/llm.txt`, not
- * `.../table/primitives/table/llm.txt`). The fixture's `group: 'primitives'`
- * is therefore deliberately wrong relative to the glob result below, so a
- * test can prove the href comes from the filesystem, not this field.
+ * Table's entry has no group segment in `llmTxtPath` even though its `group`
+ * display field says `'primitives'` — the real shape `MCPCatalogGenerator`
+ * emits once `llmTxtPath` is derived from the raw, undefaulted `group`
+ * (matching where `LLMDocumentationGenerator`'s write loop actually put the
+ * file: `apps/docs/static/table/table/llm.txt`, not `.../table/primitives/
+ * table/llm.txt`). Kept as a fixture so this case stays covered through the
+ * catalog path now that the assembler no longer touches the filesystem.
  */
 const CATALOG = {
   components: [
@@ -49,7 +44,8 @@ const CATALOG = {
       group: 'primitives',
       description: 'Button description.',
       summary: 'Clicks things.',
-      stability: 'stable'
+      stability: 'stable',
+      llmTxtPath: 'primitives/button/llm.txt'
     },
     {
       name: 'Accordion',
@@ -57,7 +53,8 @@ const CATALOG = {
       package: '@urbicon-ui/blocks',
       group: 'primitives',
       description: 'Accordion description.',
-      summary: 'Collapses things.'
+      summary: 'Collapses things.',
+      llmTxtPath: 'primitives/accordion/llm.txt'
     },
     {
       name: 'Calendar',
@@ -66,7 +63,8 @@ const CATALOG = {
       group: 'components',
       description: 'Calendar description.',
       summary: 'Shows dates.',
-      stability: 'beta'
+      stability: 'beta',
+      llmTxtPath: 'components/calendar/llm.txt'
     },
     {
       name: 'Table',
@@ -74,7 +72,17 @@ const CATALOG = {
       package: '@urbicon-ui/table',
       group: 'primitives',
       description: 'Table description.',
-      summary: 'Shows rows.'
+      summary: 'Shows rows.',
+      llmTxtPath: 'table/llm.txt'
+    },
+    {
+      name: 'LoginPage',
+      slug: 'login-page',
+      package: '@urbicon-ui/auth',
+      group: 'components',
+      description: 'LoginPage description.',
+      summary: 'Signs a user in.',
+      llmTxtPath: 'components/login-page/llm.txt'
     }
   ]
 };
@@ -91,40 +99,15 @@ function baseConfig(overrides: Partial<LlmsAssemblerConfig> = {}): LlmsAssembler
       { label: 'Auth', urlSegment: 'auth' },
       { label: 'Docs', urlSegment: 'docs' }
     ],
+    // Same order as CLI.ts's LLMS_PACKAGES — the package-order assertions below
+    // pin that a config reordering here would be a content change.
     packages: [
-      {
-        label: 'Blocks',
-        urlSegment: 'blocks',
-        packageId: '@urbicon-ui/blocks',
-        staticDir: '/repo/apps/docs/static/blocks'
-      },
-      {
-        label: 'Table',
-        urlSegment: 'table',
-        packageId: '@urbicon-ui/table',
-        staticDir: '/repo/apps/docs/static/table'
-      }
+      { label: 'Blocks', urlSegment: 'blocks', packageId: '@urbicon-ui/blocks' },
+      { label: 'Table', urlSegment: 'table', packageId: '@urbicon-ui/table' },
+      { label: 'Auth', urlSegment: 'auth', packageId: '@urbicon-ui/auth' }
     ],
     ...overrides
   };
-}
-
-function mockGlob(): void {
-  vi.mocked(glob).mockImplementation(async (pattern: unknown) => {
-    const p = String(pattern);
-    if (p.includes('/apps/docs/static/blocks/')) {
-      return [
-        '/repo/apps/docs/static/blocks/primitives/button/llm.txt',
-        '/repo/apps/docs/static/blocks/primitives/accordion/llm.txt',
-        '/repo/apps/docs/static/blocks/components/calendar/llm.txt'
-      ];
-    }
-    if (p.includes('/apps/docs/static/table/')) {
-      // No group segment on disk — see the CATALOG comment above.
-      return ['/repo/apps/docs/static/table/table/llm.txt'];
-    }
-    return [];
-  });
 }
 
 function mockFs(catalog: unknown = CATALOG): void {
@@ -149,19 +132,21 @@ describe('LlmsAssembler', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders one line per component, grouped by package and family, alphabetically within each group', async () => {
+  it('renders one line per component, grouped by package and family, in a fixed order', async () => {
     mockFs();
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     const { content, count } = await assembler.render();
 
-    expect(count).toBe(4);
+    expect(count).toBe(5);
     expect(content).toContain('## Blocks — Primitives');
     expect(content).toContain('## Blocks — Components');
-    // Table has only one group among its entries — no "— Family" suffix.
+    // Table and Auth each have only one group among their entries — no
+    // "— Family" suffix.
     expect(content).toContain('## Table\n');
+    expect(content).toContain('## Auth\n');
     expect(content).not.toContain('## Table — Primitives');
+    expect(content).not.toContain('## Auth — Components');
 
     expect(content).toContain(
       '- [Accordion](https://ui.urbicon.de/blocks/primitives/accordion/llm.txt): Collapses things.'
@@ -169,31 +154,43 @@ describe('LlmsAssembler', () => {
     expect(content).toContain(
       '- [Button](https://ui.urbicon.de/blocks/primitives/button/llm.txt): Clicks things.'
     );
-    // Alphabetical within the group: Accordion before Button.
+    // Alphabetical (plain, not locale-aware) within the group: Accordion before Button.
     expect(content.indexOf('Accordion')).toBeLessThan(content.indexOf('[Button]'));
     // Non-stable entries carry their stability level.
     expect(content).toContain(
       '- [Calendar](https://ui.urbicon.de/blocks/components/calendar/llm.txt): Shows dates. (beta)'
     );
+
+    // Group order within a package: primitives before components.
+    expect(content.indexOf('## Blocks — Primitives')).toBeLessThan(
+      content.indexOf('## Blocks — Components')
+    );
+    // Package order: Blocks, then Table, then Auth (config order, not catalog order).
+    const blocksIndex = content.indexOf('## Blocks — Primitives');
+    const tableIndex = content.indexOf('## Table');
+    const authIndex = content.indexOf('## Auth');
+    expect(blocksIndex).toBeLessThan(tableIndex);
+    expect(tableIndex).toBeLessThan(authIndex);
   });
 
-  it("resolves the href from the static filesystem tree, not the catalog's own (possibly-defaulted) group field", async () => {
+  it("builds each href from the catalog's llmTxtPath, including an entry with no group segment", async () => {
     mockFs();
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     const { content } = await assembler.render();
 
-    // The fixture's Table entry says group: 'primitives', which would produce
-    // `.../table/primitives/table/llm.txt` if trusted — but the glob result
-    // (what's really on disk) has no group segment.
+    // Table's llmTxtPath ('table/llm.txt') carries no group segment even
+    // though its display `group` field says 'primitives' — see the CATALOG
+    // comment above. The href must follow llmTxtPath exactly.
     expect(content).toContain('- [Table](https://ui.urbicon.de/table/table/llm.txt): Shows rows.');
     expect(content).not.toContain('table/primitives/table/llm.txt');
+    expect(content).toContain(
+      '- [LoginPage](https://ui.urbicon.de/auth/components/login-page/llm.txt): Signs a user in.'
+    );
   });
 
   it('renders the Resources section from siteUrl and the configured scopes', async () => {
     mockFs();
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     const { content } = await assembler.render();
@@ -201,6 +198,7 @@ describe('LlmsAssembler', () => {
     expect(content).toContain('- [Documentation site](https://ui.urbicon.de):');
     expect(content).toContain('- [Full API Reference](https://ui.urbicon.de/llms-full.txt):');
     expect(content).toContain('- [AI-native tooling](https://ui.urbicon.de/ai):');
+    expect(content).toContain('- [Customization](https://ui.urbicon.de/customization):');
     expect(content).toContain('- [Blocks — llms.txt](https://ui.urbicon.de/blocks/llms.txt):');
     expect(content).toContain('- [Table — llms.txt](https://ui.urbicon.de/table/llms.txt):');
     expect(content).toContain('- [Auth — llms.txt](https://ui.urbicon.de/auth/llms.txt):');
@@ -209,7 +207,6 @@ describe('LlmsAssembler', () => {
 
   it('preserves the hand-written template preamble verbatim', async () => {
     mockFs();
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     const { content } = await assembler.render();
@@ -221,9 +218,8 @@ describe('LlmsAssembler', () => {
     expect(content).not.toContain('{{COMPONENTS}}');
   });
 
-  it('renders identical content across repeated calls (stable ordering, no timestamps)', async () => {
+  it('renders identical content across repeated calls from the same catalog (stable ordering, no timestamps)', async () => {
     mockFs();
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     const first = await assembler.render();
@@ -235,14 +231,13 @@ describe('LlmsAssembler', () => {
 
   it('assemble() writes the rendered content to every configured output path', async () => {
     mockFs();
-    mockGlob();
     const assembler = new LlmsAssembler(
       baseConfig({ outputPaths: ['/repo/llms.txt', '/repo/apps/docs/static/llms.txt'] })
     );
 
     const result = await assembler.assemble();
 
-    expect(result.componentCount).toBe(4);
+    expect(result.componentCount).toBe(5);
     expect(fs.writeFile).toHaveBeenCalledTimes(2);
     expect(vi.mocked(fs.writeFile).mock.calls[0][0]).toBe('/repo/llms.txt');
     expect(vi.mocked(fs.writeFile).mock.calls[1][0]).toBe('/repo/apps/docs/static/llms.txt');
@@ -251,7 +246,6 @@ describe('LlmsAssembler', () => {
 
   it('throws when a configured package has no catalog entries', async () => {
     mockFs({ components: [] });
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     await expect(assembler.render()).rejects.toThrow(
@@ -259,12 +253,25 @@ describe('LlmsAssembler', () => {
     );
   });
 
-  it('throws when a catalog entry has no matching llm.txt on disk', async () => {
-    mockFs();
-    vi.mocked(glob).mockResolvedValue([]); // nothing found for either package
+  it('throws when a catalog entry has no llmTxtPath', async () => {
+    mockFs({
+      components: [
+        {
+          name: 'Button',
+          slug: 'button',
+          package: '@urbicon-ui/blocks',
+          group: 'primitives',
+          description: 'Button description.',
+          summary: 'Clicks things.'
+          // no llmTxtPath
+        },
+        CATALOG.components.find((c) => c.name === 'Table'),
+        CATALOG.components.find((c) => c.name === 'LoginPage')
+      ]
+    });
     const assembler = new LlmsAssembler(baseConfig());
 
-    await expect(assembler.render()).rejects.toThrow(/no llm\.txt on disk for "Accordion"/);
+    await expect(assembler.render()).rejects.toThrow('"Button" has no llmTxtPath');
   });
 
   it('throws when a catalog entry has no @summary', async () => {
@@ -275,13 +282,14 @@ describe('LlmsAssembler', () => {
           slug: 'button',
           package: '@urbicon-ui/blocks',
           group: 'primitives',
-          description: 'Button description.'
+          description: 'Button description.',
+          llmTxtPath: 'primitives/button/llm.txt'
           // no summary
         },
-        CATALOG.components[3] // Table, so the table package still has an entry
+        CATALOG.components.find((c) => c.name === 'Table'),
+        CATALOG.components.find((c) => c.name === 'LoginPage')
       ]
     });
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     await expect(assembler.render()).rejects.toThrow('"Button" has no @summary');
@@ -300,7 +308,6 @@ describe('LlmsAssembler', () => {
       if (p === templatePath) return TEMPLATE;
       throw new Error('ENOENT');
     });
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     await expect(assembler.render()).rejects.toThrow('Component catalog not found');
@@ -313,7 +320,6 @@ describe('LlmsAssembler', () => {
       if (p === catalogPath) return JSON.stringify(CATALOG);
       throw new Error(`Unexpected read: ${p}`);
     });
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     await expect(assembler.render()).rejects.toThrow('missing the {{RESOURCES}}');
@@ -326,7 +332,6 @@ describe('LlmsAssembler', () => {
       if (p === catalogPath) return JSON.stringify(CATALOG);
       throw new Error(`Unexpected read: ${p}`);
     });
-    mockGlob();
     const assembler = new LlmsAssembler(baseConfig());
 
     await expect(assembler.render()).rejects.toThrow('missing the {{COMPONENTS}}');
