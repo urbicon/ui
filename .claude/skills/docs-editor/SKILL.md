@@ -96,8 +96,12 @@ component this pass runs **early**, not last: its findings decide what the prose
 
 ## Gates and reporting
 
-`bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint` — and
-`examples:budget` when the page is a component page. Green before reporting.
+`bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint`,
+`registry:lint`, and `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path> --craft-floor 70`
+(`urbicon validate`, which lints the page's own markup). On a component page, also `typesref:lint`
+and `examples:budget`; after a JSDoc change, also `summary:lint` and `playgrounds:lint`. This is the
+docs-page subset of the `gates` job in `.github/workflows/ci.yml`; run the whole job list before
+reporting.
 
 Report as points, not an essay. Pass 1: the blockers, the paragraphs that taught nothing, verbatim
 quotes. Passes 2 and 3: each change with what it rests on. And explicitly, anything

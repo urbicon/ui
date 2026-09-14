@@ -19,7 +19,7 @@ Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`,
 4. `ICON_METADATA` in `icon-registry.ts`
 5. the `index.ts` export
 
-Run **`bun run icons:lint`** — it enforces the contract + registry integrity (errors) and flags judgement calls (warnings).
+Run **`bun run icons:lint`** — it enforces the contract + registry integrity (errors) and flags judgement calls (warnings). It also hard-fails when the new total disagrees with a documented icon count in `packages/blocks/README.md`, `docs/ARCHITECTURE.md`, `docs/README.md` or `docs/ICON-ROADMAP.md` (`COUNT_CLAIMS` in `icons-lint.ts`) — update whichever of those four states a count alongside the 5-spot registration.
 
 Full measurement spec, corner-radius scale, canonical motifs, reference icon per shape class + checklist: [docs/ICON-DESIGN.md](../../../docs/ICON-DESIGN.md).
 

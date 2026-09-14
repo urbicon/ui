@@ -143,7 +143,7 @@ Knobs that are screen-reader-only (Spinner's `label`, Breadcrumb's
 (`'Expand Label (screen reader)'`), or they read as dead.
 
 Measure before adding, not after: `intent` on TimeInput/Textarea emits its class
-and still renders the same grey border (see `docs/technical-debt.md`).
+and still renders the same grey border.
 
 ## Prerequisite
 
