@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.22.0] - 2026-09-14
+
+### Breaking Changes
+- **blocks**: Draw the required marker from CSS, not a text node (#460)
+> **BREAKING:** required marker glyph is CSS; `unstyled` needs a content class (MIGRATION 8.22.0)
+
+### CI/CD
+- Run size as a per-PR report and gate it at the release bump (#477)
+
+### Documentation
+- Record the auth-wave decisions — alert role, promotion clock, one-line footers
+- Align the docs-site guides and seven skills with the code and ci.yml (#474)
+- Bring every package README to the code, and let the fence marker tolerate a blank line (#476)
+- One canon per topic in the conventions cluster, and the code decides every contradiction (#478)
+- Point the architecture doc at the bump-time size gate and the generated llms.txt
+- The release-bump skill carries no link into docs/internal
+
+### Features
+- **docs-gen**: Generate llms.txt from the component catalog, with llms:check as the gate (#475)
+
+### Miscellaneous
+- Diet AGENTS.md, drop .cursorrules, enforce the trailer ban in commitlint (#461)
+
 ## [8.21.0] - 2026-09-09
 
 ### Breaking Changes
