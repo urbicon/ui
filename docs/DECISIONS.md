@@ -222,7 +222,7 @@ an import in `utils/highlighter.ts`, not a config option.
 
 ## No round-trip / codegen tool for domain projection
 
-A two-day spike (`experiment/domain-projection`, frozen at `b4d766c`) asked whether an
+A two-day spike (local branch `experiment/domain-projection`, tip `9b8afdb6`, never pushed) asked whether an
 AI-driven meta-system that projects a consumer's domain model onto the library, keeping
 changes cheap as that model evolves, is worth building. **Decision: no round-trip/codegen
 tool.** Determinism belongs in verification — drift linters, types, `validate_design` as
