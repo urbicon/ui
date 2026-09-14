@@ -57,12 +57,18 @@ What they do that we copy:
 
 ## Page shape
 
-1. What it is, and when to reach for it. One or two sentences — one, for a primitive whose function
-   is already known, with no marketing in the hero. The Playground speaks first; orientation beyond
-   that sentence moves to a section below.
+The narrative arc a page's prose follows, not its section structure — which sections exist, in
+which order, and what a component page requires is [DocsPageGuide.md](DocsPageGuide.md), the
+structural canon.
+
+1. What it is, and when to reach for it — the hero. One or two sentences: one for a primitive
+   whose function is already known, with no marketing and no feature roll-call. The Playground (or
+   the first example) speaks first; orientation beyond that sentence moves to a section below, never
+   crammed back into the hero.
 2. The smallest working example. Complete, copy-paste-runnable, imports included.
-3. The two or three props everyone will touch, each shown as a one-line change to the
-   first example.
+3. The two or three props everyone will touch — introduced through worked, task-shaped examples,
+   not a permutation grid. DocsPageGuide's Examples Strategy sets the concrete shape ("use-cases,
+   not permutations") and `examples:budget` enforces it; the Button reference page is the model.
 4. Common variations and recipes.
 5. Exceptions and advanced use, labeled as such.
 
@@ -138,9 +144,10 @@ catches them. Three steps:
    find."* Skipped sentences mark the passages that describe instead of enable.
 3. **Checklist.** Sentence hygiene, last.
 
-Steps 2 and 3, together with a fact-verification pass against the component source, are
-the `docs-editor` skill; run it after writing or substantially editing a page. Every
-behaviour claim is checked there before a page ships.
+Steps 2 and 3, together with a fact-verification pass against the component source and a fourth
+pass that renders the page and interacts with it, are the `docs-editor` skill; run it after writing
+or substantially editing a page. Every behaviour claim is checked there before a page ships, and the
+render pass catches the layout and interaction defects prose review cannot.
 
 ## Checklist
 

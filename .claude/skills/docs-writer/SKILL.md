@@ -36,14 +36,18 @@ imitated verbatim; pointers do not.
 
 ## Migration (existing page)
 
-1. Writer, fresh context, with the briefing above.
-2. `docs-editor` pass on the result — second fresh context.
-3. Read the page cold; dissect any sentence that slipped through, sentence by sentence.
-4. If JSDoc changed: `bun run docs:gen:all`, then `summary:lint` / `registry:lint`.
+1. **A fresh worktree has no `api.ts` yet** — it is git-ignored, not committed. Run
+   `bun run docs:gen:all` before opening the page, even when JSDoc did not change.
+2. Writer, fresh context, with the briefing above.
+3. `docs-editor` pass on the result — second fresh context.
+4. Read the page cold; dissect any sentence that slipped through, sentence by sentence.
+5. If JSDoc changed: `bun run docs:gen:all` again, then `summary:lint` / `registry:lint`.
 
 ## New page
 
 JSDoc first (`component-metadata`), then `bun run docs:gen:all` (creates the page's `api.ts`),
 then the writer — plus the `docs-recipes` skill for section structure and the three registrations
 (`registry:lint` enforces them) — then the `docs-editor` pass. Gates: `sections:lint`,
-`examples:budget`, `registry:lint`, and after JSDoc changes `summary:lint` / `playgrounds:lint`.
+`examples:budget`, `registry:lint`, `typesref:lint`, and after JSDoc changes `summary:lint` /
+`playgrounds:lint` — the full list a component page must satisfy is the `gates` job in
+`.github/workflows/ci.yml`.

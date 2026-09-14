@@ -64,11 +64,11 @@ no `@testing-library/svelte`, no `jest-dom`. Give the agents:
 
 - **a positive control, mandatory**: measure the same thing in the opposite case (client instead
   of server, non-virtualized instead of virtualized) with the identical rig. If the control is
-  not green, the rig measures nothing and nothing may be claimed. (Same lesson as
-  `guard-green-for-the-wrong-reason`.)
+  not green, the rig measures nothing and nothing may be claimed — the same way a lint gate with
+  no positive control against its own oracle can stay green while checking nothing.
 - **`NOT_DECIDABLE` as a permitted verdict.** jsdom does not lay out; `offsetHeight` is 0. Where
-  layout is needed, stub `clientHeight` (pattern in `Table.render.svelte.test.ts:534`). Anything
-  pixel-shaped stays unclaimed.
+  layout is needed, stub `clientHeight` (pattern in the `stubLayoutProp` helper,
+  `Table.render.svelte.test.ts:44`). Anything pixel-shaped stays unclaimed.
 - **an adversarial brief**: the job is to *refute*. A refuted finding is a valuable result.
 - **a unique temp filename per agent** (parallel verifications otherwise overwrite each other),
   delete it afterwards, commit nothing.
@@ -129,8 +129,6 @@ do not replace each other.
   the *work* that ends the state, and let it link back.
 - **Method learnings** → this file.
 
-## Traps from the first run
-
 ## Learnings from the second run (features/ layer, 2026-08-22)
 
 - **A browser pass belongs after sonde 3 wherever findings were tagged
@@ -162,5 +160,5 @@ do not replace each other.
   that ran out.
 - **Read big workflow results from the journal, not whole.** Extract titles and verdicts with
   `jq` over `journal.jsonl` first, then pull the few entries that matter.
-- **`rg` output is not evidence.** A truncated grep hides hits; make agents read the files they
-  cite. (`vollstaendigkeit-nie-aus-abgeschnittenem-grep`.)
+- **`rg` output is not evidence.** A truncated grep hides hits, and a defect spread across several
+  files only shows up once each one is read in full — make agents read the files they cite.

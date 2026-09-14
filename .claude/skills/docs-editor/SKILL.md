@@ -96,8 +96,10 @@ component this pass runs **early**, not last: its findings decide what the prose
 
 ## Gates and reporting
 
-`bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint` — and
-`examples:budget` when the page is a component page. Green before reporting.
+`bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint` and
+`registry:lint`. On a component page, also `typesref:lint` and `examples:budget`; after a JSDoc
+change, also `summary:lint` and `playgrounds:lint`. This is the same set the `gates` job in
+`.github/workflows/ci.yml` blocks a PR on — green before reporting.
 
 Report as points, not an essay. Pass 1: the blockers, the paragraphs that taught nothing, verbatim
 quotes. Passes 2 and 3: each change with what it rests on. And explicitly, anything

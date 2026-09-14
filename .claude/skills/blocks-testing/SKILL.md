@@ -1,13 +1,13 @@
 ---
 name: blocks-testing
-description: Test conventions for this repo (Vitest, node vs jsdom, mounting Svelte components, compound-widget harnesses). Use when writing, fixing, or reviewing tests in packages/blocks, table, i18n, docs-gen, auth or sveltekit-utils — especially DOM/interaction tests.
+description: Test conventions for this repo (Vitest, node vs jsdom, mounting Svelte components, compound-widget harnesses). Use when writing, fixing, or reviewing tests in packages/blocks, table, docs, i18n, docs-gen, auth or sveltekit-utils — especially DOM/interaction tests.
 ---
 
 # Testing in this repo
 
-- Framework: Vitest (in `blocks`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`)
+- Framework: Vitest (in `blocks`, `table`, `docs`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`)
 - Type checks: `bun run check` or per-package `svelte-check`
-- Run a package's tests with `bun --filter='<pkg>' run test` — **`run` is mandatory**; bare `bun test` bypasses the Vitest config and produces fake failures.
+- Run a package's tests with `bun --filter='<pkg>' run test` — **`run` is mandatory**; bare `bun test` bypasses the Vitest config and produces fake failures. On `blocks` and `i18n` specifically, the `test` script itself is `vitest` in watch mode and never exits under a TTY — use `bun --filter='<pkg>' run test:run` there (what CI runs). Every other package's `test` script is already `vitest run`.
 
 ## Component / DOM tests (`blocks`)
 
@@ -32,7 +32,7 @@ Two knobs have to be right and neither announces itself:
 1. the per-file `// @vitest-environment jsdom` docblock, and
 2. `resolve.conditions: ['browser']` in the package's `vitest.config.ts`.
 
-Vitest consults `resolve.conditions` only in its **web** transform mode, which the jsdom environment selects. Miss either one and Svelte resolves to its *server* build, where `$effect` and `$effect.root` are no-ops that discard the callback unread. `blocks`, `table`, `docs` and `i18n` all set the condition; a new package needs it added.
+Vitest consults `resolve.conditions` only in its **web** transform mode, which the jsdom environment selects. Miss either one and Svelte resolves to its *server* build, where `$effect` and `$effect.root` are no-ops that discard the callback unread. `blocks`, `table`, `docs`, `i18n`, `auth` and `sveltekit-utils` all set the condition; a new package needs it added.
 
 - **`$derived` is not affected** — it recomputes on read in the server build too, so a controller harness that only reads derived values may legitimately stay on node (reference: `internal/date-grid/date-grid.svelte.test.ts`, verified falsifiable).
 - **`flushSync()` belongs outside the root**, not in the callback body — inside, the effects created alongside it have not been scheduled yet.

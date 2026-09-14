@@ -27,7 +27,8 @@ synthesis, and the standing rule:
    architecture notes).
 2. **One source, all channels generated — docs-gen is the only distributor.**
    Nothing consumer-facing is hand-copied between surfaces. Component APIs
-   flow from `*Props` JSDoc (see AGENTS.md § Component metadata); guide
+   flow from `*Props` JSDoc (see AGENTS.md § Coding Conventions, the
+   "Component metadata via JSDoc" bullet); guide
    documents flow through three generated channels: the `guides` field of a
    target's LLM output config (`packages/docs-gen/src/types/configuration.ts`
    → copied to `static/<scope>/<Doc>.md` + indexed under `## Guides` in the
@@ -45,7 +46,7 @@ synthesis, and the standing rule:
    content is public and English; planning, review bookkeeping and strategy
    stay in `docs/internal/` (gitignored). Shipped docs never carry internal
    review IDs, wave/session names or priority markers. (Also stated in
-   AGENTS.md § Internal working docs.)
+   AGENTS.md § Documentation, the "Public or internal" bullet.)
 
 ## Classes and channels
 
