@@ -104,6 +104,10 @@ jobs:
       # here rather than in `lint` because it reads the design-content catalogue,
       # which is a build artefact.
       - run: bun run a2ui:axes:check
+      # Root llms.txt vs. the component catalog it's generated from. Drift
+      # here means an agent reading llms.txt sees a component list that no
+      # longer matches what @summary generates.
+      - run: bun run llms:check
       # Component @summary budget.
       - run: bun run summary:lint
       # A docs page is hand-registered in three places (sidebar, componentLinks,

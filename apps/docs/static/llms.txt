@@ -1,11 +1,145 @@
 # Urbicon UI
 
-> Global LLM resources index.
+> Zero-dependency Svelte 5 + Tailwind CSS 4 component library built for LLM-assisted development — a custom `tv()` variant engine, an OKLCH design-token system with automatic dark mode, and production-ready primitives and patterns across `blocks`, `table` and `auth`.
 
-- [Full API Reference](./llms-full.txt): Complete component props, variants, tokens, and patterns
+## Install
 
-## Scopes
-- [Blocks](./blocks/llms.txt): Scope index
-- [Docs](./docs/llms.txt): Scope index
-- [Table](./table/llms.txt): Scope index
-- [Auth](./auth/llms.txt): Scope index
+```bash
+bun add @urbicon-ui/blocks
+```
+
+Then two CSS imports — Tailwind first, then the token sheet (it also carries the `@source`
+directives that make the components' classes reachable):
+
+```css
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css';
+```
+
+`@urbicon-ui/table` and `@urbicon-ui/auth` each ship a stylesheet of their own — import it after
+blocks, or their classes compile to nothing. Import it where your app loads CSS (`+layout.svelte`
+under SvelteKit, `main.js` in a plain Vite + Svelte app). Requirements: Svelte 5, Vite and
+Tailwind 4 — SvelteKit is **not** required for `blocks`, `table` or `i18n`. In a SvelteKit
+project, `bunx sv add tailwindcss=plugins:none @urbicon-ui` does the install and the CSS wiring
+in one non-interactive step (see the Full API Reference below for the complete flow).
+
+## Resources
+
+- [Documentation site](https://ui.urbicon.de): Live docs, playgrounds and recipes for every component
+- [Full API Reference](https://ui.urbicon.de/llms-full.txt): Complete component props, variants, tokens, and patterns for every component
+- [AI-native tooling](https://ui.urbicon.de/ai): The `urbicon` CLI — version-pinned component knowledge and a design-token linter for agents
+- [Blocks — llms.txt](https://ui.urbicon.de/blocks/llms.txt): Scope index
+- [Table — llms.txt](https://ui.urbicon.de/table/llms.txt): Scope index
+- [Auth — llms.txt](https://ui.urbicon.de/auth/llms.txt): Scope index
+- [Docs — llms.txt](https://ui.urbicon.de/docs/llms.txt): Scope index
+
+## Blocks — Primitives
+
+- [Accordion](https://ui.urbicon.de/blocks/primitives/accordion/llm.txt): Stacked sections that expand one at a time, or several at once.
+- [Alert](https://ui.urbicon.de/blocks/primitives/alert/llm.txt): An inline notice that stays put — status, warning, error or hint, with an optional action.
+- [Avatar](https://ui.urbicon.de/blocks/primitives/avatar/llm.txt): A person as a picture, or their initials when there is none.
+- [Badge](https://ui.urbicon.de/blocks/primitives/badge/llm.txt): A small label for a status, a category or a count.
+- [Breadcrumb](https://ui.urbicon.de/blocks/primitives/breadcrumb/llm.txt): The trail back up: where this page sits in the hierarchy.
+- [Button](https://ui.urbicon.de/blocks/primitives/button/llm.txt): The control that commits an action, in every weight an interface needs.
+- [ButtonGroup](https://ui.urbicon.de/blocks/primitives/button-group/llm.txt): Related buttons as one control, optionally with a selected state.
+- [Card](https://ui.urbicon.de/blocks/primitives/card/llm.txt): A container that groups what belongs together, clickable where it should be.
+- [Checkbox](https://ui.urbicon.de/blocks/primitives/checkbox/llm.txt): A box you tick, including the half-ticked state for partial selections.
+- [Collapsible](https://ui.urbicon.de/blocks/primitives/collapsible/llm.txt): A single panel that folds away — the simplest way to hide detail until asked.
+- [Combobox](https://ui.urbicon.de/blocks/primitives/combobox/llm.txt): Type to filter, then pick — a searchable list for when the options are many.
+- [ConfirmDialog](https://ui.urbicon.de/blocks/primitives/confirm-dialog/llm.txt): The "are you sure" that replaces the browser's own — styleable, focused, dismissible.
+- [Dialog](https://ui.urbicon.de/blocks/primitives/dialog/llm.txt): A window over the page for something that needs finishing first.
+- [Drawer](https://ui.urbicon.de/blocks/primitives/drawer/llm.txt): A panel that slides in from an edge and takes focus with it.
+- [FormField](https://ui.urbicon.de/blocks/primitives/form-field/llm.txt): Label, helper text and error around any control that has none of its own.
+- [Input](https://ui.urbicon.de/blocks/primitives/input/llm.txt): The single-line text field, with label, validation and icons.
+- [JourneyTimeline](https://ui.urbicon.de/blocks/primitives/journey-timeline/llm.txt): The record of what happened, in order — shipments, audits, itineraries.
+- [Kbd](https://ui.urbicon.de/blocks/primitives/kbd/llm.txt): A keyboard shortcut, drawn as the key you press.
+- [Menu](https://ui.urbicon.de/blocks/primitives/menu/llm.txt): A list of things you can do, hung off a button.
+- [Pagination](https://ui.urbicon.de/blocks/primitives/pagination/llm.txt): Page through a longer list, in whichever layout fits.
+- [Popover](https://ui.urbicon.de/blocks/primitives/popover/llm.txt): A floating panel that hangs off a trigger and closes when you look away.
+- [Progress](https://ui.urbicon.de/blocks/primitives/progress/llm.txt): How far along something is — or that it is running at all.
+- [RadioGroup](https://ui.urbicon.de/blocks/primitives/radio-group/llm.txt): Pick exactly one, with all the options in sight.
+- [Scroller](https://ui.urbicon.de/blocks/primitives/scroller/llm.txt): A row that scrolls only when it has to — otherwise an ordinary row. (experimental)
+- [SegmentGroup](https://ui.urbicon.de/blocks/primitives/segment-group/llm.txt): A row of choices with the selection sliding between them.
+- [Select](https://ui.urbicon.de/blocks/primitives/select/llm.txt): Choose from a list — one value, or several.
+- [Separator](https://ui.urbicon.de/blocks/primitives/separator/llm.txt): A line marking where one thing ends and the next begins.
+- [Sidebar](https://ui.urbicon.de/blocks/primitives/sidebar/llm.txt): A side panel: permanent on desktop, an overlay on a phone.
+- [Skeleton](https://ui.urbicon.de/blocks/primitives/skeleton/llm.txt): The shape of what is loading, so nothing jumps when it arrives.
+- [Slider](https://ui.urbicon.de/blocks/primitives/slider/llm.txt): Drag to a value, or to a range between two.
+- [Spinner](https://ui.urbicon.de/blocks/primitives/spinner/llm.txt): Shows that something is running.
+- [SplitPane](https://ui.urbicon.de/blocks/primitives/split-pane/llm.txt): Two panes and a divider the user can move. (experimental)
+- [Stepper](https://ui.urbicon.de/blocks/primitives/stepper/llm.txt): Where you are in a multi-step flow, and how much is left.
+- [Tab](https://ui.urbicon.de/blocks/primitives/tab/llm.txt): Several views, one at a time, switched by their labels.
+- [Textarea](https://ui.urbicon.de/blocks/primitives/textarea/llm.txt): Multi-line text that grows with what you write.
+- [Toast](https://ui.urbicon.de/blocks/primitives/toast/llm.txt): Brief messages that appear, say their piece and leave.
+- [Toggle](https://ui.urbicon.de/blocks/primitives/toggle/llm.txt): On or off, with the switch to say which.
+- [Toolbar](https://ui.urbicon.de/blocks/primitives/toolbar/llm.txt): A bar of controls that belong together.
+- [Tooltip](https://ui.urbicon.de/blocks/primitives/tooltip/llm.txt): A short explanation on hover or focus.
+
+## Blocks — Components
+
+- [A2UIView](https://ui.urbicon.de/blocks/components/a2-ui-view/llm.txt): Turns a model's UI description into live components from your design system. (experimental)
+- [AreaChart](https://ui.urbicon.de/blocks/components/area-chart/llm.txt): A trend chart with the area under each line filled, for volume that adds up. (beta)
+- [AvatarGroup](https://ui.urbicon.de/blocks/components/avatar-group/llm.txt): An overlapping row of avatars with a +N overflow chip.
+- [BarChart](https://ui.urbicon.de/blocks/components/bar-chart/llm.txt): Bars for comparing categories — single, grouped or stacked. (beta)
+- [Calendar](https://ui.urbicon.de/blocks/components/calendar/llm.txt): Appointments on a real calendar — month, week or day, with multi-day spans and recurrence.
+- [ChartFrame](https://ui.urbicon.de/blocks/components/chart-frame/llm.txt): The measured, responsive canvas the other charts draw on — bring your own shapes. (beta)
+- [Chat](https://ui.urbicon.de/blocks/components/chat/llm.txt): The full-height shell of a chat: pinned header, scrolling conversation, composer at the bottom. (experimental)
+- [ChatMessage](https://ui.urbicon.de/blocks/components/chat-message/llm.txt): One message in a conversation, with its text, reasoning, tool calls and attachments. (experimental)
+- [ChatMessageList](https://ui.urbicon.de/blocks/components/chat-message-list/llm.txt): A conversation log that follows streaming output — and lets go the moment you scroll up. (experimental)
+- [CitationChip](https://ui.urbicon.de/blocks/components/citation-chip/llm.txt): The small source marker behind a claim, linking back to where it came from. (experimental)
+- [CodeBlock](https://ui.urbicon.de/blocks/components/code-block/llm.txt): Code to read and copy, with a copy button that confirms it worked. (experimental)
+- [CommandPalette](https://ui.urbicon.de/blocks/components/command-palette/llm.txt): Everything the app can do, one keystroke away.
+- [CompositionBar](https://ui.urbicon.de/blocks/components/composition-bar/llm.txt): One bar showing what a total is made of, with the legend to read it.
+- [CopyButton](https://ui.urbicon.de/blocks/components/copy-button/llm.txt): Copies a value to the clipboard and says so.
+- [CurrencyInput](https://ui.urbicon.de/blocks/components/currency-input/llm.txt): Money entry that counts in cents, so nothing is lost to rounding.
+- [DatePicker](https://ui.urbicon.de/blocks/components/date-picker/llm.txt): A date field with a calendar to pick from.
+- [DateRangePicker](https://ui.urbicon.de/blocks/components/date-range-picker/llm.txt): From and to, in two clicks on one calendar.
+- [DonutChart](https://ui.urbicon.de/blocks/components/donut-chart/llm.txt): Parts of a whole as a ring, with the total in the middle. (beta)
+- [EmptyState](https://ui.urbicon.de/blocks/components/empty-state/llm.txt): What to show when there is nothing yet — and what to do about it.
+- [FileUpload](https://ui.urbicon.de/blocks/components/file-upload/llm.txt): Drop files here: validation, previews and progress included.
+- [Guide](https://ui.urbicon.de/blocks/components/guide/llm.txt): The guided tour — opt-in, step by step, and only when the user asks for it. (beta)
+- [GuideArticle](https://ui.urbicon.de/blocks/components/guide-article/llm.txt): One help article inside the guide panel. (beta)
+- [GuideBeacon](https://ui.urbicon.de/blocks/components/guide-beacon/llm.txt): A quiet pulsing dot that offers a tour instead of starting one. (beta)
+- [GuideHint](https://ui.urbicon.de/blocks/components/guide-hint/llm.txt): A hint that waits beside the element it explains. (beta)
+- [GuideMarker](https://ui.urbicon.de/blocks/components/guide-marker/llm.txt): The discreet marker that opens the help panel at the right article. (beta)
+- [GuideMention](https://ui.urbicon.de/blocks/components/guide-mention/llm.txt): A phrase in the help text that lights up the element it names. (beta)
+- [GuidePanel](https://ui.urbicon.de/blocks/components/guide-panel/llm.txt): Help that docks to the edge and leaves the app usable behind it. (beta)
+- [GuideProvider](https://ui.urbicon.de/blocks/components/guide-provider/llm.txt): The root that wires every guide component to one controller. (beta)
+- [GuideRef](https://ui.urbicon.de/blocks/components/guide-ref/llm.txt): A link from one help article to another. (beta)
+- [LineChart](https://ui.urbicon.de/blocks/components/line-chart/llm.txt): Lines over an ordered axis, for how something developed. (beta)
+- [LocaleSwitcher](https://ui.urbicon.de/blocks/components/locale-switcher/llm.txt): Lets the user pick the interface language.
+- [NumberInput](https://ui.urbicon.de/blocks/components/number-input/llm.txt): A number field with bounds, steppers and arrow-key stepping. (beta)
+- [PinInput](https://ui.urbicon.de/blocks/components/pin-input/llm.txt): One cell per digit, for codes that arrive by mail or app.
+- [Planner](https://ui.urbicon.de/blocks/components/planner/llm.txt): A date grid whose cells hold your content — meals, shifts, bookings, slots. (beta)
+- [PromptInput](https://ui.urbicon.de/blocks/components/prompt-input/llm.txt): The composer: it grows as you type and turns into a stop button while answering. (experimental)
+- [QRCode](https://ui.urbicon.de/blocks/components/qr-code/llm.txt): Any text or link as a code a phone can read.
+- [ReasoningDisclosure](https://ui.urbicon.de/blocks/components/reasoning-disclosure/llm.txt): The model's thinking, folded away until someone wants to look. (experimental)
+- [ResourceTimeline](https://ui.urbicon.de/blocks/components/resource-timeline/llm.txt): Resources as lanes, days as columns; each item a bar. (beta)
+- [Sankey](https://ui.urbicon.de/blocks/components/sankey/llm.txt): Where the volume goes: flows through stages, drawn to scale.
+- [SidebarLayout](https://ui.urbicon.de/blocks/components/sidebar-layout/llm.txt): The app shell — sidebar, content, and the mobile header that opens it.
+- [Sparkline](https://ui.urbicon.de/blocks/components/sparkline/llm.txt): A trend small enough to sit inside a table cell. (beta)
+- [StreamingMarkdown](https://ui.urbicon.de/blocks/components/streaming-markdown/llm.txt): Renders markdown as it arrives, without redrawing what has already settled. (experimental)
+- [ThemeSwitcher](https://ui.urbicon.de/blocks/components/theme-switcher/llm.txt): Light, dark, or whatever the system says.
+- [TimeInput](https://ui.urbicon.de/blocks/components/time-input/llm.txt): A time of day, one segment per field. (beta)
+- [ToolCallCard](https://ui.urbicon.de/blocks/components/tool-call-card/llm.txt): What the agent called, and what came back. (experimental)
+
+## Table
+
+- [Table](https://ui.urbicon.de/table/table/llm.txt): Data in rows: sort, filter, group, select and page through it.
+
+## Auth
+
+- [AccountSettings](https://ui.urbicon.de/auth/components/account-settings/llm.txt): Self-service panel to change name, email and password, or delete the account. (beta)
+- [ForgotPasswordPage](https://ui.urbicon.de/auth/components/forgot-password-page/llm.txt): The ready-made page that sends a password reset link.
+- [InvitationManager](https://ui.urbicon.de/auth/components/invitation-manager/llm.txt): Admin view for invitation-gated signup: who was invited, and who has not answered. (beta)
+- [LoginPage](https://ui.urbicon.de/auth/components/login-page/llm.txt): The ready-made sign-in page, with passkeys if you want them.
+- [NotificationBadge](https://ui.urbicon.de/auth/components/notification-badge/llm.txt): The unread count on a bell, invisible at zero.
+- [NotificationCenter](https://ui.urbicon.de/auth/components/notification-center/llm.txt): The list behind the bell: read it, clear it, or find it empty.
+- [NotificationListener](https://ui.urbicon.de/auth/components/notification-listener/llm.txt): Keeps the notification stream open and reconnects when it drops.
+- [PasskeyManager](https://ui.urbicon.de/auth/components/passkey-manager/llm.txt): Add, rename and remove the passkeys on an account. (beta)
+- [PushPermissionPrompt](https://ui.urbicon.de/auth/components/push-permission-prompt/llm.txt): Asks, once and politely, whether push notifications are welcome.
+- [RegisterPage](https://ui.urbicon.de/auth/components/register-page/llm.txt): The ready-made sign-up page, with the password rules shown as you type.
+- [ResetPasswordPage](https://ui.urbicon.de/auth/components/reset-password-page/llm.txt): The ready-made page for choosing a new password.
+- [SessionManager](https://ui.urbicon.de/auth/components/session-manager/llm.txt): Every device signed in to this account, and the button to sign them out. (beta)
+- [TwoFactorManager](https://ui.urbicon.de/auth/components/two-factor-manager/llm.txt): Turn on two-factor, keep the backup codes, turn it off again. (beta)
+- [VerifyEmailPage](https://ui.urbicon.de/auth/components/verify-email-page/llm.txt): Confirms the address from the link in the mail.

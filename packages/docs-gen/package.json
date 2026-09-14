@@ -47,6 +47,7 @@
     "clean-all": "bun --bun run clean && rm -rf node_modules",
     "dev": "tsc -b --watch",
     "docs:gen": "bun --bun src/cli/CLI.ts generate",
+    "llms:check": "bun --bun src/cli/CLI.ts llms-check",
     "lint": "biome check src",
     "lint:fix": "biome check src --write",
     "test": "vitest run",
