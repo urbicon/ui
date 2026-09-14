@@ -62,15 +62,15 @@ subcomponents and stay folded into the directory component's entry.
 
 ### Key modules
 
-| Path | Purpose |
-|------|---------|
-| `src/core/pipeline/PipelineOrchestrator.ts` | Main pipeline coordinator |
-| `src/core/discovery/ComponentFinder.ts` | Component discovery |
-| `src/core/extraction/ExtractionCoordinator.ts` | Orchestrates extractors |
-| `src/core/enrichment/APIDataGenerator.ts` | API data generation |
-| `src/core/generation/GenerationCoordinator.ts` | Output coordination |
-| `src/generators/api/APIFileGenerator.ts` | Per-component `api.ts` files |
-| `src/generators/llm/LLMDocumentationGenerator.ts` | LLM text output |
+| Path                                              | Purpose                      |
+| ------------------------------------------------- | ---------------------------- |
+| `src/core/pipeline/PipelineOrchestrator.ts`       | Main pipeline coordinator    |
+| `src/core/discovery/ComponentFinder.ts`           | Component discovery          |
+| `src/core/extraction/ExtractionCoordinator.ts`    | Orchestrates extractors      |
+| `src/core/enrichment/APIDataGenerator.ts`         | API data generation          |
+| `src/core/generation/GenerationCoordinator.ts`    | Output coordination          |
+| `src/generators/api/APIFileGenerator.ts`          | Per-component `api.ts` files |
+| `src/generators/llm/LLMDocumentationGenerator.ts` | LLM text output              |
 
 ## Configuration
 
@@ -83,19 +83,19 @@ Configuration is built via `DocsConfigurationBuilder` and `ConfigurationFactory`
 
 ### Output paths
 
-| Target | API output | LLM output |
-|--------|-----------|------------|
+| Target | API output                     | LLM output                 |
+| ------ | ------------------------------ | -------------------------- |
 | blocks | `apps/docs/src/routes/blocks/` | `apps/docs/static/blocks/` |
-| docs | `apps/docs/src/routes/docs/` | `apps/docs/static/docs/` |
-| table | `apps/docs/src/routes/table/` | `apps/docs/static/table/` |
-| auth | `apps/docs/src/routes/auth/` | `apps/docs/static/auth/` |
+| docs   | `apps/docs/src/routes/docs/`   | `apps/docs/static/docs/`   |
+| table  | `apps/docs/src/routes/table/`  | `apps/docs/static/table/`  |
+| auth   | `apps/docs/src/routes/auth/`   | `apps/docs/static/auth/`   |
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `bun run docs:gen` | Generate documentation |
-| `bun run test` | Run Vitest |
-| `bun run test:watch` | Watch mode tests |
-| `bun run build` | Build TypeScript |
-| `bun run typecheck` | Type check only |
+| Script               | Description            |
+| -------------------- | ---------------------- |
+| `bun run docs:gen`   | Generate documentation |
+| `bun run test`       | Run Vitest             |
+| `bun run test:watch` | Watch mode tests       |
+| `bun run build`      | Build TypeScript       |
+| `bun run check`      | Type check only        |

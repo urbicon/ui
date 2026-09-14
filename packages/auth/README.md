@@ -4,7 +4,7 @@ Zero-runtime-dependency authentication, user-management, and notification system
 
 All crypto is implemented with the Web Crypto API — no `bcrypt`, no `jsonwebtoken`, no Web-Push vendor SDK. Server-side handler factories, a Handle-Hook for SvelteKit, an adapter interface (Prisma adapter included), and 14 blocks-based UI components covering login, registration, password reset, email verification, invitation management, passkeys, account management, active sessions, two-factor (TOTP), and notifications.
 
-> **Maturity:** core **stable** (hardened for production SvelteKit deployments, including persistent-store adapters for challenges / rate-limits / refresh tokens); the newest self-service surfaces — account management, session listing, TOTP 2FA — are **`beta`**. See [AUTH.md — Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps) for the residual gap list — the same reference also ships inside this package as [`./docs/AUTH.md`](./docs/AUTH.md).
+> **Maturity:** core **stable** (hardened for production SvelteKit deployments, including persistent-store adapters for challenges / rate-limits / refresh tokens); the newest self-service surfaces — account management, session listing, TOTP 2FA, invitation management, and passkey management — are **`beta`**. See [AUTH.md — Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps) for the residual gap list — the same reference also ships inside this package as [`./docs/AUTH.md`](./docs/AUTH.md).
 
 > **New here?** Jump to the [Quickstart](#stage-1--quickstart-dev-5-minutes) — a copy-paste setup that runs in five minutes with no database or mail server. Then graduate to [Production](#stage-2--production) and [Advanced](#stage-3--advanced).
 
@@ -14,7 +14,7 @@ All crypto is implemented with the Web Crypto API — no `bcrypt`, no `jsonwebto
 bun add @urbicon-ui/auth
 ```
 
-Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
+Peer dependencies: `svelte` (^5.57.0), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
 
 The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well;
@@ -46,34 +46,34 @@ stylesheet existed adds the one line and is done.
 
 ## Feature Matrix
 
-| Area             | Capability                                                                                                                                                                                                                                                                                                                                     | Standards               |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| Sessions         | JWT (HMAC-SHA256), httpOnly/secure/sameSite=lax cookie, 7-day TTL (shortens to 15 min when refresh-rotation is on), `tokenVersion` invalidation, opt-in key rotation via `kid` + `previousSecrets` (since v0.10.0)                                                                                                                             | —                       |
-| Refresh tokens   | Opt-in rotation via `config.refreshToken` + `repos.refreshToken`; 15-min access / 30-day rotating refresh, token families, SHA-256-hashed storage, reuse-detection (replaying a rotated token revokes the whole family), transparent rotation in `createAuthHandle` and explicit `createRefreshHandler` (since v0.11.0)                        | —                       |
-| Passwords        | PBKDF2 (600k iter, SHA-256), legacy bcrypt auto-upgraded via dual-verify                                                                                                                                                                                                                                                                       | —                       |
-| Passkeys         | Registration + authentication, counter check for cloning, ES256 + RS256, pluggable challenge store (in-memory default, optional Redis/Prisma/etc. via `ChallengeStore`), User-Verification (UV) **enforced by default** — `requireUserVerification: false` opts out (the option itself since v0.10.0)                                                                             | WebAuthn Level 2, FIDO2 |
+| Area             | Capability                                                                                                                                                                                                                                                                                                                                                                                                        | Standards               |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Sessions         | JWT (HMAC-SHA256), httpOnly/secure/sameSite=lax cookie, 7-day TTL (shortens to 15 min when refresh-rotation is on), `tokenVersion` invalidation, opt-in key rotation via `kid` + `previousSecrets`                                                                                                                                                                                                                | —                       |
+| Refresh tokens   | Opt-in rotation via `config.refreshToken` + `repos.refreshToken`; 15-min access / 30-day rotating refresh, token families, SHA-256-hashed storage, reuse-detection (replaying a rotated token revokes the whole family), transparent rotation in `createAuthHandle` and explicit `createRefreshHandler`                                                                                                           | —                       |
+| Passwords        | PBKDF2 (600k iter, SHA-256), legacy bcrypt auto-upgraded via dual-verify                                                                                                                                                                                                                                                                                                                                          | —                       |
+| Passkeys         | Registration + authentication, counter check for cloning, ES256 + RS256, pluggable challenge store (in-memory default, optional Redis/Prisma/etc. via `ChallengeStore`), User-Verification (UV) **enforced by default** — `requireUserVerification: false` opts out                                                                                                                                               | WebAuthn Level 2, FIDO2 |
 | Two-factor (2FA) | Opt-in TOTP second factor via `config.twoFactor` + `repos.backupCode`: zero-dep RFC-6238/4226 codes, AES-256-GCM-encrypted secret at rest, signed short-lived pending-2FA cookie between password and code, single-use SHA-256 backup codes, strict per-step rate-limit. Login two-step + `TwoFactorManager` UI. Passkey logins are not gated — a claim that rests on passkey UV enforcement being on by default. | RFC 6238, 4226, 4648    |
-| Web Push         | ECDH P-256 + HKDF + AES-128-GCM, VAPID JWT signing, opt-in per-endpoint rate-limit (since v0.10.0)                                                                                                                                                                                                                                             | RFC 8291, 8292, 8188    |
-| Email            | Transport interface, Lettermint adapter + console logger (dev)                                                                                                                                                                                                                                                                                 | —                       |
-| CSRF             | Origin-header validation (always on for requests routed through `createAuthHandle`) + opt-in Double-Submit-Cookie (since v0.8.4), optional `__Host-` cookie prefix (`csrf.useHostPrefix`) against subdomain injection                                                                                                                          | —                       |
-| Rate-limit       | Pluggable store (in-memory default, optional Redis/Prisma/etc. adapter via `RateLimitStore`), configurable window/max                                                                                                                                                                                                                          | —                       |
-| Security headers | Always on: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`. Configurable via `config.securityHeaders`: HSTS (default `max-age=63072000; includeSubDomains`, only in a [secure deployment](docs/AUTH.md#secure-deployment) — no `cookieSecure: false` on any cookie config) + CSP hook (default `frame-ancestors 'none'`) | —                       |
+| Web Push         | ECDH P-256 + HKDF + AES-128-GCM, VAPID JWT signing, opt-in per-endpoint rate-limit                                                                                                                                                                                                                                                                                                                                | RFC 8291, 8292, 8188    |
+| Email            | Transport interface, Lettermint adapter + console logger (dev)                                                                                                                                                                                                                                                                                                                                                    | —                       |
+| CSRF             | Origin-header validation (always on for requests routed through `createAuthHandle`) + opt-in Double-Submit-Cookie, optional `__Host-` cookie prefix (`csrf.useHostPrefix`) against subdomain injection                                                                                                                                                                                                            | —                       |
+| Rate-limit       | Pluggable store (in-memory default, optional Redis/Prisma/etc. adapter via `RateLimitStore`), configurable window/max                                                                                                                                                                                                                                                                                             | —                       |
+| Security headers | Always on: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`. Configurable via `config.securityHeaders`: HSTS (default `max-age=63072000; includeSubDomains`, only in a [secure deployment](docs/AUTH.md#secure-deployment) — no `cookieSecure: false` on any cookie config) + CSP hook (default `frame-ancestors 'none'`)                                                              | —                       |
 
 ## Package Exports
 
-| Export                                         | Condition      | Contents                                                    |
-| ---------------------------------------------- | -------------- | ----------------------------------------------------------- |
-| `@urbicon-ui/auth`                             | Universal      | Client stores, components, types                            |
-| `@urbicon-ui/auth/server`                      | Server         | Handlers, auth core, adapters, i18n                         |
-| `@urbicon-ui/auth/server/adapters/prisma`      | Server         | Prisma adapter factory (`createPrismaRepos`)                |
-| `@urbicon-ui/auth/server/adapters/in-memory`   | Server         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test |
-| `@urbicon-ui/auth/server/adapters/conformance` | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest |
+| Export                                              | Condition      | Contents                                                                                                                                     |
+| --------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@urbicon-ui/auth`                                  | Universal      | Client stores, components, types                                                                                                             |
+| `@urbicon-ui/auth/server`                           | Server         | Handlers, auth core, adapters                                                                                                                |
+| `@urbicon-ui/auth/server/adapters/prisma`           | Server         | Prisma adapter factory (`createPrismaRepos`)                                                                                                 |
+| `@urbicon-ui/auth/server/adapters/in-memory`        | Server         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test                                  |
+| `@urbicon-ui/auth/server/adapters/conformance`      | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest                                                                 |
 | `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The same suite without a runner import — pass `{ runner: { describe, it, expect } }` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
-| `@urbicon-ui/auth/server/email/lettermint`     | Server         | Lettermint email transport                                  |
-| `@urbicon-ui/auth/server/email/console`        | Server         | Console email transport (dev only)                          |
-| `@urbicon-ui/auth/sw`                          | Service worker | Push + notification-click handlers                          |
-| `@urbicon-ui/auth/i18n/en`                     | Universal      | English locale bundle                                       |
-| `@urbicon-ui/auth/i18n/de`                     | Universal      | German locale bundle                                        |
+| `@urbicon-ui/auth/server/email/lettermint`          | Server         | Lettermint email transport                                                                                                                   |
+| `@urbicon-ui/auth/server/email/console`             | Server         | Console email transport (dev only)                                                                                                           |
+| `@urbicon-ui/auth/sw`                               | Service worker | Push + notification-click handlers                                                                                                           |
+| `@urbicon-ui/auth/i18n/en`                          | Universal      | English locale bundle                                                                                                                        |
+| `@urbicon-ui/auth/i18n/de`                          | Universal      | German locale bundle                                                                                                                         |
 
 ## UI Components
 
@@ -82,22 +82,22 @@ All use `@urbicon-ui/blocks` primitives and honour `unstyled` + `slotClasses` + 
 `t` takes a `PartialAuthLocale`, merged over the built-in bundle by `mergeAuthLocale` — see
 [AUTH.md → UI Components](./docs/AUTH.md#ui-components).
 
-| Component              | Purpose                                         |
-| ---------------------- | ----------------------------------------------- |
-| `LoginPage`            | Login form with optional passkey entry point    |
-| `RegisterPage`         | Registration form (optionally invitation-gated) |
-| `ForgotPasswordPage`   | Password-reset request                          |
-| `ResetPasswordPage`    | Password-reset with confirmation                |
-| `VerifyEmailPage`      | Auto-verifying email confirmation               |
-| `InvitationManager`    | Admin invitation list + create/revoke           |
-| `PasskeyManager`       | WebAuthn credential management                  |
-| `AccountSettings`      | Change name/email/password + delete account     |
-| `SessionManager`       | List active sessions + sign out devices         |
-| `TwoFactorManager`     | Enrol/disable TOTP 2FA + show backup codes      |
-| `NotificationCenter`   | Notification list with read/delete              |
-| `NotificationBadge`    | Unread-count badge                              |
-| `NotificationListener` | Headless SSE listener                           |
-| `PushPermissionPrompt` | Push-notification opt-in                        |
+| Component              | Purpose                                      |
+| ---------------------- | -------------------------------------------- |
+| `LoginPage`            | Login form with optional passkey entry point |
+| `RegisterPage`         | Registration form (invitation-gated)         |
+| `ForgotPasswordPage`   | Password-reset request                       |
+| `ResetPasswordPage`    | Password-reset with confirmation             |
+| `VerifyEmailPage`      | Auto-verifying email confirmation            |
+| `InvitationManager`    | Admin invitation list + create/revoke        |
+| `PasskeyManager`       | WebAuthn credential management               |
+| `AccountSettings`      | Change name/email/password + delete account  |
+| `SessionManager`       | List active sessions + sign out devices      |
+| `TwoFactorManager`     | Enrol/disable TOTP 2FA + show backup codes   |
+| `NotificationCenter`   | Notification list with read/delete           |
+| `NotificationBadge`    | Unread-count badge                           |
+| `NotificationListener` | Headless SSE listener                        |
+| `PushPermissionPrompt` | Push-notification opt-in                     |
 
 ## Getting Started
 
@@ -115,6 +115,7 @@ restart — **dev only, never production**.
 **1. Dependencies** — `src/lib/server/auth-setup.ts`:
 
 <!-- typecheck -->
+
 ```typescript
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createInMemoryRepos } from '@urbicon-ui/auth/server/adapters/in-memory';
@@ -163,6 +164,7 @@ warned about at wiring time ([docs/AUTH.md → Secure deployment](docs/AUTH.md#s
 **2. Hook** — `src/hooks.server.ts`:
 
 <!-- typecheck -->
+
 ```typescript
 import { createAuthHandle } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
@@ -182,6 +184,7 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 
 <!-- typecheck -->
+
 ```typescript
 import { createLoginHandler } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
@@ -221,6 +224,7 @@ hardening layers. Everything here is **opt-in and additive**: the Stage 1 hook a
 stubs are unchanged; you're only growing the config.
 
 <!-- typecheck -->
+
 ```typescript
 // src/lib/server/auth-setup.ts
 import { createAuthDeps } from '@urbicon-ui/auth/server';
@@ -294,9 +298,7 @@ client fetches use the exported `csrfFetch`:
     const res = await csrfFetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        /* order fields */
-      })
+      body: JSON.stringify({/* order fields */})
     });
   }
 </script>
@@ -314,6 +316,7 @@ Cookie/header names are configurable via `config.csrf.cookieName` / `config.csrf
 - **Notifications & Web Push** — register domain events server-side and listen client-side:
 
 <!-- typecheck -->
+
 ```typescript
 // Server: register domain events
 import { createNotificationRegistry } from '@urbicon-ui/auth/server';
@@ -349,6 +352,7 @@ registry.register({
 - **Account management (self-service)** — let a signed-in user manage their own account. Mount the four handlers under `/api/auth/account/*` and drop in `<AccountSettings>`:
 
 <!-- typecheck -->
+
 ```typescript
 // src/routes/api/auth/account/change-password/+server.ts
 import { createChangePasswordHandler } from '@urbicon-ui/auth/server';
@@ -433,7 +437,7 @@ export const POST = twoFactor.setup.POST;
 
 Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR encoder to stay zero-dep — render it via the `qr` snippet, or let the user enter the key manually). Enrolment is two-step (setup → confirm a code), and enabling returns one-time backup codes. The secret is stored **AES-256-GCM-encrypted**; disable is password re-auth gated. The login handler gates automatically on `user.totpEnabled` — no extra wiring. Passkey logins are **not** gated, which rests on `webauthn.requireUserVerification` being enforced (its default): without UV a passkey is possession alone, and a passkey login would be single-factor for a TOTP user. **`encryptionKey` has no rotation overlap** — changing it locks every TOTP user out and blocks re-enrolment, leaving a backup code — or a passkey, which is not TOTP-gated — as the way in ([key-rotation runbook](https://ui.urbicon.de/auth/guide#key-rotation-runbook-twofactorencryptionkey)). `createAuthDeps` injects a strict `rateLimit.twoFactor` default for the brute-force-critical verify step. **The verify route must be public** (default public routes already cover `/api/auth/`); make sure your route guard doesn't require a session for it.
 
-- **Federated identity / SSO** — one deployment becomes the identity provider (ES256 tokens + `createJWKSHandler` serving the JWKS), sibling apps under the same parent domain verify with `createFederatedAuthHandle` and decide access themselves in `resolveUser` (identity ≠ authorization — the IdP's `role` never crosses the boundary). Setup for both sides, the key-rotation runbook, and the deliberate v1 limits: [AUTH.md → Federated Identity (SSO)](https://ui.urbicon.de/auth/guide#federated-identity-sso).
+- **Federated identity / SSO** — one deployment becomes the identity provider (ES256 tokens + `createJWKSHandler` serving the JWKS), sibling apps under the same parent domain verify with `createFederatedAuthHandle` and decide access themselves in `resolveUser` (identity ≠ authorization — the IdP's `role` never crosses the boundary). Setup for both sides, the key-rotation runbook, and the deliberate current-scope limits: [AUTH.md → Federated Identity (SSO)](https://ui.urbicon.de/auth/guide#federated-identity-sso).
 
 ### Security notes worth pinning
 
@@ -455,11 +459,11 @@ Unit tests (Vitest) cover the crypto primitives (JWT, HMAC, PBKDF2, CBOR, WebAut
 cd packages/auth && bunx --bun vitest run
 ```
 
-Full WebAuthn attestation/assertion against a real authenticator, end-to-end browser coverage, and integration tests against a live Prisma instance remain out of scope for v1.0 — see [AUTH.md → Production-Readiness Checklist](https://ui.urbicon.de/auth/guide#production-readiness-checklist).
+Full WebAuthn attestation/assertion against a real authenticator, end-to-end browser coverage, and integration tests against a live Prisma instance remain out of scope for now — see [AUTH.md → Production-Readiness Checklist](https://ui.urbicon.de/auth/guide#production-readiness-checklist).
 
 ## Known Limitations
 
-The three most load-bearing for a production deploy are below; the **full catalog** (10 items with severity, rationale, and fix-plan) is the single source of truth in [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps) — kept there to avoid a drifting second copy.
+The three most load-bearing for a production deploy are below; the **full catalog** (grouped by defense-in-depth, account-enumeration/timing, and rate-limiting/route-scope, each with its rationale) is the single source of truth in [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps) — kept there to avoid a drifting second copy.
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
@@ -469,9 +473,10 @@ The three most load-bearing for a production deploy are below; the **full catalo
 
 The production-readiness milestone is **shipped and stable** (persistent-store adapters,
 refresh rotation, CSRF, atomic adapter contract + conformance suite). The scope-conform
-account clusters — account management, active-session listing, **TOTP two-factor**, and
-**Federated Identity / SSO** (`createFederatedAuthHandle` + `createJWKSHandler`, ES256 +
-JWKS) — have also shipped (`beta`). Remaining hardening candidates live in the
+account clusters — account management, active-session listing, **TOTP two-factor**,
+**invitation management**, **passkey management**, and **Federated Identity / SSO**
+(`createFederatedAuthHandle` + `createJWKSHandler`, ES256 + JWKS) — have also shipped
+(`beta`). Remaining hardening candidates live in the
 [Known-Limitations catalog](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
 
 ## Development

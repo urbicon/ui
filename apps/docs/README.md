@@ -27,16 +27,16 @@ Only ever run **one** Vite server per worktree — two of them racing on the sam
 
 ## What lives here
 
-| Area | Route | Notes |
-| --- | --- | --- |
+| Area            | Route                                          | Notes                                                                        |
+| --------------- | ---------------------------------------------- | ---------------------------------------------------------------------------- |
 | Component pages | `/blocks/primitives/*`, `/blocks/components/*` | Structure and section order: [DocsPageGuide.md](../../docs/DocsPageGuide.md) |
-| Recipes | `/recipes/*` | Production-ready compositions; the canonical list is `src/lib/navigation.ts` |
-| Showcase | `/showcase` | A realistic project-management interface exercising many components together |
-| Theme builder | `/customization/theme-builder` | Visual OKLCH theme generator |
-| Figma tokens | `/customization/figma-tokens` | Token export, see below |
-| Tier system | `/customization/tier-system` | Live demo of the radius tiers incl. the bridge token |
-| Rooms theme | `/customization/rooms-theme` | Full Color Rooms catalogue (see below) |
-| Changelog | `/changelog` | Loaded from the root `CHANGELOG.md` via the `virtual:changelog` Vite module |
+| Recipes         | `/recipes/*`                                   | Production-ready compositions; the canonical list is `src/lib/navigation.ts` |
+| Showcase        | `/showcase`                                    | A realistic project-management interface exercising many components together |
+| Theme builder   | `/customization/theme-builder`                 | Visual OKLCH theme generator                                                 |
+| Figma tokens    | `/customization/figma-tokens`                  | Token export, see below                                                      |
+| Tier system     | `/customization/tier-system`                   | Live demo of the radius tiers incl. the bridge token                         |
+| Rooms theme     | `/customization/rooms-theme`                   | Full Color Rooms catalogue (see below)                                       |
+| Changelog       | `/changelog`                                   | Loaded from the root `CHANGELOG.md` via the `virtual:changelog` Vite module  |
 
 Three registration points are **hand-maintained** and easy to forget — the sidebar
 (`src/lib/navigation.ts`), `componentLinks`, and the recipes cookbook. Forgetting one fails
@@ -110,17 +110,17 @@ Both halves of the mapping are **generated** by `scripts/channels-gen.ts`:
 `src/lib/style/rooms-docs.css` defines a private token namespace for docs-specific concerns
 that don't belong in the library:
 
-| Token | Purpose |
-| --- | --- |
-| `--room-accent`, `--room-accent-fg`, `--room-accent-text` | Active room colour, its on-accent ink, and the same channel one step deeper. Two colour steps because there are two WCAG thresholds: `--room-accent` clears 3:1 (fills, lines, marks, the header field), `--room-accent-text` clears 4.5:1 (small body text). |
-| `--docs-bg`, `--docs-paper` | Page ground (cream) and content surface (lighter cream). Inverts to warm dark in dark mode. |
-| `--docs-lifted`, `--docs-floating` | L·2 (dropdowns, popovers, selects) and L·3 (modals, sheets, command menus) — the cream ladder above paper. |
-| `--docs-ink`, `--docs-soft`, `--docs-softer` | Three-stop ink hierarchy (primary text `#17150f`, meta/body-soft, decoration). |
-| `--docs-hair`, `--docs-line` | Hairline (8 % alpha) and line (14 % alpha) — ink-on-paper in light, cream-on-paper in dark. |
-| `--docs-accent` | Docs accent (active markers, links, sidebar logo mark). Couples to `--color-primary` so the room colour re-uses it. |
-| `--docs-radius-pill`, `--docs-radius-card`, `--docs-shadow-page` | Docs geometry — TOC crumbs, Bento cards, Recipe-stage lift. |
-| `--font-display`, `--font-sans` | Schibsted Grotesk — one grotesk for display and body. |
-| `--font-mono` | JetBrains Mono for meta (section markers, mono kickers, prop labels). |
+| Token                                                            | Purpose                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--room-accent`, `--room-accent-fg`, `--room-accent-text`        | Active room colour, its on-accent ink, and the same channel one step deeper. Two colour steps because there are two WCAG thresholds: `--room-accent` clears 3:1 (fills, lines, marks, the header field), `--room-accent-text` clears 4.5:1 (small body text). |
+| `--docs-bg`, `--docs-paper`                                      | Page ground (cream) and content surface (lighter cream). Inverts to warm dark in dark mode.                                                                                                                                                                   |
+| `--docs-lifted`, `--docs-floating`                               | L·2 (dropdowns, popovers, selects) and L·3 (modals, sheets, command menus) — the cream ladder above paper.                                                                                                                                                    |
+| `--docs-ink`, `--docs-soft`, `--docs-softer`                     | Three-stop ink hierarchy (primary text `#17150f`, meta/body-soft, decoration).                                                                                                                                                                                |
+| `--docs-hair`, `--docs-line`                                     | Hairline (8 % alpha) and line (14 % alpha) — ink-on-paper in light, cream-on-paper in dark.                                                                                                                                                                   |
+| `--docs-accent`                                                  | Docs accent (active markers, links, sidebar logo mark). Couples to `--color-primary` so the room colour re-uses it.                                                                                                                                           |
+| `--docs-radius-pill`, `--docs-radius-card`, `--docs-shadow-page` | Docs geometry — TOC crumbs, Bento cards, Recipe-stage lift.                                                                                                                                                                                                   |
+| `--font-display`, `--font-sans`                                  | Schibsted Grotesk — one grotesk for display and body.                                                                                                                                                                                                         |
+| `--font-mono`                                                    | JetBrains Mono for meta (section markers, mono kickers, prop labels).                                                                                                                                                                                         |
 
 All `--docs-*` tokens use `light-dark()`, so the canvas is first-class light **and** dark:
 the cream-paper / warm-ink shape inverts to warm-dark-paper / cream-ink without losing
@@ -154,18 +154,18 @@ Each contributes a channel's **accent step** (the lightest step still clearing 3
 the paper), its dark on-colour, and its **text step** (the lightest step clearing 4.5:1).
 Nine are reached by a component family, the rest only by an area fallback:
 
-| Family | Channel | Family | Channel |
-| --- | --- | --- | --- |
-| `action` | orange | `overlay` | purple |
-| `data` | cyan | `feedback` | red |
-| `ai` | magenta | `layout` | ink |
-| `form` | blue | `display` | azure |
-| `navigation` | teal | | |
+| Family       | Channel | Family     | Channel |
+| ------------ | ------- | ---------- | ------- |
+| `action`     | orange  | `overlay`  | purple  |
+| `data`       | cyan    | `feedback` | red     |
+| `ai`         | magenta | `layout`   | ink     |
+| `form`       | blue    | `display`  | azure   |
+| `navigation` | teal    |            |         |
 
 Because every accent step sits on one lightness step (L ≈ 0.65), the on-field numbers stay
 tight: the title clears 5.5–5.6:1 on its own fill, the 88 % lede 4.7–4.9:1, the 72 %
 tertiary 3.6–3.8:1. The achromatic `ink` channel is the one exception the generator handles
-explicitly — its register accent *is* its near-black solid, which would vanish on the dark
+explicitly — its register accent _is_ its near-black solid, which would vanish on the dark
 docs paper (1.4:1), so the docs room uses a neutral step computed by the same rule
 (3.0:1 light / 5.1:1 dark).
 
@@ -178,7 +178,7 @@ reads the `-text` tier (`text-primary-text`, re-derived in this skin's room scop
 other member of the family). The reasoning below still holds for the skin's own accent
 system, which is why the text step stays: a 3:1 accent renders a 16 px link at 3.13:1.
 
-What the split buys is that only the *token* takes the deeper step. The header bands, hero
+What the split buys is that only the _token_ takes the deeper step. The header bands, hero
 fields, register rail, wordmark cursor and playground tint read `var(--room-accent)`
 directly and stay fresh, as do `--color-interactive-focus` and `--color-chart-*` (both
 non-text marks, governed by the 3:1 rule).
@@ -187,7 +187,7 @@ The cost is that a light-mode primary fill sits one step deeper than the band ab
 which is also what the library's default theme does (`primary-600` under white text). The
 text role is itself a `light-dark()` pair because no single colour is AA on both papers:
 4.5:1 against `#fbfaf6` needs relative luminance ≤ 0.173, against `#232220` ≥ 0.247. The
-generator guards the *role*: the text step against the light paper, the accent step
+generator guards the _role_: the text step against the light paper, the accent step
 (4.85–4.87:1 there) against the dark one.
 
 ### The intent palette is room-independent
@@ -195,20 +195,20 @@ generator guards the *role*: the text step against the light paper, the accent s
 Retuned once (warm) so Success / Warning / Danger / Secondary sit naturally on cream and
 stay distinct from the room primary:
 
-| Intent | Hue | Why |
-| --- | --- | --- |
-| Secondary | 15 (burgundy/mahogany) | Warm complementary; the library default Hue 280 (violet) reads cool on cream. |
-| Success | 150, darker / lower chroma | Library Hue 140 sits next to the register's green — would read as a second room button. Sage reads as "completed/verified". |
-| Warning | 55 (amber) | Library Hue 80 is yellow-green-adjacent; amber harmonises with cream. |
-| Danger | 22 (maroon) | Library Hue 25 vivid red sits aggressively on cream; maroon keeps the alert reading. |
-| Info | 220 (teal) | **Unchanged.** Cool blue against the warm palette is deliberate — info banners read as informational chrome. |
+| Intent    | Hue                        | Why                                                                                                                         |
+| --------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Secondary | 15 (burgundy/mahogany)     | Warm complementary; the library default Hue 280 (violet) reads cool on cream.                                               |
+| Success   | 150, darker / lower chroma | Library Hue 140 sits next to the register's green — would read as a second room button. Sage reads as "completed/verified". |
+| Warning   | 55 (amber)                 | Library Hue 80 is yellow-green-adjacent; amber harmonises with cream.                                                       |
+| Danger    | 22 (maroon)                | Library Hue 25 vivid red sits aggressively on cream; maroon keeps the alert reading.                                        |
+| Info      | 220 (teal)                 | **Unchanged.** Cool blue against the warm palette is deliberate — info banners read as informational chrome.                |
 
 ## Why semantic tokens are re-declared in the docs scope
 
 A subtle CSS detail: when a custom property is defined as
 `--color-primary: light-dark(var(--color-primary-600), var(--color-primary-500))` at
 `:root`, the `var()` resolves **at the cascade level where the property is defined**.
-Overriding the ramp later in `.docs-rooms` does *not* re-trigger that substitution — the
+Overriding the ramp later in `.docs-rooms` does _not_ re-trigger that substitution — the
 inherited value is the already-resolved library string.
 
 Color Rooms therefore re-declares all derived semantic tokens (`--color-primary`, `-hover`,
