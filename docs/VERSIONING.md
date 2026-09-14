@@ -48,6 +48,8 @@ table applies without exception.
 
 ## What the bump scripts do
 
+Before any of the steps below, the script runs the build/test verification (skippable together via `BUMP_SKIP_VERIFY=1`) and then `bun run size --check` against `bundle-size.baseline.json`, aborting the bump on unexplained bundle growth until the baseline is updated deliberately.
+
 1. Bumps root `package.json` version via `npm version --no-git-tag-version`
 2. Sets all `packages/*/package.json` to the same version
 3. Runs `bunx git-cliff --tag vX.Y.Z --output CHANGELOG.md` — regenerates the full changelog

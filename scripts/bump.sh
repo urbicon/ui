@@ -25,17 +25,54 @@ if [[ "$LEVEL" != "patch" && "$LEVEL" != "minor" && "$LEVEL" != "major" ]]; then
   exit 1
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
+# bundle-size.baseline.json is the one file allowed to be dirty here: a
+# deliberate `bun run size --update-baseline`, run ahead of a re-attempt after
+# check_size below rejected the old one, is meant to ride into the release
+# commit rather than block it (see step 5).
+if ! git diff --quiet -- . ':!bundle-size.baseline.json' || ! git diff --cached --quiet -- . ':!bundle-size.baseline.json'; then
   echo "Error: working tree has uncommitted changes. Commit or stash first."
   exit 1
 fi
 
+# Snapshotted before anything else can fail: a rollback further down resets
+# --hard to $ROLLBACK_REF, which would otherwise discard this deliberate
+# pre-existing edit along with the run's own changes.
+BASELINE_SNAPSHOT=""
+if ! git diff --quiet -- bundle-size.baseline.json 2>/dev/null; then
+  BASELINE_SNAPSHOT="$(mktemp)"
+  cp bundle-size.baseline.json "$BASELINE_SNAPSHOT"
+fi
+
+has_script() { bun -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)" 2>/dev/null; }
+
+# Fails loudly with the tool's own table plus a pointer to the decision it is
+# not this script's job to make. `size --check` used to run per-PR in CI and
+# never caught an unintended regression there (docs/internal/META-AUDIT-2026-09-14.md
+# Anhang A §3: 10 of 37 CI failures in 8 weeks, 9 answered with a bare
+# `chore: re-measure the size baseline` commit) — it moved here, to the one
+# point a consumer's install actually reflects the number, so growth beyond
+# tolerance gets judged once, deliberately, as part of the release rather than
+# as a per-PR ritual.
+check_size() {
+  if has_script size; then
+    echo "→ bun run size --check"
+    if ! bun run size --check; then
+      echo ""
+      echo "✗ Bundle size grew beyond tolerance (table above)."
+      echo "  This is a decision, not a bug: judge whether the growth is intentional."
+      echo "  If it is, run 'bun run size --update-baseline', then re-run the bump —"
+      echo "  the updated baseline ships staged in the release commit."
+      return 1
+    fi
+  fi
+}
+
 if [[ "${BUMP_SKIP_VERIFY:-0}" == "1" ]]; then
   echo "⚠ Skipping build/test verification (BUMP_SKIP_VERIFY=1)"
 else
-  has_script() { bun -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)" 2>/dev/null; }
   if has_script build; then echo "→ bun run build"; bun run build; fi
   if has_script test; then echo "→ bun run test"; bun run test; fi
+  check_size
 fi
 
 ROLLBACK_REF=$(git rev-parse HEAD)
@@ -47,6 +84,10 @@ rollback() {
     git tag -d "v$VERSION" >/dev/null 2>&1 || true
   fi
   git reset --hard "$ROLLBACK_REF" >/dev/null 2>&1 || true
+  if [ -n "$BASELINE_SNAPSHOT" ]; then
+    cp "$BASELINE_SNAPSHOT" bundle-size.baseline.json
+    rm -f "$BASELINE_SNAPSHOT"
+  fi
   exit "$code"
 }
 trap rollback ERR INT TERM
@@ -165,10 +206,18 @@ for lock in bun.lock bun.lockb; do
     echo "Staged $lock (changed by bump)"
   fi
 done
+# A baseline refreshed via `bun run size --update-baseline` (ahead of this run
+# or by check_size having passed) ships in the same release commit — never a
+# follow-up "re-measure the size baseline" commit.
+if ! git diff --quiet -- bundle-size.baseline.json 2>/dev/null; then
+  git add bundle-size.baseline.json
+  echo "Staged bundle-size.baseline.json (updated ahead of this bump)"
+fi
 git commit -m "chore: release v$VERSION" --no-verify
 git tag -a "v$VERSION" -m "v$VERSION"
 
 trap - ERR INT TERM
+if [ -n "$BASELINE_SNAPSHOT" ]; then rm -f "$BASELINE_SNAPSHOT"; fi
 
 echo "Done: v$VERSION"
 echo "Push with: git push --follow-tags"

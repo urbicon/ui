@@ -373,10 +373,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build
-      # Per-component tree-shaken gzip against bundle-size.baseline.json.
-      # Needs the blocks/table/auth dist that `build` just produced. Tolerance
-      # is max(256 B, 3 %), so it measures intent, not machine noise.
-      - run: bun run size --check
       # Consumer-CSS gate: packs every published package that ships `.svelte`,
       # installs the tarballs into a throwaway node_modules and asks Tailwind's
       # own compiler + scanner whether the shipped stylesheet reaches every
@@ -407,6 +403,30 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
+  # Advisory only — NOT in `ci-green`'s `needs` below, so a PR that grows a
+  # bundle never blocks on it. `size --check` used to run in `build` and fail
+  # it on any drift past tolerance; 10 of 37 CI failures in an 8-week window
+  # were this step, and 9 were answered with a `chore: re-measure the size
+  # baseline` commit — it caught intentional growth, never a regression that
+  # wasn't already visible in the diff (docs/internal/META-AUDIT-2026-09-14.md
+  # Anhang A §3). The number still needs a place to be judged; that place is
+  # now `scripts/bump.sh`, which blocks the release commit a consumer's
+  # install actually reflects, not every PR along the way. Reuses no artifact
+  # from `build` — this job only needs blocks/table/auth dist, not the full
+  # `bun run build` (docs-app + mcp-dist), so `build:packages` alone is
+  # cheaper than waiting on that job's output.
+  size-report:
+    name: Bundle size (report)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build:packages
+      - run: bun run size
+
   # THE ONE REQUIRED CHECK. Branch protection names this job and nothing else,
   # so the shard count can go from four to six and a gate can be added, renamed
   # or dropped without anyone touching the ruleset. That matters more than it
@@ -423,7 +443,9 @@ jobs:
   # artefacts into one HTML report and carries `if: !cancelled()`, so it goes
   # green over a red suite. `e2e` here is the matrix itself, whose aggregate
   # result is `failure` if any shard failed (`fail-fast: false` lets them all
-  # finish first).
+  # finish first). `size-report` is excluded for a different reason: it is
+  # advisory by design (see its own comment above), so a size regression must
+  # never block a PR here — only the release bump gates on it.
   ci-green:
     name: CI green
     needs: [lint, typecheck, gates, test, e2e, build]

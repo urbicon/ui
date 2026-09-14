@@ -13,6 +13,8 @@ description: Version bump and release flow (bump level per commit type, tag, pus
 
 **Pre-launch window (until the launch of ui.urbicon.de is announced):** a set with breaking commits is still released as a **minor**. Decided 2026-08-14 and written into [docs/VERSIONING.md](../../../docs/VERSIONING.md) § The pre-launch window on 2026-09-03 — name the exception when you bump, do not ask again. Two things stay non-negotiable: every breaking commit carries `!` in its subject (git-cliff groups on a `BREAKING CHANGE:` footer too, but the subject is what `git log` shows; the footer itself must be **one line** — git-cliff keeps only its first line, v8.21.0 shipped two truncated notes), and `packages/blocks/docs/MIGRATION.md` is headed by the release that ships the change, never `## v9`. The window closes with the announcement release, **9.0.0**.
 
+Before tagging, the bump script also runs `bun run size --check` (after its build/test verification, skipped together with them by `BUMP_SKIP_VERIFY=1`). A failure prints the per-component table and aborts — this is a decision, not a bug: judge whether the growth is intentional, then run `bun run size --update-baseline` and re-run the bump. The refreshed `bundle-size.baseline.json` is picked up by the script's own staging step, so it ships inside the same release commit rather than as a follow-up. (This replaced a per-PR `size --check` in CI, which fired on every intentional size increase and never caught an unintended regression — see `docs/internal/META-AUDIT-2026-09-14.md` Anhang A §3.)
+
 The bump writes a `chore: release vX.Y.Z` commit + an annotated tag on HEAD (the tag triggers the CI publish pipeline). Push with `git push --follow-tags`.
 
 **Never edit `CHANGELOG.md` by hand** — it is auto-generated.
