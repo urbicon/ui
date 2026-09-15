@@ -16,6 +16,16 @@ export interface SelectOption<T extends SelectValue = string> {
   label: string;
   value: T;
   disabled?: boolean;
+  /**
+   * Trailing secondary text on the option row — a facet count ("24"), a unit,
+   * a price. It is part of the option's text content, so the row's accessible
+   * name reads "Noir 24" rather than dropping the number.
+   *
+   * A string, not a number: formatting and locale belong to the caller
+   * (`String(count)`, or an `Intl.NumberFormat` result). Ignored while
+   * `customItem` draws the row — that snippet owns the whole row.
+   */
+  hint?: string;
 }
 
 /** A labelled group of options. */
@@ -296,7 +306,7 @@ interface SelectBaseProps<T extends SelectValue = string>
   /**
    * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
    * what `class` also targets) | base | trigger | triggerText | placeholder |
-   * chevron | clear | listbox | option | optionLabel | optionCheck |
+   * chevron | clear | listbox | option | optionLabel | optionHint | optionCheck |
    * optionCheckbox | group | groupLabel | label | requiredMark | message.
    */
   slotClasses?: Partial<Record<SelectSlots, string>>;

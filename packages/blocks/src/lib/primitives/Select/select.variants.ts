@@ -61,6 +61,11 @@ export const selectVariants = tv({
       'hover:bg-surface-hover focus-visible:outline-none focus-visible:bg-surface-hover'
     ],
     optionLabel: ['truncate text-left flex-1'],
+    // Trailing secondary text on an option row — a facet count, a unit. It sits
+    // inside the option's text content, so it is part of the accessible name,
+    // and it carries no size axis: it inherits the row's type step, which keeps
+    // the Form voice of the listbox item rhythm at every size.
+    optionHint: ['ml-auto pl-2 text-text-tertiary tabular-nums'],
     optionCheck: [
       'shrink-0 text-primary-text opacity-0 transition-opacity duration-[var(--blocks-duration-fast)]'
     ],

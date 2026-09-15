@@ -126,7 +126,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Members:** `Card`, `Alert`, `Accordion`, `Collapsible`, `Dialog`, `Drawer`, `Popover`, `Tooltip`, `Sidebar`, `Separator`, `ConfirmDialog`.
 
-**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` (Alert, at every intent today), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
+**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` / `role="status"` (Alert, derived from `intent` — assertive at `danger` and `warning`, polite otherwise), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
 
 **Tier:** Fixed `contain` — containers are architectural surfaces, not interactive affordances; the radius signal is "this is a frame", not "this is a button". **No Container member reads the tier context**, deliberately: a Toolbar's `commit` must not reshape a Card standing inside it. `Card` is the only one with a `tier` prop at all, and its two values are `contain | bridge` — the optical-size decision, not the interactive one ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
 
@@ -209,16 +209,16 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `ButtonGroup` vs `SegmentGroup` | ButtonGroup for action triggers, SegmentGroup for value selection | Holds value → Navigation family. Dispatches actions → Action family. |
 | `Sidebar` vs `Drawer` | Sidebar for persistent layout, Drawer for transient modal | See [COMPONENT-DECISION-MATRICES.md §Overlay & Layout Surfaces](COMPONENT-DECISION-MATRICES.md#overlay--layout-surfaces). |
 | `Popover` vs `Tooltip` | Popover for click-interactions, Tooltip for hover-descriptions | Tooltip is non-focusable; Popover hosts a focus-trapped panel. |
-| `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
+| `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert announces in place, at the urgency its `intent` implies; Toast is system-level + stacking. |
 | `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
-**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the confirm button, the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. The required-field marker is already off it and draws in the resting tone (#395). Two places still carry the accent and are to lose it:
+**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Everything else rests in the neutral tone, and a product that wants the accent there asks for it:
 
-> **Decided 2026-09-08, pending #434** — the `EmptyState` icon disc, today `bg-primary-subtle text-primary-text`, is to drop to a neutral tone.
->
-> **Decided 2026-09-08, pending #433** — `ConfirmDialog`, which today promotes a `neutral` intent to `primary` on its confirm button, is to stop doing so.
+- the required-field marker (#395);
+- the `EmptyState` icon container, `bg-surface-subtle text-text-tertiary` — an empty state is not the call to action, the CTA below it is; the accent comes back through `slotClasses.iconWrapper` or the provider's `defaults`;
+- the `ConfirmDialog` confirm button, which carries no accent of its own: it follows the dialog's `intent` unchanged, so a `neutral` dialog gets a `filled neutral` confirm rather than one promoted to `primary`, and the accent arrives only through `intent="primary"` or `confirmIntent="primary"`.
 
-The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy; this paragraph carries the issue trail.
+The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy.
 
 ---
 
@@ -242,6 +242,7 @@ Four surfaces render option/item rows inside a floating panel: `Select` and `Com
 | Header voice | uppercase `text-xs font-medium tracking-wider text-text-tertiary` | plain `text-xs font-medium text-text-tertiary` — sections label actions, not data groups | uppercase `text-2xs font-semibold text-text-quaternary` — micro command voice |
 | Keyboard cursor | `bg-surface-hover` via `aria-activedescendant` | `bg-surface-hover` + real roving focus (`focus-visible` ring) | `bg-primary-subtle text-primary-text` — "Enter runs this" |
 | Empty/loading rows | `text-sm text-text-tertiary` centered, `py-4` | n/a (static action lists) | same signature, `py-8` (larger surface) |
+| Trailing hint | `hint` on the option — `text-text-tertiary tabular-nums`, a text node **inside** the accessible name ("Noir 24"): a count decides the click | `detail` on the item — the sub-menu's current value, `aria-hidden` and reached by `aria-describedby`, so it reads as the row's **description**, not its name | `shortcut` on the item — a `<kbd>` **inside** the accessible name |
 
 ---
 

@@ -11,7 +11,7 @@
   one, so a "saved" message does not interrupt whatever is being read.
 
   The inner `Alert` carries no role of its own (`role={undefined}` removes the
-  one it hard-codes). Nested regions leave the same text carrying two
+  one it derives from its intent). Nested regions leave the same text carrying two
   contradictory urgencies — `role="alert"` is implicitly `aria-live="assertive"`
   and it sat inside an explicitly polite region — with nothing in ARIA saying
   which one wins. Error and success stay exclusive by construction (the error

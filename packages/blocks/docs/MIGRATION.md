@@ -11,6 +11,205 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.23.0
+
+### `Alert` derives its announced role from `intent`
+
+`Alert` rendered `role="alert"` at every intent, so a screen reader was interrupted by a saved
+confirmation exactly as it was by a failure. The role now follows `intent`: `danger` and `warning`
+keep `role="alert"` (assertive); `primary`, `info`, `success` and `neutral` render `role="status"`
+(polite). An explicit `role` still wins, `role={undefined}` still takes the attribute off entirely
+for an Alert that sits inside a live region of yours, and nothing changes on screen.
+
+**A conditionally mounted success banner may stop being announced.** The two roles announce on
+different terms: `role="alert"` is announced when it enters the page, while `role="status"` is a
+polite region that has to exist _before_ its content changes. An Alert that is itself the thing
+you mount when the request returns was announced as an `alert` and may now be announced by
+nothing. Two ways out — a persistent region you fill, or the explicit role:
+
+```svelte
+<!-- before: mounted on success, announced because it was an alert -->
+{#if saved}
+  <Alert intent="success">Settings saved.</Alert>
+{/if}
+```
+
+```svelte
+<!-- after, option A: the region is always there, the message arrives into it -->
+<div role="status">
+  {#if saved}
+    <Alert intent="success" role={undefined}>Settings saved.</Alert>
+  {/if}
+</div>
+```
+
+```svelte
+<!-- after, option B: say that this one interrupts -->
+{#if saved}
+  <Alert intent="success" role="alert">Settings saved.</Alert>
+{/if}
+```
+
+Option A is the shape auth's `FormErrorAlert` uses for every outcome in that package.
+
+**Nothing reports the change**, and the grep runs the other way round: list **every** `<Alert` in
+your app — a bare `<Alert>` defaults to `intent="primary"` and an `intent={expr}` says nothing at
+the call site — then subtract the `danger` and `warning` ones. What is left changed role. Do the
+same for `getByRole('alert')` and `[role="alert"]` in your tests and page objects.
+
+### `Spinner` no longer hides every `role="status"` element in print
+
+`Spinner` carried an unscoped global print rule —
+`@media print { :global([role='status']) { display: none } }` — so importing Spinner **anywhere**
+hid every `role="status"` element in the document from print, in every app. It is now scoped to
+the spinner's own root.
+
+Two consequences, both print-only; nothing changes on screen:
+
+- **A `Badge purpose="status"` and a polite Alert print again.** They were being hidden by a rule
+  that had nothing to do with them.
+- **`Skeleton` keeps hiding itself**, through its own scoped rule rather than Spinner's. A
+  skeleton stands in for content that has not arrived, so on paper it would print as grey
+  placeholder bars.
+
+If your app relied on the old rule to keep some other `role="status"` element off the page, that
+element now prints; give it your own `@media print` rule.
+### An icon without `size` is `1em` instead of nothing
+
+`<LogOutIcon />` used to emit an `<svg>` with no `width` and no `height`. An svg with a `viewBox`
+and no dimensions has no intrinsic size, so what it drew was whatever its layout context happened
+to give it: nothing at all as a flex or grid item, the container's whole width as a block child. An
+icon dropped into a `<Button>` was invisible until someone passed a `size`. It now defaults to
+`1em` — the font size of its context, so the same icon takes the Button's type step.
+
+**Icons the library renders itself are unaffected** — the chevrons, checkmarks and clear buttons
+inside Select, Combobox, Menu, Accordion, Toast and the table cells. Each of those sits in a slot
+that sizes it, either with a class on the icon (`w-4 h-4`) or with a `[&_svg]:w-4 [&_svg]:h-4` on
+its wrapper, and author CSS outranks a presentation attribute.
+
+**An icon you pass in is where the change lands.**
+Button children, an `icon` or `cta` snippet, Card content: those slots place their content but do
+not size it — Button's is `[&>svg]:shrink-0` and nothing more. An icon handed to one of them had no
+size from anywhere, so it drew at nothing in some layouts and at the container's width in others.
+It is now `1em`:
+
+```svelte
+<!-- was invisible in some layouts, container-sized in others; now the button's type step -->
+<Button intent="primary"><PlusIcon /> Add apartment</Button>
+```
+
+Wherever it was invisible that is a fix. Where you had compensated for it, drop the compensation;
+where you want a different size, pass one.
+
+**`unstyled` changes too.** `unstyled` drops the slot classes above, so under it the library's own
+icons had no size either and now draw at `1em`. On screen that is an icon appearing where there was
+none, or shrinking from a container-sized one:
+
+```svelte
+<!-- the chevron was unsized here; it is 1em now -->
+<Select unstyled {options} />
+```
+
+Take the size back with the slot you were already styling, or with a rule on the wrapper:
+
+```svelte
+<Select unstyled {options} slotClasses={{ chevron: 'size-4' }} />
+```
+
+What to grep for: every `…Icon` tag in your own components that passes no `size` prop **and** carries
+no size class — attributes or not, so a bare `<PlusIcon />` and a `<LogOutIcon class="text-danger" />`
+both count. The ones inside a `<Button>`, an `icon`/`cta` snippet or a `<Card>` are the ones that
+move; so is any `unstyled` blocks component whose `slotClasses` you left partial.
+
+A passed `size` still wins over the default, and a CSS size still wins over both — but **per axis**.
+The default is two attributes, one for each, so a class that sets only one (`w-6`, `h-5`) leaves the
+other at `1em` and the icon stops being square. Grep for a `w-*` or an `h-*` on an icon without its
+partner and give it `size-*`, or both axes.
+### A `neutral` ConfirmDialog gets a `filled neutral` confirm button
+
+`ConfirmDialog` used to promote a `neutral` `intent` to `primary` on its confirm button, and
+`ConfirmIntent` excluded `neutral` so you could not ask for the neutral one back. The button now
+follows `intent` unchanged, and `ConfirmIntent` is `DialogIntent` — the accent belongs to the
+primary action, not to every confirmation.
+
+Only one combination changes on screen: `<ConfirmDialog intent="neutral">` with no `confirmIntent`.
+Its confirm button was accent-filled and is now neutral-filled. To keep the accent:
+
+```svelte
+<ConfirmDialog intent="neutral" confirmIntent="primary" title="Move to archive?" />
+```
+
+Every other `intent` renders exactly as before. Grep for `<ConfirmDialog` and check which of those
+carry `intent="neutral"`; a product that re-painted the whole `danger` intent at the provider to
+reach one dialog can drop that override and write `confirmIntent` instead.
+
+### The EmptyState icon fill is neutral
+
+`emptyState.variants.ts` drew the icon container in `bg-primary-subtle text-primary-text`, which put
+the accent on a surface that asks for nothing. It is now `bg-surface-subtle text-text-tertiary`; the
+radius tier, the sizes and every other slot are unchanged. An empty state is not the call to action
+— the CTA below it is.
+
+The container is quieter than a coloured circle, and in one place it is not a shape at all: on the
+page ground the fill reads as a faint wash, and inside an elevated container (a `Card`, a `Popover`)
+it vanishes, because `surface-subtle` and `surface-elevated` are the same declaration in
+`semantic.css`. If you relied on the circle being visible there, give it a fill of its own.
+
+For a fill that always reads, or for the accent back, per instance:
+
+```svelte
+<EmptyState
+  icon={InboxIcon}
+  title="No items yet"
+  slotClasses={{ iconWrapper: 'bg-primary-subtle text-primary-text' }}
+/>
+```
+
+or once for the whole app through `defaults.EmptyState.slotClasses.iconWrapper` on
+`<BlocksProvider>`. A consumer that had already overridden the container to a neutral tone can delete
+that override — grep for `iconWrapper` to find them.
+### `CommandPalette`'s `customItem` draws the row's contents, not the row
+
+The snippet used to replace the whole option row. Everything the palette's keyboard and pointer
+behaviour hangs off lived on the `<div role="option">` the default branch drew — the
+`command-palette-item-<index>` id the input's `aria-activedescendant` names, the
+`data-command-palette-selected` attribute the scroll-into-view query finds, `aria-selected`,
+`aria-disabled`, the click and the hover-highlight — so a custom row had to reproduce all of it.
+Two things it could not reproduce: the snippet got no callback to select with, and the row it drew
+carried no `onmouseenter`, so hovering could not move the highlight.
+
+That container now belongs to the component in both branches, and the snippet renders inside it:
+
+```svelte
+<!-- before: the snippet drew the row -->
+{#snippet customItem(item, highlighted, index)}
+  <div
+    id="command-palette-item-{index}"
+    role="option"
+    aria-selected={highlighted}
+    class={highlighted ? 'bg-primary-subtle' : ''}
+    onclick={() => run(item)}
+  >
+    {item.label}
+  </div>
+{/snippet}
+
+<!-- after: the snippet draws the contents; `select` is the fourth argument -->
+{#snippet customItem(item, highlighted, index, select)}
+  <span class="flex min-w-0 flex-1 items-center gap-2">{item.label}</span>
+{/snippet}
+```
+
+Grep for `customItem` on a `<CommandPalette` and strip the container out of each snippet — left in,
+it nests a second `role="option"` inside the palette's own and doubles the row's chrome. Strip any
+focusable element with it: inside the row it is nested-interactive HTML, a tab stop in the Dialog's
+focus trap that the input's keyboard handling never reaches, and a second selection once its click
+bubbles into the row's own. `select()` is for a snippet that dispatches from its own
+non-interactive logic. Styling the row is `slotClasses.item` plus the state slots
+(`itemHighlighted` / `itemDisabled` / `itemDefault`), which now reach a custom row as well;
+`itemIcon`, `itemText`, `itemLabel`, `itemExcerpt` and `itemShortcut` style the default contents
+and go unused under `customItem`.
+
 ## 8.22.0
 
 ### The required marker's glyph is CSS again

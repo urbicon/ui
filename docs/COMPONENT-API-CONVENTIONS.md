@@ -599,17 +599,20 @@ component is an issue against the component, not a quiet tag flip.
 - Compound components: use correct ARIA roles (`radiogroup`/`radio` for single-select, `group`/`checkbox` for multi-select)
 - **Live-region roles follow the prop that names the message's purpose, and an explicit `role`
   always wins.** `Badge` derives its role from `purpose` (8.20.0: `status` for a state marker, none
-  for a tag, a count or a chip, `button` only with an `onclick`). `Alert` does **not** derive one
-  yet: it renders a static `role="alert"` at every intent, so a polite callout needs an explicit
-  `role="status"`, and a static one that announces nothing needs `role="note"` or
-  `role={undefined}`.
+  for a tag, a count or a chip, `button` only with an `onclick`). `Alert` derives its role from
+  `intent` (8.23.0): `danger` and `warning` render `role="alert"` (implicitly assertive), every
+  other intent renders `role="status"` (polite), because a saved-message must not interrupt what
+  is being read. A message that must interrupt at a polite intent passes `role="alert"`; a static
+  callout that announces nothing passes `role="note"` or `role={undefined}`.
 
-  > **Decided 2026-09-10, pending #462** — `Alert` is to derive its role from
-  > `intent`: `danger` and `warning` render `role="alert"` (implicitly assertive), every other
-  > intent renders `role="status"` (polite), because a saved-message must not interrupt what is
-  > being read. It lands as a `fix(blocks)!`.
+  **The `role={undefined}` escape is Alert's alone.** Alert leaves `role` in its rest props, so an
+  explicitly passed `undefined` reaches the element and removes the attribute. `Badge` declares a
+  `role` prop and falls back to the derived role when it is undefined, so passing `role={undefined}`
+  there is the same as omitting it — a role-less Badge is `purpose="tag"`, `"counter"` or `"chip"`.
+  Neither is being changed to match the other: Alert needs the escape (auth's `FormErrorAlert`
+  carries its own live regions), Badge has a purpose that already answers.
 
-  One live region per outcome, in either world: never nest a `role="alert"` inside an `aria-live`
-  region; the region exists before its content changes. Reference: auth's
-  `_shared/FormErrorAlert.svelte` (an assertive and a polite region, both persistent, the inner
-  `Alert` role removed through the pass-through).
+  One live region per outcome: never nest a `role="alert"` inside an `aria-live` region; the
+  region exists before its content changes. Reference: auth's `_shared/FormErrorAlert.svelte`
+  (an assertive and a polite region, both persistent, the inner `Alert` role removed through the
+  pass-through).

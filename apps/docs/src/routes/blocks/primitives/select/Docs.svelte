@@ -134,8 +134,8 @@
     </CodeExample>
 
     <CodeExample
-      title="Several at once"
-      description="`multiple` binds `value` to an array. Every row gains a checkbox, the trigger lists the picked labels, and the listbox stays open so the user can tick a few in one go."
+      title="Several at once, with counts"
+      description="`multiple` binds `value` to an array. Every row gains a checkbox, the trigger lists the picked labels, and the listbox stays open so the user can tick a few in one go. An option's `hint` is trailing secondary text — the facet count that says whether the filter is worth applying. It is a string, so the formatting stays yours, and it is part of the row's text, so the option is announced as “Bug 24”."
       isolate
       previewClass="flex flex-col gap-3 max-w-xs"
     >
@@ -145,10 +145,10 @@
         bind:value={tags}
         placeholder="Select tags"
         options={[
-          { label: 'Bug', value: 'bug' },
-          { label: 'Documentation', value: 'docs' },
-          { label: 'Enhancement', value: 'enhancement' },
-          { label: 'Good first issue', value: 'good-first-issue' }
+          { label: 'Bug', value: 'bug', hint: '24' },
+          { label: 'Documentation', value: 'docs', hint: '8' },
+          { label: 'Enhancement', value: 'enhancement', hint: '113' },
+          { label: 'Good first issue', value: 'good-first-issue', hint: '3' }
         ]}
       />
       <p class="text-text-tertiary text-xs">

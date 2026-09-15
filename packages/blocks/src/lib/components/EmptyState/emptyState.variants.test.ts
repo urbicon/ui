@@ -23,10 +23,15 @@ describe('emptyStateVariants', () => {
     expect(def.title()).toContain('text-lg');
   });
 
-  it('uses semantic identity tokens for the icon circle + text hierarchy', () => {
+  it('keeps the icon fill off the accent, title and description on their text tokens', () => {
+    // An empty state is not a call to action — the CTA below it is. The icon
+    // container therefore takes the neutral pair; a product that wants the
+    // accent opts in through slotClasses.iconWrapper or provider defaults.
     const styles = emptyStateVariants();
-    expect(styles.iconWrapper()).toContain('bg-primary-subtle');
-    expect(styles.iconWrapper()).toContain('text-primary');
+    expect(styles.iconWrapper()).toContain('bg-surface-subtle');
+    expect(styles.iconWrapper()).toContain('text-text-tertiary');
+    expect(styles.iconWrapper()).not.toContain('bg-primary-subtle');
+    expect(styles.iconWrapper()).not.toContain('text-primary-text');
     expect(styles.iconWrapper()).toContain('rounded-commit');
     expect(styles.title()).toContain('text-text-primary');
     expect(styles.description()).toContain('text-text-secondary');
