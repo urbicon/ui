@@ -93,8 +93,13 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    * suggestion set. A trailing row ("Use “Kino 46”", localized) appears once the
    * trimmed query is non-empty and no option the field knows carries that label
    * case-insensitively — including `groups`, `queryFn` results and the labels
-   * behind the current selection. It is an ordinary option: the arrow keys reach
-   * it, Enter picks it, and `onValueChange` receives the trimmed query.
+   * behind the current selection, but not a `disabled` option, whose label names
+   * nothing that can be picked. It is an ordinary option: the arrow keys reach
+   * it, Enter picks it, and `onValueChange` receives the trimmed query. In
+   * multi-select it obeys `maxItems` like any unselected option — at the cap it
+   * renders disabled and Enter on it does nothing until a tag is removed. While
+   * an async `queryFn` request is in flight no row is offered; it returns with
+   * the results.
    *
    * **String values only.** The selected value is the query text, so the prop is
    * typed away for a numeric or boolean `T` — `Combobox<number>` cannot mint a
@@ -103,10 +108,16 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    *
    * The stored label is the raw query, not the row's prompt: the input (single
    * mode) and the tag (multi) read "Kino 46". A value picked this way therefore
-   * needs no `seedOptions` entry on a later mount.
+   * needs no `seedOptions` entry on a later mount, and the DEV orphan warning
+   * stays quiet for every string value while this is set. In `queryFn` mode a
+   * pre-bound single value is exempt: there it is an id whose label is still
+   * coming from the server, so it follows the async rule and needs
+   * `seedOptions` until the results supply the label.
    *
-   * For a row that renders differently, or a value that is not the query text,
-   * reach for `customOption` and an option you append yourself.
+   * `customOption` is not called for this row — it renders the built-in prompt,
+   * since the option behind it is in none of your arrays. For a row that renders
+   * differently, or a value that is not the query text, leave `allowCustom` off
+   * and append an option of your own instead.
    *
    * @default false
    * @summary Lets the user keep what they typed as the value when no option matches.
@@ -148,8 +159,10 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    * such a value renders as its raw `String(value)` (and warns DEV-only).
    * Declarative and idempotent — not a second selection source: `value` alone
    * decides what is selected; `seedOptions` only supplies labels. A string value
-   * under `allowCustom` needs no seed and warns for none — there the value is
-   * its own label.
+   * under `allowCustom` needs no seed and raises no DEV warning — there the
+   * value is its own label, in the input and on the tag alike. The exception is
+   * `queryFn` mode, where a pre-bound single value still needs a seed until the
+   * server supplies its label.
    */
   seedOptions?: ComboboxOption<T>[];
   /** Show a clear button when a value is selected. Click or press Escape to reset. @default false */

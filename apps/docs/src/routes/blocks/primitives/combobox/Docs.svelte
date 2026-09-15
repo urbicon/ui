@@ -308,9 +308,12 @@ ${asyncScriptClose}
     <p class="text-text-secondary text-sm leading-relaxed">
       The suggestions may come from anywhere —
       <code class="text-text-primary">options</code>, <code class="text-text-primary">groups</code>
-      or a <code class="text-text-primary">queryFn</code>; the row appears after the results, below
-      the last group. For a row that should look different, or store something other than the typed
-      text, use <code class="text-text-primary">customOption</code> and append the option yourself.
+      or a <code class="text-text-primary">queryFn</code>; the row waits for the results and then
+      sits below the last group. It always draws itself, so
+      <code class="text-text-primary">customOption</code> never receives it — the option behind it
+      is in none of your arrays. If the row should look different, or store something other than the
+      typed text, leave <code class="text-text-primary">allowCustom</code> off and append an option of
+      your own instead.
     </p>
   </div>
 </Section>

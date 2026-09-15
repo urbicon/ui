@@ -131,13 +131,26 @@
   // the consumer's `seedOptions` (labels for values pre-bound before any
   // options exist, e.g. async mode on mount) — the seed is last so it can
   // never shadow a live option.
-  const selectedOption = $derived(
-    multiple
-      ? undefined
-      : (allOptions.find((o) => o.value === value) ??
-          (selectedCache && selectedCache.value === value ? selectedCache : undefined) ??
-          seedOptions.find((o) => o.value === value))
-  );
+  //
+  // Last of all, under `allowCustom` a string value is its own label (the same
+  // fallback `selectedTags` gives a tag), so a free-text value bound on a later
+  // mount shows in the input instead of leaving it blank.
+  //
+  // Not in `queryFn` mode: there a bound value is an id whose label is still on
+  // its way, and the label restore below only fires while the query is empty —
+  // self-labelling would write the raw id into the field and the arriving
+  // label could never replace it. Async keeps its own rule, `seedOptions`.
+  const selectedOption = $derived.by((): ComboboxOption<T> | undefined => {
+    if (multiple) return undefined;
+    const found =
+      allOptions.find((o) => o.value === value) ??
+      (selectedCache && selectedCache.value === value ? selectedCache : undefined) ??
+      seedOptions.find((o) => o.value === value);
+    if (found) return found;
+    return allowCustom && !queryFn && typeof value === 'string'
+      ? { label: value, value: value as T }
+      : undefined;
+  });
 
   // ── Multi-select state (multiple) ─────────────────────────────────────────
   // Selected values, normalized to an array regardless of what `value` holds
@@ -231,13 +244,18 @@
       .filter((g) => g.options.length > 0);
   });
 
-  // Every label the field can already show for a value: the live options plus
-  // the sources a selected value's label is resolved from. Typing one of them
-  // names an existing value, so `allowCustom` offers nothing.
+  // The labels a free-text value would duplicate: the live options plus the
+  // sources a selected value's label is resolved from. Typing one of them names
+  // something that already exists, so `allowCustom` offers nothing.
+  //
+  // A `disabled` option is not one of them — its label names nothing the user
+  // can pick, so withholding the row would leave the query with no way out. An
+  // option the consumer's `filter` hides IS one: it stays selectable under
+  // another query, and a custom value carrying its label would shadow it.
   const knownLabels = $derived.by(() => {
     const set = new Set<string>();
     const add = (o: ComboboxOption<T>) => set.add(o.label.toLowerCase());
-    for (const o of allOptions) add(o);
+    for (const o of allOptions) if (!o.disabled) add(o);
     for (const o of seedOptions) add(o);
     for (const o of selectedTags) add(o);
     if (selectedOption) add(selectedOption);
@@ -247,8 +265,14 @@
   // The synthetic row `allowCustom` offers for a query that names no option.
   // Its `label` is a prompt the reader acts on, NOT the label of the value —
   // `asPicked` below is what a selection stores.
+  //
+  // Nothing while a `queryFn` request is in flight: the listbox renders only
+  // the loading row then, and the keyboard cursor addresses `filtered` by
+  // index — a row in that array but not in the DOM is an
+  // `aria-activedescendant` pointing at nothing and an Enter committing a value
+  // the reader never saw.
   const customRow = $derived.by((): ComboboxOption<T> | null => {
-    if (!allowCustom) return null;
+    if (!allowCustom || loading) return null;
     const q = query.trim();
     if (!q || knownLabels.has(q.toLowerCase())) return null;
     return { label: bt('combobox.useQuery', { query: q }), value: q as T };
@@ -672,10 +696,11 @@
   });
 
   const listboxId = $derived(`${id}-listbox`);
-  // The synthetic row gets an id of its own: a real option whose `value` equals
-  // the typed text would otherwise answer to the same one.
+  // The synthetic row's id drops the `-option-` segment every real id carries,
+  // so no option value can produce it — two rows answering to one id would send
+  // `aria-activedescendant` to whichever the DOM holds first.
   const optionId = (opt: ComboboxOption<T>) =>
-    isCustomRow(opt) ? `${listboxId}-option-custom` : `${listboxId}-option-${opt.value}`;
+    isCustomRow(opt) ? `${listboxId}-custom` : `${listboxId}-option-${opt.value}`;
   const activeDescendant = $derived(
     activeIndex >= 0 && filtered[activeIndex] ? optionId(filtered[activeIndex]) : undefined
   );
@@ -964,7 +989,9 @@
       if (!optDisabled) activeIndex = i;
     }}
   >
-    {#if customOption}
+    <!-- The synthetic row is in none of the consumer's arrays and its label is
+         a prompt, so their renderer is never handed it. -->
+    {#if customOption && !isCustomRow(opt)}
       {@render customOption(opt, selected)}
     {:else}
       <span class="flex-1 truncate">{opt.label}</span>

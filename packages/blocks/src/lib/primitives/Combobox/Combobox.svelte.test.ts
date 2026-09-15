@@ -1422,6 +1422,149 @@ describe('Combobox (allowCustom)', () => {
     warn.mockRestore();
   });
 
+  it('labels a pre-bound custom value in single mode, so a remount shows it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // The value outlived the session that typed it; nothing seeds its label.
+    renderCombobox({ options: VENUES, value: 'Kino 46', allowCustom: true });
+
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('Kino 46');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('leaves an async pre-bound value to the server rather than to its own text', async () => {
+    const user = userEvent.setup();
+    const gate = deferred<Opt[]>();
+    renderCombobox({
+      queryFn: vi.fn(() => gate.promise),
+      debounceMs: 1,
+      allowCustom: true,
+      value: 'k46'
+    });
+
+    // An id, not free text: in async mode its label is still on its way, so
+    // self-labelling would freeze the raw id in the field — the label-restore
+    // effect only fires while the query is empty.
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input.value).toBe('');
+
+    await user.click(input);
+    gate.resolve([{ value: 'k46', label: 'Kino 46' }]);
+    await settle();
+
+    expect(input.value).toBe('Kino 46');
+    expect(screen.queryByRole('option', { name: 'Use “k46”', hidden: true })).toBeNull();
+  });
+
+  it('keeps an id no option value can produce', async () => {
+    const user = userEvent.setup();
+    // `value: 'custom'` is what a per-suffix id would collide with.
+    renderCombobox({
+      options: [{ value: 'custom', label: 'Custom preset' }],
+      allowCustom: true
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Custom');
+
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options).toHaveLength(2);
+    expect(new Set(options.map((o) => o.id)).size).toBe(2);
+
+    // The cursor's id must resolve to the row the cursor is on — a shared id
+    // sends every consumer of aria-activedescendant to the first match.
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    const active = input.getAttribute('aria-activedescendant');
+    expect(active).toBe(options[1].id);
+    expect(document.getElementById(active ?? '')).toBe(options[1]);
+  });
+
+  it('withholds the row while an async request is in flight', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const gate = deferred<Opt[]>();
+    renderCombobox({
+      queryFn: vi.fn(() => gate.promise),
+      debounceMs: 1,
+      allowCustom: true,
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    // Only the loading row renders, so the cursor array must hold nothing:
+    // an activedescendant pointing at an absent id, or an Enter committing a
+    // row the reader cannot see, are the two failures this pins.
+    expect(screen.queryAllByRole('option', { hidden: true })).toHaveLength(0);
+    await user.keyboard('{ArrowDown}');
+    expect(input.getAttribute('aria-activedescendant')).toBeNull();
+    await user.keyboard('{Enter}');
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    gate.resolve([]);
+    await settle();
+    expect(customRow()).toBeTruthy();
+  });
+
+  it('draws the built-in row even when customOption is given', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: VENUES,
+      allowCustom: true,
+      customOption: createRawSnippet<[Opt, boolean]>(() => ({
+        render: () => '<span>own row</span>'
+      }))
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    // The snippet is the consumer's renderer for THEIR options; the synthetic
+    // row is in none of their arrays and its label is a prompt.
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options).toHaveLength(1);
+    expect(options[0].textContent?.trim()).toBe('Use “Kino 46”');
+  });
+
+  it('offers the row for a disabled option’s label — that label is unpickable', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: [{ value: 'arsenal', label: 'Arsenal', disabled: true }],
+      allowCustom: true
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Arsenal');
+
+    expect(screen.getByRole('option', { name: 'Use “Arsenal”', hidden: true })).toBeTruthy();
+  });
+
+  it('disables the row at maxItems, like every other unselected option', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: VENUES,
+      multiple: true,
+      value: ['arsenal'],
+      maxItems: 1,
+      allowCustom: true,
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    expect(customRow().getAttribute('aria-disabled')).toBe('true');
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it('is inside the Home/End bounds like any other option', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
