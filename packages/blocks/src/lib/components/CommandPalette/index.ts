@@ -142,14 +142,21 @@ export interface CommandPaletteProps {
   /**
    * Replace the default per-row rendering. Receives the item, whether its row
    * is highlighted, the item's flat index into the filtered list, and a
-   * `select` callback (call it to select the item and close the palette; it is
-   * a no-op on a disabled item). **Render visible content only** — the outer
-   * `<div role="option">` container is still owned by CommandPalette: its id is
-   * what the input's `aria-activedescendant` points at, and its state is what
-   * the arrow keys, the hover highlight and the scroll-into-view read. An
-   * interactive element inside the snippet creates nested-interactive HTML and
-   * selects twice via event bubbling, because that container already carries
-   * the row's click; call `select()` from it and stop propagation.
+   * `select` callback (call it to run the same selection the row's click runs;
+   * it is a no-op on a disabled item).
+   *
+   * **Render visible content only — nothing focusable, nothing interactive.**
+   * A `<button>` or `<a>` inside the row is nested-interactive HTML on the
+   * `role="option"` container, a tab stop inside the Dialog's focus trap that
+   * the input's keyboard handling never reaches, and a click that bubbles into
+   * the row's own, so `onSelect` fires twice. `select` is for a snippet that
+   * dispatches from its own non-interactive logic — a pointer gesture on the
+   * content, say — and for parity with Select's `toggle`.
+   *
+   * The outer `<div role="option">` container is still owned by CommandPalette:
+   * its id is what the input's `aria-activedescendant` points at, its
+   * `data-command-palette-selected` attribute is what the scroll-into-view
+   * query finds, and it carries the row's click and hover-highlight.
    *
    * Styling the row is `slotClasses.item` plus the state slot
    * (`itemHighlighted`, `itemDisabled` or `itemDefault`), which reach the

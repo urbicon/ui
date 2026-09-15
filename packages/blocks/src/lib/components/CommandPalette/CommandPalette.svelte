@@ -309,8 +309,9 @@
               The container is the component's in both branches: its id is what
               `aria-activedescendant` names and its data attribute is what
               `scrollSelectedIntoView` queries, so `customItem` renders the
-              row's visible contents inside it and gets `select` for its own
-              control.
+              row's visible contents inside it and draws nothing focusable —
+              a control here would be nested-interactive on role="option" and
+              would select a second time when its click reaches this handler.
 
               The row's class is four sources with both consumer rungs last,
               folded rather than joined. Joining two finished folds instead

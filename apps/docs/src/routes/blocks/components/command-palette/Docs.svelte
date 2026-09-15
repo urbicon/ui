@@ -173,7 +173,7 @@
 
     <CodeExample
       title="Custom Rows"
-      description="The customItem snippet draws each row's contents; the option container — role, id, highlight, hover and click — stays with the palette. Its fourth argument, select, selects the row from a control the snippet draws itself."
+      description="The customItem snippet draws each row's contents — content only, nothing focusable — while the option container (role, id, highlight, hover and click) stays with the palette. Here the highlighted argument puts an Enter hint on the active row."
       isolate
     >
       <Button variant="outlined" intent="neutral" onclick={() => (customRowOpen = true)}>
@@ -188,9 +188,9 @@
         {#snippet customItem(item, highlighted)}
           <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
             <span class="truncate">{item.label}</span>
-            <Badge size="xs" variant={highlighted ? 'filled' : 'soft'} intent="neutral">
-              {item.category}
-            </Badge>
+            {#if highlighted}
+              <Badge purpose="tag" variant="soft" size="xs">Enter</Badge>
+            {/if}
           </span>
         {/snippet}
       </CommandPalette>

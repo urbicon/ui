@@ -63,6 +63,21 @@ describe('CommandPalette (item icons)', () => {
   });
 });
 
+/** One row per state: 0 highlighted, 1 default, 2 disabled. */
+const ROW_STATES: CommandPaletteItem[] = [
+  { id: 'a', label: 'Alpha' },
+  { id: 'b', label: 'Beta' },
+  { id: 'c', label: 'Gamma', disabled: true }
+];
+
+/** Class tokens of one rendered option row. */
+function rowTokens(index: number): string[] {
+  const rows = screen.getAllByRole('option', { hidden: true });
+  const row = rows[index];
+  if (!row) throw new Error(`no option row at ${index}; the palette rendered ${rows.length}`);
+  return (row.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
+}
+
 /**
  * An option row is built from four sources — the library's `item` classes, the
  * library's classes for the row's state, then the consumer's entry for each.
@@ -76,23 +91,9 @@ describe('CommandPalette (item icons)', () => {
  * The price is deliberate — an `item` entry that collides now *removes* the
  * state class, and a consumer who wants both writes both.
  */
-const LADDER_ITEMS: CommandPaletteItem[] = [
-  { id: 'a', label: 'Alpha' },
-  { id: 'b', label: 'Beta' },
-  { id: 'c', label: 'Gamma', disabled: true }
-];
-
-/** Class tokens of one option row: 0 highlighted, 1 default, 2 disabled. */
-function rowTokens(index: number): string[] {
-  const rows = screen.getAllByRole('option', { hidden: true });
-  const row = rows[index];
-  if (!row) throw new Error(`no option row at ${index}; the palette rendered ${rows.length}`);
-  return (row.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
-}
-
 describe('CommandPalette (the class ladder on an item row)', () => {
   it('lets an `item` entry beat the library state class it collides with', async () => {
-    render({ items: LADDER_ITEMS, slotClasses: { item: 'bg-white' } });
+    render({ items: ROW_STATES, slotClasses: { item: 'bg-white' } });
     await tick();
 
     expect(rowTokens(0)).toContain('bg-white');
@@ -102,7 +103,7 @@ describe('CommandPalette (the class ladder on an item row)', () => {
   });
 
   it('gives the state entry the last word over the `item` entry', async () => {
-    render({ items: LADDER_ITEMS, slotClasses: { item: 'bg-white', itemHighlighted: 'bg-black' } });
+    render({ items: ROW_STATES, slotClasses: { item: 'bg-white', itemHighlighted: 'bg-black' } });
     await tick();
 
     expect(rowTokens(0)).toContain('bg-black');
@@ -111,7 +112,7 @@ describe('CommandPalette (the class ladder on an item row)', () => {
 
   it('keeps the two consumer rungs in order under `unstyled`', async () => {
     render({
-      items: LADDER_ITEMS,
+      items: ROW_STATES,
       unstyled: true,
       slotClasses: { item: 'cursor-pointer text-red-500', itemDisabled: 'cursor-not-allowed' }
     });
@@ -123,7 +124,7 @@ describe('CommandPalette (the class ladder on an item row)', () => {
   });
 
   it('resolves the library`s own cursor pair on a disabled row', async () => {
-    render({ items: LADDER_ITEMS });
+    render({ items: ROW_STATES });
     await tick();
 
     // `item` asks for `cursor-pointer` and `itemDisabled` for `cursor-not-allowed`.
@@ -351,12 +352,6 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
  * a snippet that had to draw it would carry the whole ARIA contract — and the
  * hover highlight, which lives on the container's `onmouseenter`.
  */
-const CUSTOM_ITEMS: CommandPaletteItem[] = [
-  { id: 'a', label: 'Alpha' },
-  { id: 'b', label: 'Beta' },
-  { id: 'c', label: 'Gamma', disabled: true }
-];
-
 type CustomItemArgs = [CommandPaletteItem, boolean, number, () => void];
 
 /**
@@ -364,15 +359,15 @@ type CustomItemArgs = [CommandPaletteItem, boolean, number, () => void];
  * positional args, so a test can invoke that row's own `select`.
  */
 function customRow(record?: (args: CustomItemArgs) => void): Snippet<CustomItemArgs> {
-  return createRawSnippet<CustomItemArgs>((item, highlighted, index, select) => {
-    record?.([item(), highlighted(), index(), select()]);
+  return createRawSnippet<CustomItemArgs>((item, isHighlighted, index, select) => {
+    record?.([item(), isHighlighted(), index(), select()]);
     const label = item().label;
     return { render: () => `<span data-custom-row="${label}">${label}</span>` };
   });
 }
 
-/** A `customItem` whose own control calls `select` and lets the click bubble. */
-function innerControlRow(): Snippet<CustomItemArgs> {
+/** The shape the contract forbids: a focusable control inside the row. */
+function forbiddenControlRow(): Snippet<CustomItemArgs> {
   return createRawSnippet<CustomItemArgs>((item, _highlighted, _index, select) => {
     const label = item().label;
     return {
@@ -386,7 +381,7 @@ function innerControlRow(): Snippet<CustomItemArgs> {
 
 describe('CommandPalette (customItem draws content, not the container)', () => {
   it('points aria-activedescendant at a container the snippet did not create', async () => {
-    render({ items: CUSTOM_ITEMS, customItem: customRow() });
+    render({ items: ROW_STATES, customItem: customRow() });
     await tick();
 
     press('ArrowDown');
@@ -408,7 +403,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
   });
 
   it('moves the highlight when a custom row is hovered', async () => {
-    render({ items: CUSTOM_ITEMS, customItem: customRow() });
+    render({ items: ROW_STATES, customItem: customRow() });
     await tick();
     expect(highlighted()).toBe(0);
 
@@ -420,7 +415,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
   });
 
   it('hovering a disabled custom row leaves the highlight where it is', async () => {
-    render({ items: CUSTOM_ITEMS, customItem: customRow() });
+    render({ items: ROW_STATES, customItem: customRow() });
     await tick();
 
     screen.getAllByRole('option', { hidden: true })[2].dispatchEvent(new MouseEvent('mouseenter'));
@@ -433,7 +428,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     const args: CustomItemArgs[] = [];
     const selected: CommandPaletteItem[] = [];
     render({
-      items: CUSTOM_ITEMS,
+      items: ROW_STATES,
       customItem: customRow((row) => args.push(row)),
       onSelect: (item) => selected.push(item)
     });
@@ -455,14 +450,14 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
   it('selects once when the snippet`s own content is clicked', async () => {
     const selected: CommandPaletteItem[] = [];
     render({
-      items: CUSTOM_ITEMS,
+      items: ROW_STATES,
       customItem: customRow(),
       onSelect: (item) => selected.push(item)
     });
     await tick();
 
-    // The container carries the click for the whole row, so a control the
-    // snippet draws has to stop propagation or it selects twice.
+    // The container carries the click for the whole row — a snippet that draws
+    // content needs no click handler of its own.
     const drawn = document.querySelector('[data-custom-row="Beta"]');
     drawn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     flushSync();
@@ -470,11 +465,11 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     expect(selected.map((item) => item.id)).toEqual(['b']);
   });
 
-  it('a control that calls select and lets the click bubble selects twice', async () => {
+  it('measures the cost of a control inside the row: it selects twice', async () => {
     const selected: CommandPaletteItem[] = [];
     render({
-      items: CUSTOM_ITEMS,
-      customItem: innerControlRow(),
+      items: ROW_STATES,
+      customItem: forbiddenControlRow(),
       onSelect: (item) => selected.push(item)
     });
     await tick();
@@ -489,7 +484,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
 
   it('folds slotClasses onto the container of a custom row', async () => {
     render({
-      items: CUSTOM_ITEMS,
+      items: ROW_STATES,
       customItem: customRow(),
       slotClasses: { item: 'bg-white', itemHighlighted: 'bg-black' }
     });

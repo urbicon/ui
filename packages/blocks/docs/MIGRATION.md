@@ -19,8 +19,9 @@ The snippet used to replace the whole option row. Everything the palette's keybo
 behaviour hangs off lived on the `<div role="option">` the default branch drew — the
 `command-palette-item-<index>` id the input's `aria-activedescendant` names, the
 `data-command-palette-selected` attribute the scroll-into-view query finds, `aria-selected`,
-`aria-disabled`, the click and the hover-highlight — so a custom row had to reproduce all of it and
-still could not move the highlight on hover, because the snippet got no way to select.
+`aria-disabled`, the click and the hover-highlight — so a custom row had to reproduce all of it.
+Two things it could not reproduce: the snippet got no callback to select with, and the row it drew
+carried no `onmouseenter`, so hovering could not move the highlight.
 
 That container now belongs to the component in both branches, and the snippet renders inside it:
 
@@ -45,12 +46,14 @@ That container now belongs to the component in both branches, and the snippet re
 ```
 
 Grep for `customItem` on a `<CommandPalette` and strip the container out of each snippet — left in,
-it nests a second `role="option"` inside the palette's own and doubles the row's chrome. The
-palette's click covers the whole row, so a control the snippet draws calls `select()` and stops
-propagation. Styling the row is `slotClasses.item` plus the state slots (`itemHighlighted` /
-`itemDisabled` / `itemDefault`), which now reach a custom row as well; `itemIcon`, `itemText`,
-`itemLabel`, `itemExcerpt` and `itemShortcut` style the default contents and go unused under
-`customItem`.
+it nests a second `role="option"` inside the palette's own and doubles the row's chrome. Strip any
+focusable element with it: inside the row it is nested-interactive HTML, a tab stop in the Dialog's
+focus trap that the input's keyboard handling never reaches, and a second selection once its click
+bubbles into the row's own. `select()` is for a snippet that dispatches from its own
+non-interactive logic. Styling the row is `slotClasses.item` plus the state slots
+(`itemHighlighted` / `itemDisabled` / `itemDefault`), which now reach a custom row as well;
+`itemIcon`, `itemText`, `itemLabel`, `itemExcerpt` and `itemShortcut` style the default contents
+and go unused under `customItem`.
 
 ## 8.22.0
 
