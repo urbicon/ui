@@ -24,13 +24,16 @@ export const linkVariants = tv({
   },
   variants: {
     variant: {
-      /** A link inside running prose — document ink, marked by its underline. */
+      /** A link inside running prose — link ink, underlined. */
       inline: {
-        // The underline is the affordance, so the decoration carries the state
-        // and the text colour does not: colour alone is not a distinguishable
-        // link cue (WCAG 1.4.1), and a prose link that changes hue on hover
-        // makes the paragraph flicker.
-        base: 'text-text-primary underline underline-offset-4 decoration-text-quaternary'
+        // `text-text-link` rather than a spelled-out intent stop: that token is
+        // the lever a consumer turns to restyle links without touching the
+        // primary intent (style/semantic.css `@role link ink`), and it is where
+        // auth's link sites already point. Two cues, not one — colour alone
+        // would not distinguish the link from its paragraph (WCAG 1.4.1) — and
+        // hover moves only the decoration, so a hovered paragraph does not
+        // change hue.
+        base: 'text-text-link underline underline-offset-4 decoration-text-quaternary'
       },
       /** A handle in a nav strip, a filter row, a table header — no underline. */
       standalone: {

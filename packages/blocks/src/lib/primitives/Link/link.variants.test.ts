@@ -17,15 +17,22 @@ function inkStops(token: string): [string, string] {
 }
 
 describe('linkVariants', () => {
-  it('marks a prose link with the underline, not with a colour of its own', () => {
+  it('paints a prose link in link ink and underlines it', () => {
     const base = linkVariants({ variant: 'inline' }).base();
+    // `--color-text-link` is the documented lever for restyling links without
+    // touching the primary intent (style/semantic.css); the underline is the
+    // second cue, so colour is never the only one (WCAG 1.4.1).
+    expect(base).toContain('text-text-link');
     expect(base).toContain('underline');
     expect(base).not.toContain('no-underline');
     expect(base).toContain('underline-offset-4');
-    // Quiet at rest, ink on hover — the decoration carries the state, not the text colour.
     expect(base).toContain('decoration-text-quaternary');
     expect(base).toContain('hover:decoration-text-primary');
-    expect(base).toContain('text-text-primary');
+  });
+
+  it('never repaints a prose link on hover — only its underline moves', () => {
+    const base = linkVariants({ variant: 'inline' }).base();
+    expect(base).not.toMatch(/hover:text-/);
   });
 
   it('draws a standalone handle without an underline, tertiary until hover', () => {

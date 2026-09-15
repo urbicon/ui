@@ -6,9 +6,10 @@ import type { LinkSlots, LinkVariants } from './link.variants';
  * @summary A word with an address — a link in prose, or a handle in a navigation strip.
  * @description The anchor voice of the Navigation family. Tailwind's preflight strips every
  * default from `<a>`, so an unstyled anchor carries no affordance at all; `Link` puts one back
- * in two voices: `inline` for running prose, where an underline (not a colour) marks the link,
- * and `standalone` for a handle in a `<nav>`, a filter row or a table header, where the text
- * rests at tertiary and steps up to document ink on hover.
+ * in two voices: `inline` for running prose, which paints `--color-text-link` and underlines it —
+ * two cues, and that token is the lever for restyling every link in a project without touching
+ * the primary intent — and `standalone` for a handle in a `<nav>`, a filter row or a table
+ * header, which carries no underline and rests at tertiary, stepping up to document ink on hover.
  *
  * **Always an `<a>`, never polymorphic.** A single-box control does not swap its root element
  * (COMPONENT-API-CONVENTIONS.md § Polymorphic Elements), and `Link` is the member to reach for
@@ -25,9 +26,11 @@ import type { LinkSlots, LinkVariants } from './link.variants';
  * is no `size` axis. There is no `intent` either — a link is not a fill.
  *
  * `active` marks the current page (`aria-current="page"`) and lifts the link to document ink at
- * `font-medium`; `disabled` renders it inert (`aria-disabled="true"`, `tabindex="-1"`,
- * `pointer-events-none`) while keeping the `href` readable and copyable. Neither adds a
- * keyboard trap: a disabled link leaves the tab order rather than swallowing focus.
+ * `font-medium`; `disabled` renders it inert — `aria-disabled="true"`, `tabindex="-1"`,
+ * `pointer-events-none` and a click handler that cancels the navigation, so an
+ * assistive-technology activation and Enter on a focused link answer nothing either — while
+ * keeping the `href` readable and copyable. Neither adds a keyboard trap: a disabled link leaves
+ * the tab order rather than swallowing focus.
  *
  * @tag navigation
  * @related Breadcrumb
@@ -73,27 +76,33 @@ export interface LinkProps
    */
   href: string;
   /**
-   * Link voice. `inline` sits in running prose and is marked by its underline; `standalone` is
-   * a handle in a `<nav>`, a filter row or a table header and carries none.
-   * @summary Underlined in prose, or a bare handle for a nav strip.
+   * Link voice. `inline` sits in running prose, painted in `--color-text-link` and underlined;
+   * `standalone` is a handle in a `<nav>`, a filter row or a table header — no underline, and it
+   * takes its colour from the ink ramp rather than the link token.
+   * @summary Link ink and an underline for prose, or a bare handle for a nav strip.
    * @default 'inline'
    */
   variant?: 'inline' | 'standalone';
   /**
    * Mark this link as the one the current page is at: it renders `aria-current="page"`, lifts
    * the link to document ink at `font-medium` and drops its hover state — you are already
-   * there. `active` is the shorthand for the page case and wins where both are given, so the
-   * other `aria-current` values (`"step"` in a wizard trail, `"true"` for a non-page target)
-   * are reached by passing `aria-current` and leaving `active` unset.
-   * @summary Marks the current page — aria-current="page", ink, medium weight, no hover.
+   * there. Written for the `standalone` voice, where a current handle in a strip is the point;
+   * on an `inline` link it also changes the weight mid-sentence, so where only the attribute is
+   * wanted pass `aria-current="page"` directly instead. `active` is the shorthand for the page
+   * case and wins where both are given, so the other `aria-current` values (`"step"` in a wizard
+   * trail, `"true"` for a non-page target) are reached by passing `aria-current` and leaving
+   * `active` unset.
+   * @summary Marks the current handle — aria-current="page", ink, medium weight, no hover.
    * @default false
    */
   active?: boolean;
   /**
-   * Render the link inert: `aria-disabled="true"`, `tabindex="-1"` and `pointer-events-none`,
-   * at reduced opacity. The `href` stays on the element — a disabled link keeps its address
-   * readable and copyable, it just leaves the tab order and answers no click.
-   * @summary Inert link — out of the tab order, no pointer events, href kept.
+   * Render the link inert: `aria-disabled="true"`, `tabindex="-1"`, `pointer-events-none` and a
+   * click handler that cancels the navigation — so a pointer, Enter on a focused link and an
+   * assistive-technology activation all do nothing, and a consumer's own `onclick` is not called
+   * either. Drawn at reduced opacity. The `href` stays on the element: a disabled link keeps its
+   * address readable and copyable, it just leaves the tab order and answers nothing.
+   * @summary Inert link — out of the tab order, answers no activation, href kept.
    * @default false
    */
   disabled?: boolean;

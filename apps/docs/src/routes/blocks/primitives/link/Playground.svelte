@@ -3,9 +3,10 @@
   zeigen können: die Doku-Seite und der Landing-Hero. Siehe
   `$lib/playground-host.ts`.
 
-  `href` ist Pflicht-Prop und kein Regler: die Bühne navigiert nicht, und ein
-  Textfeld für eine Adresse zeigt am Ergebnis nichts. Es steht als Konstante im
-  Schnipsel, damit der kopierte Code compiliert.
+  `href` ist Pflicht-Prop und kein Regler: ein Textfeld für eine Adresse zeigt
+  am Ergebnis nichts. Es steht als Konstante im Schnipsel, damit der kopierte
+  Code compiliert — und die Bühne bekommt `#` plus `demoNoop`, die Hausform aus
+  `breadcrumb/Playground.svelte`: sonst trüge die Demo den Leser fort.
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';
@@ -22,7 +23,10 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
+  // Was der Schnipsel zeigt, und was die Bühne rendert: eine echte Adresse im
+  // Code, ein totes `#` in der Demo.
   const HREF = '/projects/42';
+  const demoNoop = (event: MouseEvent) => event.preventDefault();
 
   const controls = deriveControls(componentData, {
     pick: ['variant', 'active', 'disabled', 'children'],
@@ -53,6 +57,6 @@
 >
   {#snippet children(values)}
     {@const { children: label, ...rest } = values}
-    <Link href={HREF} {...rest}>{label}</Link>
+    <Link href="#" onclick={demoNoop} {...rest}>{label}</Link>
   {/snippet}
 </PlaygroundConfigurator>

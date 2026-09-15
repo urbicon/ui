@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
+import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentDefaults, ComponentPreset } from '$lib/provider/blocks-context';
 import LinkProviderHost from './__fixtures__/LinkProviderHost.svelte';
 import type { LinkProps } from './index';
@@ -88,6 +89,50 @@ describe('Link', () => {
     render();
     expect(anchor().getAttribute('aria-disabled')).toBeNull();
     expect(anchor().getAttribute('tabindex')).toBeNull();
+  });
+
+  it('cancels the navigation of a disabled link that is clicked anyway', () => {
+    // `pointer-events-none` only stops hit testing. Assistive-technology
+    // activation goes through `element.click()`, which reaches the anchor
+    // whatever CSS says, so the guard has to be in the handler.
+    const onclick = vi.fn();
+    render({ disabled: true, onclick });
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor().dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onclick).not.toHaveBeenCalled();
+  });
+
+  it('cancels a disabled link activated by Enter from the keyboard', async () => {
+    const onclick = vi.fn();
+    render({ disabled: true, onclick });
+
+    anchor().focus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onclick).not.toHaveBeenCalled();
+  });
+
+  it("runs the consumer's onclick on an enabled link and lets it navigate", () => {
+    const onclick = vi.fn();
+    render({ onclick });
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor().dispatchEvent(event);
+
+    expect(onclick).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("leaves a consumer's own preventDefault standing on an enabled link", () => {
+    render({ onclick: (fromConsumer: MouseEvent) => fromConsumer.preventDefault() });
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor().dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it('passes target and rel through to the anchor', () => {

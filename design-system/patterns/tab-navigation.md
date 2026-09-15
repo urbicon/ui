@@ -21,7 +21,7 @@ Do NOT use when:
 - **Structure:** shared layout (`+layout.svelte`) holding the tab bar — a `<nav>` of links — with a nested `+page.svelte` per section rendered as `children`
 - **Placement:** tabs directly below the page header / breadcrumb, above the content area
 - **Content:** each `+page.svelte` renders its own section content below the shared tab bar
-- **Responsive:** the tab bar scrolls horizontally on narrow screens (collapse to a `Select` for 5+ tabs). A scroll container clips at its padding box, so the `py-1` on the `<nav>` is the room the focus ring needs to survive — which is why the rule under the strip is a `before:` line at that inset rather than the container's own `border-b`; `tab.variants.ts` records the same trade for `Tab`
+- **Responsive:** the tab bar scrolls horizontally on narrow screens (collapse to a `Select` for 5+ tabs). A scroll container clips at its padding box, so the `<nav>` pads itself by exactly what the focus ring occupies — `calc(var(--blocks-focus-ring-width) + var(--blocks-focus-ring-offset))`, read off the two tokens the ring is drawn from, so the wider ring under `prefers-contrast: more` widens its own room instead of being clipped. The rule under the strip sits at that same inset as a `before:` line rather than the container's own `border-b`, for the same reason; `tab.variants.ts` records the trade for `Tab`
 
 ## SvelteKit Route Structure
 
@@ -42,7 +42,7 @@ routes/
 
 ### Shared Layout with Link Tabs
 
-The tab bar is navigation, so it is a `<nav>` of anchors. The browser gets real links (history, middle-click, copy link, prefetch, no JavaScript needed), assistive technology gets the current section through `aria-current="page"`, and nothing has to be kept in sync with the URL because nothing but the URL is read. Each tab is a `Link` in its `standalone` voice, which is where the resting and hover colours, the `aria-current` and the focus ring come from; the class on it carries only what makes a tab a tab — the underline rule and the horizontal rhythm.
+The tab bar is navigation, so it is a `<nav>` of anchors. The browser gets real links (history, middle-click, copy link, prefetch, no JavaScript needed), assistive technology gets the current section through `aria-current="page"`, and nothing has to be kept in sync with the URL because nothing but the URL is read. Each tab is a `Link` in its `standalone` voice, which is where the resting and hover colours, the `aria-current` and the focus ring come from. The class on it carries the tab chrome: the rule under the strip, the horizontal rhythm, and the accent on the current tab — the active tab is one of the three places the accent is allowed to sit (`principles.md` § Visual Hierarchy), so `text-primary-text` there deliberately overrides the document ink `Link` gives an `active` handle.
 
 `font-medium` sits on every tab, not just the current one: `active` already lifts a `Link` to medium weight, and letting the weight change on navigation reflows the strip under the pointer.
 
@@ -74,7 +74,7 @@ The tab bar is navigation, so it is a `<nav>` of anchors. The browser gets real 
 <div class="flex flex-col gap-6">
   <nav
     aria-label="Project sections"
-    class="before:bg-border-subtle relative flex gap-1 overflow-x-auto py-1 before:absolute before:inset-x-0 before:bottom-1 before:z-0 before:h-px before:content-['']"
+    class="before:bg-border-subtle relative flex gap-1 overflow-x-auto py-[calc(var(--blocks-focus-ring-width)+var(--blocks-focus-ring-offset))] before:absolute before:inset-x-0 before:bottom-[calc(var(--blocks-focus-ring-width)+var(--blocks-focus-ring-offset))] before:z-0 before:h-px before:content-['']"
   >
     {#each tabs as tab (tab.href)}
       {@const active = isCurrent(tab.href, tab.exact)}
