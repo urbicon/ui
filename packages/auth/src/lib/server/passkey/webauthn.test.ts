@@ -952,6 +952,21 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     });
     expect(result.publicKey).toEqual(coseKey);
   });
+
+  it('spends the challenge: a second verify of the same credential is refused', async () => {
+    // What the registration rate-limit's placement rests on. The limiter sits
+    // on `registrationOptions`, which bounds credential rows only while one
+    // options call can buy exactly one row — i.e. while the challenge it
+    // stored is one-shot. Replaying the identical, otherwise valid credential
+    // must fail on the spent challenge rather than mint a second row.
+    const store = createInMemoryChallengeStore();
+    await store5m(store, 'user-reg', 'reg-challenge');
+    const { authData } = await buildRegistrationAuthData();
+    const attestation = noneAttestation(authData);
+
+    await expect(verify(store, attestation)).resolves.toBeTruthy();
+    await expect(verify(store, attestation)).rejects.toThrow('Challenge expired or not found');
+  });
 });
 
 describe('malformed COSE key inside authenticatorData (silent-failure review)', () => {

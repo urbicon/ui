@@ -47,11 +47,16 @@ export interface PushSubscriptionHandlerOptions {
    */
   allowedEndpointHosts?: string[];
   /**
-   * Rate limit for the mutating endpoints (POST and DELETE share one budget),
-   * keyed by the authenticated user id — the endpoints require a session, and
-   * a per-user key can't be dodged by rotating IPs. Subscribe/unsubscribe is a
-   * rare user action, so the default of 10/min is generous for real use and a
-   * wall for scripted abuse. Pass `null` to disable.
+   * Rate limit for `POST`, keyed by the authenticated user id — the endpoint
+   * requires a session, and a per-user key can't be dodged by rotating IPs.
+   * Subscribing is a rare user action, so the default of 10/min is generous
+   * for real use and a wall for scripted abuse. Pass `null` to disable.
+   *
+   * `DELETE` is not limited and does not draw on this budget: it removes a row
+   * the caller already owns, which is the clause of the package's rule for
+   * authenticated writes that carries no limit (AUTH.md → Rate-Limiting,
+   * Lockout & Route Scope). `POST` is limited because it creates or reassigns
+   * one.
    */
   rateLimit?: RateLimitConfig | null;
   /**
@@ -77,7 +82,7 @@ export interface PushSubscriptionHandlerOptions {
   logger?: AuthLogger;
 }
 
-/** Default POST/DELETE limit — see {@link PushSubscriptionHandlerOptions.rateLimit}. */
+/** Default POST limit — see {@link PushSubscriptionHandlerOptions.rateLimit}. */
 const DEFAULT_RATE_LIMIT: RateLimitConfig = { windowMs: 60_000, max: 10 };
 
 export function createPushSubscriptionHandler(
@@ -178,9 +183,6 @@ export function createPushSubscriptionHandler(
       if (!userId) {
         return authError('not_authenticated');
       }
-
-      const limited = await enforceRateLimit(rateLimiter, userId);
-      if (limited) return limited;
 
       const { endpoint } = (await readJsonBody(request)) as { endpoint?: unknown };
       if (typeof endpoint !== 'string' || endpoint.length === 0) {

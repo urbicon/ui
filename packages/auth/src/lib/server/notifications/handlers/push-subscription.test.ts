@@ -290,26 +290,26 @@ describe('createPushSubscriptionHandler — POST', () => {
 });
 
 describe('createPushSubscriptionHandler — DELETE', () => {
-  it('shares one rate-limit budget with POST (mutation finding M2 of the test review)', async () => {
+  it('carries no rate limit: it neither spends POST budget nor is refused by it', async () => {
     const repo = mockRepo();
     const handler = createPushSubscriptionHandler(repo, {
-      rateLimit: { windowMs: 60_000, max: 2 }
+      rateLimit: { windowMs: 60_000, max: 10 }
     });
-    // Exhaust the budget with POSTs …
-    for (let i = 0; i < 2; i++) {
+
+    // Eleven removals of the caller's own row inside one window — one past the
+    // budget the configured limit gives POST.
+    for (let i = 0; i < 11; i++) {
       expect(
-        (
-          await handler.POST(
-            event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
-          )
-        ).status
-      ).toBe(201);
+        (await handler.DELETE(event({ endpoint: PUBLIC_ENDPOINT }, { id: 'u1' }))).status
+      ).toBe(200);
     }
-    // … then the DELETE must hit the same wall.
-    const limited = await handler.DELETE(event({ endpoint: PUBLIC_ENDPOINT }, { id: 'u1' }));
-    expect(limited.status).toBe(429);
-    expect(limited.headers.get('Retry-After')).toBeTruthy();
-    expect(repo.delete).not.toHaveBeenCalled();
+    expect(repo.delete).toHaveBeenCalledTimes(11);
+
+    // The budget they did not spend is still POST's to spend.
+    const created = await handler.POST(
+      event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+    );
+    expect(created.status).toBe(201);
   });
 
   it('returns 401 when unauthenticated', async () => {

@@ -494,6 +494,15 @@ export interface AuthConfig<R extends string = string> {
     /** Limit for passkey authentication (options + verify). */
     passkeyAuth?: RateLimitConfig | null;
     /**
+     * Limit for passkey **registration**, keyed by the authenticated user id
+     * rather than the client address: the ceremony requires a session, and a
+     * per-user key cannot be dodged by rotating IPs. Enforced at the entry
+     * (`registrationOptions`) alone — `verifyRegistration` consumes the
+     * challenge that call issued, so credential rows can never outrun the
+     * limited half.
+     */
+    passkeyRegister?: RateLimitConfig | null;
+    /**
      * Limit for the authenticated change-password handler. It is re-auth gated,
      * but still credential-accepting, so limiting it stops a hijacked session
      * from brute-forcing the current password through this endpoint.

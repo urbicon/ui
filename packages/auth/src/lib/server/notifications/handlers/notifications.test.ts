@@ -170,3 +170,21 @@ describe('locals shape contract (R5)', () => {
     expect(service.getForUser).not.toHaveBeenCalled();
   });
 });
+
+describe('createNotificationsHandlers — no rate limiter', () => {
+  it('answers fifty calls of every verb in one window, refusing none', async () => {
+    const service = mockService();
+    const handlers = createNotificationsHandlers(service);
+    const calls = [
+      () => handlers.list.GET(event({ user: { id: 'u1' } })),
+      () => handlers.readAll.POST(event({ user: { id: 'u1' } })),
+      () => handlers.read.POST(event({ user: { id: 'u1' }, params: { id: 'n1' } })),
+      () => handlers.item.DELETE(event({ user: { id: 'u1' }, params: { id: 'n1' } }))
+    ];
+
+    for (let i = 0; i < 50; i++) {
+      for (const call of calls) expect((await call()).status).toBe(200);
+    }
+    expect(service.deleteNotification).toHaveBeenCalledTimes(50);
+  });
+});

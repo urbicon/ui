@@ -150,18 +150,30 @@ type SessionUserResolver<R extends string> = (
 
 // ---- Registration Options ----
 
+// The limiter sits here rather than on the verify half because this is the
+// ceremony's only door: `verifyRegistration` consumes the challenge this call
+// stored under the caller's user id, so a credential row always costs one
+// options call and capping these caps both. Keyed on the user id, which needs
+// the session resolved first — an address key would brake a whole office
+// enrolling from one NAT address for an action each of them performs a handful
+// of times.
 function registrationOptionsHandler<R extends string>(
-  _deps: AuthDeps<R>,
+  deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository,
   sessionUser: SessionUserResolver<R>
 ): { POST: RequestHandler } {
+  const rateLimiter = sharedLimiter(deps.config, 'passkeyRegister');
+
   return {
     POST: async ({ cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated');
       }
+
+      const limited = await enforceRateLimit(rateLimiter, user.id);
+      if (limited) return limited;
 
       const existing = await passkeyRepo.findByUserId(user.id);
       const existingIds = existing.map((p) => p.credentialId);
@@ -550,20 +562,14 @@ function listHandler<R extends string>(
  * server trims) instead of its own draft.
  *
  * No rate limiter, matching the `item.DELETE` and `list.GET` it is grouped
- * with. This package does not limit uniformly and no rule here derives the
- * answer: the notification writes resolve the session first and limit
- * *afterwards*, keyed by the authenticated user id (`preferences.ts`,
- * `push-subscription.ts`), on the argument that a per-user key cannot be dodged
- * by rotating IPs. A relabel could inherit that argument.
+ * with: a relabel writes a row the caller already owns, which is the clause of
+ * the package's rule for authenticated writes that carries no limit
+ * (AUTH.md → Rate-Limiting, Lockout & Route Scope).
  *
- * What decides against it is reach, measured rather than assumed: a rename
- * costs one read and one write, fires no hook, sends no mail, and this package
- * keeps no audit table — so its worst case is write load. That is the same
- * worst case as the unlimited `DELETE` beside it, which destroys a credential
- * rather than relabelling one. Braking the relabel while the deletion runs free
- * would be arbitrary, so the group stays as it is. The two groups answering
- * this differently is a divergence in the package, not a principle to read off
- * it.
+ * Its reach agrees: a rename costs one read and one write, fires no hook,
+ * sends no mail, and this package keeps no audit table — so its worst case is
+ * write load, the same worst case as the unlimited `DELETE` beside it, which
+ * destroys a credential rather than relabelling one.
  */
 function renameHandler<R extends string>(
   passkeyRepo: PasskeyRepository,

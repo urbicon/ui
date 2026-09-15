@@ -91,6 +91,17 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   // so its refund gives back no live entry).
   passkeyAuth: { windowMs: 15 * 60_000, max: 30 },
 
+  // The authenticated half of the same feature, and therefore the one key in
+  // this table whose identifier is a user id rather than an address. Enrolling
+  // a passkey grows the credential table, and `registrationOptions` is the
+  // single door to that growth: `verifyRegistration` consumes the challenge
+  // its options call stored under the same user id, so credential rows can
+  // never outrun options calls and limiting the entry bounds both. Same shape
+  // as the push-subscription default for the same reason — enrolling a device
+  // is a rare user action, so this is generous for a real fleet and a wall for
+  // a script.
+  passkeyRegister: { windowMs: 60_000, max: 10 },
+
   changePassword: REAUTH,
   changeEmail: REAUTH,
   deleteAccount: REAUTH,

@@ -4,7 +4,7 @@ import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './ada
 import { createAuthDeps } from './deps.js';
 import { generateES256KeyPair } from './jwt.js';
 import { sharedLimiter } from './rate-limit.js';
-import { lockoutFor, rateLimitFor } from './security-defaults.js';
+import { lockoutFor, RATE_LIMIT_DEFAULTS, rateLimitFor } from './security-defaults.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
@@ -444,7 +444,7 @@ describe('rate-limit defaults cover every declared key', () => {
   // a default is a compile error. This is the runtime half: the shipping config
   // used to default 5 of the 12 keys, and register / resetPassword / verifyEmail
   // / refresh / passkeyAuth got none under any config, with no warning.
-  it('injects a default for all twelve keys', () => {
+  it('injects a default for all thirteen keys', () => {
     const deps = createAuthDeps(baseDeps());
     const limits = deps.config.rateLimit ?? {};
     expect(Object.keys(limits).sort()).toEqual(
@@ -455,6 +455,7 @@ describe('rate-limit defaults cover every declared key', () => {
         'forgotPassword',
         'login',
         'passkeyAuth',
+        'passkeyRegister',
         'refresh',
         'register',
         'resetPassword',
@@ -478,7 +479,9 @@ describe('rate-limit defaults cover every declared key', () => {
     expect(rateLimitFor(deps.config, 'register')).toBeUndefined();
     // Everything else keeps its default — including the login brake.
     expect(deps.config.rateLimit?.login).toEqual({ windowMs: 15 * 60_000, max: 5 });
-    expect(Object.keys(deps.config.rateLimit ?? {})).toHaveLength(12);
+    expect(Object.keys(deps.config.rateLimit ?? {})).toHaveLength(
+      Object.keys(RATE_LIMIT_DEFAULTS).length
+    );
   });
 
   it('treats an omitted key as absent, not as an opt-out', () => {
@@ -498,14 +501,14 @@ describe('rate-limit defaults cover every declared key', () => {
   });
 
   // Merge, never replacement: a consumer who tunes exactly one key must not
-  // lose the other eleven.
+  // lose the rest.
   it('keeps every other default when exactly one key is configured', () => {
     const deps = createAuthDeps(
       baseDeps({ rateLimit: { resetPassword: { windowMs: 1, max: 1 } } })
     );
     const limits = deps.config.rateLimit ?? {};
     expect(limits.resetPassword).toEqual({ windowMs: 1, max: 1 });
-    expect(Object.keys(limits)).toHaveLength(12);
+    expect(Object.keys(limits)).toHaveLength(Object.keys(RATE_LIMIT_DEFAULTS).length);
     expect(limits.login).toEqual({ windowMs: 15 * 60_000, max: 5 });
     expect(limits.refresh).toEqual({ windowMs: 60_000, max: 30 });
   });
