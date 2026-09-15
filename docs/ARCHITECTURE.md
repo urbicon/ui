@@ -904,6 +904,9 @@ Conventions: `packages/docs-gen/docs/component-structure-guidelines.md`.
 
 ### The lint gates
 
+> **Canon.** What each gate catches is listed once, here; how to run one, with its
+> prerequisites and exemption contract, is AGENTS.md § Commands.
+
 Beyond Biome and `svelte-check`, the repo runs purpose-built gates. Each exists because the
 failure it catches was silent:
 

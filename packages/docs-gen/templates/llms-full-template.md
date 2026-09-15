@@ -204,7 +204,7 @@ The tier context is a context, not a component: a wrapping container calls `setT
 | Component      | Default tier | Family     |
 | -------------- | ------------ | ---------- |
 | Button         | `commit`     | Action     |
-| ButtonGroup    | `commit`     | Action     |
+| ButtonGroup    | `commit`¹    | Action     |
 | Menu           | `commit`     | Action     |
 | Toggle         | `commit`     | Action     |
 | Badge          | `commit`     | Feedback   |
@@ -220,6 +220,10 @@ The tier context is a context, not a component: a wrapping container calls `setT
 | Textarea       | `modify`     | Form       |
 | PinInput       | `modify`     | Form       |
 | TimeInput      | `modify`     | Form       |
+
+¹ `ButtonGroup`'s unset default is `modify` on a **connected vertical** group — a pill cap
+domes a stack of text buttons into a lozenge. An explicit `tier`, or a wrapping Toolbar's
+context, still wins.
 
 Two components **set** the context: `Toolbar`, which only sets — its own surface is `rounded-contain` and its `tier` prop dresses the controls inside the strip rather than the strip — and `ButtonGroup`, which both sets and reads.
 

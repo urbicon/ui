@@ -126,8 +126,9 @@ with no parallel component tree.
 the package track is the story, and hosting a public endpoint is a launch decision rather
 than an engineering one.
 
-It stays in the repo and stays green. No local-install path is documented anywhere, and
-manifest read/write lives in the CLI, never on the stateless server.
+It stays in the repo and stays green. No local-install **consumer** path is documented
+anywhere — the package README's stdio entry points at a checkout of this repo, for working on
+the server — and manifest read/write lives in the CLI, never on the stateless server.
 
 ## The publishing job holds a credential and nothing else
 

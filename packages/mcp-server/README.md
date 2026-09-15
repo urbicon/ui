@@ -35,7 +35,7 @@ Runtime dependencies: `@modelcontextprotocol/sdk`, `zod`.
 
 ## Quick Start
 
-### Stdio (IDE integration)
+### Stdio (in-repo)
 
 From the repo root:
 
@@ -56,9 +56,12 @@ bun run mcp:start:http
 # listens on http://localhost:3001 with streamable transport
 ```
 
-### Connect from Claude Code
+### Point a local MCP client at the in-repo server (development)
 
-Add to `~/.claude/mcp.json` (or project `.claude/mcp.json`):
+For working **on** this server: the entry below runs it from a checkout of this
+repo, not from an installed package, and it is not a consumer path — consumers
+use the `urbicon` CLI. Add to `~/.claude/mcp.json` (or project
+`.claude/mcp.json`):
 
 ```json
 {

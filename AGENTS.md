@@ -1,42 +1,39 @@
 # Repository Guidelines
 
-## Project Overview
-
-Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
-
 ## Project Structure
+
+Svelte 5 + Tailwind CSS 4 UI component library monorepo on Bun workspaces.
 
 - Root is a Bun workspace (`"private": true`). Source in `packages/*`:
   - `blocks`: Svelte UI components
     - `primitives`: Atomic UI components
     - `components`: complex UI widgets built on top of the primitives
-  - `table`: Data table (sorting, filtering, grouping, selection, keyboard-nav, virtualization, column reorder, remote-mode, live updates)
+  - `table`: Data table (sorting, filtering, grouping, selection, keyboard-nav, virtualization, column reorder, remote mode, live updates)
   - `docs`: Reusable documentation UI components
   - `docs-gen`: Documentation generator (TypeScript CLI, extracts props/variants from AST)
-  - `mcp-server`: Model Context Protocol server (10 read-only tools, 7 guide resources, 10 design-verb prompts) for LLM-driven development; manifest read/write lives in the `urbicon` CLI (`@urbicon-ui/design`), not the remote server
-  - `i18n`: Localization (Svelte 5 runes-based); also ships a data-level translation audit (`auditTranslations`, `onMissingKey` / `createMissingKeyCollector`) + a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by the `urbicon i18n` CLI command and `bun run i18n:check` (which scans `blocks`, `table` and `docs` — `auth` keeps its own locale system, and its oracle is `translations.parity.test.ts` plus `satisfies AuthLocale`)
+  - `mcp-server`: Model Context Protocol server for LLM-driven development; manifest read/write lives in the `urbicon` CLI (`@urbicon-ui/design`), not the remote server
+  - `i18n`: Localization (Svelte 5 runes-based); also ships a data-level translation audit and a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by `urbicon i18n` and `bun run i18n:check` (which scans `blocks`, `table` and `docs` — `auth` keeps its own locale system, and its oracle is `translations.parity.test.ts` plus `satisfies AuthLocale`)
   - `shared-types`: docs-tooling types (playground, docs-config, navigation) — a peer of `@urbicon-ui/docs` and a dependency of `docs-gen`, nothing else; `blocks` and `table` reference its `globals` augmentation only while type-checking their own sources
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
   - `design`: the `urbicon` CLI (`@urbicon-ui/design`) — local design-loop enforcement (validate/hook/context/record-decision/sync-manifest/i18n/verb), ships the design skill + templates
-  - `sv`: Svelte-CLI community add-on (`@urbicon-ui/sv`, npm-keyword `sv-add`, beta) — `sv add @urbicon-ui` / `sv create --add @urbicon-ui` installs blocks + design, wires the Tailwind stylesheet (`file.stylesheet`, after Tailwind), then hands over to `urbicon init --hook`; peer `sv`, single-file bundle, no dependencies. **The only SvelteKit-bound consumer path** (`unsupported('Requires SvelteKit')`) — not a library limit but a wiring one, see the comment in `src/index.ts`
+  - `sv`: Svelte-CLI community add-on (`@urbicon-ui/sv`, beta) — `sv add @urbicon-ui` installs blocks + design, wires the Tailwind stylesheet after Tailwind's own, then hands over to `urbicon init --hook`. **The only SvelteKit-bound consumer path** (`unsupported('Requires SvelteKit')`) — not a library limit but a wiring one, see the comment in `src/index.ts`
   - `design-content`: versioned design knowledge bundle (`@urbicon-ui/design-content`) consumed by the remote MCP server + the `urbicon` CLI; `content/` is a git-ignored build artifact emitted by docs-gen
   - `design-engine`: zero-dep design linter / manifest parser / rubric (`@urbicon-ui/design-engine`), subpath exports `./linter` `./manifest` `./rubric`
   - `auth`: Authentication & user management (JWT sessions, refresh-token rotation, passkeys/WebAuthn, notifications, email)
-    - Zero runtime dependencies — uses Web Crypto API for JWT, PBKDF2, WebAuthn (CBOR, ECDSA, RSA), Web Push (RFC 8291/8292)
-    - Server: handler factories, handle hook, adapter pattern (Prisma adapter included)
-    - Client: Svelte 5 Runes stores, blocks-based UI components (unstyled/slotClasses), i18n (EN/DE)
+    - Zero runtime dependencies — Web Crypto API for JWT, PBKDF2, WebAuthn (CBOR, ECDSA, RSA), Web Push (RFC 8291/8292)
+    - Server: handler factories, handle hook, adapter pattern (Prisma adapter included). Client: Svelte 5 Runes stores, blocks-based UI, own i18n (EN/DE)
 - Apps in `apps/docs` (documentation site) and `apps/artifact-studio`
 - Build artifacts: `dist/`, `.svelte-kit/` (git-ignored)
 
 ## Key Architecture Decisions
 
-- **Styling**: Custom `tv()` variant engine (`packages/blocks/src/lib/utils/variants.ts`, ~1,350 LoC, zero-dep replacement for `tailwind-variants`)
+- **Styling**: Custom `tv()` variant engine (`packages/blocks/src/lib/utils/variants.ts`, zero-dep replacement for `tailwind-variants`)
 - **Design Tokens**: OKLCH color system with 3-layer architecture (foundation → semantic → interaction) in `blocks/src/lib/style/`
 - **Dark Mode**: Semantic tokens handle dark mode automatically via the CSS `light-dark()` function (follows `color-scheme` / the user's `prefers-color-scheme`); no manual `dark:` overrides
 - **Focus**: `focus-visible:` everywhere (not `focus:`), for keyboard-only focus rings
 - **Z-Index**: CSS custom property tokens (`--z-modal`, `--z-dropdown`, etc.) via `z-[var(--z-*)]`
 - **Components**: All support `unstyled` + `slotClasses` + `preset` props for style overrides; `BlocksProvider` additionally accepts prop-conditional `overrides` (style only a specific variant/intent/state, e.g. the `outlined` variant)
-- **Internal core layer**: Public blocks components never import each other for trivial embedded controls (close ×, loading spinner, icon-only nav button) — they use the behaviour-only cores in `src/lib/internal/core/` (`CoreIconButton`, `CoreSpinner`, `CoreFieldMessage`, `CoreDateGridHeader`; never exported) with the look in an own variants slot. Essential compositions (ConfirmDialog→Dialog, DatePicker→Calendar) stay direct imports but need a justified allowlist entry in `packages/blocks/scripts/imports-lint.ts`; `bun run imports:lint` errors on unknown edges AND stale entries. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) → "Internal Core Layer".
+- **Internal core layer**: Public blocks components never import each other for trivial embedded controls (close ×, loading spinner, icon-only nav button) — they use the never-exported cores in `src/lib/internal/core/` (`ls` it for the roster). Essential compositions (ConfirmDialog→Dialog) stay direct imports but need a justified allowlist entry in `packages/blocks/scripts/imports-lint.ts`; `imports:lint` errors on unknown edges AND stale entries. Canon: [ARCHITECTURE.md § The internal core layer](docs/ARCHITECTURE.md#the-internal-core-layer).
 - **A gate is the last resort, not the first**: before adding a lint, ask whether the state it would report can be made *unrepresentable* instead — a value derived from one source cannot disagree with itself, and a gate that keeps two hand-written copies of one list agreeing is paying rent on the duplication rather than removing it (#146, #147, #148). When a gate genuinely is the answer, it must ask a real system — the compiler, Tailwind, the bundler, axe, a generator plus `--check` (`a2ui:axes:check` is the model).
 
 For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -45,37 +42,36 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 `bun run` lists every script. Non-obvious ones:
 
-- Single package: `bun --filter='@urbicon-ui/blocks' run <script>` (bare `bun test` bypasses the config — always `run test`)
-- `size` — per-component tree-shaken min+gzip size across blocks/table/auth, net of Svelte **and** of the shared foundation (`net` column = what the component adds to a project already using the library); needs all three `dist/`. `--check` gates solo `gz` against `bundle-size.baseline.json` at the release bump (`scripts/bump.sh`), `--update-baseline` after intentional growth, staged into the release commit; CI's own `size-report` job runs it without `--check`, as a non-blocking per-PR report. Reports any catalogue component it never measured
-- `shots` — the four README views (`.github/assets/`) + `static/og.png`, against a **running** docs-app dev server (`SHOTS_BASE`, default `:5174`); it starts none. The og.png is not a page screenshot but the fixture `test-fixtures/og`, reading its words from `$lib/landing/wordmark` — the same module as the name tile. Why locale, motion and frame are pinned: head of `scripts/capture-shots.ts`. A second copy of og.png lives in the urbicon website repo
-- `variants:lint` — dead-token guard over all tv() configs, plus the bucket-agreement pass: it asks the Tailwind compiler which properties each class declares and fails on a family `BUCKET_PATTERNS` has no pattern for (the resolver goes silent there and the stylesheet's emit order decides) or a bucket whose classes write different properties. · `imports:lint` — cross-component import guard (see Key Architecture Decisions)
-- `consumer-css:check` — a package can ship `.svelte` whose Tailwind classes no consumer ever compiles, and `apps/docs` cannot notice: it scans every `src/lib` whole and is not a consumer (#314). Packs every published package that ships `.svelte` (`bun pm pack`), installs the tarballs into a throwaway `node_modules`, and asks Tailwind's own `compile()` → `Scanner` → `candidatesToCss()` whether the shipped stylesheet reaches every class in the shipped markup — no class regex of its own. A package that ships styled markup but exports no `./style/index.css` is reported as exactly that. Runs in the `build` job (needs `dist/`); positive controls: `bun test scripts/consumer-css-check.test.ts` (in the `test` job)
-- `docs:fences:lint` — compiles the opted-in `ts` fences of every `packages/*/README.md` and `packages/*/docs/*.md` with raw `tsc` against a throwaway consumer project linked to the built packages, so imports resolve through the published exports map — the class of error `examples:lint` cannot see. Opt-in per `<!-- typecheck -->` on the line above the fence; `$env` and relative consumer modules are declared from the fences' own imports, `$lib` is `any`. Needs `build:packages` first; runs in `gates`
+- Single package: `bun --filter='@urbicon-ui/blocks' run <script>` (bare `bun test` bypasses a vitest config — always `run test` for a package's suite)
+- `size` — per-component tree-shaken min+gzip across blocks/table/auth; needs all three `dist/`. Gates only at the release bump (`--check` against `bundle-size.baseline.json` in `scripts/bump.sh`); `--update-baseline` after intentional growth, staged into the release commit. CI's `size-report` job runs it per PR without `--check`, as a report. The `net` column: [ARCHITECTURE.md § Bundle size](docs/ARCHITECTURE.md#bundle-size)
+- `shots` — the README views (`.github/assets/`) + `static/og.png`, against a **running** docs-app dev server (`SHOTS_BASE`, default `:5174`); it starts none. og.png is the fixture `test-fixtures/og`, not a page screenshot; a second copy lives in the urbicon website repo. Why locale, motion and frame are pinned: head of `scripts/capture-shots.ts`
+- `variants:lint` — dead-token guard over all tv() configs, plus a bucket-agreement pass over what the Tailwind compiler says each class declares: a class family `BUCKET_PATTERNS` has no pattern for fails, as does a bucket whose classes write different properties. The rest: `packages/blocks/scripts/variants-lint.ts`. · `imports:lint` — cross-component import guard (see Key Architecture Decisions)
+- `consumer-css:check` — a package can ship `.svelte` whose Tailwind classes no consumer ever compiles, and `apps/docs` cannot notice (#314). Builds a consumer out of the packed tarballs and asks Tailwind itself; a package that ships styled markup but exports no `./style/index.css` fails as exactly that. Runs in the `build` job (needs `dist/`); positive controls `bun test scripts/consumer-css-check.test.ts` (`test` job). How it asks: head of `scripts/consumer-css-check.ts`
+- `docs:fences:lint` — compiles the opted-in `ts` fences of every `packages/*/README.md` and `packages/*/docs/*.md` against a throwaway consumer project, so imports resolve through the published exports map — the class of error `examples:lint` cannot see. A fence opts in per `<!-- typecheck -->` on the line above it. Needs `build:packages` first; runs in `gates`. Marker rules and ambient declarations: head of `packages/docs-gen/scripts/doc-fences-lint.ts`
 - `summary:lint` — component `@summary` budget · `playgrounds:lint` — playground snippets **and** the knob-hint budget (a knob whose hint runs past 120 chars needs a prop-level `@summary`; see the `component-metadata` skill). Both read the generated catalogs, so run `docs:gen:all` first
-- `registry:lint` — a docs page is hand-registered in three places (sidebar, `componentLinks`, recipes cookbook) and forgetting one is silent. Checks all three against the routes and the catalogs; a deliberate omission needs an `UNLISTED` / `PAGELESS` entry with a reason, stale entries are errors too. Reads the generated catalogs — `docs:gen:all` first. What each registry feeds and what the first run found: head of `apps/docs/scripts/registry-lint.ts`
-- `examples:budget` — the 2–4 `<CodeExample>` budget per component page (`docs/DocsPageGuide.md` XC-6). Runs in the `gates` job. **Not** `examples:lint` (that one type-checks `@example` JSDoc). Exemptions are `OVERSIZE_OK` / `NO_EXAMPLES` entries with a reason; stale ones are errors. Which sections count and why: head of `apps/docs/scripts/example-budget-lint.ts` (+ `.rules.ts`)
-- `sections:lint` — catches a docs page's TOC links, sections and nav order silently disagreeing (a link that scrolls nowhere, a section unreachable from the TOC, a nav order that disagrees with the page). Reads no generated output, so it runs standalone
-- `typesref:lint` — a component page documents its types in two hand-written halves (`types=` on `<ApiReference>`, a `<TypesReference>` section) and each fails silently without the other. Enforces both directions, and that both read the **same** `componentData` from the page's **own** `'./api'`. Exemptions: `NO_PAGE`. Reads the generated api.ts — `docs:gen:all` first. **Not** `types:guard` (that one is declaration emit). How the attribute is resolved and which slips that catches: head of `apps/docs/scripts/typesref-lint.ts`
-- `examples:lint` — type-checks every `@example` block of every `*Props` JSDoc across blocks/table/auth/docs: each snippet is written out as a real `.svelte` file and run through `svelte-check`, so a wrong prop name, a variant value that does not exist, a missing required prop or a mistyped component name fails loudly. Slow (two `svelte-check` passes per package) and needs the workspace deps built — a pre-merge/pre-bump gate, not a per-commit one. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry in `packages/docs-gen/scripts/examples-lint.ts`; stale entries are errors (same contract as `imports:lint`). The same run also compiles every `svelte` fence of `design-system/patterns/*.md` — served verbatim by `urbicon pattern`, so each is checked as a whole component where every diagnostic counts (no fragment filter, no `PLACEHOLDERS`); it fails when the number of fences it *wrote into* the host package is not the number it parsed, or is zero. Positive control: `bun test packages/docs-gen/scripts/examples-lint.test.ts` (own step in the `test` job, `EXAMPLES_LINT_PATTERNS_DIR` points it at a fixture); the extraction and line-mapping halves are unit-tested in `packages/docs-gen/tests/pattern-fences.test.ts`
+- `registry:lint` — a docs page is hand-registered in three places (sidebar, `componentLinks`, recipes cookbook) and forgetting one is silent; checks all three against the routes and the catalogs, a deliberate omission needs an `UNLISTED` / `PAGELESS` entry with a reason, stale entries are errors too. Reads the generated catalogs — `docs:gen:all` first. What each registry feeds: its script header
+- `examples:budget` — the 2–4 `<CodeExample>` budget per component page (`docs/DocsPageGuide.md` XC-6), in the `gates` job. **Not** `examples:lint` (that one type-checks `@example` JSDoc). Exemptions are `OVERSIZE_OK` / `NO_EXAMPLES` entries with a reason; stale ones are errors. Which sections count: head of `apps/docs/scripts/example-budget-lint.ts` (+ `.rules.ts`)
+- `sections:lint` — catches a docs page's TOC links, sections and nav order disagreeing: a link that scrolls nowhere, a section no TOC entry reaches. Reads no generated output, so it runs standalone
+- `typesref:lint` — a component page documents its types in two hand-written halves (`types=` on `<ApiReference>`, a `<TypesReference>` section), each silent without the other; enforces both directions and that both read the **same** `componentData` from the page's own `'./api'`. Exemptions: `NO_PAGE`. Reads the generated api.ts — `docs:gen:all` first. **Not** `types:guard` (that one is declaration emit). Which slips that catches: head of `apps/docs/scripts/typesref-lint.ts`
+- `examples:lint` — type-checks every `@example` block of every `*Props` JSDoc (blocks/table/auth/docs) as a real `.svelte` file through `svelte-check`. Slow and needs the workspace deps built — a pre-merge/pre-bump gate, not a per-commit one. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry in `packages/docs-gen/scripts/examples-lint.ts`; stale entries are errors (same contract as `imports:lint`). The same run compiles every `svelte` fence of `design-system/patterns/*.md` as a whole component, with nothing exempt — `urbicon pattern` serves those verbatim. Positive control: `bun test packages/docs-gen/scripts/examples-lint.test.ts` (own step in the `test` job)
 - `docs:gen:all` — root `bun run docs:gen` already defaults to this; a scoped `docs:gen:<target>` skips the MCP catalog assembly
-- `llms:check` — `git diff --exit-code -- llms.txt apps/docs/static/llms.txt`: the committed root `llms.txt` (and its static copy) must equal what the last `docs:gen` wrote. Run `docs:gen` first — the check has no build step of its own, it only asks git whether that run's output is staged/committed
+- `llms:check` — `git diff --exit-code` over `llms.txt` and its `apps/docs/static/` copy: both must equal what the last `docs:gen` wrote. Run `docs:gen` first; the check has no build step of its own, it only asks git
 
 ## Coding Conventions
 
 - Lint/format: **Biome** for `.ts`/`.js`/`.json` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`. Biome does not parse `.svelte`.
-- **Dropped on the ESLint→Biome migration** (Biome can't lint `.svelte` markup; `svelte-check` keeps a11y): `svelte/no-at-html-tags` (`{@html}` XSS guard), `svelte/require-each-key`, `svelte/prefer-svelte-reactivity`, `svelte/no-navigation-without-resolve`. Re-add a `.svelte`-only ESLint pass if these regress.
+- **Four `.svelte` lint rules are unenforced** — Biome cannot parse `.svelte`, so the `{@html}` XSS guard, each-key, `prefer-svelte-reactivity` and `no-navigation-without-resolve` are on you; re-add a `.svelte`-only ESLint pass if they regress ([DECISIONS.md](docs/DECISIONS.md)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the MCP server, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
 - Use semantic design tokens over primitive Tailwind classes
-- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show *and* what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. In reviews, comment claims are findings-eligible exactly like code.
+- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show *and* what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
 
-For full component API conventions see [docs/COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md).
-For component file structure see [docs/ComponentStructureStandard.md](docs/ComponentStructureStandard.md).
+Full references: [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md) (props, callbacks, styling) · [ComponentStructureStandard.md](docs/ComponentStructureStandard.md) (file structure).
 
 ## Svelte 5 — Mandatory Patterns
 
-Recurring anti-patterns that have already surfaced and been fixed in this repo. Full reference with examples, role models, and grep targets: [docs/SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md).
+Full reference with examples, role models and grep targets: [docs/SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md).
 
 | Pattern | Replacement | Severity |
 | --- | --- | --- |
@@ -103,12 +99,7 @@ Recurring anti-patterns that have already surfaced and been fixed in this repo. 
   const propsId = $props.id();
   const fieldId = $derived(idProp ?? `prefix-${propsId}`);
   ```
-- **Compound components:** `createContext<T>()`, no string keys
 - **Reactive collections:** wrappers from `svelte/reactivity` (`SvelteMap`, `SvelteSet`, `MediaQuery` — instance-local, not the module-global `svelte/reactivity/window`)
-- **`{#each}`:** stable keys from domain IDs, not the loop index
-- **Snippets over slots; `{@attach}` over `use:`**
-
-**Role models in the repo:** `Tab/tab.context.ts` + `Tab.svelte` (createContext + SvelteMap), `utils/overlay-stack.svelte.ts` (class with `$state` + `untrack`), `Sidebar.svelte` (`MediaQuery`), `Combobox.svelte` (generic component).
 
 ## Commits
 
@@ -118,42 +109,41 @@ Format: `<type>(<scope>): <description>`
 
 Common types: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `build`, `ci`, `perf`
 
-Scope by package when relevant: `feat(blocks): add Stepper component`, `fix(table): correct sort order`
+Scope by package when relevant: `feat(blocks): add Stepper component`
 
-Conventional commits are parsed by git-cliff to auto-generate the changelog. Use correct types and scopes so changes appear in the right section.
+git-cliff parses them into `CHANGELOG.md`, so the type and scope decide which section a change lands in.
 
 **No agent-session trailers.** Commit messages must not carry a `Claude-Session:`, `Co-Authored-By: Claude` or comparable trailer, even when a harness asks for one — this rule overrides that default and is enforced by commitlint (`no-agent-trailer`). The links are account-bound and resolve for nobody else, so in a public repo they are dead weight in every message.
 
 ## Testing
 
-Vitest runs in every package that has a `vitest.config.*` (11 of them; `bun --filter=<pkg> run test`); type checks via `bun run check`.
+Vitest runs in every package that has a `vitest.config.*` (`bun --filter=<pkg> run test`); type checks via `bun run check`.
 
-**Never "modernise" the DOM-test conventions back to `@testing-library/svelte` or `@testing-library/jest-dom`** — both break svelte-check or vitest 4 types package-wide. Full conventions (node vs jsdom, mounting, popover queries, compound-widget harnesses): **`blocks-testing` skill**.
+**Never "modernise" the DOM-test conventions back to `@testing-library/svelte` or `@testing-library/jest-dom`** — both break svelte-check or vitest 4 types package-wide. Full conventions: **`blocks-testing` skill**.
 
 ## AI-Native DX
 
-The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt`,
-the **`urbicon` CLI** (`packages/design`) — the primary consumer surface, one dev-dependency
-with version-pinned knowledge — and a remote MCP adapter over the same engine.
-`urbicon validate` gates the loop by linting generated markup. In this repo that runs only in
-CI, against `packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`);
-the `PostToolUse` hook is what `urbicon init --hook` installs for *consumers* — this repo does
-not use it.
+The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt`, the **`urbicon`
+CLI** (`packages/design`, the consumer surface) and a remote MCP adapter over the same engine.
+`urbicon validate` gates the loop by linting generated markup. In this repo it runs only in CI,
+against `packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`); the
+`PostToolUse` hook is what `urbicon init --hook` installs for *consumers*, not something this
+repo uses.
 
 Which command serves what, the `init` contract, why the MCP endpoint stays unhosted before
 launch: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
 
 ## Icons
 
-Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` inside a component** — the dynamic key defeats tree-shaking and drags the entire icon set into the consumer bundle; use `resolveIcon('name', NameIconDefault)` with a direct import (`<Icon name="…" />` is the lone exception). Geometry contract, the 5-spot registration checklist and `icons:lint`: **`add-icon` skill**.
+Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` inside a component** — the dynamic key defeats tree-shaking and drags the entire icon set into the consumer bundle; use `resolveIcon('name', NameIconDefault)` with a direct import (`<Icon name="…" />` is the lone exception). Geometry, the registration checklist and `icons:lint`: **`add-icon` skill**.
 
 ## Git Workflow (Agent Notes)
 
-- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json` and `prettier --write` on staged `.svelte`, re-staging the results (`stage_fixed: true`, see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for `.svelte` you have **not** staged (a whole-package sweep).
-- **A fresh worktree needs a build before anything else.** `bun install`, then `bunx --bun svelte-kit sync` (blocks, docs-app), then `bun run build:packages` (derives layered build order from the `workspace:*` edges — a flat `--filter='./packages/*'` sweep races the topology; the script's header documents the measured failure). Without it: the docs-app dev server won't start, `docs-app run check` reports hundreds of missing `@urbicon-ui/…` and `./api` modules (`api.ts` is git-ignored — run `docs:gen` too), and `blocks run check` shows ~5 phantom `Snippet` errors plus a failing `run test`, all because `@urbicon-ui/i18n` has no `dist/` yet.
-- **Worktree merges**: `main` is checked out in the root worktree. Merge without leaving yours via `git -C <repo-root> merge <branch>` — this is the orchestrator's move from its own worktree; implementation subagents inside a `pr-wave` never run `git -C` on the main checkout (that rule lives in the `pr-wave` skill). Stash there first if that tree is dirty.
-- **Only a PR's head SHA proves it landed.** PRs squash-merge, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Check with `gh pr view <N> --json headRefName,headRefOid,state` — equal SHA plus `MERGED` is also what makes deleting the branch safe. Cleaning up removes three things: the branch, its worktree, and the `worktree-*` scaffolding branch the tooling creates (that one never merges on its own), then `git worktree prune`.
-- **Root `docs/*.md` and `AGENTS.md` are not prettier-gated** (lint runs per package; root docs sit in none). Match a file's existing style for surgical diffs — do not blindly `prettier --write` them, it re-aligns whole tables. Package Markdown (`packages/*/README.md`, `packages/*/docs/*.md`) is gated by no hook or CI step either — lefthook runs prettier on `.svelte` only, `lint` is Biome + svelte-check — so keep it prettier-clean by hand: `bunx prettier --check` on every file you touch, and a file that already fails must not gain a violation.
+- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json` and `prettier --write` on staged `.svelte`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for `.svelte` you have **not** staged (a whole-package sweep).
+- **A fresh worktree needs a build before anything else.** `bun install`, then `bunx --bun svelte-kit sync` (blocks, docs-app), then `bun run build:packages` (a flat `--filter='./packages/*'` sweep races the topology; the script's header says why). Without it the symptoms mislead — a dev server that won't start, missing `@urbicon-ui/…` modules, phantom `Snippet` errors, a failing `run test` — all because `@urbicon-ui/i18n` has no `dist/` yet. `api.ts` is git-ignored, so `docs:gen` too.
+- **Worktree merges**: `main` is checked out in the root worktree. Merge without leaving yours via `git -C <repo-root> merge <branch>` — this is the orchestrator's move from its own worktree; implementation subagents inside a `pr-wave` never run `git -C` on the main checkout. Stash there first if that tree is dirty.
+- **Only a PR's head SHA proves it landed.** PRs squash-merge, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Check with `gh pr view <N> --json headRefName,headRefOid,state` — equal SHA plus `MERGED` is also what makes deleting the branch safe. Cleanup removes the branch, its worktree and the `worktree-*` scaffolding branch the tooling creates (that one never merges on its own), then `git worktree prune`.
+- **No Markdown is prettier-gated** — not root `docs/*.md` and `AGENTS.md`, not package Markdown (`packages/*/README.md`, `packages/*/docs/*.md`). Match a file's existing style for surgical diffs; never blindly `prettier --write`, it re-aligns whole tables. Keep package Markdown prettier-clean by hand instead: `bunx prettier --check` on every file you touch, and a file that already fails must not gain a violation.
 - **The `import.meta.env` build warning is expected — do not "fix" it.** `blocks` uses optional-chained `import.meta.env?.DEV` instead of `esm-env`, which would be a runtime dependency in the published `dist/` and break the zero-dependency maxim. The `@sveltejs/package` advisory is a plain string match, so it fires anyway. Never resolve it by adding `esm-env` or `$app/environment`.
 
 ## Versioning
@@ -162,13 +152,11 @@ One unified version across all packages, bumped once at the end of a coherent se
 
 ## Documentation
 
-**The index of every doc is [docs/README.md](docs/README.md)** — one index, not two. It carries the reading order for a new agent and one line per file; this section keeps only the rules that govern writing them.
-
-What you need first: [ARCHITECTURE.md](docs/ARCHITECTURE.md) §1 package map & build order and §2 the token → markup path · [SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md) (the anti-patterns this repo has already paid for) · [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md) · [ComponentStructureStandard.md](docs/ComponentStructureStandard.md).
+**The index of every doc is [docs/README.md](docs/README.md)** — one index, not two. It carries the reading order, one line per file, and the canon map: which file owns which rule family. This section keeps only the rules that govern writing docs.
 
 - **Language**: reference/API docs in English; internal strategy & analysis docs stay German working documents.
 - **Public or internal**: reference content a consumer developer needs is public (package README, the shipped docs, the site, llms-full.txt). Planning, review bookkeeping and strategy stay under `docs/internal/` (git-ignored, unpublished). When knowledge must exist on both sides, **the public file is the canon** and the internal one links to it — never the other way around.
-- **Seven docs ship inside npm tarballs** — `VARIANT-CONTRACT`, `STICKY-PINNING`, `MIGRATION-V8`, `MIGRATION-BLOCKS`, `A2UI`, `GUIDE` and `AUTH` are symlinks into `packages/*/docs/`, so they are public consumer documentation. No internal review IDs, wave or session names, priority markers (P1/P2, cluster letters) or `docs/internal/` references in them.
+- **Every `docs/*.md` that is a symlink ships inside an npm tarball** (`ls -l docs/*.md` names them) and is therefore public consumer documentation. No internal review IDs, wave or session names, priority markers (P1/P2, cluster letters) or `docs/internal/` references in them.
 
 ## Project tracking
 
@@ -182,14 +170,14 @@ What you need first: [ARCHITECTURE.md](docs/ARCHITECTURE.md) §1 package map & b
 
   | axis | values | meaning |
   | --- | --- | --- |
-  | `debt:<area>` | 13 existing values | the topic |
+  | `debt:<area>` | the existing values as in `gh label list` | the topic |
   | `pkg:<package>` | the package name as in `gh label list` | where it lives (multiple allowed) |
   | `prio:P1\|P2\|P3` | **P1 = someone comes to harm**: a security hole, wrong data, a crash, a keyboard trap. Not "touches shipped code" — in a library every line does | the order |
   | `size:S\|M\|L` | a session · about a day · a wave | the cost |
 
   Plus two state labels: **`ready`** — the path is clear, no open design decision — and `blocked:upstream`. **`ready` is deliberately the positive label**: nearly every deferred finding ends in "wants a decision", so a `needs-decision` label would sit on ~75 % of the backlog and sort nothing. The useful question is what can be picked up right now (`gh issue list --label ready`). There is no P0; that channel stays free for an actual fire.
 
-- **Milestones are cut by work focus, not by urgency** — touching Calendar once beats touching it four times; `prio:` carries the order instead. Ten open milestones, every issue in exactly one, each with a description saying why its issues belong together. `gh api repos/:owner/:repo/milestones --jq '.[].title'` lists them; put a new issue in one rather than leaving it unassigned.
+- **Milestones are cut by work focus, not by urgency** — touching Calendar once beats touching it four times; `prio:` carries the order instead. Every issue sits in exactly one, and every milestone has a description saying why its issues belong together. `gh api repos/:owner/:repo/milestones --jq '.[].title'` lists them; put a new issue in one rather than leaving it unassigned.
 
 - **Cross-links go in the body**, as a `**Related:**` block after a `---` at the end, and are worth writing when the connection crosses a milestone — that is exactly what the milestone view cannot show.
 
@@ -197,4 +185,4 @@ What you need first: [ARCHITECTURE.md](docs/ARCHITECTURE.md) §1 package map & b
 
 ## Task-scoped skills
 
-Repo procedures live in `.claude/skills/` and load on demand: `blocks-testing` (test conventions), `component-metadata` (JSDoc contract for `index.ts` + JSDoc-vs-page placement), `add-icon` (icon contract + registration), `release-bump` (version/release flow), `docs-recipes` (recipe + component doc pages), `docs-writer` (driving a docs-page write/migration: briefing, order, gates), `docs-editor` (editing pass for docs prose — never in the context that wrote it), `architecture-probe` (auditing a package's architecture — five sondes in order, never a judgement), `pr-wave` (implementing a set of issues as reviewed PRs: worktree agents, adversarial review cycles with fix verification, CI/merge flow).
+Repo procedures live in `.claude/skills/` and load on demand: `blocks-testing` (test conventions), `component-metadata` (JSDoc contract for `index.ts` + JSDoc-vs-page placement), `add-icon` (icon contract + registration), `release-bump` (version/release flow), `docs-recipes` (recipe + component doc pages), `docs-writer` (driving a docs-page write/migration), `docs-editor` (editing pass for docs prose — never in the context that wrote it), `architecture-probe` (auditing a package's architecture — five sondes, never a judgement), `pr-wave` (implementing a set of issues as reviewed PRs), `knowledge-audit` (auditing memory, instructions and docs for entropy — the four checks and when they are worth running).

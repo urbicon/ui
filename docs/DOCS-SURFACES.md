@@ -17,7 +17,7 @@ synthesis, and the standing rule:
 > monorepo keeps a symlink so central navigation still works.** Moving files
 > back and forth is never the fix again — wiring a missing channel is.
 
-## The four principles
+## The five principles
 
 1. **Source lives with the versioned artifact.** Anything a consumer of a
    package needs sits in that package (`README.md`, `docs/*.md`) and ships in
@@ -47,6 +47,15 @@ synthesis, and the standing rule:
    stay in `docs/internal/` (gitignored). Shipped docs never carry internal
    review IDs, wave/session names or priority markers. (Also stated in
    AGENTS.md § Documentation, the "Public or internal" bullet.)
+5. **A number carries the command that reproduces it.** A count, a LoC
+   figure, a milestone tally, a percentage — either the sentence names the
+   command (or grep) that re-derives it, or the number is not written. A
+   roster (which components do X) is derived the same way: name the grep,
+   or link the source of truth; never retype the list. SVELTE5-PATTERNS'
+   "141 hits, 115 outside tests; 2026-09" sits directly above the `rg` line
+   that produced it — that is the shape. Written out, a number rots in
+   silence: the 2026-09-14 audit found four wrong numbers in AGENTS.md and
+   the same LoC figure wrong in four files (`git grep -l "600 LoC" v8.21.0`).
 
 ## Classes and channels
 
