@@ -1,61 +1,8 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import changelogMd from 'virtual:changelog';
-  import { Badge } from '@urbicon-ui/blocks';
-
-  interface ChangelogItem {
-    scope?: string;
-    message: string;
-  }
-
-  interface ChangelogGroup {
-    name: string;
-    items: ChangelogItem[];
-  }
-
-  interface ChangelogEntry {
-    version: string;
-    date: string;
-    groups: ChangelogGroup[];
-  }
-
-  function parseChangelog(md: string): ChangelogEntry[] {
-    const entries: ChangelogEntry[] = [];
-    const lines = md.split('\n');
-    let currentEntry: ChangelogEntry | null = null;
-    let currentGroup: ChangelogGroup | null = null;
-
-    for (const line of lines) {
-      const versionMatch = line.match(/^## \[(.+?)\]\s*-?\s*([\d-]*)/);
-      if (versionMatch) {
-        currentEntry = {
-          version: versionMatch[1],
-          date: versionMatch[2] || '',
-          groups: []
-        };
-        entries.push(currentEntry);
-        currentGroup = null;
-        continue;
-      }
-
-      const groupMatch = line.match(/^### (.+)/);
-      if (groupMatch && currentEntry) {
-        currentGroup = { name: groupMatch[1], items: [] };
-        currentEntry.groups.push(currentGroup);
-        continue;
-      }
-
-      const itemMatch = line.match(/^- (?:\*\*(.+?)\*\*: )?(.+)/);
-      if (itemMatch && currentGroup) {
-        currentGroup.items.push({
-          scope: itemMatch[1] || undefined,
-          message: itemMatch[2]
-        });
-      }
-    }
-
-    return entries;
-  }
+  import { Badge, Link } from '@urbicon-ui/blocks';
+  import { parseChangelog, tokenizeInline } from '$lib/changelog';
 
   const entries = parseChangelog(changelogMd);
 
@@ -122,7 +69,17 @@
                       class="text-2xs mr-1 font-mono">{item.scope}</Badge
                     >
                   {/if}
-                  {item.message}
+                  {#each tokenizeInline(item.message) as token, t (t)}
+                    {#if token.kind === 'link'}
+                      <Link href={token.href} target="_blank" rel="noopener noreferrer"
+                        >{token.text}</Link
+                      >
+                    {:else if token.kind === 'code'}
+                      <code class="bg-surface-subtle rounded-modify px-1 font-mono text-xs"
+                        >{token.text}</code
+                      >
+                    {:else}{token.text}{/if}
+                  {/each}
                 </span>
               </li>
             {/each}
