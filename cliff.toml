@@ -11,8 +11,19 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 # a note that needs more than 600 characters belongs in the migration docs the
 # entry links to, not in the changelog line.
 body = """
+{#- The URL is spelled a second time in `postprocessors` below: a postprocessor
+    is a plain regex replacement over the rendered text and sees no template
+    context, and Tera has no regex to do the job here instead. A version heading
+    links to the diff against its predecessor — the oldest release in the
+    generated set has none and falls back to its tag. `git push --follow-tags`,
+    which is what bump.sh prints, is what keeps the newest link from 404ing. -#}
+{%- set repo = "https://github.com/urbicon/ui" -%}
 {%- if version %}
-## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{%- if previous.version %}
+## [{{ version | trim_start_matches(pat="v") }}]({{ repo }}/compare/{{ previous.version }}...{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{%- else %}
+## [{{ version | trim_start_matches(pat="v") }}]({{ repo }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{%- endif %}
 {%- else %}
 ## [Unreleased]
 {%- endif %}
@@ -31,6 +42,17 @@ body = """
 {% endfor -%}
 """
 trim = true
+# Issue and PR numbers reach the changelog as plain `(#N)`. GitHub autolinks
+# those in issues, PRs and commit views, never inside a Markdown file, so the
+# link has to be written. It is written here and not in `commit_preprocessors`:
+# the BREAKING note above is truncated at 600 characters, and a link inserted
+# before that cap spends the budget on URL text — the 8.4.0 RadioGroup note
+# loses its closing clause that way. Requiring the parentheses is what leaves
+# the pre-move `(Codeberg #25)` entries alone; they number another forge's
+# issues. `/issues/N` redirects to `/pull/N`, so one form serves both.
+postprocessors = [
+    { pattern = '\(#([0-9]+)\)', replace = "([#${1}](https://github.com/urbicon/ui/issues/${1}))" },
+]
 
 [git]
 conventional_commits = true
