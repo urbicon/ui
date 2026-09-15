@@ -12,7 +12,7 @@ import { loadIconEntries } from '../content.js';
 import { EXIT, printError } from '../output.js';
 
 const USAGE_NOTE = `Usage: import { SearchIcon } from '@urbicon-ui/blocks'; → <SearchIcon size={24} />
-Props: size (default 24), strokeWidth (default 2), class, rotate, flip, animation
+Props: size (px; default 1em — the font size of the surrounding text), strokeWidth (default 2), class, rotate, flip, animation
 Dynamic (via IconProvider): <Icon name="search" />`;
 
 function formatIcon(icon: IconEntry): string {
