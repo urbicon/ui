@@ -26,10 +26,15 @@
    * `??`, not `||`: `size={0}` is a caller asking for no box and must not be
    * read as "no size given".
    *
-   * A presentation attribute, so any author CSS outranks it: a `size-4` on the
-   * icon or a `[&_svg]:size-4` on an ancestor decides regardless of `size` —
-   * which is what keeps every styled slot in this library rendering as before.
-   * `restProps` is spread after it, so an explicit `width=`/`height=` wins too.
+   * A presentation attribute, so any author CSS outranks it, per axis: a
+   * `size-4` on the icon or a `[&_svg]:size-4` on an ancestor decides
+   * regardless of `size`, while a one-axis `w-6` leaves the other axis at `1em`
+   * and the box stops being square. Outranking it is what keeps every icon the
+   * library renders itself — the chevrons, checkmarks and clear buttons, each
+   * in a slot that sizes it — drawing as before; an icon a consumer passes into
+   * a Button or a snippet has no such slot and does change.
+   *
+   * `restProps` is spread after these, so an explicit `width=`/`height=` wins.
    */
   const dimension = $derived(size ?? '1em');
   const classes = $derived(

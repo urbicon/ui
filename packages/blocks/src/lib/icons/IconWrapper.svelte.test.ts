@@ -50,6 +50,14 @@ describe('IconWrapper sizing', () => {
     expect(svg.getAttribute('height')).toBe('0');
   });
 
+  // The `1em` default is written before `{...restProps}`, so a caller who
+  // reaches past `size` for the attribute itself still decides.
+  it('lets an explicit width/height in restProps win over the default', () => {
+    const svg = renderIcon({ width: '24', height: '30' });
+    expect(svg.getAttribute('width')).toBe('24');
+    expect(svg.getAttribute('height')).toBe('30');
+  });
+
   // classList, not the whole attribute: IconWrapper has a <style> block, so
   // Svelte appends its own scoping class and the attribute carries a hash.
   it('still passes class through', () => {
