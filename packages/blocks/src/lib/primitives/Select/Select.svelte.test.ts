@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, unmount } from 'svelte';
+import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SelectMultipleProps, SelectProps } from './index';
+import type { SelectMultipleProps, SelectOption, SelectProps } from './index';
 import Select from './Select.svelte';
+import { selectVariants } from './select.variants';
 
 // Interaction layer for Select — the focus / keyboard / open-close timing the
 // variant tests deliberately can't reach. Select is the ARIA *Listbox* case:
@@ -586,5 +587,101 @@ describe('Select (required)', () => {
     });
     expect(disabledForm.querySelector('input[required]')).toBeNull();
     expect(disabledForm.checkValidity()).toBe(true);
+  });
+});
+
+// A facet option carries its count, and the count is the thing that says
+// whether the click is worth it — so `hint` renders inside the option's text
+// content (accessible name "Noir 24"), never as `aria-hidden` decoration.
+describe('Select (option hints)', () => {
+  const HINTED = [
+    { label: 'Noir', value: 'noir', hint: '24' },
+    { label: 'Comedy', value: 'comedy' }
+  ];
+
+  // Located by text, not by class, so the class assertions below are the only
+  // place this suite couples to the styling.
+  const hintIn = (opt: HTMLElement, text: string) =>
+    [...opt.querySelectorAll('span')].find((el) => el.textContent === text);
+  const flat = (el: HTMLElement) => el.textContent?.replace(/\s+/g, ' ').trim();
+
+  it('puts the hint in the option text content, after the label', async () => {
+    const user = userEvent.setup();
+    renderSelect({ options: HINTED });
+
+    await user.click(trigger());
+    const opt = option('Noir 24');
+    expect(flat(opt)).toBe('Noir 24');
+    const hint = hintIn(opt, '24');
+    expect(hint).toBeTruthy();
+    // Inside the accessible name — an aria-hidden hint drops the count.
+    expect(hint?.hasAttribute('aria-hidden')).toBe(false);
+    const children = [...opt.children];
+    expect(children.indexOf(hint as Element)).toBeGreaterThan(
+      children.indexOf(hintIn(opt, 'Noir') as Element)
+    );
+  });
+
+  it('styles the hint from the optionHint slot and merges slotClasses.optionHint', async () => {
+    const user = userEvent.setup();
+    renderSelect({ options: HINTED });
+    await user.click(trigger());
+    expect(hintIn(option('Noir 24'), '24')?.getAttribute('class')).toBe(
+      selectVariants({}).optionHint()
+    );
+
+    dispose?.();
+    dispose = undefined;
+    document.body.replaceChildren();
+
+    renderSelect({ options: HINTED, slotClasses: { optionHint: 'font-mono' } });
+    await user.click(trigger());
+    const cls = hintIn(option('Noir 24'), '24')?.getAttribute('class') ?? '';
+    expect(cls).toContain('font-mono');
+    expect(cls).toContain('tabular-nums');
+  });
+
+  it('renders no hint element for an option without one', async () => {
+    const user = userEvent.setup();
+    renderSelect({ options: HINTED });
+
+    await user.click(trigger());
+    const opt = option('Comedy');
+    expect(flat(opt)).toBe('Comedy');
+    expect(opt.querySelector('.tabular-nums')).toBeNull();
+  });
+
+  it('keeps the hint trailing while the checkbox indicator leads (multi)', async () => {
+    const user = userEvent.setup();
+    renderSelect({ options: HINTED, multiple: true });
+
+    await user.click(trigger());
+    const opt = option('Noir 24');
+    // The checkbox is aria-hidden, so the name is unchanged; the hint is still last.
+    expect(flat(opt)).toBe('Noir 24');
+    expect(opt.lastElementChild).toBe(hintIn(opt, '24'));
+  });
+
+  it('renders the hint on grouped options too', async () => {
+    const user = userEvent.setup();
+    renderSelect({ groups: [{ label: 'Genre', options: HINTED }] });
+
+    await user.click(trigger());
+    expect(flat(option('Noir 24'))).toBe('Noir 24');
+  });
+
+  it('draws no hint when customItem owns the row', async () => {
+    const user = userEvent.setup();
+    renderSelect({
+      options: HINTED,
+      customItem: createRawSnippet<[SelectOption<string | number | boolean>, boolean, () => void]>(
+        () => ({ render: () => '<span>own row</span>' })
+      )
+    });
+
+    await user.click(trigger());
+    const opt = screen.getAllByRole('option', { hidden: true })[0];
+    expect(flat(opt)).toBe('own row');
+    expect(opt.querySelector('.tabular-nums')).toBeNull();
   });
 });

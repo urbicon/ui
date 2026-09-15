@@ -34,6 +34,7 @@
     error,
     required = false,
     filter,
+    allowCustom,
     queryFn,
     debounceMs = 250,
     loadingText = 'Loading…',
@@ -173,7 +174,10 @@
         tagCache.get(v) ??
         seedOptions.find((o) => o.value === v);
       if (found) return found;
-      if (import.meta.env?.DEV && !warnedOrphanValues.has(v)) {
+      // Under `allowCustom` a string value IS its own label, so a value with no
+      // option behind it is the documented outcome rather than a consumer gap.
+      const selfLabelling = allowCustom && typeof v === 'string';
+      if (import.meta.env?.DEV && !warnedOrphanValues.has(v) && !selfLabelling) {
         warnedOrphanValues.add(v);
         console.warn(
           `[Combobox] value ${JSON.stringify(v)} has no matching option — tag falls back to its raw value. ` +
@@ -227,12 +231,48 @@
       .filter((g) => g.options.length > 0);
   });
 
+  // Every label the field can already show for a value: the live options plus
+  // the sources a selected value's label is resolved from. Typing one of them
+  // names an existing value, so `allowCustom` offers nothing.
+  const knownLabels = $derived.by(() => {
+    const set = new Set<string>();
+    const add = (o: ComboboxOption<T>) => set.add(o.label.toLowerCase());
+    for (const o of allOptions) add(o);
+    for (const o of seedOptions) add(o);
+    for (const o of selectedTags) add(o);
+    if (selectedOption) add(selectedOption);
+    return set;
+  });
+
+  // The synthetic row `allowCustom` offers for a query that names no option.
+  // Its `label` is a prompt the reader acts on, NOT the label of the value —
+  // `asPicked` below is what a selection stores.
+  const customRow = $derived.by((): ComboboxOption<T> | null => {
+    if (!allowCustom) return null;
+    const q = query.trim();
+    if (!q || knownLabels.has(q.toLowerCase())) return null;
+    return { label: bt('combobox.useQuery', { query: q }), value: q as T };
+  });
+
+  // Identity, not a marker field: `customRow` is one object per recompute, and
+  // a real option can carry the same `value` (its label just differs).
+  const isCustomRow = (opt: ComboboxOption<T>) => opt === customRow;
+
+  // What a pick stores. Selecting the synthetic row must put the typed text
+  // into the input, the pick cache and the tag — its prompt label never leaves
+  // the listbox.
+  const asPicked = (opt: ComboboxOption<T>): ComboboxOption<T> =>
+    isCustomRow(opt) ? { label: String(opt.value), value: opt.value } : opt;
+
   // Flat list backing keyboard nav + aria-activedescendant. Kept in lockstep
   // with `filteredGroups` (same predicate, same option refs) so the virtual
-  // cursor index always addresses a rendered option.
-  const filtered = $derived(
+  // cursor index always addresses a rendered option. The custom row is APPENDED
+  // here rather than rendered beside the list, so cursor bounds, hover, click,
+  // Enter and `aria-activedescendant` keep to the one option path.
+  const filteredOptions = $derived(
     filteredGroups ? filteredGroups.flatMap((g) => g.options) : allOptions.filter(matchesQuery)
   );
+  const filtered = $derived(customRow ? [...filteredOptions, customRow] : filteredOptions);
 
   // Flat index of each option within `filtered`, precomputed so the grouped
   // render path reads an option's keyboard-cursor index in O(1) instead of
@@ -372,15 +412,16 @@
 
   function select(opt: ComboboxOption<T>) {
     if (opt.disabled) return;
-    value = opt.value;
-    query = opt.label;
-    selectedCache = opt;
+    const picked = asPicked(opt);
+    value = picked.value;
+    query = picked.label;
+    selectedCache = picked;
     setOpen(false);
     activeIndex = -1;
     // Dispatch through the loose alias — the union's `onValueChange` param type
     // is the contravariant intersection `(T | null) & T[]`, which nothing is
     // assignable to; the alias erases the mode split (mirrors Select).
-    dispatchValueChange?.(opt.value);
+    dispatchValueChange?.(picked.value);
     focusInputWithoutOpening();
   }
 
@@ -410,20 +451,21 @@
   // next one; toggling an already-selected option off removes its tag.
   function toggleValue(opt: ComboboxOption<T>) {
     if (opt.disabled) return;
+    const picked = asPicked(opt);
     const values = [...selectedValues];
-    const idx = values.indexOf(opt.value);
+    const idx = values.indexOf(picked.value);
     if (idx === -1) {
       // Adding — respect the cap. (A selected option is never blocked here.)
       if (maxItems != null && values.length >= maxItems) return;
-      values.push(opt.value);
-      tagCache.set(opt.value, opt);
+      values.push(picked.value);
+      tagCache.set(picked.value, picked);
       value = values;
       dispatchValueChange?.(values);
     } else {
       values.splice(idx, 1);
-      tagCache.delete(opt.value);
+      tagCache.delete(picked.value);
       value = values;
-      onRemoveTag?.(opt.value);
+      onRemoveTag?.(picked.value);
       dispatchValueChange?.(values);
     }
     query = '';
@@ -630,10 +672,12 @@
   });
 
   const listboxId = $derived(`${id}-listbox`);
+  // The synthetic row gets an id of its own: a real option whose `value` equals
+  // the typed text would otherwise answer to the same one.
+  const optionId = (opt: ComboboxOption<T>) =>
+    isCustomRow(opt) ? `${listboxId}-option-custom` : `${listboxId}-option-${opt.value}`;
   const activeDescendant = $derived(
-    activeIndex >= 0 && filtered[activeIndex]
-      ? `${listboxId}-option-${filtered[activeIndex].value}`
-      : undefined
+    activeIndex >= 0 && filtered[activeIndex] ? optionId(filtered[activeIndex]) : undefined
   );
 </script>
 
@@ -845,8 +889,14 @@
               {/each}
             </div>
           {/each}
+          <!-- The synthetic row belongs to no section, so it follows the groups. -->
+          {#if customRow}
+            {@render optionButton(customRow, filteredIndexByOption.get(customRow) ?? -1)}
+          {/if}
         {:else}
-          {#each filtered as opt, i (opt.value)}
+          <!-- Keyed by the object for the synthetic row: its `value` is the typed
+               text, which a real option is free to carry as its own. -->
+          {#each filtered as opt, i (isCustomRow(opt) ? opt : opt.value)}
             {@render optionButton(opt, i)}
           {/each}
         {/if}
@@ -882,7 +932,7 @@
   {@const selected = isSelected(opt)}
   {@const optDisabled = isOptionDisabled(opt)}
   <button
-    id="{listboxId}-option-{opt.value}"
+    id={optionId(opt)}
     type="button"
     role="option"
     aria-selected={selected}
@@ -918,6 +968,14 @@
       {@render customOption(opt, selected)}
     {:else}
       <span class="flex-1 truncate">{opt.label}</span>
+      {#if opt.hint}
+        <!-- No aria-hidden: the hint is part of the option's accessible name. -->
+        <span
+          class={unstyled
+            ? (slotClasses?.optionHint ?? '')
+            : styles.optionHint({ class: slotClasses?.optionHint })}>{opt.hint}</span
+        >
+      {/if}
       <!--
         Always rendered (reserved space) and faded in via opacity — parity
         with Select's optionCheck mechanic, so selecting never shifts layout.

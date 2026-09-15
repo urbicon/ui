@@ -9,6 +9,17 @@ export interface ComboboxOption<T extends SelectValue = string> {
   label: string;
   value: T;
   disabled?: boolean;
+  /**
+   * Trailing secondary text on the option row — a facet count ("24"), a unit,
+   * a price. It is part of the option's text content, so the row's accessible
+   * name reads "Noir 24" rather than dropping the number.
+   *
+   * A string, not a number: formatting and locale belong to the caller
+   * (`String(count)`, or an `Intl.NumberFormat` result). Ignored while
+   * `customOption` draws the row — that snippet owns the whole row. Not matched
+   * by the built-in filter, which reads `label` only.
+   */
+  hint?: string;
 }
 
 /** A labelled group of combobox options (parity with Select's `groups`). */
@@ -77,6 +88,32 @@ interface ComboboxBaseProps<T extends SelectValue = string>
   filter?: (option: ComboboxOption<T>, query: string) => boolean;
 
   /**
+   * Open the closed option list: whatever the user types becomes selectable as
+   * a value of its own, with `options` / `groups` / `queryFn` left as the
+   * suggestion set. A trailing row ("Use “Kino 46”", localized) appears once the
+   * trimmed query is non-empty and no option the field knows carries that label
+   * case-insensitively — including `groups`, `queryFn` results and the labels
+   * behind the current selection. It is an ordinary option: the arrow keys reach
+   * it, Enter picks it, and `onValueChange` receives the trimmed query.
+   *
+   * **String values only.** The selected value is the query text, so the prop is
+   * typed away for a numeric or boolean `T` — `Combobox<number>` cannot mint a
+   * number out of free text, and a caller who needs one parses the string
+   * themselves in `onValueChange`.
+   *
+   * The stored label is the raw query, not the row's prompt: the input (single
+   * mode) and the tag (multi) read "Kino 46". A value picked this way therefore
+   * needs no `seedOptions` entry on a later mount.
+   *
+   * For a row that renders differently, or a value that is not the query text,
+   * reach for `customOption` and an option you append yourself.
+   *
+   * @default false
+   * @summary Lets the user keep what they typed as the value when no option matches.
+   */
+  allowCustom?: T extends string ? boolean : never;
+
+  /**
    * Server-side search (analogous to the Table remote-mode API). When set, the
    * Combobox stops filtering client-side and instead calls `queryFn` — debounced
    * by {@link debounceMs} — on each query change, replacing the option list with
@@ -110,7 +147,9 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    * works identically for single and multi selection. Without a matching seed
    * such a value renders as its raw `String(value)` (and warns DEV-only).
    * Declarative and idempotent — not a second selection source: `value` alone
-   * decides what is selected; `seedOptions` only supplies labels.
+   * decides what is selected; `seedOptions` only supplies labels. A string value
+   * under `allowCustom` needs no seed and warns for none — there the value is
+   * its own label.
    */
   seedOptions?: ComboboxOption<T>[];
   /** Show a clear button when a value is selected. Click or press Escape to reset. @default false */
@@ -171,8 +210,8 @@ interface ComboboxBaseProps<T extends SelectValue = string>
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv() styles. Slots: base | label | requiredMark |
    *  inputWrapper | input | message | helper | listbox | option | optionActive | optionSelected |
-   *  optionCheck | group | groupLabel | loading | noResults | clear | chevron | control | search |
-   *  tag | tagLabel | tagRemove */
+   *  optionHint | optionCheck | group | groupLabel | loading | noResults | clear | chevron |
+   *  control | search | tag | tagLabel | tagRemove */
   slotClasses?: Partial<Record<ComboboxSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Combobox: {...} }}>`.
@@ -303,6 +342,18 @@ export interface ComboboxMultipleProps<T extends SelectValue = string>
  *     { label: 'Veg', options: [{ label: 'Carrot', value: 'carrot' }] }
  *   ]}
  *   bind:value={food}
+ * />
+ * ```
+ *
+ * @example Suggestions, not a closed list — `allowCustom` keeps what was typed
+ * ```svelte
+ * <Combobox
+ *   label="Venue"
+ *   options={venues}
+ *   bind:value={venue}
+ *   allowCustom
+ *   clearable
+ *   placeholder="Search or type a venue…"
  * />
  * ```
  */

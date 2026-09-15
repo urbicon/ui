@@ -244,6 +244,7 @@ Four surfaces render option/item rows inside a floating panel: `Select` and `Com
 | Header voice | uppercase `text-xs font-medium tracking-wider text-text-tertiary` | plain `text-xs font-medium text-text-tertiary` — sections label actions, not data groups | uppercase `text-2xs font-semibold text-text-quaternary` — micro command voice |
 | Keyboard cursor | `bg-surface-hover` via `aria-activedescendant` | `bg-surface-hover` + real roving focus (`focus-visible` ring) | `bg-primary-subtle text-primary-text` — "Enter runs this" |
 | Empty/loading rows | `text-sm text-text-tertiary` centered, `py-4` | n/a (static action lists) | same signature, `py-8` (larger surface) |
+| Trailing hint | `hint` on the option — `text-text-tertiary tabular-nums`, inside the row's accessible name | the `detail` slot — the current value of the sub-menu a row opens | `shortcut` on the item, in a `<kbd>` |
 
 ---
 
