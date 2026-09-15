@@ -11,6 +11,47 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.23.0
+
+### A `neutral` ConfirmDialog gets a `filled neutral` confirm button
+
+`ConfirmDialog` used to promote a `neutral` `intent` to `primary` on its confirm button, and
+`ConfirmIntent` excluded `neutral` so you could not ask for the neutral one back. The button now
+follows `intent` unchanged, and `ConfirmIntent` is `DialogIntent` — the accent belongs to the
+primary action, not to every confirmation.
+
+Only one combination changes on screen: `<ConfirmDialog intent="neutral">` with no `confirmIntent`.
+Its confirm button was accent-filled and is now neutral-filled. To keep the accent:
+
+```svelte
+<ConfirmDialog intent="neutral" confirmIntent="primary" title="Move to archive?" />
+```
+
+Every other `intent` renders exactly as before. Grep for `<ConfirmDialog` and check which of those
+carry `intent="neutral"`; a product that re-painted the whole `danger` intent at the provider to
+reach one dialog can drop that override and write `confirmIntent` instead.
+
+### The EmptyState icon disc is neutral
+
+`emptyState.variants.ts` drew the icon circle in `bg-primary-subtle text-primary-text`, which put
+the accent on a surface that asks for nothing. It is now `bg-surface-subtle text-text-tertiary`;
+the radius tier, the sizes and every other slot are unchanged. An empty state is not the call to
+action — the CTA below it is.
+
+To get the accent back, per instance:
+
+```svelte
+<EmptyState
+  icon={InboxIcon}
+  title="No items yet"
+  slotClasses={{ iconWrapper: 'bg-primary-subtle text-primary-text' }}
+/>
+```
+
+or once for the whole app through `defaults.EmptyState.slotClasses.iconWrapper` on
+`<BlocksProvider>`. A consumer that had already overridden the disc to a neutral tone can delete
+that override — grep for `iconWrapper` to find them.
+
 ## 8.22.0
 
 ### The required marker's glyph is CSS again

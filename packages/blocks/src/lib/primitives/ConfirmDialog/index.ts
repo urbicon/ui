@@ -4,11 +4,12 @@ import type { DialogIntent } from '../Dialog';
 import type { DialogSlots } from '../Dialog/dialog.variants';
 
 /**
- * Intent applied to the confirm button. Reuses the standard intent palette
- * via {@link DialogIntent} (with `neutral` mapped to `primary` for visual
- * affordance).
+ * Intent applied to the confirm button — the full {@link DialogIntent} palette,
+ * `neutral` included. The accent belongs to the primary action, so a neutral
+ * dialog's confirm button is a filled neutral one: the surface says "this is
+ * the action", the words say what it does.
  */
-export type ConfirmIntent = Exclude<DialogIntent, 'neutral'>;
+export type ConfirmIntent = DialogIntent;
 
 /**
  * @summary The "are you sure" that replaces the browser's own — styleable, focused, dismissible.
@@ -53,14 +54,18 @@ export interface ConfirmDialogProps
   description?: string;
 
   /**
-   * Accent on the dialog header strip. Drives the default `confirmIntent`.
+   * Accent on the dialog header strip and the default for the confirm button.
+   * `neutral` reaches the button unchanged — a filled neutral confirm, because
+   * the accent belongs to the primary action rather than to every confirm.
    * @default 'danger'
+   * @summary Colours the header strip, and the confirm button with it.
    */
   intent?: DialogIntent;
 
   /**
-   * Override for the confirm button intent. Defaults to {@link ConfirmDialogProps.intent},
-   * with `neutral` upgraded to `primary` for visual affordance.
+   * Override for the confirm button alone, leaving the header strip on
+   * {@link ConfirmDialogProps.intent}. Defaults to that `intent`; pass
+   * `'primary'` to put the accent on a neutral dialog's confirm button.
    */
   confirmIntent?: ConfirmIntent;
 

@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { buttonVariants } from '../Button/button.variants';
 import ConfirmDialog from './ConfirmDialog.svelte';
 import type { ConfirmDialogProps } from './index';
 
@@ -46,6 +47,27 @@ const base = {
   confirmLabel: 'Delete',
   cancelLabel: 'Keep'
 } satisfies Partial<ConfirmDialogProps>;
+
+/** The class tokens `<Button intent={…}>` wears at ConfirmDialog's call site (no variant/size props). */
+const tokensFor = (intent: 'neutral' | 'primary' | 'danger') =>
+  new Set(buttonVariants({ intent, variant: 'filled' }).base().split(/\s+/).filter(Boolean));
+
+/**
+ * Asserts the confirm button is dressed as `intent` and not as `insteadOf`.
+ * Both sides come from buttonVariants, so the expectation cannot drift from the
+ * palette the Button actually renders.
+ */
+function expectConfirmIntent(
+  button: HTMLButtonElement,
+  intent: 'neutral' | 'primary' | 'danger',
+  insteadOf: 'neutral' | 'primary' | 'danger'
+) {
+  const worn = new Set(button.className.split(/\s+/).filter(Boolean));
+  const want = tokensFor(intent);
+  const other = tokensFor(insteadOf);
+  expect([...want].filter((t) => !worn.has(t))).toEqual([]);
+  expect([...other].filter((t) => !want.has(t) && worn.has(t))).toEqual([]);
+}
 
 describe('ConfirmDialog (component interaction)', () => {
   it('renders a structured confirm dialog with title, description, and both buttons', async () => {
@@ -396,5 +418,29 @@ describe('ConfirmDialog (component interaction)', () => {
     const dialog = screen.getByRole('dialog', { hidden: true });
     expect(dialog.getAttribute('data-testid')).toBe('confirm-delete');
     expect(dialog.getAttribute('aria-label')).toBe('Confirm deletion');
+  });
+
+  it('dresses the confirm button as the dialog intent — a neutral dialog gets a filled neutral confirm', async () => {
+    // The confirm button follows `intent` with no promotion in between, so a
+    // neutral dialog confirms in filled neutral. Reinstating the old
+    // `intent === 'neutral' ? 'primary' : intent` mapping fails exactly here.
+    renderConfirm({ ...base, open: true, intent: 'neutral' });
+    await tick();
+
+    expectConfirmIntent(confirmBtn(), 'neutral', 'primary');
+  });
+
+  it('lets confirmIntent override the dialog intent on the button alone', async () => {
+    renderConfirm({ ...base, open: true, intent: 'neutral', confirmIntent: 'danger' });
+    await tick();
+
+    expectConfirmIntent(confirmBtn(), 'danger', 'neutral');
+  });
+
+  it('defaults to a danger confirm when no intent is given', async () => {
+    renderConfirm({ ...base, open: true });
+    await tick();
+
+    expectConfirmIntent(confirmBtn(), 'danger', 'neutral');
   });
 });

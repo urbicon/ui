@@ -89,9 +89,17 @@
 <Section marker id="customization" title="Customization">
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
-      Pair with any icon from <code>@urbicon-ui/blocks</code>. The icon and text use the
-      <code>primary</code> intent tokens, so they follow your theme; override any slot with
-      <code>slotClasses</code>, <code>unstyled</code>, or a <code>preset</code>.
+      Pair with any icon from <code>@urbicon-ui/blocks</code>. The icon disc rests on the neutral
+      surface tokens, not the accent: an empty state is not the call to action &#8212; the button
+      under it is. Override any slot with <code>slotClasses</code>, <code>unstyled</code>, or a
+      <code>preset</code>.
+    </p>
+    <p>
+      To put the accent back on the disc, pass
+      <code
+        >slotClasses=&#123;&#123; iconWrapper: 'bg-primary-subtle text-primary-text' &#125;&#125;</code
+      >, or set it once for every empty state through the provider's
+      <code>defaults.EmptyState.slotClasses.iconWrapper</code>.
     </p>
     <p>
       Use the <code>cta</code> snippet for the primary action; render your own markup via
