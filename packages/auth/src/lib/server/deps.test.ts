@@ -441,10 +441,11 @@ describe('jwt.secret wiring validation', () => {
 describe('rate-limit defaults cover every declared key', () => {
   // The default list is derived from the key set (`RATE_LIMIT_DEFAULTS` is typed
   // `Record<RateLimitKey, …>`), so a key added to `AuthConfig.rateLimit` without
-  // a default is a compile error. This is the runtime half: the shipping config
-  // used to default 5 of the 12 keys, and register / resetPassword / verifyEmail
-  // / refresh / passkeyAuth got none under any config, with no warning.
-  it('injects a default for all thirteen keys', () => {
+  // a default is a compile error. This is the runtime half — that what the
+  // compiler guarantees is also what a resolved config carries — and the one
+  // place the key set is written out by hand, so the list below is the
+  // assertion rather than a count of it.
+  it('injects a default for every declared key', () => {
     const deps = createAuthDeps(baseDeps());
     const limits = deps.config.rateLimit ?? {};
     expect(Object.keys(limits).sort()).toEqual(

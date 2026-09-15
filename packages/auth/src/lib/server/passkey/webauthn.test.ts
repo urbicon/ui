@@ -953,12 +953,12 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     expect(result.publicKey).toEqual(coseKey);
   });
 
-  it('spends the challenge: a second verify of the same credential is refused', async () => {
-    // What the registration rate-limit's placement rests on. The limiter sits
-    // on `registrationOptions`, which bounds credential rows only while one
-    // options call can buy exactly one row — i.e. while the challenge it
-    // stored is one-shot. Replaying the identical, otherwise valid credential
-    // must fail on the spent challenge rather than mint a second row.
+  it('spends the challenge on the default store: a second verify of the same credential is refused', async () => {
+    // Scoped to `createInMemoryChallengeStore`, which implements `take` — the
+    // atomic read-and-delete `consumeChallenge` prefers. A consumer store
+    // built from `get`/`delete` alone has no such guarantee under concurrency
+    // (see the `ChallengeStore` docblock), so this pins the shipped store and
+    // nothing wider.
     const store = createInMemoryChallengeStore();
     await store5m(store, 'user-reg', 'reg-challenge');
     const { authData } = await buildRegistrationAuthData();

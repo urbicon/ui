@@ -150,30 +150,22 @@ type SessionUserResolver<R extends string> = (
 
 // ---- Registration Options ----
 
-// The limiter sits here rather than on the verify half because this is the
-// ceremony's only door: `verifyRegistration` consumes the challenge this call
-// stored under the caller's user id, so a credential row always costs one
-// options call and capping these caps both. Keyed on the user id, which needs
-// the session resolved first — an address key would brake a whole office
-// enrolling from one NAT address for an action each of them performs a handful
-// of times.
+// No limiter: a repeat call overwrites the caller's own challenge entry, which
+// `storeChallenge` keys by user id, so the store holds one entry per user
+// however often this is called. The credential row is created by the verify
+// half, and that is where `rateLimit.passkeyRegister` is enforced.
 function registrationOptionsHandler<R extends string>(
-  deps: AuthDeps<R>,
+  _deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository,
   sessionUser: SessionUserResolver<R>
 ): { POST: RequestHandler } {
-  const rateLimiter = sharedLimiter(deps.config, 'passkeyRegister');
-
   return {
     POST: async ({ cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated');
       }
-
-      const limited = await enforceRateLimit(rateLimiter, user.id);
-      if (limited) return limited;
 
       const existing = await passkeyRepo.findByUserId(user.id);
       const existingIds = existing.map((p) => p.credentialId);
@@ -191,18 +183,35 @@ function registrationOptionsHandler<R extends string>(
 
 // ---- Registration Verify ----
 
+// This is the write that creates a credential row, so this is where
+// `rateLimit.passkeyRegister` is enforced — keyed by user id, which needs the
+// session resolved first. Enforcing on the options half instead would bound
+// rows only through the challenge being single-use, and `consumeChallenge`
+// guarantees that only for a `ChallengeStore` implementing `take`; a consumer
+// store built from `get`/`delete` can hand the same challenge to two
+// concurrent verifies. Limiting the row's own handler needs no such premise.
+// The check sits above the body read for the same reason it sits above
+// `verifyRegistration`: attestation parsing and the ECDSA/RSA verification are
+// the work the budget is meant to bound, so a request past the budget is
+// refused before any of it runs. What the default rate bounds, and why no
+// per-user credential cap stands beside it: `RATE_LIMIT_DEFAULTS.passkeyRegister`.
 function registrationVerifyHandler<R extends string>(
   deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository,
   sessionUser: SessionUserResolver<R>
 ): { POST: RequestHandler } {
+  const rateLimiter = sharedLimiter(deps.config, 'passkeyRegister');
+
   return {
     POST: async ({ request, cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated');
       }
+
+      const limited = await enforceRateLimit(rateLimiter, user.id);
+      if (limited) return limited;
 
       try {
         const { credential, name } = (await readJsonBody(request)) as {
@@ -562,9 +571,9 @@ function listHandler<R extends string>(
  * server trims) instead of its own draft.
  *
  * No rate limiter, matching the `item.DELETE` and `list.GET` it is grouped
- * with: a relabel writes a row the caller already owns, which is the clause of
- * the package's rule for authenticated writes that carries no limit
- * (AUTH.md → Rate-Limiting, Lockout & Route Scope).
+ * with: a relabel only changes a row the caller already owns, and such a write
+ * carries no limit under the package's rule for authenticated writes (AUTH.md →
+ * Rate-Limiting, Lockout & Route Scope).
  *
  * Its reach agrees: a rename costs one read and one write, fires no hook,
  * sends no mail, and this package keeps no audit table — so its worst case is

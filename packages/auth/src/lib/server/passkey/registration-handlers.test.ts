@@ -165,31 +165,84 @@ describe('createPasskeyHandlers — registrationOptions', () => {
     expect(passkey.findByUserId).toHaveBeenCalledWith('user-1');
   });
 
-  it('rate-limits per user: the 11th call in the window is refused with Retry-After', async () => {
+  it("carries no rate limit: repeat calls only overwrite the caller's own challenge entry", async () => {
     const deps = makeDeps();
     const handlers = passkeyHandlers(deps);
 
-    for (let i = 0; i < 10; i++) {
+    // One past the default the sibling `registrationVerify` carries — the
+    // entry point must not spend it.
+    for (let i = 0; i < 11; i++) {
       expect((await handlers.registrationOptions.POST(await authedEvent(deps, {}))).status).toBe(
         200
       );
     }
+  });
+});
 
-    const limited = await handlers.registrationOptions.POST(await authedEvent(deps, {}));
+describe('createPasskeyHandlers — registrationVerify', () => {
+  /** A repo whose `create` resolves a row — the handler reads fields off it. */
+  const acceptingRepo = () =>
+    mockPasskeyRepo({ create: vi.fn().mockResolvedValue(mkPasskey({ credentialId: 'cred-xyz' })) });
+
+  /** A ceremony the mocked core accepts, so a run can spend real budget. */
+  const acceptCeremony = () =>
+    mockedVerify.mockResolvedValue({
+      credentialId: 'cred-xyz',
+      publicKey: new Uint8Array([1, 2, 3]),
+      publicKeyAlg: -7,
+      counter: 0,
+      transports: ['internal'],
+      aaguid: 'aaaa-bbbb'
+    });
+
+  it('rate-limits per user: the 11th verify in the window is refused with Retry-After', async () => {
+    acceptCeremony();
+    const deps = makeDeps(acceptingRepo());
+    const handlers = passkeyHandlers(deps);
+    const verify = async () =>
+      handlers.registrationVerify.POST(await authedEvent(deps, { credential: { id: 'x' } }));
+
+    for (let i = 0; i < 10; i++) expect((await verify()).status).toBe(201);
+
+    const limited = await verify();
     expect(limited.status).toBe(429);
     expect(limited.headers.get('Retry-After')).toBeTruthy();
     expect((await limited.json()).code, 'the 429 carries the machine code').toBe('rate_limited');
   });
 
+  it('refuses past the budget BEFORE reading the body: a malformed one gets 429, not 400', async () => {
+    // The ordering is the point of enforcing here: the attestation parse and
+    // the signature verification are the work the budget bounds, so nothing
+    // past the budget may reach them. A body that would otherwise be a 400
+    // proves the check ran first.
+    acceptCeremony();
+    const deps = makeDeps(acceptingRepo());
+    const handlers = passkeyHandlers(deps);
+
+    for (let i = 0; i < 10; i++) {
+      await handlers.registrationVerify.POST(await authedEvent(deps, { credential: { id: 'x' } }));
+    }
+    mockedVerify.mockClear();
+
+    const malformed = await handlers.registrationVerify.POST(await authedEvent(deps, {}));
+    expect(malformed.status, 'the budget answers before the body is judged').toBe(429);
+    expect(mockedVerify).not.toHaveBeenCalled();
+  });
+
   it('rateLimit: { passkeyRegister: null } opts out (the default must not creep back)', async () => {
-    const deps = makeDeps(mockPasskeyRepo(), { rateLimit: { passkeyRegister: null } });
+    acceptCeremony();
+    const deps = makeDeps(acceptingRepo(), { rateLimit: { passkeyRegister: null } });
     const handlers = passkeyHandlers(deps);
 
     // One past the built-in default of 10 — all must pass.
     for (let i = 0; i < 11; i++) {
-      expect((await handlers.registrationOptions.POST(await authedEvent(deps, {}))).status).toBe(
-        200
-      );
+      expect(
+        (
+          await handlers.registrationVerify.POST(
+            await authedEvent(deps, { credential: { id: 'x' } })
+          )
+        ).status
+      ).toBe(201);
     }
   });
 
@@ -197,27 +250,36 @@ describe('createPasskeyHandlers — registrationOptions', () => {
     // Two bundles built from the same secret read ONE process-wide limiter
     // (`sharedLimiter`), so this also pins that the identifier separating them
     // is the user id and not the bundle.
-    const depsA = makeDeps();
-    const depsB = makeDeps();
+    acceptCeremony();
+    const depsA = makeDeps(acceptingRepo());
+    const depsB = makeDeps(acceptingRepo());
     const other = createMockUser({ id: 'user-2', email: 'other@test.com', name: 'Other User' });
     const handlersA = passkeyHandlers(depsA);
     const handlersB = passkeyHandlers(depsB);
 
-    for (let i = 0; i < 10; i++)
-      await handlersA.registrationOptions.POST(await authedEvent(depsA, {}));
+    for (let i = 0; i < 10; i++) {
+      await handlersA.registrationVerify.POST(
+        await authedEvent(depsA, { credential: { id: 'x' } })
+      );
+    }
     expect(
-      (await handlersA.registrationOptions.POST(await authedEvent(depsA, {}))).status,
+      (
+        await handlersA.registrationVerify.POST(
+          await authedEvent(depsA, { credential: { id: 'x' } })
+        )
+      ).status,
       'user-1 is spent'
     ).toBe(429);
 
     expect(
-      (await handlersB.registrationOptions.POST(await authedEvent(depsB, {}, other))).status,
+      (
+        await handlersB.registrationVerify.POST(
+          await authedEvent(depsB, { credential: { id: 'x' } }, other)
+        )
+      ).status,
       'user-2 has its own budget'
-    ).toBe(200);
+    ).toBe(201);
   });
-});
-
-describe('createPasskeyHandlers — registrationVerify', () => {
   it('returns 401 when there is no authenticated user', async () => {
     const res = await passkeyHandlers(makeDeps()).registrationVerify.POST(
       event({ credential: {} })

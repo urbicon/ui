@@ -495,11 +495,10 @@ export interface AuthConfig<R extends string = string> {
     passkeyAuth?: RateLimitConfig | null;
     /**
      * Limit for passkey **registration**, keyed by the authenticated user id
-     * rather than the client address: the ceremony requires a session, and a
-     * per-user key cannot be dodged by rotating IPs. Enforced at the entry
-     * (`registrationOptions`) alone — `verifyRegistration` consumes the
-     * challenge that call issued, so credential rows can never outrun the
-     * limited half.
+     * rather than the client address. Enforced on `registrationVerify` — the
+     * call that creates the credential row — and not on the options half.
+     * What the rate bounds, and why no per-user cap stands beside it:
+     * `RATE_LIMIT_DEFAULTS.passkeyRegister` in `server/security-defaults.ts`.
      */
     passkeyRegister?: RateLimitConfig | null;
     /**
