@@ -11,6 +11,50 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.23.0
+
+### `CommandPalette`'s `customItem` draws the row's contents, not the row
+
+The snippet used to replace the whole option row. Everything the palette's keyboard and pointer
+behaviour hangs off lived on the `<div role="option">` the default branch drew — the
+`command-palette-item-<index>` id the input's `aria-activedescendant` names, the
+`data-command-palette-selected` attribute the scroll-into-view query finds, `aria-selected`,
+`aria-disabled`, the click and the hover-highlight — so a custom row had to reproduce all of it.
+Two things it could not reproduce: the snippet got no callback to select with, and the row it drew
+carried no `onmouseenter`, so hovering could not move the highlight.
+
+That container now belongs to the component in both branches, and the snippet renders inside it:
+
+```svelte
+<!-- before: the snippet drew the row -->
+{#snippet customItem(item, highlighted, index)}
+  <div
+    id="command-palette-item-{index}"
+    role="option"
+    aria-selected={highlighted}
+    class={highlighted ? 'bg-primary-subtle' : ''}
+    onclick={() => run(item)}
+  >
+    {item.label}
+  </div>
+{/snippet}
+
+<!-- after: the snippet draws the contents; `select` is the fourth argument -->
+{#snippet customItem(item, highlighted, index, select)}
+  <span class="flex min-w-0 flex-1 items-center gap-2">{item.label}</span>
+{/snippet}
+```
+
+Grep for `customItem` on a `<CommandPalette` and strip the container out of each snippet — left in,
+it nests a second `role="option"` inside the palette's own and doubles the row's chrome. Strip any
+focusable element with it: inside the row it is nested-interactive HTML, a tab stop in the Dialog's
+focus trap that the input's keyboard handling never reaches, and a second selection once its click
+bubbles into the row's own. `select()` is for a snippet that dispatches from its own
+non-interactive logic. Styling the row is `slotClasses.item` plus the state slots
+(`itemHighlighted` / `itemDisabled` / `itemDefault`), which now reach a custom row as well;
+`itemIcon`, `itemText`, `itemLabel`, `itemExcerpt` and `itemShortcut` style the default contents
+and go unused under `customItem`.
+
 ## 8.22.0
 
 ### The required marker's glyph is CSS again

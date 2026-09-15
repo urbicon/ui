@@ -139,8 +139,36 @@ export interface CommandPaletteProps {
 
   // ── Snippets (custom rendering) ──────────────────────────
 
-  /** Custom item renderer. Receives the item, whether it is highlighted, and its flat index. */
-  customItem?: Snippet<[item: CommandPaletteItem, highlighted: boolean, index: number]>;
+  /**
+   * Replace the default per-row rendering. Receives the item, whether its row
+   * is highlighted, the item's flat index into the filtered list, and a
+   * `select` callback (call it to run the same selection the row's click runs;
+   * it is a no-op on a disabled item).
+   *
+   * **Render visible content only — nothing focusable, nothing interactive.**
+   * A `<button>` or `<a>` inside the row is nested-interactive HTML on the
+   * `role="option"` container, a tab stop inside the Dialog's focus trap that
+   * the input's keyboard handling never reaches, and a click that bubbles into
+   * the row's own, so `onSelect` fires twice. `select` is for a snippet that
+   * dispatches from its own non-interactive logic — a pointer gesture on the
+   * content, say — and for parity with Select's `toggle`.
+   *
+   * The outer `<div role="option">` container is still owned by CommandPalette:
+   * its id is what the input's `aria-activedescendant` points at, its
+   * `data-command-palette-selected` attribute is what the scroll-into-view
+   * query finds, and it carries the row's click and hover-highlight.
+   *
+   * Styling the row is `slotClasses.item` plus the state slot
+   * (`itemHighlighted`, `itemDisabled` or `itemDefault`), which reach the
+   * container here as well; the `itemIcon`, `itemText`, `itemLabel`,
+   * `itemExcerpt` and `itemShortcut` slots style the default contents and go
+   * unused under `customItem`.
+   *
+   * Positional args: `(item, highlighted, index, select)`.
+   */
+  customItem?: Snippet<
+    [item: CommandPaletteItem, highlighted: boolean, index: number, select: () => void]
+  >;
 
   /** Custom empty-state renderer. Receives the current query string. */
   customEmpty?: Snippet<[query: string]>;
