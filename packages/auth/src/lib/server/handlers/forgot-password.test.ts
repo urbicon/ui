@@ -1,5 +1,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
+import { de } from '../../i18n/de.js';
+import { registerAuthLocale } from '../../i18n/index.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
 import { createForgotPasswordHandler } from './forgot-password.js';
 
@@ -129,6 +131,9 @@ describe('createForgotPasswordHandler', () => {
   });
 
   it('localizes the default reset mail and ships an html + text part (Issue #15)', async () => {
+    // `email.locale` selects a bundle out of the registry; only `en` is built
+    // in, so the German mail exists for this handler once `de` is registered.
+    registerAuthLocale('de', de);
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({
       config: { email: { locale: 'de', appName: 'Cookery' } },
