@@ -97,10 +97,13 @@
     </CodeExample>
 
     <p class="text-text-secondary text-sm leading-relaxed">
-      <code class="text-text-primary">intent</code> colours the header title and the confirm button
-      together, <code class="text-text-primary">neutral</code> included: a neutral dialog gets a
-      filled neutral confirm button, because the accent belongs to the primary action rather than to
-      every confirmation. Put it back with
+      <code class="text-text-primary">intent</code> reaches both halves of the dialog, but not in
+      the same way: it tints the header title for every value except
+      <code class="text-text-primary">neutral</code>, which leaves the header in the resting tone,
+      and it is what the confirm button wears &#8212;
+      <code class="text-text-primary">neutral</code> included, so a neutral dialog gets a filled
+      neutral confirm button, because the accent belongs to the primary action rather than to every
+      confirmation. Put the accent back with
       <code class="text-text-primary">confirmIntent="primary"</code>, which overrides the button
       alone. For a richer body (a list of consequences, a typed-confirmation field) pass a
       <code class="text-text-primary">children</code> snippet, which renders below the

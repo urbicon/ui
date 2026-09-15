@@ -29,9 +29,12 @@ export interface EmptyStateProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> {
   /**
    * Icon component rendered above the title. Pass any icon from
-   * `@urbicon-ui/blocks` (or a compatible stroke icon). It sits in a neutral
-   * disc (`bg-surface-subtle text-text-tertiary`), because an empty state is
-   * not the call to action — `cta` is. For the accent instead, pass
+   * `@urbicon-ui/blocks` (or a compatible stroke icon). Its round container is
+   * filled `bg-surface-subtle text-text-tertiary` — an empty state is not the
+   * call to action, `cta` is. That fill reads as a faint wash on the page
+   * ground and as nothing at all inside an elevated container (Card, Popover),
+   * where `surface-subtle` and `surface-elevated` resolve to the same colour.
+   * For a fill that always reads, or for the accent back, pass
    * `slotClasses={{ iconWrapper: 'bg-primary-subtle text-primary-text' }}`.
    */
   icon?: Component<IconProps>;

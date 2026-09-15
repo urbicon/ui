@@ -54,11 +54,13 @@ export interface ConfirmDialogProps
   description?: string;
 
   /**
-   * Accent on the dialog header strip and the default for the confirm button.
-   * `neutral` reaches the button unchanged — a filled neutral confirm, because
-   * the accent belongs to the primary action rather than to every confirm.
+   * Intent of the dialog. It tints the header title and icon for every value
+   * except `neutral`, which leaves them in the resting tone, and it is what the
+   * confirm button wears by default — `neutral` reaches that button unchanged,
+   * as a filled neutral confirm, because the accent belongs to the primary
+   * action rather than to every confirmation.
    * @default 'danger'
-   * @summary Colours the header strip, and the confirm button with it.
+   * @summary Dresses the confirm button, and tints the header title for every intent but neutral.
    */
   intent?: DialogIntent;
 

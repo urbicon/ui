@@ -214,11 +214,11 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
 | `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
-**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the confirm button, the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Everything else rests in the neutral tone, and a product that wants the accent there asks for it:
+**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Everything else rests in the neutral tone, and a product that wants the accent there asks for it:
 
 - the required-field marker (#395);
-- the `EmptyState` icon disc, `bg-surface-subtle text-text-tertiary` — an empty state is not the call to action, the CTA below it is; the accent comes back through `slotClasses.iconWrapper` or the provider's `defaults`;
-- the `ConfirmDialog` confirm button, which follows the dialog's `intent` unchanged — a `neutral` dialog gets a `filled neutral` confirm rather than one promoted to `primary`, and `confirmIntent="primary"` puts the accent back on the button alone.
+- the `EmptyState` icon container, `bg-surface-subtle text-text-tertiary` — an empty state is not the call to action, the CTA below it is; the accent comes back through `slotClasses.iconWrapper` or the provider's `defaults`;
+- the `ConfirmDialog` confirm button, which carries no accent of its own: it follows the dialog's `intent` unchanged, so a `neutral` dialog gets a `filled neutral` confirm rather than one promoted to `primary`, and the accent arrives only through `intent="primary"` or `confirmIntent="primary"`.
 
 The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy.
 

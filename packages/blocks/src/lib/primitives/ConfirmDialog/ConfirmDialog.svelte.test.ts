@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buttonVariants } from '../Button/button.variants';
+import { dialogVariants } from '../Dialog/dialog.variants';
 import ConfirmDialog from './ConfirmDialog.svelte';
 import type { ConfirmDialogProps } from './index';
 
@@ -48,25 +49,45 @@ const base = {
   cancelLabel: 'Keep'
 } satisfies Partial<ConfirmDialogProps>;
 
-/** The class tokens `<Button intent={…}>` wears at ConfirmDialog's call site (no variant/size props). */
-const tokensFor = (intent: 'neutral' | 'primary' | 'danger') =>
-  new Set(buttonVariants({ intent, variant: 'filled' }).base().split(/\s+/).filter(Boolean));
+type Intent = 'neutral' | 'primary' | 'danger';
+
+const tokens = (classes: string) => new Set(classes.split(/\s+/).filter(Boolean));
+
+/** Asserts `el` wears every token of `want` and none that only `other` has. */
+function expectDressedAs(el: Element, want: Set<string>, other: Set<string>) {
+  const worn = tokens(el.className);
+  expect([...want].filter((t) => !worn.has(t))).toEqual([]);
+  expect([...other].filter((t) => !want.has(t) && worn.has(t))).toEqual([]);
+}
 
 /**
  * Asserts the confirm button is dressed as `intent` and not as `insteadOf`.
- * Both sides come from buttonVariants, so the expectation cannot drift from the
- * palette the Button actually renders.
+ * Both sides are asked of buttonVariants with the arguments ConfirmDialog's
+ * call site passes — the bare intent, every other axis left to its default —
+ * so the expectation cannot drift from what the Button actually renders.
  */
-function expectConfirmIntent(
-  button: HTMLButtonElement,
-  intent: 'neutral' | 'primary' | 'danger',
-  insteadOf: 'neutral' | 'primary' | 'danger'
-) {
-  const worn = new Set(button.className.split(/\s+/).filter(Boolean));
-  const want = tokensFor(intent);
-  const other = tokensFor(insteadOf);
-  expect([...want].filter((t) => !worn.has(t))).toEqual([]);
-  expect([...other].filter((t) => !want.has(t) && worn.has(t))).toEqual([]);
+function expectConfirmIntent(button: HTMLButtonElement, intent: Intent, insteadOf: Intent) {
+  expectDressedAs(
+    button,
+    tokens(buttonVariants({ intent }).base()),
+    tokens(buttonVariants({ intent: insteadOf }).base())
+  );
+}
+
+/**
+ * Asserts the header still belongs to the DIALOG's intent: the panel's
+ * `data-intent` and the heading's tint both stay on `intent` while the confirm
+ * button wears something else. Without this, rewiring the header to
+ * `effectiveConfirmIntent` would leave the confirmIntent test green.
+ */
+function expectHeaderIntent(intent: Intent, insteadOf: Intent) {
+  const panel = screen.getByRole('dialog', { hidden: true }).querySelector('[data-intent]');
+  expect(panel?.getAttribute('data-intent')).toBe(intent);
+  expectDressedAs(
+    screen.getByRole('heading', { name: base.title, hidden: true }),
+    tokens(dialogVariants({ intent }).title()),
+    tokens(dialogVariants({ intent: insteadOf }).title())
+  );
 }
 
 describe('ConfirmDialog (component interaction)', () => {
@@ -435,6 +456,7 @@ describe('ConfirmDialog (component interaction)', () => {
     await tick();
 
     expectConfirmIntent(confirmBtn(), 'danger', 'neutral');
+    expectHeaderIntent('neutral', 'danger');
   });
 
   it('defaults to a danger confirm when no intent is given', async () => {
