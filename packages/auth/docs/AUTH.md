@@ -701,19 +701,15 @@ does.
 **The price: both writes are per user, not per session.** Every session of the
 account ends — every access token is refused by the generation check, and with
 rotation configured every refresh token is revoked. Another device is signed out
-until someone signs in again: its API client keeps sending the same stale access
-cookie until that expires (`refreshToken.accessTokenTtl`, 15 minutes by default),
-after which the same request is refused on its revoked refresh token instead —
-the status never changes, and it does not rotate back in. A page navigation
-clears the stale cookie and sends the device to the login. Until one happens, a
-polling API client on that device costs one no-op family revoke per request
-(the refresh cookie is still sent and still lands on the revoked row), so a
-dashboard tab polling every few seconds keeps writing until its tab is
-navigated. The delay is
-SvelteKit's cookie handling, not a grace period: the hook stages the clear on
-`event.cookies`, and Kit writes staged cookies only on the paths that resolve or
-redirect — a guarded `/api/…` request is answered with a `401` that does neither,
-so the client keeps sending the same stale cookie. Hence the default `false`.
+until someone signs in again, and the refusals clear its cookies as they go: the
+guard's `401` carries the clear for whichever cookie it was refused on, so a
+still-valid access cookie goes on the first request and the revoked refresh
+token on the next (a device whose access token had already expired loses both at
+once). From there it sends no session cookie at all and the refusal costs no
+repository write — across three polls `revokeFamily` runs exactly once, on the
+one request that still presented the revoked token (`costs one family revoke,
+not one per poll`, `logout.test.ts`). A page navigation redirects to the login
+and clears the same cookies on the way. Hence the default `false`.
 
 **A logout that arrives with no valid session invalidates nothing** — the option
 included. Under rotation that case is rare: the hook rotates an expired access

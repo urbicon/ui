@@ -1,5 +1,4 @@
-import type { Handle, RequestEvent, RequestHandler } from '@sveltejs/kit';
-import { isRedirect } from '@sveltejs/kit';
+import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../../types.js';
 import {
@@ -13,6 +12,8 @@ import { createAuthHandle } from '../handle.js';
 import { createSessionToken } from '../jwt.js';
 import { issueRefreshToken } from '../refresh-token.js';
 import {
+  createBrowserJar,
+  createMockCookies,
   createMockInvitationRepository,
   createMockUser,
   createMockUserRepository
@@ -82,20 +83,17 @@ function mockEvent(
 ) {
   const { path = '/api/auth/logout', method = 'POST', trace, locals = {}, headers } = extras;
   const store = new Map(Object.entries(initialCookies));
+  const url = new URL(`http://localhost:3000${path}`);
+  const written = new Set<string>();
   return {
-    cookies: {
-      get: (name: string) => store.get(name),
-      set: (name: string, value: string) => store.set(name, value),
-      delete: (name: string) => {
-        trace?.push(`clear:${name}`);
-        store.delete(name);
-      },
-      getAll: () => [],
-      serialize: () => ''
-    },
+    cookies: createMockCookies(store, url, {
+      onDelete: (name) => trace?.push(`clear:${name}`),
+      written
+    }),
     _store: store,
-    request: new Request(`http://localhost:3000${path}`, { method, headers }),
-    url: new URL(`http://localhost:3000${path}`),
+    _written: written,
+    request: new Request(url, { method, headers }),
+    url,
     params: {},
     locals,
     platform: undefined,
@@ -307,53 +305,28 @@ describe('createLogoutHandler — invalidateAccessTokens through the handle', ()
   }
 
   /**
-   * A browser's cookie jar in front of the handle. SvelteKit writes the cookies
-   * a hook staged on `event.cookies` in exactly two places — inside
-   * `resolve(...).then(...)` and on the thrown-redirect path (`respond.js`) — so
-   * a hook that returns a Response without calling `resolve`, which is what the
-   * route guard does for `/api/…`, writes none of them. `handle.ts:222-224`
-   * builds the rotation branch's throw policy on that same rule. A jar that
-   * takes every staged cookie would report cookie state no browser ever holds.
+   * A browser in front of the handle (see `createBrowserJar`). `endpoint` is
+   * what `resolve` runs — the route the hook hands the request to, on the same
+   * `event.cookies` the hook staged into.
    */
-  function createJar(initial: Record<string, string>) {
-    const jar = new Map(Object.entries(initial));
-    return {
-      get: (name: string) => jar.get(name),
-      /**
-       * One request through `handle`, with Kit's flush rule applied to the jar.
-       * `endpoint` is what `resolve` runs — the route the hook hands the
-       * request to, on the same `event.cookies` the hook staged into.
-       */
-      async send(handle: Handle, path: string, method = 'GET', endpoint?: RequestHandler) {
-        const event = mockEvent(Object.fromEntries(jar), {
+  const createJar = (initial: Record<string, string>) =>
+    createBrowserJar(
+      initial,
+      (cookies, path: string, method: string = 'GET', endpoint?: RequestHandler) => {
+        const event = mockEvent(cookies, {
           path,
           method,
           // The hook's Origin gate refuses a mutating request without one.
           headers: method === 'GET' ? {} : { origin: 'http://localhost:3000' }
         });
-        const commit = () => {
-          jar.clear();
-          for (const [name, value] of cookieJar(event)) jar.set(name, value);
+        return {
+          event,
+          store: event._store,
+          written: event._written,
+          respond: endpoint ? () => Promise.resolve(endpoint(asEvent(event))) : undefined
         };
-        let resolved = false;
-        try {
-          const response = await handle({
-            event: asEvent(event),
-            resolve: async () => {
-              resolved = true;
-              return endpoint ? await endpoint(asEvent(event)) : new Response('OK');
-            }
-          });
-          if (resolved) commit();
-          return { status: response.status, event };
-        } catch (err) {
-          if (!isRedirect(err)) throw err;
-          commit();
-          return { status: err.status, event };
-        }
       }
-    };
-  }
+    );
 
   it('makes the handle refuse an access token copied before the logout', async () => {
     const deps = createLiveDeps();
@@ -393,22 +366,52 @@ describe('createLogoutHandler — invalidateAccessTokens through the handle', ()
       "the other device's refresh family is revoked too"
     ).toEqual([]);
 
-    // The guard answers an API request without resolving, so the clear it staged
-    // never reaches the jar — and the next call is refused on the same cookie.
+    // Poll 1: the generation check refuses the access token, and the refusal
+    // carries its clear.
     expect((await deviceB.send(handle, '/api/data')).status).toBe(401);
-    expect(deviceB.get('session'), 'the API 401 sets no cookie').toBeDefined();
-    expect((await deviceB.send(handle, '/api/data')).status).toBe(401);
-
-    // A page navigation redirects — one of the two paths that do flush — and
-    // takes the stale access cookie with it.
-    expect((await deviceB.send(handle, '/dashboard')).status).toBe(302);
-    expect(deviceB.get('session'), 'stale access cookie cleared').toBeUndefined();
+    expect(deviceB.get('session'), 'the API 401 clears the stale access cookie').toBeUndefined();
     expect(deviceB.get('refresh'), 'the cookie outlives its revoked row').toBeDefined();
 
-    // The rotation branch runs now, and finds nothing to rotate.
-    const back = await deviceB.send(handle, '/api/data');
-    expect(back.status).toBe(401);
-    expect((back.event.locals as { user?: unknown }).user).toBeNull();
+    // Poll 2: no access cookie left, so the rotation branch runs — and is
+    // refused on the revoked family, which ends the session and clears both.
+    const rotated = await deviceB.send(handle, '/api/data');
+    expect(rotated.status).toBe(401);
+    expect((rotated.event.locals as { user?: unknown }).user).toBeNull();
+    expect(deviceB.get('refresh'), 'and that 401 clears the refresh cookie').toBeUndefined();
+
+    // Poll 3: the device presents nothing at all, so the refusal clears nothing.
+    const bare = await deviceB.send(handle, '/api/data');
+    expect(bare.status).toBe(401);
+    expect(bare.response?.headers.getSetCookie()).toEqual([]);
+
+    // A page navigation still redirects to the login.
+    expect((await deviceB.send(handle, '/dashboard')).status).toBe(302);
+  });
+
+  it('costs one family revoke, not one per poll', async () => {
+    const deps = createLiveDeps();
+    const handle = createAuthHandle({ config, repos: deps.repos });
+    const { token: refresh } = await issueRefreshToken(deps.repos.refreshToken!, 'user-1', {
+      refreshTokenTtl: '30d'
+    });
+    const revokeFamily = vi.spyOn(deps.repos.refreshToken!, 'revokeFamily');
+
+    await createLogoutHandler(deps, { invalidateAccessTokens: true }).POST(
+      asEvent(mockEvent({ session: await sessionCookie() }))
+    );
+
+    // A device whose access token has already expired: only the refresh cookie
+    // is left, so every poll lands on the revoked row until the cookie goes.
+    const polling = createJar({ refresh });
+    for (let poll = 0; poll < 3; poll++) {
+      expect((await polling.send(handle, '/api/data')).status).toBe(401);
+    }
+
+    expect(
+      revokeFamily,
+      'only the poll that still presented the token wrote'
+    ).toHaveBeenCalledTimes(1);
+    expect(polling.get('refresh')).toBeUndefined();
   });
 
   it('bumps after the hook rotated an expired access cookie in the same request', async () => {
