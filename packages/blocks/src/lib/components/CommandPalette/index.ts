@@ -139,8 +139,29 @@ export interface CommandPaletteProps {
 
   // ── Snippets (custom rendering) ──────────────────────────
 
-  /** Custom item renderer. Receives the item, whether it is highlighted, and its flat index. */
-  customItem?: Snippet<[item: CommandPaletteItem, highlighted: boolean, index: number]>;
+  /**
+   * Replace the default per-row rendering. Receives the item, whether its row
+   * is highlighted, the item's flat index into the filtered list, and a
+   * `select` callback (call it to select the item and close the palette; it is
+   * a no-op on a disabled item). **Render visible content only** — the outer
+   * `<div role="option">` container is still owned by CommandPalette: its id is
+   * what the input's `aria-activedescendant` points at, and its state is what
+   * the arrow keys, the hover highlight and the scroll-into-view read. An
+   * interactive element inside the snippet creates nested-interactive HTML and
+   * selects twice via event bubbling, because that container already carries
+   * the row's click; call `select()` from it and stop propagation.
+   *
+   * Styling the row is `slotClasses.item` plus the state slot
+   * (`itemHighlighted`, `itemDisabled` or `itemDefault`), which reach the
+   * container here as well; the `itemIcon`, `itemText`, `itemLabel`,
+   * `itemExcerpt` and `itemShortcut` slots style the default contents and go
+   * unused under `customItem`.
+   *
+   * Positional args: `(item, highlighted, index, select)`.
+   */
+  customItem?: Snippet<
+    [item: CommandPaletteItem, highlighted: boolean, index: number, select: () => void]
+  >;
 
   /** Custom empty-state renderer. Receives the current query string. */
   customEmpty?: Snippet<[query: string]>;

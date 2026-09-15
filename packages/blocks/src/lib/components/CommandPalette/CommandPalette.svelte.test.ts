@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
-import { flushSync, mount, tick, unmount } from 'svelte';
+import { createRawSnippet, flushSync, mount, type Snippet, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import SearchIcon from '$lib/icons/SearchIcon.svelte';
 import CommandPalette from './CommandPalette.svelte';
@@ -341,5 +341,166 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
     expect(highlighted()).toBe(-1);
     press('Enter');
     expect(selected).toEqual([]);
+  });
+});
+
+/**
+ * `customItem` draws a row's visible content; the option container stays with
+ * the component. The input's `aria-activedescendant` and the scroll-into-view
+ * query (`[data-command-palette-selected="true"]`) both read that container, so
+ * a snippet that had to draw it would carry the whole ARIA contract — and the
+ * hover highlight, which lives on the container's `onmouseenter`.
+ */
+const CUSTOM_ITEMS: CommandPaletteItem[] = [
+  { id: 'a', label: 'Alpha' },
+  { id: 'b', label: 'Beta' },
+  { id: 'c', label: 'Gamma', disabled: true }
+];
+
+type CustomItemArgs = [CommandPaletteItem, boolean, number, () => void];
+
+/**
+ * A `customItem` that draws content only. `record` receives each row's
+ * positional args, so a test can invoke that row's own `select`.
+ */
+function customRow(record?: (args: CustomItemArgs) => void): Snippet<CustomItemArgs> {
+  return createRawSnippet<CustomItemArgs>((item, highlighted, index, select) => {
+    record?.([item(), highlighted(), index(), select()]);
+    const label = item().label;
+    return { render: () => `<span data-custom-row="${label}">${label}</span>` };
+  });
+}
+
+/** A `customItem` whose own control calls `select` and lets the click bubble. */
+function innerControlRow(): Snippet<CustomItemArgs> {
+  return createRawSnippet<CustomItemArgs>((item, _highlighted, _index, select) => {
+    const label = item().label;
+    return {
+      render: () => `<button type="button" data-inner-control="${label}">${label}</button>`,
+      setup: (element) => {
+        element.addEventListener('click', () => select()());
+      }
+    };
+  });
+}
+
+describe('CommandPalette (customItem draws content, not the container)', () => {
+  it('points aria-activedescendant at a container the snippet did not create', async () => {
+    render({ items: CUSTOM_ITEMS, customItem: customRow() });
+    await tick();
+
+    press('ArrowDown');
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+
+    const active = document.getElementById('command-palette-item-1');
+    expect(active).not.toBeNull();
+    expect(active?.getAttribute('role')).toBe('option');
+    expect(active?.getAttribute('aria-selected')).toBe('true');
+    expect(active?.getAttribute('data-command-palette-selected')).toBe('true');
+
+    // The snippet's own root sits inside that container, and brought no second
+    // `role="option"` with it.
+    const drawn = active?.querySelector('[data-custom-row="Beta"]');
+    expect(drawn).not.toBeNull();
+    expect(drawn?.parentElement).toBe(active);
+    expect(active?.querySelector('[role="option"]')).toBeNull();
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+  });
+
+  it('moves the highlight when a custom row is hovered', async () => {
+    render({ items: CUSTOM_ITEMS, customItem: customRow() });
+    await tick();
+    expect(highlighted()).toBe(0);
+
+    screen.getAllByRole('option', { hidden: true })[1].dispatchEvent(new MouseEvent('mouseenter'));
+    flushSync();
+
+    expect(highlighted()).toBe(1);
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+  });
+
+  it('hovering a disabled custom row leaves the highlight where it is', async () => {
+    render({ items: CUSTOM_ITEMS, customItem: customRow() });
+    await tick();
+
+    screen.getAllByRole('option', { hidden: true })[2].dispatchEvent(new MouseEvent('mouseenter'));
+    flushSync();
+
+    expect(highlighted()).toBe(0);
+  });
+
+  it('selects through the `select` the snippet is handed, disabled rows aside', async () => {
+    const args: CustomItemArgs[] = [];
+    const selected: CommandPaletteItem[] = [];
+    render({
+      items: CUSTOM_ITEMS,
+      customItem: customRow((row) => args.push(row)),
+      onSelect: (item) => selected.push(item)
+    });
+    await tick();
+
+    expect(args.map(([item]) => item.id)).toEqual(['a', 'b', 'c']);
+    expect(args.map(([, isHighlighted]) => isHighlighted)).toEqual([true, false, false]);
+    expect(args.map(([, , index]) => index)).toEqual([0, 1, 2]);
+
+    args[2][3]();
+    flushSync();
+    expect(selected, 'a disabled row cannot select itself').toEqual([]);
+
+    args[1][3]();
+    flushSync();
+    expect(selected.map((item) => item.id)).toEqual(['b']);
+  });
+
+  it('selects once when the snippet`s own content is clicked', async () => {
+    const selected: CommandPaletteItem[] = [];
+    render({
+      items: CUSTOM_ITEMS,
+      customItem: customRow(),
+      onSelect: (item) => selected.push(item)
+    });
+    await tick();
+
+    // The container carries the click for the whole row, so a control the
+    // snippet draws has to stop propagation or it selects twice.
+    const drawn = document.querySelector('[data-custom-row="Beta"]');
+    drawn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    flushSync();
+
+    expect(selected.map((item) => item.id)).toEqual(['b']);
+  });
+
+  it('a control that calls select and lets the click bubble selects twice', async () => {
+    const selected: CommandPaletteItem[] = [];
+    render({
+      items: CUSTOM_ITEMS,
+      customItem: innerControlRow(),
+      onSelect: (item) => selected.push(item)
+    });
+    await tick();
+
+    document
+      .querySelector('[data-inner-control="Beta"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    flushSync();
+
+    expect(selected.map((item) => item.id)).toEqual(['b', 'b']);
+  });
+
+  it('folds slotClasses onto the container of a custom row', async () => {
+    render({
+      items: CUSTOM_ITEMS,
+      customItem: customRow(),
+      slotClasses: { item: 'bg-white', itemHighlighted: 'bg-black' }
+    });
+    await tick();
+
+    // The same four-source fold as the default branch: the state entry owns the
+    // bucket it shares with the `item` entry, which owns the library's.
+    expect(rowTokens(0)).toContain('bg-black');
+    expect(rowTokens(0)).not.toContain('bg-white');
+    expect(rowTokens(0)).not.toContain('bg-primary-subtle');
+    expect(rowTokens(1)).toContain('bg-white');
+    expect(rowTokens(1)).not.toContain('bg-black');
   });
 });

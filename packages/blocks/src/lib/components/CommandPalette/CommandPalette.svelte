@@ -299,51 +299,56 @@
           {#each group.entries as { item, flatIdx } (item.id ?? item.label)}
             {@const isHighlighted = flatIdx === highlightIndex}
             {@const isDisabled = item.disabled ?? false}
-            {#if customItem}
-              {@render customItem(item, isHighlighted, flatIdx)}
-            {:else}
-              <!--
-                role="option" requires a non-button host so screenreaders
-                announce the item as an option rather than a button. Activation
-                is driven through the input's aria-activedescendant pattern
-                (Enter/Space handled in handleKeydown) plus pointer clicks
-                here. tabindex="-1" keeps the items out of the tab sequence.
+            <!--
+              role="option" requires a non-button host so screenreaders
+              announce the item as an option rather than a button. Activation
+              is driven through the input's aria-activedescendant pattern
+              (Enter/Space handled in handleKeydown) plus pointer clicks
+              here. tabindex="-1" keeps the items out of the tab sequence.
 
-                The row's class is four sources with both consumer rungs last,
-                folded rather than joined. Joining two finished folds instead
-                puts the library's state class after the consumer's `item`
-                entry: measured on that form, 24 of 24 colliding pairs across
-                `text-color`, `bg-color`, `cursor`, `opacity` and
-                `hover:bg-color` went to the library. The price is that a
-                colliding `item` entry now removes the state class — which is
-                what the `slotClasses` JSDoc has to keep saying.
-              -->
-              {@const stateSlot = isDisabled
-                ? 'itemDisabled'
-                : isHighlighted
-                  ? 'itemHighlighted'
-                  : 'itemDefault'}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <div
-                id="command-palette-item-{flatIdx}"
-                role="option"
-                tabindex="-1"
-                aria-selected={isHighlighted}
-                aria-disabled={isDisabled}
-                data-command-palette-selected={isHighlighted}
-                class={resolveClassChain(
-                  unstyled ? '' : styles.item(),
-                  unstyled ? '' : styles[stateSlot](),
-                  slotClasses?.item,
-                  slotClasses?.[stateSlot]
-                )}
-                onclick={() => {
-                  if (!isDisabled) selectItem(item);
-                }}
-                onmouseenter={() => {
-                  if (!isDisabled) selectedIndex = flatIdx;
-                }}
-              >
+              The container is the component's in both branches: its id is what
+              `aria-activedescendant` names and its data attribute is what
+              `scrollSelectedIntoView` queries, so `customItem` renders the
+              row's visible contents inside it and gets `select` for its own
+              control.
+
+              The row's class is four sources with both consumer rungs last,
+              folded rather than joined. Joining two finished folds instead
+              puts the library's state class after the consumer's `item`
+              entry: measured on that form, 24 of 24 colliding pairs across
+              `text-color`, `bg-color`, `cursor`, `opacity` and
+              `hover:bg-color` went to the library. The price is that a
+              colliding `item` entry now removes the state class — which is
+              what the `slotClasses` JSDoc has to keep saying.
+            -->
+            {@const stateSlot = isDisabled
+              ? 'itemDisabled'
+              : isHighlighted
+                ? 'itemHighlighted'
+                : 'itemDefault'}
+            {@const select = () => selectItem(item)}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div
+              id="command-palette-item-{flatIdx}"
+              role="option"
+              tabindex="-1"
+              aria-selected={isHighlighted}
+              aria-disabled={isDisabled}
+              data-command-palette-selected={isHighlighted}
+              class={resolveClassChain(
+                unstyled ? '' : styles.item(),
+                unstyled ? '' : styles[stateSlot](),
+                slotClasses?.item,
+                slotClasses?.[stateSlot]
+              )}
+              onclick={select}
+              onmouseenter={() => {
+                if (!isDisabled) selectedIndex = flatIdx;
+              }}
+            >
+              {#if customItem}
+                {@render customItem(item, isHighlighted, flatIdx, select)}
+              {:else}
                 {#if item.icon}
                   {@const ItemIcon = item.icon}
                   <ItemIcon
@@ -379,8 +384,8 @@
                     >{item.shortcut}</kbd
                   >
                 {/if}
-              </div>
-            {/if}
+              {/if}
+            </div>
           {/each}
         {/each}
       {/if}
