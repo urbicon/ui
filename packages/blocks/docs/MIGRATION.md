@@ -11,6 +11,33 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.23.0
+
+### `Alert` derives its announced role from `intent`
+
+`Alert` rendered `role="alert"` at every intent, so a screen reader was interrupted by a saved
+confirmation exactly as it was by a failure. The role now follows `intent`: `danger` and `warning`
+keep `role="alert"` (assertive); `primary`, `info`, `success` and `neutral` render `role="status"`
+(polite). An explicit `role` still wins, `role={undefined}` still takes the attribute off entirely
+for an Alert that sits inside a live region of yours, and nothing changes on screen.
+
+```svelte
+<!-- before: role="alert" — it cut into whatever was being read -->
+<Alert intent="success">Payment confirmed.</Alert>
+```
+
+```svelte
+<!-- after: role="status" — it waits for a pause -->
+<Alert intent="success">Payment confirmed.</Alert>
+<!-- a confirmation that must interrupt says so -->
+<Alert intent="success" role="alert">Payment confirmed — your seat is held.</Alert>
+```
+
+**Nothing reports the change** — grep your app for `<Alert` with
+`intent="success|info|primary|neutral"` and keep the ones where interrupting was the point, then
+grep your tests and page objects for `getByRole('alert')` and `[role="alert"]` reaching one of
+them.
+
 ## 8.22.0
 
 ### The required marker's glyph is CSS again

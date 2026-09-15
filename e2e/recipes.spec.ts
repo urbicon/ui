@@ -162,7 +162,7 @@ test.describe('Recipe: settings', () => {
     const p = preview(page);
 
     await p.getByRole('button', { name: 'Save Changes' }).click();
-    const alert = p.getByRole('alert').filter({ hasText: 'Settings saved successfully.' });
+    const alert = p.getByRole('status').filter({ hasText: 'Settings saved successfully.' });
     await expect(alert).toBeVisible();
     // handleSave clears `saved` after 3 s.
     await expect(alert).toBeHidden({ timeout: 6_000 });
