@@ -38,7 +38,7 @@ kept**: the repo is canon, memory holds only what has no home in it yet.
 ## 2. Instructions
 
 Reference integrity of AGENTS.md and every `.claude/skills/*/SKILL.md`: each
-`bun run X` exists in a `package.json`, each path exists, each named constant
+`bun run <script>` exists in a `package.json`, each path exists, each named constant
 (`PLACEHOLDERS`, `NO_PAGE`, `BUCKET_PATTERNS`, …) is still in the script said to
 hold it. `bun run docs:refs:check` is the gate for this; grep by hand for
 whatever it does not cover — the last pass found a deleted constant still cited,

@@ -66,8 +66,8 @@ import { Glob } from 'bun';
 
 /**
  * AGENTS.md is read in full by every session, so its length is a cost every
- * session pays. 3,400 sits about one bullet above the file: a new Commands
- * entry is meant to cost the removal of another, and that friction is the point.
+ * session pays. The budget is set one Commands bullet above the file as it was
+ * when the check landed: a new entry is meant to cost the removal of another.
  */
 export const AGENTS_WORD_BUDGET = 3400;
 
@@ -230,7 +230,8 @@ export function check(root: string): Report {
     // Never this file: the ALLOWLIST quotes the identifiers it exempts, so a
     // grep that read it would find every exempted constant here and the entry
     // would exempt itself. (Outside ROOT this resolves to `../…` and matches
-    // nothing, which is the right answer for a `--root` elsewhere.)
+    // nothing, which is right for a fixture root; a second checkout of this repo would
+    // read its own copy of this file and re-open the loop.)
     const self = relative(ROOT, import.meta.path);
     const parts: string[] = [];
     const seen = new Set<string>();
