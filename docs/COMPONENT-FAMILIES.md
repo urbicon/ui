@@ -26,7 +26,7 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 |---|---|---|---|---|
 | [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | `commit`, read from the tier context — except `Toolbar`, which **sets** it and is itself `contain` | **Intent** (`border-neutral` etc.) |
 | [Form](#form) | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | `modify` from the context; `Slider` and `FormField` opt out | **Surface** (`border-border-subtle`) |
-| [Navigation](#navigation) | Breadcrumb · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | `commit` or `modify` per component, from the context; `Breadcrumb` and `JourneyTimeline` opt out | mixed (route-context dependent) |
+| [Navigation](#navigation) | Breadcrumb · Link · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | `commit` or `modify` per component, from the context; `Breadcrumb`, `JourneyTimeline` and `Link` opt out | mixed (route-context dependent) |
 | [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline** |
 | [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge | `status`, `alert`, `progressbar` | **not tier-aware** — fixed geometry; `Badge` is the one exception | **Intent** (status-tinted) or **none** |
 | [Identity](#identity) | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`) | none (avatar is its own surface) |
@@ -100,11 +100,11 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 ## Navigation
 
-**Members:** `Breadcrumb`, `Pagination`, `SegmentGroup`, `Stepper`, `Tab`, `JourneyTimeline`.
+**Members:** `Breadcrumb`, `Link`, `Pagination`, `SegmentGroup`, `Stepper`, `Tab`, `JourneyTimeline`.
 
-**ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page. `JourneyTimeline` is an `<ol>` with `aria-current="step"` on the active-status node and disclosure semantics (`aria-expanded`/`aria-controls`) on the focused node's trigger.
+**ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page and for the current `Link` (`aria-current="page"`). `JourneyTimeline` is an `<ol>` with `aria-current="step"` on the active-status node and disclosure semantics (`aria-expanded`/`aria-controls`) on the focused node's trigger.
 
-**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `PaginationItem` read the tier context. `Breadcrumb` and `JourneyTimeline` do not — the timeline's cards and panel sit on the fixed `contain` radius, and a breadcrumb trail draws no box to round.
+**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `PaginationItem` read the tier context. `Breadcrumb`, `JourneyTimeline` and `Link` do not — the timeline's cards and panel sit on the fixed `contain` radius, a breadcrumb trail draws no box to round, and a `Link` is a word rather than a control: its `rounded-modify` is the shape of a focus ring, not of a surface.
 
 **Border source:** Mixed. `SegmentGroup` indicator uses Intent (the active item is action-like). `Tab` `line` variant has no border. Breadcrumb uses no border by default.
 
@@ -112,9 +112,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **When to reach for:**
 - Section selection *inside one document* — panels that swap in place, no URL involved → `Tab` with `TabItem` / `TabPanel` and `bind:value` (`variant="line"` for editorial). `SegmentGroup` with `SegmentItem` for an inline value picker (list / grid, a filter) on the same page.
-- Route and sub-route navigation → **no member of this family**: a `<nav aria-label>` of `<a href>` carrying `aria-current="page"`. `TabItem` renders a `<button role="tab">`, so an `<a>` inside a trigger is an interactive element inside another one and `role="tab"` promises a panel that never arrives; `SegmentGroup` is a `radiogroup` announcing a chosen value, not a location. A tab bar is therefore anchors plus utilities today — see the `tab-navigation` pattern.
-
-  > **Decided 2026-09-08, pending #429** — a `Link` atom is to join this family and own the anchor styling.
+- Route and sub-route navigation → a `<nav aria-label>` of `Link`s carrying `active`, which is the `aria-current="page"` the current section needs. `TabItem` renders a `<button role="tab">`, so an `<a>` inside a trigger is an interactive element inside another one and `role="tab"` promises a panel that never arrives; `SegmentGroup` is a `radiogroup` announcing a chosen value, not a location. See the `tab-navigation` pattern.
 - Linear progress through a process the user *completes* (wizard, checkout) → `Stepper`.
 - Retrospective record of a sequence the user *observes* (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
 - Position context inside a route → `Breadcrumb`.
@@ -256,7 +254,7 @@ The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/pr
 |---|---|---|
 | `action` | Action | Button, ButtonGroup, Menu, Toolbar |
 | `form` | Form | Toggle is form-tagged but in Action by behaviour (bistable switch) — see the table at top for canonical family. |
-| `navigation` | Navigation | Breadcrumb, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline (also `display`-tagged) |
+| `navigation` | Navigation | Breadcrumb, Link, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline (also `display`-tagged) |
 | `layout` | Container | Accordion, Card, Collapsible, Separator, Sidebar |
 | `overlay` | Container | ConfirmDialog, Dialog, Drawer, Popover |
 | `feedback` | Feedback / Ambient | Alert, Badge, Progress, Skeleton, Spinner, Toast |

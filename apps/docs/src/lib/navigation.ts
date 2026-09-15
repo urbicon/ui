@@ -178,6 +178,7 @@ const allNavigationItems: NavItem[] = [
         children: [
           { name: 'Breadcrumb', href: '/blocks/primitives/breadcrumb' },
           { name: 'JourneyTimeline', href: '/blocks/primitives/journey-timeline' },
+          { name: 'Link', href: '/blocks/primitives/link' },
           { name: 'Pagination', href: '/blocks/primitives/pagination' },
           { name: 'SegmentGroup', href: '/blocks/primitives/segment-group' },
           { name: 'Stepper', href: '/blocks/primitives/stepper' },

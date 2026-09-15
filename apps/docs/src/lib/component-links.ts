@@ -66,6 +66,7 @@ export const componentLinks: Record<string, string> = {
   JourneyTimeline: '/blocks/primitives/journey-timeline',
   Kbd: '/blocks/primitives/kbd',
   LineChart: '/blocks/components/line-chart',
+  Link: '/blocks/primitives/link',
   LocaleSwitcher: '/blocks/components/locale-switcher',
   Menu: '/blocks/primitives/menu',
   // Note ships with NoteList and has no page of its own — a `@related Note`

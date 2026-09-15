@@ -101,7 +101,7 @@
 
   const weightScale = [
     { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 6 },
-    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 68 },
+    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 71 },
     { utility: 'font-semibold', variable: '--font-weight-semibold', value: '600', uses: 53 },
     { utility: 'font-bold', variable: '--font-weight-bold', value: '700', uses: 12 }
   ];

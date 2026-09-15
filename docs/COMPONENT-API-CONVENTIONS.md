@@ -393,13 +393,11 @@ A **wrapper** names no axes at all. It hands its name to the component it wraps,
 
 ## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)
 
-A component takes `href` only when it owns **structure** the consumer cannot rebuild from the exported variants function alone — `Card` (header · content · footer) today, a `ListRow` with slots if one is ever built. Single-box controls never swap their root element: a `Button` always renders `<button>`, a `Badge` always renders `<span>`, a `Toggle` always renders `<button role="switch">`. Where the whole component **is** the anchor and nothing else, write the wrapper below; the library ships no anchor component today.
-
-> **Decided 2026-09-08, pending #429** — a Navigation-family `Link`, always `<a>` and never polymorphic, is to become the member to reach for in that case.
+A component takes `href` only when it owns **structure** the consumer cannot rebuild from the exported variants function alone — `Card` (header · content · footer) today, a `ListRow` with slots if one is ever built. Single-box controls never swap their root element: a `Button` always renders `<button>`, a `Badge` always renders `<span>`, a `Toggle` always renders `<button role="switch">`. Where the whole component **is** the anchor and nothing else, reach for `Link` — the Navigation-family member that is always `<a>` and never polymorphic, in an `inline` voice for prose and a `standalone` one for a handle in a `<nav>`.
 
 The line sits there because a swappable root has three real costs, and only structure pays for them (decided 2026-09-08, kino consumer feedback): the props type splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes` and forces a `Record<string, unknown>` cast; navigation-resolution lint rules have to be scoped off for the component; and internal-vs-external URL, `resolve()`, `target`/`rel` are app-routing decisions the library cannot see. `Card` pays all three, and it is worth it, because an `<a>` around a `cardVariants()` shell would have to rebuild three slots. An `<a>` around `buttonVariants()` rebuilds nothing — so that is the recipe, and the library holds itself to it (#427).
 
-When you need a link that looks like a button, write a thin wrapper in your app and reuse the exported variant function:
+When you need a link that looks like a *button* — `Link` is a link look — write a thin wrapper in your app and reuse the exported variant function:
 
 ```svelte
 <!-- LinkButton.svelte -->
