@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CSRF_COOKIE_NAME } from '../csrf-constants.js';
@@ -32,7 +34,7 @@ const asEvent = (e: MockEvent) => e as unknown as RequestEvent;
 const createJar = (initial: Record<string, string>) =>
   createBrowserJar(initial, (cookies, options: Parameters<typeof createMockEvent>[0]) => {
     const event = createMockEvent({ ...options, cookies });
-    return { event, store: event._cookieStore };
+    return { event, store: event._cookieStore, written: event._written };
   });
 
 const config: AuthConfig = {
@@ -71,14 +73,14 @@ function createMockEvent(options: {
     cookieStore.set(options.refreshCookieName ?? 'refresh', options.refreshCookie);
   }
 
+  const url = new URL(`http://localhost:3000${options.path}`);
+  const written = new Set<string>();
   return {
-    request: new Request(`http://localhost:3000${options.path}`, {
-      method: options.method ?? 'GET',
-      headers
-    }),
-    url: new URL(`http://localhost:3000${options.path}`),
-    cookies: createMockCookies(cookieStore),
+    request: new Request(url, { method: options.method ?? 'GET', headers }),
+    url,
+    cookies: createMockCookies(cookieStore, url, { written }),
     _cookieStore: cookieStore,
+    _written: written,
     locals: {} as Record<string, unknown>,
     params: {},
     route: { id: options.path },
@@ -499,19 +501,132 @@ describe('createAuthHandle', () => {
       ).toBeDefined();
     });
 
-    it('serializes each clear exactly as the write itself would', async () => {
-      // Pins the recorded header against `Cookies.serialize` for the same
-      // arguments, so a change to what SvelteKit's `delete` means cannot leave
-      // the staged cookie and the header on the response saying different things.
+    it('keeps the headers authError set under the appended cookies', async () => {
       const { handle, jar } = await staleSession();
 
-      const { event, response } = await jar.send(handle, { path: '/api/data' });
-      expect(response?.headers.getSetCookie()).toEqual([
-        event.cookies.serialize('session', '', { path: '/', maxAge: 0 })
-      ]);
-      expect(response?.headers.get('Cache-Control'), 'the refusal keeps its own headers').toBe(
-        'no-store'
+      const { response } = await jar.send(handle, { path: '/api/data' });
+      expect(response?.headers.get('Cache-Control'), 'appending must not drop it').toBe('no-store');
+      expect(response?.headers.get('content-type')).toContain('application/json');
+      expect(
+        response?.headers.getSetCookie(),
+        'one header per cookie, never comma-joined'
+      ).toHaveLength(1);
+    });
+
+    it('writes the headers SvelteKit itself would have written', async () => {
+      // The oracle is Kit's own cookie runtime, which its exports map does not
+      // name — hence the absolute path off the package.json it does export. A
+      // release that moves the file fails this test at import, rather than
+      // quietly leaving the suite comparing the mock double to itself.
+      const kitPackageJson = createRequire(import.meta.url).resolve('@sveltejs/kit/package.json');
+      const { get_cookies, add_cookies_to_headers } = await import(
+        /* @vite-ignore */
+        new URL('./src/runtime/server/cookie.js', pathToFileURL(kitPackageJson)).href
       );
+
+      const session = await createSessionToken(
+        { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+        config.jwt
+      );
+      const staleRepos = () =>
+        createMockRepos({
+          findById: vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
+        });
+
+      /** Refuse one request over Kit's real `Cookies`, and ask Kit what it would have emitted. */
+      const drive = async (cfg: AuthConfig, base: string, cookieHeader?: string) => {
+        const url = new URL(`${base}/api/data`);
+        const request = new Request(url, cookieHeader ? { headers: { cookie: cookieHeader } } : {});
+        const { cookies, new_cookies, set_trailing_slash } = get_cookies(request, url);
+        // Kit refuses to serialize before the route is resolved; this is what
+        // `respond.js` calls to settle it.
+        set_trailing_slash('never');
+        const response = await createAuthHandle({ config: cfg, repos: staleRepos() })({
+          event: {
+            request,
+            url,
+            cookies,
+            locals: {},
+            params: {},
+            route: { id: '/api/data' },
+            isDataRequest: false,
+            isSubRequest: false,
+            isRemoteRequest: false,
+            getClientAddress: () => '127.0.0.1',
+            platform: undefined
+          } as unknown as RequestEvent,
+          resolve: vi.fn()
+        });
+        const kit = new Headers();
+        add_cookies_to_headers(kit, new_cookies.values());
+        return {
+          status: response.status,
+          got: response.headers.getSetCookie(),
+          kit: kit.getSetCookie()
+        };
+      };
+
+      const carrying = `session=${session}`;
+      const cases = {
+        'a clear over plain-HTTP localhost, where Kit drops Secure': await drive(
+          config,
+          'http://localhost:3000',
+          carrying
+        ),
+        'a clear over https': await drive(config, 'https://app.test', carrying),
+        'a clear carrying jwt.cookieDomain, which changes path resolution': await drive(
+          { ...config, jwt: { ...config.jwt, cookieDomain: '.app.test' } },
+          'https://app.test',
+          carrying
+        ),
+        'the CSRF double-submit set': await drive(
+          { ...config, csrf: { doubleSubmit: true } },
+          'http://localhost:3000'
+        )
+      };
+
+      for (const [shape, { status, got, kit }] of Object.entries(cases)) {
+        expect(status, shape).toBe(401);
+        // Without this an empty-vs-empty comparison would pass for a shape
+        // that staged nothing at all.
+        expect(kit, `${shape}: Kit staged something to compare`).not.toEqual([]);
+        expect(got, shape).toEqual(kit);
+      }
+    });
+
+    it('answers 401 to a browser that holds a live session afterwards', async () => {
+      // The transform throws after the rotation committed, so the hook
+      // continues unauthenticated rather than lose the rotated cookies. The
+      // guard then refuses this request — while the refusal hands the browser
+      // the session the rotation just minted, so the retry is authenticated.
+      const refreshRepo = createInMemoryRefreshTokenRepository(createInMemoryStore());
+      const { token } = await issueRefreshToken(refreshRepo, 'user-1', { refreshTokenTtl: '30d' });
+      let failures = 1;
+      const handle = createAuthHandle({
+        config: {
+          ...config,
+          logger: { warn: vi.fn(), error: vi.fn() },
+          refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' },
+          hooks: {
+            transformUser: (user) => {
+              if (failures-- > 0) throw new Error('enrichment boom');
+              return user;
+            }
+          }
+        },
+        repos: { ...createMockRepos(), refreshToken: refreshRepo }
+      });
+      const jar = createJar({ refresh: token });
+
+      const refused = await jar.send(handle, { path: '/api/data' });
+      expect(refused.status).toBe(401);
+      expect(await refused.response?.json()).toMatchObject({ code: 'not_authenticated' });
+      expect(jar.get('session'), 'the minted access cookie reached the browser').toBeDefined();
+      expect(jar.get('refresh'), 'and the successor replaced the spent token').not.toBe(token);
+
+      const retry = await jar.send(handle, { path: '/api/data' });
+      expect(retry.status).toBe(200);
+      expect(retry.event.locals.user).toMatchObject({ id: 'user-1' });
     });
   });
 

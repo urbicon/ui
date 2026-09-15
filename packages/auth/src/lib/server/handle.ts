@@ -186,27 +186,32 @@ export const DEFAULT_PUBLIC_ROUTES: readonly string[] = Object.freeze([
  * SvelteKit writes the cookies a hook stages on `event.cookies` in exactly two
  * places — inside `resolve(...).then(...)` and on the thrown-redirect path
  * (`respond.js`) — so a response the hook builds itself carries nothing it
- * staged. Every header here comes out of the same `cookies.serialize` the
- * staged write goes through, so the two cannot name different attributes.
+ * staged.
+ *
+ * What one write through this view guarantees is that the staged cookie and
+ * the recorded header are built from the same arguments. That they then come
+ * out identical is a property of SvelteKit, not of this code: `serialize` is a
+ * separate implementation from the `set` + `add_cookies_to_headers` pair that
+ * normally emits the header, and the two agree by applying the same defaults
+ * and path resolution. `writes the headers SvelteKit itself would have
+ * written` measures that, driving this hook over Kit's own cookie runtime.
  */
 function recordCookieWrites(cookies: Cookies): { cookies: Cookies; setCookie: string[] } {
   const setCookie: string[] = [];
+  const set: Cookies['set'] = (name, value, opts) => {
+    cookies.set(name, value, opts);
+    setCookie.push(cookies.serialize(name, value, opts));
+  };
   return {
     setCookie,
     cookies: {
       get: (name, opts) => cookies.get(name, opts),
       getAll: (opts) => cookies.getAll(opts),
       serialize: (name, value, opts) => cookies.serialize(name, value, opts),
-      set: (name, value, opts) => {
-        cookies.set(name, value, opts);
-        setCookie.push(cookies.serialize(name, value, opts));
-      },
-      // A delete is Kit's `set(name, '', { ...opts, maxAge: 0 })`; the header
-      // has to say the same or the browser keeps the cookie.
-      delete: (name, opts) => {
-        cookies.delete(name, opts);
-        setCookie.push(cookies.serialize(name, '', { ...opts, maxAge: 0 }));
-      }
+      set,
+      // SvelteKit's `delete` is this `set`, so routing it through ours keeps
+      // one spelling of the cleared shape rather than two that have to agree.
+      delete: (name, opts) => set(name, '', { ...opts, maxAge: 0 })
     }
   };
 }
@@ -270,9 +275,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // guard's own refusal), so it drops the successor cookie while the row says
   // the predecessor was replaced; the browser then keeps replaying the spent
   // token, and outside ROTATION_GRACE_MS that is indistinguishable from reuse
-  // and revokes the whole family. Do not restore the abort here: one unauthenticated request
-  // is recoverable, a burnt family plus a false theft alarm is not. The read
-  // path above keeps the documented abort — nothing is committed there.
+  // and revokes the whole family. Do not restore the abort here: one
+  // unauthenticated request is recoverable, a burnt family plus a false theft
+  // alarm is not. The read path above keeps the documented abort — nothing is
+  // committed there.
   const resolveRotatedLocalsUser = async (
     e: RequestEvent,
     user: FullAuthUser<R>

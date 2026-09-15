@@ -83,11 +83,17 @@ function mockEvent(
 ) {
   const { path = '/api/auth/logout', method = 'POST', trace, locals = {}, headers } = extras;
   const store = new Map(Object.entries(initialCookies));
+  const url = new URL(`http://localhost:3000${path}`);
+  const written = new Set<string>();
   return {
-    cookies: createMockCookies(store, (name) => trace?.push(`clear:${name}`)),
+    cookies: createMockCookies(store, url, {
+      onDelete: (name) => trace?.push(`clear:${name}`),
+      written
+    }),
     _store: store,
-    request: new Request(`http://localhost:3000${path}`, { method, headers }),
-    url: new URL(`http://localhost:3000${path}`),
+    _written: written,
+    request: new Request(url, { method, headers }),
+    url,
     params: {},
     locals,
     platform: undefined,
@@ -316,6 +322,7 @@ describe('createLogoutHandler — invalidateAccessTokens through the handle', ()
         return {
           event,
           store: event._store,
+          written: event._written,
           respond: endpoint ? () => Promise.resolve(endpoint(asEvent(event))) : undefined
         };
       }

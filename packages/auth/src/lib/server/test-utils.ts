@@ -183,16 +183,17 @@ export function mockPostEvent(
   opts?: { ip?: string; locals?: Record<string, unknown> }
 ) {
   const cookieStore = new Map<string, string>();
+  const url = new URL('http://localhost/api/auth');
   return {
-    request: new Request('http://localhost/api/auth', {
+    request: new Request(url, {
       method: 'POST',
       body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' }
     }),
-    cookies: createMockCookies(cookieStore),
+    cookies: createMockCookies(cookieStore, url),
     _cookieStore: cookieStore,
     getClientAddress: () => opts?.ip ?? '127.0.0.1',
-    url: new URL('http://localhost/api/auth'),
+    url,
     locals: opts?.locals ?? {}
   };
 }
@@ -202,10 +203,11 @@ type CookieOptions = Parameters<Cookies['set']>[2];
 
 /**
  * The attributes SvelteKit fills in for a caller that omits them, so a
- * serialized header carries what the browser really receives. `secure`
- * follows the non-localhost branch of Kit's default.
+ * serialized header carries what the browser really receives. `secure` is not
+ * among them because Kit derives it from the request: plain-HTTP localhost
+ * gets a non-Secure cookie, everything else a Secure one.
  */
-const COOKIE_DEFAULTS = { httpOnly: true, sameSite: 'lax', secure: true } as const;
+const COOKIE_DEFAULTS = { httpOnly: true, sameSite: 'lax' } as const;
 
 /**
  * SvelteKit throws on a write without a `path` (`validate_options`), so the
@@ -220,8 +222,9 @@ function requirePath(options: CookieOptions): CookieOptions {
   return options;
 }
 
-function serializeCookie(name: string, value: string, options: CookieOptions): string {
-  const o = { ...COOKIE_DEFAULTS, ...requirePath(options) };
+function serializeCookie(url: URL, name: string, value: string, options: CookieOptions): string {
+  const secure = !(url.hostname === 'localhost' && url.protocol === 'http:');
+  const o = { secure, ...COOKIE_DEFAULTS, ...requirePath(options) };
   const parts = [`${name}=${encodeURIComponent(value)}`];
   if (o.maxAge !== undefined) parts.push(`Max-Age=${o.maxAge}`);
   if (o.domain) parts.push(`Domain=${o.domain}`);
@@ -236,31 +239,41 @@ function serializeCookie(name: string, value: string, options: CookieOptions): s
 }
 
 /**
- * A `Cookies` double over a plain `Map`. `serialize` returns a real
- * `Set-Cookie` header rather than a placeholder, because `createAuthHandle`
- * builds the guard's `401` headers out of it — a double that returned `''`
- * would let every cookie assertion on that response pass on an empty string.
+ * A `Cookies` double over a plain `Map`, for the request at `url`. `serialize`
+ * returns a real `Set-Cookie` header rather than a placeholder, because
+ * `createAuthHandle` builds the guard's `401` headers out of it — a double
+ * that returned `''` would let every cookie assertion on that response pass on
+ * an empty string. How faithful the header is, is pinned against Kit's own
+ * runtime by `writes the headers SvelteKit itself would have written`.
  *
  * `onDelete` is a probe for tests that pin the order of clears against other
- * writes.
+ * writes; `written` collects the names this request wrote, Kit's `new_cookies`
+ * — what {@link createBrowserJar} needs to tell a written cookie from a merely
+ * carried one.
  */
 export function createMockCookies(
   store: Map<string, string>,
-  onDelete?: (name: string) => void
+  url: URL,
+  probes: { onDelete?: (name: string) => void; written?: Set<string> } = {}
 ): Cookies {
+  const set: Cookies['set'] = (name, value, options) => {
+    requirePath(options);
+    probes.written?.add(name);
+    // Kit reports a cookie written with `maxAge: 0` as absent — that is how
+    // its own `delete` erases one, and the hook's recording view relies on it.
+    if (options.maxAge === 0) {
+      probes.onDelete?.(name);
+      store.delete(name);
+    } else {
+      store.set(name, value);
+    }
+  };
   return {
     get: (name) => store.get(name),
     getAll: () => [...store].map(([name, value]) => ({ name, value })),
-    set: (name, value, options) => {
-      requirePath(options);
-      store.set(name, value);
-    },
-    delete: (name, options) => {
-      requirePath(options);
-      onDelete?.(name);
-      store.delete(name);
-    },
-    serialize: serializeCookie
+    set,
+    delete: (name, options) => set(name, '', { ...options, maxAge: 0 }),
+    serialize: (name, value, options) => serializeCookie(url, name, value, options)
   };
 }
 
@@ -270,6 +283,8 @@ export interface JarRequest<E> {
   event: E;
   /** The map its `cookies` write into — the staged jar SvelteKit would flush. */
   store: Map<string, string>;
+  /** The names this request wrote, as `createMockCookies` collected them. */
+  written: Set<string>;
   /** What `resolve` returns. Default: `200 OK`. */
   respond?: () => Promise<Response>;
 }
@@ -307,10 +322,17 @@ export function createBrowserJar<E, A extends unknown[]>(
   return {
     get: (name: string) => jar.get(name),
     async send(handle: Handle, ...args: A) {
-      const { event, store, respond } = makeRequest(Object.fromEntries(jar), ...args);
+      const { event, store, written, respond } = makeRequest(Object.fromEntries(jar), ...args);
+      // Kit appends the staged cookies to the resolved response (`respond.js`),
+      // so on a name both the endpoint's own header and the hook wrote, the
+      // staged write comes last and wins. Only written names are appended —
+      // a cookie the request merely carried is not in Kit's `new_cookies`.
       const commit = () => {
-        jar.clear();
-        for (const [name, value] of store) jar.set(name, value);
+        for (const name of written) {
+          const value = store.get(name);
+          if (value === undefined) jar.delete(name);
+          else jar.set(name, value);
+        }
       };
       let resolved = false;
       try {
@@ -321,8 +343,8 @@ export function createBrowserJar<E, A extends unknown[]>(
             return respond ? await respond() : new Response('OK');
           }
         });
-        if (resolved) commit();
         adopt(response);
+        if (resolved) commit();
         return { status: response.status, event, response };
       } catch (err) {
         if (!isRedirect(err)) throw err;
