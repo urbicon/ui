@@ -16,6 +16,27 @@
   }: IconProps & { content?: string; children?: Snippet } = $props();
 
   const transform = $derived(buildSvgTransform(rotate, flip));
+  /**
+   * An `<svg>` carrying a `viewBox` and no `width`/`height` has no intrinsic
+   * size, so its used size is whatever its layout context hands it — zero as a
+   * flex or grid item, the container's width as a block child. `1em` gives it
+   * the font size of its context instead, so an icon takes the type step of
+   * whatever it sits in.
+   *
+   * `??`, not `||`: `size={0}` is a caller asking for no box and must not be
+   * read as "no size given".
+   *
+   * A presentation attribute, so any author CSS outranks it, per axis: a
+   * `size-4` on the icon or a `[&_svg]:size-4` on an ancestor decides
+   * regardless of `size`, while a one-axis `w-6` leaves the other axis at `1em`
+   * and the box stops being square. Outranking it is what keeps every icon the
+   * library renders itself — the chevrons, checkmarks and clear buttons, each
+   * in a slot that sizes it — drawing as before; an icon a consumer passes into
+   * a Button or a snippet has no such slot and does change.
+   *
+   * `restProps` is spread after these, so an explicit `width=`/`height=` wins.
+   */
+  const dimension = $derived(size ?? '1em');
   const classes = $derived(
     [className, animation === 'spin' ? 'icon-spin' : animation === 'pulse' ? 'icon-pulse' : null]
       .filter(Boolean)
@@ -51,8 +72,8 @@
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  width={size}
-  height={size}
+  width={dimension}
+  height={dimension}
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"

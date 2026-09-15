@@ -88,7 +88,9 @@
     const v = values as Partial<PlaygroundValues>;
     const comp = currentComponentName;
     const props: string[] = [];
-    if (v.size !== undefined && v.size !== 24) props.push(`size={${v.size}}`);
+    // Every size the slider reaches is explicit: the prop has no numeric
+    // default to omit against, so dropping it would emit an icon at 1em.
+    if (v.size !== undefined) props.push(`size={${v.size}}`);
     if (v.strokeWidth !== undefined && v.strokeWidth !== 2)
       props.push(`strokeWidth={${v.strokeWidth}}`);
     if (v.rotate && v.rotate !== '0') props.push(`rotate={${v.rotate}}`);
@@ -128,6 +130,22 @@
     <h1 class="text-text-primary text-3xl font-bold tracking-tight">Icons</h1>
     <p class="text-text-secondary mt-2 text-lg">
       {allNames.length} original stroke-based icons. Click any icon to open it in the playground.
+    </p>
+    <p class="text-text-secondary mt-3 max-w-2xl">
+      An icon without a <code class="text-text-primary">size</code> draws at
+      <code class="text-text-primary">1em</code> — the font size of whatever it sits in, so an icon
+      in a <code class="text-text-primary">size="sm"</code> Button is
+      <code class="text-text-primary">text-sm</code> and one in a
+      <code class="text-text-primary">size="lg"</code> Button is
+      <code class="text-text-primary">text-lg</code>. Pass
+      <code class="text-text-primary">size=&#123;20&#125;</code> for a fixed edge length, or a CSS
+      class (<code class="text-text-primary">size-4</code>) when neither the type step nor the prop
+      should decide: the class wins over both, because
+      <code class="text-text-primary">size</code> is an attribute. That contest runs
+      <em>per axis</em> — a one-axis class such as
+      <code class="text-text-primary">w-6</code> leaves the height at
+      <code class="text-text-primary">1em</code>, so reach for
+      <code class="text-text-primary">size-*</code> or set both.
     </p>
   </header>
 

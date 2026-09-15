@@ -52,7 +52,7 @@ export function registerFindIconsTool(server: McpServer): void {
       md += '<Icon name="search" />\n';
       md += '```\n\n';
       md +=
-        '**Props:** `size` (default 24), `strokeWidth` (default 2), `class`, `rotate`, `flip`, `animation`\n\n';
+        '**Props:** `size` (px; default `1em` — the font size of the surrounding text), `strokeWidth` (default 2), `class`, `rotate`, `flip`, `animation`\n\n';
       md += '---\n\n';
 
       for (const cat of ICON_CATEGORY_ORDER) {
