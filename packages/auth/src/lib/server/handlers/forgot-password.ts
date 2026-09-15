@@ -105,7 +105,7 @@ async function issuePasswordReset<R extends string>(
   const resetUrl = new URL('/auth/reset-password', deps.config.appUrl);
   resetUrl.searchParams.set('token', token);
 
-  const { t, appName, from } = resolveEmailSettings(deps.config);
+  const { t, appName, from } = resolveEmailSettings(deps.config, deps.logger);
   const ctx = { name: user.name, url: resetUrl.toString(), appName, from, t };
   const built = resetEmail?.(ctx) ?? buildPasswordResetEmail(ctx, t);
   await transport.send({ from, ...built, to: user.email });

@@ -23,8 +23,8 @@ Zero-dependency authentication, user management, and notification system for Sve
 │   │       custom retry/auth layers; default: global fetch)
 │   └── Utils: service worker registration, push subscription
 │
-├── i18n (import from '@urbicon-ui/auth/i18n/en' or '/de')
-│   └── EN + DE locale bundles (extensible)
+├── i18n (built in: EN — registerAuthLocale() adds any other)
+│   └── EN + DE bundles ship ('@urbicon-ui/auth/i18n/en' | '/de'); any Locale is registrable
 │
 └── SW (import from '@urbicon-ui/auth/sw')
     └── handlePushEvent, handleNotificationClick
@@ -73,18 +73,19 @@ Node-compatibility layer that polyfills `Buffer` (e.g. Cloudflare's
 | `@urbicon-ui/auth/server/email/lettermint`     | Server only         | Lettermint email transport                                  |
 | `@urbicon-ui/auth/server/email/console`        | Server only         | Console email transport (dev)                               |
 | `@urbicon-ui/auth/sw`                          | Service Worker      | Push + notification click handlers                          |
-| `@urbicon-ui/auth/i18n/en`                     | Universal           | English locale                                              |
-| `@urbicon-ui/auth/i18n/de`                     | Universal           | German locale                                               |
+| `@urbicon-ui/auth/i18n/en`                     | Universal           | English locale — the built-in bundle; import it for a parity test or as the base of a hand-built one |
+| `@urbicon-ui/auth/i18n/de`                     | Universal           | German locale — reaches the components only after `registerAuthLocale('de', de)` ([Locales](#locales)) |
 
 ## UI Components
 
 All components use `@urbicon-ui/blocks` primitives and support:
 
-- **`t`** — locale overrides as `PartialAuthLocale`: any subset, deep-merged over the
-  active built-in bundle by `mergeAuthLocale` (both root-exported). Overriding one
-  string never blanks the rest; a hand-rolled bundle missing newer keys resolves them
-  from the base. `AuthLocale` itself is fully required — no per-key fallback literals
-  in markup.
+- **`t`** — locale overrides as `PartialAuthLocale`: any subset, deep-merged by
+  `mergeAuthLocale` (both root-exported) over the bundle registered for the
+  `<I18nProvider>` locale — English unless `registerAuthLocale` was called for that
+  locale, see [Locales](#locales). Overriding one string never blanks the rest; a
+  hand-rolled bundle missing newer keys resolves them from the base. `AuthLocale`
+  itself is fully required — no per-key fallback literals in markup.
 - **`unstyled`** — strips *every* default class, including inner wrappers and list-item
   internals; structural state that only styling used to carry is exposed as data
   attributes instead (`data-met` on RegisterPage requirement rows, `data-unread` on
@@ -202,6 +203,108 @@ description added to an already-focused field is not reliably re-announced, and
 there is deliberately no live region (it would fire on every keystroke). Set
 `showRequirements={false}` to drop both — a refused password still names the
 rules it missed, so the reason stays reachable.
+
+### Locales
+
+**Only English is built in.** Every other locale is one import plus one
+registration, so an English-only app never carries the German bundle:
+
+<!-- typecheck -->
+
+```ts
+// src/lib/locales.ts
+import { registerAuthLocale } from '@urbicon-ui/auth';
+import { de } from '@urbicon-ui/auth/i18n/de';
+
+registerAuthLocale('de', de);
+```
+
+Import that module from **both** sides of the render:
+
+```ts
+// src/hooks.server.ts — the mail builders resolve `email.locale` while handling
+// the first request, so the bundle has to be there before it arrives.
+import '$lib/locales';
+
+// src/routes/+layout.ts — evaluated in the browser as well as on the server, so
+// the hydrating client resolves the same bundle the SSR HTML was rendered from.
+import '$lib/locales';
+```
+
+Registering on one side only is the failure worth naming: German server HTML
+hydrating into English text, or the reverse.
+
+**App start is the recommendation, not a requirement.** The registry is
+reactive, so a bundle registered later — after a locale switch, out of a lazily
+loaded module — re-renders the auth components already on screen. What app start
+buys is that the very first server render is already correct, which is what
+removes the hydration mismatch above.
+
+The registry is module-global and holds static, request-identical data, so one
+registration at server start serves every concurrent request; the request-scoped
+part (the locale that is active) stays in `<I18nProvider>`'s context, where
+`useAuthLocale` reads it. `registerAuthLocale` takes any locale
+`@urbicon-ui/i18n` supports (its `SUPPORTED_LOCALES`), not only the two that
+ship a bundle — pass your own full `AuthLocale` for the rest.
+
+It is write-strict, because a bundle that is wrong here is wrong for every
+component at once: it throws on an unsupported locale, on a non-object bundle,
+and on a bundle missing any key the built-in English one has. So registering
+`en` **replaces** rather than merges — that is how you override the whole
+surface at once instead of passing `t` at every usage site — and the override is
+built from the shipped bundle:
+
+<!-- typecheck -->
+
+```ts
+import { mergeAuthLocale, registerAuthLocale } from '@urbicon-ui/auth';
+import { en } from '@urbicon-ui/auth/i18n/en';
+
+registerAuthLocale('en', mergeAuthLocale(en, { auth: { login: { title: 'Welcome back' } } }));
+```
+
+The same guard reaches a hand-built bundle at upgrade time: one that was complete
+against an older `AuthLocale` throws as soon as a release adds a key — at module
+evaluation, which for the `hooks.server.ts` import above is server boot. This is
+the opposite of what the `t` prop does with a stale bundle (it fills the gaps from
+the base), and deliberately so: a registered bundle is the base. Build yours with
+`mergeAuthLocale(en, yours)` and it stays complete across upgrades.
+
+A locale with no registered bundle resolves to English. The components do that
+silently; `config.email.locale` naming one warns **once per locale** through
+`config.logger`, because a locale configured for the mails is a stated intent
+rather than a default — but it still sends, in English: a wiring slip must not
+block a password-reset mail.
+
+### Breaking in 8.24.0
+
+**A locale other than `en` now has to be registered.** The package used to
+import both shipped bundles and choose between them at runtime, so every auth
+component carried both languages; only `en` is statically imported now. Measured
+with `bun run size --package auth`, `NotificationBadge` goes from 20.5 KB gz to
+17.6 KB, and every other component that renders a string drops by the same
+~2.9 KB gz.
+
+**Affected:** apps rendering auth components under `<I18nProvider locale="de">`,
+and apps sending the default transactional mails with `email.locale: 'de'`.
+Nothing throws — both render and send **English** until the registration is
+added, and the mail path warns once per locale through `config.logger`.
+
+<!-- typecheck -->
+
+```ts
+// src/lib/locales.ts — the three lines that bring German back
+import { registerAuthLocale } from '@urbicon-ui/auth';
+import { de } from '@urbicon-ui/auth/i18n/de';
+
+registerAuthLocale('de', de);
+```
+
+Import that module from `src/hooks.server.ts` **and** from the root
+`src/routes/+layout.ts` — [Locales](#locales) says why both. Nothing else moves:
+`t`, `mergeAuthLocale`, `useAuthLocale`, `AuthLocale` and the
+`@urbicon-ui/auth/i18n/*` subpaths are unchanged, and an English-only app needs
+no edit at all.
 
 ### Breaking in 8.21.0
 

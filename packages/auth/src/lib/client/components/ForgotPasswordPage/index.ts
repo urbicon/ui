@@ -19,8 +19,9 @@ import type { AuthPageSlotClasses } from '../types.js';
  */
 export interface ForgotPasswordPageProps {
   /**
-   * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset, from a single string to a whole tree.
+   * Locale overrides, deep-merged over the bundle registered for the active
+   * locale — English unless `registerAuthLocale` ran for it. Pass any subset,
+   * from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** URL for the login page link. @default '/auth/login' */

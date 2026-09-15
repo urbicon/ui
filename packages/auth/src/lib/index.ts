@@ -49,10 +49,11 @@ export {
   VerifyEmailPage,
   withCsrfHeader
 } from './client/index.js';
-export type { AuthLocale, PartialAuthLocale } from './i18n/index.js';
+export type { AuthLocale, PartialAuthLocale } from './i18n/index.svelte.js';
 // i18n — bundle-based: read the active bundle with useAuthLocale, merge
-// consumer overrides with mergeAuthLocale (see docs/AUTH.md)
-export { mergeAuthLocale, useAuthLocale } from './i18n/index.js';
+// consumer overrides with mergeAuthLocale, add a locale beyond the built-in
+// `en` with registerAuthLocale (see docs/AUTH.md)
+export { mergeAuthLocale, registerAuthLocale, useAuthLocale } from './i18n/index.svelte.js';
 // Open-redirect guard for the handle hook's ?redirectTo=… deep-link param
 export { sanitizeRedirect } from './redirect.js';
 export type {

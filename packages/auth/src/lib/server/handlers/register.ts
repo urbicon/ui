@@ -207,7 +207,7 @@ export function createRegisterHandler<R extends string>(
         const verifyUrl = new URL('/auth/verify-email', deps.config.appUrl);
         verifyUrl.searchParams.set('token', verificationToken);
 
-        const { t, appName, from } = resolveEmailSettings(deps.config);
+        const { t, appName, from } = resolveEmailSettings(deps.config, deps.logger);
         const ctx = { name, url: verifyUrl.toString(), appName, from, t };
         const built = options.verificationEmail?.(ctx) ?? buildVerificationEmail(ctx, t);
         await transport.send({ from, ...built, to: email });

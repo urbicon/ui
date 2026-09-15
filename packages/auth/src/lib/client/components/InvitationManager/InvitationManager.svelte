@@ -12,7 +12,7 @@
   } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount, untrack } from 'svelte';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
   import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';

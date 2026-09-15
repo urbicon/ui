@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { de } from './de.js';
 import { en } from './en.js';
-import { mergeAuthLocale } from './index.js';
+import { mergeAuthLocale } from './index.svelte.js';
 
 describe('mergeAuthLocale', () => {
   it('returns the base bundle itself when there is nothing to merge', () => {

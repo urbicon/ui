@@ -9,7 +9,7 @@
   } from '@urbicon-ui/blocks';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount, tick } from 'svelte';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
