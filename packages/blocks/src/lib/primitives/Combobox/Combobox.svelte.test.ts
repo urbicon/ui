@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
+import { type ComponentProps, createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { registerBlocksLocale } from '$lib/i18n';
+import deTranslations from '$lib/translations/de';
+import ComboboxI18nHarness from './__fixtures__/ComboboxI18nHarness.svelte';
 import ComboboxMultiHarness from './__fixtures__/ComboboxMultiHarness.svelte';
 import Combobox from './Combobox.svelte';
+import { comboboxVariants } from './combobox.variants';
 import type { ComboboxMultipleProps, ComboboxOption, ComboboxProps } from './index';
 
 // First DOM/component test in the repo — the interaction layer the variant tests deliberately
@@ -1205,5 +1209,419 @@ describe('Combobox (validation frame)', () => {
     expect(classes).toContain('opacity-50');
     expect(classes).not.toContain('opacity-100');
     expect(classes).not.toContain('opacity-0');
+  });
+});
+
+// A facet option carries its count, and the count is the thing that says
+// whether the click is worth it — so `hint` renders inside the option's text
+// content (accessible name "Noir 24"), never as `aria-hidden` decoration.
+describe('Combobox (option hints)', () => {
+  const HINTED = [
+    { label: 'Noir', value: 'noir', hint: '24' },
+    { label: 'Comedy', value: 'comedy' }
+  ];
+
+  // Located by text, not by class, so the class assertions below are the only
+  // place this suite couples to the styling.
+  const hintIn = (opt: HTMLElement, text: string) =>
+    [...opt.querySelectorAll('span')].find((el) => el.textContent === text);
+  const flat = (el: HTMLElement) => el.textContent?.replace(/\s+/g, ' ').trim();
+
+  it('puts the hint in the option text content, after the label', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: HINTED });
+
+    await user.click(screen.getByRole('combobox'));
+    const opt = option('Noir 24');
+    expect(flat(opt)).toBe('Noir 24');
+    const hint = hintIn(opt, '24');
+    expect(hint).toBeTruthy();
+    // Inside the accessible name — an aria-hidden hint drops the count.
+    expect(hint?.hasAttribute('aria-hidden')).toBe(false);
+    const children = [...opt.children];
+    expect(children.indexOf(hint as Element)).toBeGreaterThan(
+      children.indexOf(hintIn(opt, 'Noir') as Element)
+    );
+  });
+
+  it('styles the hint from the optionHint slot and merges slotClasses.optionHint', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: HINTED });
+    await user.click(screen.getByRole('combobox'));
+    expect(hintIn(option('Noir 24'), '24')?.getAttribute('class')).toBe(
+      comboboxVariants({}).optionHint()
+    );
+
+    dispose?.();
+    dispose = undefined;
+    document.body.replaceChildren();
+
+    renderCombobox({ options: HINTED, slotClasses: { optionHint: 'font-mono' } });
+    await user.click(screen.getByRole('combobox'));
+    const cls = hintIn(option('Noir 24'), '24')?.getAttribute('class') ?? '';
+    expect(cls).toContain('font-mono');
+    expect(cls).toContain('tabular-nums');
+  });
+
+  it('renders no hint element for an option without one', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: HINTED });
+
+    await user.click(screen.getByRole('combobox'));
+    const opt = option('Comedy');
+    expect(flat(opt)).toBe('Comedy');
+    expect(opt.querySelector('.tabular-nums')).toBeNull();
+  });
+
+  it('renders the hint on grouped options too', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ groups: [{ label: 'Genre', options: HINTED }] });
+
+    await user.click(screen.getByRole('combobox'));
+    expect(flat(option('Noir 24'))).toBe('Noir 24');
+  });
+
+  it('draws no hint when customOption owns the row', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: HINTED,
+      customOption: createRawSnippet<[Opt, boolean]>(() => ({
+        render: () => '<span>own row</span>'
+      }))
+    });
+
+    await user.click(screen.getByRole('combobox'));
+    const opt = screen.getAllByRole('option', { hidden: true })[0];
+    expect(flat(opt)).toBe('own row');
+    expect(opt.querySelector('.tabular-nums')).toBeNull();
+  });
+});
+
+// `allowCustom` — "text with suggestions": the option list stays the suggestion
+// set, and whatever the user types is selectable as a value of its own. The row
+// is a synthetic trailing option appended to `filtered`, so the keyboard cursor,
+// aria-activedescendant, hover, click and Enter all run through the one existing
+// path. What must never leak is the row's own prompt text ("Use “x”") into the
+// input, the tag or the pick cache — the value's label is the raw query.
+describe('Combobox (allowCustom)', () => {
+  const VENUES = [{ value: 'arsenal', label: 'Arsenal' }];
+  const customRow = () => option('Use “Kino 46”');
+  const queryCustomRow = () =>
+    screen.queryByRole('option', { name: 'Use “Kino 46”', hidden: true });
+
+  it('offers the typed text as a trailing option, and Enter selects the raw query', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({ options: VENUES, allowCustom: true, onValueChange });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    const row = customRow();
+    expect(screen.getAllByRole('option', { hidden: true })).toEqual([row]);
+
+    await user.keyboard('{ArrowDown}');
+    expect(input.getAttribute('aria-activedescendant')).toBe(row.id);
+    await user.keyboard('{Enter}');
+
+    // The stored label is the raw query, never the row's prompt text.
+    expect(onValueChange).toHaveBeenCalledWith('Kino 46');
+    expect(input.value).toBe('Kino 46');
+  });
+
+  it('replaces the no-results row rather than sitting beside it', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: VENUES, allowCustom: true, noResultsText: 'Nothing here' });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    expect(customRow()).toBeTruthy();
+    expect(screen.queryByText('Nothing here')).toBeNull();
+  });
+
+  it('stays away when an option label matches, trimmed and case-folded', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: VENUES, allowCustom: true });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, '  arsenal  ');
+
+    expect(screen.queryByRole('option', { name: /^Use /, hidden: true })).toBeNull();
+    expect(option('Arsenal')).toBeTruthy();
+  });
+
+  it('appends the row after the last group, outside every group', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      allowCustom: true,
+      groups: [{ label: 'Berlin', options: [{ value: 'arsenal', label: 'Kino Arsenal' }] }]
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    const row = customRow();
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options[options.length - 1]).toBe(row);
+    // Outside the group: a synthetic row belongs to no section.
+    expect(row.closest('[role="group"]')).toBeNull();
+  });
+
+  it('keeps its own id and key when a real option carries the typed text as its value', async () => {
+    const user = userEvent.setup();
+    // Same string as `value` on a real option whose label differs: the naive
+    // `${listboxId}-option-${value}` id and the `opt.value` each-key would both
+    // collide (the key collision throws each_key_duplicate on render).
+    renderCombobox({
+      options: [{ value: 'Kino 46', label: 'Kino 46 Arsenal' }],
+      allowCustom: true
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options).toHaveLength(2);
+    expect(new Set(options.map((o) => o.id)).size).toBe(2);
+    expect(options[1]).toBe(customRow());
+  });
+
+  it('puts the raw query in the tag in multi mode', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: VENUES,
+      multiple: true,
+      value: [],
+      allowCustom: true,
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(onValueChange).toHaveBeenCalledWith(['Kino 46']);
+    expect(removeTagBtn('Kino 46')).toBeTruthy();
+    expect(queryRemoveTagBtn('Use')).toBeNull();
+  });
+
+  it('labels a pre-bound custom value by itself, without warning about a missing source', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderCombobox({ options: VENUES, multiple: true, value: ['Kino 46'], allowCustom: true });
+
+    expect(removeTagBtn('Kino 46')).toBeTruthy();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('labels a pre-bound custom value in single mode, so a remount shows it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // The value outlived the session that typed it; nothing seeds its label.
+    renderCombobox({ options: VENUES, value: 'Kino 46', allowCustom: true });
+
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('Kino 46');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('leaves an async pre-bound value to the server rather than to its own text', async () => {
+    const user = userEvent.setup();
+    const gate = deferred<Opt[]>();
+    renderCombobox({
+      queryFn: vi.fn(() => gate.promise),
+      debounceMs: 1,
+      allowCustom: true,
+      value: 'k46'
+    });
+
+    // An id, not free text: in async mode its label is still on its way, so
+    // self-labelling would freeze the raw id in the field — the label-restore
+    // effect only fires while the query is empty.
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input.value).toBe('');
+
+    await user.click(input);
+    gate.resolve([{ value: 'k46', label: 'Kino 46' }]);
+    await settle();
+
+    expect(input.value).toBe('Kino 46');
+    expect(screen.queryByRole('option', { name: 'Use “k46”', hidden: true })).toBeNull();
+  });
+
+  it('keeps an id no option value can produce', async () => {
+    const user = userEvent.setup();
+    // `value: 'custom'` is what a per-suffix id would collide with.
+    renderCombobox({
+      options: [{ value: 'custom', label: 'Custom preset' }],
+      allowCustom: true
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Custom');
+
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options).toHaveLength(2);
+    expect(new Set(options.map((o) => o.id)).size).toBe(2);
+
+    // The cursor's id must resolve to the row the cursor is on — a shared id
+    // sends every consumer of aria-activedescendant to the first match.
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    const active = input.getAttribute('aria-activedescendant');
+    expect(active).toBe(options[1].id);
+    expect(document.getElementById(active ?? '')).toBe(options[1]);
+  });
+
+  it('withholds the row while an async request is in flight', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const gate = deferred<Opt[]>();
+    renderCombobox({
+      queryFn: vi.fn(() => gate.promise),
+      debounceMs: 1,
+      allowCustom: true,
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    // Only the loading row renders, so the cursor array must hold nothing:
+    // an activedescendant pointing at an absent id, or an Enter committing a
+    // row the reader cannot see, are the two failures this pins.
+    expect(screen.queryAllByRole('option', { hidden: true })).toHaveLength(0);
+    await user.keyboard('{ArrowDown}');
+    expect(input.getAttribute('aria-activedescendant')).toBeNull();
+    await user.keyboard('{Enter}');
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    gate.resolve([]);
+    await settle();
+    expect(customRow()).toBeTruthy();
+  });
+
+  it('draws the built-in row even when customOption is given', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: VENUES,
+      allowCustom: true,
+      customOption: createRawSnippet<[Opt, boolean]>(() => ({
+        render: () => '<span>own row</span>'
+      }))
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    // The snippet is the consumer's renderer for THEIR options; the synthetic
+    // row is in none of their arrays and its label is a prompt.
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options).toHaveLength(1);
+    expect(options[0].textContent?.trim()).toBe('Use “Kino 46”');
+  });
+
+  it('offers the row for a disabled option’s label — that label is unpickable', async () => {
+    const user = userEvent.setup();
+    renderCombobox({
+      options: [{ value: 'arsenal', label: 'Arsenal', disabled: true }],
+      allowCustom: true
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Arsenal');
+
+    expect(screen.getByRole('option', { name: 'Use “Arsenal”', hidden: true })).toBeTruthy();
+  });
+
+  it('disables the row at maxItems, like every other unselected option', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: VENUES,
+      multiple: true,
+      value: ['arsenal'],
+      maxItems: 1,
+      allowCustom: true,
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    expect(customRow().getAttribute('aria-disabled')).toBe('true');
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('is inside the Home/End bounds like any other option', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: [{ value: 'arsenal', label: 'Kino Arsenal' }],
+      allowCustom: true,
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await user.click(input);
+    // "Kino" matches the option's label AND equals none of them, so the list
+    // holds a real row and the synthetic one.
+    await user.type(input, 'Kino');
+    const rows = screen.getAllByRole('option', { hidden: true });
+    expect(rows.map((r) => r.textContent?.trim())).toEqual(['Kino Arsenal', 'Use “Kino”']);
+
+    // End reaches the last row — the synthetic one — and Home comes back to the
+    // first, so the appended row did not move the cursor bounds off the list.
+    await user.keyboard('{End}');
+    expect(input.getAttribute('aria-activedescendant')).toBe(rows[1].id);
+    await user.keyboard('{Home}');
+    expect(input.getAttribute('aria-activedescendant')).toBe(rows[0].id);
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenCalledWith('arsenal');
+  });
+
+  it('follows the async results in queryFn mode', async () => {
+    const user = userEvent.setup();
+    const queryFn = vi.fn(async () => [{ value: 'arsenal', label: 'Kino Arsenal' }] as Opt[]);
+    renderCombobox({ queryFn, debounceMs: 1, allowCustom: true });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+    await settle();
+
+    // Server result first, the synthetic row after it.
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options.map((o) => o.textContent?.trim())).toEqual(['Kino Arsenal', 'Use “Kino 46”']);
+  });
+
+  it('renders the row in the active locale', async () => {
+    registerBlocksLocale('de', deTranslations);
+    const user = userEvent.setup();
+    const instance = mount(ComboboxI18nHarness, {
+      target: document.body,
+      props: { locale: 'de', options: VENUES, allowCustom: true }
+    });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'Kino 46');
+
+    expect(option('„Kino 46“ übernehmen')).toBeTruthy();
+    expect(queryCustomRow()).toBeNull();
   });
 });

@@ -137,6 +137,11 @@ export default {
     moreItems: '{{count}} more',
     noResources: 'No resources'
   },
+  combobox: {
+    // The `allowCustom` row: the label is a prompt, not the value's label —
+    // selecting it stores the raw query.
+    useQuery: 'Use “{{query}}”'
+  },
   commandPalette: {
     noResults: 'No results found.',
     search: 'Search...',

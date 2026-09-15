@@ -55,6 +55,17 @@
   let timezoneValue = $state<string | null>(null);
   let skillsValue = $state<string[]>(['ts', 'svelte']);
 
+  // Free-text demo: a venue field whose suggestions are the houses a viewer
+  // goes to often, while any other name stays typeable.
+  const venues: ComboboxOption[] = [
+    { label: 'Kino Arsenal', value: 'arsenal' },
+    { label: 'Babylon Mitte', value: 'babylon' },
+    { label: 'Il Kino', value: 'il-kino' },
+    { label: 'Wolf Kino', value: 'wolf' },
+    { label: 'Zeughauskino', value: 'zeughaus' }
+  ];
+  let venueValue = $state<string | null>(null);
+
   // ── Async search (queryFn) demo ─────────────────────────────────────────
   // Deterministic in-memory mock backend: a fixed city list, a constant
   // artificial latency, and a request counter. No network, no Math.random —
@@ -258,6 +269,52 @@ ${asyncScriptClose}
         {/snippet}
       </Combobox>
     </CodeExample>
+  </div>
+</Section>
+
+<!-- ─── Free Text ─── -->
+
+<Section marker id="free-text" title="Free Text">
+  <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      By default the option list is closed: a value that is not in it cannot be picked. Pass
+      <code class="text-text-primary">allowCustom</code> and the list becomes a set of suggestions
+      instead — once the query matches no option's label, a trailing row offers to keep what was
+      typed. It behaves like any other option: the arrow keys reach it, Enter picks it, and
+      <code class="text-text-primary">onValueChange</code> receives the typed text. What is stored is
+      the text itself, not the row's wording, so the field reads “Kino 46” afterwards and the row's label
+      is translated with the rest of the library.
+    </p>
+
+    <CodeExample
+      title="Suggestions, not a closed list"
+      description="A venue field: the houses someone goes to often are suggestions, every other name is typed. `clearable` resets it, and the value is a plain string either way — pick one from the list or invent one, the binding does not change."
+      isolate
+      previewClass="flex flex-col gap-3 max-w-sm"
+    >
+      <Combobox
+        label="Venue"
+        options={venues}
+        bind:value={venueValue}
+        allowCustom
+        clearable
+        placeholder="Search or type a venue…"
+      />
+      <p class="text-text-tertiary text-xs">
+        Value: <code class="text-text-primary">{venueValue ?? 'null'}</code>
+      </p>
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      The suggestions may come from anywhere —
+      <code class="text-text-primary">options</code>, <code class="text-text-primary">groups</code>
+      or a <code class="text-text-primary">queryFn</code>; the row waits for the results and then
+      sits below the last group. It always draws itself, so
+      <code class="text-text-primary">customOption</code> never receives it — the option behind it
+      is in none of your arrays. If the row should look different, or store something other than the
+      typed text, leave <code class="text-text-primary">allowCustom</code> off and append an option of
+      your own instead.
+    </p>
   </div>
 </Section>
 

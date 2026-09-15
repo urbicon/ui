@@ -669,37 +669,7 @@
                     if (!option.disabled) activeIndex = optIdx;
                   }}
                 >
-                  {#if customItem}
-                    {@render customItem(option, isSel, () => selectOption(option))}
-                  {:else}
-                    {#if effectiveIndicator === 'checkbox'}
-                      <span
-                        class={unstyled
-                          ? (slotClasses?.optionCheckbox ?? '')
-                          : selectVariants({ size, selected: isSel || undefined }).optionCheckbox({
-                              class: slotClasses?.optionCheckbox
-                            })}
-                        aria-hidden="true"
-                      >
-                        <CheckIcon />
-                      </span>
-                    {/if}
-                    <span
-                      class={unstyled
-                        ? (slotClasses?.optionLabel ?? '')
-                        : styles.optionLabel({ class: slotClasses?.optionLabel })}
-                      >{option.label}</span
-                    >
-                    {#if effectiveIndicator === 'checkmark'}
-                      <CheckIcon
-                        class={unstyled
-                          ? (slotClasses?.optionCheck ?? '')
-                          : selectVariants({ size, selected: isSel || undefined }).optionCheck({
-                              class: slotClasses?.optionCheck
-                            })}
-                      />
-                    {/if}
-                  {/if}
+                  {@render optionBody(option, isSel)}
                 </div>
               {/each}
             </div>
@@ -734,36 +704,7 @@
                 if (!option.disabled) activeIndex = optIdx;
               }}
             >
-              {#if customItem}
-                {@render customItem(option, isSel, () => selectOption(option))}
-              {:else}
-                {#if effectiveIndicator === 'checkbox'}
-                  <span
-                    class={unstyled
-                      ? (slotClasses?.optionCheckbox ?? '')
-                      : selectVariants({ size, selected: isSel || undefined }).optionCheckbox({
-                          class: slotClasses?.optionCheckbox
-                        })}
-                    aria-hidden="true"
-                  >
-                    <CheckIcon />
-                  </span>
-                {/if}
-                <span
-                  class={unstyled
-                    ? (slotClasses?.optionLabel ?? '')
-                    : styles.optionLabel({ class: slotClasses?.optionLabel })}>{option.label}</span
-                >
-                {#if effectiveIndicator === 'checkmark'}
-                  <CheckIcon
-                    class={unstyled
-                      ? (slotClasses?.optionCheck ?? '')
-                      : selectVariants({ size, selected: isSel || undefined }).optionCheck({
-                          class: slotClasses?.optionCheck
-                        })}
-                  />
-                {/if}
-              {/if}
+              {@render optionBody(option, isSel)}
             </div>
           {/each}
         {/if}
@@ -836,3 +777,49 @@
       : styles.message({ class: slotClasses?.message })}
   />
 </div>
+
+<!--
+  The visible contents of one option row, shared by the flat and the grouped
+  listbox path. The `role="option"` container itself stays with each path — it
+  owns the ARIA wiring and the keyboard-cursor index.
+-->
+{#snippet optionBody(option: SelectOption<T>, isSel: boolean)}
+  {#if customItem}
+    {@render customItem(option, isSel, () => selectOption(option))}
+  {:else}
+    {#if effectiveIndicator === 'checkbox'}
+      <span
+        class={unstyled
+          ? (slotClasses?.optionCheckbox ?? '')
+          : selectVariants({ size, selected: isSel || undefined }).optionCheckbox({
+              class: slotClasses?.optionCheckbox
+            })}
+        aria-hidden="true"
+      >
+        <CheckIcon />
+      </span>
+    {/if}
+    <span
+      class={unstyled
+        ? (slotClasses?.optionLabel ?? '')
+        : styles.optionLabel({ class: slotClasses?.optionLabel })}>{option.label}</span
+    >
+    {#if option.hint}
+      <!-- No aria-hidden: the hint is part of the option's accessible name. -->
+      <span
+        class={unstyled
+          ? (slotClasses?.optionHint ?? '')
+          : styles.optionHint({ class: slotClasses?.optionHint })}>{option.hint}</span
+      >
+    {/if}
+    {#if effectiveIndicator === 'checkmark'}
+      <CheckIcon
+        class={unstyled
+          ? (slotClasses?.optionCheck ?? '')
+          : selectVariants({ size, selected: isSel || undefined }).optionCheck({
+              class: slotClasses?.optionCheck
+            })}
+      />
+    {/if}
+  {/if}
+{/snippet}

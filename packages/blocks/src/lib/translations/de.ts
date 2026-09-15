@@ -138,6 +138,11 @@ export default {
     moreItems: '{{count}} weitere',
     noResources: 'Keine Ressourcen'
   },
+  combobox: {
+    // Die `allowCustom`-Zeile: das Label ist eine Aufforderung, nicht das Label
+    // des Werts — ausgewählt wird die rohe Eingabe gespeichert.
+    useQuery: '„{{query}}“ übernehmen'
+  },
   commandPalette: {
     noResults: 'Keine Ergebnisse gefunden.',
     search: 'Suchen...',
