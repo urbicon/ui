@@ -120,6 +120,7 @@
         "@testing-library/user-event": "catalog:",
         "@urbicon-ui/i18n": "workspace:*",
         "@urbicon-ui/shared-types": "workspace:*",
+        "@urbicon-ui/sveltekit-utils": "workspace:*",
         "jsdom": "catalog:",
         "prettier": "catalog:",
         "prettier-plugin-svelte": "catalog:",

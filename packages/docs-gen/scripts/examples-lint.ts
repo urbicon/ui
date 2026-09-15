@@ -83,6 +83,12 @@ const PATTERNS_DIR = process.env.EXAMPLES_LINT_PATTERNS_DIR ?? join(REPO, 'desig
  * devDependency, so `$app/state` / `$app/navigation` are ambient after
  * `svelte-kit sync`, and `@urbicon-ui/blocks` reaches the built `dist/`
  * through the workspace link — the consumer's view, not `$lib`.
+ *
+ * The constraint that follows: the host must resolve every package a pattern
+ * imports, which is why `blocks` carries `@urbicon-ui/sveltekit-utils` as a
+ * dev-only workspace link — `faceted-list` builds its facet hrefs with
+ * `withSearchParams`, and an unresolved import is an error the fence cannot
+ * answer for.
  */
 const PATTERNS_HOST: (typeof PACKAGES)[number] = 'blocks';
 
