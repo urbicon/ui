@@ -1,5 +1,6 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_CSRF_COOKIE_NAME } from '../csrf-constants.js';
 import { sanitizeRedirect } from '../redirect.js';
 import type { AuthConfig, AuthUser } from '../types.js';
 import { createInMemoryRefreshTokenRepository, createInMemoryStore } from './adapters/in-memory.js';
@@ -14,6 +15,8 @@ import {
 import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
 import {
+  createBrowserJar,
+  createMockCookies,
   createMockInvitationRepository,
   createMockUser,
   createMockUserRepository
@@ -24,6 +27,13 @@ type MockEvent = ReturnType<typeof createMockEvent>;
 // `as any`; SvelteKit's RequestEvent is generic and bringing the full surface
 // into every test would be noise.
 const asEvent = (e: MockEvent) => e as unknown as RequestEvent;
+
+/** A browser in front of the handle — see `createBrowserJar` for the two rules it applies. */
+const createJar = (initial: Record<string, string>) =>
+  createBrowserJar(initial, (cookies, options: Parameters<typeof createMockEvent>[0]) => {
+    const event = createMockEvent({ ...options, cookies });
+    return { event, store: event._cookieStore };
+  });
 
 const config: AuthConfig = {
   appUrl: 'https://app.test',
@@ -44,6 +54,8 @@ function createMockEvent(options: {
   path: string;
   method?: string;
   origin?: string;
+  /** Every cookie the request carries, by name — what {@link createJar} passes. */
+  cookies?: Record<string, string>;
   sessionCookie?: string;
   refreshCookie?: string;
   refreshCookieName?: string;
@@ -53,7 +65,7 @@ function createMockEvent(options: {
   const headers = new Headers(options.headers);
   if (options.origin) headers.set('origin', options.origin);
 
-  const cookieStore = new Map<string, string>();
+  const cookieStore = new Map<string, string>(Object.entries(options.cookies ?? {}));
   if (options.sessionCookie) cookieStore.set('session', options.sessionCookie);
   if (options.refreshCookie) {
     cookieStore.set(options.refreshCookieName ?? 'refresh', options.refreshCookie);
@@ -65,13 +77,7 @@ function createMockEvent(options: {
       headers
     }),
     url: new URL(`http://localhost:3000${options.path}`),
-    cookies: {
-      get: (name: string) => cookieStore.get(name),
-      set: (name: string, value: string) => cookieStore.set(name, value),
-      delete: (name: string) => cookieStore.delete(name),
-      getAll: () => [],
-      serialize: () => ''
-    },
+    cookies: createMockCookies(cookieStore),
     _cookieStore: cookieStore,
     locals: {} as Record<string, unknown>,
     params: {},
@@ -434,28 +440,79 @@ describe('createAuthHandle', () => {
     expect(event.locals.user as { id?: string }).not.toHaveProperty('passwordHash');
   });
 
-  it('rejects a session whose tokenVersion is stale and clears the cookie ("log out everywhere")', async () => {
-    // Test-review mutation finding: weakening the tokenVersion gate to a bare
-    // `if (user)` kept the whole suite green — the one mechanism that makes
-    // incrementTokenVersion revoke live sessions was unpinned.
-    const repos = createMockRepos({
-      findById: vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
+  // The guard answers without calling `resolve`, so SvelteKit flushes nothing
+  // it staged — every clear it makes has to ride on the refusal itself. These
+  // read the jar, not the staged store: the staged one is exactly the state no
+  // browser ever holds.
+  describe('the guard 401 carries the cookies the hook staged', () => {
+    /** A user row that has moved past the session cookie the jar carries ("log out everywhere"). */
+    async function staleSession() {
+      const repos = createMockRepos({
+        findById: vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
+      });
+      const session = await createSessionToken(
+        { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+        config.jwt
+      );
+      return { handle: createAuthHandle({ config, repos }), jar: createJar({ session }) };
+    }
+
+    it('rejects a session whose tokenVersion is stale ("log out everywhere")', async () => {
+      // Test-review mutation finding: weakening the tokenVersion gate to a bare
+      // `if (user)` kept the whole suite green — the one mechanism that makes
+      // incrementTokenVersion revoke live sessions was unpinned.
+      const { handle, jar } = await staleSession();
+
+      const first = await jar.send(handle, { path: '/api/data' });
+      expect(first.status).toBe(401);
+      expect(first.event.locals.user).toBeNull();
+      expect(jar.get('session'), 'the browser drops the stale cookie on the 401').toBeUndefined();
+
+      const second = await jar.send(handle, { path: '/api/data' });
+      expect(second.status).toBe(401);
+      expect(
+        second.response?.headers.getSetCookie(),
+        'the next request carries none, so there is nothing left to clear'
+      ).toEqual([]);
     });
-    const handle = createAuthHandle({ config, repos });
 
-    const token = await createSessionToken(
-      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
-      config.jwt
-    );
-    const event = createMockEvent({ path: '/api/data', sessionCookie: token });
+    it('carries the clear on the remote default-deny too', async () => {
+      const { handle, jar } = await staleSession();
 
-    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
-    expect(response.status).toBe(401);
-    expect(event.locals.user).toBeNull();
-    expect(
-      (event as { _cookieStore: Map<string, string> })._cookieStore.get('session'),
-      'stale session cookie is cleared'
-    ).toBeUndefined();
+      const { status } = await jar.send(handle, { path: '/dashboard', isRemoteRequest: true });
+      expect(status).toBe(401);
+      expect(jar.get('session')).toBeUndefined();
+    });
+
+    it('carries the CSRF cookie a resolve would have flushed', async () => {
+      const handle = createAuthHandle({
+        config: { ...config, csrf: { doubleSubmit: true } },
+        repos: createMockRepos()
+      });
+      const jar = createJar({});
+
+      const { status } = await jar.send(handle, { path: '/api/data' });
+      expect(status).toBe(401);
+      expect(
+        jar.get(DEFAULT_CSRF_COOKIE_NAME),
+        'the next request has a token to echo'
+      ).toBeDefined();
+    });
+
+    it('serializes each clear exactly as the write itself would', async () => {
+      // Pins the recorded header against `Cookies.serialize` for the same
+      // arguments, so a change to what SvelteKit's `delete` means cannot leave
+      // the staged cookie and the header on the response saying different things.
+      const { handle, jar } = await staleSession();
+
+      const { event, response } = await jar.send(handle, { path: '/api/data' });
+      expect(response?.headers.getSetCookie()).toEqual([
+        event.cookies.serialize('session', '', { path: '/', maxAge: 0 })
+      ]);
+      expect(response?.headers.get('Cache-Control'), 'the refusal keeps its own headers').toBe(
+        'no-store'
+      );
+    });
   });
 
   it('should apply security headers', async () => {
@@ -1043,10 +1100,9 @@ describe('createAuthHandle — transformUser', () => {
       });
 
       // By the time the transform runs, the successor row is written and the
-      // predecessor CAS-revoked, with both cookies staged on the event.
-      // SvelteKit flushes staged cookies on the success and redirect paths
-      // only — so the guard's 302 still delivers them, while a throw out of
-      // the hook would not, leaving the browser to replay the spent token.
+      // predecessor CAS-revoked, with both cookies staged on the event. The
+      // guard's 302 is one of the three paths that deliver them; a throw out
+      // of the hook leaves by none, and the browser replays the spent token.
       const event = createMockEvent({ path: '/dashboard', refreshCookie: token });
       await expect(handle({ event: asEvent(event), resolve: ok() })).rejects.toMatchObject({
         status: 302

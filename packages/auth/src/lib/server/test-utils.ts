@@ -1,3 +1,5 @@
+import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit';
+import { isRedirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import type {
@@ -187,16 +189,146 @@ export function mockPostEvent(
       body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' }
     }),
-    cookies: {
-      get: (name: string) => cookieStore.get(name),
-      set: (name: string, value: string) => cookieStore.set(name, value),
-      delete: (name: string) => cookieStore.delete(name),
-      getAll: () => [],
-      serialize: () => ''
-    },
+    cookies: createMockCookies(cookieStore),
     _cookieStore: cookieStore,
     getClientAddress: () => opts?.ip ?? '127.0.0.1',
     url: new URL('http://localhost/api/auth'),
     locals: opts?.locals ?? {}
+  };
+}
+
+/** The option bag `Cookies.set`/`delete`/`serialize` take, without importing `cookie` for it. */
+type CookieOptions = Parameters<Cookies['set']>[2];
+
+/**
+ * The attributes SvelteKit fills in for a caller that omits them, so a
+ * serialized header carries what the browser really receives. `secure`
+ * follows the non-localhost branch of Kit's default.
+ */
+const COOKIE_DEFAULTS = { httpOnly: true, sameSite: 'lax', secure: true } as const;
+
+/**
+ * SvelteKit throws on a write without a `path` (`validate_options`), so the
+ * double does too — otherwise a helper that forgot one would pass every test
+ * and drop the cookie only in a browser, where the path defaults to the
+ * request's directory instead of `/`.
+ */
+function requirePath(options: CookieOptions): CookieOptions {
+  if (options?.path === undefined) {
+    throw new Error('You must specify a `path` when setting, deleting or serializing cookies');
+  }
+  return options;
+}
+
+function serializeCookie(name: string, value: string, options: CookieOptions): string {
+  const o = { ...COOKIE_DEFAULTS, ...requirePath(options) };
+  const parts = [`${name}=${encodeURIComponent(value)}`];
+  if (o.maxAge !== undefined) parts.push(`Max-Age=${o.maxAge}`);
+  if (o.domain) parts.push(`Domain=${o.domain}`);
+  parts.push(`Path=${o.path}`);
+  if (o.httpOnly) parts.push('HttpOnly');
+  if (o.secure) parts.push('Secure');
+  if (o.sameSite) {
+    const s = String(o.sameSite);
+    parts.push(`SameSite=${s[0]?.toUpperCase()}${s.slice(1)}`);
+  }
+  return parts.join('; ');
+}
+
+/**
+ * A `Cookies` double over a plain `Map`. `serialize` returns a real
+ * `Set-Cookie` header rather than a placeholder, because `createAuthHandle`
+ * builds the guard's `401` headers out of it — a double that returned `''`
+ * would let every cookie assertion on that response pass on an empty string.
+ *
+ * `onDelete` is a probe for tests that pin the order of clears against other
+ * writes.
+ */
+export function createMockCookies(
+  store: Map<string, string>,
+  onDelete?: (name: string) => void
+): Cookies {
+  return {
+    get: (name) => store.get(name),
+    getAll: () => [...store].map(([name, value]) => ({ name, value })),
+    set: (name, value, options) => {
+      requirePath(options);
+      store.set(name, value);
+    },
+    delete: (name, options) => {
+      requirePath(options);
+      onDelete?.(name);
+      store.delete(name);
+    },
+    serialize: serializeCookie
+  };
+}
+
+/** One request for {@link createBrowserJar} to drive through a `handle` hook. */
+export interface JarRequest<E> {
+  /** The mock event the hook runs on; cast to `RequestEvent` on the way in. */
+  event: E;
+  /** The map its `cookies` write into — the staged jar SvelteKit would flush. */
+  store: Map<string, string>;
+  /** What `resolve` returns. Default: `200 OK`. */
+  respond?: () => Promise<Response>;
+}
+
+/**
+ * A browser's cookie jar in front of a `handle` hook, so a test reads the
+ * cookie state a browser would end up in rather than the one the hook staged.
+ *
+ * Two rules separate the two. SvelteKit writes the cookies a hook staged on
+ * `event.cookies` in exactly two places — inside `resolve(...).then(...)` and
+ * on the thrown-redirect path (`respond.js`) — so a hook that returns a
+ * Response of its own, which is what the route guard does for `/api/…`,
+ * writes none of them. And a browser adopts the `Set-Cookie` headers of any
+ * response whatever its status, `Max-Age=0` deleting the cookie.
+ *
+ * `makeRequest` builds one request from the jar's current cookies; every
+ * argument `send` gets past the handle is forwarded to it.
+ */
+export function createBrowserJar<E, A extends unknown[]>(
+  initial: Record<string, string>,
+  makeRequest: (cookies: Record<string, string>, ...args: A) => JarRequest<E>
+) {
+  const jar = new Map(Object.entries(initial));
+
+  const adopt = (response: Response) => {
+    for (const header of response.headers.getSetCookie()) {
+      const [pair = '', ...attributes] = header.split(';');
+      const eq = pair.indexOf('=');
+      const name = pair.slice(0, eq).trim();
+      if (attributes.some((a) => a.trim().toLowerCase() === 'max-age=0')) jar.delete(name);
+      else jar.set(name, decodeURIComponent(pair.slice(eq + 1).trim()));
+    }
+  };
+
+  return {
+    get: (name: string) => jar.get(name),
+    async send(handle: Handle, ...args: A) {
+      const { event, store, respond } = makeRequest(Object.fromEntries(jar), ...args);
+      const commit = () => {
+        jar.clear();
+        for (const [name, value] of store) jar.set(name, value);
+      };
+      let resolved = false;
+      try {
+        const response = await handle({
+          event: event as unknown as RequestEvent,
+          resolve: async () => {
+            resolved = true;
+            return respond ? await respond() : new Response('OK');
+          }
+        });
+        if (resolved) commit();
+        adopt(response);
+        return { status: response.status, event, response };
+      } catch (err) {
+        if (!isRedirect(err)) throw err;
+        commit();
+        return { status: err.status, event, response: null };
+      }
+    }
   };
 }

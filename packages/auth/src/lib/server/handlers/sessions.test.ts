@@ -29,7 +29,7 @@ function setup() {
 async function authed<R extends string>(deps: AuthDeps<R>, body: unknown, currentToken?: string) {
   const ev = mockPostEvent(body);
   await setSessionCookie(ev.cookies as unknown as Cookies, SESSION as never, deps.config.jwt);
-  if (currentToken) ev.cookies.set('refresh', currentToken);
+  if (currentToken) ev.cookies.set('refresh', currentToken, { path: '/' });
   return ev;
 }
 

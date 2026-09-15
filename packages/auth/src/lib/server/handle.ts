@@ -1,4 +1,4 @@
-import { type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
+import { type Cookies, type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
 import type { AuthConfig, AuthLogger, AuthUser } from '../types.js';
 import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
@@ -180,7 +180,51 @@ export const DEFAULT_PUBLIC_ROUTES: readonly string[] = Object.freeze([
   AUTH_API_PREFIX
 ]);
 
-const jsonUnauthorized = () => authError('not_authenticated');
+/**
+ * `event.cookies` plus a record of every write, as `Set-Cookie` header strings.
+ *
+ * SvelteKit writes the cookies a hook stages on `event.cookies` in exactly two
+ * places — inside `resolve(...).then(...)` and on the thrown-redirect path
+ * (`respond.js`) — so a response the hook builds itself carries nothing it
+ * staged. Every header here comes out of the same `cookies.serialize` the
+ * staged write goes through, so the two cannot name different attributes.
+ */
+function recordCookieWrites(cookies: Cookies): { cookies: Cookies; setCookie: string[] } {
+  const setCookie: string[] = [];
+  return {
+    setCookie,
+    cookies: {
+      get: (name, opts) => cookies.get(name, opts),
+      getAll: (opts) => cookies.getAll(opts),
+      serialize: (name, value, opts) => cookies.serialize(name, value, opts),
+      set: (name, value, opts) => {
+        cookies.set(name, value, opts);
+        setCookie.push(cookies.serialize(name, value, opts));
+      },
+      // A delete is Kit's `set(name, '', { ...opts, maxAge: 0 })`; the header
+      // has to say the same or the browser keeps the cookie.
+      delete: (name, opts) => {
+        cookies.delete(name, opts);
+        setCookie.push(cookies.serialize(name, '', { ...opts, maxAge: 0 }));
+      }
+    }
+  };
+}
+
+/**
+ * The guard's refusal (3a/3b), carrying the cookies the hook staged — the same
+ * cookie semantics the redirect already gives the page path. The hook returns
+ * this instead of calling `resolve`, so without these headers a device holding
+ * a refused cookie would go on sending it (see {@link recordCookieWrites}).
+ *
+ * One `Set-Cookie` header per cookie. A comma-joined list is ambiguous for any
+ * cookie whose `Expires` attribute contains one.
+ */
+const jsonUnauthorized = (setCookie: readonly string[]): Response => {
+  const response = authError('not_authenticated');
+  for (const header of setCookie) response.headers.append('set-cookie', header);
+  return response;
+};
 
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
@@ -221,12 +265,12 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
 
   // Same seam on the rotation branch, minus the abort. By the time it runs the
   // rotation has committed — successor row written, predecessor CAS-revoked —
-  // and both cookies are staged on `event.cookies`, which SvelteKit flushes
-  // only on the success and redirect paths. A throw out of here therefore
-  // drops the successor cookie while the row says the predecessor was
-  // replaced, so the browser keeps replaying the spent token; outside
-  // ROTATION_GRACE_MS that is indistinguishable from reuse and revokes the
-  // whole family. Do not restore the abort here: one unauthenticated request
+  // and both cookies are staged. A throw out of here leaves the hook by none of
+  // the three paths that write them (SvelteKit's resolve and redirect, plus the
+  // guard's own refusal), so it drops the successor cookie while the row says
+  // the predecessor was replaced; the browser then keeps replaying the spent
+  // token, and outside ROTATION_GRACE_MS that is indistinguishable from reuse
+  // and revokes the whole family. Do not restore the abort here: one unauthenticated request
   // is recoverable, a burnt family plus a false theft alarm is not. The read
   // path above keeps the documented abort — nothing is committed there.
   const resolveRotatedLocalsUser = async (
@@ -260,6 +304,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   };
 
   return async ({ event, resolve }) => {
+    // Steps 1–2a write through this view so the guard's own 401 can carry what
+    // they staged; `resolve` and the redirect keep the real `event.cookies`.
+    const { cookies, setCookie } = recordCookieWrites(event.cookies);
+
     // A remote-function call reaches this hook via one of two transports, both
     // of which let a caller present a public pathname that a path match — the
     // guard (3b) or `csrf.exempt` (0) — would wave through, so neither may be
@@ -298,7 +346,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     if (
       !validateCsrf(event.request, event.url, {
         doubleSubmit: csrfDoubleSubmit,
-        cookies: event.cookies,
+        cookies,
         cookieName: csrfConfig?.cookieName,
         headerName: csrfConfig?.headerName,
         hostPrefix: csrfHostPrefix,
@@ -311,7 +359,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     // 1a. Ensure the Double-Submit-Cookie exists for safe requests so the
     // next mutating request has a token to echo back.
     if (csrfDoubleSubmit) {
-      ensureCsrfCookie(event.cookies, {
+      ensureCsrfCookie(cookies, {
         cookieName: csrfConfig?.cookieName,
         secure: csrfConfig?.cookieSecure,
         sameSite: csrfConfig?.cookieSameSite,
@@ -320,7 +368,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
 
     // 2. Session from cookie → load user → set event.locals.user
-    const session = await getSessionFromCookie<R>(event.cookies, config.jwt, logger);
+    const session = await getSessionFromCookie<R>(cookies, config.jwt, logger);
 
     if (session) {
       const user = await repos.user.findById(session.userId);
@@ -328,7 +376,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
         (event.locals as Record<string, unknown>).user = await resolveLocalsUser(event, user);
       } else {
         // Invalid session — clear cookie
-        clearSessionCookie(event.cookies, config.jwt);
+        clearSessionCookie(cookies, config.jwt);
         (event.locals as Record<string, unknown>).user = null;
       }
     } else if (config.refreshToken && repos.refreshToken) {
@@ -337,7 +385,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       // authenticated. Cookie effects per outcome (incl. the race_ok
       // don't-touch-the-refresh-cookie rule) live in applyRotationOutcome,
       // shared with the explicit refresh endpoint.
-      const raw = readRefreshCookie(event.cookies, config.refreshToken);
+      const raw = readRefreshCookie(cookies, config.refreshToken);
       if (raw) {
         const outcome = await rotateRefreshToken(
           repos.refreshToken,
@@ -345,7 +393,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
           (id) => repos.user.findById(id),
           config.refreshToken
         );
-        const rotatedUser = await applyRotationOutcome(event.cookies, outcome, config);
+        const rotatedUser = await applyRotationOutcome(cookies, outcome, config);
         (event.locals as Record<string, unknown>).user = rotatedUser
           ? await resolveRotatedLocalsUser(event, rotatedUser)
           : null;
@@ -365,7 +413,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       // and must then guard those functions themselves. Authenticated remote
       // requests fall through unchanged.
       if (!user && !allowUnauthenticatedRemote) {
-        return jsonUnauthorized();
+        return jsonUnauthorized(setCookie);
       }
     } else {
       // 3b. Path-based guard for normal requests: redirect unauthenticated
@@ -375,7 +423,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
 
       if (!user && !isPublic) {
         if (isApiRoute) {
-          return jsonUnauthorized();
+          return jsonUnauthorized(setCookie);
         }
         // Preserve the deep link: append the requested path so the login flow
         // can send the user back after signing in. GET/HEAD only — re-issuing

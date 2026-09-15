@@ -409,7 +409,8 @@ async function signedIn(
 ): Promise<RequestEvent> {
   const ev = mockPostEvent(opts?.body ?? {});
   await setSessionCookie(ev.cookies as unknown as Cookies, SESSION, d.config.jwt);
-  for (const [name, value] of Object.entries(opts?.cookies ?? {})) ev.cookies.set(name, value);
+  for (const [name, value] of Object.entries(opts?.cookies ?? {}))
+    ev.cookies.set(name, value, { path: '/' });
   return {
     ...ev,
     params: opts?.params ?? {},
