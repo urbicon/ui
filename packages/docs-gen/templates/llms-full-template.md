@@ -138,18 +138,19 @@ Merged with variant classes. Always available on every component.
 
 ## Component Families
 
-Every primitive belongs to exactly one of six families. The family decides ARIA role, tier-system membership, and border-token source. Pick the right family up-front to avoid categorical bugs (button that looks like an input, menu that doubles as a listbox, avatar that mutates when commit-radii flatten).
+Every component belongs to exactly one of the families in the table below. The family decides ARIA role, tier-system membership, and border-token source. Pick the right family up-front to avoid categorical bugs (button that looks like an input, menu that doubles as a listbox, avatar that mutates when commit-radii flatten).
 
 ### Family table
 
-| Family | Members | ARIA role | Tier default | Border source |
-|---|---|---|---|---|
-| Action | Button, ButtonGroup, Menu, Toolbar, Toggle | `button`, `menu`, `menuitem`, `toolbar`, `switch` | `commit` (tier-aware) | Intent (`border-neutral` etc.) |
-| Form | Input, Select, Combobox, Textarea, Checkbox, RadioGroup, Slider, FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio`, `slider` | `modify` (tier-aware) | Surface (`border-border-subtle`) |
-| Navigation | Breadcrumb, Pagination, SegmentGroup, Stepper, Tab | `navigation`, `tablist`, `tab` | per-component (tier-aware) | mixed |
-| Container | Card, Alert, Accordion, Collapsible, Dialog, Drawer, Popover, Tooltip, Sidebar, Separator, ConfirmDialog | `dialog`, `tooltip`, `region`, `aside` | `contain` (tier-aware) | Surface or Hairline |
-| Feedback / Ambient | Toast, Spinner, Progress, Skeleton, Badge | `status`, `alert`, `progressbar` | **not tier-aware** (Badge is the documented edge case) | Intent (status-tinted) or none |
-| Identity | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle` / `rounded` / `square`) | none |
+| Family             | Members                                                                                                                                  | ARIA role                                                       | Tier default                                                                                | Border source                        |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Action             | Button, ButtonGroup, Menu, Toolbar, Toggle                                                                                               | `button`, `menu`, `menuitem`, `toolbar`, `switch`               | `commit` (tier-aware)                                                                       | Intent (`border-neutral` etc.)       |
+| Form               | Input, Select, Combobox, Textarea, Checkbox, RadioGroup, Slider, FormField                                                               | `textbox`, `listbox`, `combobox`, `checkbox`, `radio`, `slider` | `modify` (tier-aware)                                                                       | Surface (`border-border-subtle`)     |
+| Navigation         | Breadcrumb, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline                                                                      | `navigation`, `tablist`, `tab`                                  | per-component (tier-aware)                                                                  | mixed                                |
+| Container          | Card, Alert, Accordion, Collapsible, Dialog, Drawer, Popover, Tooltip, Sidebar, Separator, ConfirmDialog                                 | `dialog`, `tooltip`, `region`, `aside`                          | `contain` (tier-aware)                                                                      | Surface or Hairline                  |
+| Feedback / Ambient | Toast, Spinner, Progress, Skeleton, Badge                                                                                                | `status`, `alert`, `progressbar`                                | **not tier-aware** (Badge is the documented edge case)                                      | Intent (status-tinted) or none       |
+| Identity           | Avatar                                                                                                                                   | `img` or `button`                                               | **not tier-aware** — own shape axis (`circle` / `rounded` / `square`)                       | none                                 |
+| Conversation       | Chat, ChatMessageList, ChatMessage, PromptInput, StreamingMarkdown, CodeBlock, ToolCallCard, ReasoningDisclosure, CitationChip, A2UIView | `log`, `textbox`, `region`                                      | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | Surface, on the outermost frame only |
 
 ### Action — interactive triggers
 
@@ -189,6 +190,14 @@ Every primitive belongs to exactly one of six families. The family decides ARIA 
 - Avatar lives outside the tier system. Its `variant` axis (`circle` / `rounded` / `square`) is identity-shape, not layout-tier. A brand that flattens `--radius-commit` (squared pill buttons) keeps circular avatars.
 - Avatar uses no border in its default render; `ring` is the only border-adjacent affordance.
 
+### Conversation — streamed, partially settled content
+
+- ARIA: `role="log"` with `aria-live="off"` on the conversation (token-by-token output would flood a screen reader; a separate polite region announces start and completion once each), a `<textarea>` composer, and a message that is a plain `<div>` carrying `data-role` / `data-status`.
+- Tier: three tiers meet in one tree — the bubble is `bridge` (it is content), the framed blocks (`CodeBlock`, `ToolCallCard variant="card"`) are `contain`, the composer is `modify`.
+- Border: Surface, and **only the outermost frame draws one** — a block that frames itself inside an already-framed parent stacks outlines at the same radius. `CodeBlock variant="plain"` exists for exactly that case; the parent owns the framing decision, the child owns the content.
+- Untrusted content: assistant output never reaches the DOM as markup (no `{@html}`), and every URL is policy-checked before render.
+- Industry analogue: Vercel AI SDK UI, `assistant-ui`, Copilot Kit — content that is streamed, partially settled, and not authored by the application.
+
 ### Cross-family disambiguation
 
 - `Menu` vs `Select` — Menu for one-off actions (Action), Select for value pickers (Form). Different ARIA, different border family.
@@ -204,7 +213,7 @@ The tier context is a context, not a component: a wrapping container calls `setT
 | Component      | Default tier | Family     |
 | -------------- | ------------ | ---------- |
 | Button         | `commit`     | Action     |
-| ButtonGroup    | `commit`     | Action     |
+| ButtonGroup    | `commit`¹    | Action     |
 | Menu           | `commit`     | Action     |
 | Toggle         | `commit`     | Action     |
 | Badge          | `commit`     | Feedback   |
@@ -220,6 +229,10 @@ The tier context is a context, not a component: a wrapping container calls `setT
 | Textarea       | `modify`     | Form       |
 | PinInput       | `modify`     | Form       |
 | TimeInput      | `modify`     | Form       |
+
+¹ `ButtonGroup`'s unset default is `modify` on a **connected vertical** group — a pill cap
+domes a stack of text buttons into a lozenge. An explicit `tier`, or a wrapping Toolbar's or
+ButtonGroup's context, still wins.
 
 Two components **set** the context: `Toolbar`, which only sets — its own surface is `rounded-contain` and its `tier` prop dresses the controls inside the strip rather than the strip — and `ButtonGroup`, which both sets and reads.
 

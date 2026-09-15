@@ -35,7 +35,7 @@ Runtime dependencies: `@modelcontextprotocol/sdk`, `zod`.
 
 ## Quick Start
 
-### Stdio (IDE integration)
+### Stdio (in-repo)
 
 From the repo root:
 
@@ -56,9 +56,12 @@ bun run mcp:start:http
 # listens on http://localhost:3001 with streamable transport
 ```
 
-### Connect from Claude Code
+### Point a local MCP client at the in-repo server (development)
 
-Add to `~/.claude/mcp.json` (or project `.claude/mcp.json`):
+For working **on** this server: the entry below runs it from a checkout of this
+repo, not from an installed package, and it is not a consumer path — consumers
+use the `urbicon` CLI. Add to `~/.claude/mcp.json` (or project
+`.claude/mcp.json`):
 
 ```json
 {
@@ -97,7 +100,7 @@ All tools are read-only (`readOnlyHint: true`) — this server never touches the
 | `urbicon://catalog`                  | Full component catalog in Markdown — used as the LLM's default context                  |
 | `urbicon://guide/api-grammar`        | Canonical prop conventions (`intent`, `variant`, `size`, callbacks)                     |
 | `urbicon://guide/design-quality`     | AVOID/INSTEAD design-quality patterns — spacing, hierarchy, colour and shape discipline |
-| `urbicon://guide/component-families` | Six-family component taxonomy - ARIA roles and per-family border-token source           |
+| `urbicon://guide/component-families` | The families COMPONENT-FAMILIES.md lists - ARIA roles, per-family border-token source   |
 | `urbicon://guide/customization`      | `unstyled` / `slotClasses` / `preset` override system + `BlocksProvider` overrides      |
 | `urbicon://guide/auth`               | Complete auth reference - served verbatim from the bundled, tarball-canonical `AUTH.md` |
 | `urbicon://guide/style-patterns`     | Reusable style presets and composition templates                                        |

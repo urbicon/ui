@@ -46,8 +46,9 @@ engine and content the CLI uses.
 
 **Deliberately not advertised or hosted pre-launch** (Option B, 2026-07-10): the package
 track is the story, and hosting the public endpoint is a launch decision. The package stays
-in the repo and green. No local-install path is documented anywhere — the old `bunx`-stdio
-setup on `/ai` was removed. Manifest read and write live in the CLI, never on the stateless
+in the repo and green. No local-install **consumer** path is documented anywhere
+— the old `bunx`-stdio setup on `/ai` was removed; the stdio entry in the package README runs
+the server from a repo checkout, for working on it. Manifest read and write live in the CLI, never on the stateless
 server.
 
 ## Design System Intelligence

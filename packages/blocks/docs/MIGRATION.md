@@ -8,7 +8,7 @@ announced, see
 [VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window).
 
 Only this package. The table's v8 view-state rewrite has its own guide,
-[MIGRATION-V8.md](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md),
+[MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.22.0
@@ -116,7 +116,7 @@ step. Nothing existing changes. But if you carried a preset that reset a field d
 — `bare` keeps the focus indicator such a preset tends to lose: an outline in
 `--blocks-focus-ring-color`, which a product sets once instead of writing ring classes per preset.
 See
-[VARIANT-CONTRACT.md § 9](https://github.com/urbicon/ui/blob/main/packages/blocks/docs/VARIANT-CONTRACT.md)
+[VARIANT-CONTRACT.md § 9](https://github.com/urbicon/ui/blob/main/packages/blocks/docs/VARIANT-CONTRACT.md#9--form-fields)
 for the whole field vocabulary.
 
 ## 8.20.0

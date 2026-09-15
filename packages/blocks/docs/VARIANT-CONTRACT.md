@@ -147,6 +147,9 @@ The prop is unchanged — `intent="warning"` still works; only the default visua
 
 ## 7 · Border tokens: hairline vs. subtle
 
+> **Canon.** The two border families, and which components sit on each, are described once,
+> here. The monorepo's architecture and convention docs link here instead of restating them.
+
 Two families of border, picked by whether the border reads as **architecture** or as an
 **input affordance**:
 
@@ -201,6 +204,9 @@ no such fields — what used to be a DEV warning is a shape that cannot be writt
 ---
 
 ## 9 · Form fields
+
+> **Canon.** The field `variant` vocabulary — what each value is at rest and on focus, and
+> when to reach for it — is described once, here.
 
 The field family — Input, Textarea, Select, Combobox — shares one `variant` vocabulary. PinInput
 and TimeInput carry the first three; the last two need a single continuous line to sit on, which a
@@ -272,6 +278,10 @@ A bare field needs context that marks it as a field — a placeholder, a rule un
 or a marker before it. Without one, nothing tells a reader that the text can be typed over.
 
 ### The required marker
+
+> **Canon.** How the marker is built and why is described once, here; the API rule that
+> follows from it (no `requiredIndicator` prop) lives with the other prop rules and points
+> back at this section.
 
 Nine components draw the same marker — Input, Textarea, Select, Combobox, Checkbox, RadioGroup,
 PinInput, TimeInput and FormField: an `aria-hidden` `<span>` on a `requiredMark` slot whose
