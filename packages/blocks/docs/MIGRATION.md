@@ -74,6 +74,57 @@ Two consequences, both print-only; nothing changes on screen:
 
 If your app relied on the old rule to keep some other `role="status"` element off the page, that
 element now prints; give it your own `@media print` rule.
+### An icon without `size` is `1em` instead of nothing
+
+`<LogOutIcon />` used to emit an `<svg>` with no `width` and no `height`. An svg with a `viewBox`
+and no dimensions has no intrinsic size, so what it drew was whatever its layout context happened
+to give it: nothing at all as a flex or grid item, the container's whole width as a block child. An
+icon dropped into a `<Button>` was invisible until someone passed a `size`. It now defaults to
+`1em` — the font size of its context, so the same icon takes the Button's type step.
+
+**Icons the library renders itself are unaffected** — the chevrons, checkmarks and clear buttons
+inside Select, Combobox, Menu, Accordion, Toast and the table cells. Each of those sits in a slot
+that sizes it, either with a class on the icon (`w-4 h-4`) or with a `[&_svg]:w-4 [&_svg]:h-4` on
+its wrapper, and author CSS outranks a presentation attribute.
+
+**An icon you pass in is where the change lands.**
+Button children, an `icon` or `cta` snippet, Card content: those slots place their content but do
+not size it — Button's is `[&>svg]:shrink-0` and nothing more. An icon handed to one of them had no
+size from anywhere, so it drew at nothing in some layouts and at the container's width in others.
+It is now `1em`:
+
+```svelte
+<!-- was invisible in some layouts, container-sized in others; now the button's type step -->
+<Button intent="primary"><PlusIcon /> Add apartment</Button>
+```
+
+Wherever it was invisible that is a fix. Where you had compensated for it, drop the compensation;
+where you want a different size, pass one.
+
+**`unstyled` changes too.** `unstyled` drops the slot classes above, so under it the library's own
+icons had no size either and now draw at `1em`. On screen that is an icon appearing where there was
+none, or shrinking from a container-sized one:
+
+```svelte
+<!-- the chevron was unsized here; it is 1em now -->
+<Select unstyled {options} />
+```
+
+Take the size back with the slot you were already styling, or with a rule on the wrapper:
+
+```svelte
+<Select unstyled {options} slotClasses={{ chevron: 'size-4' }} />
+```
+
+What to grep for: every `…Icon` tag in your own components that passes no `size` prop **and** carries
+no size class — attributes or not, so a bare `<PlusIcon />` and a `<LogOutIcon class="text-danger" />`
+both count. The ones inside a `<Button>`, an `icon`/`cta` snippet or a `<Card>` are the ones that
+move; so is any `unstyled` blocks component whose `slotClasses` you left partial.
+
+A passed `size` still wins over the default, and a CSS size still wins over both — but **per axis**.
+The default is two attributes, one for each, so a class that sets only one (`w-6`, `h-5`) leaves the
+other at `1em` and the icon stops being square. Grep for a `w-*` or an `h-*` on an icon without its
+partner and give it `size-*`, or both axes.
 ### A `neutral` ConfirmDialog gets a `filled neutral` confirm button
 
 `ConfirmDialog` used to promote a `neutral` `intent` to `primary` on its confirm button, and

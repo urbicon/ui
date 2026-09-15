@@ -362,6 +362,13 @@ export type IconName =
 
 export interface IconProps {
   class?: string;
+  /**
+   * Edge length in px. Defaults to `1em` — the font size of the surrounding
+   * text, so an icon in a `size="sm"` Button takes that Button's type step
+   * without being told. A passed `size` wins over the default; CSS sizing on
+   * the element (`h-4 w-4`, `size-4`) wins over both, per axis — these are
+   * attributes, and a one-axis class leaves the other at `1em`.
+   */
   size?: number;
   strokeWidth?: number;
   rotate?: 0 | 90 | 180 | 270;
