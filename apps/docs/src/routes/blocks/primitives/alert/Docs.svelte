@@ -175,14 +175,29 @@
         <code class="text-text-primary">role="alert"</code>, an assertive live region that cuts into
         whatever a screen reader is saying; every other intent renders
         <code class="text-text-primary">role="status"</code>, which waits for a pause, so a
-        confirmation does not interrupt a sentence. Either way the announcement lands when the alert
-        is added to the page — add it in response to the event, not mounted and empty. An explicit
+        confirmation does not interrupt a sentence. An explicit
         <code class="text-text-primary">role</code> wins over the derived one:
         <code class="text-text-primary">role="alert"</code> where a success message genuinely has to
         interrupt, <code class="text-text-primary">role="note"</code> for a static callout that
         announces nothing, <code class="text-text-primary">role=&#123;undefined&#125;</code> where the
         alert already sits inside a live region of your own. Dismissible alerts get a close button with
         a localized label.
+      </p>
+    </Note>
+    <Note title="When the announcement happens">
+      <p>
+        The two roles announce on different terms. An
+        <code class="text-text-primary">alert</code> is announced when it enters the page, so mount
+        it in response to the event. A <code class="text-text-primary">status</code> is a polite
+        region, and a polite region has to exist before its content changes — an Alert that
+        <em>is</em> the thing you mount when the request returns may never be announced at all.
+      </p>
+      <p>
+        Two ways out: keep a persistent <code class="text-text-primary">role="status"</code> wrapper
+        and fill it (auth's <code class="text-text-primary">FormErrorAlert</code> is built that way,
+        with the inner alert taking
+        <code class="text-text-primary">role=&#123;undefined&#125;</code>), or pass
+        <code class="text-text-primary">role="alert"</code> where the interruption is what you want.
       </p>
     </Note>
     <Note title="Keyboard">

@@ -114,14 +114,8 @@ describe('Alert — the announced role follows the intent', () => {
   });
 
   it('renders no role attribute at all when role={undefined} is passed explicitly', () => {
-    // Measured, at a template call site and through `mount` alike: Svelte 5
-    // puts an explicitly passed `undefined` into the rest object as an OWN key
-    // (`Object.hasOwn(restProps, 'role')` → true; omitting the prop → false).
-    // That is the mechanism the derived role rides on — the spread stands after
-    // it, so its `role: undefined` clears the attribute — and it is how auth's
-    // FormErrorAlert keeps its message out of a live region inside a live
-    // region. Deriving with `role ?? …` instead would fold this case into the
-    // omitted one and hand the message a second, contradicting urgency.
+    // Pins the pass-through auth's FormErrorAlert rides on: passing `role`
+    // explicitly as `undefined` is not the same as omitting it.
     renderAlert({ intent: 'success', role: undefined });
 
     expect(root().hasAttribute('role')).toBe(false);

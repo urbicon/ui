@@ -607,6 +607,13 @@ component is an issue against the component, not a quiet tag flip.
   is being read. A message that must interrupt at a polite intent passes `role="alert"`; a static
   callout that announces nothing passes `role="note"` or `role={undefined}`.
 
+  **The `role={undefined}` escape is Alert's alone.** Alert leaves `role` in its rest props, so an
+  explicitly passed `undefined` reaches the element and removes the attribute. `Badge` declares a
+  `role` prop and falls back to the derived role when it is undefined, so passing `role={undefined}`
+  there is the same as omitting it — a role-less Badge is `purpose="tag"`, `"counter"` or `"chip"`.
+  Neither is being changed to match the other: Alert needs the escape (auth's `FormErrorAlert`
+  carries its own live regions), Badge has a purpose that already answers.
+
   One live region per outcome: never nest a `role="alert"` inside an `aria-live` region; the
   region exists before its content changes. Reference: auth's `_shared/FormErrorAlert.svelte`
   (an assertive and a polite region, both persistent, the inner `Alert` role removed through the

@@ -106,4 +106,14 @@
       background-position: -200% 0;
     }
   }
+
+  /* A skeleton stands in for content that has not arrived; on paper it is a row
+     of grey bars. No `:global()`: it would compile to a bare `[role='status']`
+     and take every polite live region in the document — a status Alert, a
+     status Badge. Both roots above carry the role, so both are covered. */
+  @media print {
+    [role='status'] {
+      display: none !important;
+    }
+  }
 </style>

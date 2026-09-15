@@ -36,15 +36,10 @@
 
   // `role="alert"` is implicitly `aria-live="assertive"` and cuts into whatever
   // a screen reader is saying; `role="status"` is polite and waits for a pause.
-  // Only the two intents that report a problem earn the interruption.
-  //
-  // This stays ahead of `{...restProps}` in the markup, and `role` stays out of
-  // the destructuring above: an explicitly passed `role` arrives as an own key
-  // of the rest object — a string or `undefined` alike — so the spread
-  // overwrites the derived one, and `undefined` takes the attribute off
-  // entirely. Destructuring `role` and writing `role ?? announcedRole` would
-  // fold "not passed" and "passed as undefined" into one case and give auth's
-  // FormErrorAlert a live region inside a live region.
+  // This stays ahead of `{...restProps}` and `role` stays out of the
+  // destructuring above: an explicitly passed `role` arrives as an own key of
+  // the rest object — a string or `undefined` alike — so the spread overwrites
+  // the derived one, and `undefined` takes the attribute off entirely.
   const announcedRole = $derived(intent === 'danger' || intent === 'warning' ? 'alert' : 'status');
 
   const slotClasses = $derived(
