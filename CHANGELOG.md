@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.22.1] - 2026-09-15
+
+### CI/CD
+- Docs:refs:check asks four real systems whether every doc reference still exists (#481)
+
+### Documentation
+- One canon per topic, numbers with a reproducing command, pruning at wave close (#482)
+- **docs-app**: Two comments stop counting the families
+
 ## [8.22.0] - 2026-09-14
 
 ### Breaking Changes
