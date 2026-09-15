@@ -263,6 +263,13 @@ import { en } from '@urbicon-ui/auth/i18n/en';
 registerAuthLocale('en', mergeAuthLocale(en, { auth: { login: { title: 'Welcome back' } } }));
 ```
 
+The same guard reaches a hand-built bundle at upgrade time: one that was complete
+against an older `AuthLocale` throws as soon as a release adds a key — at module
+evaluation, which for the `hooks.server.ts` import above is server boot. This is
+the opposite of what the `t` prop does with a stale bundle (it fills the gaps from
+the base), and deliberately so: a registered bundle is the base. Build yours with
+`mergeAuthLocale(en, yours)` and it stays complete across upgrades.
+
 A locale with no registered bundle resolves to English. The components do that
 silently; `config.email.locale` naming one warns **once per locale** through
 `config.logger`, because a locale configured for the mails is a stated intent

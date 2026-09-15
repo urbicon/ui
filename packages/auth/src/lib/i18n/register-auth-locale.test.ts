@@ -106,7 +106,19 @@ describe('registerAuthLocale', () => {
     expect(() => registerAuthLocale('de', {} as AuthLocale)).toThrow(
       /is missing \d+ key\(s\) the built-in English bundle has/
     );
-    expect(() => registerAuthLocale('de', {} as AuthLocale)).toThrow(/auth\.login\.title/);
+    // An empty bundle misses every key; the message caps the list so the
+    // recipe at its end stays readable.
+    expect(() => registerAuthLocale('de', {} as AuthLocale)).toThrow(/, … and \d+ more\. Build/);
+
+    // One missing key is named in full, with no cap suffix.
+    const { en } = await freshI18n();
+    const nearlyComplete = structuredClone(en) as unknown as {
+      auth: { login: Record<string, string> };
+    };
+    delete nearlyComplete.auth.login.title;
+    expect(() => registerAuthLocale('de', nearlyComplete as unknown as AuthLocale)).toThrow(
+      /is missing 1 key\(s\) the built-in English bundle has: auth\.login\.title\. Build/
+    );
   });
 
   it('refuses a partial `en` override, and takes the merged whole', async () => {

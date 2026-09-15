@@ -90,9 +90,13 @@ export function registerAuthLocale(locale: Locale, bundle: AuthLocale): void {
   const present = new Set(collectDeepKeys(asRecord(bundle)));
   const missing = collectDeepKeys(asRecord(en)).filter((key) => !present.has(key));
   if (missing.length > 0) {
+    // An empty bundle is missing every key; the recipe at the end must stay
+    // readable, so the list is capped.
+    const shown = missing.slice(0, 5).join(', ');
+    const more = missing.length > 5 ? `, … and ${missing.length - 5} more` : '';
     throw new Error(
       `[auth] registerAuthLocale("${locale}"): the bundle is missing ${missing.length} key(s) the ` +
-        `built-in English bundle has: ${missing.join(', ')}. Build it from a complete one — ` +
+        `built-in English bundle has: ${shown}${more}. Build it from a complete one — ` +
         `mergeAuthLocale(en, overrides) — or pass the overrides as a component's \`t\` prop instead.`
     );
   }
