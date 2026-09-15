@@ -2,7 +2,7 @@
   import { Button, Card, getBlocksConfig, resolveClassChain } from '@urbicon-ui/blocks';
   import { tick } from 'svelte';
   import { subscribeToPush } from '../../utils/service-worker.js';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { csrfFetch } from '../../csrf.js';
   import { parseJsonBody, wireError } from '../../utils/http.js';
   import { resolveAuthSlotClasses } from '../../utils/slot-class.js';

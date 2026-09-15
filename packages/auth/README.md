@@ -72,15 +72,17 @@ stylesheet existed adds the one line and is done.
 | `@urbicon-ui/auth/server/email/lettermint`          | Server         | Lettermint email transport                                                                                                                   |
 | `@urbicon-ui/auth/server/email/console`             | Server         | Console email transport (dev only)                                                                                                           |
 | `@urbicon-ui/auth/sw`                               | Service worker | Push + notification-click handlers                                                                                                           |
-| `@urbicon-ui/auth/i18n/en`                          | Universal      | English locale bundle                                                                                                                        |
-| `@urbicon-ui/auth/i18n/de`                          | Universal      | German locale bundle                                                                                                                         |
+| `@urbicon-ui/auth/i18n/en`                          | Universal      | English locale bundle — the built-in one; import it for a parity test or as the base of your own                                             |
+| `@urbicon-ui/auth/i18n/de`                          | Universal      | German locale bundle — reaches the components once `registerAuthLocale('de', de)` has run                                                    |
 
 ## UI Components
 
 All use `@urbicon-ui/blocks` primitives and honour `unstyled` + `slotClasses` + snippet overrides.
 
-`t` takes a `PartialAuthLocale`, merged over the built-in bundle by `mergeAuthLocale` — see
-[AUTH.md → UI Components](./docs/AUTH.md#ui-components).
+`t` takes a `PartialAuthLocale`, merged by `mergeAuthLocale` over the bundle registered for the
+active locale — English unless `registerAuthLocale('de', de)` has run for it. See
+[AUTH.md → UI Components](./docs/AUTH.md#ui-components) and
+[AUTH.md → Locales](./docs/AUTH.md#locales).
 
 | Component              | Purpose                                      |
 | ---------------------- | -------------------------------------------- |

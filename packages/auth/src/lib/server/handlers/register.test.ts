@@ -1,6 +1,8 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
+import { de } from '../../i18n/de.js';
+import { registerAuthLocale } from '../../i18n/index.svelte.js';
 import type { AuthConfig } from '../../types.js';
 import type { EmailTransport } from '../email/types.js';
 import {
@@ -273,6 +275,12 @@ describe('createRegisterHandler', () => {
   const emailed = new Date('2026-08-01T10:00:00Z');
 
   it('sends a localized verification mail with an html + text part by default', async () => {
+    // The German mail exists for this handler only once `de` is registered:
+    // `email.locale` selects a bundle out of the registry, and only `en` is
+    // built in. The registration is module state that outlives this test — an
+    // "unregistered → English" test in this file needs a fresh module graph
+    // (`vi.resetModules()` + dynamic import).
+    registerAuthLocale('de', de);
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = successDeps(send, { email: { locale: 'de', appName: 'Cookery' } });
     await createRegisterHandler(deps).POST(event(validBody));

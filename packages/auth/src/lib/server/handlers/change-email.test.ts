@@ -1,5 +1,7 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
+import { de } from '../../i18n/de.js';
+import { registerAuthLocale } from '../../i18n/index.svelte.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';
@@ -123,6 +125,12 @@ describe('createChangeEmailHandler', () => {
   });
 
   it('both default mails ship a text part and localize via config.email.locale (Issue #15)', async () => {
+    // The German subjects below are reachable only once `de` is registered:
+    // `email.locale` selects a bundle out of the registry, and only `en` is
+    // built in. The registration is module state that outlives this test — an
+    // "unregistered → English" test in this file needs a fresh module graph
+    // (`vi.resetModules()` + dynamic import).
+    registerAuthLocale('de', de);
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({
       config: { email: { locale: 'de', appName: 'Cookery' } },
@@ -143,6 +151,12 @@ describe('createChangeEmailHandler', () => {
     }
     const notice = send.mock.calls.find((c) => c[0].to === 'old@test.com')![0];
     expect(notice.html).toContain('new@test.com'); // names the pending address
+
+    // The subjects themselves, not just their `{appName}` substitution — an
+    // English pair would otherwise satisfy every assertion above.
+    const confirm = send.mock.calls.find((c) => c[0].to === 'new@test.com')![0];
+    expect(confirm.subject).toContain('Bestätige deine neue E-Mail-Adresse');
+    expect(notice.subject).toContain('Änderung der E-Mail-Adresse angefordert');
   });
 
   it('honours the verifyEmailChangeEmail + changeEmailEmail builder hooks (Issue #15)', async () => {

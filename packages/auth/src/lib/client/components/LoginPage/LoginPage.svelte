@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Checkbox, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';

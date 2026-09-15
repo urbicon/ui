@@ -397,8 +397,14 @@ export interface EmailConfig {
    * Locale for the **default** transactional mails (verification, password-reset,
    * email-change, invitation). The handlers resolve the matching `AuthLocale`
    * bundle server-side (SSR-safe) and pass it to the default builders, so the
-   * mails localize out of the box. Unknown/omitted → English. A per-mail builder
-   * hook overrides this entirely. Bundles ship for `en`/`de`.
+   * mails localize out of the box. A per-mail builder hook overrides this
+   * entirely.
+   *
+   * Only `en` is built in. Every other locale needs its bundle registered at
+   * server start — `registerAuthLocale('de', de)` from `@urbicon-ui/auth` plus
+   * `@urbicon-ui/auth/i18n/de`. Omitted, or naming a locale with no registered
+   * bundle, the mails go out in English; the latter warns once per locale
+   * through `config.logger`.
    */
   locale?: import('@urbicon-ui/i18n').Locale;
 }

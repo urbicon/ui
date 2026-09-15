@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Badge, getBlocksConfig, resolveClassChain } from '@urbicon-ui/blocks';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { resolveAuthSlotClasses } from '../../utils/slot-class.js';
   import type { NotificationBadgeProps } from './index.js';
 

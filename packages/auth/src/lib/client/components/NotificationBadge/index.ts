@@ -31,8 +31,9 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 export interface NotificationBadgeProps
   extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'class' | 'onclick' | 'role'> {
   /**
-   * Locale overrides, deep-merged over the active built-in bundle (resolved
-   * from the i18n context). Pass any subset, from a single string to a whole tree.
+   * Locale overrides, deep-merged over the bundle registered for the active
+   * locale — English unless `registerAuthLocale` ran for it. Pass any subset,
+   * from a single string to a whole tree.
    */
   t?: PartialAuthLocale;
   /** Number of unread notifications. Badge hidden when 0. */

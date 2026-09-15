@@ -1,6 +1,7 @@
-import { resolveAuthLocale } from '../../i18n/index.js';
+import type { Locale } from '@urbicon-ui/i18n';
+import { hasAuthLocale, resolveAuthLocale } from '../../i18n/index.svelte.js';
 import type { AuthLocale } from '../../i18n/keys.js';
-import type { AuthConfig } from '../../types.js';
+import type { AuthConfig, AuthLogger } from '../../types.js';
 import { applyFromName } from './templates.js';
 
 /**
@@ -18,12 +19,39 @@ export interface ResolvedEmailSettings {
   from?: string;
 }
 
+/**
+ * Locales already reported as unregistered. The check has to sit here, at
+ * resolve time, rather than at `createAuthDeps`/`createAuthHandle` construction
+ * like the other config warnings: registration order at server boot belongs to
+ * the consumer, and a `locales.ts` imported after the auth setup module would
+ * make a construction-time check report a slip that is not one. Kept per
+ * process and per locale because this runs for every mail the package sends;
+ * the `Locale` union bounds the set.
+ */
+const reportedUnregisteredLocales = new Set<Locale>();
+
+/**
+ * @param logger `deps.logger` — the sink `createAuthDeps` already resolved and
+ * shielded. Taken as a parameter rather than read back off `config.logger`, so
+ * this does not become a second place that re-defaults to `console`.
+ */
 export function resolveEmailSettings<R extends string>(
-  config: AuthConfig<R>
+  config: AuthConfig<R>,
+  logger: AuthLogger
 ): ResolvedEmailSettings {
   const email = config.email;
+  const locale = email?.locale;
+  if (locale && !hasAuthLocale(locale) && !reportedUnregisteredLocales.has(locale)) {
+    reportedUnregisteredLocales.add(locale);
+    // A wiring slip must not block a password-reset mail, so this warns and
+    // sends English rather than throwing.
+    logger.warn(
+      `[auth] email.locale is "${locale}", but no AuthLocale bundle is registered for it — the default mails go out in English. ` +
+        `Call registerAuthLocale('${locale}', bundle) at server start; the package ships bundles at '@urbicon-ui/auth/i18n/en' and '@urbicon-ui/auth/i18n/de'.`
+    );
+  }
   return {
-    t: resolveAuthLocale(email?.locale),
+    t: resolveAuthLocale(locale),
     appName: email?.appName ?? hostOf(config.appUrl),
     from: applyFromName(email?.from, email?.fromName)
   };

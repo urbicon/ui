@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, getBlocksConfig, resolveClassChain, Separator } from '@urbicon-ui/blocks';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { NotificationCenterProps } from './index.js';
 

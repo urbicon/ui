@@ -71,7 +71,7 @@ export const POST = createForgotPasswordHandler(authDeps);
   const uiCode =
     '<!-- src/routes/auth/login/+page.svelte -->\n<' +
     "script>\n  import { LoginPage } from '@urbicon-ui/auth';\n  import { goto } from '$app/navigation';\n</" +
-    'script>\n\n<!-- Locale auto-detected from i18n context -->\n<LoginPage\n  onSuccess={() => goto(\'/\')}\n  passkeyApiPath="/api/auth/passkey"\n  rememberMe\n/>';
+    'script>\n\n<!-- Locale comes from the i18n context -->\n<LoginPage\n  onSuccess={() => goto(\'/\')}\n  passkeyApiPath="/api/auth/passkey"\n  rememberMe\n/>';
 
   const cssCode = `/* app.css */
 @import 'tailwindcss';
@@ -135,8 +135,9 @@ export const POST = createForgotPasswordHandler(authDeps);
     </p>
     <p class="text-text-secondary">
       All UI components use <code>@urbicon-ui/blocks</code> primitives, support
-      <code>unstyled</code> / <code>slotClasses</code> / snippet overrides, and auto-detect locale
-      from the <code>@urbicon-ui/i18n</code> context.
+      <code>unstyled</code> / <code>slotClasses</code> / snippet overrides, and read the locale from
+      the <code>@urbicon-ui/i18n</code> context. English is built in; every other locale needs its
+      bundle registered once with <code>registerAuthLocale</code>.
     </p>
     <p class="text-text-secondary mt-4">
       For the complete reference — architecture, staged setup, federation (SSO), the adapter
@@ -280,8 +281,10 @@ export const POST = createForgotPasswordHandler(authDeps);
 
     <h3 class="text-text-primary mt-6 mb-2 text-lg font-semibold">4. Add UI pages</h3>
     <p class="text-text-secondary mb-2 text-sm">
-      Components auto-detect locale from <code>@urbicon-ui/i18n</code>. No <code>t</code> prop needed
-      when the i18n context is set up.
+      Components read the locale from <code>@urbicon-ui/i18n</code>, so no <code>t</code> prop is
+      needed when the i18n context is set up. Only English is built in — for any other locale call
+      <code>registerAuthLocale('de', de)</code> once at app start, with the bundle from
+      <code>@urbicon-ui/auth/i18n/de</code>.
     </p>
     <CodeExample code={uiCode} language="svelte" preview={false} />
 
