@@ -4,39 +4,62 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
-## [8.22.1] - 2026-09-15
-
-### CI/CD
-- Docs:refs:check asks four real systems whether every doc reference still exists (#481)
-
-### Documentation
-- One canon per topic, numbers with a reproducing command, pruning at wave close (#482)
-- **docs-app**: Two comments stop counting the families
-
-## [8.22.0] - 2026-09-14
+## [8.23.0](https://github.com/urbicon/ui/compare/v8.22.1...v8.23.0) - 2026-09-15
 
 ### Breaking Changes
-- **blocks**: Draw the required marker from CSS, not a text node (#460)
+- **blocks**: The CommandPalette owns the option container, customItem draws its contents
+> **BREAKING:** a `customItem` snippet that drew its own `role="option"` container now nests one inside the component's — render content only and use the fourth `select` argument; migration notes in packages/blocks/docs/MIGRATION.md under 8.23.0.
+- **blocks**: The accent leaves the EmptyState disc and the neutral confirm button
+> **BREAKING:** `<ConfirmDialog intent="neutral">` without `confirmIntent` renders a filled neutral confirm button (pass `confirmIntent="primary"` to keep the accent), and the EmptyState fill is neutral (`slotClasses.iconWrapper` or the provider `defaults` bring the accent back); migration notes in packages/blocks/docs/MIGRATION.md under 8.23.0.
+- **blocks**: An icon without size draws at 1em, the font size of its context
+> **BREAKING:** an icon without `size` and without a size class renders at `1em` — invisible or container-sized before inside a Button, a snippet or an `unstyled` component (Input clear 0×0 → 16×16, Select chevron 31×31 → 16×16); migration notes in packages/blocks/docs/MIGRATION.md under 8.23.0.
+- **blocks**: The Alert announces by intent, polite unless danger or warning
+> **BREAKING:** a consumer relying on the assertive announcement of a `success`, `info`, `primary` or `neutral` Alert passes `role="alert"` explicitly, and tests reaching such an Alert via `getByRole('alert')` query `'status'`; a conditionally mounted polite Alert may never be announced — keep a persistent `role="status"` wrapper or pass `role="alert"`. Migration notes in packages/blocks/docs/MIGRATION.md under 8.23.0.
+
+### Bug Fixes
+- **blocks**: A Select names its null option on the trigger
+
+### Features
+- **blocks**: Option hints on Select and Combobox, and a Combobox that takes what was typed
+- **blocks**: A Link atom for the Navigation family — a word with an address
+- **design**: A faceted-list pattern — search and facets over a list whose state is the URL
+
+### Miscellaneous
+- Link the issues and version headings in the generated changelog
+
+## [8.22.1](https://github.com/urbicon/ui/compare/v8.22.0...v8.22.1) - 2026-09-15
+
+### CI/CD
+- Docs:refs:check asks four real systems whether every doc reference still exists ([#481](https://github.com/urbicon/ui/issues/481))
+
+### Documentation
+- One canon per topic, numbers with a reproducing command, pruning at wave close ([#482](https://github.com/urbicon/ui/issues/482))
+- **docs-app**: Two comments stop counting the families
+
+## [8.22.0](https://github.com/urbicon/ui/compare/v8.21.0...v8.22.0) - 2026-09-14
+
+### Breaking Changes
+- **blocks**: Draw the required marker from CSS, not a text node ([#460](https://github.com/urbicon/ui/issues/460))
 > **BREAKING:** required marker glyph is CSS; `unstyled` needs a content class (MIGRATION 8.22.0)
 
 ### CI/CD
-- Run size as a per-PR report and gate it at the release bump (#477)
+- Run size as a per-PR report and gate it at the release bump ([#477](https://github.com/urbicon/ui/issues/477))
 
 ### Documentation
 - Record the auth-wave decisions — alert role, promotion clock, one-line footers
-- Align the docs-site guides and seven skills with the code and ci.yml (#474)
-- Bring every package README to the code, and let the fence marker tolerate a blank line (#476)
-- One canon per topic in the conventions cluster, and the code decides every contradiction (#478)
+- Align the docs-site guides and seven skills with the code and ci.yml ([#474](https://github.com/urbicon/ui/issues/474))
+- Bring every package README to the code, and let the fence marker tolerate a blank line ([#476](https://github.com/urbicon/ui/issues/476))
+- One canon per topic in the conventions cluster, and the code decides every contradiction ([#478](https://github.com/urbicon/ui/issues/478))
 - Point the architecture doc at the bump-time size gate and the generated llms.txt
 - The release-bump skill carries no link into docs/internal
 
 ### Features
-- **docs-gen**: Generate llms.txt from the component catalog, with llms:check as the gate (#475)
+- **docs-gen**: Generate llms.txt from the component catalog, with llms:check as the gate ([#475](https://github.com/urbicon/ui/issues/475))
 
 ### Miscellaneous
-- Diet AGENTS.md, drop .cursorrules, enforce the trailer ban in commitlint (#461)
+- Diet AGENTS.md, drop .cursorrules, enforce the trailer ban in commitlint ([#461](https://github.com/urbicon/ui/issues/461))
 
-## [8.21.0] - 2026-09-09
+## [8.21.0](https://github.com/urbicon/ui/compare/v8.20.0...v8.21.0) - 2026-09-09
 
 ### Breaking Changes
 - **auth**: Email is optional at wiring, the mailing factories require it at mount
@@ -53,7 +76,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **design**: Three composition patterns for list screens
 - **blocks**: UseDisclosure, and a sidebar layout that ships its own toggle
 
-## [8.20.0] - 2026-09-08
+## [8.20.0](https://github.com/urbicon/ui/compare/v8.19.0...v8.20.0) - 2026-09-08
 
 ### Breaking Changes
 - **sveltekit-utils**: WithSearchParams — the pure URL core both param writers share
@@ -73,7 +96,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **table**: SortDescFirst — a column says which direction its first header click takes
 - **docs-gen**: Compile the pattern fences, rewrite tab-navigation as link tabs
 
-## [8.19.0] - 2026-09-08
+## [8.19.0](https://github.com/urbicon/ui/compare/v8.18.0...v8.19.0) - 2026-09-08
 
 ### Documentation
 - Record the kino decisions — href only where structure is, accent only on the primary action
@@ -82,7 +105,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **design-engine**: Export the intent role derivation; the tokens page renders from it
 - **auth**: Rate-limit counters key on the secret and its limits, not on the config object
 
-## [8.18.0] - 2026-09-05
+## [8.18.0](https://github.com/urbicon/ui/compare/v8.17.0...v8.18.0) - 2026-09-05
 
 ### Breaking Changes
 - **blocks**: Button keeps its declared width and never clips; palette keys skip disabled rows
@@ -103,7 +126,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **auth**: Csrf.exempt for cookieless routes, warn on repeated createAuthDeps
 - **design-engine**: Rank by summary, prop docs and variant values
 
-## [8.17.0] - 2026-09-02
+## [8.17.0](https://github.com/urbicon/ui/compare/v8.16.0...v8.17.0) - 2026-09-02
 
 ### Breaking Changes
 - **auth**: A passkey can be renamed
@@ -112,7 +135,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **blocks**: Re-measure the size baseline on today's merged work
 
-## [8.16.0] - 2026-09-02
+## [8.16.0](https://github.com/urbicon/ui/compare/v8.15.0...v8.16.0) - 2026-09-02
 
 ### Breaking Changes
 - **auth**: The HTTP status is a property of the error code
@@ -121,7 +144,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Bug Fixes
 - **auth**: No-store is a property of the response, not of the call site
 
-## [8.15.0] - 2026-09-02
+## [8.15.0](https://github.com/urbicon/ui/compare/v8.14.0...v8.15.0) - 2026-09-02
 
 ### Breaking Changes
 - **blocks**: Sparkline takes the charts' slot names
@@ -145,7 +168,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Route D reports a candidate that never arrived
 - **blocks**: A KNOWN_GAPS entry pins what its gap is made of
 
-## [8.14.0] - 2026-08-31
+## [8.14.0](https://github.com/urbicon/ui/compare/v8.13.0...v8.14.0) - 2026-08-31
 
 ### Breaking Changes
 - **blocks**: The shadow scale leaves the colour namespace
@@ -165,129 +188,129 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Update dependencies
 - **blocks**: Re-measure the size baseline on the merged wave
 
-## [8.13.0] - 2026-08-31
+## [8.13.0](https://github.com/urbicon/ui/compare/v8.12.0...v8.13.0) - 2026-08-31
 
 ### Breaking Changes
-- **blocks**: Remove showTimeGrid, a documented prop that nothing reads (#362)
+- **blocks**: Remove showTimeGrid, a documented prop that nothing reads ([#362](https://github.com/urbicon/ui/issues/362))
 > **BREAKING:** `showTimeGrid` is gone from `CalendarProps`. It changed nothing that rendered, so no layout moves. A call site that writes it directly on the element stops compiling; one that spreads it in keeps building and emits it as a stray DOM attribute.
-- **blocks**: Give each chart the slot type it paints (#363)
+- **blocks**: Give each chart the slot type it paints ([#363](https://github.com/urbicon/ui/issues/363))
 > **BREAKING:** `ChartSlotClasses` is gone. Each chart has its own type — `ChartFrameSlotClasses`, `BarChartSlotClasses`, `LineChartSlotClasses`, `AreaChartSlotClasses`, `DonutChartSlotClasses`, with matching `*Slot` unions — accepting only the slots that component paints. Nothing renders differently. A `slotClasses` entry that was already a silent no-op stops compiling: replace `ChartSlotClasses` with the type of the chart you are styling and delete the entries it rejects. `ChartSlot`, the resolver's parameter type, is unchanged.
-- **blocks**: A menu section owns its items, so all three call forms announce alike (#365)
+- **blocks**: A menu section owns its items, so all three call forms announce alike ([#365](https://github.com/urbicon/ui/issues/365))
 > **BREAKING:** `<MenuSection>` requires `children` and treats `label` as the heading. `<MenuSection label="X" />` and `<MenuSection>X</MenuSection>` no longer compile — nest the section's items inside it. Menu and MenuSubmenu render array sections through the same component, so their markup gains a `role="group"` wrapper around each section's items; a selector written against the panel's direct children needs to become a descendant selector. The heading's DOM id changes shape from `<rootId>-section-<array index>` to a per-instance id — resolve it through the group's `aria-labelledby` rather than computing it …
 
 ### Bug Fixes
-- **blocks**: Ask the compiler about every class Tailwind can name, not only the ones we ship (#364)
+- **blocks**: Ask the compiler about every class Tailwind can name, not only the ones we ship ([#364](https://github.com/urbicon/ui/issues/364))
 
 ### Miscellaneous
 - **blocks**: Re-measure the size baseline on the merged tree
 
-## [8.12.0] - 2026-08-30
+## [8.12.0](https://github.com/urbicon/ui/compare/v8.11.0...v8.12.0) - 2026-08-30
 
 ### Breaking Changes
-- **blocks**: Delete slots that reach no element, scope presets to their own component (#355)
+- **blocks**: Delete slots that reach no element, scope presets to their own component ([#355](https://github.com/urbicon/ui/issues/355))
 > **BREAKING:** `CalendarSlots` and the exported `CalendarSlotName` no longer include `weekGrid`, `weekColumn` or `weekEventList`; `ChartSlot` / `ChartSlotClasses` no longer include `axisTick`. A `slotClasses` entry using one of these names stops compiling — it reached no element before, so nothing rendered differently, but the line has to go. A preset registered under `Input`, `Dialog` or `Select` no longer applies to NumberInput, CurrencyInput, ConfirmDialog or LocaleSwitcher — register it under the wrapper's own name instead, which was not previously possible.
-- **blocks**: Repair four branch losses and admit four components to the override contract (#356)
+- **blocks**: Repair four branch losses and admit four components to the override contract ([#356](https://github.com/urbicon/ui/issues/356))
 > **BREAKING:** `PaginationItemProps` extends the generic element attributes rather than the button element's, so a handler typed against a button-only property no longer compiles. Such code was already wrong in the `href` branch, where the props land on the anchor.
 
 ### Bug Fixes
-- **blocks**: Route every override through the fold, so the consumer's strongest rung wins (#350)
-- **blocks**: Ask the compiler whether the conflict resolver still agrees with it (#351)
+- **blocks**: Route every override through the fold, so the consumer's strongest rung wins ([#350](https://github.com/urbicon/ui/issues/350))
+- **blocks**: Ask the compiler whether the conflict resolver still agrees with it ([#351](https://github.com/urbicon/ui/issues/351))
 
 ### Documentation
-- The table's render structure, and the probes it came from are archived (#348)
+- The table's render structure, and the probes it came from are archived ([#348](https://github.com/urbicon/ui/issues/348))
 
 ### Testing
-- **blocks**: Mount every component under a provider and ask whether its three routes arrive (#347)
+- **blocks**: Mount every component under a provider and ask whether its three routes arrive ([#347](https://github.com/urbicon/ui/issues/347))
 
-## [8.11.0] - 2026-08-29
+## [8.11.0](https://github.com/urbicon/ui/compare/v8.10.0...v8.11.0) - 2026-08-29
 
 ### Breaking Changes
-- **table**: The summary row pins in any scroll box the table owns (#333)
+- **table**: The summary row pins in any scroll box the table owns ([#333](https://github.com/urbicon/ui/issues/333))
 > **BREAKING:** the total summary row moved out of the `<tbody>`. It renders as a `<tr>` in the table's `<tfoot>` now, in the page-relative and `fit="viewport"` models — the virtualized branch already moved in 8.10.0. Nothing about its appearance changed. Group summary rows are unaffected and stay in the `<tbody>` with their group. Two things stop reaching the row on their own:  - a descendant or child rule under `slotClasses.tbody`. `divide-y`   compiles to `tbody > * + *`, so it no longer draws the summary's top   edge; where the foot does not pin, the row's own `border-t-2` still   does, and where it pins, …
 
-## [8.10.0] - 2026-08-28
+## [8.10.0](https://github.com/urbicon/ui/compare/v8.9.0...v8.10.0) - 2026-08-28
 
 ### Breaking Changes
-- **table**: One table in the virtualized scroll box, with a pinned thead and tfoot (#332)
+- **table**: One table in the virtualized scroll box, with a pinned thead and tfoot ([#332](https://github.com/urbicon/ui/issues/332))
 > **BREAKING:** `virtualHeight` is now the height of the whole box — column header and summary row included — rather than of the rows alone; a table sized to show N rows shows about one row fewer. A custom `header` snippet on a virtualized table renders inside the scroll box and scrolls away unless it pins itself (`tableHeaderVariants({ sticky: 'box' })` has the classes). A pinned thead carries no collapsed border any more and measures 40px at `md`, not 40.5; `--blocks-table-thead-h` reports that value.
 
-## [8.9.0] - 2026-08-28
+## [8.9.0](https://github.com/urbicon/ui/compare/v8.8.0...v8.9.0) - 2026-08-28
 
 ### Breaking Changes
-- **auth**: No grace pass for a killed family, and one home for the lockout values (#327)
-- **auth**: Read the notification stream off fetch, and name a deleted passkey (#326)
-- **auth**: One place where an error becomes markup, and tests for every component (#328)
+- **auth**: No grace pass for a killed family, and one home for the lockout values ([#327](https://github.com/urbicon/ui/issues/327))
+- **auth**: Read the notification stream off fetch, and name a deleted passkey ([#326](https://github.com/urbicon/ui/issues/326))
+- **auth**: One place where an error becomes markup, and tests for every component ([#328](https://github.com/urbicon/ui/issues/328))
 
 ### Bug Fixes
-- **auth**: The docs describe the secure-deployment signal, and a rejected assertion names its owner (#331)
+- **auth**: The docs describe the secure-deployment signal, and a rejected assertion names its owner ([#331](https://github.com/urbicon/ui/issues/331))
 
 ### Features
-- **auth**: Exact public routes, and a limiter that does not count successes (#325)
-- **docs-gen**: Typecheck the opted-in doc fences against the published packages (#324)
-- **design**: Init names every installed stylesheet, read from node_modules (#329)
-- **table**: Read BlocksProvider defaults, overrides, presets and unstyled (#330)
+- **auth**: Exact public routes, and a limiter that does not count successes ([#325](https://github.com/urbicon/ui/issues/325))
+- **docs-gen**: Typecheck the opted-in doc fences against the published packages ([#324](https://github.com/urbicon/ui/issues/324))
+- **design**: Init names every installed stylesheet, read from node_modules ([#329](https://github.com/urbicon/ui/issues/329))
+- **table**: Read BlocksProvider defaults, overrides, presets and unstyled ([#330](https://github.com/urbicon/ui/issues/330))
 
-## [8.8.0] - 2026-08-26
+## [8.8.0](https://github.com/urbicon/ui/compare/v8.7.0...v8.8.0) - 2026-08-26
 
 ### Breaking Changes
-- **auth**: One in-memory store for all factories, and a guarded decay reset (#323)
+- **auth**: One in-memory store for all factories, and a guarded decay reset ([#323](https://github.com/urbicon/ui/issues/323))
 
 ### Bug Fixes
-- **table**: Avail-top is the smallest reachable offset, and Svelte no longer wipes it (#315)
-- **blocks**: One guard per ConfirmDialog button, and say why they differ (#320)
-- **table**: StickyOffset is a floor under the contained reservation (#317)
-- **table,docs**: The shipped stylesheets stop re-importing the blocks stylesheet (#322)
+- **table**: Avail-top is the smallest reachable offset, and Svelte no longer wipes it ([#315](https://github.com/urbicon/ui/issues/315))
+- **blocks**: One guard per ConfirmDialog button, and say why they differ ([#320](https://github.com/urbicon/ui/issues/320))
+- **table**: StickyOffset is a floor under the contained reservation ([#317](https://github.com/urbicon/ui/issues/317))
+- **table,docs**: The shipped stylesheets stop re-importing the blocks stylesheet ([#322](https://github.com/urbicon/ui/issues/322))
 
 ### CI/CD
-- A consumer-fidelity check that asks Tailwind which shipped classes it would compile (#321)
+- A consumer-fidelity check that asks Tailwind which shipped classes it would compile ([#321](https://github.com/urbicon/ui/issues/321))
 
 ### Documentation
-- **table**: The sticky guide describes the code it ships with (#316)
+- **table**: The sticky guide describes the code it ships with ([#316](https://github.com/urbicon/ui/issues/316))
 
 ### Features
-- **auth**: Ship a stylesheet so the auth components compile in a consumer build (#319)
+- **auth**: Ship a stylesheet so the auth components compile in a consumer build ([#319](https://github.com/urbicon/ui/issues/319))
 
 ### Testing
-- **blocks**: The blocks suite runs against the query-aware matchMedia stub (#318)
+- **blocks**: The blocks suite runs against the query-aware matchMedia stub ([#318](https://github.com/urbicon/ui/issues/318))
 
-## [8.7.0] - 2026-08-25
+## [8.7.0](https://github.com/urbicon/ui/compare/v8.6.2...v8.7.0) - 2026-08-25
 
 ### Breaking Changes
-- **table**: Delete the density themes and ten tokens nothing reads (#306)
+- **table**: Delete the density themes and ten tokens nothing reads ([#306](https://github.com/urbicon/ui/issues/306))
 > **BREAKING:** `@urbicon-ui/table/style/themes/comfortable.css` and `compact.css` no longer exist and the `./style/themes/*` export is gone. Importing either was a no-op; use the `size` prop for density. If your own CSS referenced one of the seven geometry variables, it is now undeclared — see MIGRATION-V8.md.
-- **auth**: Check the adapter promises the conformance suite let through (#305)
-- **auth**: Require user verification by default and keep backup codes reachable (#299)
-- **auth**: Report every misconfiguration at wiring time and default every rate-limit key (#307)
+- **auth**: Check the adapter promises the conformance suite let through ([#305](https://github.com/urbicon/ui/issues/305))
+- **auth**: Require user verification by default and keep backup codes reachable ([#299](https://github.com/urbicon/ui/issues/299))
+- **auth**: Report every misconfiguration at wiring time and default every rate-limit key ([#307](https://github.com/urbicon/ui/issues/307))
 > **BREAKING:** six rate-limit keys gained a default that did not exist (`register`, `resetPassword`, `verifyEmail`, `refresh`, `passkeyAuth`, and `twoFactor`/`twoFactorDisable` without `config.twoFactor`); a previously unlimited endpoint now answers 429. Opt out per key with `rateLimit: { <key>: null }`. The resolved config always carries every key: `deps.config.rateLimit` is `null` after `rateLimit: null` and an opted-out key is `null` inside the object.
-- **auth**: Bind the error contract to the union and give the password policy one home (#310)
+- **auth**: Bind the error contract to the union and give the password policy one home ([#310](https://github.com/urbicon/ui/issues/310))
 > **BREAKING:** `RegisterPage`'s five password-policy props are replaced by `passwordPolicy` and `policyPath`; `AuthLocale` gains `connectionLimit`, `csrfFailed`, `passkeyVerificationFailed`, and the password-requirement labels move from `auth.register.*` to `auth.passwordRequirements.*`.
 
 ### Bug Fixes
-- **table**: Fit="viewport" applies at every width, and its refusal is loud (#302)
-- **table**: Sticky-measure writes one box, unrounded, and cannot collapse the table (#304)
-- **table**: Unstyled no longer strips the query container the layout switch needs (#311)
-- **auth**: Stop a throwing consumer hook from reporting a completed action as a 500 (#300)
-- **blocks,table**: The shipped stylesheets scan the whole library, not a list of folders (#314)
-- **auth**: Document publicRoutes as replacing, and clear the three self-serve adapter walls (#301)
+- **table**: Fit="viewport" applies at every width, and its refusal is loud ([#302](https://github.com/urbicon/ui/issues/302))
+- **table**: Sticky-measure writes one box, unrounded, and cannot collapse the table ([#304](https://github.com/urbicon/ui/issues/304))
+- **table**: Unstyled no longer strips the query container the layout switch needs ([#311](https://github.com/urbicon/ui/issues/311))
+- **auth**: Stop a throwing consumer hook from reporting a completed action as a 500 ([#300](https://github.com/urbicon/ui/issues/300))
+- **blocks,table**: The shipped stylesheets scan the whole library, not a list of folders ([#314](https://github.com/urbicon/ui/issues/314))
+- **auth**: Document publicRoutes as replacing, and clear the three self-serve adapter walls ([#301](https://github.com/urbicon/ui/issues/301))
 
 ### Features
-- **auth**: Let failed-login counters decay and make three token lifetimes configurable (#303)
+- **auth**: Let failed-login counters decay and make three token lifetimes configurable ([#303](https://github.com/urbicon/ui/issues/303))
 
 ### Refactoring
-- **table**: Remove six sticky declarations that cannot take effect (#309)
-- **table**: One declaration of the structural columns, not eight literals (#312)
+- **table**: Remove six sticky declarations that cannot take effect ([#309](https://github.com/urbicon/ui/issues/309))
+- **table**: One declaration of the structural columns, not eight literals ([#312](https://github.com/urbicon/ui/issues/312))
 
 ### Testing
-- **table**: Fit="viewport" gets a live demo, a mounting suite and an e2e spec (#313)
-- **auth**: First client-component tests, and mark the contract surface nobody drives (#308)
+- **table**: Fit="viewport" gets a live demo, a mounting suite and an e2e spec ([#313](https://github.com/urbicon/ui/issues/313))
+- **auth**: First client-component tests, and mark the contract surface nobody drives ([#308](https://github.com/urbicon/ui/issues/308))
 
-## [8.6.2] - 2026-08-25
+## [8.6.2](https://github.com/urbicon/ui/compare/v8.6.1...v8.6.2) - 2026-08-25
 
 ### Bug Fixes
 - Close the three loose ends of the v8.6.1 features wave
 - **table**: The virtualized list reaches its end at any root font size
 
-## [8.6.1] - 2026-08-24
+## [8.6.1](https://github.com/urbicon/ui/compare/v8.6.0...v8.6.1) - 2026-08-24
 
 ### Bug Fixes
 - **blocks**: Placement-neutral German label for the drawer close button
@@ -301,7 +324,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Codify the PR-wave procedure as a repo skill
 - Comments carry constraints, not history — policy plus a trim of the wave's comments
 
-## [8.6.0] - 2026-08-22
+## [8.6.0](https://github.com/urbicon/ui/compare/v8.5.0...v8.6.0) - 2026-08-22
 
 ### Bug Fixes
 - **table**: One summary vocabulary — a foreign aggregation type can no longer crash the mount
@@ -314,42 +337,42 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: A menu can show what is set — selectable items, per-item styling, submenu lifecycle
 
-## [8.5.0] - 2026-08-20
+## [8.5.0](https://github.com/urbicon/ui/compare/v8.4.1...v8.5.0) - 2026-08-20
 
 ### Breaking Changes
-- **table**: Model the processing mode — three-valued state.mode + page descriptor (#245)
+- **table**: Model the processing mode — three-valued state.mode + page descriptor ([#245](https://github.com/urbicon/ui/issues/245))
 > **BREAKING:** TableContext.state.mode reports 'server-manual' or 'server-managed' where it reported 'server'; compare against 'client' instead. pageInfo, ProcessingMode and PageDescriptor are additive.
-- **table**: Drop the system origin — the read gate alone decides virtualized grouping (#248)
+- **table**: Drop the system origin — the read gate alone decides virtualized grouping ([#248](https://github.com/urbicon/ui/issues/248))
 > **BREAKING:** ViewOrigin loses 'system' (now 'user' | 'external'); applyExternal accepts only 'external'. A ?group= parameter on a virtualized table is no longer cleaned from the URL — the table renders ungrouped and says so in DEV.
 
 ### Bug Fixes
-- **table**: One row-identity rule, nested factory-cell accessors, dead utils (#244)
-- **table**: Absolute aria row indices, one search debounce, a pager that stays put (#246)
-- **table**: One write path for the selection — honest select-all and live-update totals (#247)
-- **table**: A virtualized table is one grid the keyboard can actually use (#249)
-- **table**: Grouped rows render through TableRow — one row renderer, shared mobile decisions (#250)
+- **table**: One row-identity rule, nested factory-cell accessors, dead utils ([#244](https://github.com/urbicon/ui/issues/244))
+- **table**: Absolute aria row indices, one search debounce, a pager that stays put ([#246](https://github.com/urbicon/ui/issues/246))
+- **table**: One write path for the selection — honest select-all and live-update totals ([#247](https://github.com/urbicon/ui/issues/247))
+- **table**: A virtualized table is one grid the keyboard can actually use ([#249](https://github.com/urbicon/ui/issues/249))
+- **table**: Grouped rows render through TableRow — one row renderer, shared mobile decisions ([#250](https://github.com/urbicon/ui/issues/250))
 
-## [8.4.1] - 2026-08-20
+## [8.4.1](https://github.com/urbicon/ui/compare/v8.4.0...v8.4.1) - 2026-08-20
 
 ### Breaking Changes
-- One aggregation model in the table, a wired blur token, and an editorial contradiction removed (#239)
+- One aggregation model in the table, a wired blur token, and an editorial contradiction removed ([#239](https://github.com/urbicon/ui/issues/239))
 > **BREAKING:** The headerMenu.addSummary / headerMenu.removeSummary translation keys are gone, replaced by headerMenu.summary. A consumer overriding those strings needs to move them.
 
 ### Bug Fixes
-- **design-engine**: Flag Material-style on-* roots as token attempts (#238)
-- **blocks**: Carry the CurrencyInput caret as a digit, not an offset (#243)
+- **design-engine**: Flag Material-style on-* roots as token attempts ([#238](https://github.com/urbicon/ui/issues/238))
+- **blocks**: Carry the CurrencyInput caret as a digit, not an offset ([#243](https://github.com/urbicon/ui/issues/243))
 
 ### Documentation
-- Reposition the design loop on what the eval actually shows (#237)
+- Reposition the design loop on what the eval actually shows ([#237](https://github.com/urbicon/ui/issues/237))
 - Capture the architecture-probe method as a repo skill
 
-## [8.4.0] - 2026-08-18
+## [8.4.0](https://github.com/urbicon/ui/compare/v8.3.1...v8.4.0) - 2026-08-18
 
 ### Breaking Changes
-- Block-level Checkbox/Toggle roots, and one owner per calendar gridline (#222)
+- Block-level Checkbox/Toggle roots, and one owner per calendar gridline ([#222](https://github.com/urbicon/ui/issues/222))
 > **BREAKING:** In normal block flow a Checkbox/Toggle root now fills the line and following content stacks below it. Restore inline placement with class="inline-flex".
-- The ready wave — twelve premise-checked fixes and the first stability promotions (#223)
-> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one. * fix(blocks): make RadioGroup's required block an empty submit Same class as Select's required (#206), found in its sibling while fixing it: the group drew an asterisk and set aria-required, and an empty required group submitted straight through. RadioGroup renders real radio inputs sharing one name, so unlike Select it needs no sentinel — the constraint goes on the radios, which is how HTML expresses a required radio group, a …
+- The ready wave — twelve premise-checked fixes and the first stability promotions ([#223](https://github.com/urbicon/ui/issues/223))
+> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one. * fix(blocks): make RadioGroup's required block an empty submit Same class as Select's required ([#206](https://github.com/urbicon/ui/issues/206)), found in its sibling while fixing it: the group drew an asterisk and set aria-required, and an empty required group submitted straight through. RadioGroup renders real radio inputs sharing one name, so unlike Select it needs no sentinel — the constraint goes on the radios, which is how HTML expresses a required radio group, a …
 
 ### Bug Fixes
 - **blocks**: Derive the step index from DOM order, not init order
@@ -363,7 +386,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - **docs-app**: Rebuild every recipe page on the canonical shell
 
-## [8.3.1] - 2026-08-14
+## [8.3.1](https://github.com/urbicon/ui/compare/v8.3.0...v8.3.1) - 2026-08-14
 
 ### Bug Fixes
 - **blocks**: Keep a button from shrinking through its own label
@@ -372,7 +395,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - Rework the README pitch and de-slop its claims
 
-## [8.3.0] - 2026-08-14
+## [8.3.0](https://github.com/urbicon/ui/compare/v8.2.0...v8.3.0) - 2026-08-14
 
 ### Breaking Changes
 - **table**: The card switch is a property of the columns, not of the component
@@ -461,25 +484,25 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Revert
 - **table**: Take header alignment back out, it is not a variant value
 
-## [8.2.0] - 2026-08-12
+## [8.2.0](https://github.com/urbicon/ui/compare/v8.1.0...v8.2.0) - 2026-08-12
 
 ### Breaking Changes
-- **auth,table**: Invitation tokens, and a grouped server table that tells the truth (#181)
-- AA-clean intent text roles and a single pinned-strip docs layout (#184)
+- **auth,table**: Invitation tokens, and a grouped server table that tells the truth ([#181](https://github.com/urbicon/ui/issues/181))
+- AA-clean intent text roles and a single pinned-strip docs layout ([#184](https://github.com/urbicon/ui/issues/184))
 > **BREAKING:** DocsLayout drops the `pageToolbar`, `mobileToc`, `mobileTocButton`, `mobileTocNav` and `mobileTocLink` slots. A consumer styling them via `slotClasses` should move to `stickyToc*`, which the single strip uses for the same control. * fix(docs-app): an overlay opened from a colour field reads the paper ramp A field re-points the text roles at its own foreground so the content ON the fill reads. A `popover` renders in the top layer but stays a DOM descendant of its trigger, and inheritance follows the DOM — so the on-fill ramp travelled out with the panel onto the panel's own cream/near-black sur …
-- **blocks**: One quiet register for tool calls and reasoning, and a hover fill that respects its frame (#187)
+- **blocks**: One quiet register for tool calls and reasoning, and a hover fill that respects its frame ([#187](https://github.com/urbicon/ui/issues/187))
 > **BREAKING:** ToolCallCard renders unframed by default. Pass `variant="card"` to keep the previous look. * refactor(blocks)!: one register for the parts that report how an answer came about Three adversarial reviews of the previous commit, three findings that stood up to measurement. `quiet` → `plain`. VARIANT-CONTRACT.md gives `quiet` to a TINTED surface (Card, Toolbar) and `ghost` to "no chrome"; the Chat family already calls the unframed pole of a `card` axis `plain` — CodeBlock does, ChatMessage does, and this component renders its payloads with it. The register claim is now true. It read "the same regi …
 - **blocks**: Agenda lists from the reference date, not the month's 1st
 - **blocks**: One vocabulary and one toolbar for the date surfaces
 
 ### Bug Fixes
-- **e2e**: Force focus only on what can be focused, and assert the room stamp (#170)
-- **blocks**: Stop the horizontal scroll containers clipping the focus ring (#171)
-- **repo**: Run the app builds under Node, not under Bun's runtime (#177)
-- **blocks**: The three size:S P1s — A2UI prototype keys, Sidebar inert, daily byDay (#173)
-- **blocks**: Measured mint defects — intensity token, infinite pulse settle, Avatar pulse leak (#174)
-- **blocks**: Calendar week view scrolls horizontally with a pinned time column (#189)
-- **blocks**: Calendar list views render the time and sort each day chronologically (#188)
+- **e2e**: Force focus only on what can be focused, and assert the room stamp ([#170](https://github.com/urbicon/ui/issues/170))
+- **blocks**: Stop the horizontal scroll containers clipping the focus ring ([#171](https://github.com/urbicon/ui/issues/171))
+- **repo**: Run the app builds under Node, not under Bun's runtime ([#177](https://github.com/urbicon/ui/issues/177))
+- **blocks**: The three size:S P1s — A2UI prototype keys, Sidebar inert, daily byDay ([#173](https://github.com/urbicon/ui/issues/173))
+- **blocks**: Measured mint defects — intensity token, infinite pulse settle, Avatar pulse leak ([#174](https://github.com/urbicon/ui/issues/174))
+- **blocks**: Calendar week view scrolls horizontally with a pinned time column ([#189](https://github.com/urbicon/ui/issues/189))
+- **blocks**: Calendar list views render the time and sort each day chronologically ([#188](https://github.com/urbicon/ui/issues/188))
 - **blocks**: Close the review findings on the date-surface pass
 - **docs**: The occupancy generator keeps its floor at any load
 - **docs-app**: Stop Svelte reading docs prose as code
@@ -489,14 +512,14 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **docs**: The tile's date axis stays put, and its badge counts the grid
 
 ### Documentation
-- **docs-app**: Restructure the Customization section (#183)
+- **docs-app**: Restructure the Customization section ([#183](https://github.com/urbicon/ui/issues/183))
 - **docs-app**: Rework primitive pages through the editorial 4-pass review
 - Re-capture the README shots after the tile's view rename
 
 ### Features
-- **docs-app**: Retire the salon — the demo universe is now Fermata, a four-house hotel group (#175)
-- **docs-app**: Blocks tile — parallel front-desk lanes, stage-filling views (#186)
-- **blocks**: ResourceTimeline — occupancy lanes on the date-grid layer (#190)
+- **docs-app**: Retire the salon — the demo universe is now Fermata, a four-house hotel group ([#175](https://github.com/urbicon/ui/issues/175))
+- **docs-app**: Blocks tile — parallel front-desk lanes, stage-filling views ([#186](https://github.com/urbicon/ui/issues/186))
+- **blocks**: ResourceTimeline — occupancy lanes on the date-grid layer ([#190](https://github.com/urbicon/ui/issues/190))
 - **docs**: The Blocks tile shows real occupancy, not front-desk operations
 
 ### Miscellaneous
@@ -504,23 +527,23 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Refresh the bundle-size baseline
 
 ### Testing
-- **e2e**: Measure the docs shell, and pin the pixel suite to an image (#169)
-- **e2e**: Run the pixel suite in CI, on baselines that match the image (#172)
+- **e2e**: Measure the docs shell, and pin the pixel suite to an image ([#169](https://github.com/urbicon/ui/issues/169))
+- **e2e**: Run the pixel suite in CI, on baselines that match the image ([#172](https://github.com/urbicon/ui/issues/172))
 
-## [8.1.0] - 2026-08-07
+## [8.1.0](https://github.com/urbicon/ui/compare/v8.0.0...v8.1.0) - 2026-08-07
 
 ### Breaking Changes
-- **table**: Settle the v8 vocabulary, and bring the docs with it (#168)
+- **table**: Settle the v8 vocabulary, and bring the docs with it ([#168](https://github.com/urbicon/ui/issues/168))
 > **BREAKING:** TypesReference's `root`, `header`, `title` and `description` slots are gone — the section, its heading and its description belong to `<Section>` now. `card` is `expandedPanel`, `toolbarText` is gone, and `size` no longer scales the heading. New props: `id`, `marker`, `meta`. * fix(docs,docs-app): dock the TOC to the reading column, give exhibits their own edge The reading measure was capping `section` while `main` stayed `flex-1 max-w-none`, so `main` swallowed everything the TOC did not take and the difference became a corridor of nothing: 208px at 1440, 568px at 1920. The same line left ever …
 > **BREAKING:** the `desktop-only` / `mobile-only` marker classes are gone. They named no CSS anywhere in the repo; the hook is `data-table-layout` ("desktop" | "mobile"). A mobile record no longer carries a frame of its own — style the list through `slotClasses.scrollArea`, a record through `slotClasses.mobileCard`. Verified in the browser at 360–1600px: exactly one layout at every width, and container- rather than viewport-keyed (a 1280px window with a 608px reading column renders the record list). Reactivity fix along the way: the grouped totals were destructured off the context, so they were captured once …
 
 ### Miscellaneous
 - Cap the changelog's breaking note at 600 characters
 
-## [8.0.0] - 2026-08-06
+## [8.0.0](https://github.com/urbicon/ui/compare/v7.0.1...v8.0.0) - 2026-08-06
 
 ### Breaking Changes
-- **table**: Rebuild view state around the consumer-owned view object (v8) (#158)
+- **table**: Rebuild view state around the consumer-owned view object (v8) ([#158](https://github.com/urbicon/ui/issues/158))
 > **BREAKING:** the v7 view-state props (itemsPerPage, initialPage, initialSort, initialFilters, initialGroupBy, initialSummaryConfigs, searchTerm, onSearchTermChange, query, onQueryChange, queryDebounceMs, mode, serverTotalItems, queryFn, loading, error, persistenceConfig) are replaced by view/viewDefaults/source; createTableQueryUrlSync and the per-axis view persistence factories are removed; TableContext is narrowed to the documented consumer surface; FilterPersistenceConfig is renamed to PersistenceKeyConfig.
 
 ### Bug Fixes
@@ -538,7 +561,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Re-baseline the pixel shots after the 2026-08-06 design commits
 
-## [7.0.1] - 2026-08-05
+## [7.0.1](https://github.com/urbicon/ui/compare/v7.0.0...v7.0.1) - 2026-08-05
 
 ### Bug Fixes
 - **table**: Stop storing a controlled groupByKey
@@ -547,44 +570,44 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **docs-app,table**: Document the v7 view-state layer where it is looked for
 - Answer the adversarial review of the v7 documentation pass
 
-## [7.0.0] - 2026-08-04
+## [7.0.0](https://github.com/urbicon/ui/compare/v6.51.0...v7.0.0) - 2026-08-04
 
 ### Breaking Changes
-- Derive prop-driven state instead of syncing it in $effect (#153)
-- **docs**: Highlight and seed synchronously, so the server renders them too (#155)
+- Derive prop-driven state instead of syncing it in $effect ([#153](https://github.com/urbicon/ui/issues/153))
+- **docs**: Highlight and seed synchronously, so the server renders them too ([#155](https://github.com/urbicon/ui/issues/155))
 > **BREAKING:** `highlighterService.highlightCode()` returns a string instead of a `Promise<string>`, `getHighlighter()` returns `HighlighterCore` instead of `Highlighter`, `CodePanelSlots` no longer carries `loadingContainer` / `loadingText`, and `@shikijs/langs` joins `shiki` as a required peer. * fix(docs): key the highlight cache on a colon, not on a NUL byte The separator was a literal NUL. It parses — a template literal takes any character — so tests, svelte-check, Biome and Prettier all passed it. What it broke is everything that decides text-vs-binary by scanning for a zero byte: `file` reported the s …
-- **table**: Let the view state live in the URL, so the server can see it (#154)
+- **table**: Let the view state live in the URL, so the server can see it ([#154](https://github.com/urbicon/ui/issues/154))
 
 ### Bug Fixes
-- **design-engine**: Let an urbicon-ignore reason contain a tag (#120)
+- **design-engine**: Let an urbicon-ignore reason contain a tag ([#120](https://github.com/urbicon/ui/issues/120))
 - **design-engine**: Rank icon search by the data, not by registry order
 
 ### Documentation
-- **docs-app**: Give the 14 auth component pages an accessibility section (#122)
-- **auth**: Tell adapter authors about id columns before the suite does (#117)
-- **docs-app**: Show the filter bar's narrow mode and its tools sheet (#124)
-- **docs-app**: Bring 19 component pages into the 2-4 example budget (#131)
-- **docs-app**: Wire the Types section on the last 89 pages and retire the stage-3 roster (#144)
+- **docs-app**: Give the 14 auth component pages an accessibility section ([#122](https://github.com/urbicon/ui/issues/122))
+- **auth**: Tell adapter authors about id columns before the suite does ([#117](https://github.com/urbicon/ui/issues/117))
+- **docs-app**: Show the filter bar's narrow mode and its tools sheet ([#124](https://github.com/urbicon/ui/issues/124))
+- **docs-app**: Bring 19 component pages into the 2-4 example budget ([#131](https://github.com/urbicon/ui/issues/131))
+- **docs-app**: Wire the Types section on the last 89 pages and retire the stage-3 roster ([#144](https://github.com/urbicon/ui/issues/144))
 - Write down how a multi-issue wave ends, after one left 7.5 GB standing
 - Make a gate the last resort rather than the first
 - Shrink AGENTS.md by a third — one doc index, details at their subject
-- **docs-app**: Link the Guide surface types to the section that documents them (#156)
+- **docs-app**: Link the Guide surface types to the section that documents them ([#156](https://github.com/urbicon/ui/issues/156))
 
 ### Features
-- **blocks**: Give BreadcrumbItem a leading icon (#118)
-- **blocks**: Map A2UI Tabs onto the Tab primitive (#129)
-- **blocks**: Align the Calendar and Planner prop surfaces (#126)
-- **docs-gen**: Mark every extracted type as exported and give it a canonical owner (#137)
-- **docs-app**: Add typesref:lint, guarding both halves of a page's Types section (#140)
+- **blocks**: Give BreadcrumbItem a leading icon ([#118](https://github.com/urbicon/ui/issues/118))
+- **blocks**: Map A2UI Tabs onto the Tab primitive ([#129](https://github.com/urbicon/ui/issues/129))
+- **blocks**: Align the Calendar and Planner prop surfaces ([#126](https://github.com/urbicon/ui/issues/126))
+- **docs-gen**: Mark every extracted type as exported and give it a canonical owner ([#137](https://github.com/urbicon/ui/issues/137))
+- **docs-app**: Add typesref:lint, guarding both halves of a page's Types section ([#140](https://github.com/urbicon/ui/issues/140))
 - **docs-app**: Capture the README shots and og.png from one wordmark source
 - **blocks**: Expand the icon set to 358, and write down what belongs in it
 - **blocks**: Tie the documented icon count to the set that defines it
 
 ### Refactoring
-- **table**: Drop the dead half of table.system.ts (#119)
+- **table**: Drop the dead half of table.system.ts ([#119](https://github.com/urbicon/ui/issues/119))
 - **blocks,table,docs**: Render icons from the set, not from inlined SVG
 
-## [6.51.0] - 2026-08-03
+## [6.51.0](https://github.com/urbicon/ui/compare/v6.50.0...v6.51.0) - 2026-08-03
 
 ### Breaking Changes
 - **docs**: Restore the tv fold the slot() helper had dropped, and guard it
@@ -623,7 +646,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Fix the login selectors my aria-label change broke
 
-## [6.50.0] - 2026-08-02
+## [6.50.0](https://github.com/urbicon/ui/compare/v6.49.0...v6.50.0) - 2026-08-02
 
 ### Breaking Changes
 - **docs**: Drop the TOC order field nothing ever read
@@ -722,7 +745,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Assert every GLOB root reaches the emitted-CSS guard
 - **blocks**: Reuse the escaper that already knows the two hard cases
 
-## [6.49.0] - 2026-08-02
+## [6.49.0](https://github.com/urbicon/ui/compare/v6.48.1...v6.49.0) - 2026-08-02
 
 ### Bug Fixes
 - **design**: Deliver the context block to Claude Code
@@ -743,7 +766,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **mcp-server**: Bind loopback by default, add --host
 - **design**: Get-component takes a batch of slugs
 
-## [6.48.1] - 2026-08-01
+## [6.48.1](https://github.com/urbicon/ui/compare/v6.48.0...v6.48.1) - 2026-08-01
 
 ### Bug Fixes
 - **auth**: Stop accepting P2023, and never let classification throw
@@ -766,7 +789,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **blocks**: Refresh the Toggle pixel baselines after the shrink-0 fix
 
-## [6.48.0] - 2026-08-01
+## [6.48.0](https://github.com/urbicon/ui/compare/v6.47.2...v6.48.0) - 2026-08-01
 
 ### Bug Fixes
 - **auth**: Make the Prisma adapter answer misses instead of throwing
@@ -784,7 +807,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **design**: Version-stamp the context block, content-based staleness
 - **sv**: Add the @urbicon-ui/sv Svelte-CLI community add-on (beta)
-- **auth**: Make the adapter conformance suite runnable for third-party adapters (#71)
+- **auth**: Make the adapter conformance suite runnable for third-party adapters ([#71](https://github.com/urbicon/ui/issues/71))
 - **auth**: Pin what an adapter does with an id it cannot represent
 - **table**: Collapse mobile cards, fold the filter tools into one menu
 
@@ -792,12 +815,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Add the sv scope to the commitlint enum
 - Upgrade dependencies
 
-## [6.47.2] - 2026-07-31
+## [6.47.2](https://github.com/urbicon/ui/compare/v6.47.1...v6.47.2) - 2026-07-31
 
 ### Bug Fixes
 - **design-engine,docs-gen**: Close masked regions the way a parser does
 
-## [6.47.1] - 2026-07-31
+## [6.47.1](https://github.com/urbicon/ui/compare/v6.47.0...v6.47.1) - 2026-07-31
 
 ### Bug Fixes
 - **artifact-studio**: Derive session ids from a CSPRNG
@@ -811,7 +834,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - Escape regex metacharacters, tighten the URL assertion
 
-## [6.47.0] - 2026-07-31
+## [6.47.0](https://github.com/urbicon/ui/compare/v6.46.0...v6.47.0) - 2026-07-31
 
 ### Bug Fixes
 - **blocks**: Let the date components follow the app's locale
@@ -831,7 +854,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Re-capture the four rooms baselines the on-fill split moves (darwin)
 - **blocks**: Prove the inline panel comes back, and read the paragraph rule from Svelte
 
-## [6.46.0] - 2026-07-31
+## [6.46.0](https://github.com/urbicon/ui/compare/v6.45.0...v6.46.0) - 2026-07-31
 
 ### Bug Fixes
 - **build**: Build packages in dependency order, and catch `any`-typed variants
@@ -861,7 +884,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Move dev harness to the @urbicon-ui scope on npm
 - Drop the unused chokidar devDependency from both docs packages
 
-## [6.45.0] - 2026-07-30
+## [6.45.0](https://github.com/urbicon/ui/compare/v6.44.0...v6.45.0) - 2026-07-30
 
 ### Bug Fixes
 - **design-engine**: Accept `z-index` as an alias for the shadows section
@@ -935,7 +958,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Exclude fixtures
 - **e2e**: Re-baseline the rooms shots the channel wave moved
 
-## [6.44.0] - 2026-07-26
+## [6.44.0](https://github.com/urbicon/ui/compare/v6.43.2...v6.44.0) - 2026-07-26
 
 ### Bug Fixes
 - **i18n**: Drop the setup warm-up, keep one timeout where the work happens
@@ -969,7 +992,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Wait for the interaction state, not for two frames
 - **docs-gen**: Run the two suites that sat outside the include pattern
 
-## [6.43.2] - 2026-07-26
+## [6.43.2](https://github.com/urbicon/ui/compare/v6.43.1...v6.43.2) - 2026-07-26
 
 ### Bug Fixes
 - **blocks**: Put the ChatMessage bubble on the bridge radius tier
@@ -990,7 +1013,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Re-baseline darwin after the surface-ladder change
 - **e2e**: Regenerate the Linux baselines from the merged tree
 
-## [6.43.1] - 2026-07-24
+## [6.43.1](https://github.com/urbicon/ui/compare/v6.43.0...v6.43.1) - 2026-07-24
 
 ### Bug Fixes
 - **blocks,docs**: Give interaction fills a real hover step and disabled text a legible tone
@@ -1013,7 +1036,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Drop the darwin-only gate on the visual-regression suite
 - **e2e**: Add the Linux visual baselines, generated on the deploy host
 
-## [6.43.0] - 2026-07-24
+## [6.43.0](https://github.com/urbicon/ui/compare/v6.42.0...v6.43.0) - 2026-07-24
 
 ### Bug Fixes
 - **blocks**: Harden the data-schema against the W3 review findings
@@ -1035,7 +1058,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **blocks**: Thread an A2UI catalog abstraction through the engine
 
-## [6.42.0] - 2026-07-24
+## [6.42.0](https://github.com/urbicon/ui/compare/v6.41.0...v6.42.0) - 2026-07-24
 
 ### Bug Fixes
 - **blocks,design-engine**: Drop `info` from the Tooltip palette
@@ -1053,7 +1076,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Add RadioGroup, PinInput and TimeInput to the VR + dark-axe matrix
 
-## [6.41.0] - 2026-07-24
+## [6.41.0](https://github.com/urbicon/ui/compare/v6.40.4...v6.41.0) - 2026-07-24
 
 ### Bug Fixes
 - **table**: Make date filters work for ISO strings and Date values
@@ -1075,7 +1098,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **docs-gen,shared-types,docs-app**: Prune the dead docsConfig + config surface
 
-## [6.40.4] - 2026-07-24
+## [6.40.4](https://github.com/urbicon/ui/compare/v6.40.3...v6.40.4) - 2026-07-24
 
 ### Bug Fixes
 - **auth**: Distinguish passkey delete-race from counter regression
@@ -1085,13 +1108,13 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - Reconcile technical-debt after W7 polish + auth-micro
 
-## [6.40.3] - 2026-07-24
+## [6.40.3](https://github.com/urbicon/ui/compare/v6.40.2...v6.40.3) - 2026-07-24
 
 ### Bug Fixes
 - **docs**: Mark bilingual chrome subtrees with their active locale
 - **docs**: Scope TOC lang to kicker spans, not the whole aside
 
-## [6.40.2] - 2026-07-24
+## [6.40.2](https://github.com/urbicon/ui/compare/v6.40.1...v6.40.2) - 2026-07-24
 
 ### Documentation
 - Reconcile technical-debt after W2 gate-harden
@@ -1101,7 +1124,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Tighten VR tolerance, make fixtures deterministic, re-baseline
 - **e2e**: Document the dark-axe gate's fixture scope
 
-## [6.40.1] - 2026-07-24
+## [6.40.1](https://github.com/urbicon/ui/compare/v6.40.0...v6.40.1) - 2026-07-24
 
 ### Bug Fixes
 - **blocks**: Guard informative-text contrast; quaternary is mark-only
@@ -1114,7 +1137,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Stamp technical-debt decision-pass verdicts
 - Reconcile technical-debt after W1 (5 resolved, 1 new)
 
-## [6.40.0] - 2026-07-24
+## [6.40.0](https://github.com/urbicon/ui/compare/v6.39.0...v6.40.0) - 2026-07-24
 
 ### Bug Fixes
 - **chat-demo**: Buffer pretty-printed multi-line a2ui envelopes in the splitter
@@ -1135,7 +1158,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - Add a root chat script for the a2ui demo dev server
 
-## [6.39.0] - 2026-07-24
+## [6.39.0](https://github.com/urbicon/ui/compare/v6.38.0...v6.39.0) - 2026-07-24
 
 ### Bug Fixes
 - **blocks**: Harden A2UIView against adversarial review findings
@@ -1155,7 +1178,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **docs**: Delete the dead docs-theme.css token file
 - **blocks**: Record A2UIView in the bundle-size baseline
 
-## [6.38.0] - 2026-07-23
+## [6.38.0](https://github.com/urbicon/ui/compare/v6.37.2...v6.38.0) - 2026-07-23
 
 ### Documentation
 - **docs-app**: Add prev/next navigation to the Table documentation pages
@@ -1167,7 +1190,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **blocks**: Record Kbd, CopyButton and AvatarGroup in the bundle-size baseline
 
-## [6.37.2] - 2026-07-23
+## [6.37.2](https://github.com/urbicon/ui/compare/v6.37.1...v6.37.2) - 2026-07-23
 
 ### Bug Fixes
 - **docs**: Render route-relative seeAlso as internal ApiReference links
@@ -1182,7 +1205,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **blocks**: Dedupe field chrome into shared style fragments
 
-## [6.37.1] - 2026-07-23
+## [6.37.1](https://github.com/urbicon/ui/compare/v6.37.0...v6.37.1) - 2026-07-23
 
 ### Bug Fixes
 - **blocks**: Re-arm PinInput onComplete after an external value reset
@@ -1195,12 +1218,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **blocks**: Record the component trio in the bundle-size baseline
 
-## [6.37.0] - 2026-07-23
+## [6.37.0](https://github.com/urbicon/ui/compare/v6.36.0...v6.37.0) - 2026-07-23
 
 ### Documentation
 - **tokens**: Refresh typography usage counts for the component trio
 
-## [6.36.0] - 2026-07-23
+## [6.36.0](https://github.com/urbicon/ui/compare/v6.35.0...v6.36.0) - 2026-07-23
 
 ### Bug Fixes
 - **table**: Seed initialGroupBy/initialSummaryConfigs in the store constructor
@@ -1231,7 +1254,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Gate split-pane through the a11y scan; record the AI-family size baseline
 - **blocks**: Make the file-intake type-echo assertion runtime-tolerant
 
-## [6.35.0] - 2026-07-23
+## [6.35.0](https://github.com/urbicon/ui/compare/v6.34.0...v6.35.0) - 2026-07-23
 
 ### Breaking Changes
 - **blocks**: Extract a layer-0 core — public components stop importing each other
@@ -1251,7 +1274,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Add loading and removable sentinels to the VR primitives fixture
 
-## [6.34.0] - 2026-07-22
+## [6.34.0](https://github.com/urbicon/ui/compare/v6.33.0...v6.34.0) - 2026-07-22
 
 ### Bug Fixes
 - **docs-app**: Point the clickable-card recipe at a real mint
@@ -1267,7 +1290,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **table**: Add initialSort, initialFilters and initialSelectedIds seeds
 - **docs-app**: Add live async-search and server-mode table demos
 
-## [6.33.0] - 2026-07-22
+## [6.33.0](https://github.com/urbicon/ui/compare/v6.32.0...v6.33.0) - 2026-07-22
 
 ### Breaking Changes
 - **table**: Rename the appearance prop to variant
@@ -1283,7 +1306,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Mark debt-fix-wave-3 entries as in progress
 - Close the debt-fix-wave-3 entries and log the follow-up findings
 
-## [6.32.0] - 2026-07-22
+## [6.32.0](https://github.com/urbicon/ui/compare/v6.31.0...v6.32.0) - 2026-07-22
 
 ### Documentation
 - Log the four bundle-composition findings from the size breakdown
@@ -1292,7 +1315,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Add per-component bundle-size measurement + baseline gate
 - **blocks**: Sourcemap byte attribution for bundle-size (--breakdown)
 
-## [6.31.0] - 2026-07-22
+## [6.31.0](https://github.com/urbicon/ui/compare/v6.30.1...v6.31.0) - 2026-07-22
 
 ### Breaking Changes
 - **blocks**: Unify the style-axis vocabulary — appearance becomes variant, separated becomes card
@@ -1314,14 +1337,14 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Scope the floating-spec tooltip locator, re-baseline the menu shot
 
-## [6.30.1] - 2026-07-21
+## [6.30.1](https://github.com/urbicon/ui/compare/v6.30.0...v6.30.1) - 2026-07-21
 
 ### Testing
 - **e2e**: Add recipe live-preview coverage + a hydration marker
 - **e2e**: Add Calendar interaction spec on a fixed-month fixture
 - **e2e**: Align the auth spec with PORT isolation and the rotation grace
 
-## [6.30.0] - 2026-07-21
+## [6.30.0](https://github.com/urbicon/ui/compare/v6.29.2...v6.30.0) - 2026-07-21
 
 ### Bug Fixes
 - **blocks**: Keep consumer-placed focus when an overlay opens
@@ -1339,17 +1362,17 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Discover contrast drift-guard variant sources by glob
 - **docs-app**: Add the en/de translation-parity gate + typed nav keys
 
-## [6.29.2] - 2026-07-21
+## [6.29.2](https://github.com/urbicon/ui/compare/v6.29.1...v6.29.2) - 2026-07-21
 
 ### Documentation
 - **auth**: Harden the CSRF guidance at the seams found by adversarial review
 
-## [6.29.1] - 2026-07-21
+## [6.29.1](https://github.com/urbicon/ui/compare/v6.29.0...v6.29.1) - 2026-07-21
 
 ### Documentation
 - **auth**: Restore trustedOrigins ['*'] as the kernel-CSRF off-switch
 
-## [6.29.0] - 2026-07-21
+## [6.29.0](https://github.com/urbicon/ui/compare/v6.28.0...v6.29.0) - 2026-07-21
 
 ### Bug Fixes
 - **docs-gen**: Satisfy noUncheckedIndexedAccess in guide-injection
@@ -1364,7 +1387,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **design**: Urbicon guide command over bundled package guides
 - **docs-app**: Render the shipped AUTH.md at /auth/guide + absolute README links
 
-## [6.28.0] - 2026-07-20
+## [6.28.0](https://github.com/urbicon/ui/compare/v6.27.1...v6.28.0) - 2026-07-20
 
 ### Documentation
 - Declare the documentation taxonomy (DOCS-SURFACES.md)
@@ -1375,13 +1398,13 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - Ignore the generated guide copies under static
 
-## [6.27.1] - 2026-07-20
+## [6.27.1](https://github.com/urbicon/ui/compare/v6.27.0...v6.27.1) - 2026-07-20
 
 ### Documentation
 - **auth**: Ship the canonical AUTH.md inside the package
 - Record the knowledge-surface debt and the public/internal rule
 
-## [6.26.3] - 2026-07-20
+## [6.26.3](https://github.com/urbicon/ui/compare/v6.26.2...v6.26.3) - 2026-07-20
 
 ### Documentation
 - Log that the Buny deploy is the effective npm publisher
@@ -1389,12 +1412,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - Vendor the LICENSE into every published package
 
-## [6.26.2] - 2026-07-20
+## [6.26.2](https://github.com/urbicon/ui/compare/v6.26.1...v6.26.2) - 2026-07-20
 
 ### CI/CD
 - Gate packed tarballs before publish
 
-## [6.26.1] - 2026-07-20
+## [6.26.1](https://github.com/urbicon/ui/compare/v6.26.0...v6.26.1) - 2026-07-20
 
 ### Bug Fixes
 - **blocks**: Clickable Card kept the UA button font — font-inherit is not a Tailwind utility
@@ -1437,7 +1460,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Make the port overridable and cover table grouping/selection/reorder/remote
 
-## [6.26.0] - 2026-07-20
+## [6.26.0](https://github.com/urbicon/ui/compare/v6.25.0...v6.26.0) - 2026-07-20
 
 ### Bug Fixes
 - **docs**: Declare shiki as a peer dependency
@@ -1465,7 +1488,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **docs**: Drop the dead CodeExample workaround on the guide page
 
-## [6.25.0] - 2026-07-14
+## [6.25.0](https://github.com/urbicon/ui/compare/v6.24.0...v6.25.0) - 2026-07-14
 
 ### Bug Fixes
 - **blocks**: Tokenise the avatar palette, delete the dead ripple rule
@@ -1529,7 +1552,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Cover the in-place exit lag and unmount-during-lag paths
 - **docs-gen**: Guard the emitted api.ts interface against data drift
 
-## [6.24.0] - 2026-07-14
+## [6.24.0](https://github.com/urbicon/ui/compare/v6.23.0...v6.24.0) - 2026-07-14
 
 ### Bug Fixes
 - **sveltekit-utils**: Route non-2xx cron responses to onError
@@ -1552,7 +1575,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Add Sparkline fluid prop for responsive rendering
 
-## [6.23.0] - 2026-07-13
+## [6.23.0](https://github.com/urbicon/ui/compare/v6.22.0...v6.23.0) - 2026-07-13
 
 ### Bug Fixes
 - **blocks**: Key calendar weekday header by column position
@@ -1579,7 +1602,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Cover DatePicker/DateRangePicker typed-empty clear and iso serialization
 - **docs-gen**: Make llm.txt link-existence check runtime-agnostic
 
-## [6.22.0] - 2026-07-13
+## [6.22.0](https://github.com/urbicon/ui/compare/v6.21.3...v6.22.0) - 2026-07-13
 
 ### Bug Fixes
 - **mcp-server**: Drop broken bin entry and declare the bun engine requirement
@@ -1605,7 +1628,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **e2e**: Add modal, number-input, table-core and token-smoke guards
 
-## [6.21.3] - 2026-07-13
+## [6.21.3](https://github.com/urbicon/ui/compare/v6.21.2...v6.21.3) - 2026-07-13
 
 ### Bug Fixes
 - **docs**: Scale landing sparkline to the card via svg slot class
@@ -1635,7 +1658,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **e2e**: Add missing rooms VR baselines
 - **blocks**: Interactive DOM coverage for the round-2 primitives
 
-## [6.21.2] - 2026-07-10
+## [6.21.2](https://github.com/urbicon/ui/compare/v6.21.1...v6.21.2) - 2026-07-10
 
 ### Breaking Changes
 - **blocks**: Move Tooltip to open/onOpenChange with controlled mode
@@ -1697,7 +1720,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **table**: Hoist concern imports to fix flaky timeout under parallel run
 
-## [6.21.1] - 2026-07-09
+## [6.21.1](https://github.com/urbicon/ui/compare/v6.21.0...v6.21.1) - 2026-07-09
 
 ### Breaking Changes
 - **blocks**: Tighten the tv() API surface — type-safe slots, fail-loud config, ClassValue parity
@@ -1799,7 +1822,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Gate the visual-regression suite to darwin
 - **docs**: Wire the docs package into the test gate
 
-## [6.21.0] - 2026-07-06
+## [6.21.0](https://github.com/urbicon/ui/compare/v6.20.2...v6.21.0) - 2026-07-06
 
 ### Documentation
 - **versioning**: Note apps/* are intentionally out of unified versioning
@@ -1810,7 +1833,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **table**: Annotate intentional state_referenced_locally captures
 
-## [6.20.2] - 2026-07-06
+## [6.20.2](https://github.com/urbicon/ui/compare/v6.20.1...v6.20.2) - 2026-07-06
 
 ### Bug Fixes
 - **blocks**: Use spec-compliant prefers-contrast: more
@@ -1822,12 +1845,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **auth**: Broaden timing-safe compare length/position coverage
 
-## [6.20.1] - 2026-07-06
+## [6.20.1](https://github.com/urbicon/ui/compare/v6.20.0...v6.20.1) - 2026-07-06
 
 ### Documentation
 - **design**: Reframe settings Tab-vs-Sidebar as a scale-based choice
 
-## [6.20.0] - 2026-07-06
+## [6.20.0](https://github.com/urbicon/ui/compare/v6.19.4...v6.20.0) - 2026-07-06
 
 ### Bug Fixes
 - **blocks**: Migrate Avatar slotClasses.base consumer + harden AVT-3
@@ -1836,7 +1859,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Add pulse indicator to Avatar status dot
 
-## [6.19.4] - 2026-07-06
+## [6.19.4](https://github.com/urbicon/ui/compare/v6.19.3...v6.19.4) - 2026-07-06
 
 ### Bug Fixes
 - **mcp-server**: Document the info intent + extended neutral ramps in get_css_reference
@@ -1844,7 +1867,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - **design**: Reconcile the radius anti-pattern across principles + suggest_implementation
 
-## [6.19.3] - 2026-07-06
+## [6.19.3](https://github.com/urbicon/ui/compare/v6.19.2...v6.19.3) - 2026-07-06
 
 ### Bug Fixes
 - **blocks**: Scope mint to the directional box on Checkbox and Toggle
@@ -1856,7 +1879,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **blocks**: Route CalendarGrid keyboard nav through the shared date-grid handler
 
-## [6.19.2] - 2026-07-06
+## [6.19.2](https://github.com/urbicon/ui/compare/v6.19.1...v6.19.2) - 2026-07-06
 
 ### Breaking Changes
 - **blocks**: Default CurrencyInput locale to the active i18n locale
@@ -1872,7 +1895,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **docs**: Drop 46 redundant pass-through +layout.svelte files
 - Drop dead @typescript-eslint eslint-disable directives
 
-## [6.19.1] - 2026-07-05
+## [6.19.1](https://github.com/urbicon/ui/compare/v6.19.0...v6.19.1) - 2026-07-05
 
 ### Bug Fixes
 - **blocks**: Auto-register default mints on first apply
@@ -1920,7 +1943,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **i18n**: Rename inner translate options to callOptions
 - **blocks**: Consolidate CompositionBar legend visibility onto showLegend
 
-## [6.19.0] - 2026-07-03
+## [6.19.0](https://github.com/urbicon/ui/compare/v6.18.0...v6.19.0) - 2026-07-03
 
 ### Breaking Changes
 - **auth**: Adapter polish — owner-first scoping, delete cascade, conformance gaps (R20)
@@ -1933,7 +1956,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **auth**: Split the auth.ts and webauthn.ts god-files (R17)
 
-## [6.18.0] - 2026-07-02
+## [6.18.0](https://github.com/urbicon/ui/compare/v6.17.0...v6.18.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Close the package-5 review findings on merge, stores and pages
@@ -1943,7 +1966,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **auth**: Extract AuthPageShell/FormErrorAlert and close the unstyled leaks
 - **auth**: Lift the client stores onto the shared fetch/error infrastructure
 
-## [6.17.0] - 2026-07-02
+## [6.17.0](https://github.com/urbicon/ui/compare/v6.16.0...v6.17.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Close the package-4 review findings on the error contract
@@ -1955,7 +1978,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **auth**: ParseBody preamble helper — one copy of the validation block
 
-## [6.16.0] - 2026-07-02
+## [6.16.0](https://github.com/urbicon/ui/compare/v6.15.0...v6.16.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Wrap webauthn credential-field decodes, pin the unpinned security gates
@@ -1966,7 +1989,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **auth**: Share the session payload, rotation-outcome policy and no-store header
 - **auth**: Shared client utils for http, webauthn codecs and slot classes
 
-## [6.15.0] - 2026-07-02
+## [6.15.0](https://github.com/urbicon/ui/compare/v6.14.0...v6.15.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Project invitation rows through a mapper, no-store the admin list
@@ -1988,7 +2011,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **auth**: Rename notification recipients 'all' to 'online'
 
-## [6.14.0] - 2026-07-02
+## [6.14.0](https://github.com/urbicon/ui/compare/v6.13.0...v6.14.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Harden cbor/webauthn parsing against hostile input
@@ -2001,7 +2024,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **auth**: Drop the never-implemented email notification channel
 
-## [6.13.0] - 2026-07-02
+## [6.13.0](https://github.com/urbicon/ui/compare/v6.12.0...v6.13.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Derive web push cek/nonce via plain rfc 8188 info strings
@@ -2010,12 +2033,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **auth**: Ship passkey list/delete and notification crud handler factories
 
-## [6.12.0] - 2026-07-02
+## [6.12.0](https://github.com/urbicon/ui/compare/v6.11.0...v6.12.0) - 2026-07-02
 
 ### Bug Fixes
 - **auth**: Default-deny unauthenticated remote-function requests in route guard
 
-## [6.11.0] - 2026-07-02
+## [6.11.0](https://github.com/urbicon/ui/compare/v6.10.1...v6.11.0) - 2026-07-02
 
 ### Documentation
 - **blocks**: Add cockpit recipe for JourneyTimeline rich rows
@@ -2023,12 +2046,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Add marker/trailing snippets + attention status
 
-## [6.10.1] - 2026-07-02
+## [6.10.1](https://github.com/urbicon/ui/compare/v6.10.0...v6.10.1) - 2026-07-02
 
 ### Bug Fixes
 - **blocks**: Rebuild JourneyTimeline horizontal rail as a station spine
 
-## [6.10.0] - 2026-07-02
+## [6.10.0](https://github.com/urbicon/ui/compare/v6.9.0...v6.10.0) - 2026-07-02
 
 ### Bug Fixes
 - **blocks**: Cancel in-flight focus pin + gate panel aria-controls
@@ -2040,7 +2063,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Rework JourneyTimeline as a focus+context chronicle
 
-## [6.9.0] - 2026-07-01
+## [6.9.0](https://github.com/urbicon/ui/compare/v6.8.1...v6.9.0) - 2026-07-01
 
 ### Bug Fixes
 - **blocks**: Harden JourneyTimeline focus + scroll-spy against edge cases
@@ -2055,7 +2078,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **blocks**: Cover JourneyTimeline variants + SSR render
 
-## [6.8.1] - 2026-07-01
+## [6.8.1](https://github.com/urbicon/ui/compare/v6.8.0...v6.8.1) - 2026-07-01
 
 ### Bug Fixes
 - **docs**: Resolve @fontsource-variable side-effect imports for svelte-check
@@ -2069,7 +2092,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - **guide**: Document re-entrancy-safe synchronous navigationSource
 
-## [6.8.0] - 2026-06-30
+## [6.8.0](https://github.com/urbicon/ui/compare/v6.7.2...v6.8.0) - 2026-06-30
 
 ### Bug Fixes
 - **blocks**: Harden cross-route engine (silent-failure review)
@@ -2083,7 +2106,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Declarative cross-route guide tours (engine)
 - **blocks**: Forward navigate hook through GuideProvider
 
-## [6.7.2] - 2026-06-30
+## [6.7.2](https://github.com/urbicon/ui/compare/v6.7.1...v6.7.2) - 2026-06-30
 
 ### Bug Fixes
 - **auth**: Convert ES256 passkey signatures to raw before verify (Codeberg #38)
@@ -2093,12 +2116,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **auth**: Harden ES256 DER converter per review (scope, errors, tests)
 
-## [6.7.1] - 2026-06-30
+## [6.7.1](https://github.com/urbicon/ui/compare/v6.7.0...v6.7.1) - 2026-06-30
 
 ### Documentation
 - **table**: Gate the data-fit padding override to the md breakpoint
 
-## [6.7.0] - 2026-06-30
+## [6.7.0](https://github.com/urbicon/ui/compare/v6.6.0...v6.7.0) - 2026-06-30
 
 ### Documentation
 - Native controls
@@ -2106,7 +2129,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **table**: Expose `data-fit` on the container for layout hooks
 
-## [6.6.0] - 2026-06-30
+## [6.6.0](https://github.com/urbicon/ui/compare/v6.5.0...v6.6.0) - 2026-06-30
 
 ### Bug Fixes
 - **table**: Stack mobile filter bar so search is not crushed (Codeberg #28)
@@ -2125,7 +2148,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Refactoring
 - **table**: Unify column priority as a mobile-card concept (Codeberg #33)
 
-## [6.5.0] - 2026-06-30
+## [6.5.0](https://github.com/urbicon/ui/compare/v6.4.1...v6.5.0) - 2026-06-30
 
 ### Bug Fixes
 - **blocks**: Address review findings for the GuidePanel index features
@@ -2138,50 +2161,50 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Add opt-in article search to GuidePanel (Codeberg #26)
 - **blocks**: Add GuideRef for declarative article→article links (Codeberg #27)
 
-## [6.4.1] - 2026-06-30
+## [6.4.1](https://github.com/urbicon/ui/compare/v6.4.0...v6.4.1) - 2026-06-30
 
 ### Bug Fixes
 - **blocks**: Render icon↔label gap in Button & Badge via [gap:inherit] (Codeberg #21)
 - **blocks**: Keep Combobox listbox closed after selection/clear (Codeberg #19)
 - **blocks**: Guard every import.meta.env.DEV with optional chaining (Codeberg #20)
 
-## [6.4.0] - 2026-06-26
+## [6.4.0](https://github.com/urbicon/ui/compare/v6.3.15...v6.4.0) - 2026-06-26
 
 ### Features
 - **auth**: Add autoVerifyInvited to pre-verify invitation-gated signups
 
-## [6.3.15] - 2026-06-26
+## [6.3.15](https://github.com/urbicon/ui/compare/v6.3.14...v6.3.15) - 2026-06-26
 
 ### Bug Fixes
 - **blocks**: Compensate the keyboard viewport offset for top-layer popovers (Codeberg #23)
 
-## [6.3.14] - 2026-06-26
+## [6.3.14](https://github.com/urbicon/ui/compare/v6.3.13...v6.3.14) - 2026-06-26
 
 ### Bug Fixes
 - **blocks**: Own anchored-panel positioning solely in Floating UI (Codeberg #23)
 
-## [6.3.13] - 2026-06-25
+## [6.3.13](https://github.com/urbicon/ui/compare/v6.3.12...v6.3.13) - 2026-06-25
 
 ### Bug Fixes
 - **blocks**: Compensate transformed containing block for in-dialog overlays
 
-## [6.3.12] - 2026-06-25
+## [6.3.12](https://github.com/urbicon/ui/compare/v6.3.11...v6.3.12) - 2026-06-25
 
 ### Bug Fixes
 - **blocks**: Render anchored overlays in-place inside modal dialogs
 
-## [6.3.11] - 2026-06-25
+## [6.3.11](https://github.com/urbicon/ui/compare/v6.3.10...v6.3.11) - 2026-06-25
 
 ### Documentation
 - Surface the i18n audit tools in CLI/README/agent context
 - Add an i18n Auditing & Quality page to the docs site
 
-## [6.3.10] - 2026-06-25
+## [6.3.10](https://github.com/urbicon/ui/compare/v6.3.9...v6.3.10) - 2026-06-25
 
 ### Bug Fixes
 - **i18n**: Defer package registration to first use (Codeberg #22 registry TDZ)
 
-## [6.3.9] - 2026-06-25
+## [6.3.9](https://github.com/urbicon/ui/compare/v6.3.8...v6.3.9) - 2026-06-25
 
 ### Bug Fixes
 - **i18n**: Harden translation audit against bad input and throwing sinks
@@ -2203,7 +2226,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **i18n**: Replace the regex i18n-analyzer with `urbicon i18n` (dogfood + CI)
 
-## [6.3.8] - 2026-06-24
+## [6.3.8](https://github.com/urbicon/ui/compare/v6.3.7...v6.3.8) - 2026-06-24
 
 ### Features
 - **blocks**: Add single-line overflow mode to Breadcrumb
@@ -2212,7 +2235,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Unify overlay positioning on a shared useFloatingPanel
 - **docs**: Build the DocsLayout sticky header on the Breadcrumb primitive
 
-## [6.3.7] - 2026-06-24
+## [6.3.7](https://github.com/urbicon/ui/compare/v6.3.6...v6.3.7) - 2026-06-24
 
 ### Bug Fixes
 - **blocks**: Keep anchored overlays stable on iOS (visualViewport + viewport-fit height)
@@ -2228,7 +2251,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Collapse long Breadcrumb trails into an expandable ellipsis
 
-## [6.3.6] - 2026-06-24
+## [6.3.6](https://github.com/urbicon/ui/compare/v6.3.5...v6.3.6) - 2026-06-24
 
 ### Bug Fixes
 - **blocks**: Use manual dismiss for Popover with an external trigger
@@ -2246,17 +2269,17 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Collapse SegmentGroup to a vertical stack on overflow
 
-## [6.3.5] - 2026-06-24
+## [6.3.5](https://github.com/urbicon/ui/compare/v6.3.4...v6.3.5) - 2026-06-24
 
 ### Features
 - **auth**: Give the Lettermint transport a configurable from-default and timeout
 
-## [6.3.4] - 2026-06-24
+## [6.3.4](https://github.com/urbicon/ui/compare/v6.3.3...v6.3.4) - 2026-06-24
 
 ### Miscellaneous
 - Update dependencies
 
-## [6.3.3] - 2026-06-24
+## [6.3.3](https://github.com/urbicon/ui/compare/v6.3.2...v6.3.3) - 2026-06-24
 
 ### Bug Fixes
 - **i18n**: Emit fully-specified ESM specifiers from svelte-package builds
@@ -2286,7 +2309,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - **docs-gen**: Lint recipe live-preview code against the design engine
 
-## [6.3.2] - 2026-06-23
+## [6.3.2](https://github.com/urbicon/ui/compare/v6.3.1...v6.3.2) - 2026-06-23
 
 ### Bug Fixes
 - **mcp-server**: Document border-hairline token + guard css-reference against drift
@@ -2294,7 +2317,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - **design**: Complete the override ladder in the AGENTS.md template
 
-## [6.3.1] - 2026-06-23
+## [6.3.1](https://github.com/urbicon/ui/compare/v6.3.0...v6.3.1) - 2026-06-23
 
 ### Bug Fixes
 - **blocks**: Make system theme follow color-scheme natively; unify dark mode on light-dark()
@@ -2304,7 +2327,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - Add design-* packages to commitlint scope list
 
-## [6.3.0] - 2026-06-23
+## [6.3.0](https://github.com/urbicon/ui/compare/v6.2.0...v6.3.0) - 2026-06-23
 
 ### Documentation
 - Surface customization override ladder, fix class-trap + token table
@@ -2313,17 +2336,17 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Type-safe slotClasses + resolveSlotClasses library-wide
 
-## [6.2.0] - 2026-06-22
+## [6.2.0](https://github.com/urbicon/ui/compare/v6.1.8...v6.2.0) - 2026-06-22
 
 ### Features
 - **blocks**: Add prop-conditional overrides to BlocksProvider
 
-## [6.1.7] - 2026-06-22
+## [6.1.7](https://github.com/urbicon/ui/compare/v6.1.6...v6.1.7) - 2026-06-22
 
 ### CI/CD
 - Release-script
 
-## [6.1.6] - 2026-06-22
+## [6.1.6](https://github.com/urbicon/ui/compare/v6.1.5...v6.1.6) - 2026-06-22
 
 ### Bug Fixes
 - **blocks**: Redraw 17 unrecognizable icons
@@ -2386,7 +2409,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Testing
 - Lock backward-compat for an intact old-tail usages block
 
-## [6.1.5] - 2026-06-18
+## [6.1.5](https://github.com/urbicon/ui/compare/v6.1.4...v6.1.5) - 2026-06-18
 
 ### Documentation
 - Surface Planner in navigation + MCP, complete the recipe nav
@@ -2395,7 +2418,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Features
 - **blocks**: Anchor Calendar week/day views on a real day, not the 1st
 
-## [6.1.4] - 2026-06-18
+## [6.1.4](https://github.com/urbicon/ui/releases/tag/v6.1.4) - 2026-06-18
 
 ### Bug Fixes
 - **blocks**: Break icon circular dependency, split icon.context module
