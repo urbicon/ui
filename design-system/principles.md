@@ -42,6 +42,7 @@ These heuristics map common UI needs to the right Urbicon UI component:
 | Date selection | `DatePicker` | Constrained input with calendar |
 | Free text | `Input` or `Textarea` | Single-line vs. multi-line |
 | Currency amount | `CurrencyInput` | Locale-aware formatting |
+| A word with an address — a handle, a link in prose | `Link` | Always an `<a>`; `active` marks the current page |
 | Navigation between peer sections | `Tab` | Horizontal, same hierarchy |
 | Navigation between hierarchical sections | `Sidebar` | Vertical, nested groups |
 | Quick access to any page/action | `CommandPalette` | Keyboard-first, searchable |

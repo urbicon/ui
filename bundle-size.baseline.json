@@ -681,6 +681,20 @@
       "pkg": "blocks",
       "exports": ["LineChart"]
     },
+    "Link": {
+      "min": 18736,
+      "gz": 6082,
+      "net": {
+        "min": 2521,
+        "gz": 906
+      },
+      "lazy": {
+        "min": 0,
+        "gz": 0
+      },
+      "pkg": "blocks",
+      "exports": ["Link"]
+    },
     "LocaleSwitcher": {
       "min": 65638,
       "gz": 20490,

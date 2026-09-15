@@ -30,7 +30,7 @@ export interface PackageMaturity {
  * without an explicit `@stability` tag counts as stable.
  */
 export const SET_MATURITY: PackageMaturity[] = [
-  { pkg: 'blocks', stable: 53, beta: 19, experimental: 12 },
+  { pkg: 'blocks', stable: 54, beta: 19, experimental: 12 },
   { pkg: 'auth', stable: 9, beta: 5, experimental: 0 },
   { pkg: 'table', stable: 1, beta: 0, experimental: 0 }
 ];
@@ -63,7 +63,7 @@ export const SET_FAMILIES: FamilyMaturity[] = [
   { family: 'feedback', settled: 10, inProgress: 1 },
   { family: 'ai', settled: 0, inProgress: 10 },
   { family: 'layout', settled: 7, inProgress: 3 },
-  { family: 'navigation', settled: 6, inProgress: 2 },
+  { family: 'navigation', settled: 7, inProgress: 2 },
   { family: 'overlay', settled: 4, inProgress: 4 },
   { family: 'action', settled: 7, inProgress: 1 },
   { family: 'data', settled: 2, inProgress: 0 }
@@ -91,8 +91,8 @@ export const SET_PACKAGE_FAMILY: SetFlowEdge[] = [
   { source: 'blocks', target: 'display', count: 16 },
   { source: 'blocks', target: 'ai', count: 10 },
   { source: 'blocks', target: 'layout', count: 10 },
+  { source: 'blocks', target: 'navigation', count: 9 },
   { source: 'blocks', target: 'action', count: 8 },
-  { source: 'blocks', target: 'navigation', count: 8 },
   { source: 'blocks', target: 'overlay', count: 8 },
   { source: 'blocks', target: 'feedback', count: 7 },
   { source: 'auth', target: 'form', count: 8 },
@@ -114,7 +114,7 @@ export const SET_FAMILY_MATURITY: SetFlowEdge[] = [
   { source: 'layout', target: 'beta', count: 1 },
   { source: 'action', target: 'stable', count: 7 },
   { source: 'action', target: 'beta', count: 1 },
-  { source: 'navigation', target: 'stable', count: 6 },
+  { source: 'navigation', target: 'stable', count: 7 },
   { source: 'navigation', target: 'beta', count: 2 },
   { source: 'overlay', target: 'stable', count: 4 },
   { source: 'overlay', target: 'beta', count: 4 },

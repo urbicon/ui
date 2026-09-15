@@ -38,6 +38,8 @@ export type { JourneyNode, JourneyStatus, JourneyTimelineProps } from './Journey
 export * from './JourneyTimeline';
 export type { KbdProps } from './Kbd';
 export * from './Kbd';
+export type { LinkProps } from './Link';
+export * from './Link';
 export type {
   MenuContext,
   MenuCustomSlots,

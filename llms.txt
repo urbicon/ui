@@ -58,6 +58,7 @@ prop-conditional `overrides` (e.g. style only `variant="outlined"`).
 - [Input](https://ui.urbicon.de/blocks/primitives/input/llm.txt): The single-line text field, with label, validation and icons.
 - [JourneyTimeline](https://ui.urbicon.de/blocks/primitives/journey-timeline/llm.txt): The record of what happened, in order — shipments, audits, itineraries.
 - [Kbd](https://ui.urbicon.de/blocks/primitives/kbd/llm.txt): A keyboard shortcut, drawn as the key you press.
+- [Link](https://ui.urbicon.de/blocks/primitives/link/llm.txt): A word with an address — a link in prose, or a handle in a navigation strip.
 - [Menu](https://ui.urbicon.de/blocks/primitives/menu/llm.txt): A list of things you can do, hung off a button.
 - [Pagination](https://ui.urbicon.de/blocks/primitives/pagination/llm.txt): Page through a longer list, in whichever layout fits.
 - [Popover](https://ui.urbicon.de/blocks/primitives/popover/llm.txt): A floating panel that hangs off a trigger and closes when you look away.
