@@ -28,6 +28,7 @@
   let minimalOpen = $state(false);
   let brandedOpen = $state(false);
   let compactOpen = $state(false);
+  let customRowOpen = $state(false);
   let selectedAction = $state('');
 
   const fileCommands: CommandPaletteItem[] = [
@@ -168,6 +169,31 @@
           groupLabel: 'text-violet-500'
         }}
       />
+    </CodeExample>
+
+    <CodeExample
+      title="Custom Rows"
+      description="The customItem snippet draws each row's contents — content only, nothing focusable — while the option container (role, id, highlight, hover and click) stays with the palette. Here the highlighted argument puts an Enter hint on the active row."
+      isolate
+    >
+      <Button variant="outlined" intent="neutral" onclick={() => (customRowOpen = true)}>
+        Custom Rows
+      </Button>
+      <CommandPalette
+        bind:open={customRowOpen}
+        items={simpleCommands}
+        placeholder="Search..."
+        shortcut={false}
+      >
+        {#snippet customItem(item, highlighted)}
+          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span class="truncate">{item.label}</span>
+            {#if highlighted}
+              <Badge purpose="tag" variant="soft" size="xs">Enter</Badge>
+            {/if}
+          </span>
+        {/snippet}
+      </CommandPalette>
     </CodeExample>
 
     <CodeExample
