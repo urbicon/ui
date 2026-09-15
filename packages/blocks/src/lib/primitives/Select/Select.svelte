@@ -457,7 +457,20 @@
     return `${uid}-option-${index}`;
   }
 
-  /** Trigger label text for single + multi modes. */
+  /**
+   * Trigger label text for single + multi modes.
+   *
+   * Where a `nullOption` is set, `null` is that option's own value, so the
+   * trigger names it. `value` defaults to `null`, so this covers an omitted
+   * `value` too — with a null row there is no such thing as "nothing chosen",
+   * and `placeholder` is therefore never shown in single mode. The placeholder
+   * is for a Select with no null row to name.
+   *
+   * Resolved here rather than through `selectedOption`, because that accessor
+   * answers "is a value selected" — the question `required` and `clearable`
+   * ask, whose answer is still no. `groups` owns its option list and renders
+   * no null row, so none is named here either.
+   */
   const triggerText = $derived.by(() => {
     if (multiple) {
       if (selectedOptions.length === 0) return null;
@@ -465,6 +478,7 @@
       if (typeof multiPlaceholder === 'string') return multiPlaceholder;
       return selectedOptions.map((o) => o.label).join(', ');
     }
+    if (value === null && !groups && nullOptionAsOption) return nullOptionAsOption.label;
     return selectedOption?.label ?? null;
   });
 

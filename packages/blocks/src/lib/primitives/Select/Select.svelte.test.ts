@@ -685,3 +685,93 @@ describe('Select (option hints)', () => {
     expect(opt.querySelector('.tabular-nums')).toBeNull();
   });
 });
+
+describe('Select · nullOption is a chosen empty value, not an absent one', () => {
+  // `nullOption` documents itself as "When `value` is `null`, the trigger
+  // displays this label instead of the placeholder" (index.ts). It did not:
+  // `selectedOptions` returned `[]` for a null value before ever consulting
+  // `allOptions`, where the null option lives, so the trigger fell through to
+  // the hardcoded placeholder — on mount and after picking the null row alike.
+  const NULL_LABEL = 'All strands';
+  const triggerText = () => trigger().textContent?.replace(/\s+/g, ' ').trim();
+
+  it('reads the nullOption label on the trigger when value is null', () => {
+    renderSelect({
+      options: OPTIONS,
+      nullOption: NULL_LABEL,
+      value: null,
+      placeholder: 'Pick one'
+    });
+
+    expect(triggerText()).toBe(NULL_LABEL);
+  });
+
+  it('reads the nullOption label after picking the null row from a set value', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderSelect({
+      options: OPTIONS,
+      nullOption: NULL_LABEL,
+      value: 'de',
+      placeholder: 'Pick one',
+      onValueChange
+    });
+
+    expect(triggerText()).toBe('Germany');
+
+    await user.click(trigger());
+    await user.click(option(NULL_LABEL));
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalledWith(null);
+    expect(triggerText()).toBe(NULL_LABEL);
+  });
+
+  it('keeps the placeholder for a null value with no nullOption', () => {
+    renderSelect({ options: OPTIONS, value: null, placeholder: 'Pick one' });
+
+    expect(triggerText()).toBe('Pick one');
+  });
+
+  it('keeps the placeholder where groups own the option list', () => {
+    // `nullOption` is documented as ignored under `groups`, and no null row is
+    // rendered there — so the trigger must not name one either.
+    renderSelect({
+      groups: [{ label: 'Europe', options: OPTIONS }],
+      nullOption: NULL_LABEL,
+      value: null,
+      placeholder: 'Pick one'
+    });
+
+    expect(triggerText()).toBe('Pick one');
+  });
+
+  it('still counts a null value as no selection for required and clearable', async () => {
+    // "All strands" is an answer about the filter, not a value: a required
+    // field is still empty, and there is nothing for a clear button to clear.
+    const user = userEvent.setup();
+    renderSelect({
+      options: OPTIONS,
+      nullOption: NULL_LABEL,
+      value: null,
+      clearable: true,
+      required: true,
+      name: 'strand'
+    });
+
+    expect(triggerText()).toBe(NULL_LABEL);
+    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
+    // The constraint-validation sentinel, not the hidden value-carrier: the
+    // carrier renders whenever `name` is set, so `input[name]` would stay green
+    // with `required` dropped from the guard. `input[required]` is the one that
+    // blocks an empty submit, and it renders only while the field is empty.
+    expect(document.querySelector('input[required]')).toBeTruthy();
+
+    await user.click(trigger());
+    await user.click(option('Germany'));
+    flushSync();
+
+    expect(triggerText()).toBe('Germany');
+    expect(document.querySelector('input[required]')).toBeNull();
+  });
+});
