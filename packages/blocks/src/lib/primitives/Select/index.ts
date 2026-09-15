@@ -167,7 +167,14 @@ interface SelectBaseProps<T extends SelectValue = string>
    */
   closeOnSelect?: boolean;
 
-  /** Text shown when no value is selected. @default 'Select...' */
+  /**
+   * Text shown when no value is selected. Never shown in single mode alongside
+   * `nullOption`: `value` defaults to `null`, which is that option's own value,
+   * so the trigger names the null option from the start and the placeholder has
+   * no state left to describe.
+   * @default 'Select...'
+   * @summary Text shown when nothing is selected — superseded by nullOption in single mode.
+   */
   placeholder?: string;
 
   /** Label text displayed above the select, auto-linked via `id`. */
@@ -248,6 +255,11 @@ interface SelectBaseProps<T extends SelectValue = string>
    * intact). Receives the selected options. Useful for showing icons next to
    * the label, badges with counts, or formatted multi-select summaries while
    * keeping the standard outlined-Select chrome.
+   *
+   * It receives the *selected* options, which is `[]` for a `null` value even
+   * where `nullOption` is set — the null option is a row, not a selection — so
+   * a custom trigger renders nothing exactly where the default one says "All
+   * strands"; render your own `nullOption` label for the empty case.
    *
    * Positional args: `(selected)`.
    */
