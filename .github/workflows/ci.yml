@@ -182,9 +182,9 @@ jobs:
       # by class and file. Without this the gate is green for any reason.
       - run: bun test scripts/consumer-css-check.test.ts
       # The docs-reference gate's positive controls (the gate itself runs in
-      # `lint`): a fixture repo with one sabotage per concern, each expected
-      # back by kind and line. A check whose extraction reads nothing reports
-      # "0 findings" exactly like a clean tree.
+      # `lint`): a fixture repo sabotaged for every concern it checks, each
+      # finding expected back by kind and line. A check whose extraction reads
+      # nothing reports "0 findings" exactly like a clean tree.
       - run: bun test scripts/docs-refs-check.test.ts
       # End-to-end control for the pattern corpus of `examples:lint` (the gate
       # itself runs in `gates`): drives the real script over a fixture corpus and

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { ALLOWLIST } from './docs-refs-check';
+import { AGENTS_WORD_BUDGET, ALLOWLIST } from './docs-refs-check';
 
 /**
  * Positive controls for the docs-reference gate, against its own oracles.
@@ -59,6 +59,10 @@ function fixture(): string {
   );
   write(root, 'packages/table/src/lib/thing.ts', 'export const LIVE_CONST = 1;\n');
   write(root, 'scripts/keeper.ts', 'export const KEEPER = LIVE_CONST;\n');
+  // Named `scripts/only-here.ts` in a doc, this resolves by tail and is still
+  // wrong: `scripts/` is a real top-level directory, so the spelling is a claim
+  // about the root.
+  write(root, 'packages/table/scripts/only-here.ts', 'export const ONLY = 1;\n');
 
   // Every ALLOWLIST entry must be mentioned by a source or it is stale — the
   // fixture names them the way the real sources do, whatever the list holds.
@@ -83,7 +87,9 @@ function fixture(): string {
       '## Paths',
       '',
       'Sources: `packages/table/src/lib/thing.ts`, `scripts/keeper.ts`, `lib/thing.ts`,',
-      'and the pointer `keeper.ts:12` plus `packages/table/src/lib/thing.ts:1-3`.',
+      'and the pointer `keeper.ts:1` plus `packages/table/src/lib/thing.ts:1-1`.',
+      '',
+      'A file is not a script name: `bun run scripts/keeper.ts`.',
       '',
       'Exemptions: `LIVE_CONST`.',
       '',
@@ -94,7 +100,7 @@ function fixture(): string {
       'See [the index](docs/README.md) and [a section](docs/README.md#the-fixture-index).',
       '',
       '```sh',
-      '# a fenced block is not a reference: bun run nothing-at-all',
+      '# a fenced block is not a reference: `bun run nothing-at-all`',
       '```',
       ''
     ].join('\n')
@@ -133,19 +139,25 @@ function fixture(): string {
       '## Repeat',
       '',
       '## The `<Thing>` contract',
+      '',
+      '```md',
+      '## Fenced heading',
+      '```',
       ''
     ].join('\n')
   );
   return root;
 }
 
-function run(root: string): { code: number; out: string } {
-  const proc = Bun.spawnSync([process.execPath, SCRIPT, '--root', root], {
+function runArgs(...args: string[]): { code: number; out: string } {
+  const proc = Bun.spawnSync([process.execPath, SCRIPT, ...args], {
     stdout: 'pipe',
     stderr: 'pipe'
   });
   return { code: proc.exitCode, out: `${proc.stdout.toString()}${proc.stderr.toString()}` };
 }
+
+const run = (root: string) => runArgs('--root', root);
 
 describe('docs-refs-check', () => {
   it('passes a fixture repo whose references all resolve, having read some', () => {
@@ -192,6 +204,15 @@ describe('docs-refs-check', () => {
     expect(code).toBe(1);
   });
 
+  it('hands `bun run <file>` to the path rule, not the script rule', () => {
+    const root = fixture();
+    const line = appendLine(root, 'AGENTS.md', 'Run `bun run scripts/gone.ts`.');
+    const { out } = run(root);
+    expect(out).toContain(`AGENTS.md:${line}  path  scripts/gone.ts`);
+    // Never as a script called `scripts`: the capture used to stop at the `/`.
+    expect(out).not.toMatch(/script {2}scripts {2}/);
+  });
+
   it('reports a package script that no longer exists', () => {
     const root = fixture();
     const line = appendLine(root, 'AGENTS.md', "Run `bun --filter='@urbicon-ui/table' run gone`.");
@@ -209,11 +230,29 @@ describe('docs-refs-check', () => {
     expect(out).toContain(`docs/GUIDE.md:${tail}  path  lib/gone.ts`);
   });
 
+  it('reports a root-anchored path although the tail resolves', () => {
+    const root = fixture();
+    // `packages/table/scripts/only-here.ts` is on disk, so the tail is there.
+    // `scripts/` is a real top-level directory, so this spelling is wrong.
+    const line = appendLine(root, 'docs/GUIDE.md', 'See `scripts/only-here.ts`.');
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${line}  path  scripts/only-here.ts`);
+    expect(out).toContain('no such file at the repo root');
+  });
+
   it('reports a file:line pointer whose file is gone', () => {
     const root = fixture();
     const line = appendLine(root, 'docs/GUIDE.md', 'The rule sits at `gone.ts:12`.');
     const { out } = run(root);
     expect(out).toContain(`docs/GUIDE.md:${line}  path  gone.ts`);
+  });
+
+  it('reports a file:line pointer past the end of the file it names', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/GUIDE.md', 'The rule sits at `keeper.ts:9999`.');
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${line}  path  keeper.ts:9999`);
+    expect(out).toContain('lines');
   });
 
   it('reports a constant that occurs in no source', () => {
@@ -238,6 +277,14 @@ describe('docs-refs-check', () => {
     expect(out).toContain('no heading in docs/GUIDE.md slugifies to #no-such-heading');
   });
 
+  it('reports a link to a heading that only exists inside a fence', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/README.md', '- [fenced](./GUIDE.md#fenced-heading)');
+    const { out } = run(root);
+    expect(out).toContain(`docs/README.md:${line}  link  ./GUIDE.md#fenced-heading`);
+    expect(out).toContain('no heading in docs/GUIDE.md slugifies to #fenced-heading');
+  });
+
   it('reports a github.com/urbicon/ui link whose path or anchor is gone', () => {
     const root = fixture();
     const base = 'https://github.com/urbicon/ui/blob/main';
@@ -253,10 +300,21 @@ describe('docs-refs-check', () => {
     expect(clean.out).toMatch(/AGENTS\.md: \d+ words \(budget \d+\)/);
 
     const root = fixture();
-    appendLine(root, 'AGENTS.md', 'padding '.repeat(3400));
+    appendLine(root, 'AGENTS.md', 'padding '.repeat(AGENTS_WORD_BUDGET + 1));
     const { code, out } = run(root);
     expect(out).toMatch(/AGENTS\.md:1 {2}budget {2}\d+ words/);
+    expect(out).toContain(`over the ${AGENTS_WORD_BUDGET}-word budget`);
     expect(code).toBe(1);
+  });
+
+  // Explicit over a fallback: a `--root` that names nothing must not silently
+  // check this repo and report it clean.
+  it('refuses a --root with no directory behind it', () => {
+    for (const args of [['--root'], ['--root', '--json']]) {
+      const { code, out } = runArgs(...args);
+      expect(out).toContain('--root needs a directory');
+      expect(code).toBe(2);
+    }
   });
 
   // Vacuous with an empty list; the list is the thing under test.

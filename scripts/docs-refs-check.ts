@@ -26,8 +26,8 @@
  * inline code spans only (never fenced blocks), a path only when the span
  * carries a `/` and ends in `/` or an alphabetic extension, and never a span
  * carrying `*`, `<`, `>`, `{`, `}`, `…`, `$`, `?`, `|` or `...` — a pattern or
- * a placeholder is not a claim that a file exists. A span that is a link's
- * whole label is skipped too: the target is the claim, the label only names it.
+ * a placeholder is not a claim that a file exists. A span inside a link's label
+ * is skipped too: the target is the claim, the label only names it.
  *
  * The docs name a file by as much of its path as identifies it
  * (`Tab/tab.context.ts`), so a token is resolved against the root, the
@@ -36,21 +36,40 @@
  * and gets no tail — that is what keeps `scripts/imports-lint.ts` a finding
  * while the file sits in `packages/blocks/scripts/`.
  *
- * `ALLOWLIST` exempts a reference by its literal text, one reason per entry; an
- * entry no source mentions is reported as stale, the contract of
- * `packages/blocks/scripts/imports-lint.ts`. Stale means "no source mentions
- * it", not "suppressed no finding": an entry must not flip with the state of a
- * tree the check does not control.
+ * The tail is a weaker question than it looks: 107 of the references resolve
+ * only that way, and 19 of those match more than one file (`src/index.ts`,
+ * `examples/Basic.svelte`, `__fixtures__/`). This says such a file exists, not
+ * that the document points at the right one — which one is the review's.
+ *
+ * It also indexes the tree that is on disk, so a built tree can answer "exists"
+ * where an unbuilt one has only `git check-ignore`'s "absent by design". The
+ * `lint` job runs it without a build, and that is the run whose answer counts;
+ * a local run after a build is the more permissive of the two.
+ *
+ * `ALLOWLIST` exempts a reference by its literal text, one reason per entry.
+ * Like `packages/blocks/scripts/imports-lint.ts` it errors on an entry that has
+ * gone stale, and unlike it, stale means "no source mentions the text" rather
+ * than "suppressed no finding": the findings an entry suppresses depend on a
+ * tree this check does not control (a built `dist/`, a `docs/internal/` that
+ * exists only in the main checkout), and a list that flips with that is worse
+ * than none. The cost is that an entry can go inert without being stale, so
+ * this file is excluded from the identifier grep below — otherwise the entry
+ * naming a constant would itself be the source that constant is found in.
  *
  * Run: `bun run docs:refs:check` — no build needed. `--root <dir>` points it at
- * another tree, `--json` prints findings as JSON. Exit 1 on any finding.
+ * another tree, `--json` prints findings as JSON. Exit 1 on any finding, 2 on
+ * a malformed argument.
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { Glob } from 'bun';
 
-/** AGENTS.md is read in full by every session; the budget is what that costs. */
-export const AGENTS_WORD_BUDGET = 3300;
+/**
+ * AGENTS.md is read in full by every session, so its length is a cost every
+ * session pays. 3,400 sits about one bullet above the file: a new Commands
+ * entry is meant to cost the removal of another, and that friction is the point.
+ */
+export const AGENTS_WORD_BUDGET = 3400;
 
 /** Exemptions — a genuine false positive per entry, with the reason for it. */
 export const ALLOWLIST: ReadonlyArray<readonly [what: string, why: string]> = [
@@ -95,9 +114,12 @@ interface Source {
   text: string;
 }
 
+/** Plain code-unit order: the output is a diff, not a listing for a reader. */
+const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 const PATTERN_CHARS = /[*<>{}…$?|]/;
 const IDENT = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/;
-const FILE_LINE = /^(.+?):(\d+)(?:-\d+)?$/;
+const FILE_LINE = /^(.+?):(\d+)(?:-(\d+))?$/;
 const EXTENSION = /\.[A-Za-z][A-Za-z0-9]{0,7}$/;
 const ARTIFACT = /(^|\/)(node_modules|dist|\.svelte-kit)(\/|$)/;
 const SKIP_DIR = /(^|\/)(node_modules|dist|\.svelte-kit|\.git|build|coverage|test-results)(\/|$)/;
@@ -162,7 +184,7 @@ export function check(root: string): Report {
         text: readFileSync(real, 'utf-8')
       });
     }
-    sources.sort((a, b) => a.display.localeCompare(b.display));
+    sources.sort((a, b) => cmp(a.display, b.display));
   }
 
   // ── Oracles ────────────────────────────────────────────────────────────────
@@ -205,11 +227,16 @@ export function check(root: string): Report {
   let corpusText: string | null = null;
   const corpus = (): string => {
     if (corpusText !== null) return corpusText;
+    // Never this file: the ALLOWLIST quotes the identifiers it exempts, so a
+    // grep that read it would find every exempted constant here and the entry
+    // would exempt itself. (Outside ROOT this resolves to `../…` and matches
+    // nothing, which is the right answer for a `--root` elsewhere.)
+    const self = relative(ROOT, import.meta.path);
     const parts: string[] = [];
     const seen = new Set<string>();
     for (const pattern of CORPUS_GLOBS)
       for (const p of new Glob(pattern).scanSync({ cwd: ROOT, onlyFiles: true, dot: true })) {
-        if (SKIP_DIR.test(p) || BINARY.test(p) || seen.has(p)) continue;
+        if (p === self || SKIP_DIR.test(p) || BINARY.test(p) || seen.has(p)) continue;
         seen.add(p);
         try {
           parts.push(readFileSync(join(ROOT, p), 'utf-8'));
@@ -245,12 +272,26 @@ export function check(root: string): Report {
     return tree;
   };
 
-  const resolvesByTail = (token: string): boolean => {
+  const tailHits = (token: string): string[] => {
     const isDir = token.endsWith('/');
     const t = token.replace(/\/+$/, '');
-    if (t === '') return false;
+    if (t === '') return [];
     const map = isDir ? treeIndex().dirs : treeIndex().files;
-    return (map.get(basename(t)) ?? []).some((p) => p === t || p.endsWith(`/${t}`));
+    return (map.get(basename(t)) ?? []).filter((p) => p === t || p.endsWith(`/${t}`));
+  };
+
+  const lineCounts = new Map<string, number>();
+  const lineCount = (file: string): number => {
+    const hit = lineCounts.get(file);
+    if (hit !== undefined) return hit;
+    let n = 0;
+    try {
+      n = readFileSync(file, 'utf-8').split('\n').length;
+    } catch {
+      /* unreadable — no number to disagree with */
+    }
+    lineCounts.set(file, n);
+    return n;
   };
 
   let rootDirs: Set<string> | null = null;
@@ -313,8 +354,24 @@ export function check(root: string): Report {
     for (const base of bases) if (existsSync(resolve(base, token))) return;
     if (isRootAnchored(token))
       report(src, line, 'path', token, `no such file at the repo root or under ${rel(src.dir)}`);
-    else if (!resolvesByTail(token))
+    else if (tailHits(token).length === 0)
       report(src, line, 'path', token, 'no file with that path tail anywhere in the tree');
+  };
+
+  /**
+   * The single file a `file.ts:12` pointer names, or null. Only a unique answer
+   * counts: `src/index.ts:40` matches nine files, and no line number is a claim
+   * about all of them.
+   */
+  const pointerTarget = (src: Source, file: string): string | null => {
+    const bases = [ROOT, src.dir];
+    if (src.pkg && /^(src|scripts|docs)\//.test(file)) bases.push(src.pkg);
+    for (const base of bases) {
+      const abs = resolve(base, file);
+      if (existsSync(abs)) return abs;
+    }
+    const hits = file.includes('/') ? tailHits(file) : (treeIndex().files.get(file) ?? []);
+    return hits.length === 1 && hits[0] ? join(ROOT, hits[0]) : null;
   };
 
   const checkFragment = (
@@ -333,7 +390,7 @@ export function check(root: string): Report {
     // 1 — scripts. A `--filter` carrying a glob or a placeholder names no
     // single package, so there is nothing to ask.
     for (const m of span.matchAll(
-      /\bbun\s+(?:--bun\s+)?--filter=['"]?([^'"\s]+)['"]?(?:\s+--bun)?\s+run\s+([A-Za-z0-9:_.-]+)(?![<>{}*?$|\w:.-])/g
+      /\bbun\s+(?:--bun\s+)?--filter=['"]?([^'"\s]+)['"]?(?:\s+--bun)?\s+run\s+([A-Za-z0-9:_.-]+)(?![<>{}*?$|/\w:.-])/g
     )) {
       const [, spec = '', name = ''] = m;
       if (PATTERN_CHARS.test(spec)) continue;
@@ -345,10 +402,12 @@ export function check(root: string): Report {
         report(src, line, 'script', name, `not a script of ${rel(dir)}/package.json`);
     }
     for (const m of span.matchAll(
-      /\bbun\s+(?:--bun\s+)?run\s+([A-Za-z0-9:_.-]+)(?![<>{}*?$|\w:.-])/g
+      /\bbun\s+(?:--bun\s+)?run\s+([A-Za-z0-9:_.-]+)(?![<>{}*?$|/\w:.-])/g
     )) {
       const name = m[1] ?? '';
-      // `bun run scripts/foo.ts` names a file, not a script — rule 2 owns it.
+      // `bun run scripts/foo.ts` never gets here — the lookahead rejects the
+      // `/`. `bun run foo.ts` does, and names a file rather than a script.
+      // Both are rule 2's.
       if (name.includes('.')) continue;
       seenRef(name);
       if (!scriptsOf(ROOT)?.has(name))
@@ -379,8 +438,18 @@ export function check(root: string): Report {
       if (file && EXTENSION.test(file)) {
         seenRef(file);
         if (file.includes('/')) checkPathLike(src, line, file);
-        else if (!treeIndex().files.has(file))
+        else if (!treeIndex().files.has(file)) {
           report(src, line, 'path', file, 'no file of that name in the tree');
+          continue;
+        }
+        // The line half of the pointer, where the tree names one file: a
+        // pointer into a file that has since been cut short is as dead as one
+        // into a file that is gone.
+        const target = pointerTarget(src, file);
+        const wanted = Number(pointer[3] ?? pointer[2]);
+        const lines = target ? lineCount(target) : 0;
+        if (lines > 0 && wanted > lines)
+          report(src, line, 'path', token, `${rel(target ?? '')} has ${lines} lines`);
         continue;
       }
       if (!looksLikePath(token)) continue;
@@ -469,9 +538,7 @@ export function check(root: string): Report {
         why: `stale — no source mentions it any more (${why})`
       });
 
-  kept.sort(
-    (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.what.localeCompare(b.what)
-  );
+  kept.sort((a, b) => cmp(a.file, b.file) || a.line - b.line || cmp(a.what, b.what));
   return { sources: sources.length, references, words, findings: kept };
 }
 
@@ -545,10 +612,16 @@ function gitIgnored(root: string, paths: string[]): Set<string> {
 
 if (import.meta.main) {
   const argv = process.argv.slice(2);
-  const rootArg = argv[argv.indexOf('--root') + 1];
-  const root =
-    argv.includes('--root') && rootArg ? resolve(rootArg) : resolve(import.meta.dir, '..');
-  const result = check(root);
+  const at = argv.indexOf('--root');
+  const given = at === -1 ? null : argv[at + 1];
+  // Explicit over a fallback: `--root` with nothing behind it, or with the next
+  // flag, would otherwise check the repo and report a clean tree for one the
+  // caller never named.
+  if (at !== -1 && (!given || given.startsWith('--'))) {
+    console.error('docs-refs-check: --root needs a directory');
+    process.exit(2);
+  }
+  const result = check(given ? resolve(given) : resolve(import.meta.dir, '..'));
 
   if (argv.includes('--json')) {
     console.log(JSON.stringify(result, null, 2));
