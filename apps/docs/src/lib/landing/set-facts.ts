@@ -51,8 +51,8 @@ export interface FamilyMaturity {
 }
 
 /**
- * Components per family, largest first — the six-family taxonomy as the
- * catalogue actually tags it, which is nine buckets rather than six.
+ * Components per family, largest first — the family taxonomy as the
+ * catalogue actually tags it, which is more buckets than COMPONENT-FAMILIES.md has families.
  *
  * Carries a real statement, which is why it is worth a demo: most of the form
  * family has settled, while every component tagged `ai` is still moving.

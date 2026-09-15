@@ -20,7 +20,7 @@
  * that were in the cookbook but in no sidebar.
  *
  * Deliberately NOT a generator. The sidebar's grouping and ordering are an
- * editorial decision the catalogue does not carry — the six-family taxonomy is
+ * editorial decision the catalogue does not carry — the family taxonomy is
  * not a nav structure. So this compares, and leaves the writing to a human.
  *
  * What it checks:
