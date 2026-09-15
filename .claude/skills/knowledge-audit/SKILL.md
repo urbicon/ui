@@ -68,7 +68,11 @@ words, then cut them.
   spelled-out roster count is exactly how a roster goes stale. A survivor that
   counts something in the tree names the command that reproduces it, or goes; a
   count that only introduces the list in the same paragraph is its own oracle
-  and stays. A retyped roster counts as a number.
+  and stays. A retyped roster counts as a number. Run both passes over
+  `packages/*/README.md`, `packages/docs-gen/templates/*.md` and
+  `.claude/skills/*/SKILL.md` too, and add the hyphenated form (`six-family`) —
+  the stale copies the 2026-09-14 pass fixed sat in exactly those files and in
+  that spelling.
 
 - **Markers.** `git grep -n "pending #"`, then `gh issue view <N> --json state`:
   a marker whose issue is closed is a decision to write into the prose or delete.

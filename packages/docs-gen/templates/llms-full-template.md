@@ -138,7 +138,7 @@ Merged with variant classes. Always available on every component.
 
 ## Component Families
 
-Every primitive belongs to exactly one of the families in the table below. The family decides ARIA role, tier-system membership, and border-token source. Pick the right family up-front to avoid categorical bugs (button that looks like an input, menu that doubles as a listbox, avatar that mutates when commit-radii flatten).
+Every component belongs to exactly one of the families in the table below. The family decides ARIA role, tier-system membership, and border-token source. Pick the right family up-front to avoid categorical bugs (button that looks like an input, menu that doubles as a listbox, avatar that mutates when commit-radii flatten).
 
 ### Family table
 
