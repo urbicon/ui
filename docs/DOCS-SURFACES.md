@@ -54,8 +54,11 @@ synthesis, and the standing rule:
    or link the source of truth; never retype the list. SVELTE5-PATTERNS'
    "141 hits, 115 outside tests; 2026-09" sits directly above the `rg` line
    that produced it — that is the shape. Written out, a number rots in
-   silence: the 2026-09-14 audit found four wrong numbers in AGENTS.md and
-   the same LoC figure wrong in four files (`git grep -l "600 LoC" v8.21.0`).
+   silence: one stale LoC figure had been retyped into every doc that
+   mentioned the engine (`git grep -l "600 LoC" v8.21.0`). The carve-out: a
+   dated, past-tense finding in a decision record is history, not a claim
+   about the tree, and needs no command; a present-tense count is a claim
+   and needs one.
 
 ## Classes and channels
 

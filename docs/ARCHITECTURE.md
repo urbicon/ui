@@ -253,9 +253,9 @@ Anything that genuinely *is* a panel, dialog or container stays on `contain`.
 > authoring rules that follow from it.
 
 All variant logic runs through a **custom `tv()` engine**
-(`packages/blocks/src/lib/utils/variants.ts`, ~1,350 LoC, zero-dependency replacement for
-`tailwind-variants`). Each component has a `*.variants.ts` defining slots, variants, sizes,
-intents, compound variants and defaults.
+(`packages/blocks/src/lib/utils/variants.ts` — `wc -l` it before you read it — a
+zero-dependency replacement for `tailwind-variants`). Each component has a
+`*.variants.ts` defining slots, variants, sizes, intents, compound variants and defaults.
 
 **The conflict resolver.** The pipeline is an ordered list of sources —
 `slot-base → each variant axis in declaration order → each matching compoundVariant in

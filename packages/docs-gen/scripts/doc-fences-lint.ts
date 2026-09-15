@@ -4,7 +4,7 @@
  * Markdown docs with `tsc`, as a consumer would see them.
  *
  * Corpus: every `packages/<pkg>/README.md` and `packages/<pkg>/docs/*.md` — the
- * files that ship in npm tarballs (six of them are symlinked from `docs/`) and
+ * files that ship in npm tarballs (the ones symlinked from `docs/`) and
  * feed `llms-full.txt`. Nothing else compiles their code blocks, and what slips
  * through is exactly what `tsc` names: a factory missing required methods
  * (TS2739), an import the exports map does not provide (TS2305), a config key

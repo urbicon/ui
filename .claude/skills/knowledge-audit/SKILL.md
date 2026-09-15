@@ -11,7 +11,7 @@ than a reading. Never run one in the context that wrote the prose it audits.
 
 ## When it is worth running
 
-- `wc -w AGENTS.md` above its 3,300-word budget.
+- AGENTS.md above the budget `bun run docs:refs:check` enforces and prints.
 - The memory index above 1,250 words (`wc -w` on `MEMORY.md`).
 - A review, a consumer or a derailed session hit a claim that is false.
 - Otherwise at most quarterly: self-inspection finds findings without limit, so
@@ -19,9 +19,19 @@ than a reading. Never run one in the context that wrote the prose it audits.
 
 ## 1. Memory
 
-Every index line resolves to a file and every file is indexed — `comm -3` over
-the two listings, not an eyeball pass. Each hook must say what its file says; a
-drifted hook is worse than no entry, because the hook is what gets read.
+The project memory is maintainer-local, not in the repo, so this check runs in
+`~/.claude/projects/-Users-felix-Workspace-ui/memory/`. Every index line
+resolves to a file and every file is indexed — compare the two listings instead
+of eyeballing them:
+
+```bash
+comm -3 <(grep -o '([a-z_0-9]*\.md)' MEMORY.md | tr -d '()' | sort) \
+        <(ls *.md | grep -v '^MEMORY\.md$' | sort)
+```
+
+Left column: an index line pointing at nothing. Right: a file nobody links.
+Each hook — the one-line summary the index carries — must say what its file
+says; a drifted hook is worse than no entry, because the hook is what gets read.
 Anything already codified in AGENTS.md, a skill or a doc is **deleted, not
 kept**: the repo is canon, memory holds only what has no home in it yet.
 
@@ -30,10 +40,10 @@ kept**: the repo is canon, memory holds only what has no home in it yet.
 Reference integrity of AGENTS.md and every `.claude/skills/*/SKILL.md`: each
 `bun run X` exists in a `package.json`, each path exists, each named constant
 (`PLACEHOLDERS`, `NO_PAGE`, `BUCKET_PATTERNS`, …) is still in the script said to
-hold it. The CI check `docs:refs:check` will own this; until it exists, grep
-each by hand — the last pass found a deleted constant still cited, two wrong
-package names, and a hook described as local that exists only in the consumer
-template.
+hold it. `bun run docs:refs:check` is the gate for this; grep by hand for
+whatever it does not cover — the last pass found a deleted constant still cited,
+two wrong package names, and a hook described as local that exists only in the
+consumer template.
 
 Then a history-vs-constraint pass over AGENTS.md, applying its own rule to
 itself: classify each sentence as rule, pointer or provenance. Provenance that
@@ -42,9 +52,24 @@ words, then cut them.
 
 ## 3. Docs
 
-- **Numbers.** `grep -nE "[0-9]" docs/*.md packages/*/docs/*.md`: every count,
-  LoC figure or percentage names the command that reproduces it, or goes. A
-  retyped roster counts as a number.
+- **Numbers.** A bare digit grep returns thousands of lines, nearly all of them
+  dates, versions, issue numbers and CSS values, which the rule does not cover.
+  Narrow it to counts and rosters in prose, and read only the survivors:
+
+  ```bash
+  grep -nE '[0-9]+ ?(LoC|%|files|components|packages|milestones|entries|of [0-9]+|[a-z]{3,}s\b)' \
+    docs/*.md packages/*/docs/*.md |
+    grep -vE '[0-9]{4}-[0-9]{2}|v[0-9]+\.[0-9]+|#[0-9]+|[0-9]+(px|rem|em|ms)\b'
+  grep -inE '\b(six|seven|eight|nine|ten|eleven|twelve|thirteen|seventeen) [a-z]+s\b' \
+    docs/*.md packages/*/docs/*.md
+  ```
+
+  The second pass is not optional: "six families" carries no digit, and a
+  spelled-out roster count is exactly how a roster goes stale. A survivor that
+  counts something in the tree names the command that reproduces it, or goes; a
+  count that only introduces the list in the same paragraph is its own oracle
+  and stays. A retyped roster counts as a number.
+
 - **Markers.** `git grep -n "pending #"`, then `gh issue view <N> --json state`:
   a marker whose issue is closed is a decision to write into the prose or delete.
 - **Canon.** Every `> **Canon.**` section appears in docs/README.md § Canon map,

@@ -97,10 +97,11 @@ is clean — a `feat` anywhere in the set makes it minor.
 Then prune what the wave made obsolete, as a named step rather than a
 someday: memory entries whose delete-condition the wave met; every
 `Decided <date>, pending #N` marker whose issue the wave closed
-(`git grep -n "pending #N"`); the doc sentences and comments the code
-change falsified (grep the identifiers you changed across `docs/` and
-`packages/*/docs`); and the implementation postscript into the
-probe/analysis document that spawned the wave. Then update the project
-memory — with what the wave leaves standing, not with what it did. A wave that only adds
-leaves the next one reading its leftovers as current, and the write-up
-that would have said so is the first thing to go stale.
+(`git grep -n "pending #"`, then filter for the wave's issues); the doc
+sentences and comments the code change falsified (grep the identifiers
+you changed across `docs/` and `packages/*/docs`); and the
+implementation postscript into the probe/analysis document that spawned
+the wave. Then update the project memory — with what the wave leaves
+standing, not with what it did. A wave that only adds leaves the next
+one reading its leftovers as current, and the write-up that would have
+said so is the first thing to go stale.

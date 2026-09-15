@@ -100,7 +100,7 @@ All tools are read-only (`readOnlyHint: true`) — this server never touches the
 | `urbicon://catalog`                  | Full component catalog in Markdown — used as the LLM's default context                  |
 | `urbicon://guide/api-grammar`        | Canonical prop conventions (`intent`, `variant`, `size`, callbacks)                     |
 | `urbicon://guide/design-quality`     | AVOID/INSTEAD design-quality patterns — spacing, hierarchy, colour and shape discipline |
-| `urbicon://guide/component-families` | Six-family component taxonomy - ARIA roles and per-family border-token source           |
+| `urbicon://guide/component-families` | The families COMPONENT-FAMILIES.md lists - ARIA roles, per-family border-token source   |
 | `urbicon://guide/customization`      | `unstyled` / `slotClasses` / `preset` override system + `BlocksProvider` overrides      |
 | `urbicon://guide/auth`               | Complete auth reference - served verbatim from the bundled, tarball-canonical `AUTH.md` |
 | `urbicon://guide/style-patterns`     | Reusable style presets and composition templates                                        |
