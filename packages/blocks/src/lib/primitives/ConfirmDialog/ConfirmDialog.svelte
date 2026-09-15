@@ -47,9 +47,7 @@
 
   let busy = $state(false);
   const isLoading = $derived(loading || busy);
-  const effectiveConfirmIntent = $derived(
-    confirmIntent ?? (intent === 'neutral' ? 'primary' : intent)
-  );
+  const effectiveConfirmIntent = $derived(confirmIntent ?? intent);
 
   async function handleConfirm() {
     if (!onConfirm) {

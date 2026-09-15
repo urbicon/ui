@@ -3,6 +3,8 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { buttonVariants } from '../Button/button.variants';
+import { dialogVariants } from '../Dialog/dialog.variants';
 import ConfirmDialog from './ConfirmDialog.svelte';
 import type { ConfirmDialogProps } from './index';
 
@@ -46,6 +48,47 @@ const base = {
   confirmLabel: 'Delete',
   cancelLabel: 'Keep'
 } satisfies Partial<ConfirmDialogProps>;
+
+type Intent = 'neutral' | 'primary' | 'danger';
+
+const tokens = (classes: string) => new Set(classes.split(/\s+/).filter(Boolean));
+
+/** Asserts `el` wears every token of `want` and none that only `other` has. */
+function expectDressedAs(el: Element, want: Set<string>, other: Set<string>) {
+  const worn = tokens(el.className);
+  expect([...want].filter((t) => !worn.has(t))).toEqual([]);
+  expect([...other].filter((t) => !want.has(t) && worn.has(t))).toEqual([]);
+}
+
+/**
+ * Asserts the confirm button is dressed as `intent` and not as `insteadOf`.
+ * Both sides are asked of buttonVariants with the arguments ConfirmDialog's
+ * call site passes — the bare intent, every other axis left to its default —
+ * so the expectation cannot drift from what the Button actually renders.
+ */
+function expectConfirmIntent(button: HTMLButtonElement, intent: Intent, insteadOf: Intent) {
+  expectDressedAs(
+    button,
+    tokens(buttonVariants({ intent }).base()),
+    tokens(buttonVariants({ intent: insteadOf }).base())
+  );
+}
+
+/**
+ * Asserts the header still belongs to the DIALOG's intent: the panel's
+ * `data-intent` and the heading's tint both stay on `intent` while the confirm
+ * button wears something else. Without this, rewiring the header to
+ * `effectiveConfirmIntent` would leave the confirmIntent test green.
+ */
+function expectHeaderIntent(intent: Intent, insteadOf: Intent) {
+  const panel = screen.getByRole('dialog', { hidden: true }).querySelector('[data-intent]');
+  expect(panel?.getAttribute('data-intent')).toBe(intent);
+  expectDressedAs(
+    screen.getByRole('heading', { name: base.title, hidden: true }),
+    tokens(dialogVariants({ intent }).title()),
+    tokens(dialogVariants({ intent: insteadOf }).title())
+  );
+}
 
 describe('ConfirmDialog (component interaction)', () => {
   it('renders a structured confirm dialog with title, description, and both buttons', async () => {
@@ -396,5 +439,30 @@ describe('ConfirmDialog (component interaction)', () => {
     const dialog = screen.getByRole('dialog', { hidden: true });
     expect(dialog.getAttribute('data-testid')).toBe('confirm-delete');
     expect(dialog.getAttribute('aria-label')).toBe('Confirm deletion');
+  });
+
+  it('dresses the confirm button as the dialog intent — a neutral dialog gets a filled neutral confirm', async () => {
+    // The confirm button follows `intent` with no promotion in between, so a
+    // neutral dialog confirms in filled neutral. Reinstating the old
+    // `intent === 'neutral' ? 'primary' : intent` mapping fails exactly here.
+    renderConfirm({ ...base, open: true, intent: 'neutral' });
+    await tick();
+
+    expectConfirmIntent(confirmBtn(), 'neutral', 'primary');
+  });
+
+  it('lets confirmIntent override the dialog intent on the button alone', async () => {
+    renderConfirm({ ...base, open: true, intent: 'neutral', confirmIntent: 'danger' });
+    await tick();
+
+    expectConfirmIntent(confirmBtn(), 'danger', 'neutral');
+    expectHeaderIntent('neutral', 'danger');
+  });
+
+  it('defaults to a danger confirm when no intent is given', async () => {
+    renderConfirm({ ...base, open: true });
+    await tick();
+
+    expectConfirmIntent(confirmBtn(), 'danger', 'neutral');
   });
 });
