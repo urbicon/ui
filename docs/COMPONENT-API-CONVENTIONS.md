@@ -121,7 +121,7 @@ Three props, three jobs — they do not overlap, and their precedence is a rule,
 
 **Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone. `aria-invalid` and the `role="alert"` message still follow `error`, exactly as on the fields.
 
-**The required marker is a slot, not a prop.** Nine components draw the same `aria-hidden` `<span>` on a `requiredMark` slot — the eight field primitives (Input, Textarea, Select, Combobox, Checkbox, RadioGroup, PinInput, TimeInput) plus `FormField`; `Toggle` takes `required` and draws none. The build and its reasoning are [VARIANT-CONTRACT § The required marker](../packages/blocks/docs/VARIANT-CONTRACT.md#the-required-marker). The API rule that follows: there is **no `requiredIndicator` prop**. Being a slot puts the marker on the override ladder, which covers "asterisk", "none" and — as a content class — a wording such as "(required)". Marking the **optional** fields instead is the one mode the slot cannot express, because the span renders only under `required` (#395 records why).
+**The required marker is a slot, not a prop.** The nine components [VARIANT-CONTRACT § The required marker](../packages/blocks/docs/VARIANT-CONTRACT.md#the-required-marker) lists draw the same `aria-hidden` `<span>` on a `requiredMark` slot — that section carries the roster, the build and the reasoning; `Toggle` takes `required` and draws none. The API rule that follows: there is **no `requiredIndicator` prop**. Being a slot puts the marker on the override ladder, which covers "asterisk", "none" and — as a content class — a wording such as "(required)". Marking the **optional** fields instead is the one mode the slot cannot express, because the span renders only under `required` (#395 records why).
 
 ## Discriminated unions for mutually exclusive props
 
@@ -314,6 +314,11 @@ For anything new, prefer a native `<button>` root to `role="button"` on a `<div>
 
 ## Styling props (`class`, `unstyled`, `slotClasses`, `preset`)
 
+> **Canon.** The prop surface — which props a component ships, how each is typed, which
+> element each reaches — is described once, here. The mechanism they drive is
+> [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade); other docs
+> link to one of the two rather than restating either.
+
 Every visible component ships all four. What they **do** — the order they fold in, what `overrides` match against, how `unstyled` propagates, how a wrapper and a compound part are addressed — is [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade). This section is the surface: how each is typed, and which element each reaches.
 
 ### `slotClasses`
@@ -369,6 +374,10 @@ The five rungs a consumer reaches for, the rule that their numbering is blast ra
 - **Its JSDoc must not promise an empty element.** `unstyled` removes the `tv()` pass, not every class: a component's own semantic hooks survive, as does the plumbing of any [internal core](ARCHITECTURE.md#the-internal-core-layer) it embeds. "Remove the default variant classes" is accurate; "only user classes apply" is not.
 
 ### `variantProps` and the house axis order
+
+> **Canon.** `variantProps` and the house axis order are described once, here.
+> [ComponentStructureStandard.md](ComponentStructureStandard.md) links here for the authoring
+> rules that follow from them.
 
 The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, and the same `xVariants.config` goes to `tv()` and to the resolver — so the `tv()` output and the prop-conditional `overrides` cannot match against different variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys.
 

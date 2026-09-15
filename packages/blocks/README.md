@@ -51,7 +51,7 @@ All primitives and components support `unstyled` + `slotClasses` + `preset` for 
 
 ## Styling
 
-Components use a **custom `tv()` variant engine** (`src/lib/utils/variants.ts`, ~1,350 LoC, zero-dependency replacement for `tailwind-variants`). Design tokens live in `src/lib/style/` as a three-layer OKLCH system (foundation → semantic → interaction). See the [Architecture Overview](https://github.com/urbicon/ui/blob/main/docs/ARCHITECTURE.md) for details.
+Components use a **custom `tv()` variant engine** (`src/lib/utils/variants.ts`, a zero-dependency replacement for `tailwind-variants`). Design tokens live in `src/lib/style/` as a three-layer OKLCH system (foundation → semantic → interaction). See the [Architecture Overview](https://github.com/urbicon/ui/blob/main/docs/ARCHITECTURE.md) for details.
 
 ## Theming
 

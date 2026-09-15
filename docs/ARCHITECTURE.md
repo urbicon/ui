@@ -253,9 +253,9 @@ Anything that genuinely *is* a panel, dialog or container stays on `contain`.
 > authoring rules that follow from it.
 
 All variant logic runs through a **custom `tv()` engine**
-(`packages/blocks/src/lib/utils/variants.ts`, ~1,350 LoC, zero-dependency replacement for
-`tailwind-variants`). Each component has a `*.variants.ts` defining slots, variants, sizes,
-intents, compound variants and defaults.
+(`packages/blocks/src/lib/utils/variants.ts` — `wc -l` it before you read it — a
+zero-dependency replacement for `tailwind-variants`). Each component has a
+`*.variants.ts` defining slots, variants, sizes, intents, compound variants and defaults.
 
 **The conflict resolver.** The pipeline is an ordered list of sources —
 `slot-base → each variant axis in declaration order → each matching compoundVariant in
@@ -903,6 +903,9 @@ Components may provide a `docs.svelte` with custom content and a `docsConfig` ex
 Conventions: `packages/docs-gen/docs/component-structure-guidelines.md`.
 
 ### The lint gates
+
+> **Canon.** What each gate catches is listed once, here; how to run one, with its
+> prerequisites and exemption contract, is AGENTS.md § Commands.
 
 Beyond Biome and `svelte-check`, the repo runs purpose-built gates. Each exists because the
 failure it catches was silent:

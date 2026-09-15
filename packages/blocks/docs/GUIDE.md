@@ -201,8 +201,8 @@ etc. work) despite the family sharing one `index.ts` and one docs page — unlik
 subcomponents (TabItem, MenuItem), which stay folded into their directory component's entry.
 
 **Family classification (D6):** Guide is a standalone **component family** (like `CommandPalette`,
-`DatePicker`) — deliberately **not** a row in the six-family primitives taxonomy (the monorepo's
-COMPONENT-FAMILIES.md, which assigns border-token source + tier behaviour per family). The
+`DatePicker`) — deliberately **not** a row in the primitives taxonomy the monorepo's
+COMPONENT-FAMILIES.md lists (it assigns border-token source + tier behaviour per family). The
 surfaces carry `@tag`s; the architecture lives here.
 
 ---

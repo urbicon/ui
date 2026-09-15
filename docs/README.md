@@ -23,6 +23,31 @@ combines the component catalog with a small hand-written template
 
 Then reach for the rest as you need it.
 
+## Canon map
+
+Each rule family below is described in exactly one place. Every other site keeps one sentence
+and a link to that place, and in these reference docs the owning section says so with a
+`> **Canon.**` blockquote — so a rule that changes is edited once.
+
+| Topic                                                                                | Canon                                                                                                                                   |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Override cascade, ladder, `slotClasses`, `preset`, `overrides`, `unstyled` mechanism | [ARCHITECTURE § The override cascade](ARCHITECTURE.md#the-override-cascade)                                                             |
+| Tier system, `bridge`                                                                | [ARCHITECTURE § The tier system](ARCHITECTURE.md#the-tier-system)                                                                       |
+| `tv()` fold order                                                                    | [ARCHITECTURE § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine)                                                         |
+| Internal core layer                                                                  | [ARCHITECTURE § The internal core layer](ARCHITECTURE.md#the-internal-core-layer)                                                       |
+| Border tokens (hairline vs. subtle)                                                  | [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle)                                 |
+| Field variant vocabulary (`bare`, `ghost`, …)                                        | [VARIANT-CONTRACT § 9](../packages/blocks/docs/VARIANT-CONTRACT.md#9--form-fields)                                                      |
+| The required marker                                                                  | [VARIANT-CONTRACT § The required marker](../packages/blocks/docs/VARIANT-CONTRACT.md#the-required-marker)                               |
+| `variantProps`, house axis order                                                     | [COMPONENT-API-CONVENTIONS § variantProps and the house axis order](COMPONENT-API-CONVENTIONS.md#variantprops-and-the-house-axis-order) |
+| Styling-prop surface (which props, how typed)                                        | [COMPONENT-API-CONVENTIONS § Styling props](COMPONENT-API-CONVENTIONS.md#styling-props-class-unstyled-slotclasses-preset)               |
+| Family taxonomy (ARIA role, tier behaviour, border source)                           | [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md)                                                                                          |
+| Svelte 5 patterns and anti-patterns                                                  | [SVELTE5-PATTERNS.md](SVELTE5-PATTERNS.md)                                                                                              |
+| Docs-page structure                                                                  | [DocsPageGuide.md](DocsPageGuide.md)                                                                                                    |
+| Docs prose                                                                           | [EDITORIAL.md](EDITORIAL.md)                                                                                                            |
+| Versioning, bump levels                                                              | [VERSIONING.md](VERSIONING.md)                                                                                                          |
+| Gates: how to run one                                                                | [AGENTS.md § Commands](../AGENTS.md#commands)                                                                                           |
+| Gates: what the set catches                                                          | [ARCHITECTURE § The lint gates](ARCHITECTURE.md#the-lint-gates)                                                                         |
+
 ## Architecture & conventions
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — the monorepo map, the token → markup path, cross-cutting systems, package profiles, tooling
