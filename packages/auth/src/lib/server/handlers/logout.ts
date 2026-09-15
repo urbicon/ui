@@ -20,13 +20,11 @@ export interface LogoutHandlerOptions {
    * server-side, so nothing local can refuse it.
    *
    * The price is that both writes are per user, not per session. Another
-   * device is signed out until someone signs in again: its API client keeps
-   * sending the same stale access cookie until that expires (`accessTokenTtl`,
-   * 15 minutes by default) and is then refused on its revoked refresh token
-   * instead — `401` either way, one no-op family revoke per request until a
-   * page navigation clears the cookie and sends it to the login. The guard
-   * answers an API request without resolving, and SvelteKit writes a cookie a
-   * hook staged only on the paths that resolve or redirect. Sign a
+   * device is signed out until someone signs in again, and the refusals clear
+   * its cookies as they go: the guard's `401` carries the clear for whichever
+   * cookie it was refused on, so a still-valid access cookie goes on the first
+   * request and the revoked refresh token on the next. From there the device
+   * sends no session cookie and a refusal costs no repository write. Sign a
    * *specific* device out with `createSessionsHandlers`' `revoke` /
    * `revokeOthers` instead; that path leaves `tokenVersion` alone.
    *
