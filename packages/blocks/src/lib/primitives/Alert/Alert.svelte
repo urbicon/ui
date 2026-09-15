@@ -34,6 +34,14 @@
   const variantProps: AlertVariants = $derived({ intent, variant, size });
   const styles = $derived(alertVariants(variantProps));
 
+  // `role="alert"` is implicitly `aria-live="assertive"` and cuts into whatever
+  // a screen reader is saying; `role="status"` is polite and waits for a pause.
+  // This stays ahead of `{...restProps}` and `role` stays out of the
+  // destructuring above: an explicitly passed `role` arrives as an own key of
+  // the rest object — a string or `undefined` alike — so the spread overwrites
+  // the derived one, and `undefined` takes the attribute off entirely.
+  const announcedRole = $derived(intent === 'danger' || intent === 'warning' ? 'alert' : 'status');
+
   const slotClasses = $derived(
     resolveSlotClasses(
       blocksConfig,
@@ -50,7 +58,7 @@
   class={unstyled
     ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
-  role="alert"
+  role={announcedRole}
   {...restProps}
 >
   {#if icon}

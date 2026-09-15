@@ -128,7 +128,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Members:** `Card`, `Alert`, `Accordion`, `Collapsible`, `Dialog`, `Drawer`, `Popover`, `Tooltip`, `Sidebar`, `Separator`, `ConfirmDialog`.
 
-**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` (Alert, at every intent today), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
+**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` / `role="status"` (Alert, derived from `intent` — assertive at `danger` and `warning`, polite otherwise), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
 
 **Tier:** Fixed `contain` — containers are architectural surfaces, not interactive affordances; the radius signal is "this is a frame", not "this is a button". **No Container member reads the tier context**, deliberately: a Toolbar's `commit` must not reshape a Card standing inside it. `Card` is the only one with a `tier` prop at all, and its two values are `contain | bridge` — the optical-size decision, not the interactive one ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
 
@@ -211,7 +211,7 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `ButtonGroup` vs `SegmentGroup` | ButtonGroup for action triggers, SegmentGroup for value selection | Holds value → Navigation family. Dispatches actions → Action family. |
 | `Sidebar` vs `Drawer` | Sidebar for persistent layout, Drawer for transient modal | See [COMPONENT-DECISION-MATRICES.md §Overlay & Layout Surfaces](COMPONENT-DECISION-MATRICES.md#overlay--layout-surfaces). |
 | `Popover` vs `Tooltip` | Popover for click-interactions, Tooltip for hover-descriptions | Tooltip is non-focusable; Popover hosts a focus-trapped panel. |
-| `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
+| `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert announces in place, at the urgency its `intent` implies; Toast is system-level + stacking. |
 | `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
 **Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Everything else rests in the neutral tone, and a product that wants the accent there asks for it:

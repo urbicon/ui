@@ -189,8 +189,12 @@
     }
   }
 
+  /* No `:global()`: it would compile to a bare `[role='status']` and take every
+     polite live region in the document — a status Alert, a status Badge, a
+     Skeleton. Svelte's own scoping keeps the rule on the roots this component
+     renders. */
   @media print {
-    :global([role='status']) {
+    [role='status'] {
       display: none !important;
     }
   }

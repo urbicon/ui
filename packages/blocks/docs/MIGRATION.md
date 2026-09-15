@@ -13,6 +13,67 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.23.0
 
+### `Alert` derives its announced role from `intent`
+
+`Alert` rendered `role="alert"` at every intent, so a screen reader was interrupted by a saved
+confirmation exactly as it was by a failure. The role now follows `intent`: `danger` and `warning`
+keep `role="alert"` (assertive); `primary`, `info`, `success` and `neutral` render `role="status"`
+(polite). An explicit `role` still wins, `role={undefined}` still takes the attribute off entirely
+for an Alert that sits inside a live region of yours, and nothing changes on screen.
+
+**A conditionally mounted success banner may stop being announced.** The two roles announce on
+different terms: `role="alert"` is announced when it enters the page, while `role="status"` is a
+polite region that has to exist _before_ its content changes. An Alert that is itself the thing
+you mount when the request returns was announced as an `alert` and may now be announced by
+nothing. Two ways out — a persistent region you fill, or the explicit role:
+
+```svelte
+<!-- before: mounted on success, announced because it was an alert -->
+{#if saved}
+  <Alert intent="success">Settings saved.</Alert>
+{/if}
+```
+
+```svelte
+<!-- after, option A: the region is always there, the message arrives into it -->
+<div role="status">
+  {#if saved}
+    <Alert intent="success" role={undefined}>Settings saved.</Alert>
+  {/if}
+</div>
+```
+
+```svelte
+<!-- after, option B: say that this one interrupts -->
+{#if saved}
+  <Alert intent="success" role="alert">Settings saved.</Alert>
+{/if}
+```
+
+Option A is the shape auth's `FormErrorAlert` uses for every outcome in that package.
+
+**Nothing reports the change**, and the grep runs the other way round: list **every** `<Alert` in
+your app — a bare `<Alert>` defaults to `intent="primary"` and an `intent={expr}` says nothing at
+the call site — then subtract the `danger` and `warning` ones. What is left changed role. Do the
+same for `getByRole('alert')` and `[role="alert"]` in your tests and page objects.
+
+### `Spinner` no longer hides every `role="status"` element in print
+
+`Spinner` carried an unscoped global print rule —
+`@media print { :global([role='status']) { display: none } }` — so importing Spinner **anywhere**
+hid every `role="status"` element in the document from print, in every app. It is now scoped to
+the spinner's own root.
+
+Two consequences, both print-only; nothing changes on screen:
+
+- **A `Badge purpose="status"` and a polite Alert print again.** They were being hidden by a rule
+  that had nothing to do with them.
+- **`Skeleton` keeps hiding itself**, through its own scoped rule rather than Spinner's. A
+  skeleton stands in for content that has not arrived, so on paper it would print as grey
+  placeholder bars.
+
+If your app relied on the old rule to keep some other `role="status"` element off the page, that
+element now prints; give it your own `@media print` rule.
 ### An icon without `size` is `1em` instead of nothing
 
 `<LogOutIcon />` used to emit an `<svg>` with no `width` and no `height`. An svg with a `viewBox`

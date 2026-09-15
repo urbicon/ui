@@ -35,8 +35,9 @@ describe('FormErrorAlert', () => {
 
   it('puts each outcome in exactly one live region', () => {
     render(FormErrorAlert, { error: 'ERR' });
-    // The `Alert` inside hard-codes `role="alert"`; the pass-through has to
-    // take it off, or the message sits in a region inside a region.
+    // The `Alert` inside derives a role from its intent — `alert` for `danger`,
+    // `status` for `success`; the pass-through has to take it off, or the
+    // message sits in a region inside a region.
     expect(liveRegionsAround(screen.getByText('ERR'))).toHaveLength(1);
 
     render(FormErrorAlert, { error: '', success: 'OK' });

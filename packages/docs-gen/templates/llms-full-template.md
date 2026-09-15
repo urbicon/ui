@@ -204,7 +204,7 @@ Every component belongs to exactly one of the families in the table below. The f
 - `ButtonGroup` vs `SegmentGroup` — ButtonGroup dispatches actions, SegmentGroup holds a value. If you `bind:value` on a ButtonGroup, switch to SegmentGroup.
 - `Sidebar` vs `Drawer` — Sidebar for persistent layout (`<aside>`, no backdrop by default), Drawer for transient modal (`<dialog>`, always backdrop + focus-trap).
 - `Popover` vs `Tooltip` — Popover hosts a focus-trapped panel for click-interactions, Tooltip is non-focusable for hover-descriptions.
-- `Alert` vs `Toast` — Alert is in-page (`role="alert"`), Toast is system-level + stacking.
+- `Alert` vs `Toast` — Alert is in-page and announces at the urgency its `intent` implies (`role="alert"` for `danger`/`warning`, `role="status"` otherwise), Toast is system-level + stacking.
 
 ### Tier-aware components (read the tier context)
 

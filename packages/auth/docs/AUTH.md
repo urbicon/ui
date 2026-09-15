@@ -234,12 +234,12 @@ instead of reading it back off the bundle.
 **Every outcome now sits in exactly one live region, and successes are polite.**
 `_shared/FormErrorAlert.svelte` — the single place a request outcome becomes
 markup, reached by every page, every manager, and each of AccountSettings' four
-forms — used to wrap blocks' `<Alert>` (which hard-codes `role="alert"`) in a
-`<div aria-live="polite">`. That is a live region inside a live region: the
-same text carried two urgencies at once — `role="alert"` is implicitly
-`aria-live="assertive"`, the wrapper was explicitly polite — with nothing in
-ARIA saying which one wins. It also made every success as urgent as every
-failure.
+forms — used to wrap blocks' `<Alert>` (which then rendered `role="alert"` at
+every intent) in a `<div aria-live="polite">`. That is a live region inside a
+live region: the same text carried two urgencies at once — `role="alert"` is
+implicitly `aria-live="assertive"`, the wrapper was explicitly polite — with
+nothing in ARIA saying which one wins. It also made every success as urgent as
+every failure.
 
 It now renders two sibling regions, both mounted from the first paint and empty
 until something happens:
