@@ -234,15 +234,34 @@ import '$lib/locales';
 Registering on one side only is the failure worth naming: German server HTML
 hydrating into English text, or the reverse.
 
+**App start is the recommendation, not a requirement.** The registry is
+reactive, so a bundle registered later — after a locale switch, out of a lazily
+loaded module — re-renders the auth components already on screen. What app start
+buys is that the very first server render is already correct, which is what
+removes the hydration mismatch above.
+
 The registry is module-global and holds static, request-identical data, so one
 registration at server start serves every concurrent request; the request-scoped
 part (the locale that is active) stays in `<I18nProvider>`'s context, where
 `useAuthLocale` reads it. `registerAuthLocale` takes any locale
-`@urbicon-ui/i18n` supports (`en`, `de`, `fr`, `es`, `it`, `nl`), not only the
-two that ship a bundle — pass your own full `AuthLocale` for the rest — and
-throws on anything else or on a non-object bundle. Registering `en` replaces the
-built-in English bundle, which is how you override the whole surface at once
-instead of passing `t` at every usage site.
+`@urbicon-ui/i18n` supports (its `SUPPORTED_LOCALES`), not only the two that
+ship a bundle — pass your own full `AuthLocale` for the rest.
+
+It is write-strict, because a bundle that is wrong here is wrong for every
+component at once: it throws on an unsupported locale, on a non-object bundle,
+and on a bundle missing any key the built-in English one has. So registering
+`en` **replaces** rather than merges — that is how you override the whole
+surface at once instead of passing `t` at every usage site — and the override is
+built from the shipped bundle:
+
+<!-- typecheck -->
+
+```ts
+import { mergeAuthLocale, registerAuthLocale } from '@urbicon-ui/auth';
+import { en } from '@urbicon-ui/auth/i18n/en';
+
+registerAuthLocale('en', mergeAuthLocale(en, { auth: { login: { title: 'Welcome back' } } }));
+```
 
 A locale with no registered bundle resolves to English. The components do that
 silently; `config.email.locale` naming one warns **once per locale** through

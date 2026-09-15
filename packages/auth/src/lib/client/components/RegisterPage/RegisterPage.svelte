@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, userFromSuccess, wireError } from '../../utils/http.js';

@@ -1,6 +1,7 @@
 import type { Locale } from '@urbicon-ui/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, AuthLogger } from '../../types.js';
+import { shieldLogger } from '../logger.js';
 
 /**
  * `resolveEmailSettings` reads the module-global bundle registry and keeps its
@@ -12,22 +13,22 @@ async function freshResolve() {
   vi.resetModules();
   const [{ resolveEmailSettings }, { registerAuthLocale }, { de }, { en }] = await Promise.all([
     import('./resolve.js'),
-    import('../../i18n/index.js'),
+    import('../../i18n/index.svelte.js'),
     import('../../i18n/de.js'),
     import('../../i18n/en.js')
   ]);
   return { resolveEmailSettings, registerAuthLocale, de, en };
 }
 
-function configWith(locale: Locale | undefined, logger: AuthLogger): AuthConfig {
+function configWith(locale: Locale | undefined): AuthConfig {
   return {
     jwt: { secret: 'test-secret-that-is-long-enough-for-hs256' },
     appUrl: 'https://app.example.com',
-    logger,
     email: { locale }
   };
 }
 
+/** The sink shape the handlers pass: `deps.logger`, already shielded by `createAuthDeps`. */
 function spyLogger() {
   return {
     warn: vi.fn<(message: string, ...context: unknown[]) => void>(),
@@ -39,10 +40,10 @@ describe('resolveEmailSettings — locale', () => {
   it('falls back to English for an unregistered locale and warns once per process', async () => {
     const { resolveEmailSettings, en } = await freshResolve();
     const logger = spyLogger();
-    const config = configWith('de', logger);
+    const config = configWith('de');
 
-    expect(resolveEmailSettings(config).t).toBe(en);
-    expect(resolveEmailSettings(config).t).toBe(en);
+    expect(resolveEmailSettings(config, logger).t).toBe(en);
+    expect(resolveEmailSettings(config, logger).t).toBe(en);
 
     expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.warn.mock.calls[0]?.[0]).toMatch(/email\.locale is "de"/);
@@ -57,7 +58,7 @@ describe('resolveEmailSettings — locale', () => {
 
     registerAuthLocale('de', de);
 
-    expect(resolveEmailSettings(configWith('de', logger)).t).toBe(de);
+    expect(resolveEmailSettings(configWith('de'), logger).t).toBe(de);
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
@@ -65,8 +66,8 @@ describe('resolveEmailSettings — locale', () => {
     const { resolveEmailSettings } = await freshResolve();
     const logger = spyLogger();
 
-    resolveEmailSettings(configWith('de', logger));
-    resolveEmailSettings(configWith('fr', logger));
+    resolveEmailSettings(configWith('de'), logger);
+    resolveEmailSettings(configWith('fr'), logger);
 
     expect(logger.warn).toHaveBeenCalledTimes(2);
   });
@@ -75,21 +76,22 @@ describe('resolveEmailSettings — locale', () => {
     const { resolveEmailSettings, en } = await freshResolve();
     const logger = spyLogger();
 
-    expect(resolveEmailSettings(configWith(undefined, logger)).t).toBe(en);
+    expect(resolveEmailSettings(configWith(undefined), logger).t).toBe(en);
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it('survives a logger that throws', async () => {
-    // Shielded like every other auth log site: a broken transport must not
-    // stop the mail this call is resolving settings for.
+  it('survives a throwing sink through the shield the deps bundle applies', async () => {
+    // The sink here is built the way `createAuthDeps` builds `deps.logger`, so
+    // this covers the logger the handlers actually pass — a broken transport
+    // must not stop the mail these settings are being resolved for.
     const { resolveEmailSettings, en } = await freshResolve();
-    const logger: AuthLogger = {
+    const logger = shieldLogger({
       warn: () => {
         throw new Error('transport down');
       },
       error: () => {}
-    };
+    });
 
-    expect(resolveEmailSettings(configWith('de', logger)).t).toBe(en);
+    expect(resolveEmailSettings(configWith('de'), logger).t).toBe(en);
   });
 });

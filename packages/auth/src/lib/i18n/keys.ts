@@ -1,9 +1,10 @@
 /**
  * The complete auth locale bundle. Every key is required: the bundles this
  * package ships (`en`, `de`) satisfy the full shape, and consumer overrides
- * enter as {@link PartialAuthLocale}, deep-merged over the active built-in
- * bundle by `mergeAuthLocale`, so component markup reads keys directly,
- * without per-key `?? '…'` fallback literals.
+ * enter as {@link PartialAuthLocale}, deep-merged by `mergeAuthLocale` over the
+ * bundle registered for the active locale — English unless `registerAuthLocale`
+ * ran for it — so component markup reads keys directly, without per-key
+ * `?? '…'` fallback literals.
  *
  * Placeholder convention: dynamic values use **single-brace** tokens
  * (`{n}`, `{name}`, `{email}`) that the consuming component substitutes itself
@@ -404,7 +405,8 @@ export type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T
 
 /**
  * Consumer-facing locale input: any subset of {@link AuthLocale}. Components
- * accept this as their `t` prop and deep-merge it over the active built-in
- * bundle, so overriding a single string never silently blanks the rest.
+ * accept this as their `t` prop and deep-merge it over the bundle registered
+ * for the active locale — English unless `registerAuthLocale` ran for it — so
+ * overriding a single string never silently blanks the rest.
  */
 export type PartialAuthLocale = DeepPartial<AuthLocale>;

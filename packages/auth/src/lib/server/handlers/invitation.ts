@@ -205,7 +205,7 @@ export function createInvitationHandlers<R extends string>(
           // consumer-supplied `inviteEmail` builder is a programming error, not a
           // transient mail outage — let it surface (a real 500 + stack) rather
           // than masquerade as "email failed to send" on every invite forever.
-          const { t, appName, from } = resolveEmailSettings(deps.config);
+          const { t, appName, from } = resolveEmailSettings(deps.config, deps.logger);
           const built = inviteEmail
             ? inviteEmail({ email, role: role as R, url: inviteUrl, from, appName, t })
             : buildInvitationEmail({ url: inviteUrl, appName }, t);

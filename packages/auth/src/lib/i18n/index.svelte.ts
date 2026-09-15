@@ -1,4 +1,10 @@
-import { isLocaleSupported, type Locale, SUPPORTED_LOCALES, useI18n } from '@urbicon-ui/i18n';
+import {
+  collectDeepKeys,
+  isLocaleSupported,
+  type Locale,
+  SUPPORTED_LOCALES,
+  useI18n
+} from '@urbicon-ui/i18n';
 import { en } from './en.js';
 import type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
 
@@ -14,24 +20,24 @@ import type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
  * serves every concurrent request. The request-scoped part — *which* locale is
  * active — stays in `<I18nProvider>`'s context, where `useAuthLocale` reads it.
  *
+ * Reactive, and **reassigned** rather than mutated: every component reads its
+ * bundle inside a `$derived`, and a property written into a plain object is a
+ * change no `$derived` can see, so a registration after mount would leave the
+ * mounted tree in the old language. `$state.raw` tracks the binding, not the
+ * bundle's interior — which is what this holds: whole immutable bundles.
+ *
  * `en` is required in the type rather than looked up defensively: it is the
  * fallback every other lookup lands on, so its absence must not be
  * representable. The shipped bundles are `satisfies AuthLocale` (literal
  * structure preserved + parity enforced between en/de).
- *
- * The bundle-based API below (useAuthLocale / resolveAuthLocale /
- * mergeAuthLocale / registerAuthLocale) is the only i18n surface — the former
- * key-based twin (authI18n/authT/at) was removed: nothing consumed it, and two
- * competing APIs obscured the real one.
  */
 type AuthLocaleRegistry = Partial<Record<Locale, AuthLocale>> & { en: AuthLocale };
 
-const registry: AuthLocaleRegistry = { en };
+let registry = $state.raw<AuthLocaleRegistry>({ en });
 
 /**
  * Make an `AuthLocale` bundle available to every auth component and to the
- * server-side mail builders. Call it once, at app start, paired with the
- * locale's subpath import:
+ * server-side mail builders, paired with the locale's subpath import:
  *
  * ```ts
  * import { registerAuthLocale } from '@urbicon-ui/auth';
@@ -39,19 +45,31 @@ const registry: AuthLocaleRegistry = { en };
  * registerAuthLocale('de', de);
  * ```
  *
- * Put those lines in a module that both the server and the client evaluate
- * (e.g. a `src/lib/locales.ts` imported from `hooks.server.ts` **and** from the
- * root `+layout.ts`) — a locale registered on only one side renders German HTML
- * that hydrates into English, or the reverse.
+ * **At app start** is the recommendation, not a requirement: the registry is
+ * reactive, so a registration after mount re-renders the components that are
+ * already on screen. Registering at start is what makes the *first* server
+ * render already correct — put the lines in a module that both the server and
+ * the client evaluate (e.g. a `src/lib/locales.ts` imported from
+ * `hooks.server.ts` **and** from the root `+layout.ts`), or a locale registered
+ * on only one side renders German HTML that hydrates into English.
  *
  * Only `en` is built in; without a registration an auth component under
  * `<I18nProvider locale="de">` renders English. Registering `en` replaces the
- * built-in English bundle, which is how a consumer overrides the whole surface
- * at once rather than per component through the `t` prop.
+ * built-in English bundle — the way to restyle the whole surface at once rather
+ * than per component through the `t` prop. It replaces rather than merges, so
+ * build the full bundle from the shipped one:
  *
- * Write-strict: throws on a locale `@urbicon-ui/i18n` does not support and on a
- * non-object bundle, rather than storing garbage that only surfaces as a broken
- * render.
+ * ```ts
+ * import { en } from '@urbicon-ui/auth/i18n/en';
+ * registerAuthLocale('en', mergeAuthLocale(en, { auth: { login: { title: 'Welcome back' } } }));
+ * ```
+ *
+ * Write-strict, because a bundle that is wrong here is wrong for every
+ * component at once: throws on a locale `@urbicon-ui/i18n` does not support, on
+ * a non-object bundle, and on a bundle missing any key the built-in `en` has.
+ * TypeScript already refuses an incomplete literal, but a JSON file, a
+ * JavaScript caller and an `as AuthLocale` cast do not — and a partial bundle
+ * under `en` would make every other locale's fallback throw at render.
  */
 export function registerAuthLocale(locale: Locale, bundle: AuthLocale): void {
   if (!isLocaleSupported(locale)) {
@@ -66,7 +84,21 @@ export function registerAuthLocale(locale: Locale, bundle: AuthLocale): void {
       `[auth] registerAuthLocale("${locale}"): bundle must be an AuthLocale object, got ${kind}.`
     );
   }
-  registry[locale] = bundle;
+  // `collectDeepKeys` takes an index-signature record; `AuthLocale` is a closed
+  // interface, which has none. Same shape, so the widening is safe.
+  const asRecord = (b: AuthLocale) => b as unknown as Record<string, unknown>;
+  const present = new Set(collectDeepKeys(asRecord(bundle)));
+  const missing = collectDeepKeys(asRecord(en)).filter((key) => !present.has(key));
+  if (missing.length > 0) {
+    throw new Error(
+      `[auth] registerAuthLocale("${locale}"): the bundle is missing ${missing.length} key(s) the ` +
+        `built-in English bundle has: ${missing.join(', ')}. Build it from a complete one — ` +
+        `mergeAuthLocale(en, overrides) — or pass the overrides as a component's \`t\` prop instead.`
+    );
+  }
+  // Reassign: a property write into the previous object is invisible to the
+  // `$derived` every component reads its bundle through.
+  registry = { ...registry, [locale]: bundle };
 }
 
 /** Whether `locale` has a bundle — `en` always does. Internal: not a package export. */
@@ -86,7 +118,9 @@ export function hasAuthLocale(locale: Locale): boolean {
  *
  * Resolves to the bundle registered for the provider's locale, or to English
  * when that locale has none — {@link registerAuthLocale} is how a locale other
- * than `en` gets one.
+ * than `en` gets one. Read inside a `$derived` as above, a registration that
+ * lands after the component mounted re-renders it; read once into a `const`, it
+ * does not.
  *
  * Replaces the former free `getAuthLocale()`, which read the global locale
  * singleton and so could not be request-scoped (SSR-unsafe).

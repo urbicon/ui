@@ -127,7 +127,7 @@ async function issueEmailChange<R extends string>(
   const verifyUrl = new URL('/auth/verify-email-change', deps.config.appUrl);
   verifyUrl.searchParams.set('token', token);
 
-  const { t, appName, from } = resolveEmailSettings(deps.config);
+  const { t, appName, from } = resolveEmailSettings(deps.config, deps.logger);
 
   // Confirmation link to the NEW address — proves control of it.
   const confirmCtx = { name: user.name, url: verifyUrl.toString(), appName, from, t };

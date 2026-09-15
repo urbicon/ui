@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';

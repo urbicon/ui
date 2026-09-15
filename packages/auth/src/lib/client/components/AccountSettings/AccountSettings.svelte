@@ -8,7 +8,7 @@
     Separator
   } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
-  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.svelte.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import type { AuthUser } from '../../../types.js';
   import type { AccountSettingsProps } from './index.js';

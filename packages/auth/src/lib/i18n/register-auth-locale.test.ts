@@ -1,4 +1,4 @@
-import type { Locale } from '@urbicon-ui/i18n';
+import { type Locale, SUPPORTED_LOCALES } from '@urbicon-ui/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthLocale } from './keys.js';
 
@@ -13,7 +13,7 @@ import type { AuthLocale } from './keys.js';
 async function freshI18n() {
   vi.resetModules();
   const [i18n, { de }, { en }] = await Promise.all([
-    import('./index.js'),
+    import('./index.svelte.js'),
     import('./de.js'),
     import('./en.js')
   ]);
@@ -78,7 +78,9 @@ describe('registerAuthLocale', () => {
     const { registerAuthLocale, de } = await freshI18n();
 
     expect(() => registerAuthLocale('xx' as Locale, de)).toThrow(/unsupported locale "xx"/);
-    expect(() => registerAuthLocale('xx' as Locale, de)).toThrow(/en, de, fr, es, it, nl/);
+    // The list itself, from the same source the guard derives from — a
+    // hand-copied literal here would go stale the day a locale is added.
+    expect(() => registerAuthLocale('xx' as Locale, de)).toThrow(SUPPORTED_LOCALES.join(', '));
   });
 
   it('throws on a non-object bundle', async () => {
@@ -93,5 +95,39 @@ describe('registerAuthLocale', () => {
     expect(() => registerAuthLocale('de', 'de' as unknown as AuthLocale)).toThrow(
       /must be an AuthLocale object, got string/
     );
+  });
+
+  // TypeScript refuses an incomplete literal, but JSON files, JavaScript
+  // callers and `as AuthLocale` casts all reach this function — and a partial
+  // bundle under `en` makes every other locale's fallback throw at render.
+  it('throws on a bundle missing keys the built-in English one has', async () => {
+    const { registerAuthLocale } = await freshI18n();
+
+    expect(() => registerAuthLocale('de', {} as AuthLocale)).toThrow(
+      /is missing \d+ key\(s\) the built-in English bundle has/
+    );
+    expect(() => registerAuthLocale('de', {} as AuthLocale)).toThrow(/auth\.login\.title/);
+  });
+
+  it('refuses a partial `en` override, and takes the merged whole', async () => {
+    const { registerAuthLocale, mergeAuthLocale, resolveAuthLocale, en } = await freshI18n();
+    const overrides = { auth: { login: { title: 'Welcome back' } } };
+
+    expect(() => registerAuthLocale('en', overrides as AuthLocale)).toThrow(/is missing \d+ key/);
+
+    registerAuthLocale('en', mergeAuthLocale(en, overrides));
+    expect(resolveAuthLocale('en').auth.login.title).toBe('Welcome back');
+    expect(resolveAuthLocale('en').auth.login.submit).toBe(en.auth.login.submit);
+  });
+
+  it('accepts a bundle carrying keys the English one does not', async () => {
+    // Extra keys are a consumer's business: only the completeness the markup
+    // depends on is enforced.
+    const { registerAuthLocale, resolveAuthLocale, de } = await freshI18n();
+    const withExtra = { ...structuredClone(de), future: { key: 'noch nicht benutzt' } };
+
+    registerAuthLocale('de', withExtra as unknown as AuthLocale);
+
+    expect(resolveAuthLocale('de').auth.login.title).toBe(de.auth.login.title);
   });
 });

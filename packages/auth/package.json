@@ -23,8 +23,8 @@
   "sideEffects": [
     "./src/lib/style/**",
     "./dist/style/**",
-    "./dist/i18n/index.js",
-    "./dist/i18n/index.d.ts"
+    "./dist/i18n/index.svelte.js",
+    "./dist/i18n/index.svelte.d.ts"
   ],
   "svelte": "./dist/index.js",
   "types": "./dist/index.d.ts",
