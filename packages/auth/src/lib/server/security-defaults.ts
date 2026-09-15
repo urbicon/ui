@@ -106,7 +106,9 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   // `maxSubscriptionsPerUser` — so this rate is the only bound on either, and
   // ten a minute is 600 rows an hour for an account that keeps at it. A brake,
   // not a ceiling: a deployment that wants a ceiling enforces one in its own
-  // adapter.
+  // adapter. The counter counts every verify, failed ceremonies included —
+  // unlike `passkeyAuth` there is no refund — and the refusal lands after the
+  // browser ceremony has run, so a tightened limit refuses attempts, not rows.
   passkeyRegister: { windowMs: 60_000, max: 10 },
 
   changePassword: REAUTH,

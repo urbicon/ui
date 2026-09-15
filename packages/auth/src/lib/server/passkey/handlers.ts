@@ -190,11 +190,10 @@ function registrationOptionsHandler<R extends string>(
 // guarantees that only for a `ChallengeStore` implementing `take`; a consumer
 // store built from `get`/`delete` can hand the same challenge to two
 // concurrent verifies. Limiting the row's own handler needs no such premise.
-// The check sits above the body read for the same reason it sits above
-// `verifyRegistration`: attestation parsing and the ECDSA/RSA verification are
-// the work the budget is meant to bound, so a request past the budget is
-// refused before any of it runs. What the default rate bounds, and why no
-// per-user credential cap stands beside it: `RATE_LIMIT_DEFAULTS.passkeyRegister`.
+// The check sits above the body read, so a request past the budget is refused
+// before the attestation parse and the signature verification run. What the
+// default rate bounds, and why no per-user credential cap stands beside it:
+// `RATE_LIMIT_DEFAULTS.passkeyRegister`.
 function registrationVerifyHandler<R extends string>(
   deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
