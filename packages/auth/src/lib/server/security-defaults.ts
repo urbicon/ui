@@ -5,8 +5,8 @@ import type { FailedLoginLock } from './adapters/types.js';
  * Every key `AuthConfig.rateLimit` declares, derived from the interface rather
  * than listed again. {@link RATE_LIMIT_DEFAULTS} is typed `Record<RateLimitKey,
  * …>`, so adding a key in `types.ts` without a default is a compile error —
- * which is the whole point: the previous hand-maintained list had drifted to
- * cover 5 of 12 keys, and nothing reported the gap.
+ * which is the whole point: a hand-maintained list drifts away from the key
+ * set and nothing reports the gap.
  */
 export type RateLimitKey = keyof NonNullable<AuthConfig['rateLimit']>;
 
@@ -90,6 +90,26 @@ export const RATE_LIMIT_DEFAULTS: Record<RateLimitKey, RateLimitConfig> = {
   // 30 live entries per IP, not 15 (a completed ceremony consumes its entry,
   // so its refund gives back no live entry).
   passkeyAuth: { windowMs: 15 * 60_000, max: 30 },
+
+  // The authenticated half of the same feature, and therefore the one key in
+  // this table whose identifier is a user id rather than an address: enrolment
+  // sits behind a session, so a per-user key cannot be dodged by rotating
+  // addresses, and an address key would brake a whole office enrolling from one
+  // NAT address for an action each of them performs a handful of times.
+  //
+  // What the number bounds — the canonical statement; `types.ts`,
+  // `passkey/handlers.ts` and AUTH.md point here rather than restating it. It
+  // caps the rate at which one account can add credential rows, and with them
+  // the `excludeCredentials` / `allowCredentials` payloads later ceremonies
+  // carry, since every stored credential appears in those lists. There is no
+  // per-user credential cap beside it — unlike push subscriptions, which have
+  // `maxSubscriptionsPerUser` — so this rate is the only bound on either, and
+  // ten a minute is 600 rows an hour for an account that keeps at it. A brake,
+  // not a ceiling: a deployment that wants a ceiling enforces one in its own
+  // adapter. The counter counts every verify, failed ceremonies included —
+  // unlike `passkeyAuth` there is no refund — and the refusal lands after the
+  // browser ceremony has run, so a tightened limit refuses attempts, not rows.
+  passkeyRegister: { windowMs: 60_000, max: 10 },
 
   changePassword: REAUTH,
   changeEmail: REAUTH,

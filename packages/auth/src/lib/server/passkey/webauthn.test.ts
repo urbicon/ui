@@ -952,6 +952,21 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     });
     expect(result.publicKey).toEqual(coseKey);
   });
+
+  it('spends the challenge on the default store: a second verify of the same credential is refused', async () => {
+    // Scoped to `createInMemoryChallengeStore`, which implements `take` — the
+    // atomic read-and-delete `consumeChallenge` prefers. A consumer store
+    // built from `get`/`delete` alone has no such guarantee under concurrency
+    // (see the `ChallengeStore` docblock), so this pins the shipped store and
+    // nothing wider.
+    const store = createInMemoryChallengeStore();
+    await store5m(store, 'user-reg', 'reg-challenge');
+    const { authData } = await buildRegistrationAuthData();
+    const attestation = noneAttestation(authData);
+
+    await expect(verify(store, attestation)).resolves.toBeTruthy();
+    await expect(verify(store, attestation)).rejects.toThrow('Challenge expired or not found');
+  });
 });
 
 describe('malformed COSE key inside authenticatorData (silent-failure review)', () => {

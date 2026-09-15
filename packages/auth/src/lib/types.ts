@@ -500,6 +500,14 @@ export interface AuthConfig<R extends string = string> {
     /** Limit for passkey authentication (options + verify). */
     passkeyAuth?: RateLimitConfig | null;
     /**
+     * Limit for passkey **registration**, keyed by the authenticated user id
+     * rather than the client address. Enforced on `registrationVerify` — the
+     * call that creates the credential row — and not on the options half.
+     * What the rate bounds, and why no per-user cap stands beside it:
+     * `RATE_LIMIT_DEFAULTS.passkeyRegister` in `server/security-defaults.ts`.
+     */
+    passkeyRegister?: RateLimitConfig | null;
+    /**
      * Limit for the authenticated change-password handler. It is re-auth gated,
      * but still credential-accepting, so limiting it stops a hijacked session
      * from brute-forcing the current password through this endpoint.

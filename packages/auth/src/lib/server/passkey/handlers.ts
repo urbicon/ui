@@ -150,6 +150,10 @@ type SessionUserResolver<R extends string> = (
 
 // ---- Registration Options ----
 
+// No limiter: a repeat call overwrites the caller's own challenge entry, which
+// `storeChallenge` keys by user id, so the store holds one entry per user
+// however often this is called. The credential row is created by the verify
+// half, and that is where `rateLimit.passkeyRegister` is enforced.
 function registrationOptionsHandler<R extends string>(
   _deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
@@ -179,18 +183,34 @@ function registrationOptionsHandler<R extends string>(
 
 // ---- Registration Verify ----
 
+// This is the write that creates a credential row, so this is where
+// `rateLimit.passkeyRegister` is enforced — keyed by user id, which needs the
+// session resolved first. Enforcing on the options half instead would bound
+// rows only through the challenge being single-use, and `consumeChallenge`
+// guarantees that only for a `ChallengeStore` implementing `take`; a consumer
+// store built from `get`/`delete` can hand the same challenge to two
+// concurrent verifies. Limiting the row's own handler needs no such premise.
+// The check sits above the body read, so a request past the budget is refused
+// before the attestation parse and the signature verification run. What the
+// default rate bounds, and why no per-user credential cap stands beside it:
+// `RATE_LIMIT_DEFAULTS.passkeyRegister`.
 function registrationVerifyHandler<R extends string>(
   deps: AuthDeps<R>,
   webauthn: WebAuthnConfig,
   passkeyRepo: PasskeyRepository,
   sessionUser: SessionUserResolver<R>
 ): { POST: RequestHandler } {
+  const rateLimiter = sharedLimiter(deps.config, 'passkeyRegister');
+
   return {
     POST: async ({ request, cookies }) => {
       const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated');
       }
+
+      const limited = await enforceRateLimit(rateLimiter, user.id);
+      if (limited) return limited;
 
       try {
         const { credential, name } = (await readJsonBody(request)) as {
@@ -550,20 +570,14 @@ function listHandler<R extends string>(
  * server trims) instead of its own draft.
  *
  * No rate limiter, matching the `item.DELETE` and `list.GET` it is grouped
- * with. This package does not limit uniformly and no rule here derives the
- * answer: the notification writes resolve the session first and limit
- * *afterwards*, keyed by the authenticated user id (`preferences.ts`,
- * `push-subscription.ts`), on the argument that a per-user key cannot be dodged
- * by rotating IPs. A relabel could inherit that argument.
+ * with: a relabel only changes a row the caller already owns, and such a write
+ * carries no limit under the package's rule for authenticated writes (AUTH.md →
+ * Rate-Limiting, Lockout & Route Scope).
  *
- * What decides against it is reach, measured rather than assumed: a rename
- * costs one read and one write, fires no hook, sends no mail, and this package
- * keeps no audit table — so its worst case is write load. That is the same
- * worst case as the unlimited `DELETE` beside it, which destroys a credential
- * rather than relabelling one. Braking the relabel while the deletion runs free
- * would be arbitrary, so the group stays as it is. The two groups answering
- * this differently is a divergence in the package, not a principle to read off
- * it.
+ * Its reach agrees: a rename costs one read and one write, fires no hook,
+ * sends no mail, and this package keeps no audit table — so its worst case is
+ * write load, the same worst case as the unlimited `DELETE` beside it, which
+ * destroys a credential rather than relabelling one.
  */
 function renameHandler<R extends string>(
   passkeyRepo: PasskeyRepository,

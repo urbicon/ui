@@ -27,6 +27,15 @@ import { localsUserId } from './locals-user.js';
  * `locals.user` — set by the auth handle — and goes through the
  * ownership-scoped `NotificationService` methods, so the id in the URL alone
  * can never read or mutate another user's rows.
+ *
+ * None of the four carries a rate limit, and that is the decision rather than
+ * an omission: reading, flipping a read flag and removing a row the caller
+ * already owns create nothing, verify no secret and reach no third party, so
+ * what they touch is bounded by what the caller owns — the clause of the
+ * package's rule for authenticated writes that carries no limit (AUTH.md →
+ * Rate-Limiting, Lockout & Route Scope). The request rate of an authenticated
+ * caller is the edge's brake, not this package's. Pinned in
+ * `notifications.test.ts`.
  */
 export function createNotificationsHandlers(service: NotificationService): {
   list: { GET: RequestHandler };
