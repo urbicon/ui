@@ -214,13 +214,13 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert announces in place, at the urgency its `intent` implies; Toast is system-level + stacking. |
 | `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
-**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the confirm button, the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. The required-field marker is already off it and draws in the resting tone (#395). Two places still carry the accent and are to lose it:
+**Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Everything else rests in the neutral tone, and a product that wants the accent there asks for it:
 
-> **Decided 2026-09-08, pending #434** — the `EmptyState` icon disc, today `bg-primary-subtle text-primary-text`, is to drop to a neutral tone.
->
-> **Decided 2026-09-08, pending #433** — `ConfirmDialog`, which today promotes a `neutral` intent to `primary` on its confirm button, is to stop doing so.
+- the required-field marker (#395);
+- the `EmptyState` icon container, `bg-surface-subtle text-text-tertiary` — an empty state is not the call to action, the CTA below it is; the accent comes back through `slotClasses.iconWrapper` or the provider's `defaults`;
+- the `ConfirmDialog` confirm button, which carries no accent of its own: it follows the dialog's `intent` unchanged, so a `neutral` dialog gets a `filled neutral` confirm rather than one promoted to `primary`, and the accent arrives only through `intent="primary"` or `confirmIntent="primary"`.
 
-The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy; this paragraph carries the issue trail.
+The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy.
 
 ---
 
