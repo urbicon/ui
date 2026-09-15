@@ -81,6 +81,24 @@ canon for the PR-based form.
   waves say `Refs #N`.
 - Document the review outcome as a PR comment (findings → what happened to
   each, including the ones deliberately not done and why).
+- **Parallel PRs collide on `packages/blocks/docs/MIGRATION.md`.** Every
+  breaking PR adds its entries under the same `## <next version>` heading,
+  so each merge of `main` into a sibling conflicts there. The resolution is
+  mechanical: strip the three markers, keep both blocks (order within a
+  release does not matter), commit the merge, push — one CI round per
+  merge of `main`, so merge PRs promptly rather than batching them.
+- **Commitlint rejects a subject that starts with a capital** (`subject-case`),
+  which a component name at the front of the subject triggers — write "the
+  CommandPalette owns…", not "CommandPalette owns…".
+- **A throwaway worktree needs `bun install` before it can commit**: the
+  lefthook hooks run prettier/biome from `node_modules`, and without them the
+  commit fails with a module-not-found error while `git push` still pushes
+  the unchanged branch.
+- **The bump's `bun run test` runs every package suite concurrently**
+  (`bun --bun --filter='*' run test`); the docs-gen suite rewrites the
+  design-content bundle that the mcp-server suite reads, and the bump can
+  fail on `design-prompts.test.ts` with an empty verb body. Re-run once; CI
+  runs the suites sequentially and does not race.
 
 ## Cleanup — a named final step, per merged PR
 

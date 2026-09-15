@@ -109,6 +109,13 @@ The Playground is the canonical variant/size/intent explorer. Pages should NOT d
    documentation. The per-component dropdown contents are themselves curated (e.g. ripple
    for single triggers, pulse/wiggle for radio-like groups) — they are hand-maintained
    because `MintProp` is an open string union the extractor cannot enumerate.
+8. **Every `href` the page renders must resolve inside the docs app.** The build prerenders the
+   site and its crawler follows every `<a href>` in the rendered HTML — an example link to a
+   route that does not exist fails the Build and every E2E shard with
+   `Error: 404 /projects/42 (linked from /blocks/primitives/link)`. Point examples at real
+   docs routes, and give a Playground stage `href="#"` plus a no-op `onclick` (the Breadcrumb
+   page's form) so the preview never navigates. The code fence may still show the consumer's
+   address as a constant; only the rendered attribute is crawled.
 
 **`bun run examples:budget` enforces rules 3, 5 and 6** (wired into the `gates` job in `ci.yml`).
 It also settles several things this section leaves open — which section ids count toward the
