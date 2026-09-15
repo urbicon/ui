@@ -58,6 +58,11 @@ jobs:
       # Source-level i18n audit: unused keys, used-but-undefined keys,
       # hardcoded strings. Advisory findings do not fail; errors do.
       - run: bun run i18n:check
+      # Reference integrity of AGENTS.md, docs/*.md and the skills: asks
+      # package.json for every `bun run` span, the file tree for every path and
+      # `file.ts:12` pointer, the sources for every UPPER_SNAKE constant, and
+      # the target's headings for every `[…](x.md#anchor)` link.
+      - run: bun run docs:refs:check
 
   typecheck:
     name: Type Check
@@ -176,6 +181,11 @@ jobs:
       # `@source` lines on the unpacked copies and expects that finding back
       # by class and file. Without this the gate is green for any reason.
       - run: bun test scripts/consumer-css-check.test.ts
+      # The docs-reference gate's positive controls (the gate itself runs in
+      # `lint`): a fixture repo with one sabotage per concern, each expected
+      # back by kind and line. A check whose extraction reads nothing reports
+      # "0 findings" exactly like a clean tree.
+      - run: bun test scripts/docs-refs-check.test.ts
       # End-to-end control for the pattern corpus of `examples:lint` (the gate
       # itself runs in `gates`): drives the real script over a fixture corpus and
       # expects the red case back at its document line. Every way that corpus can

@@ -894,7 +894,7 @@ documented single-file fallback for tests.
 only the `:all` run performs the final assembly that rebuilds `llms-full.txt` and the MCP
 component catalog. A per-target run writes only that scope's outputs.
 
-Generated outputs (`**/api.ts`, `llms-full.txt`, `static/**/_catalog.json`, `static/mcp/`)
+Generated outputs (`**/api.ts`, `llms-full.txt`, `static/**/_catalog.json`, `apps/docs/static/mcp/`)
 are **git-ignored** and rebuilt by `bun run build`. `llms.txt` (root and `apps/docs/static/`)
 is generated from the component catalog too, but tracked: `llms:check` (`git diff --exit-code`
 after `build:ts`) fails the gates job when a commit skipped `docs:gen`.
