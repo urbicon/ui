@@ -1,0 +1,330 @@
+import { afterEach, describe, expect, it } from 'bun:test';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { AGENTS_WORD_BUDGET, ALLOWLIST } from './docs-refs-check';
+
+/**
+ * Positive controls for the docs-reference gate, against its own oracles.
+ *
+ * Its failure mode is silence: an extraction that reads nothing, a fence
+ * tracker that swallows a document, a resolver that accepts everything all
+ * print "0 findings" exactly like a clean tree. So every block runs the real
+ * CLI over a fixture repo and asserts both directions — the clean tree passes
+ * with a non-zero reference count, and one sabotage per concern comes back with
+ * its kind at its line.
+ *
+ * The fixture is a repo, not a mock: `--root` is the only thing the check is
+ * told. It is deliberately not a git checkout, which is the state in which
+ * `git check-ignore` answers nothing and every path must resolve on its own.
+ */
+
+const SCRIPT = join(import.meta.dir, 'docs-refs-check.ts');
+const dirs: string[] = [];
+afterEach(() => {
+  for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
+});
+
+function write(root: string, path: string, body: string) {
+  mkdirSync(join(root, dirname(path)), { recursive: true });
+  writeFileSync(join(root, path), body);
+}
+
+/** Appends a line and returns the 1-based line number it landed on. */
+function appendLine(root: string, path: string, text: string): number {
+  const file = join(root, path);
+  const before = readFileSync(file, 'utf-8');
+  writeFileSync(file, `${before}${text}\n`);
+  return before.split('\n').length;
+}
+
+/** A repo the check passes on: every reference in it resolves. */
+function fixture(): string {
+  const root = mkdtempSync(join(tmpdir(), 'docs-refs-'));
+  dirs.push(root);
+
+  write(
+    root,
+    'package.json',
+    `${JSON.stringify(
+      { name: 'fixture', private: true, scripts: { lint: 'echo lint', 'docs:gen': 'echo gen' } },
+      null,
+      2
+    )}\n`
+  );
+  write(
+    root,
+    'packages/table/package.json',
+    `${JSON.stringify({ name: '@urbicon-ui/table', scripts: { test: 'echo test' } }, null, 2)}\n`
+  );
+  write(root, 'packages/table/src/lib/thing.ts', 'export const LIVE_CONST = 1;\n');
+  write(root, 'scripts/keeper.ts', 'export const KEEPER = LIVE_CONST;\n');
+  // Named `scripts/only-here.ts` in a doc, this resolves by tail and is still
+  // wrong: `scripts/` is a real top-level directory, so the spelling is a claim
+  // about the root.
+  write(root, 'packages/table/scripts/only-here.ts', 'export const ONLY = 1;\n');
+
+  // Every ALLOWLIST entry must be mentioned by a source or it is stale — the
+  // fixture names them the way the real sources do, whatever the list holds.
+  const exempted = ALLOWLIST.map(([what]) => `\`${what}\``).join(', ');
+  write(
+    root,
+    '.claude/skills/probe/SKILL.md',
+    `# Probe skill\n\nReads \`packages/table/src/lib/thing.ts\`.\n\nExempted: ${exempted}\n`
+  );
+
+  write(
+    root,
+    'AGENTS.md',
+    [
+      '# Fixture',
+      '',
+      '## Commands',
+      '',
+      '- `bun run lint` runs the whole tree, `bun run docs:gen` the catalogs.',
+      "- `bun --filter='@urbicon-ui/table' run test` and `bun --filter='table' run test`.",
+      '',
+      '## Paths',
+      '',
+      'Sources: `packages/table/src/lib/thing.ts`, `scripts/keeper.ts`, `lib/thing.ts`,',
+      'and the pointer `keeper.ts:1` plus `packages/table/src/lib/thing.ts:1-1`.',
+      '',
+      'A file is not a script name: `bun run scripts/keeper.ts`.',
+      '',
+      'Exemptions: `LIVE_CONST`.',
+      '',
+      'Neither a template path `packages/<Name>/src/index.ts` nor a URL',
+      '`https://example.com/missing.md` is a claim that a file exists, and',
+      '[nor is a link to one](https://example.com/missing.md).',
+      '',
+      'See [the index](docs/README.md) and [a section](docs/README.md#the-fixture-index).',
+      '',
+      '```sh',
+      '# a fenced block is not a reference: `bun run nothing-at-all`',
+      '```',
+      ''
+    ].join('\n')
+  );
+
+  write(
+    root,
+    'docs/README.md',
+    [
+      '# The fixture index',
+      '',
+      '- [AGENTS](../AGENTS.md)',
+      '- [guide](./GUIDE.md#a-heading-with-punctuation)',
+      '- [the second repeat](./GUIDE.md#repeat-1)',
+      '- [inline code in the heading](./GUIDE.md#the-thing-contract)',
+      '- [`docs/GONE.md`](./GUIDE.md) — a label names, it does not claim',
+      ''
+    ].join('\n')
+  );
+  // A tarball doc: docs/ carries a symlink, the file lives in its package.
+  write(root, 'packages/table/docs/TARBALL.md', '# Tarball doc\n\nShips `lib/thing.ts`.\n');
+  symlinkSync('../packages/table/docs/TARBALL.md', join(root, 'docs/TARBALL.md'));
+
+  write(
+    root,
+    'docs/GUIDE.md',
+    [
+      '# Fixture guide',
+      '',
+      '## A heading, with punctuation!',
+      '',
+      'Generated by `bun run docs:gen`.',
+      '',
+      '## Repeat',
+      '',
+      '## Repeat',
+      '',
+      '## The `<Thing>` contract',
+      '',
+      '```md',
+      '## Fenced heading',
+      '```',
+      ''
+    ].join('\n')
+  );
+  return root;
+}
+
+function runArgs(...args: string[]): { code: number; out: string } {
+  const proc = Bun.spawnSync([process.execPath, SCRIPT, ...args], {
+    stdout: 'pipe',
+    stderr: 'pipe'
+  });
+  return { code: proc.exitCode, out: `${proc.stdout.toString()}${proc.stderr.toString()}` };
+}
+
+const run = (root: string) => runArgs('--root', root);
+
+describe('docs-refs-check', () => {
+  it('passes a fixture repo whose references all resolve, having read some', () => {
+    const { code, out } = run(fixture());
+    expect(out).toContain('0 findings');
+    expect(code).toBe(0);
+    // The blindness guard: 0 findings only counts if something was examined.
+    const refs = Number(out.match(/(\d+) references/)?.[1]);
+    expect(refs).toBeGreaterThan(15);
+    expect(out).toMatch(/5 sources/);
+    // A root spelled differently from its realpath (macOS /var → /private/var)
+    // once made every source unrecognisable, the budget included.
+    expect(Number(out.match(/AGENTS\.md: (\d+) words/)?.[1])).toBeGreaterThan(0);
+  });
+
+  it('reports neither a `<Name>` template path, a URL, nor a fenced block', () => {
+    const { out } = run(fixture());
+    expect(out).not.toContain('Name');
+    expect(out).not.toContain('example.com');
+    expect(out).not.toContain('nothing-at-all');
+    // A path inside a link label: the target is the claim, the label a name.
+    expect(out).not.toContain('GONE');
+  });
+
+  it('reads a symlinked tarball doc, and reports it at its target path', () => {
+    const root = fixture();
+    const line = appendLine(
+      root,
+      'packages/table/docs/TARBALL.md',
+      'Run `bun run gone-from-here`.'
+    );
+    const { out } = run(root);
+    expect(out).toContain(`packages/table/docs/TARBALL.md:${line}  script  gone-from-here`);
+    // Once: the symlink and its target are the same document.
+    expect(out.match(/gone-from-here/g)).toHaveLength(1);
+    expect(out).not.toMatch(/(?:^|\s)docs\/TARBALL\.md:/m);
+  });
+
+  it('reports a root script that no longer exists', () => {
+    const root = fixture();
+    const line = appendLine(root, 'AGENTS.md', 'Run `bun run no-such-script` first.');
+    const { code, out } = run(root);
+    expect(out).toContain(`AGENTS.md:${line}  script  no-such-script`);
+    expect(code).toBe(1);
+  });
+
+  it('hands `bun run <file>` to the path rule, not the script rule', () => {
+    const root = fixture();
+    const line = appendLine(root, 'AGENTS.md', 'Run `bun run scripts/gone.ts`.');
+    const { out } = run(root);
+    expect(out).toContain(`AGENTS.md:${line}  path  scripts/gone.ts`);
+    // Never as a script called `scripts`: the capture used to stop at the `/`.
+    expect(out).not.toMatch(/script {2}scripts {2}/);
+  });
+
+  it('reports a package script that no longer exists', () => {
+    const root = fixture();
+    const line = appendLine(root, 'AGENTS.md', "Run `bun --filter='@urbicon-ui/table' run gone`.");
+    const { out } = run(root);
+    expect(out).toContain(`AGENTS.md:${line}  script  gone`);
+    expect(out).toContain('not a script of packages/table/package.json');
+  });
+
+  it('reports a path that no longer exists, root-anchored or by tail', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/GUIDE.md', 'See `packages/table/src/lib/gone.ts`.');
+    const tail = appendLine(root, 'docs/GUIDE.md', 'Or `lib/gone.ts`.');
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${line}  path  packages/table/src/lib/gone.ts`);
+    expect(out).toContain(`docs/GUIDE.md:${tail}  path  lib/gone.ts`);
+  });
+
+  it('reports a root-anchored path although the tail resolves', () => {
+    const root = fixture();
+    // `packages/table/scripts/only-here.ts` is on disk, so the tail is there.
+    // `scripts/` is a real top-level directory, so this spelling is wrong.
+    const line = appendLine(root, 'docs/GUIDE.md', 'See `scripts/only-here.ts`.');
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${line}  path  scripts/only-here.ts`);
+    expect(out).toContain('no such file at the repo root');
+  });
+
+  it('reports a file:line pointer whose file is gone', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/GUIDE.md', 'The rule sits at `gone.ts:12`.');
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${line}  path  gone.ts`);
+  });
+
+  it('reports a file:line pointer past the end of the file it names', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/GUIDE.md', 'The rule sits at `keeper.ts:9999`.');
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${line}  path  keeper.ts:9999`);
+    expect(out).toContain('lines');
+  });
+
+  it('reports a constant that occurs in no source', () => {
+    const root = fixture();
+    const line = appendLine(root, 'AGENTS.md', 'Exemptions: `RETIRED_CONST`.');
+    const { out } = run(root);
+    expect(out).toContain(`AGENTS.md:${line}  ident  RETIRED_CONST`);
+  });
+
+  it('reports a link whose target file is gone', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/README.md', '- [gone](./GONE.md)');
+    const { out } = run(root);
+    expect(out).toContain(`docs/README.md:${line}  link  ./GONE.md`);
+  });
+
+  it('reports a link fragment no heading slugifies to', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/README.md', '- [gone](./GUIDE.md#no-such-heading)');
+    const { out } = run(root);
+    expect(out).toContain(`docs/README.md:${line}  link  ./GUIDE.md#no-such-heading`);
+    expect(out).toContain('no heading in docs/GUIDE.md slugifies to #no-such-heading');
+  });
+
+  it('reports a link to a heading that only exists inside a fence', () => {
+    const root = fixture();
+    const line = appendLine(root, 'docs/README.md', '- [fenced](./GUIDE.md#fenced-heading)');
+    const { out } = run(root);
+    expect(out).toContain(`docs/README.md:${line}  link  ./GUIDE.md#fenced-heading`);
+    expect(out).toContain('no heading in docs/GUIDE.md slugifies to #fenced-heading');
+  });
+
+  it('reports a github.com/urbicon/ui link whose path or anchor is gone', () => {
+    const root = fixture();
+    const base = 'https://github.com/urbicon/ui/blob/main';
+    const file = appendLine(root, 'docs/GUIDE.md', `[gone](${base}/docs/GONE.md)`);
+    const frag = appendLine(root, 'docs/GUIDE.md', `[anchor](${base}/docs/README.md#gone)`);
+    const { out } = run(root);
+    expect(out).toContain(`docs/GUIDE.md:${file}  link  ${base}/docs/GONE.md`);
+    expect(out).toContain(`docs/GUIDE.md:${frag}  link  ${base}/docs/README.md#gone`);
+  });
+
+  it('reports AGENTS.md over its word budget, and its count either way', () => {
+    const clean = run(fixture());
+    expect(clean.out).toMatch(/AGENTS\.md: \d+ words \(budget \d+\)/);
+
+    const root = fixture();
+    appendLine(root, 'AGENTS.md', 'padding '.repeat(AGENTS_WORD_BUDGET + 1));
+    const { code, out } = run(root);
+    expect(out).toMatch(/AGENTS\.md:1 {2}budget {2}\d+ words/);
+    expect(out).toContain(`over the ${AGENTS_WORD_BUDGET}-word budget`);
+    expect(code).toBe(1);
+  });
+
+  // Explicit over a fallback: a `--root` that names nothing must not silently
+  // check this repo and report it clean.
+  it('refuses a --root with no directory behind it', () => {
+    for (const args of [['--root'], ['--root', '--json']]) {
+      const { code, out } = runArgs(...args);
+      expect(out).toContain('--root needs a directory');
+      expect(code).toBe(2);
+    }
+  });
+
+  // Vacuous with an empty list; the list is the thing under test.
+  it.skipIf(ALLOWLIST.length === 0)('reports an ALLOWLIST entry no source mentions', () => {
+    const root = fixture();
+    const skill = join(root, '.claude/skills/probe/SKILL.md');
+    writeFileSync(skill, readFileSync(skill, 'utf-8').replace(/^Exempted:.*$/m, 'Exempted: none.'));
+    const { code, out } = run(root);
+    expect(out).toContain(`allowlist  '${ALLOWLIST[0]![0]}'`);
+    expect(out).toContain('stale');
+    expect(code).toBe(1);
+  });
+});
