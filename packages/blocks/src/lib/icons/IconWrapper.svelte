@@ -16,6 +16,22 @@
   }: IconProps & { content?: string; children?: Snippet } = $props();
 
   const transform = $derived(buildSvgTransform(rotate, flip));
+  /**
+   * An `<svg>` carrying a `viewBox` and no `width`/`height` has no intrinsic
+   * size, so its used size is whatever its layout context hands it — zero as a
+   * flex or grid item, the container's width as a block child. `1em` gives it
+   * the font size of its context instead, so an icon takes the type step of
+   * whatever it sits in.
+   *
+   * `??`, not `||`: `size={0}` is a caller asking for no box and must not be
+   * read as "no size given".
+   *
+   * A presentation attribute, so any author CSS outranks it: a `size-4` on the
+   * icon or a `[&_svg]:size-4` on an ancestor decides regardless of `size` —
+   * which is what keeps every styled slot in this library rendering as before.
+   * `restProps` is spread after it, so an explicit `width=`/`height=` wins too.
+   */
+  const dimension = $derived(size ?? '1em');
   const classes = $derived(
     [className, animation === 'spin' ? 'icon-spin' : animation === 'pulse' ? 'icon-pulse' : null]
       .filter(Boolean)
@@ -51,8 +67,8 @@
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  width={size}
-  height={size}
+  width={dimension}
+  height={dimension}
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"

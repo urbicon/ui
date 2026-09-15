@@ -129,6 +129,16 @@
     <p class="text-text-secondary mt-2 text-lg">
       {allNames.length} original stroke-based icons. Click any icon to open it in the playground.
     </p>
+    <p class="text-text-secondary mt-3 max-w-2xl">
+      An icon without a <code class="text-text-primary">size</code> draws at
+      <code class="text-text-primary">1em</code> — the font size of whatever it sits in, so one in a
+      <code class="text-text-primary">sm</code> Button is 14&nbsp;px and in an
+      <code class="text-text-primary">lg</code> Button 18&nbsp;px. Pass
+      <code class="text-text-primary">size=&#123;20&#125;</code> for a fixed edge length, or a CSS
+      class (<code class="text-text-primary">size-4</code>) when neither the type step nor the prop
+      should decide: the class wins over both, because
+      <code class="text-text-primary">size</code> is an attribute.
+    </p>
   </header>
 
   <Section id="playground" title="Playground" titleHidden intent="primary">

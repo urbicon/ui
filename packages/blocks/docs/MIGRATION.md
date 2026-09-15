@@ -11,6 +11,41 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.23.0
+
+### An icon without `size` is `1em` instead of nothing
+
+`<LogOutIcon />` used to emit an `<svg>` with no `width` and no `height`. An svg with a `viewBox`
+and no dimensions has no intrinsic size, so what it drew was whatever its layout context happened
+to give it: nothing at all as a flex or grid item, the container's whole width as a block child. An
+icon dropped into a `<Button>` was invisible until someone passed a `size`. It now defaults to
+`1em` — the font size of its context, so the same icon takes the Button's type step.
+
+**Styled components are unaffected.** Every slot that renders an icon already sizes it, either with
+a class on the icon (`w-4 h-4`) or with a `[&_svg]:w-4 [&_svg]:h-4` on its wrapper, and author CSS
+outranks a presentation attribute. The chevrons, checkmarks and clear buttons render exactly as
+before.
+
+**`unstyled` changes.** `unstyled` drops those slot classes, so under it the icons had no size at
+all and now draw at `1em`. On screen that is an icon appearing where there was none, or shrinking
+from a container-sized one:
+
+```svelte
+<!-- the chevron was unsized here; it is 1em now -->
+<Select unstyled {options} />
+```
+
+Take the size back with the slot you were already styling, or with a rule on the wrapper:
+
+```svelte
+<Select unstyled {options} slotClasses={{ chevron: 'size-4' }} />
+```
+
+What to grep for: an icon element with no `size` prop **and** no size class, sitting in a container
+that used to size it — `<[A-Z]\w*Icon\s*/>` across your own components, plus any `unstyled` blocks
+component whose `slotClasses` you left partial. A passed `size` still wins over the default, and a
+CSS size still wins over both.
+
 ## 8.22.0
 
 ### The required marker's glyph is CSS again
