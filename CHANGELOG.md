@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.24.0](https://github.com/urbicon/ui/compare/v8.23.0...v8.24.0) - 2026-09-15
+
+### Breaking Changes
+- **auth**: Locales beyond `en` are registered, not built in
+> **BREAKING:** German auth UI and mails need registerAuthLocale('de', de) on server and client
+
+### Bug Fixes
+- **docs-app**: The changelog page renders the links and code spans cliff writes
+- **auth**: The guard 401 carries the cookie clear it staged
+
+### Documentation
+- The prerender crawler follows example links, and the wave's merge lessons
+
+### Features
+- **auth**: One rule says which authenticated writes are rate-limited, and the code follows it
+
 ## [8.23.0](https://github.com/urbicon/ui/compare/v8.22.1...v8.23.0) - 2026-09-15
 
 ### Breaking Changes
