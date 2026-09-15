@@ -551,10 +551,20 @@ export function check(root: string): Report {
  * `<BlocksProvider>` keeps those letters — strip the angle brackets there and
  * the anchor the document actually links to reads as broken.
  */
+/** Drops `<…>` runs until none is left, so a nested `<<b>>` cannot survive one pass. */
+function stripTags(text: string): string {
+  let out = text;
+  for (;;) {
+    const next = out.replace(/<[^>]*>/g, '');
+    if (next === out) return out;
+    out = next;
+  }
+}
+
 export function slugify(raw: string): string {
   return raw
     .split('`')
-    .map((part, i) => (i % 2 === 1 ? part : part.replace(/<[^>]*>/g, '')))
+    .map((part, i) => (i % 2 === 1 ? part : stripTags(part)))
     .join('')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/[*~]/g, '')
