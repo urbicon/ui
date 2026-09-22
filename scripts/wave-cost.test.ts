@@ -23,7 +23,8 @@ const jsonl = (file: string, lines: unknown[]) =>
 /**
  * s1: one session with a reviewer, an implementer, an unnamed agent and a nested spawn. Messages span
  * several transcript lines the way Claude Code writes them: one line per content block, every line
- * repeating the request's cache figures, output as a running or final count.
+ * repeating the request's cache figures, output as a running count and `stop_reason: null` until the
+ * line that carries the final count.
  * s2: an older session outside a September range.
  * s3: a session opened late on 09-02 whose work happens on 09-03.
  */
@@ -37,6 +38,7 @@ const fixture = (): string => {
       message: {
         id: 'm1',
         model: 'claude-opus-5',
+        stop_reason: null,
         usage: usage(100, 2_000_000, 500, '1h'),
         content: [{ type: 'thinking', thinking: '…' }]
       }
@@ -47,6 +49,7 @@ const fixture = (): string => {
       message: {
         id: 'm1',
         model: 'claude-opus-5',
+        stop_reason: 'tool_use',
         usage: usage(100, 2_000_000, 500, '1h'),
         content: [
           {
@@ -84,10 +87,28 @@ const fixture = (): string => {
         ]
       }
     },
+    // Claude Code's own placeholder for an interrupt: no model message, not a turn
+    {
+      type: 'assistant',
+      timestamp: at(1.5),
+      message: {
+        id: 'syn',
+        model: '<synthetic>',
+        stop_reason: 'stop_sequence',
+        usage: usage(0, 0, 0),
+        content: []
+      }
+    },
     {
       type: 'assistant',
       timestamp: at(2),
-      message: { id: 'm2', model: 'claude-opus-5', usage: usage(200, 0, 700), content: [] }
+      message: {
+        id: 'm2',
+        model: 'claude-opus-5',
+        stop_reason: 'end_turn',
+        usage: usage(200, 0, 700),
+        content: []
+      }
     }
   ]);
   const subs = join(dir, 's1', 'subagents');
@@ -104,6 +125,7 @@ const fixture = (): string => {
       message: {
         id: 'r1',
         model: 'claude-opus-5',
+        stop_reason: 'tool_use',
         usage: usage(60, 1_500_000, 0),
         content: [
           {
@@ -130,6 +152,7 @@ const fixture = (): string => {
       message: {
         id: 'r2',
         model: 'claude-opus-5',
+        stop_reason: null,
         usage: usage(5, 100, 30_000),
         content: [{ type: 'thinking', thinking: '…' }]
       }
@@ -140,6 +163,7 @@ const fixture = (): string => {
       message: {
         id: 'r2',
         model: 'claude-opus-5',
+        stop_reason: 'end_turn',
         usage: usage(20, 100, 30_000),
         content: [{ type: 'text', text: 'done' }]
       }
@@ -157,12 +181,22 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: at(2.5),
-      message: { id: 'i1', model: 'claude-opus-5', usage: usage(40, 25_000, 0) }
+      message: {
+        id: 'i1',
+        model: 'claude-opus-5',
+        stop_reason: 'tool_use',
+        usage: usage(40, 25_000, 0)
+      }
     },
     {
       type: 'assistant',
       timestamp: at(10),
-      message: { id: 'i2', model: 'claude-opus-5', usage: usage(60, 400, 25_000) }
+      message: {
+        id: 'i2',
+        model: 'claude-opus-5',
+        stop_reason: 'end_turn',
+        usage: usage(60, 400, 25_000)
+      }
     }
   ]);
   jsonl(join(subs, 'agent-ccc333.jsonl'), [
@@ -171,16 +205,19 @@ const fixture = (): string => {
       timestamp: at(20),
       message: { role: 'user', content: 'Read the file and summarize it.' }
     },
-    // a 400-character tool call recorded with 5 output tokens: the message never reached its final usage
+    // never reached its final usage: 5 output tokens recorded for a 500-character thinking block and a
+    // tool call whose input stringifies to 214 characters — the floor is the tool call, not the thinking
     {
       type: 'assistant',
       timestamp: at(21),
       message: {
         id: 'c1',
         model: 'claude-haiku-4-5',
+        stop_reason: null,
         usage: usage(5, 1000, 0),
         content: [
-          { type: 'tool_use', id: 'tu5', name: 'Bash', input: { command: 'x'.repeat(400) } }
+          { type: 'thinking', thinking: 't'.repeat(500) },
+          { type: 'tool_use', id: 'tu5', name: 'Bash', input: { command: 'x'.repeat(200) } }
         ]
       }
     }
@@ -194,7 +231,12 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: at(2.4),
-      message: { id: 'd1', model: 'claude-haiku-4-5', usage: usage(3, 500, 0) }
+      message: {
+        id: 'd1',
+        model: 'claude-haiku-4-5',
+        stop_reason: 'end_turn',
+        usage: usage(3, 500, 0)
+      }
     }
   ]);
   jsonl(join(dir, 's2.jsonl'), [
@@ -206,7 +248,7 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: '2026-08-01T09:01:00.000Z',
-      message: { id: 'o1', model: 'claude-opus-5', usage: usage(7, 0, 0) }
+      message: { id: 'o1', model: 'claude-opus-5', stop_reason: 'end_turn', usage: usage(7, 0, 0) }
     }
   ]);
   jsonl(join(dir, 's3.jsonl'), [
@@ -218,7 +260,7 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: '2026-09-03T00:30:00.000Z',
-      message: { id: 'e1', model: 'claude-opus-5', usage: usage(9, 0, 0) }
+      message: { id: 'e1', model: 'claude-opus-5', stop_reason: 'end_turn', usage: usage(9, 0, 0) }
     }
   ]);
   return dir;
@@ -289,7 +331,7 @@ describe('wave-cost', () => {
     expect(report.sessions.map((s) => s.session)).toEqual(['s1']);
     expect(report.subagentCount).toBe(4);
     const [s1] = report.sessions;
-    // message m1 spans two transcript lines that repeat its figures: two turns in all, figures taken once
+    // m1 spans two transcript lines that repeat its figures, the synthetic line is no turn: two turns, figures once
     expect(s1.orchestrator).toEqual({
       turns: 2,
       turnsWithFinalUsage: 2,
@@ -302,6 +344,7 @@ describe('wave-cost', () => {
       cacheWriteAfterPause: 0,
       cacheReadAfterPause: 0
     });
+    expect(s1.model).toBe('claude-opus-5');
     const byId = Object.fromEntries(s1.subagents.map((a) => [a.id, a]));
     expect(byId.aaa111.role).toBe('reviewer');
     expect(byId.aaa111.description).toBe('PR A: review');
@@ -333,14 +376,31 @@ describe('wave-cost', () => {
     expect(s1.byRole.implementer.turnsAfterPause).toBe(1);
     expect(s1.byRole.implementer.cacheWriteAfterPause).toBe(400);
     expect(s1.byRole.implementer.cacheReadAfterPause).toBe(25_000);
-    expect(s1.byRole.other.output).toBe(8);
+    // ccc333 never reached its final usage: its floor is its 214-character tool call at four characters a
+    // token (54), not the recorded 5 and not the 500-character thinking block; ddd444 adds its final 3
+    expect(s1.byRole.other.output).toBe(57);
     expect(s1.byRole.other.turns).toBe(2);
-    // ccc333's only message shows 5 output tokens for a 400-character tool call
     expect(s1.byRole.other.turnsWithFinalUsage).toBe(1);
     // minute 2 after T0 holds a message of the reviewer, the implementer and the nested agent; nothing else overlaps
     expect(s1.peakActive).toBe(3);
     expect(report.totals.orchestrator.output).toBe(300);
     expect(report.totals.reviewer.cacheRead).toBe(30_000);
+  });
+
+  test('a usage line without a message id fails the run instead of counting per line', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'wave-cost-'));
+    jsonl(join(dir, 'x1.jsonl'), [
+      { type: 'user', timestamp: at(0), message: { role: 'user', content: 'start' } },
+      {
+        type: 'assistant',
+        timestamp: at(1),
+        uuid: 'u1',
+        message: { model: 'claude-opus-5', usage: usage(1, 0, 0) }
+      }
+    ]);
+    expect(() => analyze(dir)).toThrow(
+      /x1\.jsonl: an assistant line with usage but no message\.id/
+    );
   });
 
   test('the range keeps every session whose activity overlaps it, and reports its first day', () => {

@@ -22,10 +22,11 @@ for the PR-based form.
    up to the merge queue, while every agent in flight adds its own cache
    reads — priced, the bulk of a wave's spend, several times the
    orchestrator's — and adds reports and routing to the orchestrator's
-   output, which is about a third of a wave's output, not the largest line
-   (`bun run wave:cost --since 2026-08-18 --until 2026-09-17`; the table
-   and its pricing sit in the orchestration note under `docs/internal/`,
-   which is local only). The agent does not commit;
+   output, under a third of a wave's output on a floor that undercounts the
+   subagents, not the largest line (`bun run wave:cost --since 2026-08-18
+   --until 2026-09-17`; the table and its pricing sit in the orchestration
+   note under `docs/internal/`, which is local only). The agent does not
+   commit;
    you commit, push and open the PR from its report, without re-running its
    gates (CI on the head SHA is the oracle, see CI and merge).
 2. **Adversarial review in a fresh context** — never the implementing
@@ -178,7 +179,8 @@ the turns that followed a pause longer than five minutes, the fresh-context
 cost of each agent, the peak number of agents active in the same minute,
 and the word each role was read from; an output figure marked as a floor
 is one whose transcript carries no final usage for some turns. The table
-goes into the wave protocol under `docs/internal/`, next to the orchestration note that
+goes into the wave protocol under `docs/internal/`, next to the
+orchestration note that
 holds the baseline (local only — `docs/internal/` is git-ignored). Claude
 Code prunes transcripts after `cleanupPeriodDays` (30 by default), so a
 wave measured later than that has no data left — record it at close, not

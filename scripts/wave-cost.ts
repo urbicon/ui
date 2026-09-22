@@ -39,25 +39,23 @@
  * input and cache figures and carries a running or final `output_tokens`. So
  * usage is aggregated per message id — cache and input taken once, output as
  * the maximum over the message's lines — never summed per line, which counts
- * cache reads two to three times and the main conversation's output twice.
- * Subagent transcripts record, on about half of their messages, a running
- * count on every line and never the final one (a message with a thinking block
- * and a 400-character tool call shows `output_tokens: 7`); some agents show it
- * on nearly every message, the main conversation almost never. The check is
- * physical: the recorded output must at least cover the message's
- * visible content (text and tool-call input, at four characters a token,
- * thinking excluded because the transcript omits it); below that the message
- * never reached its final usage, its output is a floor, and the report says on
- * how many turns the figure is final. `output_tokens_details` is no signal:
- * older transcripts carry complete counts without it on half their messages. The harness's `subagent_tokens` in task
- * notifications run about twice the transcript's output and cumulate over an
- * agent's runs, with no documented definition — the tool does not read them.
+ * cache reads about twice and the main conversation's output about three
+ * times. A usage line without `message.id` fails the run: the fallback would
+ * be per-line counting under a normal-looking report.
  *
- * A subagent maps to its description through the Agent tool result of the
- * transcript that spawned it (`agentId: <id>` in the result text) — the main
- * transcript for a top-level spawn, another subagent's transcript for a nested
- * one, so every transcript of the session is scanned for spawns. A subagent
- * with no spawn record anywhere is classified by its prompt alone.
+ * Whether a message reached its final usage is the line's `stop_reason`: null
+ * on every line written before the message ended, `tool_use` or `end_turn` on
+ * the line that carries the final count. Subagent transcripts end about half
+ * their messages without such a line (a message with a thinking block and a
+ * 400-character tool call then shows `output_tokens: 7`). For those the output
+ * is a floor — the larger of the recorded count and the visible content, text
+ * and tool-call input at four characters a token, thinking excluded because
+ * the transcript omits it — and the report says per role and per agent on how
+ * many turns the figure is final. Lines of `model: "<synthetic>"` are Claude
+ * Code's own placeholders (interrupts, API errors), not model messages, and are
+ * skipped. The harness's `subagent_tokens` in task notifications run several
+ * times the transcript's output (five on the measured window), cumulate over an
+ * agent's runs and have no documented definition — the tool does not read them.
  *
  * Run: `bun run wave:cost --since 2026-09-15 --agents`
  *   --since / --until YYYY-MM-DD   sessions whose activity overlaps the range;
@@ -88,7 +86,7 @@ type SubagentRole = Exclude<Role, 'orchestrator'>;
 export interface Usage {
   /** Assistant messages, not transcript lines. */
   turns: number;
-  /** Turns whose recorded output covers their visible content; below `turns`, `output` is a floor. */
+  /** Turns that reached their final usage (a `stop_reason` line); below `turns`, `output` is a floor. */
   turnsWithFinalUsage: number;
   output: number;
   inputUncached: number;
@@ -245,6 +243,7 @@ interface Line {
   message?: {
     id?: string;
     model?: string;
+    stop_reason?: string | null;
     content?: unknown;
     usage?: {
       output_tokens?: number;
@@ -285,7 +284,9 @@ interface Scan {
 interface MessageAgg {
   at: number;
   output: number;
-  /** Characters of text and tool-call input in the message's lines. */
+  /** A line of this message carried a `stop_reason`: the message reached its final usage. */
+  final: boolean;
+  /** Characters of text and tool-call input in the message's lines, the floor of its output. */
   visibleChars: number;
   inputUncached: number;
   cacheWrite: number;
@@ -295,6 +296,7 @@ interface MessageAgg {
 }
 
 const CHARS_PER_TOKEN = 4;
+const SYNTHETIC_MODEL = '<synthetic>';
 
 /** Text and tool-call input of one transcript line, the part of the output the transcript shows. */
 const visibleChars = (content: unknown): number => {
@@ -308,7 +310,7 @@ const visibleChars = (content: unknown): number => {
   return chars;
 };
 
-const scanTranscript = (lines: Line[]): Scan => {
+const scanTranscript = (lines: Line[], file: string): Scan => {
   const messages = new Map<string, MessageAgg>();
   const minutes = new Set<number>();
   let first = '';
@@ -324,12 +326,17 @@ const scanTranscript = (lines: Line[]): Scan => {
       prompt = line.message.content;
     }
     const u = line.type === 'assistant' ? line.message?.usage : undefined;
-    if (!u) continue;
-    const id = line.message?.id ?? line.uuid ?? String(messages.size);
+    if (!u || line.message?.model === SYNTHETIC_MODEL) continue;
+    const id = line.message?.id;
+    if (!id)
+      throw new Error(
+        `${file}: an assistant line with usage but no message.id — per-line counting would return`
+      );
     const at = line.timestamp ? Date.parse(line.timestamp) : 0;
     const agg = messages.get(id) ?? {
       at,
       output: 0,
+      final: false,
       visibleChars: 0,
       inputUncached: 0,
       cacheWrite: 0,
@@ -338,6 +345,7 @@ const scanTranscript = (lines: Line[]): Scan => {
       model: line.message?.model ?? '?'
     };
     agg.output = Math.max(agg.output, u.output_tokens ?? 0);
+    if (line.message?.stop_reason) agg.final = true;
     agg.visibleChars += visibleChars(line.message?.content);
     agg.inputUncached = u.input_tokens ?? agg.inputUncached;
     agg.cacheWrite = u.cache_creation_input_tokens ?? agg.cacheWrite;
@@ -351,8 +359,10 @@ const scanTranscript = (lines: Line[]): Scan => {
   let previousTurnAt = 0;
   for (const m of messages.values()) {
     usage.turns += 1;
-    if (m.output >= Math.ceil(m.visibleChars / CHARS_PER_TOKEN)) usage.turnsWithFinalUsage += 1;
-    usage.output += m.output;
+    if (m.final) usage.turnsWithFinalUsage += 1;
+    usage.output += m.final
+      ? m.output
+      : Math.max(m.output, Math.ceil(m.visibleChars / CHARS_PER_TOKEN));
     usage.inputUncached += m.inputUncached;
     usage.cacheWrite += m.cacheWrite;
     usage.cacheWrite5m += m.cacheWrite5m;
@@ -450,7 +460,7 @@ export const analyze = (transcripts: string, options: AnalyzeOptions = {}): Repo
     const session = file.slice(0, -'.jsonl'.length);
     if (options.session && !session.startsWith(options.session)) continue;
     const mainLines = readLines(join(transcripts, file));
-    const main = scanTranscript(mainLines);
+    const main = scanTranscript(mainLines, file);
     if (!main.first) continue;
     const firstDay = main.first.slice(0, 10);
     const lastDay = main.last.slice(0, 10);
@@ -466,7 +476,7 @@ export const analyze = (transcripts: string, options: AnalyzeOptions = {}): Repo
         .sort()) {
         const lines = readLines(join(subDir, sub));
         collectSpawns(lines, descriptions);
-        const scan = scanTranscript(lines);
+        const scan = scanTranscript(lines, sub);
         if (scan.usage.turns)
           scans.set(sub.replace(/^agent-/, '').slice(0, -'.jsonl'.length), scan);
       }
