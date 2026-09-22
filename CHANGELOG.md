@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.25.0](https://github.com/urbicon/ui/compare/v8.24.0...v8.25.0) - 2026-09-22
+
+### Bug Fixes
+- The wave-cost report counts a message once, not once per transcript line
+- **design**: Urbicon i18n stops on a translations path that loads nothing
+- **docs**: The code-example extractor warns when isolate and code are both set
+- Trust-publishers asks before writing, since npm answers a repeat with 409
+
+### Features
+- **blocks**: The PinInput exposes focus() for the retry after a rejected code
+- **design**: Publish the unscoped urbicon bin and make init refuse without the package
+
+### Miscellaneous
+- Two PRs in flight, structured reports, and a wave-cost line at wave close
+
 ## [8.24.0](https://github.com/urbicon/ui/compare/v8.23.0...v8.24.0) - 2026-09-15
 
 ### Breaking Changes
