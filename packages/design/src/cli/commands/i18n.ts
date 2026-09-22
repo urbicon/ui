@@ -471,7 +471,7 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
 
   // A skipped check says so; a missing section would read as one that ran clean.
   for (const name of skipped) {
-    console.log(`\n${name}: not run — translations loaded nothing (see bundle error)`);
+    console.log(`\n${name}: not run — a translations dir loaded nothing (see bundle error)`);
   }
   for (const [name, section] of Object.entries(sections)) {
     console.log(`\n${name}:`);
