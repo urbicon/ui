@@ -308,18 +308,24 @@ describe('PinInput', () => {
     expect(document.activeElement).toBe(cells()[3]);
   });
 
-  // The spy is the assertion for `disabled`: jsdom refuses to focus a disabled
-  // input on its own, so `activeElement` alone would be green without the guard.
-  it.each(['disabled', 'readonly'] as const)('focus() moves nothing while %s', (flag) => {
+  // The spy is the assertion: jsdom refuses to focus a disabled input on its
+  // own, so `activeElement` alone would be green without the guard.
+  it('focus() moves nothing while disabled', () => {
     const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
     try {
-      const instance = mountWith({ length: 4, [flag]: true });
+      const instance = mountWith({ length: 4, disabled: true });
       instance.focus();
       expect(focusSpy).not.toHaveBeenCalled();
       expect(document.activeElement).toBe(document.body);
     } finally {
       focusSpy.mockRestore();
     }
+  });
+
+  it('focus() lands on the last cell of a full read-only row — the cells stay focusable', () => {
+    const instance = mountWith({ length: 4, value: '1234', readonly: true });
+    instance.focus();
+    expect(document.activeElement).toBe(cells()[3]);
   });
 
   it('focus() does not throw without a cell to focus — zero cells, or after unmount', () => {
@@ -367,7 +373,41 @@ describe('PinInput', () => {
     expect(cells().every((el) => el.value === '')).toBe(true);
   });
 
-  it('autoFocus focuses the first empty cell on mount, and only on mount', () => {
+  it('autoFocus focuses a read-only row on mount', () => {
+    mountWith({ length: 4, value: '1234', readonly: true, autoFocus: true });
+    expect(document.activeElement).toBe(cells()[3]);
+  });
+
+  it('autoFocus does not reach for a disabled row', () => {
+    const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
+    try {
+      mountWith({ length: 4, disabled: true, autoFocus: true });
+      expect(focusSpy).not.toHaveBeenCalled();
+    } finally {
+      focusSpy.mockRestore();
+    }
+  });
+
+  it('autoFocus runs again whenever it turns true', () => {
+    const props = $state<PinInputProps>({ length: 4, value: '12', autoFocus: false });
+    mountWith(props);
+    expect(document.activeElement).toBe(document.body);
+    props.autoFocus = true;
+    flushSync();
+    expect(document.activeElement).toBe(cells()[2]);
+
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    props.autoFocus = false;
+    flushSync();
+    expect(document.activeElement).toBe(elsewhere);
+    props.autoFocus = true;
+    flushSync();
+    expect(document.activeElement).toBe(cells()[2]);
+  });
+
+  it('autoFocus focuses the first empty cell on mount, and no later edit moves it again', () => {
     const props = $state<PinInputProps>({ length: 4, value: '12', autoFocus: true });
     mountWith(props);
     expect(document.activeElement).toBe(cells()[2]);

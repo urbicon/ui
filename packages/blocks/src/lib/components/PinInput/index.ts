@@ -12,10 +12,11 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  *
  * The instance (`bind:this`) has one method, `focus()`: it puts the caret on
  * the first empty cell — cell 0 after a clear, the last cell when the row is
- * full — and does nothing while `disabled` or `readonly`. The retry after a
- * rejected code is `value = ''` followed by `focus()`, in that order and in the
- * same tick if you like; from inside `onComplete` it wins over the row's own
- * auto-advance. `autoFocus` is the same call, made once on mount.
+ * full — and does nothing while `disabled`; a `readonly` row stays a focus
+ * target. The retry after a rejected code is `value = ''` followed by
+ * `focus()`, in that order and in the same tick if you like; from inside
+ * `onComplete` it wins over the row's own auto-advance. `autoFocus` is the
+ * same call, made on mount and whenever it turns true.
  *
  * @tag form
  * @related Input
@@ -85,9 +86,10 @@ export interface PinInputProps
    */
   uppercase?: boolean;
   /**
-   * Calls `focus()` once, on mount — the caret lands on the first empty cell
-   * and no later edit moves it again. For the retry after a rejected code, call
-   * `focus()` on the instance instead.
+   * Calls `focus()` on mount and whenever it turns true — the caret lands on
+   * the first empty cell, and no later edit moves it again. Does nothing while
+   * `disabled`. For the retry after a rejected code, call `focus()` on the
+   * instance instead.
    * @default false
    */
   autoFocus?: boolean;

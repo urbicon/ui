@@ -182,7 +182,6 @@
       // Force the DOM to the sanitized single char so a rejected glyph can never
       // linger in an otherwise-empty cell (the model may not have changed).
       el.value = ch;
-      // Same order as `fill`: auto-advance before the callbacks.
       if (ch && index < length - 1) focusCell(index + 1);
       if (cells[index] !== ch) {
         cells[index] = ch;
@@ -254,13 +253,14 @@
   // (microtask or flushSync) — a `focus()` right after the clear would still
   // see the rejected code in `cells` and land on the last cell.
   export function focus(): void {
-    if (disabled || readonly) return;
+    if (disabled) return;
     const firstEmpty = toCells(value ?? '').findIndex((c) => !c);
     focusCell(firstEmpty === -1 ? length - 1 : firstEmpty);
   }
 
-  // Runs once — autoFocus is stable — and untracks everything `focus()` reads,
-  // so a later edit, or a flip of `disabled`/`readonly`, does not re-steal focus.
+  // Runs on mount and on every later `false → true` of `autoFocus`, nothing
+  // else: everything `focus()` reads is untracked, so an edit or a flip of
+  // `disabled` does not re-steal focus.
   $effect(() => {
     if (!autoFocus) return;
     untrack(focus);

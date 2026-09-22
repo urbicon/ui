@@ -125,8 +125,8 @@
     <p>
       A rejected code is the normal case, not the exception. Clear the bound value, then call
       <code>focus()</code> on the instance (<code>bind:this</code>) and the caret is back in the
-      first cell — <code>autoFocus</code> alone cannot do this, it runs once on mount. The order
-      matters: <code>focus()</code> reads the value, so clear first.
+      first cell — <code>autoFocus</code> alone cannot do this, it runs on mount and whenever it
+      turns true. The order matters: <code>focus()</code> reads the value, so clear first.
     </p>
   </div>
 
@@ -163,7 +163,7 @@
     if (await verifyTwoFactor(v)) return;
     error = 'Incorrect code — try again.';
     code = '';
-    pin.focus();
+    pin?.focus();
   }
 <\/script>
 
