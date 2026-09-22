@@ -19,7 +19,11 @@ const usage = (output: number, cacheWrite: number, cacheRead: number, ttl: '5m' 
 const jsonl = (file: string, lines: unknown[]) =>
   writeFileSync(file, `${lines.map((l) => JSON.stringify(l)).join('\n')}\n`);
 
-/** One session with three subagents, plus an older session outside the range. */
+/**
+ * s1: one session with a reviewer, an implementer, an unnamed agent and a nested spawn.
+ * s2: an older session outside a September range.
+ * s3: a session opened late on 09-02 whose work happens on 09-03.
+ */
 const fixture = (): string => {
   const dir = mkdtempSync(join(tmpdir(), 'wave-cost-'));
   jsonl(join(dir, 's1.jsonl'), [
@@ -29,7 +33,7 @@ const fixture = (): string => {
       timestamp: at(1),
       message: {
         model: 'claude-opus-5',
-        usage: usage(100, 50, 500, '1h'),
+        usage: usage(100, 2_000_000, 500, '1h'),
         content: [
           {
             type: 'tool_use',
@@ -83,7 +87,26 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: at(2),
-      message: { model: 'claude-opus-5', usage: usage(10, 30_000, 0) }
+      message: {
+        model: 'claude-opus-5',
+        usage: usage(10, 1_500_000, 0),
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tu9',
+            name: 'Agent',
+            input: { description: 'Nested: doc sweep', prompt: 'y' }
+          }
+        ]
+      }
+    },
+    {
+      type: 'user',
+      timestamp: at(2.2),
+      message: {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: 'tu9', content: 'agentId: ddd444' }]
+      }
     },
     {
       type: 'assistant',
@@ -123,6 +146,18 @@ const fixture = (): string => {
       message: { model: 'claude-haiku-4-5', usage: usage(5, 1000, 0) }
     }
   ]);
+  jsonl(join(subs, 'agent-ddd444.jsonl'), [
+    {
+      type: 'user',
+      timestamp: at(2.3),
+      message: { role: 'user', content: 'Sweep the docs for stale sentences.' }
+    },
+    {
+      type: 'assistant',
+      timestamp: at(2.4),
+      message: { model: 'claude-haiku-4-5', usage: usage(3, 500, 0) }
+    }
+  ]);
   jsonl(join(dir, 's2.jsonl'), [
     {
       type: 'user',
@@ -135,6 +170,18 @@ const fixture = (): string => {
       message: { model: 'claude-opus-5', usage: usage(7, 0, 0) }
     }
   ]);
+  jsonl(join(dir, 's3.jsonl'), [
+    {
+      type: 'user',
+      timestamp: '2026-09-02T23:30:00.000Z',
+      message: { role: 'user', content: 'evening before the wave' }
+    },
+    {
+      type: 'assistant',
+      timestamp: '2026-09-03T00:30:00.000Z',
+      message: { model: 'claude-opus-5', usage: usage(9, 0, 0) }
+    }
+  ]);
   return dir;
 };
 
@@ -145,28 +192,62 @@ describe('wave-cost', () => {
     );
   });
 
-  test('classifies by the earliest role word, description before prompt', () => {
-    expect(classify('', 'Du bist der adversariale Reviewer für PR 1')).toBe('reviewer');
+  test('classifies by the earliest role word, description before prompt, with the evidence', () => {
+    expect(classify('', 'Du bist der adversariale Reviewer für PR 1')).toEqual({
+      role: 'reviewer',
+      evidence: '"adversarial"@12 in prompt'
+    });
     expect(
       classify(
         'PR B: auth deps warning',
         'Du bist Implementierungs-Agent für PR2. Der Review kommt später.'
-      )
+      ).role
     ).toBe('implementer');
-    expect(classify('PR A: review', 'You implement the fix')).toBe('reviewer');
-    expect(classify('', 'Read the file and summarize it.')).toBe('other');
+    expect(classify('PR A: review', 'You implement the fix')).toEqual({
+      role: 'reviewer',
+      evidence: '"review"@6 in description'
+    });
+    expect(classify('', 'Read the file and summarize it.')).toEqual({
+      role: 'other',
+      evidence: 'none'
+    });
+  });
+
+  test('a German implementation verb counts, wherever in the briefing it stands', () => {
+    const hygiene = 'Worktree-Hygiene: nur Pfade unter dem Worktree. '.repeat(12);
+    expect(hygiene.length).toBeGreaterThan(400);
+    expect(classify('', `${hygiene}Du wirst #241 Passkey-Rename umsetzen.`).role).toBe(
+      'implementer'
+    );
+    expect(
+      classify(
+        'Cache-Control-Befund umsetzen',
+        'Der Befund stammt aus dem adversarialen Review von PR #388.'
+      ).role
+    ).toBe('implementer');
+  });
+
+  test('a negated role word and a compound that only contains one do not decide', () => {
+    expect(
+      classify('Change-Cost: neue Auth-Achse', 'Nur lesen. Nichts implementieren, nichts ändern.')
+        .role
+    ).toBe('other');
+    expect(
+      classify('Blind-Dossier', 'Schreibe ein implementierungsneutrales Anforderungsdossier.').role
+    ).toBe('other');
+    expect(classify('', 'This is not a review. Implement the change.').role).toBe('implementer');
   });
 
   test('sums usage per role, maps subagents to their spawn description, counts peak concurrency', () => {
-    const report = analyze(fixture(), { since: '2026-09-01' });
+    const report = analyze(fixture(), { since: '2026-09-01', until: '2026-09-01' });
     expect(report.sessions.map((s) => s.session)).toEqual(['s1']);
-    expect(report.subagentCount).toBe(3);
+    expect(report.subagentCount).toBe(4);
     const [s1] = report.sessions;
     expect(s1.orchestrator).toEqual({
       turns: 2,
       output: 300,
       inputUncached: 2,
-      cacheWrite: 50,
+      cacheWrite: 2_000_000,
       cacheWrite5m: 0,
       cacheRead: 1200,
       turnsAfterPause: 0,
@@ -176,18 +257,22 @@ describe('wave-cost', () => {
     const byId = Object.fromEntries(s1.subagents.map((a) => [a.id, a]));
     expect(byId.aaa111.role).toBe('reviewer');
     expect(byId.aaa111.description).toBe('PR A: review');
-    expect(byId.aaa111.firstTurnCacheWrite).toBe(30_000);
+    expect(byId.aaa111.roleEvidence).toBe('"review"@6 in description');
+    expect(byId.aaa111.firstTurnCacheWrite).toBe(1_500_000);
     expect(byId.aaa111.activeMinutes).toBe(3);
     expect(byId.bbb222.role).toBe('implementer');
     expect(byId.bbb222.description).toBe('PR A: button fix');
     expect(byId.ccc333.role).toBe('other');
     expect(byId.ccc333.description).toBe('');
+    // spawned by the reviewer, so its spawn record sits in the reviewer's transcript, not in s1.jsonl
+    expect(byId.ddd444.description).toBe('Nested: doc sweep');
+    expect(byId.ddd444.role).toBe('other');
     expect(s1.byRole.reviewer).toEqual({
       turns: 2,
       output: 30,
       inputUncached: 2,
-      cacheWrite: 30_100,
-      cacheWrite5m: 30_100,
+      cacheWrite: 1_500_100,
+      cacheWrite5m: 1_500_100,
       cacheRead: 30_000,
       turnsAfterPause: 0,
       cacheWriteAfterPause: 0,
@@ -198,51 +283,71 @@ describe('wave-cost', () => {
     expect(s1.byRole.implementer.turnsAfterPause).toBe(1);
     expect(s1.byRole.implementer.cacheWriteAfterPause).toBe(400);
     expect(s1.byRole.implementer.cacheReadAfterPause).toBe(25_000);
-    expect(s1.byRole.other.output).toBe(5);
-    // minute 2 after T0 holds a message of the reviewer and of the implementer; nothing else overlaps
-    expect(s1.peakActive).toBe(2);
+    expect(s1.byRole.other.output).toBe(8);
+    // minute 2 after T0 holds a message of the reviewer, the implementer and the nested agent; nothing else overlaps
+    expect(s1.peakActive).toBe(3);
     expect(report.totals.orchestrator.output).toBe(300);
     expect(report.totals.reviewer.cacheRead).toBe(30_000);
   });
 
-  test('the range filter reads the first message of a session', () => {
+  test('the range keeps every session whose activity overlaps it, and reports its first day', () => {
     const dir = fixture();
-    expect(analyze(dir).sessions.map((s) => s.session)).toEqual(['s1', 's2']);
-    expect(analyze(dir, { until: '2026-08-31' }).sessions.map((s) => s.session)).toEqual(['s2']);
-    expect(analyze(dir, { session: 's2' }).sessions.map((s) => s.session)).toEqual(['s2']);
+    const ids = (o: Parameters<typeof analyze>[1]) =>
+      analyze(dir, o).sessions.map((s) => s.session);
+    expect(ids({})).toEqual(['s1', 's2', 's3']);
+    // s3 started on 09-02 and worked on 09-03: it belongs to a wave that starts on 09-03
+    expect(ids({ since: '2026-09-03' })).toEqual(['s3']);
+    expect(ids({ until: '2026-09-02' })).toEqual(['s1', 's2', 's3']);
+    expect(ids({ until: '2026-08-31' })).toEqual(['s2']);
+    expect(ids({ session: 's2' })).toEqual(['s2']);
+    expect(analyze(dir, { since: '2026-09-03' }).sessions[0].start).toBe(
+      '2026-09-02T23:30:00.000Z'
+    );
   });
 
-  test('fails loud instead of printing zeros', () => {
+  test('fails loud instead of printing zeros or widening the range', () => {
     expect(() => analyze(join(tmpdir(), 'wave-cost-does-not-exist'))).toThrow(
       /no transcript directory/
     );
     expect(() => analyze(fixture(), { since: '2026-10-01' })).toThrow(/no sessions/);
+    expect(() => analyze(fixture(), { until: '2026-9-15' })).toThrow(/--until must be YYYY-MM-DD/);
+    expect(() => analyze(fixture(), { since: '20260901' })).toThrow(/--since must be YYYY-MM-DD/);
   });
 
-  test('the text rendering carries every role total and the per-agent rows', () => {
-    const text = renderText(analyze(fixture(), { since: '2026-09-01' }), true);
-    expect(text).toContain('orchestrator turns=2');
-    expect(text).toContain('(5m 0.0M, 1h 0.0M)');
-    expect(text).toContain('after >5min pause: 1 turns');
+  test('the text rendering carries every role total, the TTL split and the per-agent rows', () => {
+    const text = renderText(analyze(fixture(), { since: '2026-09-01', until: '2026-09-01' }), true);
+    const line = (role: string) => text.split('\n').find((l) => l.startsWith(role)) ?? '';
+    expect(line('orchestrator')).toContain('turns=2');
+    expect(line('orchestrator')).toContain('(5m 0.0M, 1h 2.0M)');
+    expect(line('reviewer')).toContain('(5m 1.5M, 1h 0.0M)');
+    expect(line('implementer')).toContain('after >5min pause: 1 turns');
     expect(text).toContain('PR A: review');
-    expect(text).toContain('first 30k');
-    expect(text).toContain('subagents: 3  sessions: 1');
+    expect(text).toContain('first 1500k');
+    expect(text).toContain('"review"@6 in description');
+    expect(text).toContain('subagents: 4  sessions: 1');
   });
 
-  test('the CLI exits non-zero with the reason on a missing directory', () => {
-    const run = Bun.spawnSync(
+  test('the CLI exits non-zero with the reason on a missing directory or a malformed date', () => {
+    const root = join(import.meta.dir, '..');
+    const missing = Bun.spawnSync(
       ['bun', 'scripts/wave-cost.ts', '--transcripts', join(tmpdir(), 'wave-cost-does-not-exist')],
-      { cwd: join(import.meta.dir, '..') }
+      { cwd: root }
     );
-    expect(run.exitCode).toBe(1);
-    expect(run.stderr.toString()).toContain('wave-cost: no transcript directory');
-    const ok = Bun.spawnSync(
-      ['bun', 'scripts/wave-cost.ts', '--transcripts', fixture(), '--json'],
+    expect(missing.exitCode).toBe(1);
+    expect(missing.stderr.toString()).toContain('wave-cost: no transcript directory');
+    const malformed = Bun.spawnSync(
+      ['bun', 'scripts/wave-cost.ts', '--transcripts', fixture(), '--until', '2026-9-15'],
       {
-        cwd: join(import.meta.dir, '..')
+        cwd: root
       }
     );
+    expect(malformed.exitCode).toBe(1);
+    expect(malformed.stderr.toString()).toContain('--until must be YYYY-MM-DD');
+    const ok = Bun.spawnSync(
+      ['bun', 'scripts/wave-cost.ts', '--transcripts', fixture(), '--json'],
+      { cwd: root }
+    );
     expect(ok.exitCode).toBe(0);
-    expect(JSON.parse(ok.stdout.toString()).subagentCount).toBe(3);
+    expect(JSON.parse(ok.stdout.toString()).subagentCount).toBe(4);
   });
 });

@@ -15,26 +15,35 @@
  *   - the fresh-context cost of each subagent: the cache write of its first
  *     turn (CLAUDE.md, briefing, skill loads).
  *   - the TTL each cache write carried (five minutes or one hour) and the turns
- *     that started more than five minutes after the previous one — where a
- *     five-minute cache has expired and the prefix is written again.
+ *     that started more than five minutes after the previous one. For an agent
+ *     whose writes carry the five-minute TTL that pause expires the prefix and
+ *     it is written again; for the main conversation, whose writes carry the
+ *     one-hour TTL on a subscription, the same column is a pause count, not an
+ *     expiry price — `cacheWrite5m` says which case a row is.
  *   - `peakActive`: the most subagents that had a message in the same minute.
  *     A subagent's lifetime (first to last message) overstates concurrency,
  *     because an agent waiting for a SendMessage is alive and idle.
  *
- * The role comes from the Agent tool's `description` first, then from the head
- * of the briefing, by keyword (`ROLE_PATTERNS`); where both role words occur,
- * the earlier one wins, because a briefing names its role before it names the
- * other side ("you are the reviewer … the implementer's report"). A subagent spawned by the
- * Workflow tool has no description and is classified by its prompt alone. The
- * `--json` output carries the description and prompt head so a reader can
- * re-classify; the heuristic is a reading aid, not an oracle.
+ * The role comes from the Agent tool's `description` first, then from the
+ * first 400 characters of the briefing, by role word (`ROLE_PATTERNS`, the
+ * earliest wins), then from an explicit role statement anywhere in the
+ * briefing (`ROLE_STATEMENTS`: "Du bist …", "You implement …"). A role word
+ * inside a negation ("nichts implementieren", "not a review") does not count,
+ * and a bare role word deep in a long briefing does not decide — that is
+ * where a probe or an audit names the other side. The `--json` output carries
+ * `roleEvidence` — the matched text, its offset and its source — so a reader
+ * can audit every row; the heuristic is a reading aid, not an oracle.
  *
- * A subagent maps to its description through the Agent tool result in the main
- * transcript (`agentId: <id>` in the result text) — the transcript records the
- * spawn, not the agent's own name.
+ * A subagent maps to its description through the Agent tool result of the
+ * transcript that spawned it (`agentId: <id>` in the result text) — the main
+ * transcript for a top-level spawn, another subagent's transcript for a nested
+ * one, so every transcript of the session is scanned for spawns. A subagent
+ * with no spawn record anywhere is classified by its prompt alone.
  *
  * Run: `bun run wave:cost --since 2026-09-15 --agents`
- *   --since / --until YYYY-MM-DD   sessions whose first message falls in range
+ *   --since / --until YYYY-MM-DD   sessions whose activity overlaps the range
+ *                                  (a session opened the evening before a wave
+ *                                  still counts; its row shows its first day)
  *   --session <id-prefix>          one session
  *   --transcripts <dir>            the transcript directory (default: derived
  *                                  from the working directory, as Claude Code
@@ -42,8 +51,10 @@
  *   --agents                       per-subagent rows
  *   --json                         machine-readable, everything
  *
- * It fails loud on a missing transcript directory and on an empty range:
- * a table of zeros would read as "the wave cost nothing".
+ * It fails loud on a missing transcript directory, on an empty range and on a
+ * date that is not YYYY-MM-DD: a table of zeros would read as "the wave cost
+ * nothing", and a malformed `--until` compared as a string would widen the
+ * range without a word.
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -51,6 +62,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 export type Role = 'orchestrator' | 'implementer' | 'reviewer' | 'other';
+type SubagentRole = Exclude<Role, 'orchestrator'>;
 
 export interface Usage {
   turns: number;
@@ -60,18 +72,20 @@ export interface Usage {
   /** The part of `cacheWrite` written with the five-minute TTL; the rest carried the one-hour TTL. */
   cacheWrite5m: number;
   cacheRead: number;
-  /** Turns that started more than five minutes after the previous one — the pause a five-minute cache does not survive. */
+  /** Turns that started more than five minutes after the previous one. */
   turnsAfterPause: number;
-  /** The cache written on those turns: the price of the expired prefix. */
+  /** The cache written on those turns — the expired prefix where the writes carry the five-minute TTL. */
   cacheWriteAfterPause: number;
-  /** The cache read on those turns: the prefix a five-minute cache would have had to write again. */
+  /** The cache read on those turns — the prefix a five-minute cache would have had to write again. */
   cacheReadAfterPause: number;
 }
 
 export interface SubagentRow {
   id: string;
   session: string;
-  role: Role;
+  role: SubagentRole;
+  /** `"<word>"@<offset> in description|prompt`, or `none` when no role word matched. */
+  roleEvidence: string;
   description: string;
   promptHead: string;
   model: string;
@@ -85,6 +99,7 @@ export interface SubagentRow {
 export interface SessionRow {
   session: string;
   start: string;
+  end: string;
   model: string;
   orchestrator: Usage;
   subagents: SubagentRow[];
@@ -99,10 +114,27 @@ export interface Report {
   subagentCount: number;
 }
 
-export const ROLE_PATTERNS: Array<[Exclude<Role, 'orchestrator'>, RegExp]> = [
+export const ROLE_PATTERNS: Array<[SubagentRole, RegExp]> = [
   ['reviewer', /adversarial|reviewer|\breview\b|verifizier|widerleg|zu fall zu bringen|refut/i],
-  ['implementer', /implementier|implement/i]
+  ['implementer', /implement(?!ierungsneutral)|umsetz|umzusetzen|beheb|korrigier/i]
 ];
+
+/** Explicit role statements, read from the whole briefing when its head names no role; a branch to work on is one. */
+export const ROLE_STATEMENTS: Array<[SubagentRole, RegExp]> = [
+  [
+    'reviewer',
+    /\b(?:du bist|you are)\b[^.\n]{0,40}?\b(?:reviewer|review)\b|\byou (?:will )?(?:review|refute)\b|\bdeine aufgabe ist[^.\n]{0,60}?(?:widerleg|zu fall|refut|review)/i
+  ],
+  [
+    'implementer',
+    /\b(?:du bist|you are)\b[^.\n]{0,40}?\bimplement|\byou (?:will )?(?:implement|fix|build)\b|\bdu (?:wirst|sollst|musst)\b[^.\n]{0,80}?(?:umsetz|implement|beheb|korrigier)|\bdu (?:behebst|korrigierst|implementierst|setzt)\b|\bdeine aufgabe ist[^.\n]{0,60}?(?:umsetz|umzusetzen|implement|beheb)|\bbranch\s+(?:fix|feat|feature|chore|refactor|docs|test|perf|build|ci)\//i
+  ]
+];
+
+/** A role word preceded by one of these within a few words is the other side being named, not the role. */
+const NEGATION = /\b(nicht|nichts|kein|keine|keinen|not|no|never|don't|do not|without|ohne)\b/i;
+const NEGATION_WINDOW = 24;
+const ROLE_WORD_HEAD = 400;
 
 const emptyUsage = (): Usage => ({
   turns: 0,
@@ -134,26 +166,55 @@ const addUsage = (into: Usage, from: Usage): void => {
 export const transcriptDirFor = (workingDirectory: string, home = homedir()): string =>
   join(home, '.claude', 'projects', workingDirectory.replace(/[^a-zA-Z0-9]/g, '-'));
 
-export const classify = (
-  description: string,
-  promptHead: string
-): Exclude<Role, 'orchestrator'> => {
-  for (const source of [description, promptHead]) {
-    if (!source) continue;
-    let best: { role: Exclude<Role, 'orchestrator'>; at: number } | undefined;
-    for (const [role, pattern] of ROLE_PATTERNS) {
-      const at = source.search(pattern);
-      if (at >= 0 && (!best || at < best.at)) best = { role, at };
-    }
-    if (best) return best.role;
+export interface Classification {
+  role: SubagentRole;
+  evidence: string;
+}
+
+const firstUnnegatedMatch = (
+  source: string,
+  pattern: RegExp
+): { at: number; word: string } | undefined => {
+  const global = new RegExp(pattern.source, `${pattern.flags.replace('g', '')}g`);
+  for (const match of source.matchAll(global)) {
+    const at = match.index ?? 0;
+    // the negation must sit in the same clause: "not a review. Implement it" negates the review only
+    const before =
+      source
+        .slice(Math.max(0, at - NEGATION_WINDOW), at)
+        .split(/[.;!?\n]/)
+        .pop() ?? '';
+    if (!NEGATION.test(before)) return { at, word: match[0] };
   }
-  return 'other';
+  return undefined;
+};
+
+const earliest = (source: string, patterns: Array<[SubagentRole, RegExp]>) => {
+  let best: { role: SubagentRole; at: number; word: string } | undefined;
+  for (const [role, pattern] of patterns) {
+    const hit = firstUnnegatedMatch(source, pattern);
+    if (hit && (!best || hit.at < best.at)) best = { role, ...hit };
+  }
+  return best;
+};
+
+export const classify = (description: string, prompt: string): Classification => {
+  const tiers: Array<[string, string, Array<[SubagentRole, RegExp]>]> = [
+    ['description', description, ROLE_PATTERNS],
+    ['prompt', prompt.slice(0, ROLE_WORD_HEAD), ROLE_PATTERNS],
+    ['statement', prompt, ROLE_STATEMENTS]
+  ];
+  for (const [name, source, patterns] of tiers) {
+    if (!source) continue;
+    const best = earliest(source, patterns);
+    if (best) return { role: best.role, evidence: `"${best.word}"@${best.at} in ${name}` };
+  }
+  return { role: 'other', evidence: 'none' };
 };
 
 interface Line {
   type?: string;
   timestamp?: string;
-  agentId?: string;
   message?: {
     model?: string;
     content?: unknown;
@@ -188,28 +249,28 @@ interface Scan {
   first: string;
   last: string;
   model: string;
-  promptHead: string;
+  prompt: string;
   firstTurnCacheWrite: number;
   minutes: Set<number>;
 }
 
-const scanTranscript = (file: string): Scan => {
+const scanTranscript = (lines: Line[]): Scan => {
   const usage = emptyUsage();
   const models = new Map<string, number>();
   const minutes = new Set<number>();
   let first = '';
   let last = '';
-  let promptHead = '';
+  let prompt = '';
   let firstTurnCacheWrite = -1;
   let previousTurnAt = 0;
-  for (const line of readLines(file)) {
+  for (const line of lines) {
     if (line.timestamp) {
       if (!first) first = line.timestamp;
       last = line.timestamp;
       minutes.add(Math.floor(Date.parse(line.timestamp) / 60_000));
     }
-    if (!promptHead && line.type === 'user' && typeof line.message?.content === 'string') {
-      promptHead = line.message.content.slice(0, 400);
+    if (!prompt && line.type === 'user' && typeof line.message?.content === 'string') {
+      prompt = line.message.content;
     }
     const u = line.type === 'assistant' ? line.message?.usage : undefined;
     if (!u) continue;
@@ -227,7 +288,7 @@ const scanTranscript = (file: string): Scan => {
       usage.cacheReadAfterPause += u.cache_read_input_tokens ?? 0;
     }
     if (turnAt) previousTurnAt = turnAt;
-    if (firstTurnCacheWrite < 0) firstTurnCacheWrite = u.cache_creation_input_tokens ?? 0;
+    if (firstTurnCacheWrite < 0) firstTurnCacheWrite = written;
     const model = line.message?.model ?? '?';
     models.set(model, (models.get(model) ?? 0) + 1);
   }
@@ -237,17 +298,16 @@ const scanTranscript = (file: string): Scan => {
     first,
     last,
     model,
-    promptHead,
+    prompt,
     firstTurnCacheWrite: Math.max(firstTurnCacheWrite, 0),
     minutes
   };
 };
 
-/** agentId → the `description` the Agent tool call was given; read from the spawn's tool result. */
-const agentDescriptions = (mainTranscript: string): Map<string, string> => {
+/** agentId → the `description` the Agent tool call was given, read from the spawn's tool result in this transcript. */
+const collectSpawns = (lines: Line[], into: Map<string, string>): void => {
   const byToolUse = new Map<string, string>();
-  const byAgent = new Map<string, string>();
-  for (const line of readLines(mainTranscript)) {
+  for (const line of lines) {
     const content = line.message?.content;
     if (!Array.isArray(content)) continue;
     for (const block of content) {
@@ -267,17 +327,16 @@ const agentDescriptions = (mainTranscript: string): Map<string, string> => {
             ? block.content
             : '';
         const id = /agentId:\s*([0-9a-f]+)/.exec(text)?.[1];
-        if (id) byAgent.set(id, description);
+        if (id) into.set(id, description);
       }
     }
   }
-  return byAgent;
 };
 
-const peakActive = (subagents: SubagentRow[], minutesById: Map<string, Set<number>>): number => {
+const peakActive = (minuteSets: Iterable<Set<number>>): number => {
   const perMinute = new Map<number, number>();
-  for (const s of subagents) {
-    for (const m of minutesById.get(s.id) ?? []) perMinute.set(m, (perMinute.get(m) ?? 0) + 1);
+  for (const minutes of minuteSets) {
+    for (const m of minutes) perMinute.set(m, (perMinute.get(m) ?? 0) + 1);
   }
   return Math.max(0, ...perMinute.values());
 };
@@ -288,7 +347,16 @@ export interface AnalyzeOptions {
   session?: string;
 }
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+const assertDay = (flag: string, value: string | undefined): void => {
+  if (value !== undefined && !DAY.test(value))
+    throw new Error(`${flag} must be YYYY-MM-DD, got ${value}`);
+};
+
 export const analyze = (transcripts: string, options: AnalyzeOptions = {}): Report => {
+  assertDay('--since', options.since);
+  assertDay('--until', options.until);
   if (!existsSync(transcripts)) {
     throw new Error(
       `no transcript directory at ${transcripts} — pass --transcripts <dir> if this project lives elsewhere`
@@ -307,38 +375,46 @@ export const analyze = (transcripts: string, options: AnalyzeOptions = {}): Repo
   for (const file of files) {
     const session = file.slice(0, -'.jsonl'.length);
     if (options.session && !session.startsWith(options.session)) continue;
-    const main = scanTranscript(join(transcripts, file));
+    const mainLines = readLines(join(transcripts, file));
+    const main = scanTranscript(mainLines);
     if (!main.first) continue;
-    const day = main.first.slice(0, 10);
-    if (options.since && day < options.since) continue;
-    if (options.until && day > options.until) continue;
-    const descriptions = agentDescriptions(join(transcripts, file));
+    const firstDay = main.first.slice(0, 10);
+    const lastDay = main.last.slice(0, 10);
+    if (options.since && lastDay < options.since) continue;
+    if (options.until && firstDay > options.until) continue;
+    const descriptions = new Map<string, string>();
+    collectSpawns(mainLines, descriptions);
     const subDir = join(transcripts, session, 'subagents');
-    const subagents: SubagentRow[] = [];
-    const minutesById = new Map<string, Set<number>>();
+    const scans = new Map<string, Scan>();
     if (existsSync(subDir)) {
       for (const sub of readdirSync(subDir)
         .filter((f) => f.endsWith('.jsonl'))
         .sort()) {
-        const scan = scanTranscript(join(subDir, sub));
-        if (!scan.usage.turns) continue;
-        const id = sub.replace(/^agent-/, '').slice(0, -'.jsonl'.length);
-        const description = descriptions.get(id) ?? '';
-        minutesById.set(id, scan.minutes);
-        subagents.push({
-          id,
-          session,
-          role: classify(description, scan.promptHead),
-          description,
-          promptHead: scan.promptHead.slice(0, 160),
-          model: scan.model,
-          start: scan.first,
-          end: scan.last,
-          activeMinutes: scan.minutes.size,
-          firstTurnCacheWrite: scan.firstTurnCacheWrite,
-          usage: scan.usage
-        });
+        const lines = readLines(join(subDir, sub));
+        collectSpawns(lines, descriptions);
+        const scan = scanTranscript(lines);
+        if (scan.usage.turns)
+          scans.set(sub.replace(/^agent-/, '').slice(0, -'.jsonl'.length), scan);
       }
+    }
+    const subagents: SubagentRow[] = [];
+    for (const [id, scan] of scans) {
+      const description = descriptions.get(id) ?? '';
+      const { role, evidence } = classify(description, scan.prompt);
+      subagents.push({
+        id,
+        session,
+        role,
+        roleEvidence: evidence,
+        description,
+        promptHead: scan.prompt.slice(0, 400),
+        model: scan.model,
+        start: scan.first,
+        end: scan.last,
+        activeMinutes: scan.minutes.size,
+        firstTurnCacheWrite: scan.firstTurnCacheWrite,
+        usage: scan.usage
+      });
     }
     subagents.sort((a, b) => a.start.localeCompare(b.start));
     const byRole: Record<Role, Usage> = {
@@ -352,10 +428,11 @@ export const analyze = (transcripts: string, options: AnalyzeOptions = {}): Repo
     sessions.push({
       session,
       start: main.first,
+      end: main.last,
       model: main.model,
       orchestrator: main.usage,
       subagents,
-      peakActive: peakActive(subagents, minutesById),
+      peakActive: peakActive([...scans.values()].map((s) => s.minutes)),
       byRole
     });
   }
@@ -382,7 +459,7 @@ export const renderText = (report: Report, agents: boolean): string => {
   out.push('');
   out.push(
     [
-      pad('date', 10),
+      pad('first day', 10),
       pad('session', 8),
       pad('subs', 4),
       pad('impl', 4),
@@ -427,7 +504,7 @@ export const renderText = (report: Report, agents: boolean): string => {
       out.push(
         [
           '   ',
-          pad(a.start.slice(11, 16), 5),
+          pad(a.start.slice(5, 16).replace('T', ' '), 11),
           pad(a.role, 11),
           pad(a.description || a.promptHead.replace(/\s+/g, ' '), 48),
           pad(`${a.usage.turns} turns`, 10),
@@ -436,7 +513,8 @@ export const renderText = (report: Report, agents: boolean): string => {
           pad(`write ${k(a.usage.cacheWrite)}`, 11),
           pad(`first ${k(a.firstTurnCacheWrite)}`, 11),
           pad(`${a.activeMinutes} min`, 8),
-          a.model
+          pad(a.model, 26),
+          a.roleEvidence
         ].join(' ')
       );
     }

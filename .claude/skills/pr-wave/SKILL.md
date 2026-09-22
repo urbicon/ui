@@ -19,13 +19,14 @@ for the PR-based form.
    starts when one of them merges. The merges are serial regardless (each
    merge of `main` into a sibling costs a MIGRATION/baseline conflict and a
    CI round, see CI and merge), so a third parallel PR saves wall-clock only
-   up to the merge queue, while every agent in flight adds reports and
-   routing to the orchestrator's own spend — which, over the four measured
-   weeks, exceeded the output of all subagents together (`bun run wave:cost
-   --since 2026-08-18`; the baseline is
-   `docs/internal/ORCHESTRIERUNG-KOSTEN-2026-09-17.md`). The agent does not
-   commit; you commit, push and open the PR from its report, without
-   re-running its gates (CI on the head SHA is the oracle, see CI and merge).
+   up to the merge queue, while every agent in flight adds its own cache
+   reads — the bulk of a wave's priced spend — and adds reports and routing
+   to the orchestrator's output, the largest single output line of the
+   measured window (`bun run wave:cost --since 2026-08-18 --until
+   2026-09-17`; the table and its pricing sit in the orchestration note
+   under `docs/internal/`, which is local only). The agent does not commit;
+   you commit, push and open the PR from its report, without re-running its
+   gates (CI on the head SHA is the oracle, see CI and merge).
 2. **Adversarial review in a fresh context** — never the implementing
    agent, never yourself. Findings need file:line, severity, a concrete
    failure scenario, and a premise check against the actual code before
@@ -38,21 +39,22 @@ for the PR-based form.
    message, flag "mirrors X" duplication comments (four comment findings in
    one wave came from exactly these checks). Every baseline, exemption or
    allowlist change in the diff is a claim to probe — an agent that takes a
-   file for proven baselines a real bug away. The verdict is `MERGE` or
-   `FIX FIRST` with a findings block you route verbatim (report contracts
-   below).
+   file for proven baselines a real bug away. The verdict is `FIX FIRST`,
+   `MERGE`, or `MERGE` with a remainder — open P3s the reviewer lists but
+   does not hold the merge for — with a findings block you route verbatim
+   (report contracts below).
 3. **Fix round** — route the findings block verbatim to the implementing
    agent via SendMessage (it has the context); take only small,
    sharply-scoped fixes yourself. Decide contested options in the routing
    message instead of letting the agent pick silently. **Two fix rounds at
-   most.** If the second verification is not `MERGE`, the third verdict is
-   yours: merge with `Refs #N` and the remainder named in the PR comment,
-   or split the PR. A third round re-reads the whole PR for the implementer
-   and the reviewer; a remainder named in the PR comment is the same
-   information at no round. Two PRs have needed a third round so far (#421,
-   #455).
+   most.** If the second verification still says `FIX FIRST`, the third
+   verdict is yours: merge with `Refs #N` and the remainder named in the PR
+   comment, or split the PR. A `MERGE` with a remainder is a `MERGE`; the
+   remainder goes into the PR comment, not into a third round, which re-reads
+   the whole PR for the implementer and the reviewer for the same
+   information. Two PRs have needed a third round so far (#421, #455).
 4. **Fix verification by the same reviewer** — cheap (context loaded) and
-   it catches half-done fixes: expect PARTIAL verdicts to surface a
+   it catches half-done fixes: expect a `MERGE` with a remainder or a
    follow-up finding. A guard-like fix is only done with a red-before-fix
    run and a positive control (sabotage the guard, watch exactly the new
    test fail).
@@ -80,9 +82,10 @@ reading of the whole conversation per PR.
 
 **Reviewer** (final message):
 
-- `Verdict` — `MERGE` or `FIX FIRST`.
+- `Verdict` — `FIX FIRST`, `MERGE`, or `MERGE` with a remainder.
 - `Findings` — each with file:line, severity (P1–P3), failure scenario,
-  premise check, and the fix the reviewer would accept.
+  premise check, and the fix the reviewer would accept; under a `MERGE`
+  with a remainder, the remainder is this list.
 - `Probed` — what was checked and held, with the rig, so the fix
   verification knows what not to repeat.
 
@@ -117,7 +120,7 @@ reading of the whole conversation per PR.
 
 ## CI and merge
 
-- **You run no gates.** The implementer ran the ci.yml list in its
+- **You run no per-PR gates.** The implementer ran the ci.yml list in its
   worktree and reported the output; CI on the head SHA is the oracle, and
   the reviewer probes what a green local run cannot show (a run against
   the wrong tree, a moved baseline). A re-run in your own context re-reads
@@ -168,16 +171,17 @@ Bump per the `release-bump` skill once the chain is coherent and the tree
 is clean — a `feat` anywhere in the set makes it minor.
 
 Record what the wave cost before pruning anything: `bun run wave:cost
---since <first day of the wave> --agents` prints, per session and per
-subagent, output tokens, cache reads and writes by TTL, the turns that
-followed a pause a five-minute cache does not survive, the fresh-context
-cost of each agent and the peak number of agents active in the same
-minute. The table goes into the wave protocol under `docs/internal/`.
-Claude Code prunes transcripts after `cleanupPeriodDays` (30 by default),
-so a wave measured later than that has no data left — record it at close,
-not at the next audit. It is the only measurement of the procedure itself;
-the baseline it compares against is
-`docs/internal/ORCHESTRIERUNG-KOSTEN-2026-09-17.md`.
+--since <first day of the wave> --until <last day> --agents` prints, per
+session and per subagent, output tokens, cache reads and writes by TTL,
+the turns that followed a pause longer than five minutes, the fresh-context
+cost of each agent, the peak number of agents active in the same minute,
+and the word each role was read from. The table goes into the wave
+protocol under `docs/internal/`, next to the orchestration note that
+holds the baseline (local only — `docs/internal/` is git-ignored). Claude
+Code prunes transcripts after `cleanupPeriodDays` (30 by default), so a
+wave measured later than that has no data left — record it at close, not
+at the next audit; and the session doing the recording is in the
+population it reads.
 
 Then prune what the wave made obsolete, as a named step rather than a
 someday: memory entries whose delete-condition the wave met; every
