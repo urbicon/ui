@@ -49,16 +49,13 @@ bun add -d @urbicon-ui/design   # dev tooling — not a runtime dependency
 This exposes the `urbicon` command (a self-contained, Node-runnable bundle — no
 Bun required at the consumer side).
 
-> **Running it standalone (no local install).** The bin is `urbicon` but the package
-> is `@urbicon-ui/design`, so a bare `bunx urbicon …` from a project that hasn't
-> installed it fails with `GET …/urbicon 404` (it looks for a package literally named
-> `urbicon`). To run the CLI without a local install, name both the package and the bin:
->
-> ```bash
-> bunx --package @urbicon-ui/design urbicon validate src/   # or: npx --package @urbicon-ui/design urbicon …
-> ```
->
-> Inside a project that already has `@urbicon-ui/design` installed, plain `bunx urbicon …` resolves fine.
+> **Running it without a local install.** The bin is `urbicon` but the package is
+> `@urbicon-ui/design`; the unscoped [`urbicon`](https://www.npmjs.com/package/urbicon)
+> package exists so that `bunx urbicon …` still resolves — it depends on this package at
+> the same version and forwards to it. So `bunx urbicon validate src/` works from any
+> directory. `urbicon init` is the exception: it needs `@urbicon-ui/design` installed in
+> the project, because every line it writes runs `bunx urbicon …` there, and it exits 2
+> without writing anything otherwise.
 
 ## Onboarding a consumer project
 
@@ -66,6 +63,10 @@ Bun required at the consumer side).
 bun add -d @urbicon-ui/design   # then:
 bunx urbicon init               # wire the project into the design loop
 ```
+
+`init` requires the package installed in the project (the `bun add` above): the context
+block, the hook entry and the CI workflow it writes all run `bunx urbicon …`, which resolves
+against that install.
 
 > Starting from scratch? The [`@urbicon-ui/sv`](https://github.com/urbicon/ui/blob/main/packages/sv/README.md) add-on (beta) does the mechanical
 > setup in one line — `bunx sv create my-app --add @urbicon-ui` installs blocks + this CLI and

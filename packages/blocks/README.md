@@ -29,7 +29,7 @@ Peer dependencies: `svelte` (^5.57.0), `@urbicon-ui/i18n`. Load the stylesheet w
 
 Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x minor may carry breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window)); each one is listed under **Breaking Changes** in the changelog and, where nothing reports it, in [docs/MIGRATION.md](./docs/MIGRATION.md), which ships in this package.
 
-Agents get the component grammar, the token rules and an edit-time design gate from `bunx urbicon init --hook` ([`@urbicon-ui/design`](https://ui.urbicon.de/ai)).
+Agents get the component grammar, the token rules and an edit-time design gate from `bun add -d @urbicon-ui/design`, then `bunx urbicon init --hook` ([`@urbicon-ui/design`](https://ui.urbicon.de/ai)).
 
 ## Components
 

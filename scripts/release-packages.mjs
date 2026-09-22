@@ -18,6 +18,8 @@ export const RELEASE_PACKAGES = [
   'packages/design-engine',
   'packages/design-content',
   'packages/design',
+  // urbicon (the unscoped bin name) depends on design at the exact version.
+  'packages/urbicon',
   'packages/mcp-server',
   'packages/i18n',
   'packages/docs-gen',

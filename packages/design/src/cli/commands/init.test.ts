@@ -7,13 +7,30 @@ import { runInit } from './init.js';
 let dir: string;
 let originalCwd: string;
 let log: ReturnType<typeof vi.spyOn>;
+let error: ReturnType<typeof vi.spyOn>;
+
+/**
+ * Plant `node_modules/@urbicon-ui/design/package.json` under `root`: the one package
+ * init refuses to run without (see `runInit — requires @urbicon-ui/design`). The
+ * temp dir starts empty, so without this every test below would exit 2 before
+ * writing a byte.
+ */
+const plantDesign = async (root: string = dir): Promise<void> => {
+  const pkgDir = join(root, 'node_modules', '@urbicon-ui', 'design');
+  await mkdir(pkgDir, { recursive: true });
+  await writeFile(
+    join(pkgDir, 'package.json'),
+    JSON.stringify({ name: '@urbicon-ui/design', version: '0.0.0-test' })
+  );
+};
 
 beforeEach(async () => {
   originalCwd = process.cwd();
   dir = await mkdtemp(join(tmpdir(), 'urbicon-init-'));
   process.chdir(dir);
+  await plantDesign();
   log = vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  error = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(async () => {
@@ -24,6 +41,7 @@ afterEach(async () => {
 
 const read = (p: string): Promise<string> => readFile(join(dir, p), 'utf-8');
 const logged = (): string => log.mock.calls.map((call: unknown[]) => call.join(' ')).join('\n');
+const errored = (): string => error.mock.calls.map((call: unknown[]) => call.join(' ')).join('\n');
 
 describe('runInit', () => {
   it('creates AGENTS.md with the context block and scaffolds the manifest', async () => {
@@ -575,7 +593,6 @@ describe('runInit — stylesheet imports read from node_modules', () => {
     expect(out.match(/@import '@urbicon-ui\//g)).toHaveLength(3);
     expect(out).toContain("/* table's own stylesheet */");
     expect(out).not.toContain('could not be read');
-    expect(out).not.toContain('is installed yet');
   });
 
   it('skips an installed package that exports no stylesheet', async () => {
@@ -599,7 +616,6 @@ describe('runInit — stylesheet imports read from node_modules', () => {
     expect(out).toContain(line('blocks'));
     expect(out).toContain(line('table'));
     expect(out.indexOf(line('blocks'))).toBeLessThan(out.indexOf(line('table')));
-    expect(out).not.toContain('is installed yet');
   });
 
   it('prints the same list on the not-yet-wired branch', async () => {
@@ -619,7 +635,6 @@ describe('runInit — stylesheet imports read from node_modules', () => {
     await runInit([], {});
     expect(logged()).toContain(line('blocks'));
     expect(logged()).toContain(line('table'));
-    expect(logged()).not.toContain('is installed yet');
     expect(logged()).not.toContain('could not be read');
   });
 
@@ -634,7 +649,6 @@ describe('runInit — stylesheet imports read from node_modules', () => {
     process.chdir(app);
     await runInit([], {});
     expect(logged()).toContain(line('table'));
-    expect(logged()).not.toContain('is installed yet');
   });
 
   // Two copies of one name on two node_modules levels: Node resolves the nearer one, so
@@ -680,13 +694,40 @@ describe('runInit — stylesheet imports read from node_modules', () => {
     expect(logged()).not.toContain('@urbicon-ui/table');
     expect(logged()).not.toContain('could not be read');
   });
+});
 
-  it('says where the list comes from when nothing is installed — without naming a package', async () => {
-    await declare({ '@urbicon-ui/blocks': '^8' }); // declared, `bun install` not run yet
-    await runInit([], {});
-    expect(logged()).not.toContain("@import '@urbicon-ui/");
-    expect(logged()).toContain('No @urbicon-ui/* package is installed yet');
-    expect(logged()).toContain('`bun install`');
-    expect(logged()).not.toContain('bun add');
+/**
+ * Every line init writes runs `bunx urbicon …`: the context block, the hook entry,
+ * the CI workflow. In a project that never installed `@urbicon-ui/design` those
+ * commands resolve nothing — `bunx` fetches a package literally named `urbicon` —
+ * so a standalone `bunx --package @urbicon-ui/design urbicon init` used to leave a
+ * scaffold whose every command 404s. The oracle is `node_modules`, walked up from
+ * cwd like Node resolves, which is also what `bunx urbicon` resolves against.
+ */
+describe('runInit — requires @urbicon-ui/design', () => {
+  const exists = async (p: string): Promise<boolean> =>
+    readFile(join(process.cwd(), p)).then(
+      () => true,
+      () => false
+    );
+
+  it('refuses with exit 2, names the fix, and writes nothing', async () => {
+    await rm(join(dir, 'node_modules'), { recursive: true, force: true });
+    expect(await runInit([], { hook: true, ci: true })).toBe(2);
+    expect(errored()).toContain('bun add -d @urbicon-ui/design');
+    expect(errored()).toContain('re-run');
+    expect(await exists('AGENTS.md')).toBe(false);
+    expect(await exists('CLAUDE.md')).toBe(false);
+    expect(await exists('design.manifest.md')).toBe(false);
+    expect(await exists('.claude/settings.json')).toBe(false);
+    expect(await exists('.github/workflows/design-gate.yml')).toBe(false);
+  });
+
+  it('accepts a hoisted install from a nested workspace package', async () => {
+    const app = join(dir, 'packages', 'app');
+    await mkdir(app, { recursive: true });
+    process.chdir(app); // node_modules lives two levels up, at the workspace root
+    expect(await runInit([], {})).toBe(0);
+    expect(await exists('AGENTS.md')).toBe(true);
   });
 });
