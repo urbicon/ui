@@ -44,18 +44,21 @@
  * be per-line counting under a normal-looking report.
  *
  * Whether a message reached its final usage is the line's `stop_reason`: null
- * on every line written before the message ended, `tool_use` or `end_turn` on
- * the line that carries the final count. Subagent transcripts end about half
+ * on every line written before the message ended, set (`tool_use`, `end_turn`,
+ * `refusal`, …) on the line that carries the final count. Subagent transcripts end about half
  * their messages without such a line (a message with a thinking block and a
  * 400-character tool call then shows `output_tokens: 7`). For those the output
  * is a floor — the larger of the recorded count and the visible content, text
- * and tool-call input at four characters a token, thinking excluded because
- * the transcript omits it — and the report says per role and per agent on how
- * many turns the figure is final. Lines of `model: "<synthetic>"` are Claude
+ * and tool-call input at four characters a token; thinking is excluded because
+ * `output_tokens` already counts it and the transcript usually omits its text,
+ * so counting it would double-count where the text is there — and the report
+ * says per role and per agent on how many turns the figure is final. Lines of `model: "<synthetic>"` are Claude
  * Code's own placeholders (interrupts, API errors), not model messages, and are
  * skipped. The harness's `subagent_tokens` in task notifications run several
- * times the transcript's output (five on the measured window), cumulate over an
- * agent's runs and have no documented definition — the tool does not read them.
+ * times the transcript's output (on the measured window four times the floor
+ * the report prints, five times the counts the transcript records), cumulate
+ * over an agent's runs and have no documented definition — the tool does not
+ * read them.
  *
  * Run: `bun run wave:cost --since 2026-09-15 --agents`
  *   --since / --until YYYY-MM-DD   sessions whose activity overlaps the range;
@@ -317,6 +320,7 @@ const scanTranscript = (lines: Line[], file: string): Scan => {
   let last = '';
   let prompt = '';
   for (const line of lines) {
+    if (line.message?.model === SYNTHETIC_MODEL) continue;
     if (line.timestamp) {
       if (!first) first = line.timestamp;
       last = line.timestamp;
@@ -326,7 +330,7 @@ const scanTranscript = (lines: Line[], file: string): Scan => {
       prompt = line.message.content;
     }
     const u = line.type === 'assistant' ? line.message?.usage : undefined;
-    if (!u || line.message?.model === SYNTHETIC_MODEL) continue;
+    if (!u) continue;
     const id = line.message?.id;
     if (!id)
       throw new Error(
