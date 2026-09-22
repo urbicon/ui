@@ -186,6 +186,12 @@ jobs:
       # finding expected back by kind and line. A check whose extraction reads
       # nothing reports "0 findings" exactly like a clean tree.
       - run: bun test scripts/docs-refs-check.test.ts
+      # The wave-cost report (`bun run wave:cost`, recorded at wave close by the
+      # pr-wave skill) reads the local Claude Code transcripts; the fixture pins
+      # role classification, the spawn-description mapping, the per-role sums and
+      # the peak-concurrency count, and the CLI must fail loud on a missing
+      # directory rather than print a table of zeros.
+      - run: bun test scripts/wave-cost.test.ts
       # End-to-end control for the pattern corpus of `examples:lint` (the gate
       # itself runs in `gates`): drives the real script over a fixture corpus and
       # expects the red case back at its document line. Every way that corpus can

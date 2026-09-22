@@ -7,33 +7,84 @@ description: Driving an implementation wave as a chain of PRs — worktree-isola
 
 The procedure that shipped the table-v8 waves and the #251/#240 chain
 (#258–#260, 2026-08-22). One cycle per PR; disjoint PRs run in parallel,
-dependent ones wait for the merge and rebase their briefing on it. The
-older shared-worktree variant (orchestrator stages and commits for agents
-working in one tree) lives in the session memory playbook; this file is the
-canon for the PR-based form.
+two at a time (below), dependent ones wait for the merge and rebase their
+briefing on it. The older shared-worktree variant (orchestrator stages and
+commits for agents working in one tree) is retired; this file is the canon
+for the PR-based form.
 
 ## The cycle
 
 1. **Implement** — one agent per PR in an isolated worktree (briefing
-   contract below). The agent does not commit; you verify, commit, push,
-   open the PR.
+   contract below). **At most two PRs in flight**: the next implementer
+   starts when one of them merges. The merges are serial regardless (each
+   merge of `main` into a sibling costs a MIGRATION/baseline conflict and a
+   CI round, see CI and merge), so a third parallel PR saves wall-clock only
+   up to the merge queue, while every agent in flight adds reports and
+   routing to the orchestrator's own spend — which, over the four measured
+   weeks, exceeded the output of all subagents together (`bun run wave:cost
+   --since 2026-08-18`; the baseline is
+   `docs/internal/ORCHESTRIERUNG-KOSTEN-2026-09-17.md`). The agent does not
+   commit; you commit, push and open the PR from its report, without
+   re-running its gates (CI on the head SHA is the oracle, see CI and merge).
 2. **Adversarial review in a fresh context** — never the implementing
    agent, never yourself. Findings need file:line, severity, a concrete
    failure scenario, and a premise check against the actual code before
-   they count. Comments in the diff are claims: verify effect claims
-   against a measurement, flag narrative/provenance that belongs in the
-   commit message, flag "mirrors X" duplication comments (four comment
-   findings in one wave came from exactly these checks).
-3. **Fix round** — route findings back to the implementing agent via
-   SendMessage (it has the context); take only small, sharply-scoped fixes
-   yourself. Decide contested options in the routing message instead of
-   letting the agent pick silently.
+   they count. The review reads the implementer's claim split first: a
+   claim filed as measured is re-measured with the reviewer's own rig and
+   population; one filed as following from the diff is checked for the
+   level it actually holds on (type versus runtime is the recurring slip).
+   Comments in the diff are claims: verify effect claims against a
+   measurement, flag narrative/provenance that belongs in the commit
+   message, flag "mirrors X" duplication comments (four comment findings in
+   one wave came from exactly these checks). Every baseline, exemption or
+   allowlist change in the diff is a claim to probe — an agent that takes a
+   file for proven baselines a real bug away. The verdict is `MERGE` or
+   `FIX FIRST` with a findings block you route verbatim (report contracts
+   below).
+3. **Fix round** — route the findings block verbatim to the implementing
+   agent via SendMessage (it has the context); take only small,
+   sharply-scoped fixes yourself. Decide contested options in the routing
+   message instead of letting the agent pick silently. **Two fix rounds at
+   most.** If the second verification is not `MERGE`, the third verdict is
+   yours: merge with `Refs #N` and the remainder named in the PR comment,
+   or split the PR. A third round re-reads the whole PR for the implementer
+   and the reviewer; a remainder named in the PR comment is the same
+   information at no round. Two PRs have needed a third round so far (#421,
+   #455).
 4. **Fix verification by the same reviewer** — cheap (context loaded) and
    it catches half-done fixes: expect PARTIAL verdicts to surface a
    follow-up finding. A guard-like fix is only done with a red-before-fix
    run and a positive control (sabotage the guard, watch exactly the new
    test fail).
 5. **CI, merge, cleanup** — flow below.
+
+## Report contracts
+
+Both reports are read by you and routed by copying, so they are
+structured, not prose — a report you have to re-narrate costs a second
+reading of the whole conversation per PR.
+
+**Implementer** (final message, these sections in this order):
+
+- `Files` — path and one sentence each.
+- `Gates` — the ci.yml list run in the worktree, output verbatim; a gate
+  whose output names a path (`svelte-check` prints its root) proves which
+  tree ran.
+- `Claims` — three lists: **measured** (command and population),
+  **follows** (from the diff, no run needed), **quoted** (from a doc or an
+  issue, unverified). A claim filed as measured that only follows from
+  structure has hidden the missing measurement in every wave it appeared
+  in; the split is what the reviewer reads first.
+- `Decisions` — each with the rejected alternative.
+- `Omitted` — deliberately, with the reason.
+
+**Reviewer** (final message):
+
+- `Verdict` — `MERGE` or `FIX FIRST`.
+- `Findings` — each with file:line, severity (P1–P3), failure scenario,
+  premise check, and the fix the reviewer would accept.
+- `Probed` — what was checked and held, with the rig, so the fix
+  verification knows what not to repeat.
 
 ## Briefing contract (implementation agents)
 
@@ -62,11 +113,15 @@ canon for the PR-based form.
   commit message, effect claims must be measured, behaviour belongs in a
   test before it belongs in prose. An eleven-line comment on a one-line
   guard is commit-message material wearing a comment's clothes.
-- Report contract: changed files with one sentence each, verbatim gate
-  output, decisions with the rejected alternative, deliberate omissions.
+- Report contract: the implementer section above, quoted in the briefing.
 
 ## CI and merge
 
+- **You run no gates.** The implementer ran the ci.yml list in its
+  worktree and reported the output; CI on the head SHA is the oracle, and
+  the reviewer probes what a green local run cannot show (a run against
+  the wrong tree, a moved baseline). A re-run in your own context re-reads
+  the whole conversation per command and proves nothing CI does not.
 - **Never trust `gh pr checks --watch` alone.** Right after a push it can
   read the previous SHA's rollup and exit green before the new checks are
   registered (happened twice in one wave). Before merging, verify the head
@@ -111,6 +166,18 @@ before the next dependent briefing. Only the PR's head SHA proves it landed
 
 Bump per the `release-bump` skill once the chain is coherent and the tree
 is clean — a `feat` anywhere in the set makes it minor.
+
+Record what the wave cost before pruning anything: `bun run wave:cost
+--since <first day of the wave> --agents` prints, per session and per
+subagent, output tokens, cache reads and writes by TTL, the turns that
+followed a pause a five-minute cache does not survive, the fresh-context
+cost of each agent and the peak number of agents active in the same
+minute. The table goes into the wave protocol under `docs/internal/`.
+Claude Code prunes transcripts after `cleanupPeriodDays` (30 by default),
+so a wave measured later than that has no data left — record it at close,
+not at the next audit. It is the only measurement of the procedure itself;
+the baseline it compares against is
+`docs/internal/ORCHESTRIERUNG-KOSTEN-2026-09-17.md`.
 
 Then prune what the wave made obsolete, as a named step rather than a
 someday: memory entries whose delete-condition the wave met; every
