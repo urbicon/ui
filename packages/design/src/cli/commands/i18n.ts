@@ -15,6 +15,10 @@
  * advisory (reported, gate only under `--strict`), mirroring `validate`'s
  * correctness-gates / craft-is-advisory split.
  *
+ * A configured translations dir that loads no locale bundle also fails the run,
+ * and `parity` / `unused` do not run then: compared against nothing, every used
+ * key would read as undefined. `hardcoded` needs no bundles and runs regardless.
+ *
  * The bundle loader uses dynamic `import()`, so run it under Bun (or point at
  * compiled `.js` bundles) — Node cannot import a consumer's `.ts` translations.
  */
@@ -144,14 +148,16 @@ const BUNDLE_EXT = /\.(ts|js|mjs)$/;
  * dynamic import. Admits .ts/.js/.mjs (the .js path is the documented Node escape
  * hatch); only files whose stem is a supported locale are loaded, so an `index.ts`
  * barrel or a helper is ignored rather than imported as a phantom locale. A dir
- * that yields no locale bundle is an error, not a silent pass.
+ * that yields no locale bundle is an error, not a silent pass, and clears
+ * `complete`: the defined-key side then has a hole where that dir should be.
  */
 async function loadBundleGroups(
   dirs: string[],
   isSupportedLocale: (locale: string) => boolean
-): Promise<{ groups: BundleGroup[]; errors: string[] }> {
+): Promise<{ groups: BundleGroup[]; errors: string[]; complete: boolean }> {
   const groups: BundleGroup[] = [];
   const errors: string[] = [];
+  let complete = true;
   for (const dir of dirs) {
     const abs = resolve(dir);
     let candidates: string[];
@@ -164,6 +170,7 @@ async function loadBundleGroups(
         : [abs];
     } catch {
       errors.push(`translations path not found: ${label(abs)}`);
+      complete = false;
       continue;
     }
     const bundles: Record<string, Record<string, unknown>> = {};
@@ -187,10 +194,15 @@ async function loadBundleGroups(
         errors.push(`cannot load bundle ${label(file)}: ${(error as Error).message}`);
       }
     }
-    if (Object.keys(bundles).length) groups.push({ name: label(abs), bundles });
-    else if (localeFiles === 0) errors.push(`no locale bundles (en/de/…) in: ${label(abs)}`);
+    if (Object.keys(bundles).length) {
+      groups.push({ name: label(abs), bundles });
+    } else {
+      // Locale files that all failed to load already have their own error each.
+      if (localeFiles === 0) errors.push(`no locale bundles (en/de/…) in: ${label(abs)}`);
+      complete = false;
+    }
   }
-  return { groups, errors };
+  return { groups, errors, complete };
 }
 
 interface Outcome {
@@ -394,27 +406,32 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     );
   }
 
-  // Bundles are needed for parity + unused.
+  // Bundles are needed for parity + unused. Both compare source against the
+  // defined-key side, so a configured dir that loaded nothing must stop them:
+  // against a hole, every key used from it reports as undefined — noise that
+  // buries the one line naming the path. `hardcoded` reads no bundles.
   let groups: BundleGroup[] = [];
   let bundleErrors: string[] = [];
+  let bundlesComplete = true;
   if (wantsParity || wantsUnused) {
     const loaded = await loadBundleGroups(config.translations, audit.isLocaleSupported);
     groups = loaded.groups;
     bundleErrors = loaded.errors;
+    bundlesComplete = loaded.complete;
   }
 
   const sections: Record<string, Outcome> = {};
-  if (wantsParity) sections.parity = runParity(audit, config, groups);
-  if (wantsUnused)
+  if (wantsParity && bundlesComplete) sections.parity = runParity(audit, config, groups);
+  if (wantsUnused && bundlesComplete)
     sections.unused = await runUnused(audit, config, groups, sources, runtimeUsedKeys);
   if (wantsHardcoded) sections.hardcoded = await runHardcoded(audit, config, sources);
 
   const totalErrors = Object.values(sections).reduce((sum, s) => sum + s.errors, 0);
   const totalWarnings = Object.values(sections).reduce((sum, s) => sum + s.warnings, 0);
-  // A translations path that was requested but loaded nothing is a hard failure,
-  // never a silent "all clean" — it would otherwise make every defined key look
-  // unused / hide parity drift. Only relevant when bundles were actually needed.
-  const bundleFailed = (wantsParity || wantsUnused) && bundleErrors.length > 0;
+  // Every bundle error fails the run — a dir that loaded nothing as much as a
+  // duplicate or unloadable locale file inside one that did: either way the
+  // comparison covered less than the config asked for, never a silent "all clean".
+  const bundleFailed = bundleErrors.length > 0;
   const failed = totalErrors > 0 || bundleFailed || (strict && totalWarnings > 0);
 
   if (asJson) {
@@ -434,12 +451,15 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     return failed ? EXIT.FAIL : EXIT.OK;
   }
 
-  for (const error of bundleErrors) printError(error);
   for (const [name, section] of Object.entries(sections)) {
     console.log(`\n${name}:`);
     if (section.lines.length === 0) console.log('  ✓ no findings');
     else for (const line of section.lines) console.log(line);
   }
+  // Bundle errors go right above the summary that counts them, not above the
+  // sections: under `audit` the hardcoded findings alone can push a line printed
+  // first off the screen.
+  for (const error of bundleErrors) printError(error);
   const bundleNote = bundleErrors.length ? `, ${bundleErrors.length} bundle error(s)` : '';
   console.log(
     `\n${totalErrors} error(s), ${totalWarnings} advisory finding(s)${bundleNote}${strict ? ' (--strict: advisory gates)' : ''}.`

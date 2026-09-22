@@ -6,6 +6,7 @@ import { runI18n } from './i18n.js';
 
 interface I18nJson {
   ok: boolean;
+  bundleErrors: string[];
   parity?: { findings: { code: string; locale: string }[] };
   unused?: { unused: { key: string; tier: string }[]; usedButUndefined: { key: string }[] };
   hardcoded?: { findings: { text: string }[] };
@@ -14,6 +15,7 @@ interface I18nJson {
 describe('urbicon i18n', () => {
   let dir: string;
   let log: ReturnType<typeof vi.spyOn>;
+  let err: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'urbicon-i18n-'));
@@ -31,7 +33,7 @@ describe('urbicon i18n', () => {
       `<script lang="ts">\n  import { useI18n } from '@urbicon-ui/i18n';\n  const t = useI18n().t;\n</script>\n<button>{t('greeting')}</button>\n<span aria-label="Close the dialog">{t('items', { count: 3 })}</span>\n`
     );
     log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    err = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(async () => {
@@ -49,6 +51,9 @@ describe('urbicon i18n', () => {
     const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
     return JSON.parse(out) as I18nJson;
   }
+
+  const textOutput = () => log.mock.calls.flat().join('\n');
+  const errorOutput = () => err.mock.calls.flat().join('\n');
 
   it('gates (exit 1) on a missing-key parity error and reports it', async () => {
     expect(await run('parity', { json: true })).toBe(1);
@@ -77,8 +82,58 @@ describe('urbicon i18n', () => {
     expect(await run('hardcoded', { strict: true })).toBe(1);
   });
 
-  it('fails (never silently passes) when the translations path loads no bundles', async () => {
-    expect(await run('parity', { translations: join(dir, 'nope') })).toBe(1);
+  it('stops on a missing translations path — the path is the error, not every used key', async () => {
+    // `audit` runs all three checks: the two that read bundles must not run,
+    // `hardcoded` still does, and the exit is FAIL because of the path.
+    expect(await run('audit', { translations: join(dir, 'nope'), json: true })).toBe(1);
+    const json = lastJson();
+    expect(json.ok).toBe(false);
+    expect(json.bundleErrors).toEqual([expect.stringContaining('translations path not found: ')]);
+    expect(json.unused?.usedButUndefined ?? []).toEqual([]);
+    expect(json.parity?.findings ?? []).toEqual([]);
+    expect(json.parity).toBeUndefined();
+    expect(json.unused).toBeUndefined();
+    expect(json.hardcoded?.findings.some((f) => f.text === 'Close the dialog')).toBe(true);
+
+    log.mockClear();
+    err.mockClear();
+    expect(await run('unused', { translations: join(dir, 'nope') })).toBe(1);
+    expect(errorOutput()).toContain('translations path not found: ');
+    expect(textOutput()).not.toContain('used but undefined');
+    expect(textOutput()).toContain('0 error(s), 0 advisory finding(s), 1 bundle error(s)');
+    expect(textOutput()).toContain('FAIL.');
+  });
+
+  it('stops on a configured translations dir that holds no locale bundle', async () => {
+    const empty = join(dir, 'empty');
+    await mkdir(empty);
+    expect(await run('audit', { translations: empty, json: true })).toBe(1);
+    const json = lastJson();
+    expect(json.ok).toBe(false);
+    expect(json.bundleErrors).toEqual([
+      expect.stringContaining('no locale bundles (en/de/…) in: ')
+    ]);
+    expect(json.unused?.usedButUndefined ?? []).toEqual([]);
+    expect(json.parity?.findings ?? []).toEqual([]);
+    expect(json.parity).toBeUndefined();
+    expect(json.unused).toBeUndefined();
+    expect(json.hardcoded?.findings.some((f) => f.text === 'Close the dialog')).toBe(true);
+  });
+
+  it('stops when any one of several translations dirs loads nothing', async () => {
+    const dirs = [join(dir, 'src', 'lib', 'translations'), join(dir, 'nope')].join(',');
+    expect(await run('unused', { translations: dirs, json: true })).toBe(1);
+    const json = lastJson();
+    expect(json.bundleErrors).toEqual([expect.stringContaining('translations path not found: ')]);
+    expect(json.unused).toBeUndefined();
+  });
+
+  it('runs `hardcoded` alone without touching the translations path', async () => {
+    expect(await run('hardcoded', { translations: join(dir, 'nope'), json: true })).toBe(0);
+    const json = lastJson();
+    expect(json.ok).toBe(true);
+    expect(json.bundleErrors).toEqual([]);
+    expect(json.hardcoded?.findings.some((f) => f.text === 'Close the dialog')).toBe(true);
   });
 
   it('loads .js bundles — the documented Node escape hatch', async () => {

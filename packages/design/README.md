@@ -216,9 +216,11 @@ urbicon i18n hardcoded src/ --strict                         # gate the advisory
 | `hardcoded` | literal UI copy in `.svelte` markup that bypassed i18n                              | advisory (gate with `--strict`)           |
 
 Config via `i18n.audit.json` / `--config` + flags (`--translations`, `--dynamic-keys`,
-`--ignore-keys`, `--ignore-strings`, `--base-locale`); `--json` for CI. Backed by the
-`@urbicon-ui/i18n/audit` subpath; the pure data-level `auditTranslations` also runs as a
-Vitest assertion without the CLI.
+`--ignore-keys`, `--ignore-strings`, `--base-locale`); `--json` for CI. A `--translations`
+dir that loads no locale bundle (missing, or without an `en.ts`/`de.ts`/…) fails the run by
+itself: `parity` and `unused` are not compared against nothing, only `hardcoded` still runs.
+Backed by the `@urbicon-ui/i18n/audit` subpath; the pure data-level `auditTranslations` also
+runs as a Vitest assertion without the CLI.
 
 ### context / record-decision / sync-manifest
 
