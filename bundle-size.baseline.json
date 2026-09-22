@@ -21,9 +21,7 @@
         "gz": 3277
       },
       "pkg": "blocks",
-      "exports": [
-        "A2UIView"
-      ]
+      "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
       "min": 513514,
@@ -37,10 +35,7 @@
         "gz": 3277
       },
       "pkg": "blocks",
-      "exports": [
-        "A2UIView",
-        "urbiconA2uiCatalog"
-      ]
+      "exports": ["A2UIView", "urbiconA2uiCatalog"]
     },
     "Accordion": {
       "min": 29324,
@@ -54,10 +49,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Accordion",
-        "AccordionItem"
-      ]
+      "exports": ["Accordion", "AccordionItem"]
     },
     "AccountSettings": {
       "min": 114961,
@@ -71,9 +63,7 @@
         "gz": 3278
       },
       "pkg": "auth",
-      "exports": [
-        "AccountSettings"
-      ]
+      "exports": ["AccountSettings"]
     },
     "Alert": {
       "min": 39350,
@@ -87,9 +77,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Alert"
-      ]
+      "exports": ["Alert"]
     },
     "AreaChart": {
       "min": 41726,
@@ -103,9 +91,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "AreaChart"
-      ]
+      "exports": ["AreaChart"]
     },
     "Avatar": {
       "min": 39251,
@@ -119,9 +105,7 @@
         "gz": 4085
       },
       "pkg": "blocks",
-      "exports": [
-        "Avatar"
-      ]
+      "exports": ["Avatar"]
     },
     "AvatarGroup": {
       "min": 41646,
@@ -135,9 +119,7 @@
         "gz": 4087
       },
       "pkg": "blocks",
-      "exports": [
-        "AvatarGroup"
-      ]
+      "exports": ["AvatarGroup"]
     },
     "Badge": {
       "min": 44167,
@@ -151,9 +133,7 @@
         "gz": 4090
       },
       "pkg": "blocks",
-      "exports": [
-        "Badge"
-      ]
+      "exports": ["Badge"]
     },
     "BarChart": {
       "min": 41877,
@@ -167,9 +147,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "BarChart"
-      ]
+      "exports": ["BarChart"]
     },
     "BlocksProvider": {
       "min": 541,
@@ -183,9 +161,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "BlocksProvider"
-      ]
+      "exports": ["BlocksProvider"]
     },
     "Breadcrumb": {
       "min": 36418,
@@ -199,9 +175,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Breadcrumb"
-      ]
+      "exports": ["Breadcrumb"]
     },
     "Button": {
       "min": 34740,
@@ -215,9 +189,7 @@
         "gz": 1014
       },
       "pkg": "blocks",
-      "exports": [
-        "Button"
-      ]
+      "exports": ["Button"]
     },
     "ButtonGroup": {
       "min": 21976,
@@ -231,9 +203,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "ButtonGroup"
-      ]
+      "exports": ["ButtonGroup"]
     },
     "Calendar": {
       "min": 183913,
@@ -279,9 +249,7 @@
         "gz": 1826
       },
       "pkg": "blocks",
-      "exports": [
-        "Card"
-      ]
+      "exports": ["Card"]
     },
     "ChartFrame": {
       "min": 20082,
@@ -295,9 +263,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "ChartFrame"
-      ]
+      "exports": ["ChartFrame"]
     },
     "Chat": {
       "min": 18403,
@@ -311,9 +277,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Chat"
-      ]
+      "exports": ["Chat"]
     },
     "ChatMessage": {
       "min": 162615,
@@ -327,9 +291,7 @@
         "gz": 3276
       },
       "pkg": "blocks",
-      "exports": [
-        "ChatMessage"
-      ]
+      "exports": ["ChatMessage"]
     },
     "ChatMessageList": {
       "min": 172833,
@@ -343,9 +305,7 @@
         "gz": 3277
       },
       "pkg": "blocks",
-      "exports": [
-        "ChatMessageList"
-      ]
+      "exports": ["ChatMessageList"]
     },
     "Checkbox": {
       "min": 31411,
@@ -359,9 +319,7 @@
         "gz": 1825
       },
       "pkg": "blocks",
-      "exports": [
-        "Checkbox"
-      ]
+      "exports": ["Checkbox"]
     },
     "CheckIcon": {
       "min": 2027,
@@ -375,9 +333,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "CheckIcon"
-      ]
+      "exports": ["CheckIcon"]
     },
     "CitationChip": {
       "min": 35711,
@@ -391,9 +347,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "CitationChip"
-      ]
+      "exports": ["CitationChip"]
     },
     "CodeBlock": {
       "min": 23705,
@@ -407,9 +361,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "CodeBlock"
-      ]
+      "exports": ["CodeBlock"]
     },
     "Collapsible": {
       "min": 24042,
@@ -423,9 +375,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Collapsible"
-      ]
+      "exports": ["Collapsible"]
     },
     "Combobox": {
       "min": 65951,
@@ -439,9 +389,7 @@
         "gz": 4089
       },
       "pkg": "blocks",
-      "exports": [
-        "Combobox"
-      ]
+      "exports": ["Combobox"]
     },
     "CommandPalette": {
       "min": 58960,
@@ -455,9 +403,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "CommandPalette"
-      ]
+      "exports": ["CommandPalette"]
     },
     "CompositionBar": {
       "min": 47601,
@@ -471,9 +417,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "CompositionBar"
-      ]
+      "exports": ["CompositionBar"]
     },
     "ConfirmDialog": {
       "min": 65206,
@@ -487,9 +431,7 @@
         "gz": 3277
       },
       "pkg": "blocks",
-      "exports": [
-        "ConfirmDialog"
-      ]
+      "exports": ["ConfirmDialog"]
     },
     "CopyButton": {
       "min": 53793,
@@ -503,9 +445,7 @@
         "gz": 3280
       },
       "pkg": "blocks",
-      "exports": [
-        "CopyButton"
-      ]
+      "exports": ["CopyButton"]
     },
     "CurrencyInput": {
       "min": 56838,
@@ -519,9 +459,7 @@
         "gz": 4091
       },
       "pkg": "blocks",
-      "exports": [
-        "CurrencyInput"
-      ]
+      "exports": ["CurrencyInput"]
     },
     "DatePicker": {
       "min": 221051,
@@ -535,10 +473,7 @@
         "gz": 3279
       },
       "pkg": "blocks",
-      "exports": [
-        "DatePicker",
-        "DateRangePicker"
-      ]
+      "exports": ["DatePicker", "DateRangePicker"]
     },
     "Dialog": {
       "min": 46227,
@@ -552,9 +487,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Dialog"
-      ]
+      "exports": ["Dialog"]
     },
     "DonutChart": {
       "min": 37542,
@@ -568,9 +501,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "DonutChart"
-      ]
+      "exports": ["DonutChart"]
     },
     "Drawer": {
       "min": 45783,
@@ -584,9 +515,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Drawer"
-      ]
+      "exports": ["Drawer"]
     },
     "EmptyState": {
       "min": 19353,
@@ -600,9 +529,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "EmptyState"
-      ]
+      "exports": ["EmptyState"]
     },
     "FileUpload": {
       "min": 58887,
@@ -616,9 +543,7 @@
         "gz": 4089
       },
       "pkg": "blocks",
-      "exports": [
-        "FileUpload"
-      ]
+      "exports": ["FileUpload"]
     },
     "ForgotPasswordPage": {
       "min": 93960,
@@ -632,9 +557,7 @@
         "gz": 3277
       },
       "pkg": "auth",
-      "exports": [
-        "ForgotPasswordPage"
-      ]
+      "exports": ["ForgotPasswordPage"]
     },
     "FormField": {
       "min": 18844,
@@ -648,9 +571,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "FormField"
-      ]
+      "exports": ["FormField"]
     },
     "Guide": {
       "min": 100349,
@@ -688,9 +609,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Icon"
-      ]
+      "exports": ["Icon"]
     },
     "Input": {
       "min": 50086,
@@ -704,9 +623,7 @@
         "gz": 4089
       },
       "pkg": "blocks",
-      "exports": [
-        "Input"
-      ]
+      "exports": ["Input"]
     },
     "InvitationManager": {
       "min": 147295,
@@ -720,9 +637,7 @@
         "gz": 3278
       },
       "pkg": "auth",
-      "exports": [
-        "InvitationManager"
-      ]
+      "exports": ["InvitationManager"]
     },
     "JourneyTimeline": {
       "min": 47935,
@@ -736,9 +651,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "JourneyTimeline"
-      ]
+      "exports": ["JourneyTimeline"]
     },
     "Kbd": {
       "min": 18904,
@@ -752,9 +665,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Kbd"
-      ]
+      "exports": ["Kbd"]
     },
     "LineChart": {
       "min": 41362,
@@ -768,9 +679,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "LineChart"
-      ]
+      "exports": ["LineChart"]
     },
     "Link": {
       "min": 18814,
@@ -784,9 +693,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Link"
-      ]
+      "exports": ["Link"]
     },
     "LocaleSwitcher": {
       "min": 65243,
@@ -800,9 +707,7 @@
         "gz": 4086
       },
       "pkg": "blocks",
-      "exports": [
-        "LocaleSwitcher"
-      ]
+      "exports": ["LocaleSwitcher"]
     },
     "LoginPage": {
       "min": 110065,
@@ -816,9 +721,7 @@
         "gz": 3277
       },
       "pkg": "auth",
-      "exports": [
-        "LoginPage"
-      ]
+      "exports": ["LoginPage"]
     },
     "Menu": {
       "min": 87072,
@@ -832,13 +735,7 @@
         "gz": 3278
       },
       "pkg": "blocks",
-      "exports": [
-        "Menu",
-        "MenuDivider",
-        "MenuItem",
-        "MenuSection",
-        "MenuSubmenu"
-      ]
+      "exports": ["Menu", "MenuDivider", "MenuItem", "MenuSection", "MenuSubmenu"]
     },
     "NotificationBadge": {
       "min": 55441,
@@ -852,9 +749,7 @@
         "gz": 4091
       },
       "pkg": "auth",
-      "exports": [
-        "NotificationBadge"
-      ]
+      "exports": ["NotificationBadge"]
     },
     "NotificationCenter": {
       "min": 57799,
@@ -868,9 +763,7 @@
         "gz": 1015
       },
       "pkg": "auth",
-      "exports": [
-        "NotificationCenter"
-      ]
+      "exports": ["NotificationCenter"]
     },
     "NotificationListener": {
       "min": 3400,
@@ -884,9 +777,7 @@
         "gz": 0
       },
       "pkg": "auth",
-      "exports": [
-        "NotificationListener"
-      ]
+      "exports": ["NotificationListener"]
     },
     "NumberInput": {
       "min": 54552,
@@ -900,9 +791,7 @@
         "gz": 4088
       },
       "pkg": "blocks",
-      "exports": [
-        "NumberInput"
-      ]
+      "exports": ["NumberInput"]
     },
     "Pagination": {
       "min": 62711,
@@ -916,10 +805,7 @@
         "gz": 3279
       },
       "pkg": "blocks",
-      "exports": [
-        "Pagination",
-        "PaginationItem"
-      ]
+      "exports": ["Pagination", "PaginationItem"]
     },
     "PasskeyManager": {
       "min": 103980,
@@ -933,9 +819,7 @@
         "gz": 3280
       },
       "pkg": "auth",
-      "exports": [
-        "PasskeyManager"
-      ]
+      "exports": ["PasskeyManager"]
     },
     "PinInput": {
       "min": 41180,
@@ -949,9 +833,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "PinInput"
-      ]
+      "exports": ["PinInput"]
     },
     "Planner": {
       "min": 72500,
@@ -965,10 +847,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Planner",
-        "PlannerHeader"
-      ]
+      "exports": ["Planner", "PlannerHeader"]
     },
     "Popover": {
       "min": 29431,
@@ -982,9 +861,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Popover"
-      ]
+      "exports": ["Popover"]
     },
     "Progress": {
       "min": 38015,
@@ -998,9 +875,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Progress"
-      ]
+      "exports": ["Progress"]
     },
     "PromptInput": {
       "min": 48153,
@@ -1014,9 +889,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "PromptInput"
-      ]
+      "exports": ["PromptInput"]
     },
     "PushPermissionPrompt": {
       "min": 77086,
@@ -1030,9 +903,7 @@
         "gz": 3279
       },
       "pkg": "auth",
-      "exports": [
-        "PushPermissionPrompt"
-      ]
+      "exports": ["PushPermissionPrompt"]
     },
     "QRCode": {
       "min": 41678,
@@ -1046,9 +917,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "QRCode"
-      ]
+      "exports": ["QRCode"]
     },
     "RadioGroup": {
       "min": 30549,
@@ -1062,10 +931,7 @@
         "gz": 1825
       },
       "pkg": "blocks",
-      "exports": [
-        "RadioGroup",
-        "RadioItem"
-      ]
+      "exports": ["RadioGroup", "RadioItem"]
     },
     "ReasoningDisclosure": {
       "min": 76852,
@@ -1079,9 +945,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "ReasoningDisclosure"
-      ]
+      "exports": ["ReasoningDisclosure"]
     },
     "RegisterPage": {
       "min": 99022,
@@ -1095,9 +959,7 @@
         "gz": 3278
       },
       "pkg": "auth",
-      "exports": [
-        "RegisterPage"
-      ]
+      "exports": ["RegisterPage"]
     },
     "ResetPasswordPage": {
       "min": 98225,
@@ -1111,9 +973,7 @@
         "gz": 3277
       },
       "pkg": "auth",
-      "exports": [
-        "ResetPasswordPage"
-      ]
+      "exports": ["ResetPasswordPage"]
     },
     "ResourceTimeline": {
       "min": 78053,
@@ -1127,10 +987,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "ResourceTimeline",
-        "ResourceTimelineHeader"
-      ]
+      "exports": ["ResourceTimeline", "ResourceTimelineHeader"]
     },
     "Sankey": {
       "min": 47478,
@@ -1144,9 +1001,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Sankey"
-      ]
+      "exports": ["Sankey"]
     },
     "Scroller": {
       "min": 41979,
@@ -1160,9 +1015,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Scroller"
-      ]
+      "exports": ["Scroller"]
     },
     "SegmentGroup": {
       "min": 27141,
@@ -1176,10 +1029,7 @@
         "gz": 1824
       },
       "pkg": "blocks",
-      "exports": [
-        "SegmentGroup",
-        "SegmentItem"
-      ]
+      "exports": ["SegmentGroup", "SegmentItem"]
     },
     "Select": {
       "min": 62847,
@@ -1193,9 +1043,7 @@
         "gz": 4089
       },
       "pkg": "blocks",
-      "exports": [
-        "Select"
-      ]
+      "exports": ["Select"]
     },
     "Separator": {
       "min": 18217,
@@ -1209,9 +1057,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Separator"
-      ]
+      "exports": ["Separator"]
     },
     "SessionManager": {
       "min": 94939,
@@ -1225,9 +1071,7 @@
         "gz": 3279
       },
       "pkg": "auth",
-      "exports": [
-        "SessionManager"
-      ]
+      "exports": ["SessionManager"]
     },
     "Sidebar": {
       "min": 22256,
@@ -1241,9 +1085,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Sidebar"
-      ]
+      "exports": ["Sidebar"]
     },
     "SidebarLayout": {
       "min": 28375,
@@ -1257,9 +1099,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "SidebarLayout"
-      ]
+      "exports": ["SidebarLayout"]
     },
     "Skeleton": {
       "min": 34718,
@@ -1273,9 +1113,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Skeleton"
-      ]
+      "exports": ["Skeleton"]
     },
     "Slider": {
       "min": 50879,
@@ -1289,9 +1127,7 @@
         "gz": 4090
       },
       "pkg": "blocks",
-      "exports": [
-        "Slider"
-      ]
+      "exports": ["Slider"]
     },
     "Sparkline": {
       "min": 20292,
@@ -1305,9 +1141,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Sparkline"
-      ]
+      "exports": ["Sparkline"]
     },
     "Spinner": {
       "min": 25286,
@@ -1321,9 +1155,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Spinner"
-      ]
+      "exports": ["Spinner"]
     },
     "SplitPane": {
       "min": 26142,
@@ -1337,9 +1169,7 @@
         "gz": 1825
       },
       "pkg": "blocks",
-      "exports": [
-        "SplitPane"
-      ]
+      "exports": ["SplitPane"]
     },
     "Stepper": {
       "min": 44156,
@@ -1353,10 +1183,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Stepper",
-        "StepperStep"
-      ]
+      "exports": ["Stepper", "StepperStep"]
     },
     "StreamingMarkdown": {
       "min": 68217,
@@ -1370,9 +1197,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "StreamingMarkdown"
-      ]
+      "exports": ["StreamingMarkdown"]
     },
     "Tab": {
       "min": 32195,
@@ -1386,11 +1211,7 @@
         "gz": 1826
       },
       "pkg": "blocks",
-      "exports": [
-        "Tab",
-        "TabItem",
-        "TabPanel"
-      ]
+      "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
       "min": 403881,
@@ -1404,9 +1225,7 @@
         "gz": 3277
       },
       "pkg": "table",
-      "exports": [
-        "Table"
-      ]
+      "exports": ["Table"]
     },
     "Textarea": {
       "min": 29223,
@@ -1420,9 +1239,7 @@
         "gz": 1825
       },
       "pkg": "blocks",
-      "exports": [
-        "Textarea"
-      ]
+      "exports": ["Textarea"]
     },
     "ThemeSwitcher": {
       "min": 37466,
@@ -1436,9 +1253,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "ThemeSwitcher"
-      ]
+      "exports": ["ThemeSwitcher"]
     },
     "TimeInput": {
       "min": 47706,
@@ -1452,9 +1267,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "TimeInput"
-      ]
+      "exports": ["TimeInput"]
     },
     "Toast": {
       "min": 47375,
@@ -1468,9 +1281,7 @@
         "gz": 2264
       },
       "pkg": "blocks",
-      "exports": [
-        "Toaster"
-      ]
+      "exports": ["Toaster"]
     },
     "Toggle": {
       "min": 40747,
@@ -1484,9 +1295,7 @@
         "gz": 4089
       },
       "pkg": "blocks",
-      "exports": [
-        "Toggle"
-      ]
+      "exports": ["Toggle"]
     },
     "Toolbar": {
       "min": 18708,
@@ -1500,9 +1309,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Toolbar"
-      ]
+      "exports": ["Toolbar"]
     },
     "ToolCallCard": {
       "min": 62010,
@@ -1516,9 +1323,7 @@
         "gz": 4090
       },
       "pkg": "blocks",
-      "exports": [
-        "ToolCallCard"
-      ]
+      "exports": ["ToolCallCard"]
     },
     "Tooltip": {
       "min": 26331,
@@ -1532,9 +1337,7 @@
         "gz": 0
       },
       "pkg": "blocks",
-      "exports": [
-        "Tooltip"
-      ]
+      "exports": ["Tooltip"]
     },
     "TwoFactorManager": {
       "min": 95712,
@@ -1548,9 +1351,7 @@
         "gz": 3278
       },
       "pkg": "auth",
-      "exports": [
-        "TwoFactorManager"
-      ]
+      "exports": ["TwoFactorManager"]
     },
     "VerifyEmailPage": {
       "min": 70395,
@@ -1564,9 +1365,7 @@
         "gz": 4090
       },
       "pkg": "auth",
-      "exports": [
-        "VerifyEmailPage"
-      ]
+      "exports": ["VerifyEmailPage"]
     }
   }
 }

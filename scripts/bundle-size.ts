@@ -62,6 +62,7 @@
  * stay visible and cannot silently grow without polluting the load-cost
  * headline.
  */
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -852,6 +853,14 @@ async function main(): Promise<void> {
       sizes: Object.fromEntries(Object.entries(sizes).sort(([a], [b]) => a.localeCompare(b)))
     };
     writeFileSync(BASELINE_PATH, `${JSON.stringify(next, null, 2)}\n`);
+    // The release bump stages this file and commits with --no-verify, so the
+    // pre-commit formatter never sees it; JSON.stringify spreads a one-entry
+    // `exports` array over three lines, and `biome check .` in CI rejects that.
+    // Ask the formatter itself rather than imitate its line-width rules.
+    const formatted = spawnSync('bunx', ['biome', 'format', '--write', BASELINE_PATH], {
+      stdio: 'inherit'
+    });
+    if (formatted.status !== 0) throw new Error(`biome format failed on ${BASELINE_PATH}`);
     console.error(`Baseline written: ${BASELINE_PATH}`);
     return;
   }
