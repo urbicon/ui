@@ -429,17 +429,20 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
 
   // 0. The package itself. Every line below assumes it: the context block says
   // `bunx urbicon …`, the hook runs `bunx urbicon hook`, the workflow `bunx urbicon
-  // validate`. A standalone run (`bunx --package @urbicon-ui/design urbicon init`) in
-  // a project that never installed the package used to write all of that anyway —
-  // a scaffold whose every command resolves nothing. The oracle is the one the
-  // stylesheet list reads: the nearest `node_modules/@urbicon-ui/design` walking up
-  // from cwd, which is what `bunx urbicon` resolves against too (a workspace install
-  // hoists to the root; the walk-up covers it). Refuse before the first write.
+  // validate` — without the package, a scaffold whose every command resolves nothing.
+  // The oracle is the one the stylesheet list reads: the nearest
+  // `node_modules/@urbicon-ui/design` walking up from cwd, which is what `bunx
+  // urbicon` resolves against too (a workspace install hoists to the root; the
+  // walk-up covers it). Refuse before the first write.
   const sheets = await scanStylesheets(cwd);
+  const deps = readConsumerDependencies(cwd);
   if (!sheets.installed.has(DESIGN)) {
+    // Declared but not installed is `bun install`, never `bun add -d`: the add
+    // rewrites the consumer's pin to a fresh caret range on the current version.
+    const fix = deps?.has(DESIGN) ? 'bun install' : `bun add -d ${DESIGN}`;
     printError(
       `${DESIGN} is not installed in this project, and everything init writes runs it ` +
-        `(\`bunx urbicon …\`). Run \`bun add -d ${DESIGN}\`, then re-run \`bunx urbicon init\`.`
+        `(\`bunx urbicon …\`). Run \`${fix}\`, then re-run \`bunx urbicon init\`.`
     );
     return EXIT.USAGE;
   }
@@ -647,11 +650,7 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   for (const d of done) console.log(`  ✓ ${d}`);
   for (const s of skipped) console.log(`  · ${s}`);
   console.log('\nNext steps:');
-  for (const line of tailwindSteps(
-    readConsumerDependencies(),
-    await findTailwindStylesheet(cwd),
-    sheets
-  ))
+  for (const line of tailwindSteps(deps, await findTailwindStylesheet(cwd), sheets))
     console.log(line);
   // Claude Code is wired above; what remains is every other tool, which we cannot
   // detect and whose context file we will not guess at.

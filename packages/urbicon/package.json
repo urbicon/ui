@@ -36,7 +36,6 @@
     "@urbicon-ui/design": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
     "vitest": "catalog:"
   },
   "author": "Urbicon UI Team"

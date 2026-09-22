@@ -131,7 +131,8 @@ function walk(dir: string, out: string[] = []): string[] {
  * consumer; only the packages that ship `.svelte` are audited.
  */
 export async function installTree(
-  at = mkdtempSync(join(tmpdir(), 'consumer-css-'))
+  at = mkdtempSync(join(tmpdir(), 'consumer-css-')),
+  packagesDir = join(ROOT, 'packages')
 ): Promise<Tree> {
   // `compile()` reports real paths; on macOS the temp dir is reached through
   // the `/var` → `/private/var` link, so anything relative to `at` would
@@ -149,9 +150,9 @@ export async function installTree(
 
   const installed: string[] = [];
   const audited: string[] = [];
-  for (const entry of readdirSync(join(ROOT, 'packages'), { withFileTypes: true })) {
+  for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const pkgDir = join(ROOT, 'packages', entry.name);
+    const pkgDir = join(packagesDir, entry.name);
     const manifestPath = join(pkgDir, 'package.json');
     if (!existsSync(manifestPath)) continue;
     const manifest = readJson(manifestPath);

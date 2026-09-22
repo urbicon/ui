@@ -698,11 +698,9 @@ describe('runInit — stylesheet imports read from node_modules', () => {
 
 /**
  * Every line init writes runs `bunx urbicon …`: the context block, the hook entry,
- * the CI workflow. In a project that never installed `@urbicon-ui/design` those
- * commands resolve nothing — `bunx` fetches a package literally named `urbicon` —
- * so a standalone `bunx --package @urbicon-ui/design urbicon init` used to leave a
- * scaffold whose every command 404s. The oracle is `node_modules`, walked up from
- * cwd like Node resolves, which is also what `bunx urbicon` resolves against.
+ * the CI workflow. In a project that has not installed `@urbicon-ui/design` none of
+ * them can run — the bin lives in that package. The oracle is `node_modules`, walked
+ * up from cwd like Node resolves, which is also what `bunx urbicon` resolves against.
  */
 describe('runInit — requires @urbicon-ui/design', () => {
   const exists = async (p: string): Promise<boolean> =>
@@ -710,17 +708,35 @@ describe('runInit — requires @urbicon-ui/design', () => {
       () => true,
       () => false
     );
-
-  it('refuses with exit 2, names the fix, and writes nothing', async () => {
-    await rm(join(dir, 'node_modules'), { recursive: true, force: true });
-    expect(await runInit([], { hook: true, ci: true })).toBe(2);
-    expect(errored()).toContain('bun add -d @urbicon-ui/design');
-    expect(errored()).toContain('re-run');
+  const nothingWritten = async (): Promise<void> => {
     expect(await exists('AGENTS.md')).toBe(false);
     expect(await exists('CLAUDE.md')).toBe(false);
     expect(await exists('design.manifest.md')).toBe(false);
     expect(await exists('.claude/settings.json')).toBe(false);
     expect(await exists('.github/workflows/design-gate.yml')).toBe(false);
+  };
+
+  it('refuses with exit 2, names `bun add -d`, and writes nothing when nothing declares it', async () => {
+    await writeFile(join(dir, 'package.json'), JSON.stringify({ name: 'x' }));
+    await rm(join(dir, 'node_modules'), { recursive: true, force: true });
+    expect(await runInit([], { hook: true, ci: true })).toBe(2);
+    expect(errored()).toContain('bun add -d @urbicon-ui/design');
+    expect(errored()).toContain('re-run');
+    await nothingWritten();
+  });
+
+  // A `bun add -d` here would rewrite the consumer's pin (`~8.21.0` → a fresh caret
+  // range); the declared-but-not-installed state is `bun install`'s.
+  it('names `bun install` instead when the package is declared but not installed', async () => {
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({ name: 'x', devDependencies: { '@urbicon-ui/design': '~8.21.0' } })
+    );
+    await rm(join(dir, 'node_modules'), { recursive: true, force: true });
+    expect(await runInit([], { hook: true, ci: true })).toBe(2);
+    expect(errored()).toContain('`bun install`');
+    expect(errored()).not.toContain('bun add');
+    await nothingWritten();
   });
 
   it('accepts a hoisted install from a nested workspace package', async () => {

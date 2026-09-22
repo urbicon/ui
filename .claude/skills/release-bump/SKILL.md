@@ -17,6 +17,8 @@ Before tagging, the bump script also runs `bun run size --check` (after its buil
 
 The bump writes a `chore: release vX.Y.Z` commit + an annotated tag on HEAD (the tag triggers the CI publish pipeline). Push with `git push --follow-tags`.
 
+**A package new to `RELEASE_PACKAGES`** (`scripts/release-packages.mjs`) has no trusted publisher on npm, and OIDC cannot create one — the publish job fails at that package, and `scripts/publish-tarballs.mjs` stops the run there. Before tagging, publish its first version by hand at the version currently on the registry (its `workspace:*` dependency must point at a published version), then `APPLY=1 bash scripts/trust-publishers.sh`; only then tag.
+
 **Never edit `CHANGELOG.md` by hand** — it is auto-generated.
 
 Full detail — bump-script steps, commit-type → changelog mapping, scoping: [docs/VERSIONING.md](../../../docs/VERSIONING.md).

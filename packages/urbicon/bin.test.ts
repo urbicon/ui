@@ -13,7 +13,12 @@ const require = createRequire(import.meta.url);
 const run = (bin: string, ...args: string[]) =>
   spawnSync(process.execPath, [bin, ...args], { cwd: here, encoding: 'utf8' });
 
-/** Needs `packages/design/dist/cli.js` — `bun run build:packages` first. */
+/**
+ * Needs `packages/design/dist/cli.js` — `bun run build:packages` first. Runs under
+ * Node, never `vitest --bun`: `process.execPath` spawns the shim and `createRequire`
+ * resolves with the host's resolver, and Bun's does not enforce `exports` on a deep
+ * import — the exports-map case below passes vacuously under Bun.
+ */
 describe('bin/urbicon.js', () => {
   // A deep import of design's package.json is what the shim rests on. Design has no
   // `exports` map; one that omits `./package.json` throws ERR_PACKAGE_PATH_NOT_EXPORTED

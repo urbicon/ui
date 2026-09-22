@@ -229,9 +229,11 @@ jobs:
         working-directory: packages/sv
         run: bunx --bun vitest run
       # The unscoped bin shim; spawns design's built `dist/cli.js` (build:ts above).
+      # No `--bun`: the shim's loader is Node's, and Bun's resolver does not enforce
+      # `exports` on a deep import, so under Bun the exports-map case passes vacuously.
       - name: Test urbicon
         working-directory: packages/urbicon
-        run: bunx --bun vitest run
+        run: bunx vitest run
       - name: Test docs
         working-directory: packages/docs
         run: bunx --bun vitest run
