@@ -41,8 +41,8 @@
   <span data-testid="escaping">{`a ${1 + 1} b`}</span>
 </CodeExample>
 
-<!-- Opt-outs: an explicit `code` prop wins (the pairing warns, it is the second
-     deliberate warning of this fixture), and a non-isolate example is untouched. -->
+<!-- Opt-outs: an explicit `code` prop wins and the pairing warns; a non-isolate
+     example is untouched. -->
 <CodeExample title="Explicit code wins" isolate code={`<span>explicit</span>`}>
   <span data-testid="explicit">ignored by the extractor</span>
 </CodeExample>

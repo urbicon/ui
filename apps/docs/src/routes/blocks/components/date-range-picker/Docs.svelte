@@ -20,7 +20,7 @@
     <CodeExample
       title="Booking a stay"
       description="Two clicks on one dual calendar: the first sets the start, the second the end. `closeOnSelect` (the default) dismisses the popover once the range is complete, so the flow ends without a second gesture."
-      code={`<script>
+      code={`<script lang="ts">
   import { DateRangePicker, type DateRange } from '@urbicon-ui/blocks';
   let stay = $state<DateRange | undefined>(undefined);
 <\/script>
@@ -44,7 +44,7 @@
     <CodeExample
       title="Bounded to a bookable window"
       description="`minDate` and `maxDate` fence the calendar; `isDateDisabled` blocks the irregular gaps a fixed range cannot express, here every Sunday."
-      code={`<script>
+      code={`<script lang="ts">
   import { DateRangePicker, type DateRange } from '@urbicon-ui/blocks';
   let bookable = $state<DateRange | undefined>(undefined);
   const TODAY = new Date(2026, 7, 3);
@@ -74,7 +74,7 @@
     <CodeExample
       title="Reporting period in a form"
       description="`name` writes two hidden inputs, `period_start` and `period_end`, each carrying the serialised date, so the submitted form has the ISO values, not the locale-formatted display text. An empty range submits both as an empty string."
-      code={`<script>
+      code={`<script lang="ts">
   import { DateRangePicker, type DateRange } from '@urbicon-ui/blocks';
   let reportRange = $state<DateRange | undefined>(undefined);
 <\/script>
