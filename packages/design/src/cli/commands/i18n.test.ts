@@ -100,8 +100,19 @@ describe('urbicon i18n', () => {
     expect(await run('unused', { translations: join(dir, 'nope') })).toBe(1);
     expect(errorOutput()).toContain('translations path not found: ');
     expect(textOutput()).not.toContain('used but undefined');
+    expect(textOutput()).toContain('unused: not run — translations loaded nothing');
     expect(textOutput()).toContain('0 error(s), 0 advisory finding(s), 1 bundle error(s)');
     expect(textOutput()).toContain('FAIL.');
+  });
+
+  it('rejects an empty "translations" list in the config file as a usage error', async () => {
+    const config = join(dir, 'i18n.audit.json');
+    await writeFile(config, '{"translations": []}');
+    expect(await runI18n(['audit', join(dir, 'src')], { config })).toBe(2);
+    expect(errorOutput()).toContain('"translations" in');
+    expect(errorOutput()).toContain('is empty');
+    expect(textOutput()).not.toContain('used but undefined');
+    expect(textOutput()).not.toContain('parity:');
   });
 
   it('stops on a configured translations dir that holds no locale bundle', async () => {
@@ -126,6 +137,12 @@ describe('urbicon i18n', () => {
     const json = lastJson();
     expect(json.bundleErrors).toEqual([expect.stringContaining('translations path not found: ')]);
     expect(json.unused).toBeUndefined();
+
+    // In text mode the good dir's parity is not reported as checked either.
+    log.mockClear();
+    expect(await run('parity', { translations: dirs })).toBe(1);
+    expect(textOutput()).toContain('parity: not run — translations loaded nothing');
+    expect(textOutput()).not.toContain('✓ no findings');
   });
 
   it('runs `hardcoded` alone without touching the translations path', async () => {

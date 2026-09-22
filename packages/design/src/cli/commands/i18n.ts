@@ -15,9 +15,9 @@
  * advisory (reported, gate only under `--strict`), mirroring `validate`'s
  * correctness-gates / craft-is-advisory split.
  *
- * A configured translations dir that loads no locale bundle also fails the run,
- * and `parity` / `unused` do not run then: compared against nothing, every used
- * key would read as undefined. `hardcoded` needs no bundles and runs regardless.
+ * A configured translations dir that loads no locale bundle fails any run that
+ * needs bundles, and `parity` / `unused` are skipped then — why per check: the
+ * comment above the bundle load in `runI18n`. `hardcoded` needs no bundles.
  *
  * The bundle loader uses dynamic `import()`, so run it under Bun (or point at
  * compiled `.js` bundles) — Node cannot import a consumer's `.ts` translations.
@@ -107,6 +107,14 @@ async function loadConfig(flags: Flags, sourceDirs: string[]): Promise<I18nAudit
   merged.baseLocale = stringFlag(flags, 'base-locale') ?? merged.baseLocale;
   merged.translations = listFlag(flags, 'translations') ?? merged.translations;
   merged.runtimeUsage = stringFlag(flags, 'runtime-usage') ?? merged.runtimeUsage;
+  // The flag cannot be empty (`listFlag` folds an empty value to the default),
+  // so an empty list can only come from the config file. Loading zero dirs would
+  // pass the bundle side as complete with nothing in it.
+  if (merged.translations.length === 0) {
+    throw new Error(
+      `"translations" in ${candidate} is empty — name at least one locale-bundle dir.`
+    );
+  }
   return merged;
 }
 
@@ -406,10 +414,13 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     );
   }
 
-  // Bundles are needed for parity + unused. Both compare source against the
-  // defined-key side, so a configured dir that loaded nothing must stop them:
-  // against a hole, every key used from it reports as undefined — noise that
-  // buries the one line naming the path. `hardcoded` reads no bundles.
+  // Bundles are needed for parity + unused, and a configured dir that loaded
+  // nothing skips both, for different reasons. `unused` compares the keys used
+  // in the sources against the defined side, so a hole there reports every key
+  // used from it as undefined. `parity` compares locales within each loaded
+  // group and reads no sources, but over zero groups it prints a clean section
+  // beside the error, and over the groups that did load it presents a partial
+  // result as a full one. `hardcoded` reads no bundles.
   let groups: BundleGroup[] = [];
   let bundleErrors: string[] = [];
   let bundlesComplete = true;
@@ -421,9 +432,16 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
   }
 
   const sections: Record<string, Outcome> = {};
-  if (wantsParity && bundlesComplete) sections.parity = runParity(audit, config, groups);
-  if (wantsUnused && bundlesComplete)
-    sections.unused = await runUnused(audit, config, groups, sources, runtimeUsedKeys);
+  const skipped: string[] = [];
+  if (wantsParity) {
+    if (bundlesComplete) sections.parity = runParity(audit, config, groups);
+    else skipped.push('parity');
+  }
+  if (wantsUnused) {
+    if (bundlesComplete)
+      sections.unused = await runUnused(audit, config, groups, sources, runtimeUsedKeys);
+    else skipped.push('unused');
+  }
   if (wantsHardcoded) sections.hardcoded = await runHardcoded(audit, config, sources);
 
   const totalErrors = Object.values(sections).reduce((sum, s) => sum + s.errors, 0);
@@ -451,14 +469,16 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     return failed ? EXIT.FAIL : EXIT.OK;
   }
 
+  // A skipped check says so; a missing section would read as one that ran clean.
+  for (const name of skipped) {
+    console.log(`\n${name}: not run — translations loaded nothing (see bundle error)`);
+  }
   for (const [name, section] of Object.entries(sections)) {
     console.log(`\n${name}:`);
     if (section.lines.length === 0) console.log('  ✓ no findings');
     else for (const line of section.lines) console.log(line);
   }
-  // Bundle errors go right above the summary that counts them, not above the
-  // sections: under `audit` the hardcoded findings alone can push a line printed
-  // first off the screen.
+  // The error line goes last so the summary that counts it is adjacent.
   for (const error of bundleErrors) printError(error);
   const bundleNote = bundleErrors.length ? `, ${bundleErrors.length} bundle error(s)` : '';
   console.log(
