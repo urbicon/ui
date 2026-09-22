@@ -6,6 +6,7 @@ import { analyze, classify, renderText, transcriptDirFor } from './wave-cost';
 
 const T0 = Date.parse('2026-09-01T10:00:00.000Z');
 const at = (minutes: number) => new Date(T0 + minutes * 60_000).toISOString();
+/** A usage block as the transcript writes it. */
 const usage = (output: number, cacheWrite: number, cacheRead: number, ttl: '5m' | '1h' = '5m') => ({
   output_tokens: output,
   input_tokens: 1,
@@ -20,7 +21,10 @@ const jsonl = (file: string, lines: unknown[]) =>
   writeFileSync(file, `${lines.map((l) => JSON.stringify(l)).join('\n')}\n`);
 
 /**
- * s1: one session with a reviewer, an implementer, an unnamed agent and a nested spawn.
+ * s1: one session with a reviewer, an implementer, an unnamed agent and a nested spawn. Messages span
+ * several transcript lines the way Claude Code writes them: one line per content block, every line
+ * repeating the request's cache figures, output as a running count and `stop_reason: null` until the
+ * line that carries the final count.
  * s2: an older session outside a September range.
  * s3: a session opened late on 09-02 whose work happens on 09-03.
  */
@@ -30,9 +34,22 @@ const fixture = (): string => {
     { type: 'user', timestamp: at(0), message: { role: 'user', content: 'start the wave' } },
     {
       type: 'assistant',
+      timestamp: at(0.9),
+      message: {
+        id: 'm1',
+        model: 'claude-opus-5',
+        stop_reason: null,
+        usage: usage(100, 2_000_000, 500, '1h'),
+        content: [{ type: 'thinking', thinking: '…' }]
+      }
+    },
+    {
+      type: 'assistant',
       timestamp: at(1),
       message: {
+        id: 'm1',
         model: 'claude-opus-5',
+        stop_reason: 'tool_use',
         usage: usage(100, 2_000_000, 500, '1h'),
         content: [
           {
@@ -70,10 +87,28 @@ const fixture = (): string => {
         ]
       }
     },
+    // Claude Code's own placeholder for an interrupt: no model message, not a turn
+    {
+      type: 'assistant',
+      timestamp: at(1.5),
+      message: {
+        id: 'syn',
+        model: '<synthetic>',
+        stop_reason: 'stop_sequence',
+        usage: usage(0, 0, 0),
+        content: []
+      }
+    },
     {
       type: 'assistant',
       timestamp: at(2),
-      message: { model: 'claude-opus-5', usage: usage(200, 0, 700), content: [] }
+      message: {
+        id: 'm2',
+        model: 'claude-opus-5',
+        stop_reason: 'end_turn',
+        usage: usage(200, 0, 700),
+        content: []
+      }
     }
   ]);
   const subs = join(dir, 's1', 'subagents');
@@ -88,8 +123,10 @@ const fixture = (): string => {
       type: 'assistant',
       timestamp: at(2),
       message: {
+        id: 'r1',
         model: 'claude-opus-5',
-        usage: usage(10, 1_500_000, 0),
+        stop_reason: 'tool_use',
+        usage: usage(60, 1_500_000, 0),
         content: [
           {
             type: 'tool_use',
@@ -108,10 +145,28 @@ const fixture = (): string => {
         content: [{ type: 'tool_result', tool_use_id: 'tu9', content: 'agentId: ddd444' }]
       }
     },
+    // r2 spans two lines with a running output count (5, then 20): the message counts once, at 20
     {
       type: 'assistant',
       timestamp: at(3),
-      message: { model: 'claude-opus-5', usage: usage(20, 100, 30_000) }
+      message: {
+        id: 'r2',
+        model: 'claude-opus-5',
+        stop_reason: null,
+        usage: usage(5, 100, 30_000),
+        content: [{ type: 'thinking', thinking: '…' }]
+      }
+    },
+    {
+      type: 'assistant',
+      timestamp: at(3.01),
+      message: {
+        id: 'r2',
+        model: 'claude-opus-5',
+        stop_reason: 'end_turn',
+        usage: usage(20, 100, 30_000),
+        content: [{ type: 'text', text: 'done' }]
+      }
     }
   ]);
   jsonl(join(subs, 'agent-bbb222.jsonl'), [
@@ -126,12 +181,22 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: at(2.5),
-      message: { model: 'claude-opus-5', usage: usage(40, 25_000, 0) }
+      message: {
+        id: 'i1',
+        model: 'claude-opus-5',
+        stop_reason: 'tool_use',
+        usage: usage(40, 25_000, 0)
+      }
     },
     {
       type: 'assistant',
       timestamp: at(10),
-      message: { model: 'claude-opus-5', usage: usage(60, 400, 25_000) }
+      message: {
+        id: 'i2',
+        model: 'claude-opus-5',
+        stop_reason: 'end_turn',
+        usage: usage(60, 400, 25_000)
+      }
     }
   ]);
   jsonl(join(subs, 'agent-ccc333.jsonl'), [
@@ -140,10 +205,21 @@ const fixture = (): string => {
       timestamp: at(20),
       message: { role: 'user', content: 'Read the file and summarize it.' }
     },
+    // never reached its final usage: 5 output tokens recorded for a 500-character thinking block and a
+    // tool call whose input stringifies to 214 characters — the floor is the tool call, not the thinking
     {
       type: 'assistant',
       timestamp: at(21),
-      message: { model: 'claude-haiku-4-5', usage: usage(5, 1000, 0) }
+      message: {
+        id: 'c1',
+        model: 'claude-haiku-4-5',
+        stop_reason: null,
+        usage: usage(5, 1000, 0),
+        content: [
+          { type: 'thinking', thinking: 't'.repeat(500) },
+          { type: 'tool_use', id: 'tu5', name: 'Bash', input: { command: 'x'.repeat(200) } }
+        ]
+      }
     }
   ]);
   jsonl(join(subs, 'agent-ddd444.jsonl'), [
@@ -155,7 +231,12 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: at(2.4),
-      message: { model: 'claude-haiku-4-5', usage: usage(3, 500, 0) }
+      message: {
+        id: 'd1',
+        model: 'claude-haiku-4-5',
+        stop_reason: 'end_turn',
+        usage: usage(3, 500, 0)
+      }
     }
   ]);
   jsonl(join(dir, 's2.jsonl'), [
@@ -167,7 +248,7 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: '2026-08-01T09:01:00.000Z',
-      message: { model: 'claude-opus-5', usage: usage(7, 0, 0) }
+      message: { id: 'o1', model: 'claude-opus-5', stop_reason: 'end_turn', usage: usage(7, 0, 0) }
     }
   ]);
   jsonl(join(dir, 's3.jsonl'), [
@@ -179,7 +260,7 @@ const fixture = (): string => {
     {
       type: 'assistant',
       timestamp: '2026-09-03T00:30:00.000Z',
-      message: { model: 'claude-opus-5', usage: usage(9, 0, 0) }
+      message: { id: 'e1', model: 'claude-opus-5', stop_reason: 'end_turn', usage: usage(9, 0, 0) }
     }
   ]);
   return dir;
@@ -245,13 +326,15 @@ describe('wave-cost', () => {
     ).toBe('other');
   });
 
-  test('sums usage per role, maps subagents to their spawn description, counts peak concurrency', () => {
+  test('sums usage per message, maps subagents to their spawn description, counts peak concurrency', () => {
     const report = analyze(fixture(), { since: '2026-09-01', until: '2026-09-01' });
     expect(report.sessions.map((s) => s.session)).toEqual(['s1']);
     expect(report.subagentCount).toBe(4);
     const [s1] = report.sessions;
+    // m1 spans two transcript lines that repeat its figures, the synthetic line is no turn: two turns, figures once
     expect(s1.orchestrator).toEqual({
       turns: 2,
+      turnsWithFinalUsage: 2,
       output: 300,
       inputUncached: 2,
       cacheWrite: 2_000_000,
@@ -261,6 +344,7 @@ describe('wave-cost', () => {
       cacheWriteAfterPause: 0,
       cacheReadAfterPause: 0
     });
+    expect(s1.model).toBe('claude-opus-5');
     const byId = Object.fromEntries(s1.subagents.map((a) => [a.id, a]));
     expect(byId.aaa111.role).toBe('reviewer');
     expect(byId.aaa111.description).toBe('PR A: review');
@@ -274,9 +358,11 @@ describe('wave-cost', () => {
     // spawned by the reviewer, so its spawn record sits in the reviewer's transcript, not in s1.jsonl
     expect(byId.ddd444.description).toBe('Nested: doc sweep');
     expect(byId.ddd444.role).toBe('other');
+    // r2's two lines count once, at the final 20, and its cache figures once
     expect(s1.byRole.reviewer).toEqual({
       turns: 2,
-      output: 30,
+      turnsWithFinalUsage: 2,
+      output: 80,
       inputUncached: 2,
       cacheWrite: 1_500_100,
       cacheWrite5m: 1_500_100,
@@ -290,11 +376,31 @@ describe('wave-cost', () => {
     expect(s1.byRole.implementer.turnsAfterPause).toBe(1);
     expect(s1.byRole.implementer.cacheWriteAfterPause).toBe(400);
     expect(s1.byRole.implementer.cacheReadAfterPause).toBe(25_000);
-    expect(s1.byRole.other.output).toBe(8);
+    // ccc333 never reached its final usage: its floor is its 214-character tool call at four characters a
+    // token (54), not the recorded 5 and not the 500-character thinking block; ddd444 adds its final 3
+    expect(s1.byRole.other.output).toBe(57);
+    expect(s1.byRole.other.turns).toBe(2);
+    expect(s1.byRole.other.turnsWithFinalUsage).toBe(1);
     // minute 2 after T0 holds a message of the reviewer, the implementer and the nested agent; nothing else overlaps
     expect(s1.peakActive).toBe(3);
     expect(report.totals.orchestrator.output).toBe(300);
     expect(report.totals.reviewer.cacheRead).toBe(30_000);
+  });
+
+  test('a usage line without a message id fails the run instead of counting per line', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'wave-cost-'));
+    jsonl(join(dir, 'x1.jsonl'), [
+      { type: 'user', timestamp: at(0), message: { role: 'user', content: 'start' } },
+      {
+        type: 'assistant',
+        timestamp: at(1),
+        uuid: 'u1',
+        message: { model: 'claude-opus-5', usage: usage(1, 0, 0) }
+      }
+    ]);
+    expect(() => analyze(dir)).toThrow(
+      /x1\.jsonl: an assistant line with usage but no message\.id/
+    );
   });
 
   test('the range keeps every session whose activity overlaps it, and reports its first day', () => {
@@ -321,16 +427,19 @@ describe('wave-cost', () => {
     expect(() => analyze(fixture(), { since: '20260901' })).toThrow(/--since must be YYYY-MM-DD/);
   });
 
-  test('the text rendering carries every role total, the TTL split and the per-agent rows', () => {
+  test('the text rendering carries every role total, the TTL split, the floor marks and the per-agent rows', () => {
     const text = renderText(analyze(fixture(), { since: '2026-09-01', until: '2026-09-01' }), true);
     const line = (role: string) => text.split('\n').find((l) => l.startsWith(role)) ?? '';
     expect(line('orchestrator')).toContain('turns=2');
     expect(line('orchestrator')).toContain('(5m 0.0M, 1h 2.0M)');
     expect(line('reviewer')).toContain('(5m 1.5M, 1h 0.0M)');
+    expect(line('reviewer')).not.toContain('floor');
     expect(line('implementer')).toContain('after >5min pause: 1 turns');
+    expect(line('other')).toContain('(floor: final usage on 1 of 2 turns)');
     expect(text).toContain('PR A: review');
     expect(text).toContain('first 1500k');
     expect(text).toContain('"review"@6 in description');
+    expect(text).toContain('out 0k+');
     expect(text).toContain('subagents: 4  sessions: 1');
   });
 
@@ -344,9 +453,7 @@ describe('wave-cost', () => {
     expect(missing.stderr.toString()).toContain('wave-cost: no transcript directory');
     const malformed = Bun.spawnSync(
       ['bun', 'scripts/wave-cost.ts', '--transcripts', fixture(), '--until', '2026-9-15'],
-      {
-        cwd: root
-      }
+      { cwd: root }
     );
     expect(malformed.exitCode).toBe(1);
     expect(malformed.stderr.toString()).toContain('--until must be YYYY-MM-DD');
