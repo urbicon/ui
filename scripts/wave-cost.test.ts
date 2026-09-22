@@ -236,6 +236,13 @@ describe('wave-cost', () => {
       classify('Blind-Dossier', 'Schreibe ein implementierungsneutrales Anforderungsdossier.').role
     ).toBe('other');
     expect(classify('', 'This is not a review. Implement the change.').role).toBe('implementer');
+    // a branch named as location is not a role: the sweep below is read-only
+    expect(
+      classify(
+        'Sweep for width assumptions',
+        'In the repo (branch fix/restwelle, do NOT change the branch, do NOT edit files) list every width assumption.'
+      ).role
+    ).toBe('other');
   });
 
   test('sums usage per role, maps subagents to their spawn description, counts peak concurrency', () => {

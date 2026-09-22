@@ -18,8 +18,8 @@
  *     that started more than five minutes after the previous one. For an agent
  *     whose writes carry the five-minute TTL that pause expires the prefix and
  *     it is written again; for the main conversation, whose writes carry the
- *     one-hour TTL on a subscription, the same column is a pause count, not an
- *     expiry price — `cacheWrite5m` says which case a row is.
+ *     one-hour TTL, the same column is a pause count, not an expiry price —
+ *     `cacheWrite5m` says which case a row is.
  *   - `peakActive`: the most subagents that had a message in the same minute.
  *     A subagent's lifetime (first to last message) overstates concurrency,
  *     because an agent waiting for a SendMessage is alive and idle.
@@ -41,9 +41,11 @@
  * with no spawn record anywhere is classified by its prompt alone.
  *
  * Run: `bun run wave:cost --since 2026-09-15 --agents`
- *   --since / --until YYYY-MM-DD   sessions whose activity overlaps the range
- *                                  (a session opened the evening before a wave
- *                                  still counts; its row shows its first day)
+ *   --since / --until YYYY-MM-DD   sessions whose activity overlaps the range;
+ *                                  a session that overlaps counts whole, turns
+ *                                  outside the range included (a session opened
+ *                                  the evening before a wave still counts; its
+ *                                  row shows its first day)
  *   --session <id-prefix>          one session
  *   --transcripts <dir>            the transcript directory (default: derived
  *                                  from the working directory, as Claude Code
@@ -119,7 +121,7 @@ export const ROLE_PATTERNS: Array<[SubagentRole, RegExp]> = [
   ['implementer', /implement(?!ierungsneutral)|umsetz|umzusetzen|beheb|korrigier/i]
 ];
 
-/** Explicit role statements, read from the whole briefing when its head names no role; a branch to work on is one. */
+/** Explicit role statements, read from the whole briefing when its head names no role. */
 export const ROLE_STATEMENTS: Array<[SubagentRole, RegExp]> = [
   [
     'reviewer',
@@ -127,7 +129,7 @@ export const ROLE_STATEMENTS: Array<[SubagentRole, RegExp]> = [
   ],
   [
     'implementer',
-    /\b(?:du bist|you are)\b[^.\n]{0,40}?\bimplement|\byou (?:will )?(?:implement|fix|build)\b|\bdu (?:wirst|sollst|musst)\b[^.\n]{0,80}?(?:umsetz|implement|beheb|korrigier)|\bdu (?:behebst|korrigierst|implementierst|setzt)\b|\bdeine aufgabe ist[^.\n]{0,60}?(?:umsetz|umzusetzen|implement|beheb)|\bbranch\s+(?:fix|feat|feature|chore|refactor|docs|test|perf|build|ci)\//i
+    /\b(?:du bist|you are)\b[^.\n]{0,40}?\bimplement|\byou (?:will )?(?:implement|fix|build)\b|\bdu (?:wirst|sollst|musst)\b[^.\n]{0,80}?(?:umsetz|implement|beheb|korrigier)|\bdu (?:behebst|korrigierst|implementierst|setzt)\b|\bdeine aufgabe ist[^.\n]{0,60}?(?:umsetz|umzusetzen|implement|beheb)/i
   ]
 ];
 
