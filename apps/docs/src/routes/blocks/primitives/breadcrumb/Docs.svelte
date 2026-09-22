@@ -70,7 +70,7 @@
     <CodeExample
       title="From the current path"
       description="Breadcrumbs usually mirror the route, so derive them from the path instead of hand-listing each crumb. Wrapping the call in `$derived(itemsFromPath(page.url.pathname))` (with `page` from `$app/state`) re-runs it on every navigation, so the trail follows the current route. The last segment is the current page."
-      isolate
+      previewClass="flex flex-wrap items-center gap-4"
       code={`<script lang="ts">
   import { page } from '$app/state';
   import { Breadcrumb, type BreadcrumbItem } from '@urbicon-ui/blocks';
@@ -96,7 +96,7 @@
     <CodeExample
       title="Icons"
       description="A per-item `icon` renders before that crumb's label. Pass the icon component itself (`icon: HomeIcon`), never its name, because a name pulls the whole icon set into the bundle. The same trail also swaps the default `/` for a `ChevronRightIcon` through the `separator` snippet, which sets the separator for every crumb."
-      isolate
+      previewClass="flex flex-wrap items-center gap-4"
       code={`<script lang="ts">
   import { Breadcrumb, HomeIcon, ChevronRightIcon } from '@urbicon-ui/blocks';
 <\/script>

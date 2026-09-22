@@ -28,8 +28,9 @@ interface Insertion {
  * Vite plugin that auto-extracts children markup from <CodeExample isolate>
  * and injects it as the `code` prop, eliminating the need to duplicate code.
  *
- * Only processes CodeExamples that have the `isolate` attribute.
- * Skips any that already have an explicit `code` prop.
+ * Only processes CodeExamples that have the `isolate` attribute. One that also
+ * carries an explicit `code` prop is skipped with a warning: the prop wins, so
+ * `isolate` protects nothing there.
  *
  * Element boundaries come from Svelte's own parser rather than a regex: a
  * regex over `<CodeExample([^>]*)>…</CodeExample>` mis-parses two real shapes —
@@ -95,9 +96,10 @@ function collectInsertions(source: string, id: string, debug: boolean): Insertio
 
 /**
  * Builds the `code={`…`}` insertion for one <CodeExample>, or returns null when
- * the element opts out (no `isolate`, or an explicit `code` prop). A node that
- * asks for extraction but has nothing to extract warns instead of silently
- * rendering the "code extraction failed" fallback.
+ * the element has no `isolate`. A node that asks for extraction and gets none —
+ * an explicit `code` prop that wins over it, or nothing to extract — warns
+ * instead of returning quietly: the first renders the page unchanged with the
+ * drift protection off, the second renders the "code extraction failed" fallback.
  */
 function extractIsolatedCode(
   source: string,
@@ -110,9 +112,16 @@ function extractIsolatedCode(
     attributes.some((attr) => attr.type === 'Attribute' && attr.name === name);
 
   if (!hasAttribute('isolate')) return null;
-  if (hasAttribute('code')) return null;
 
   const where = `${id}:${positionOf(source, node.start)}`;
+
+  if (hasAttribute('code')) {
+    console.warn(
+      `[code-example-extract] ${where}: <CodeExample isolate code={…}> — the explicit \`code\` wins and \`isolate\` extracts nothing; drop one of the two.`
+    );
+    return null;
+  }
+
   const children = node.fragment?.nodes ?? [];
 
   if (children.length === 0) {

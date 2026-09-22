@@ -112,7 +112,6 @@
     <!-- profile header, actions, sign-out -->
   </div>
 </Popover>`}
-      isolate
       previewClass="flex justify-center"
     >
       <Popover placement="bottom-end">
@@ -178,7 +177,6 @@
   <div class="p-3">...</div>
   <Button onclick={() => (open = false)}>Dismiss</Button>
 </Popover>`}
-      isolate
       previewClass="flex justify-center"
     >
       <Popover bind:open={controlledOpen}>

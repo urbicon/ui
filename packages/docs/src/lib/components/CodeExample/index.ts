@@ -54,7 +54,10 @@ export interface CodeExampleProps
   description?: string;
   /** Render the live preview section above the code block. @default true */
   preview?: boolean;
-  /** Opt-in for the Vite plugin: children are auto-extracted as `code` at build time. */
+  /**
+   * Opt-in for the Vite plugin: children are auto-extracted as `code` at build time.
+   * Exclusive with `code`: an explicit `code` wins, the plugin extracts nothing and warns.
+   */
   isolate?: boolean;
   /**
    * CSS classes for a wrapper div around the preview content. Applies whether or
