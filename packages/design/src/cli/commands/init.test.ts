@@ -698,9 +698,10 @@ describe('runInit — stylesheet imports read from node_modules', () => {
 
 /**
  * Every line init writes runs `bunx urbicon …`: the context block, the hook entry,
- * the CI workflow. In a project that has not installed `@urbicon-ui/design` none of
- * them can run — the bin lives in that package. The oracle is `node_modules`, walked
- * up from cwd like Node resolves, which is also what `bunx urbicon` resolves against.
+ * the CI workflow. In a project that has not installed `@urbicon-ui/design` each of
+ * them runs whatever `bunx` fetches, not the project's pinned CLI. The oracle is
+ * `node_modules`, walked up from cwd like Node resolves, which is also what
+ * `bunx urbicon` resolves against.
  */
 describe('runInit — requires @urbicon-ui/design', () => {
   const exists = async (p: string): Promise<boolean> =>

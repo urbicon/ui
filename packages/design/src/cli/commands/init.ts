@@ -429,7 +429,8 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
 
   // 0. The package itself. Every line below assumes it: the context block says
   // `bunx urbicon …`, the hook runs `bunx urbicon hook`, the workflow `bunx urbicon
-  // validate` — without the package, a scaffold whose every command resolves nothing.
+  // validate` — without the package, every command resolves to whatever `bunx`
+  // fetches (the latest unscoped shim), not this project's pinned CLI.
   // The oracle is the one the stylesheet list reads: the nearest
   // `node_modules/@urbicon-ui/design` walking up from cwd, which is what `bunx
   // urbicon` resolves against too (a workspace install hoists to the root; the

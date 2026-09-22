@@ -16,8 +16,8 @@ const run = (bin: string, ...args: string[]) =>
 /**
  * Needs `packages/design/dist/cli.js` — `bun run build:packages` first. Runs under
  * Node, never `vitest --bun`: `process.execPath` spawns the shim and `createRequire`
- * resolves with the host's resolver, and Bun's does not enforce `exports` on a deep
- * import — the exports-map case below passes vacuously under Bun.
+ * resolves with the host's resolver, and Bun's does not enforce `exports` on
+ * `package.json` — the exports-map case below passes vacuously under Bun.
  */
 describe('bin/urbicon.js', () => {
   // A deep import of design's package.json is what the shim rests on. Design has no
