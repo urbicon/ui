@@ -19,8 +19,7 @@
 #
 # A package that does not exist on the registry yet is SKIPPED, not failed:
 # npm requires the package to exist before a trusted publisher can be attached
-# to it. Publish it once the old way, then re-run this. As of 2026-08-01 that
-# applies to @urbicon-ui/sv, which has never been published.
+# to it. Publish it once the old way, then re-run this.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -71,11 +70,11 @@ for dir in "${PACKAGES[@]}"; do
     continue
   fi
 
-  # The "is it already configured?" check is off by default: `npm trust list`
-  # needs the same one-time password as the write, so asking first would double
-  # the auth rounds for a run that is idempotent anyway — re-registering the
-  # same repo/workflow just restates it. `CHECK_EXISTING=1` turns it back on.
-  if [ -n "${CHECK_EXISTING:-}" ] && $NPM trust list "$name" 2>/dev/null | grep -q "$REPO"; then
+  # Ask before writing: npm answers a re-registration of the same repo/workflow
+  # with `409 Conflict`, not by restating it, so without this check `set -e` ends
+  # the run at the first package that is already configured. The read costs
+  # nothing extra — `npm trust list` takes no one-time password, the write does.
+  if $NPM trust list "$name" 2>/dev/null | grep -q "$REPO"; then
     echo "··  $name — already trusts $REPO"
     skipped=$((skipped + 1))
     continue
