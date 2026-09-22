@@ -105,6 +105,7 @@ setup and the first real page.
 | [`@urbicon-ui/auth`](https://ui.urbicon.de/auth) | Sessions, refresh rotation, passkeys/WebAuthn, notifications, email; Web Crypto only, adapter-based |
 | [`@urbicon-ui/i18n`](https://ui.urbicon.de/i18n) | Runes-based localisation with a data-level translation audit |
 | [`@urbicon-ui/design`](https://ui.urbicon.de/ai) | The `urbicon` CLI: design knowledge, `urbicon validate`, `urbicon init` onboarding |
+| [`urbicon`](https://www.npmjs.com/package/urbicon) | The unscoped name for that CLI, so `bunx urbicon …` resolves in every project; forwards to `@urbicon-ui/design` at the same version |
 | `@urbicon-ui/sveltekit-utils` | URL-state runes, cron runner and other SvelteKit helpers |
 | [`@urbicon-ui/sv`](https://www.npmjs.com/package/@urbicon-ui/sv) | The Svelte CLI add-on (beta, SvelteKit only): `sv add @urbicon-ui` installs the library and wires the stylesheet |
 
@@ -114,8 +115,9 @@ same repo and release in lockstep.
 ## Built for agents, readable by humans
 
 The library treats AI coding agents as first-class consumers without giving up on the people who
-review their work. `bunx urbicon init` writes the AGENTS.md block and scaffolds the design
-manifest; add `--hook` and every edit runs through the gate on its way in:
+review their work. `bun add -d @urbicon-ui/design`, then `bunx urbicon init` writes the AGENTS.md
+block and scaffolds the design manifest; add `--hook` and every edit runs through the gate on its
+way in:
 
 ```mermaid
 flowchart LR

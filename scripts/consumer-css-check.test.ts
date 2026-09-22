@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test';
-import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Scanner } from '@tailwindcss/oxide';
 import { auditPackage, emitting, installTree, type Tree } from './consumer-css-check';
@@ -17,6 +18,7 @@ import { auditPackage, emitting, installTree, type Tree } from './consumer-css-c
  */
 
 const trees: Tree[] = [];
+const scratch: string[] = [];
 async function tree(): Promise<Tree> {
   const t = await installTree();
   trees.push(t);
@@ -24,7 +26,28 @@ async function tree(): Promise<Tree> {
 }
 afterEach(() => {
   for (const t of trees.splice(0)) rmSync(t.dir, { recursive: true, force: true });
+  for (const d of scratch.splice(0)) rmSync(d, { recursive: true, force: true });
 });
+
+/**
+ * A `packages/` holding one package published outside `@urbicon-ui/`, the shape
+ * of the `urbicon` bin shim: no place in the scoped tree, so `installTree` skips
+ * it — unless it ships `.svelte`, whose classes no stylesheet would then compile
+ * (case 1 of the gate's header) and which the skip would hide.
+ */
+function unscopedPackages(withSvelte: boolean): string {
+  const packagesDir = mkdtempSync(join(tmpdir(), 'consumer-css-packages-'));
+  scratch.push(packagesDir);
+  const pkg = join(packagesDir, 'shim');
+  mkdirSync(join(pkg, 'bin'), { recursive: true });
+  writeFileSync(join(pkg, 'bin', 'x.js'), '');
+  if (withSvelte) writeFileSync(join(pkg, 'a.svelte'), '<div class="bg-fuchsia-500"></div>\n');
+  writeFileSync(
+    join(pkg, 'package.json'),
+    JSON.stringify({ name: 'unscoped-shim', version: '0.0.0', files: ['bin', 'a.svelte'] })
+  );
+  return packagesDir;
+}
 
 const stylesheetOf = (t: Tree, name: string) =>
   join(t.dir, 'node_modules', '@urbicon-ui', name, 'dist', 'style', 'index.css');
@@ -178,5 +201,21 @@ describe('consumer-css-check', () => {
     expect(i18n.stylesheet).toBe(false);
     expect(i18n.files).toBeGreaterThan(0);
     expect(i18n.uncovered).toEqual([]);
+  });
+
+  it('refuses an unscoped package that ships .svelte, by name', async () => {
+    const at = mkdtempSync(join(tmpdir(), 'consumer-css-'));
+    scratch.push(at);
+    await expect(installTree(at, unscopedPackages(true))).rejects.toThrow(
+      'shim ships .svelte outside @urbicon-ui/: unscoped-shim'
+    );
+  });
+
+  it('skips an unscoped package that ships none', async () => {
+    const at = mkdtempSync(join(tmpdir(), 'consumer-css-'));
+    scratch.push(at);
+    const t = await installTree(at, unscopedPackages(false));
+    expect(t.installed).toEqual([]);
+    expect(t.audited).toEqual([]);
   });
 });

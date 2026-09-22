@@ -128,7 +128,8 @@ export default {
   <Badge intent="success">Booked — see you in September, {name}.</Badge>
 {/if}`;
 
-  const agentExample = `bunx urbicon init`;
+  const agentExample = `bun add -d @urbicon-ui/design
+bunx urbicon init`;
 
   const themeExample = `/* app.css */
 @import 'tailwindcss';
@@ -357,6 +358,9 @@ export default {
           >
           package that ships components ships a stylesheet of its own — import it after blocks. Without
           it, the classes only that package uses compile to nothing, and nothing reports it.
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >bun add -d @urbicon-ui/design</code
+          >, then
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >bunx urbicon init</code
           >

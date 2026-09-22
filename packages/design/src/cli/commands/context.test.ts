@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,6 +21,15 @@ describe('runContext — context-block staleness', () => {
     originalCwd = process.cwd();
     dir = await mkdtemp(join(tmpdir(), 'urbicon-context-'));
     process.chdir(dir);
+    // `runInit` refuses (exit 2, nothing written) unless `@urbicon-ui/design` is in
+    // `node_modules` — without this the two init-backed cases below assert on a
+    // block that was never written.
+    const designDir = join(dir, 'node_modules', '@urbicon-ui', 'design');
+    await mkdir(designDir, { recursive: true });
+    await writeFile(
+      join(designDir, 'package.json'),
+      JSON.stringify({ name: '@urbicon-ui/design', version: '0.0.0-test' })
+    );
     log = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });

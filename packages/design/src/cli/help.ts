@@ -235,7 +235,9 @@ Commands — process & setup:
                         non-destructive: re-runs refresh the block in place (wherever
                         it lives — AGENTS.md or CLAUDE.md) and stamp it with the CLI
                         version; customised hook/CI files are kept and reported,
-                        never overwritten.
+                        never overwritten. Requires @urbicon-ui/design installed in
+                        the project (every line it writes runs "bunx urbicon …");
+                        exits 2 without writing otherwise.
                         --hook             Also merge the PostToolUse gate into
                                            .claude/settings.json.
                         --ci               Also write .github/workflows/design-gate.yml.

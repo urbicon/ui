@@ -131,7 +131,8 @@ function walk(dir: string, out: string[] = []): string[] {
  * consumer; only the packages that ship `.svelte` are audited.
  */
 export async function installTree(
-  at = mkdtempSync(join(tmpdir(), 'consumer-css-'))
+  at = mkdtempSync(join(tmpdir(), 'consumer-css-')),
+  packagesDir = join(ROOT, 'packages')
 ): Promise<Tree> {
   // `compile()` reports real paths; on macOS the temp dir is reached through
   // the `/var` → `/private/var` link, so anything relative to `at` would
@@ -149,17 +150,14 @@ export async function installTree(
 
   const installed: string[] = [];
   const audited: string[] = [];
-  for (const entry of readdirSync(join(ROOT, 'packages'), { withFileTypes: true })) {
+  for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const pkgDir = join(ROOT, 'packages', entry.name);
+    const pkgDir = join(packagesDir, entry.name);
     const manifestPath = join(pkgDir, 'package.json');
     if (!existsSync(manifestPath)) continue;
     const manifest = readJson(manifestPath);
     if (manifest.private === true) continue;
     const name = manifest.name as string;
-    if (!name.startsWith(SCOPE))
-      throw new Error(`${entry.name} is published outside ${SCOPE}: ${name}`);
-    const short = name.slice(SCOPE.length);
 
     // `bun pm pack`, not a copy of dist/: the packer applies `files`, so test
     // and fixture output that never reaches a consumer is not scanned either.
@@ -170,11 +168,22 @@ export async function installTree(
     );
     if (!existsSync(tgz)) throw new Error(`expected ${tgz} after packing ${name}`);
     const listing = await sh(['tar', '-tzf', tgz], dir);
+    const shipsSvelte = listing.split('\n').some((file) => file.endsWith('.svelte'));
+    // The tree is `node_modules/@urbicon-ui/<name>` and every `@source` a consumer
+    // compiles comes from a `@urbicon-ui/*` stylesheet, so a package published
+    // outside the scope (`urbicon`, the bin shim) has no place in it — which is
+    // fine exactly as long as it ships no `.svelte`: markup there would be compiled
+    // by nobody, case 1 of the header, and nothing below could report it.
+    if (!name.startsWith(SCOPE)) {
+      if (shipsSvelte) throw new Error(`${entry.name} ships .svelte outside ${SCOPE}: ${name}`);
+      continue;
+    }
+    const short = name.slice(SCOPE.length);
     const dest = join(scopeDir, short);
     mkdirSync(dest);
     await sh(['tar', '-xzf', tgz, '--strip-components=1', '-C', dest], dir);
     installed.push(short);
-    if (listing.split('\n').some((file) => file.endsWith('.svelte'))) audited.push(short);
+    if (shipsSvelte) audited.push(short);
   }
   return { dir, installed: installed.sort(), audited: audited.sort() };
 }

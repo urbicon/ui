@@ -25,9 +25,14 @@ export const RELEASE_PACKAGES = [
   'packages/table',
   'packages/auth',
   'packages/docs',
-  // sv LAST: its add-on code writes `@urbicon-ui/blocks@^<version>` and
-  // `@urbicon-ui/design@^<version>` into consumer package.jsons — a dependency
+  // sv after everything it names: its add-on code writes `@urbicon-ui/blocks@^<version>`
+  // and `@urbicon-ui/design@^<version>` into consumer package.jsons — a dependency
   // edge npm cannot see (community add-ons must not declare `dependencies`), so
   // this ordering is the only thing keeping the topological invariant.
-  'packages/sv'
+  'packages/sv',
+  // urbicon LAST: it depends only on design and nothing depends on it, and a
+  // name's first publish has no trusted publisher (OIDC cannot create one), so
+  // a failure here must be the last thing in the run — publish-tarballs.mjs
+  // stops at the first failed package.
+  'packages/urbicon'
 ];

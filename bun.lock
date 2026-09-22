@@ -340,6 +340,19 @@
         "svelte": "catalog:",
       },
     },
+    "packages/urbicon": {
+      "name": "urbicon",
+      "version": "8.24.0",
+      "bin": {
+        "urbicon": "./bin/urbicon.js",
+      },
+      "dependencies": {
+        "@urbicon-ui/design": "workspace:*",
+      },
+      "devDependencies": {
+        "vitest": "catalog:",
+      },
+    },
   },
   "trustedDependencies": [
     "@urbicon-ui/design-engine",
@@ -1306,6 +1319,8 @@
     "unist-util-visit-parents": ["unist-util-visit-parents@6.0.2", "", { "dependencies": { "@types/unist": "^3.0.0", "unist-util-is": "^6.0.0" } }, "sha512-goh1s1TBrqSqukSc8wrjwWhL0hiJxgA8m4kFxGlQ+8FYQ3C/m11FcTs4YYem7V664AhHVvgoQLk890Ssdsr2IQ=="],
 
     "unpipe": ["unpipe@1.0.0", "", {}, "sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ=="],
+
+    "urbicon": ["urbicon@workspace:packages/urbicon"],
 
     "vary": ["vary@1.1.2", "", {}, "sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg=="],
 

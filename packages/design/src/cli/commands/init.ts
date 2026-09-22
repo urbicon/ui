@@ -90,6 +90,8 @@ async function findTailwindStylesheet(cwd: string): Promise<string | null> {
 
 const SCOPE = '@urbicon-ui/';
 const BLOCKS = `${SCOPE}blocks`;
+/** The package every line `init` writes assumes: `bunx urbicon …` resolves against it. */
+const DESIGN = `${SCOPE}design`;
 /** The subpath a package exports when it ships a Tailwind stylesheet. */
 const STYLE_EXPORT = './style/index.css';
 
@@ -99,8 +101,8 @@ interface StylesheetScan {
   shipping: string[];
   /** Installed packages whose `package.json` does not parse — a broken install, named. */
   broken: string[];
-  /** Whether any `@urbicon-ui/*` package was found under any `node_modules` up from cwd. */
-  installed: boolean;
+  /** Every `@urbicon-ui/*` package found under any `node_modules` up from cwd, by name. */
+  installed: ReadonlySet<string>;
 }
 
 /** Directory entries, or none when the directory is absent or unreadable. */
@@ -156,7 +158,7 @@ async function scanStylesheets(cwd: string): Promise<StylesheetScan> {
   const rank = (n: string): string => (n === BLOCKS ? '' : n);
   shipping.sort((a, b) => (rank(a) < rank(b) ? -1 : rank(a) > rank(b) ? 1 : 0));
   broken.sort();
-  return { shipping, broken, installed: seen.size > 0 };
+  return { shipping, broken, installed: seen };
 }
 
 /** The `@import` lines the consumer's stylesheet needs, Tailwind first. */
@@ -172,19 +174,13 @@ function importLines(shipping: string[]): string[] {
 }
 
 /**
- * What the import list could not settle. Nothing installed is the `bunx urbicon init`
- * before `bun install` case — the list above is empty and only this says why. A
- * package whose `package.json` does not parse is a broken install: its line may be
- * missing above, so it is named rather than skipped.
+ * What the import list could not settle: a package whose `package.json` does not
+ * parse is a broken install, and its line may be missing above, so it is named rather
+ * than skipped. "Nothing installed" cannot reach here — `runInit` refuses before it
+ * writes anything when `@urbicon-ui/design` itself is absent from `node_modules`.
  */
 function stylesheetHints(sheets: StylesheetScan): string[] {
   const hints: string[] = [];
-  if (!sheets.installed) {
-    hints.push(
-      `  • No ${SCOPE}* package is installed yet — the import list above is read from` +
-        ' node_modules; after `bun install`, re-run `bunx urbicon init`.'
-    );
-  }
   if (sheets.broken.length > 0) {
     const names = sheets.broken.map((n) => `\`${n}\``).join(', ');
     hints.push(
@@ -431,6 +427,27 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   const skipped: string[] = [];
   const hints: string[] = [];
 
+  // 0. The package itself. Every line below assumes it: the context block says
+  // `bunx urbicon …`, the hook runs `bunx urbicon hook`, the workflow `bunx urbicon
+  // validate` — without the package, every command resolves to whatever `bunx`
+  // fetches (the latest unscoped shim), not this project's pinned CLI.
+  // The oracle is the one the stylesheet list reads: the nearest
+  // `node_modules/@urbicon-ui/design` walking up from cwd, which is what `bunx
+  // urbicon` resolves against too (a workspace install hoists to the root; the
+  // walk-up covers it). Refuse before the first write.
+  const sheets = await scanStylesheets(cwd);
+  const deps = readConsumerDependencies(cwd);
+  if (!sheets.installed.has(DESIGN)) {
+    // Declared but not installed is `bun install`, never `bun add -d`: the add
+    // rewrites the consumer's pin to a fresh caret range on the current version.
+    const fix = deps?.has(DESIGN) ? 'bun install' : `bun add -d ${DESIGN}`;
+    printError(
+      `${DESIGN} is not installed in this project, and everything init writes runs it ` +
+        `(\`bunx urbicon …\`). Run \`${fix}\`, then re-run \`bunx urbicon init\`.`
+    );
+    return EXIT.USAGE;
+  }
+
   // 1. Context block — idempotent upsert, stamped with the CLI version so
   // `urbicon context` can flag a stale block after an upgrade.
   //
@@ -634,11 +651,7 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   for (const d of done) console.log(`  ✓ ${d}`);
   for (const s of skipped) console.log(`  · ${s}`);
   console.log('\nNext steps:');
-  for (const line of tailwindSteps(
-    readConsumerDependencies(),
-    await findTailwindStylesheet(cwd),
-    await scanStylesheets(cwd)
-  ))
+  for (const line of tailwindSteps(deps, await findTailwindStylesheet(cwd), sheets))
     console.log(line);
   // Claude Code is wired above; what remains is every other tool, which we cannot
   // detect and whose context file we will not guess at.
