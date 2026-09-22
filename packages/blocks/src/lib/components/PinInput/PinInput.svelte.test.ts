@@ -269,4 +269,158 @@ describe('PinInput', () => {
     expect(parts[1]).toBe('outside-hint');
     expect(parts[0]).not.toBe('outside-hint');
   });
+
+  // ── focus() ── the retry after a rejected code ──────────────────────────
+
+  function mountWith(props: PinInputProps) {
+    const instance = mount(PinInput, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    return instance;
+  }
+
+  it('focus() returns the caret to the first cell in the same tick as the clear', async () => {
+    const user = userEvent.setup();
+    const props = $state<PinInputProps>({ length: 6, value: '' });
+    const instance = mountWith(props);
+    cells()[0].focus();
+    await user.paste('123456');
+    expect(document.activeElement).toBe(cells()[5]);
+
+    // The consumer clears and re-focuses synchronously: no effect has re-seeded
+    // the cells from the cleared value yet, so a lookup over the cells would
+    // still see the rejected code and land on the last cell.
+    props.value = '';
+    instance.focus();
+    expect(document.activeElement).toBe(cells()[0]);
+    flushSync();
+    expect(cells().every((el) => el.value === '')).toBe(true);
+    expect(document.activeElement).toBe(cells()[0]);
+  });
+
+  it('focus() lands on the first empty cell of a partial value, on the last of a full one', () => {
+    const props = $state<PinInputProps>({ length: 4, value: '12' });
+    const instance = mountWith(props);
+    instance.focus();
+    expect(document.activeElement).toBe(cells()[2]);
+    props.value = '1234';
+    instance.focus();
+    expect(document.activeElement).toBe(cells()[3]);
+  });
+
+  // The spy is the assertion: jsdom refuses to focus a disabled input on its
+  // own, so `activeElement` alone would be green without the guard.
+  it('focus() moves nothing while disabled', () => {
+    const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
+    try {
+      const instance = mountWith({ length: 4, disabled: true });
+      instance.focus();
+      expect(focusSpy).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(document.body);
+    } finally {
+      focusSpy.mockRestore();
+    }
+  });
+
+  it('focus() lands on the last cell of a full read-only row — the cells stay focusable', () => {
+    const instance = mountWith({ length: 4, value: '1234', readonly: true });
+    instance.focus();
+    expect(document.activeElement).toBe(cells()[3]);
+  });
+
+  it('focus() does not throw without a cell to focus — zero cells, or after unmount', () => {
+    const empty = mount(PinInput, { target: document.body, props: { length: 0 } });
+    flushSync();
+    expect(() => empty.focus()).not.toThrow();
+    unmount(empty);
+
+    const gone = mount(PinInput, { target: document.body, props: { length: 4 } });
+    flushSync();
+    unmount(gone);
+    expect(() => gone.focus()).not.toThrow();
+  });
+
+  it('a focus() issued from inside onComplete wins over the paste auto-advance', async () => {
+    const user = userEvent.setup();
+    const props = $state<PinInputProps>({ length: 6, value: '' });
+    props.onComplete = () => {
+      props.value = '';
+      instance.focus();
+    };
+    const instance = mountWith(props);
+    cells()[0].focus();
+    await user.paste('123456');
+    expect(document.activeElement).toBe(cells()[0]);
+    expect(cells().every((el) => el.value === '')).toBe(true);
+  });
+
+  it('a focus() issued from inside onComplete wins over the typing auto-advance', async () => {
+    const user = userEvent.setup();
+    const props = $state<PinInputProps>({ length: 4, value: '' });
+    props.onComplete = () => {
+      props.value = '';
+      instance.focus();
+    };
+    const instance = mountWith(props);
+    // Leave cell 1 for last, so the completing keystroke is one that auto-advances.
+    cells()[0].focus();
+    await user.keyboard('1');
+    cells()[2].focus();
+    await user.keyboard('34');
+    cells()[1].focus();
+    await user.keyboard('2');
+    expect(document.activeElement).toBe(cells()[0]);
+    expect(cells().every((el) => el.value === '')).toBe(true);
+  });
+
+  it('autoFocus focuses a read-only row on mount', () => {
+    mountWith({ length: 4, value: '1234', readonly: true, autoFocus: true });
+    expect(document.activeElement).toBe(cells()[3]);
+  });
+
+  it('autoFocus does not reach for a disabled row', () => {
+    const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
+    try {
+      mountWith({ length: 4, disabled: true, autoFocus: true });
+      expect(focusSpy).not.toHaveBeenCalled();
+    } finally {
+      focusSpy.mockRestore();
+    }
+  });
+
+  it('autoFocus runs again whenever it turns true', () => {
+    const props = $state<PinInputProps>({ length: 4, value: '12', autoFocus: false });
+    mountWith(props);
+    expect(document.activeElement).toBe(document.body);
+    props.autoFocus = true;
+    flushSync();
+    expect(document.activeElement).toBe(cells()[2]);
+
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    props.autoFocus = false;
+    flushSync();
+    expect(document.activeElement).toBe(elsewhere);
+    props.autoFocus = true;
+    flushSync();
+    expect(document.activeElement).toBe(cells()[2]);
+  });
+
+  it('autoFocus focuses the first empty cell on mount, and no later edit moves it again', () => {
+    const props = $state<PinInputProps>({ length: 4, value: '12', autoFocus: true });
+    mountWith(props);
+    expect(document.activeElement).toBe(cells()[2]);
+
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    props.value = '1';
+    flushSync();
+    props.disabled = true;
+    flushSync();
+    props.disabled = false;
+    flushSync();
+    expect(document.activeElement).toBe(elsewhere);
+  });
 });

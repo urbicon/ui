@@ -161,8 +161,10 @@
       cells[idx] = ch;
       idx++;
     }
-    emit();
+    // Own focus move first, then the callbacks: a `focus()` issued from inside
+    // `onComplete` (clear + retry) has to be the last word, not this line.
     focusCell(Math.min(idx, length - 1));
+    emit();
   }
 
   function handleInput(index: number, event: Event) {
@@ -180,11 +182,11 @@
       // Force the DOM to the sanitized single char so a rejected glyph can never
       // linger in an otherwise-empty cell (the model may not have changed).
       el.value = ch;
+      if (ch && index < length - 1) focusCell(index + 1);
       if (cells[index] !== ch) {
         cells[index] = ch;
         emit();
       }
-      if (ch && index < length - 1) focusCell(index + 1);
     } else {
       fill(index, sanitized);
       el.value = cells[index];
@@ -246,14 +248,22 @@
     (event.currentTarget as HTMLInputElement).select();
   }
 
-  // Focus the first empty cell on mount when requested. Runs once — autoFocus is
-  // stable — and untracks `cells` so a later edit does not re-steal focus.
+  // Reads `value`, not `cells`: a consumer's `value = ''` reaches the prop
+  // synchronously, while the effect that re-seeds `cells` from it is deferred
+  // (microtask or flushSync) — a `focus()` right after the clear would still
+  // see the rejected code in `cells` and land on the last cell.
+  export function focus(): void {
+    if (disabled) return;
+    const firstEmpty = toCells(value ?? '').findIndex((c) => !c);
+    focusCell(firstEmpty === -1 ? length - 1 : firstEmpty);
+  }
+
+  // Runs on mount and on every later `false → true` of `autoFocus`, nothing
+  // else: everything `focus()` reads is untracked, so an edit or a flip of
+  // `disabled` does not re-steal focus.
   $effect(() => {
     if (!autoFocus) return;
-    untrack(() => {
-      const firstEmpty = cells.findIndex((c) => !c);
-      focusCell(firstEmpty === -1 ? length - 1 : firstEmpty);
-    });
+    untrack(focus);
   });
 </script>
 
