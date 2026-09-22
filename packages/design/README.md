@@ -195,7 +195,8 @@ Exit codes — designed for hooks and CI:
 | `1`  | Failed — `validate` found errors (with `--strict`, warnings too), or a command could not complete (e.g. a manifest write error) |
 | `2`  | Usage error — bad flags / unreadable input                                                                                      |
 
-`--skip-heuristics` runs only the deterministic rules (no distribution notes).
+`--skip-heuristics` runs only the deterministic rules (no distribution notes). For `i18n`, a
+translations dir that loads nothing also fails the run (`1`), not a usage error.
 
 ### i18n
 
@@ -216,9 +217,12 @@ urbicon i18n hardcoded src/ --strict                         # gate the advisory
 | `hardcoded` | literal UI copy in `.svelte` markup that bypassed i18n                              | advisory (gate with `--strict`)           |
 
 Config via `i18n.audit.json` / `--config` + flags (`--translations`, `--dynamic-keys`,
-`--ignore-keys`, `--ignore-strings`, `--base-locale`); `--json` for CI. Backed by the
-`@urbicon-ui/i18n/audit` subpath; the pure data-level `auditTranslations` also runs as a
-Vitest assertion without the CLI.
+`--ignore-keys`, `--ignore-strings`, `--base-locale`); `--json` for CI. A `--translations`
+dir that loads no locale bundle (missing, without an `en.ts`/`de.ts`/…, or whose locale files
+all fail to load) fails any run that needs bundles (`parity`, `unused`, `audit`): the two are
+not compared against nothing, `hardcoded` reads no bundles and runs unaffected — alone it
+still exits 0. Backed by the `@urbicon-ui/i18n/audit` subpath; the pure data-level
+`auditTranslations` also runs as a Vitest assertion without the CLI.
 
 ### context / record-decision / sync-manifest
 

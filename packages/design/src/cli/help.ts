@@ -200,7 +200,8 @@ Commands — judgment (is what you built right):
                         --json             Machine-readable report.
                         --strict           Gate on advisory findings too.
                         Gates on parity errors + used-but-undefined; unused,
-                        hardcoded and parity warnings are advisory.
+                        hardcoded and parity warnings are advisory. A translations
+                        dir that loads nothing fails the run (1) too.
 
 Commands — memory (what this project already decided):
   context               Print the project's design.manifest.md summary. Warns when
