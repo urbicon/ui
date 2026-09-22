@@ -34,6 +34,25 @@
  * `roleEvidence` — the matched text, its offset and its source — so a reader
  * can audit every row; the heuristic is a reading aid, not an oracle.
  *
+ * A transcript writes one line per content block of an assistant message
+ * (thinking, text, tool_use), and every line of a message repeats the request's
+ * input and cache figures and carries a running or final `output_tokens`. So
+ * usage is aggregated per message id — cache and input taken once, output as
+ * the maximum over the message's lines — never summed per line, which counts
+ * cache reads two to three times and the main conversation's output twice.
+ * Subagent transcripts record, on about half of their messages, a running
+ * count on every line and never the final one (a message with a thinking block
+ * and a 400-character tool call shows `output_tokens: 7`); some agents show it
+ * on nearly every message, the main conversation almost never. The check is
+ * physical: the recorded output must at least cover the message's
+ * visible content (text and tool-call input, at four characters a token,
+ * thinking excluded because the transcript omits it); below that the message
+ * never reached its final usage, its output is a floor, and the report says on
+ * how many turns the figure is final. `output_tokens_details` is no signal:
+ * older transcripts carry complete counts without it on half their messages. The harness's `subagent_tokens` in task
+ * notifications run about twice the transcript's output and cumulate over an
+ * agent's runs, with no documented definition — the tool does not read them.
+ *
  * A subagent maps to its description through the Agent tool result of the
  * transcript that spawned it (`agentId: <id>` in the result text) — the main
  * transcript for a top-level spawn, another subagent's transcript for a nested
@@ -67,7 +86,10 @@ export type Role = 'orchestrator' | 'implementer' | 'reviewer' | 'other';
 type SubagentRole = Exclude<Role, 'orchestrator'>;
 
 export interface Usage {
+  /** Assistant messages, not transcript lines. */
   turns: number;
+  /** Turns whose recorded output covers their visible content; below `turns`, `output` is a floor. */
+  turnsWithFinalUsage: number;
   output: number;
   inputUncached: number;
   cacheWrite: number;
@@ -140,6 +162,7 @@ const ROLE_WORD_HEAD = 400;
 
 const emptyUsage = (): Usage => ({
   turns: 0,
+  turnsWithFinalUsage: 0,
   output: 0,
   inputUncached: 0,
   cacheWrite: 0,
@@ -154,6 +177,7 @@ const PAUSE_MS = 5 * 60_000;
 
 const addUsage = (into: Usage, from: Usage): void => {
   into.turns += from.turns;
+  into.turnsWithFinalUsage += from.turnsWithFinalUsage;
   into.output += from.output;
   into.inputUncached += from.inputUncached;
   into.cacheWrite += from.cacheWrite;
@@ -217,7 +241,9 @@ export const classify = (description: string, prompt: string): Classification =>
 interface Line {
   type?: string;
   timestamp?: string;
+  uuid?: string;
   message?: {
+    id?: string;
     model?: string;
     content?: unknown;
     usage?: {
@@ -256,15 +282,38 @@ interface Scan {
   minutes: Set<number>;
 }
 
+interface MessageAgg {
+  at: number;
+  output: number;
+  /** Characters of text and tool-call input in the message's lines. */
+  visibleChars: number;
+  inputUncached: number;
+  cacheWrite: number;
+  cacheWrite5m: number;
+  cacheRead: number;
+  model: string;
+}
+
+const CHARS_PER_TOKEN = 4;
+
+/** Text and tool-call input of one transcript line, the part of the output the transcript shows. */
+const visibleChars = (content: unknown): number => {
+  if (!Array.isArray(content)) return 0;
+  let chars = 0;
+  for (const block of content) {
+    if (!isRecord(block)) continue;
+    if (block.type === 'text' && typeof block.text === 'string') chars += block.text.length;
+    if (block.type === 'tool_use') chars += JSON.stringify(block.input ?? {}).length;
+  }
+  return chars;
+};
+
 const scanTranscript = (lines: Line[]): Scan => {
-  const usage = emptyUsage();
-  const models = new Map<string, number>();
+  const messages = new Map<string, MessageAgg>();
   const minutes = new Set<number>();
   let first = '';
   let last = '';
   let prompt = '';
-  let firstTurnCacheWrite = -1;
-  let previousTurnAt = 0;
   for (const line of lines) {
     if (line.timestamp) {
       if (!first) first = line.timestamp;
@@ -276,25 +325,48 @@ const scanTranscript = (lines: Line[]): Scan => {
     }
     const u = line.type === 'assistant' ? line.message?.usage : undefined;
     if (!u) continue;
-    const written = u.cache_creation_input_tokens ?? 0;
-    const turnAt = line.timestamp ? Date.parse(line.timestamp) : 0;
-    usage.turns += 1;
-    usage.output += u.output_tokens ?? 0;
-    usage.inputUncached += u.input_tokens ?? 0;
-    usage.cacheWrite += written;
-    usage.cacheWrite5m += u.cache_creation?.ephemeral_5m_input_tokens ?? 0;
-    usage.cacheRead += u.cache_read_input_tokens ?? 0;
-    if (previousTurnAt && turnAt - previousTurnAt > PAUSE_MS) {
-      usage.turnsAfterPause += 1;
-      usage.cacheWriteAfterPause += written;
-      usage.cacheReadAfterPause += u.cache_read_input_tokens ?? 0;
-    }
-    if (turnAt) previousTurnAt = turnAt;
-    if (firstTurnCacheWrite < 0) firstTurnCacheWrite = written;
-    const model = line.message?.model ?? '?';
-    models.set(model, (models.get(model) ?? 0) + 1);
+    const id = line.message?.id ?? line.uuid ?? String(messages.size);
+    const at = line.timestamp ? Date.parse(line.timestamp) : 0;
+    const agg = messages.get(id) ?? {
+      at,
+      output: 0,
+      visibleChars: 0,
+      inputUncached: 0,
+      cacheWrite: 0,
+      cacheWrite5m: 0,
+      cacheRead: 0,
+      model: line.message?.model ?? '?'
+    };
+    agg.output = Math.max(agg.output, u.output_tokens ?? 0);
+    agg.visibleChars += visibleChars(line.message?.content);
+    agg.inputUncached = u.input_tokens ?? agg.inputUncached;
+    agg.cacheWrite = u.cache_creation_input_tokens ?? agg.cacheWrite;
+    agg.cacheWrite5m = u.cache_creation?.ephemeral_5m_input_tokens ?? agg.cacheWrite5m;
+    agg.cacheRead = u.cache_read_input_tokens ?? agg.cacheRead;
+    messages.set(id, agg);
   }
-  const model = [...models.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '?';
+  const usage = emptyUsage();
+  const models = new Map<string, number>();
+  let firstTurnCacheWrite = -1;
+  let previousTurnAt = 0;
+  for (const m of messages.values()) {
+    usage.turns += 1;
+    if (m.output >= Math.ceil(m.visibleChars / CHARS_PER_TOKEN)) usage.turnsWithFinalUsage += 1;
+    usage.output += m.output;
+    usage.inputUncached += m.inputUncached;
+    usage.cacheWrite += m.cacheWrite;
+    usage.cacheWrite5m += m.cacheWrite5m;
+    usage.cacheRead += m.cacheRead;
+    if (previousTurnAt && m.at - previousTurnAt > PAUSE_MS) {
+      usage.turnsAfterPause += 1;
+      usage.cacheWriteAfterPause += m.cacheWrite;
+      usage.cacheReadAfterPause += m.cacheRead;
+    }
+    if (m.at) previousTurnAt = m.at;
+    if (firstTurnCacheWrite < 0) firstTurnCacheWrite = m.cacheWrite;
+    models.set(m.model, (models.get(m.model) ?? 0) + 1);
+  }
+  const model = [...models.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? '?';
   return {
     usage,
     first,
@@ -510,7 +582,10 @@ export const renderText = (report: Report, agents: boolean): string => {
           pad(a.role, 11),
           pad(a.description || a.promptHead.replace(/\s+/g, ' '), 48),
           pad(`${a.usage.turns} turns`, 10),
-          pad(`out ${k(a.usage.output)}`, 10),
+          pad(
+            `out ${k(a.usage.output)}${a.usage.turnsWithFinalUsage < a.usage.turns ? '+' : ''}`,
+            10
+          ),
           pad(`read ${m(a.usage.cacheRead)}`, 12),
           pad(`write ${k(a.usage.cacheWrite)}`, 11),
           pad(`first ${k(a.firstTurnCacheWrite)}`, 11),
@@ -522,10 +597,12 @@ export const renderText = (report: Report, agents: boolean): string => {
     }
   }
   out.push('');
-  out.push(`subagents: ${report.subagentCount}  sessions: ${report.sessions.length}`);
+  out.push(
+    `subagents: ${report.subagentCount}  sessions: ${report.sessions.length}  (a trailing + on an agent's out marks a floor: its transcript carries no final usage for some turns)`
+  );
   for (const [role, u] of Object.entries(report.totals)) {
     out.push(
-      `${pad(role, 12)} turns=${u.turns}  out=${m(u.output)}  cache read=${m(u.cacheRead)}  cache write=${m(u.cacheWrite)} (5m ${m(u.cacheWrite5m)}, 1h ${m(u.cacheWrite - u.cacheWrite5m)})  after >5min pause: ${u.turnsAfterPause} turns, write ${m(u.cacheWriteAfterPause)}, read ${m(u.cacheReadAfterPause)}  uncached in=${m(u.inputUncached)}`
+      `${pad(role, 12)} turns=${u.turns}  out=${m(u.output)}${u.turnsWithFinalUsage < u.turns ? ` (floor: final usage on ${u.turnsWithFinalUsage} of ${u.turns} turns)` : ''}  cache read=${m(u.cacheRead)}  cache write=${m(u.cacheWrite)} (5m ${m(u.cacheWrite5m)}, 1h ${m(u.cacheWrite - u.cacheWrite5m)})  after >5min pause: ${u.turnsAfterPause} turns, write ${m(u.cacheWriteAfterPause)}, read ${m(u.cacheReadAfterPause)}  uncached in=${m(u.inputUncached)}`
     );
   }
   return out.join('\n');
