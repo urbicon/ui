@@ -417,9 +417,9 @@ describe('PinInput', () => {
     elsewhere.focus();
     props.value = '1';
     flushSync();
-    props.readonly = true;
+    props.disabled = true;
     flushSync();
-    props.readonly = false;
+    props.disabled = false;
     flushSync();
     expect(document.activeElement).toBe(elsewhere);
   });
