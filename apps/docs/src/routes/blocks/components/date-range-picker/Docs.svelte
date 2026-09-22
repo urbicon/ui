@@ -31,7 +31,6 @@
   placeholder="Pick your dates"
   clearable
 />`}
-      isolate
       previewClass="flex max-w-sm flex-col gap-4"
     >
       <DateRangePicker
@@ -60,7 +59,6 @@
   isDateDisabled={(d) => d.getDay() === 0}
   helper="Next 90 days, Sundays excluded"
 />`}
-      isolate
       previewClass="flex max-w-sm flex-col gap-4"
     >
       <DateRangePicker
@@ -88,7 +86,6 @@
   required
   helper="Submitted as period_start and period_end"
 />`}
-      isolate
       previewClass="flex max-w-sm flex-col gap-4"
     >
       <DateRangePicker

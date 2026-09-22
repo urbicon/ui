@@ -46,7 +46,6 @@ toaster.info('Syncing…', {
   dismissible: false,
   duration: 3000
 });`}
-      isolate
       previewClass="flex flex-wrap items-center justify-center gap-3 py-4"
     >
       <Button
@@ -117,7 +116,6 @@ toaster.dismiss(id);
 
 // Or remove everything
 toaster.clear();`}
-      isolate
       previewClass="flex flex-wrap items-center justify-center gap-3 py-4"
     >
       <Button
@@ -145,7 +143,6 @@ toaster.clear();`}
       code={`<Button onclick={() => toaster.success('Saved', {
   description: 'Draft saved at ' + new Date().toLocaleTimeString()
 })}>Save Draft</Button>`}
-      isolate
       previewClass="flex justify-center py-4"
     >
       <div

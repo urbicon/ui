@@ -65,7 +65,7 @@ function codeOf(output: string, title: string): string | null {
 }
 
 let fixtureOutput: string | undefined;
-/** Transformed once, lazily, so the fixture's deliberate warning lands in a spy. */
+/** Transformed once, lazily, so the fixture's deliberate warnings land in a spy. */
 function fixture(): string {
   if (fixtureOutput === undefined) {
     const result = transform(readFileSync(FIXTURE_PATH, 'utf-8'));
@@ -163,6 +163,18 @@ describe('codeExamplePlugin', () => {
     it('reports the offending file and line', () => {
       transform('<p>a</p>\n<CodeExample isolate />', '/repo/apps/docs/src/routes/x/+page.svelte');
       expect(warn.mock.calls[0][0]).toContain('/repo/apps/docs/src/routes/x/+page.svelte:2:1');
+    });
+
+    it('warns once, with file and position, when isolate is paired with an explicit code prop', () => {
+      const output = transform(
+        '<p>a</p>\n<CodeExample title="x" isolate code={`<b>explicit</b>`}><b>hi</b></CodeExample>',
+        '/repo/apps/docs/src/routes/x/+page.svelte'
+      );
+      expect(output).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const message = warn.mock.calls[0][0] as string;
+      expect(message).toContain('/repo/apps/docs/src/routes/x/+page.svelte:2:1');
+      expect(message).toContain('the explicit `code` wins and `isolate` extracts nothing');
     });
 
     it('warns and skips instead of throwing on unparseable source', () => {

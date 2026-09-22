@@ -80,7 +80,6 @@
     <CodeExample
       title="Plan picker with descriptions"
       description="Bind the group to a `$state` variable with `bind:value`, then read it back to drive the rest of the form. A plain `value` sets a starting choice without tracking changes, and `name` sets the key the value submits under."
-      isolate
       previewClass="flex justify-center max-w-md w-full mx-auto"
       code={`<script>
   let selectedPlan = $state('pro');
