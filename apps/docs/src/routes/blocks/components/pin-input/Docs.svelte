@@ -8,6 +8,26 @@
   let licenseKey = $state('');
 
   let twoFactorCode = $state('');
+
+  // The retry demo accepts one code and rejects every other, so the reject path
+  // is the one a reader hits first.
+  const DEMO_CODE = '246810';
+  let retryCode = $state('');
+  let retryError = $state('');
+  let retryStatus = $state('');
+  let retryPin: ReturnType<typeof PinInput> | undefined = $state();
+
+  function verifyDemo(v: string) {
+    if (v === DEMO_CODE) {
+      retryError = '';
+      retryStatus = 'Verified.';
+      return;
+    }
+    retryError = 'Incorrect code — try again.';
+    retryStatus = '';
+    retryCode = '';
+    retryPin?.focus();
+  }
 </script>
 
 <Section marker id="examples" title="Examples">
@@ -102,6 +122,12 @@
       paste. Give it a visible <code>label</code> and a <code>helper</code> line so the source of the
       code (authenticator app vs. SMS) is never ambiguous.
     </p>
+    <p>
+      A rejected code is the normal case, not the exception. Clear the bound value, then call
+      <code>focus()</code> on the instance (<code>bind:this</code>) and the caret is back in the
+      first cell — <code>autoFocus</code> alone cannot do this, it runs once on mount. The order
+      matters: <code>focus()</code> reads the value, so clear first.
+    </p>
   </div>
 
   <CodeExample
@@ -122,6 +148,52 @@
       length={6}
       bind:value={twoFactorCode}
     />
+  </CodeExample>
+
+  <CodeExample
+    title="Retry after a rejected code"
+    description="The verify callback rejects, sets the error, clears the value and calls focus() on the instance — the caret returns to the first cell without a click. Typing again clears the error. This demo accepts only 246810."
+    code={`<script>
+  import { PinInput } from '@urbicon-ui/blocks';
+  let code = $state('');
+  let error = $state('');
+  let pin;
+
+  async function verify(v) {
+    if (await verifyTwoFactor(v)) return;
+    error = 'Incorrect code — try again.';
+    code = '';
+    pin.focus();
+  }
+<\/script>
+
+<PinInput
+  bind:this={pin}
+  bind:value={code}
+  label="Verification code"
+  helper="Enter the 6-digit code from your authenticator app."
+  length={6}
+  {error}
+  onComplete={verify}
+  onValueChange={() => (error = '')}
+/>`}
+    language="svelte"
+  >
+    <div class="space-y-3">
+      <PinInput
+        bind:this={retryPin}
+        bind:value={retryCode}
+        label="Verification code"
+        helper="Enter the 6-digit code from your authenticator app. This demo accepts 246810."
+        length={6}
+        error={retryError}
+        onComplete={verifyDemo}
+        onValueChange={() => (retryError = '')}
+      />
+      {#if retryStatus}
+        <p class="text-text-secondary text-sm" role="status">{retryStatus}</p>
+      {/if}
+    </div>
   </CodeExample>
 </Section>
 

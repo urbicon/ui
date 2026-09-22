@@ -10,6 +10,13 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * as a keyboard suggestion. The value is the concatenated string; `onComplete`
  * fires each time the row becomes complete.
  *
+ * The instance (`bind:this`) has one method, `focus()`: it puts the caret on
+ * the first empty cell — cell 0 after a clear, the last cell when the row is
+ * full — and does nothing while `disabled` or `readonly`. The retry after a
+ * rejected code is `value = ''` followed by `focus()`, in that order and in the
+ * same tick if you like; from inside `onComplete` it wins over the row's own
+ * auto-advance. `autoFocus` is the same call, made once on mount.
+ *
  * @tag form
  * @related Input
  * @related NumberInput
@@ -25,6 +32,23 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * @example Masked, alphanumeric, grouped with a separator
  * ```svelte
  * <PinInput length={8} type="alphanumeric" mask separator="-" groupSize={4} />
+ * ```
+ *
+ * @example Retry after a rejected code: clear, then focus()
+ * ```svelte
+ * <script lang="ts">
+ *   let code = $state('');
+ *   let error = $state('');
+ *   let pin: ReturnType<typeof PinInput> | undefined = $state();
+ *
+ *   async function verify(v: string) {
+ *     if (await verifyTwoFactor(v)) return;
+ *     error = 'Incorrect code';
+ *     code = '';
+ *     pin?.focus();
+ *   }
+ * </script>
+ * <PinInput bind:this={pin} bind:value={code} {error} onComplete={verify} />
  * ```
  */
 export interface PinInputProps
@@ -60,7 +84,12 @@ export interface PinInputProps
    * @default false
    */
   uppercase?: boolean;
-  /** Focus the first empty cell on mount. @default false */
+  /**
+   * Calls `focus()` once, on mount — the caret lands on the first empty cell
+   * and no later edit moves it again. For the retry after a rejected code, call
+   * `focus()` on the instance instead.
+   * @default false
+   */
   autoFocus?: boolean;
 
   /**
