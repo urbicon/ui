@@ -14,9 +14,9 @@
  *   dist/v<n>/…                Entry + Chunks + Komponenten-CSS
  *   dist/frame-v<n>.html       das Sandbox-Dokument
  *
- * Drei Entscheidungen stecken hier drin, alle gemessen:
- *  - **EIN gemeinsames Stylesheet** statt eines pro Version. Das CSS ist zu
- *    98,5 % Token-Layer, also für jede Version fast identisch; der Content-Hash
+ * Drei Entscheidungen stecken hier drin:
+ *  - **EIN gemeinsames Stylesheet** statt eines pro Version. Das CSS ist fast
+ *    ganz Token-Layer, also für jede Version fast identisch; der Content-Hash
  *    macht `immutable` ehrlich. (Sitzungslokal statt global: für eine lokale App
  *    zählt die Iterationszeit, nicht der Cache über Sitzungen hinweg — das
  *    Format bleibt dasselbe.)

@@ -73,7 +73,7 @@
   // (the consumer's on-route / on-condition strategy drives that boolean).
   const requested = $derived(trigger === 'manual' ? open : true);
   const alreadySeen = $derived(once && guide ? guide.hasSeen(seenId) : false);
-  // Top-layer discipline (§3.4): step aside while a foreign modal / tour is open.
+  // Top-layer discipline (GUIDE.md §6): step aside while a foreign modal / tour is open.
   const blocked = $derived((guide?.overlayDepth ?? 0) > 0);
   const visible = $derived(!!guide && requested && !alreadySeen && !dismissed && !blocked);
 

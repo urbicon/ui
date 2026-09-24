@@ -731,7 +731,7 @@ describe('filled intent surfaces — WCAG contrast', () => {
  * The second half of the contrast contract: not the filled intent fills above,
  * but plain informative text on the calm surfaces it sits on. This is the axis
  * the pre-2026-07-24 suite did NOT cover — the docs Rooms skin's tertiary/
- * quaternary AA misses lived entirely off it (see docs/technical-debt.md).
+ * quaternary AA misses lived entirely off it (#49).
  *
  * Reading surfaces only — base/quiet/elevated/overlay/subtle, the grounds body
  * text actually sits on. Interactive/hover/active/selected surfaces are transient
@@ -841,7 +841,7 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
    *
    * And it measures the TOKEN, not the composition. A component that stacks
    * `opacity-*` on top (Calendar's disabled day does) lands far below what this
-   * asserts — see the technical-debt entry.
+   * asserts (#48).
    */
   describe('disabled text stays legible — clears the 3:1 UI floor', () => {
     const disabled: Record<string, number> = {};

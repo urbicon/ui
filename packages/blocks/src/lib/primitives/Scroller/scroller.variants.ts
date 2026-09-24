@@ -96,8 +96,8 @@ export const scrollerVariants = tv({
     // Where an item comes to rest. `center` additionally pads the track by half
     // the leftover width, which is the ONLY way the first and last item can ever
     // reach the middle — without it the browser clamps at the scroll extent and
-    // they rest at the edge. That is the classic centred-carousel bug (plan
-    // §3.7), and it is a layout rule, not decoration, so it lives here.
+    // they rest at the edge. That is the classic centred-carousel bug, and it is
+    // a layout rule, not decoration, so it lives here.
     align: {
       start: { viewport: '[&>*]:snap-start' },
       center: {
@@ -158,8 +158,8 @@ export const scrollerVariants = tv({
     // the scrollport, so nothing needs keeping in sync and there is nothing to
     // fall back to — where the timeline is unsupported the animation never
     // advances and the row is exactly as usable, only flat. In practice that is
-    // Firefox < 156 (ships in 156; Chrome 115+/Safari 26+ are fine) — accepted,
-    // see docs/technical-debt.md.
+    // Firefox < 156 (ships in 156; Chrome 115+/Safari 26+ are fine) — accepted
+    // (#20).
     //
     // With `align="start"` there is no middle for an item to arrive at, so the
     // same animation would make cards breathe for no discernible reason. The

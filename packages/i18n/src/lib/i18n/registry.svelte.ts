@@ -578,11 +578,13 @@ export class I18nRegistry {
 // module scope is correct *because* it carries no per-request mutable locale —
 // only static, request-identical translation data. The instance is built on the
 // first call, not at module top-level. Hoisting keeps the *function* callable from
-// a reordered production chunk that runs before this module's body, but it does
-// not make an early call safe: `new I18nRegistry()` still hits the class's
-// temporal dead zone until this module has evaluated. Nothing may therefore call
-// this during module initialisation — which is why `createPackageI18n` registers
-// lazily, on first use (`ensureRegistered()`), rather than at module-eval.
+// a module that runs before this module's body, but it does not make an early call
+// safe: natively, the first read of the `let _registry` binding below throws
+// ("Cannot access '_registry' before initialization"); in a reordered bundled
+// chunk the class binding is still unassigned, so it is `new (undefined)()`.
+// Nothing may therefore call this during module initialisation — which is why
+// `createPackageI18n` registers lazily, on first use (`ensureRegistered()`),
+// rather than at module-eval.
 let _registry: I18nRegistry | undefined;
 
 export function getRegistry(): I18nRegistry {

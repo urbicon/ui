@@ -175,7 +175,7 @@ export class TableView {
       !inComponentInit()
     ) {
       // Module-scope construction on the server is cross-request state. A
-      // warning rather than the DEV-*error* §8.2 would prefer, deliberately:
+      // warning rather than a DEV *error*, deliberately:
       // the `inComponentInit` probe cannot tell module scope from a
       // request-scoped `load` (both are outside component init), and an error
       // would break that legitimate construction site. Documented deviation.

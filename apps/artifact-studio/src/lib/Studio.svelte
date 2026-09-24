@@ -28,7 +28,7 @@
    * Was gerade passiert — der Maschinenraum eines laufenden Turns.
    *
    * Er steht bewusst nicht auf der Bühne (die Erfahrung ist der Inhalt, nicht
-   * der Linter), aber während der 40 Sekunden, die ein Wunsch
+   * der Linter), aber während der Dutzenden Sekunden, die ein Wunsch
    * dauert, ist er das Einzige, was den Unterschied zwischen „arbeitet" und
    * „hängt" zeigt.
    */

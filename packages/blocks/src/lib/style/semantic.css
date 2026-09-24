@@ -170,9 +170,9 @@
      Deliberately still the weakest rung of the text ramp, so "disabled" stays
      legible without stopping being a signal. Two consequences, both accepted:
      it shares its light-mode value with text-quaternary (two roles, not two
-     steps of one ladder — but see the Calendar entry in technical-debt, where
-     they meet), and the floor covers the token alone, not what a component
-     composes on top of it (an `opacity-*` wrapper can undo it). */
+     steps of one ladder — but Calendar puts them side by side, #48), and the
+     floor covers the token alone, not what a component composes on top of it
+     (an `opacity-*` wrapper can undo it). */
   /* @role disabled text — the weakest rung, held to the 3:1 UI floor so a
      disabled field's label still says what the field is */
   --color-text-disabled: light-dark(var(--color-neutral-500), var(--color-neutral-500));

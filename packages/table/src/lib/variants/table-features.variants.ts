@@ -663,8 +663,7 @@ export const headerMenuItemVariants = tv({
   // text. `group` and `summary` used to go solid, which made two menu entries
   // shout over every other one, and put `text-on-primary` on a solid feature
   // colour: 3.7:1 in the default theme, and near-black-on-dark wherever a room
-  // scope rehangs that token (docs/technical-debt.md → "on-primary as the
-  // universal on-colour").
+  // scope rehangs that token (#47).
   compoundVariants: [
     { intent: 'default', active: true, class: 'bg-primary-subtle text-primary-emphasis' },
     {

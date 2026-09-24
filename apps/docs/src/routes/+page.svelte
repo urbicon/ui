@@ -21,10 +21,10 @@
   · Vollton-Palette, eine Farbe pro Kachel — aber durch das eigene Theming:
     OKLCH-Kanal-Paare als light-dark() (scripts/channels-gen.ts), sonst wäre
     die Livery kein Theming-Beweis mehr.
-  · Echtheit: lebende Komponenten in jeder Kachel; die Agent-Kachel spielt ein
-    aufgezeichnetes echtes Transkript ab, kein nachgestelltes.
-  · Kein Auto-Advance der Kacheln: Hintergrund-Tabs führen keine
-    Scroll-Animation aus, die Seite sähe dort tot aus.
+  · Echtheit: lebende Komponenten in jeder Kachel. Die Agent-Kachel ist eine
+    komponierte Szene; nur ihre zwei Gate-Zeilen sind wörtlich aufgezeichnete
+    Ausgabe (Ehrlichkeitsvertrag in $lib/landing/agent-output).
+  · Kein Auto-Advance der Kacheln.
   · Verworfen: ein scroll-getriebenes vertikales Deck für Zeile 1
     (Scroll-Jacking — eine Seite soll scrollen) und der Score als Einstieg in
     die Agent-Kachel (den Besucher zuerst zu benoten ist oberlehrerhaft; erst

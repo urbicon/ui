@@ -129,7 +129,7 @@
 
   <CodeExample
     title="Live capacity demo"
-    description="The bound value is encoded on every change. When it overflows maxVersion=&#123;4&#125;, onError fires and the fallback shows in place of the code."
+    description="The bound value is encoded on every change. When it overflows `maxVersion=&#123;4&#125;`, `onError` fires and the fallback shows in place of the code."
     code={`<` +
       `script>
   let payload = $state('https://ui.urbicon.de/docs');

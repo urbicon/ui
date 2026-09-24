@@ -1,13 +1,12 @@
 /**
  * editor-tool.ts — die Datei bearbeiten statt sie neu zu schreiben.
  *
- * Der Volltext-Pfad (eine ```svelte-Fence je Turn) hat einen gemessenen Preis:
- * bei einer Iteration sind **45 % des Output-Volumens wörtliche Wiederholung**
- * (5 555 von 12 243 Token, 96 % der Zeilen unverändert), und weil
- * die Ausgaberate mit ~158 Tok/s konstant ist, kostet jede weitere kB Datei
- * ~2,6 s je Wunsch — unabhängig davon, wie klein der Wunsch ist. Für ein
- * Schaufenster-Fixture ist das gleichgültig; für eine Oberfläche, an der jemand
- * sitzt und wartet, ist es der Unterschied zwischen 37 s und 87 s je Wunsch.
+ * Der Volltext-Pfad (eine ```svelte-Fence je Turn) hat einen Preis: bei einer
+ * Iteration ist ein großer Teil des Output-Volumens wörtliche Wiederholung
+ * unveränderter Zeilen, und weil die Ausgaberate konstant ist, kostet jede
+ * weitere kB Datei Zeit je Wunsch — unabhängig davon, wie klein der Wunsch
+ * ist. Für ein Schaufenster-Fixture ist das gleichgültig; für eine Oberfläche,
+ * an der jemand sitzt und wartet, ist es ein Vielfaches der Wartezeit.
  *
  * Hier liegt deshalb das Anthropic-definierte Text-Editor-Tool. Bewusst das
  * eingebaute statt eines eigenen Schemas: das Modell kennt seine Semantik aus dem

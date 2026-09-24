@@ -665,7 +665,7 @@ describe('GuideController — highlight', () => {
   });
 });
 
-// ─── Direction resolution (§4.3) ─────────────────────────────────────────
+// ─── Direction resolution (GUIDE.md §4) ──────────────────────────────────
 
 describe('GuideController — resolveDirection', () => {
   it('defaults to "both" for an unregistered or meta-less topic', () => {

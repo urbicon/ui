@@ -208,9 +208,8 @@
      — see `docs/ARCHITECTURE.md` § Mint (micro-interactions). Previously each
      primitive carried its own copy, which duplicated logic and (in the case of
      `--intent-bg`) referenced an undefined CSS variable that silently
-     invalidated the declaration. The
-     `blocks-intent-{name}` class on the button root scopes the glow color
-     via `mint/styles.css`. */
+     invalidated the declaration. The `blocks-intent-{name}` class on the
+     button root scopes the glow color via `mint/styles.css`. */
 
   /* The ripple mint owns the ripple end-to-end: `mint/ripple.ts` appends a
      `<span class="blocks-mint-ripple">` on click and drives it with the Web

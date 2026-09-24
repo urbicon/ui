@@ -60,7 +60,7 @@
 
   // ── Controller-driven tour state ───────────────────────────────────────────
   const isTourActive = $derived(guide?.isTourActive ?? false);
-  // `paused` hides the surface while a foreign modal stacks above the tour (§3.4),
+  // `paused` hides the surface while a foreign modal stacks above the tour (GUIDE.md §6),
   // without ending it — so visibility ≠ active.
   const visible = $derived(isTourActive && !(guide?.paused ?? false));
   const step = $derived(guide?.currentStep ?? null);

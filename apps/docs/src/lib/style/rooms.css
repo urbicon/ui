@@ -126,7 +126,7 @@
      2.8:1) and every room carries a `--room-accent` that shifts all of them —
      with the wine accent, quiet/subtle/disabled drop to ~2.9:1. No gate covers
      this file: contrast.test.ts reads the library themes, and these are
-     hex/color-mix values it cannot resolve. Logged in technical-debt. */
+     hex/color-mix values it cannot resolve (#49). */
   --color-text-disabled: #8a8578;
 
   --color-border-hairline: rgb(31 29 23 / 0.1);

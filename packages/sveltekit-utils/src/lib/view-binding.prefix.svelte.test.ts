@@ -8,7 +8,7 @@
  * incompatible* — every navigation of one is foreign to the other, and the
  * runtime rule ("absence on a bound axis means the default") flattened the
  * sibling's unmirrored axes. The coalescing writer with its self-navigation
- * marker (§12.9) was the build obligation that followed. This file measures
+ * marker was the build obligation that followed. This file measures
  * whether the obligation was met in the asymmetric configuration: the
  * *unprefixed* binding owns the bare keys (`q`, `sort`, `page`, …), which are
  * exactly the keys a naive prefix implementation would let the second binding

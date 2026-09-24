@@ -7,9 +7,8 @@
  * steht, steht bei ihm. Genau deshalb sagt ein Lauf hier etwas über das Produkt
  * und nicht über Prompt-Bastelei.
  *
- * Die Messung dahinter: gegen ein von Hand zusammengestelltes
- * 21-kB-Grounding lieferte dieser Pfad **26 statt 14 Komponenten** und
- * validierte sich selbst innerhalb des Turns. Wer ein Grounding von Hand baut,
+ * Gegen ein von Hand zusammengestelltes Grounding lieferte dieser Pfad mehr
+ * Komponenten und validierte sich selbst innerhalb des Turns. Wer ein Grounding von Hand baut,
  * baut auch dessen Löcher — der reproduzierbare `hardcoded-z-index`-Fehler der
  * injizierten Läufe war eine Lücke im handgebauten Kontext, nicht in der
  * CSS-Referenz.

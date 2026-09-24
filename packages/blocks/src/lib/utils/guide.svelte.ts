@@ -12,7 +12,7 @@ import { overlayStack } from './overlay-stack.svelte';
 
 const BROWSER = typeof window !== 'undefined';
 
-/** Which link directions a topic supports (D3/§4). `both` when omitted. */
+/** Which link directions a topic supports (GUIDE.md §4). `both` when omitted. */
 export type GuideDirection = 'to-guide' | 'to-ui' | 'both';
 
 /** Metadata attached to a registered target via `target(id, meta)`. */
@@ -137,7 +137,7 @@ export interface GuideStorageAdapter {
 export interface GuideOverlayStackLike {
   register(id: string, close: () => void): () => void;
   isTop(id: string): boolean;
-  /** Number of modal overlays currently open — drives the non-modal hide (§3.4). */
+  /** Number of modal overlays currently open — drives the non-modal hide (GUIDE.md §6). */
   readonly depth: number;
 }
 
@@ -555,7 +555,7 @@ export class GuideController {
   }
 
   /**
-   * Effective link direction for a topic (§4.3). A surface-level `override` wins
+   * Effective link direction for a topic (GUIDE.md §4). A surface-level `override` wins
    * over the topic's registered `direction`, which in turn defaults to `'both'`.
    * Surfaces derive their gating from this: a `GuideMarker` (UI→Guide) is live when
    * the result is not `'to-ui'`; a `GuideMention` (Guide→UI) when it is not `'to-guide'`.
@@ -607,7 +607,7 @@ export class GuideController {
   /**
    * Number of modal overlays currently stacked (Dialog/Drawer/Sidebar + an active
    * guided tour). Non-modal surfaces — notably `GuideHint` — hide while this is `> 0`,
-   * the top-layer discipline from §3.4. Reactive via the injected overlay stack.
+   * the top-layer discipline from GUIDE.md §6. Reactive via the injected overlay stack.
    */
   get overlayDepth(): number {
     return this.#overlayStack.depth;
@@ -985,7 +985,7 @@ export class GuideController {
       return;
     }
     if (this.resolveTarget(step.target)) {
-      // Scroll the step target into view before the bubble anchors to it (§6.1/6.2).
+      // Scroll the step target into view before the bubble anchors to it.
       // Unlike Direction-B hover (which never scrolls), a tour drives the viewport —
       // the scroll is reduced-motion-aware inside `highlight`.
       this.highlight(step.target, { scroll: true });

@@ -43,7 +43,7 @@ const seedStorage = (value: Record<string, unknown>) => {
   storage.setItem(KEY, JSON.stringify(value));
 };
 
-describe('origin discrimination through the binding (§7.1, candidate 1)', () => {
+describe('origin discrimination through the binding', () => {
   // Positive control (red seen): the write effect's origin gate widened to
   // also store `external` applications → 4 tests red (the coalescing case,
   // the same-axis last-writer case, "defaults and external hydration alone
@@ -66,7 +66,7 @@ describe('origin discrimination through the binding (§7.1, candidate 1)', () =>
       flushSync(); // registration pass — establishes the revision baseline
       expect(observerRuns).toBe(1);
 
-      // The §7.1 measurement setup: a click and a programmatic navigation in
+      // The measurement setup: a click and a programmatic navigation in
       // the same tick. One storage-effect run sees both changes.
       view.page = 3; // reader interaction
       view.applyExternal({ search: 'from-url' }, 'external'); // URL application
@@ -333,7 +333,7 @@ describe('a foreign link stores nothing (wiring combination 3, storage half)', (
   });
 });
 
-describe('the storage-only wiring combinations (§7.2)', () => {
+describe('the storage-only wiring combinations', () => {
   it('no bindings: changes stay in the view, nothing is written anywhere', () => {
     const cleanup = $effect.root(() => {
       const view = createTableView();

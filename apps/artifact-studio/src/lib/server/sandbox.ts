@@ -4,8 +4,9 @@
  * SEP-1865 verlangt normativ, dass Host und Sandbox **verschiedene Origins**
  * haben. Ein `<iframe sandbox>` allein genügt nicht: ohne `allow-same-origin`
  * ist die Origin des Frames opak, und dagegen matcht die CSP-Quelle `'self'`
- * nicht mehr — der Browser blockt dann das eigene Artefakt-Modul. Mit `allow-same-origin` auf einer FREMDEN Origin gewährt das
- * Attribut dem Frame nur Zugriff auf sich selbst, nie auf den Host. Genau
+ * nicht mehr — der Browser blockt dann das eigene Artefakt-Modul. Mit
+ * `allow-same-origin` auf einer FREMDEN Origin gewährt das Attribut dem Frame
+ * nur Zugriff auf sich selbst, nie auf den Host. Genau
  * deshalb sind die getrennten Origins die Bedingung, unter der es unbedenklich
  * ist.
  *

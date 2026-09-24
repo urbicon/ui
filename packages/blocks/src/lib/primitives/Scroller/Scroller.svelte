@@ -295,7 +295,7 @@
   data-overflowing={overflowing || undefined}
 >
   <!--
-    The tab stop is the whole point of §3.3: a scrollable container that is not
+    The tab stop is required: a scrollable container that is not
     focusable cannot be scrolled by keyboard at all (Safari does not adopt it
     automatically), which is the defect in nearly every media row on the web.
     It is conditional because the inverse is also a defect — a tab stop on a row

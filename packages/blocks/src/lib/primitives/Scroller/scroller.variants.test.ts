@@ -134,7 +134,7 @@ describe('Scroller variants — emphasis', () => {
     expect(lifted('subtle')).not.toContain('motion-reduce:[&>*]:[animation-timeline:none]');
   });
 
-  it('never dims or blurs the neighbours (§3.7 condition 1)', () => {
+  it('never dims or blurs the neighbours', () => {
     // Coverflow's inheritance. Dimming the edges destroys the very thing the
     // centred variant exists for — seeing how many there are.
     expect(lifted('strong')).not.toContain('blur');

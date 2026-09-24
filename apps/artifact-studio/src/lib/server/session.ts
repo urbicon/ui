@@ -3,22 +3,24 @@
  *
  * Der Loop selbst ist der des Fixture-Recorders, aber an einer Stelle
  * grundsätzlich anders geschnitten: dort läuft er einmal mit allen Wünschen
- * von der Kommandozeile durch und schreibt am Ende ein Fixture. Hier lebt er zwischen den Wünschen weiter — jemand sitzt davor und
- * entscheidet den nächsten erst, wenn er den vorigen gesehen hat. Das ist die
+ * von der Kommandozeile durch und schreibt am Ende ein Fixture. Hier lebt er
+ * zwischen den Wünschen weiter — jemand sitzt davor und entscheidet den
+ * nächsten erst, wenn er den vorigen gesehen hat. Das ist die
  * Feedback-Schleife, und sie ist der ganze Punkt des Studios.
  *
  * Zwei Dinge folgen daraus:
  *
- *  - **Der Turn ist ein Ereignisstrom, kein Rückgabewert.** 40 Sekunden vor
- *    einem leeren Bildschirm sind kein Produkt; CLI-Aufrufe, Edits und der Lint
- *    gehen sofort raus (`StudioEvent`).
+ *  - **Der Turn ist ein Ereignisstrom, kein Rückgabewert.** Ein Wunsch dauert
+ *    Dutzende Sekunden, und die vor einem leeren Bildschirm sind kein Produkt;
+ *    CLI-Aufrufe, Edits und der Lint gehen sofort raus (`StudioEvent`).
  *  - **Der Zustand liegt auf der Platte.** Der Dev-Server startet bei jeder
  *    Codeänderung neu — eine Sitzung, die das nicht überlebt, wäre beim Bauen
  *    an ihr selbst unbenutzbar.
  *
- * Der Patch-Modus ist hier nicht optional, sondern der einzige Modus: 37 s je
- * Wunsch gegen 87 s im Volltext-Pfad. Für ein Fixture ist das
- * gleichgültig, für eine Oberfläche ist es der Unterschied.
+ * Der Patch-Modus ist hier nicht optional, sondern der einzige Modus: der
+ * Volltext-Pfad braucht je Wunsch ein Vielfaches der Zeit (`editor-tool.ts`).
+ * Für ein Fixture ist das gleichgültig, für eine Oberfläche ist es der
+ * Unterschied.
  */
 
 import { spawn } from 'node:child_process';
@@ -43,11 +45,10 @@ import {
 } from './paths';
 
 /**
- * Sonnet 5 auf `high` ist der gemessene Sweet Spot, nicht eine
- * Sparentscheidung: gegenüber Opus 5 halber Preis, zwei Drittel der Zeit,
- * dieselben Lint-Werte — und bei der Iteration, die die Artefakt-Erfahrung
- * ausmacht, **87 s gegen 186 s**. Opus' Mehrwert ist Fülle (mehr Detail, mehr
- * Erfundenes), und die ist hier eher Last.
+ * Sonnet 5 auf `high` ist der Sweet Spot, nicht eine Sparentscheidung:
+ * gegenüber Opus 5 billiger und schneller bei denselben Lint-Werten — gerade
+ * bei der Iteration, die die Artefakt-Erfahrung ausmacht. Opus' Mehrwert ist
+ * Fülle (mehr Detail, mehr Erfundenes), und die ist hier eher Last.
  */
 const DEFAULT_MODEL = 'claude-sonnet-5';
 const DEFAULT_EFFORT = 'high';
@@ -241,11 +242,10 @@ export class StudioSession {
   /**
    * Den rollenden Cache-Breakpoint auf das Ende der Historie setzen.
    *
-   * Das ist der Hebel, dessen Fehlen einen Lauf 1,46 M Input-Token kostete:
-   * bei 35 Werkzeug-Runden in einem Turn ging die wachsende Historie 36-mal
-   * neu über die Leitung und wurde 36-mal voll berechnet. Mit einem Marker am
-   * Ende jeder Runde ist der Prefix der nächsten Runde byte-identisch mit dem
-   * eben Gecachten — gemessen 81–92 % Cache-Quote.
+   * Das ist der Hebel, ohne den jede Werkzeug-Runde eines Turns die wachsende
+   * Historie neu über die Leitung schickt und voll berechnen lässt. Mit einem
+   * Marker am Ende jeder Runde ist der Prefix der nächsten Runde byte-identisch
+   * mit dem eben Gecachten, also ein Cache-Read.
    *
    * **Der alte Marker muss weg, bevor der neue kommt.** Ein Request nimmt
    * höchstens vier; einfach anzuhängen würde ab der fünften Runde hart

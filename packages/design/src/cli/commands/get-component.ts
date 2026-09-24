@@ -72,9 +72,9 @@ async function warnIfNotInstalled(slug: string): Promise<void> {
  *
  * The flag has always existed and has always been in `--help`; the problem is
  * that nobody reads the help at the moment it would pay off. A recorded agent run
- * called `get-component` twelve times and took the full `llm.txt` — up to
- * 11 kB — every single time, because the only place `--section` was mentioned
- * is a page it never opened. Printing the hint
+ * called `get-component` again and again and took the full `llm.txt` every
+ * single time, because the only place `--section` was mentioned is a page it
+ * never opened. Printing the hint
  * where the cost is actually incurred is what a help text structurally cannot do.
  *
  * Below the threshold the whole file is cheaper than the round-trip a section

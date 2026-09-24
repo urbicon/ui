@@ -144,7 +144,8 @@
    The active ripple effect is created dynamically by `mint/ripple.ts` —
    a `<span class="blocks-mint-ripple">` is appended to the host element
    on click with inline styles for position/size/opacity, then animated
-   via the Web Animations API. No standing CSS rule is needed, and a
+   via the Web Animations API. No standing animation rule is needed (the only
+   `.blocks-mint-ripple` rule is the reduced-motion hide below), and a
    `.blocks-mint-ripple::before` pseudo-implementation here would conflict
    with the JS-generated span, which carries that same class. */
 

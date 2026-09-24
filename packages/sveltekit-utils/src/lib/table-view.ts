@@ -104,7 +104,7 @@ export interface TableViewLike {
   snapshot(): TableViewSnapshot;
 }
 
-/** URL keys per axis, unprefixed — the §3.2 key scheme, grouped by owning axis. */
+/** URL keys per axis, unprefixed — the key scheme, grouped by owning axis. */
 const AXIS_KEYS: Record<TableViewAxis, readonly string[]> = {
   search: ['q'],
   sort: ['sort', 'dir'],

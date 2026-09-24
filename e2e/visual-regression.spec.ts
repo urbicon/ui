@@ -19,7 +19,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
  * animations; and we await `document.fonts.ready` so a snapshot never races self-hosted
  * font loading (the one flake source this kind of suite is prone to). Baselines are
  * committed as `-chromium-darwin`; regenerate with `bun run test:e2e:update` if the
- * rendering environment changes (see docs/technical-debt.md — CI may need one rebaseline).
+ * rendering environment changes (a foreign renderer cannot host these baselines, #38).
  */
 
 const URL = '/test-fixtures/primitives';
@@ -54,7 +54,7 @@ const THEMES = ['library', 'rooms'] as const;
 
 // Render with the full chromium build's "new headless" mode rather than the default
 // headless-shell: the shell's font rasterisation drifts by ~1px from headed/CI chromium
-// (see docs/technical-debt.md), which is exactly what a pixel-diff suite must avoid.
+// (#38), which is exactly what a pixel-diff suite must avoid.
 // Scoped to this spec so the existing floating/guide baselines are untouched.
 test.use({ channel: 'chromium' });
 

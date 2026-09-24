@@ -61,7 +61,7 @@
   // teardown only releases a ring it actually owns (not one a sibling mention owns).
   let owns = false;
 
-  // Hover *and* focus both highlight (keyboard parity, §4.2). Clearing is guarded on the
+  // Hover *and* focus both highlight (keyboard parity). Clearing is guarded on the
   // topic id, so leaving this mention never wipes a *different* topic's highlight (e.g.
   // when the pointer has already moved on to a mention for another target).
   function highlight() {

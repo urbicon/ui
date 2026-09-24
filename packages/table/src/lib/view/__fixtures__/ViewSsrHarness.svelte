@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
    * SSR fixture — a component-scoped view receiving an init-time external
-   * application, the §3 target shape. `init` stands in for what the URL
+   * application. `init` stands in for what the URL
    * binding (now in sveltekit-utils) does synchronously at init: the URL a
    * request arrives with is fixed for that request, so its axes are applied
    * as `external` before any effect exists. The measurement is that the

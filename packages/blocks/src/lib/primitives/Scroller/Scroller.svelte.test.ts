@@ -178,7 +178,7 @@ describe('Scroller — a row that fits is an ordinary row', () => {
   it('takes no tab stop, no group role and no name when nothing overflows', () => {
     const { viewport } = render({}, FITS);
 
-    // The inverse of §3.3: a tab stop on a row with nothing to scroll costs the
+    // The inverse of the focusable viewport: a tab stop on a row with nothing to scroll costs the
     // keyboard user a press and does nothing.
     expect(viewport.hasAttribute('tabindex')).toBe(false);
     expect(viewport.getAttribute('role')).toBe(null);
