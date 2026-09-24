@@ -16,7 +16,7 @@
     CalculatorIcon as CalculatorIconDefault,
     EyeIcon as EyeIconDefault,
     EyeOffIcon as EyeOffIconDefault,
-    FilterXIcon as FilterXIconDefault,
+    FunnelXIcon as FunnelXIconDefault,
     ListTreeIcon as ListTreeIconDefault,
     MoreVerticalIcon as MoreVerticalIconDefault,
     SortAscIcon as SortAscIconDefault,
@@ -42,7 +42,7 @@
   const CalculatorIcon = resolveIcon('calculator', CalculatorIconDefault);
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
   const EyeOffIcon = resolveIcon('eyeOff', EyeOffIconDefault);
-  const FilterXIcon = resolveIcon('filterX', FilterXIconDefault);
+  const FunnelXIcon = resolveIcon('funnelX', FunnelXIconDefault);
   const ListTreeIcon = resolveIcon('listTree', ListTreeIconDefault);
   const MoreVerticalIcon = resolveIcon('moreVertical', MoreVerticalIconDefault);
   const SortAscIcon = resolveIcon('sortAsc', SortAscIconDefault);
@@ -260,7 +260,7 @@
 
     {#if hasFilter}
       <MenuItem
-        icon={FilterXIcon}
+        icon={FunnelXIcon}
         label={tt('headerMenu.removeFilter')}
         class={itemClass('filter')}
         onSelect={handleRemoveFilters}

@@ -240,6 +240,7 @@ When drawing a new icon, find its class and start from that file's geometry:
 | Chevron | `chevron-right` | `M9.5 7l5 5-5 5` |
 | Bars / chart | `bar-chart`, `sort-asc` | parallel strokes ≥2px apart |
 | Toggle pair | `eye`/`eye-off`, `mic`/`mic-off` | base glyph + diagonal slash `M…l…` |
+| Git graph | `git-branch`, `git-merge`, `git-pull-request` | `r=2.5` nodes; time runs bottom-up as in `git log --graph`, so a branch splits upward and a merge joins upward |
 
 ## 8 · Adding a new icon — touch ALL of these
 
@@ -269,11 +270,14 @@ silhouette survives, so compare silhouettes: `tree` beside `pin`, `pieChart` bes
 
 ### Naming
 
-- **Base first, modifier after:** `fileX`, `bellOff`, `userCog`, `checkCircle`, `playCircle`. A
-  variant carries its base's name, so a new variant of `funnel` is `funnelX`. `filterX` and the
-  four `circle*` names (`circleDot`, `circleHelp`, `circlePercent`, `circleUser`) predate the rule
-  and keep their names, because renaming breaks every import.
-- **No numbers:** a name says what differs. `table2` and `building2` predate the rule.
+- **Base first, modifier after:** `fileX`, `bellOff`, `userCog`, `checkCircle`, `helpCircle`. A
+  variant carries its base's name: `funnel` and `funnelX`.
+- **No numbers:** a name says what differs (`table` and `tableGrid`). `building2` is the one
+  exception left, because no name says better what sets it apart from `building`.
+- **A generic drawing gets a generic name.** `granules` is any heap of small pieces — pellets,
+  gravel, grain — and the domain word goes into the keywords. A drawing that only one domain
+  recognises keeps the domain name (`heatPump`, `waterMeter`), and its look-alikes go into the
+  keywords (`air conditioner`, `outdoor unit`).
 
 ## 9 · The linter
 

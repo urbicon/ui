@@ -16,10 +16,10 @@
 import { type IconComponent, resolveIcon } from '$lib/icons';
 import ArrowLeftIconDefault from '$lib/icons/ArrowLeftIcon.svelte';
 import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-import CircleHelpIconDefault from '$lib/icons/CircleHelpIcon.svelte';
 import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
 import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
 import EditIconDefault from '$lib/icons/EditIcon.svelte';
+import HelpCircleIconDefault from '$lib/icons/HelpCircleIcon.svelte';
 import HomeIconDefault from '$lib/icons/HomeIcon.svelte';
 import InfoCircleIconDefault from '$lib/icons/InfoCircleIcon.svelte';
 import MailIconDefault from '$lib/icons/MailIcon.svelte';
@@ -64,7 +64,7 @@ function createBasicIcons(): {
       star: resolveIcon('star', StarIconDefault),
       warning: resolveIcon('warning', WarningTriangleIconDefault)
     }),
-    fallbackIcon: resolveIcon('circleHelp', CircleHelpIconDefault)
+    fallbackIcon: resolveIcon('helpCircle', HelpCircleIconDefault)
   };
 }
 

@@ -13,11 +13,31 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.26.0
 
-### Icons that read as a different icon are drawn anew under their names
+### Seven icons are renamed
+
+A variant is named after its base, base first (`checkCircle`, `bellOff`), and a name says what
+differs rather than carrying a number. Seven names broke that rule. The old names are gone:
+TypeScript reports every import, `IconName` string and `IconProvider` key that still uses one, and
+untyped code gets no icon.
+
+- `circleDot` → `dotCircle` (`CircleDotIcon` → `DotCircleIcon`)
+- `circleHelp` → `helpCircle` (`CircleHelpIcon` → `HelpCircleIcon`)
+- `circlePercent` → `percentCircle` (`CirclePercentIcon` → `PercentCircleIcon`)
+- `circleUser` → `userCircle` (`CircleUserIcon` → `UserCircleIcon`)
+- `filterX` → `funnelX` (`FilterXIcon` → `FunnelXIcon`), the variant of `funnel`
+- `table2` → `tableGrid` (`Table2Icon` → `TableGridIcon`)
+- `pellet` → `granules` (`PelletIcon` → `GranulesIcon`): the drawing is any heap of small pieces,
+  and "pellets" is one of its keywords
+
+```sh
+rg -n "\b(CircleDot|CircleHelp|CirclePercent|CircleUser|FilterX|Table2|Pellet)Icon\b|['\"](circleDot|circleHelp|circlePercent|circleUser|filterX|table2|pellet)['\"]" src
+```
+
+### Icons that read as a different icon are drawn anew
 
 Several icons read as another icon at 16px, four pairs were one drawing under two names, and a
-dozen drawings had an obvious misreading. They are redrawn. Every name stays, so nothing fails
-to build; the change is on screen.
+dozen drawings had an obvious misreading. They are redrawn; apart from the seven renames above,
+every name stays, so the change is on screen.
 
 **A different picture.** Check that each use still means what the new drawing shows:
 
@@ -28,21 +48,24 @@ to build; the change is on screen.
 - `tree` was a circle on a stick, which is `pin`. It is now a lobed crown on a trunk.
 - `sortAsc` and `sortDesc` were an arrow at a line, the motif of `export` and `import`. They are
   now an arrow beside three bars that grow or shrink.
-- `gitMerge` was `gitBranch` with one node moved. Two lines now converge into one; `gitBranch`
-  still splits one into two.
+- `gitBranch` and `gitMerge` were one drawing with a node moved. Both now read bottom-up, the
+  newest commit on top as in `git log --graph`: `gitBranch` splits one line upward into two, and
+  `gitMerge` joins two lines upward into one. `gitMerge` is the drawing `gitBranch` had before, so
+  an icon that showed a branch now shows a merge unless you switch it to `gitBranch`.
 - `userCog` carried a hub with four spokes, which read as `userPlus`. It now carries a small gear.
 - `navigation` was an upright arrowhead, which read as the letter A next to `type` and `bold`. It
   is now a compass: a ring around an arrowhead pointing up and to the right. `send` keeps the
   paper plane.
 - `expand` was `maximize` mirrored. It now has four arrows, one to each corner; `maximize` keeps
   the two diagonal arrows.
-- `table2` had two columns, like `table`. It is now a 3×3 grid.
+- `table2`, now `tableGrid`, had two columns like `table`. It is now a 3×3 grid.
 - `gallery` was `image` with a second peak. It is now two stacked frames.
 - `house` was `home` with a door. It now also has a chimney; `home` is unchanged.
 
 **The same meaning, a clearer drawing:** `glasses`, `hardHat`, `oilCan`, `palette`, `hammer`,
-`handCoins`, `sofa`, `fence`, `quote`, `heatPump`, `pellet`, and `meter` and `waterMeter`, which
-share a new housing on a pipe (`meter` shows a counter, `waterMeter` keeps its waves).
+`handCoins`, `sofa`, `fence`, `quote`, `heatPump`, `granules` (formerly `pellet`), and `meter`
+and `waterMeter`, which share a new housing on a pipe (`meter` shows a counter, `waterMeter` keeps
+its waves).
 
 **Moved or resized:** `thumbsUp` and `thumbsDown` are centred vertically, so a pair of them lines
 up. `arrowLeftRight`, `arrowUpDown`, `cornerDownLeft` and `cornerDownRight` have the larger
@@ -51,14 +74,15 @@ arrowhead of `cornerUpLeft`. `flame` follows the outline of `droplet`. `edit`, `
 now keep 1px clear of the edge of the box.
 
 **Search keywords.** `find_icons` and `urbicon icons` no longer return `expand` for "fullscreen"
-or "maximize" (use `maximize`), or `phone` for "mobile" or "device" (use `smartphone`).
+or "maximize" (use `maximize`), or `phone` for "mobile" or "device" (use `smartphone`). They now
+return `heatPump` for "air conditioner" and "outdoor unit", and `granules` for "pellets".
 
 **New icons:** `chevronsDownUp`, `listTree`, `rotateCcw`, `rotateCw` and `diamond`.
 
 **Nothing reports the change.** Search for both spellings of every icon in the first list:
 
 ```sh
-rg -n "\b(Phone|PieChart|Tree|SortAsc|SortDesc|GitMerge|UserCog|Navigation|Expand|Table2|Gallery|House)Icon\b|['\"](phone|pieChart|tree|sortAsc|sortDesc|gitMerge|userCog|navigation|expand|table2|gallery|house)['\"]" src
+rg -n "\b(Phone|PieChart|Tree|SortAsc|SortDesc|GitBranch|GitMerge|UserCog|Navigation|Expand|Gallery|House)Icon\b|['\"](phone|pieChart|tree|sortAsc|sortDesc|gitBranch|gitMerge|userCog|navigation|expand|gallery|house)['\"]" src
 ```
 
 ### `Slider` draws its range status with icons

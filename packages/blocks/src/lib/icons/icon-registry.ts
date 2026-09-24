@@ -63,11 +63,7 @@ import ChevronsRightIcon from './ChevronsRightIcon.svelte';
 import ChevronsUpDownIcon from './ChevronsUpDownIcon.svelte';
 import ChevronsUpIcon from './ChevronsUpIcon.svelte';
 import ChevronUpIcon from './ChevronUpIcon.svelte';
-import CircleDotIcon from './CircleDotIcon.svelte';
-import CircleHelpIcon from './CircleHelpIcon.svelte';
 import CircleIcon from './CircleIcon.svelte';
-import CirclePercentIcon from './CirclePercentIcon.svelte';
-import CircleUserIcon from './CircleUserIcon.svelte';
 import ClipboardCheckIcon from './ClipboardCheckIcon.svelte';
 import ClipboardIcon from './ClipboardIcon.svelte';
 import ClipboardListIcon from './ClipboardListIcon.svelte';
@@ -97,6 +93,7 @@ import DiamondIcon from './DiamondIcon.svelte';
 import DollarSignIcon from './DollarSignIcon.svelte';
 import DoorIcon from './DoorIcon.svelte';
 import DoorOpenIcon from './DoorOpenIcon.svelte';
+import DotCircleIcon from './DotCircleIcon.svelte';
 import DownloadCloudIcon from './DownloadCloudIcon.svelte';
 import DownloadIcon from './DownloadIcon.svelte';
 import DropletIcon from './DropletIcon.svelte';
@@ -122,7 +119,6 @@ import FilesIcon from './FilesIcon.svelte';
 import FileTextIcon from './FileTextIcon.svelte';
 import FileXIcon from './FileXIcon.svelte';
 import FilmIcon from './FilmIcon.svelte';
-import FilterXIcon from './FilterXIcon.svelte';
 import FingerprintIcon from './FingerprintIcon.svelte';
 import FlagIcon from './FlagIcon.svelte';
 import FlameIcon from './FlameIcon.svelte';
@@ -135,6 +131,7 @@ import FolderTreeIcon from './FolderTreeIcon.svelte';
 import FolderXIcon from './FolderXIcon.svelte';
 import FuelIcon from './FuelIcon.svelte';
 import FunnelIcon from './FunnelIcon.svelte';
+import FunnelXIcon from './FunnelXIcon.svelte';
 import GalleryIcon from './GalleryIcon.svelte';
 import GamepadIcon from './GamepadIcon.svelte';
 import GaugeCircleIcon from './GaugeCircleIcon.svelte';
@@ -147,6 +144,7 @@ import GitPullRequestIcon from './GitPullRequestIcon.svelte';
 import GlassesIcon from './GlassesIcon.svelte';
 import GlobeIcon from './GlobeIcon.svelte';
 import GraduationCapIcon from './GraduationCapIcon.svelte';
+import GranulesIcon from './GranulesIcon.svelte';
 import GripIcon from './GripIcon.svelte';
 import HammerIcon from './HammerIcon.svelte';
 import HandCoinsIcon from './HandCoinsIcon.svelte';
@@ -157,6 +155,7 @@ import HeadphonesIcon from './HeadphonesIcon.svelte';
 import HeartIcon from './HeartIcon.svelte';
 import HeartPulseIcon from './HeartPulseIcon.svelte';
 import HeatPumpIcon from './HeatPumpIcon.svelte';
+import HelpCircleIcon from './HelpCircleIcon.svelte';
 import HexagonIcon from './HexagonIcon.svelte';
 import HighlighterIcon from './HighlighterIcon.svelte';
 import HistoryIcon from './HistoryIcon.svelte';
@@ -234,7 +233,7 @@ import ParkingIcon from './ParkingIcon.svelte';
 import PasskeyIcon from './PasskeyIcon.svelte';
 import PauseCircleIcon from './PauseCircleIcon.svelte';
 import PauseIcon from './PauseIcon.svelte';
-import PelletIcon from './PelletIcon.svelte';
+import PercentCircleIcon from './PercentCircleIcon.svelte';
 import PercentIcon from './PercentIcon.svelte';
 import PhoneIcon from './PhoneIcon.svelte';
 import PieChartIcon from './PieChartIcon.svelte';
@@ -312,7 +311,7 @@ import SunriseIcon from './SunriseIcon.svelte';
 import SunSnowIcon from './SunSnowIcon.svelte';
 import SunsetIcon from './SunsetIcon.svelte';
 import SuperscriptIcon from './SuperscriptIcon.svelte';
-import Table2Icon from './Table2Icon.svelte';
+import TableGridIcon from './TableGridIcon.svelte';
 import TableIcon from './TableIcon.svelte';
 import TagIcon from './TagIcon.svelte';
 import TargetIcon from './TargetIcon.svelte';
@@ -336,6 +335,7 @@ import UnlockIcon from './UnlockIcon.svelte';
 import UploadCloudIcon from './UploadCloudIcon.svelte';
 import UploadIcon from './UploadIcon.svelte';
 import UserCheckIcon from './UserCheckIcon.svelte';
+import UserCircleIcon from './UserCircleIcon.svelte';
 import UserCogIcon from './UserCogIcon.svelte';
 import UserIcon from './UserIcon.svelte';
 import UserMinusIcon from './UserMinusIcon.svelte';
@@ -409,7 +409,7 @@ export const DEFAULT_ICONS: IconSet = {
   fileSignature: FileSignatureIcon,
   badgeEuro: BadgeEuroIcon,
   walletCards: WalletCardsIcon,
-  circlePercent: CirclePercentIcon,
+  percentCircle: PercentCircleIcon,
   calendarClock: CalendarClockIcon,
   fingerprint: FingerprintIcon,
   shieldCheck: ShieldCheckIcon,
@@ -426,7 +426,7 @@ export const DEFAULT_ICONS: IconSet = {
   lineChart: LineChartIcon,
   areaChart: AreaChartIcon,
   scatterChart: ScatterChartIcon,
-  table2: Table2Icon,
+  tableGrid: TableGridIcon,
   columns3: Columns3Icon,
   rows3: Rows3Icon,
   gitCommit: GitCommitIcon,
@@ -481,8 +481,8 @@ export const DEFAULT_ICONS: IconSet = {
   bookOpen: BookOpenIcon,
   chevronsDown: ChevronsDownIcon,
   chevronsUp: ChevronsUpIcon,
-  circleDot: CircleDotIcon,
-  circleUser: CircleUserIcon,
+  dotCircle: DotCircleIcon,
+  userCircle: UserCircleIcon,
   clipboardCheck: ClipboardCheckIcon,
   clipboardList: ClipboardListIcon,
   contact: ContactIcon,
@@ -543,7 +543,7 @@ export const DEFAULT_ICONS: IconSet = {
   calculator: CalculatorIcon,
   calendar: CalendarIcon,
   checkCircle: CheckCircleIcon,
-  circleHelp: CircleHelpIcon,
+  helpCircle: HelpCircleIcon,
   clock: ClockIcon,
   code: CodeIcon,
   copy: CopyIcon,
@@ -553,7 +553,7 @@ export const DEFAULT_ICONS: IconSet = {
   eyeOff: EyeOffIcon,
   externalLink: ExternalLinkIcon,
   file: FileIcon,
-  filterX: FilterXIcon,
+  funnelX: FunnelXIcon,
   funnel: FunnelIcon,
   globe: GlobeIcon,
   grip: GripIcon,
@@ -677,7 +677,7 @@ export const DEFAULT_ICONS: IconSet = {
   heatPump: HeatPumpIcon,
   briefcase: BriefcaseIcon,
   fuel: FuelIcon,
-  pellet: PelletIcon,
+  granules: GranulesIcon,
   waterMeter: WaterMeterIcon,
   meter: MeterIcon,
   upload: UploadIcon,
@@ -951,8 +951,8 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['action'],
     keywords: ['wallet', 'cards', 'payment', 'money', 'finance']
   },
-  circlePercent: {
-    label: 'Circle Percent',
+  percentCircle: {
+    label: 'Percent Circle',
     categories: ['data'],
     keywords: ['percentage', 'discount', 'rate', 'ratio']
   },
@@ -1036,8 +1036,8 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['data'],
     keywords: ['graph', 'analytics', 'points', 'correlation', 'plot']
   },
-  table2: {
-    label: 'Table 2',
+  tableGrid: {
+    label: 'Table Grid',
     categories: ['data'],
     keywords: ['grid', 'spreadsheet', 'data', 'rows', 'columns', 'cells', 'matrix']
   },
@@ -1311,13 +1311,13 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['navigation'],
     keywords: ['collapse', 'double', 'first', 'top', 'less']
   },
-  circleDot: {
-    label: 'Circle Dot',
+  dotCircle: {
+    label: 'Dot Circle',
     categories: ['status'],
     keywords: ['radio', 'selected', 'target', 'record', 'current', 'active', 'point']
   },
-  circleUser: {
-    label: 'Circle User',
+  userCircle: {
+    label: 'User Circle',
     categories: ['communication'],
     keywords: ['avatar', 'profile', 'account', 'person', 'member', 'user']
   },
@@ -1617,8 +1617,8 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['status'],
     keywords: ['done', 'complete', 'verified', 'approved']
   },
-  circleHelp: {
-    label: 'Circle Help',
+  helpCircle: {
+    label: 'Help Circle',
     categories: ['status'],
     keywords: ['question', 'help', 'faq', 'support']
   },
@@ -1663,10 +1663,10 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['media'],
     keywords: ['document', 'page', 'paper', 'blank', 'empty', 'attachment']
   },
-  filterX: {
-    label: 'Filter X',
+  funnelX: {
+    label: 'Funnel X',
     categories: ['data'],
-    keywords: ['remove filter', 'clear', 'reset', 'unfiltered']
+    keywords: ['remove filter', 'clear filter', 'filter x', 'clear', 'reset', 'unfiltered']
   },
   funnel: {
     label: 'Funnel',
@@ -2299,7 +2299,18 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   heatPump: {
     label: 'Heat Pump',
     categories: ['utility'],
-    keywords: ['heating', 'pump', 'fan', 'hvac', 'energy', 'climate', 'wp']
+    keywords: [
+      'heating',
+      'pump',
+      'fan',
+      'hvac',
+      'air conditioner',
+      'outdoor unit',
+      'condenser',
+      'energy',
+      'climate',
+      'wp'
+    ]
   },
   briefcase: {
     label: 'Briefcase',
@@ -2325,10 +2336,19 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     categories: ['data', 'utility'],
     keywords: ['gas', 'oil', 'tank', 'petrol', 'diesel', 'pump', 'station', 'energy', 'heating']
   },
-  pellet: {
-    label: 'Pellet',
+  granules: {
+    label: 'Granules',
     categories: ['utility'],
-    keywords: ['pellets', 'biomass', 'wood', 'fuel', 'heating', 'granulate']
+    keywords: [
+      'pellets',
+      'granulate',
+      'bulk material',
+      'gravel',
+      'grain',
+      'sand',
+      'biomass',
+      'heating'
+    ]
   },
   waterMeter: {
     label: 'Water Meter',
