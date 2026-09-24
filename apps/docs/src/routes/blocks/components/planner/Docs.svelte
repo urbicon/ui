@@ -96,7 +96,7 @@ export async function load({ url }) {
     <Note title="Reduced motion">
       <p>
         Transitions and swipe respect <code>prefers-reduced-motion</code> (set
-        <code>animated={false}</code> to opt out entirely).
+        <code>animated=&#123;false&#125;</code> to opt out entirely).
       </p>
     </Note>
   </NoteList>
