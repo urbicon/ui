@@ -1,5 +1,9 @@
 <script lang="ts">
   import { useBlocksI18n, mintAttachment } from '$lib';
+  import { resolveIcon } from '$lib/icons';
+  import AlertCircleIconDefault from '$lib/icons/AlertCircleIcon.svelte';
+  import CheckCircleIconDefault from '$lib/icons/CheckCircleIcon.svelte';
+  import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
   import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField } from '$lib/utils';
@@ -43,6 +47,10 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  const InsideRecommendedIcon = resolveIcon('checkCircle', CheckCircleIconDefault);
+  const InsideValidOnlyIcon = resolveIcon('alertCircle', AlertCircleIconDefault);
+  const OutsideValidIcon = resolveIcon('danger', DangerCircleIconDefault);
 
   // ARIA wiring is shared with every form primitive — see `useFormField`.
   // Slider additionally injects a `statusId` into describedBy when the
@@ -571,11 +579,11 @@
           : styles.rangeStatusIcon({ class: slotClasses?.rangeStatusIcon })}
       >
         {#if currentZoneStatus === 'insideRecommended'}
-          ✓
+          <InsideRecommendedIcon />
         {:else if currentZoneStatus === 'insideValidOnly'}
-          !
+          <InsideValidOnlyIcon />
         {:else if currentZoneStatus === 'outsideValidDanger' || currentZoneStatus === 'outsideValidWarning'}
-          ✕
+          <OutsideValidIcon />
         {/if}
       </span>
       {currentStatusText}

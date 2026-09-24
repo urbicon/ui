@@ -11,6 +11,64 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.26.0
+
+### Icons that read as a different icon are drawn anew under their names
+
+Several icons read as another icon at 16px, four pairs were one drawing under two names, and a
+dozen drawings had an obvious misreading. They are redrawn. Every name stays, so nothing fails
+to build; the change is on screen.
+
+**A different picture.** Check that each use still means what the new drawing shows:
+
+- `phone` was a smartphone, the same drawing as `smartphone`. It is now a telephone handset; for a
+  device, use `smartphone`.
+- `pieChart` was a ring with two radii, which is how `clock` is drawn. It is now a pie with one
+  segment pulled out.
+- `tree` was a circle on a stick, which is `pin`. It is now a lobed crown on a trunk.
+- `sortAsc` and `sortDesc` were an arrow at a line, the motif of `export` and `import`. They are
+  now an arrow beside three bars that grow or shrink.
+- `gitMerge` was `gitBranch` with one node moved. Two lines now converge into one; `gitBranch`
+  still splits one into two.
+- `userCog` carried a hub with four spokes, which read as `userPlus`. It now carries a small gear.
+- `navigation` was an upright arrowhead, which read as the letter A next to `type` and `bold`. It
+  is now a compass: a ring around an arrowhead pointing up and to the right. `send` keeps the
+  paper plane.
+- `expand` was `maximize` mirrored. It now has four arrows, one to each corner; `maximize` keeps
+  the two diagonal arrows.
+- `table2` had two columns, like `table`. It is now a 3×3 grid.
+- `gallery` was `image` with a second peak. It is now two stacked frames.
+- `house` was `home` with a door. It now also has a chimney; `home` is unchanged.
+
+**The same meaning, a clearer drawing:** `glasses`, `hardHat`, `oilCan`, `palette`, `hammer`,
+`handCoins`, `sofa`, `fence`, `quote`, `heatPump`, `pellet`, and `meter` and `waterMeter`, which
+share a new housing on a pipe (`meter` shows a counter, `waterMeter` keeps its waves).
+
+**Moved or resized:** `thumbsUp` and `thumbsDown` are centred vertically, so a pair of them lines
+up. `arrowLeftRight`, `arrowUpDown`, `cornerDownLeft` and `cornerDownRight` have the larger
+arrowhead of `cornerUpLeft`. `flame` follows the outline of `droplet`. `edit`, `layers`, `scale`,
+`cloudLightning`, `sunSnow`, `walletCards`, `unlink`, `bellRing`, `wrench` and `messageCircle`
+now keep 1px clear of the edge of the box.
+
+**Search keywords.** `find_icons` and `urbicon icons` no longer return `expand` for "fullscreen"
+or "maximize" (use `maximize`), or `phone` for "mobile" or "device" (use `smartphone`).
+
+**New icons:** `chevronsDownUp`, `listTree`, `rotateCcw`, `rotateCw` and `diamond`.
+
+**Nothing reports the change.** Search for both spellings of every icon in the first list:
+
+```sh
+rg -n "\b(Phone|PieChart|Tree|SortAsc|SortDesc|GitMerge|UserCog|Navigation|Expand|Table2|Gallery|House)Icon\b|['\"](phone|pieChart|tree|sortAsc|sortDesc|gitMerge|userCog|navigation|expand|table2|gallery|house)['\"]" src
+```
+
+### `Slider` draws its range status with icons
+
+The line under a `Slider` with `validRange` or `recommendedRange` marked its zone with the text
+glyphs ✓, ! and ✕. It now draws the `checkCircle`, `alertCircle` and `danger` icons at `1em`, and
+an `IconProvider` override of those three names reaches them. A font size on the
+`rangeStatusIcon` slot still sizes the marker, because the icon follows it; a font weight no
+longer has anything to act on.
+
 ## 8.23.0
 
 ### `Alert` derives its announced role from `intent`

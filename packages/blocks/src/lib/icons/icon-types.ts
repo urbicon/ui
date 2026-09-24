@@ -358,7 +358,12 @@ export type IconName =
   | 'braces'
   | 'cpu'
   | 'downloadCloud'
-  | 'dollarSign';
+  | 'dollarSign'
+  | 'chevronsDownUp'
+  | 'listTree'
+  | 'rotateCcw'
+  | 'rotateCw'
+  | 'diamond';
 
 export interface IconProps {
   class?: string;

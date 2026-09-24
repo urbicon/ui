@@ -57,6 +57,7 @@ import ChevronDownIcon from './ChevronDownIcon.svelte';
 import ChevronLeftIcon from './ChevronLeftIcon.svelte';
 import ChevronRightIcon from './ChevronRightIcon.svelte';
 import ChevronsDownIcon from './ChevronsDownIcon.svelte';
+import ChevronsDownUpIcon from './ChevronsDownUpIcon.svelte';
 import ChevronsLeftIcon from './ChevronsLeftIcon.svelte';
 import ChevronsRightIcon from './ChevronsRightIcon.svelte';
 import ChevronsUpDownIcon from './ChevronsUpDownIcon.svelte';
@@ -92,6 +93,7 @@ import CpuIcon from './CpuIcon.svelte';
 import CreditCardIcon from './CreditCardIcon.svelte';
 import DangerCircleIcon from './DangerCircleIcon.svelte';
 import DatabaseIcon from './DatabaseIcon.svelte';
+import DiamondIcon from './DiamondIcon.svelte';
 import DollarSignIcon from './DollarSignIcon.svelte';
 import DoorIcon from './DoorIcon.svelte';
 import DoorOpenIcon from './DoorOpenIcon.svelte';
@@ -186,6 +188,7 @@ import ListChecksIcon from './ListChecksIcon.svelte';
 import ListFilterIcon from './ListFilterIcon.svelte';
 import ListIcon from './ListIcon.svelte';
 import ListOrderedIcon from './ListOrderedIcon.svelte';
+import ListTreeIcon from './ListTreeIcon.svelte';
 import LoaderIcon from './LoaderIcon.svelte';
 import LockIcon from './LockIcon.svelte';
 import LockKeyholeIcon from './LockKeyholeIcon.svelte';
@@ -260,6 +263,8 @@ import RepeatIcon from './RepeatIcon.svelte';
 import ReplyIcon from './ReplyIcon.svelte';
 import RewindIcon from './RewindIcon.svelte';
 import RocketIcon from './RocketIcon.svelte';
+import RotateCcwIcon from './RotateCcwIcon.svelte';
+import RotateCwIcon from './RotateCwIcon.svelte';
 import RouteIcon from './RouteIcon.svelte';
 import Rows3Icon from './Rows3Icon.svelte';
 import RulerIcon from './RulerIcon.svelte';
@@ -717,7 +722,12 @@ export const DEFAULT_ICONS: IconSet = {
   braces: BracesIcon,
   cpu: CpuIcon,
   downloadCloud: DownloadCloudIcon,
-  dollarSign: DollarSignIcon
+  dollarSign: DollarSignIcon,
+  chevronsDownUp: ChevronsDownUpIcon,
+  listTree: ListTreeIcon,
+  rotateCcw: RotateCcwIcon,
+  rotateCw: RotateCwIcon,
+  diamond: DiamondIcon
 };
 
 export const ICON_METADATA: Record<IconName, IconMeta> = {
@@ -1029,7 +1039,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   table2: {
     label: 'Table 2',
     categories: ['data'],
-    keywords: ['grid', 'spreadsheet', 'data', 'rows', 'columns']
+    keywords: ['grid', 'spreadsheet', 'data', 'rows', 'columns', 'cells', 'matrix']
   },
   columns3: {
     label: 'Columns 3',
@@ -1119,7 +1129,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   gallery: {
     label: 'Gallery',
     categories: ['media'],
-    keywords: ['photos', 'images', 'pictures', 'album', 'collection']
+    keywords: ['photos', 'images', 'pictures', 'album', 'collection', 'multiple']
   },
   cloudRain: {
     label: 'Cloud Rain',
@@ -1339,7 +1349,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   expand: {
     label: 'Expand',
     categories: ['layout'],
-    keywords: ['fullscreen', 'enlarge', 'maximize', 'outward', 'grow', 'scale']
+    keywords: ['enlarge', 'outward', 'grow', 'scale', 'spread', 'all directions']
   },
   filePlus: {
     label: 'File Plus',
@@ -1836,7 +1846,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   phone: {
     label: 'Phone',
     categories: ['communication'],
-    keywords: ['call', 'telephone', 'mobile', 'device']
+    keywords: ['call', 'telephone', 'handset', 'contact', 'dial', 'hotline']
   },
   mapPin: {
     label: 'Map Pin',
@@ -1950,7 +1960,18 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   sparkles: {
     label: 'Sparkles',
     categories: ['action'],
-    keywords: ['ai', 'magic', 'stars', 'highlight', 'new', 'generate', 'wand', 'effect', 'premium']
+    keywords: [
+      'ai',
+      'magic',
+      'stars',
+      'highlight',
+      'new',
+      'generate',
+      'wand',
+      'effect',
+      'premium',
+      'celebrate'
+    ]
   },
   thumbsUp: {
     label: 'Thumbs Up',
@@ -2170,7 +2191,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   pieChart: {
     label: 'Pie Chart',
     categories: ['data'],
-    keywords: ['analytics', 'graph', 'statistics', 'chart']
+    keywords: ['analytics', 'graph', 'statistics', 'chart', 'share', 'proportion', 'segment']
   },
   archive: {
     label: 'Archive',
@@ -2234,7 +2255,16 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
   award: {
     label: 'Award',
     categories: ['status'],
-    keywords: ['medal', 'badge', 'trophy', 'achievement', 'prize', 'recognition', 'confidence']
+    keywords: [
+      'medal',
+      'badge',
+      'trophy',
+      'achievement',
+      'prize',
+      'recognition',
+      'confidence',
+      'celebrate'
+    ]
   },
   fileCheck: {
     label: 'File Check',
@@ -2313,6 +2343,7 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
       'gauge',
       'inline',
       'reading',
+      'counter',
       'measurement',
       'flow',
       'pipe',
@@ -2551,6 +2582,48 @@ export const ICON_METADATA: Record<IconName, IconMeta> = {
     label: 'Dollar Sign',
     categories: ['data'],
     keywords: ['usd', 'money', 'price', 'currency', 'cost', 'payment']
+  },
+  chevronsDownUp: {
+    label: 'Chevrons Down Up',
+    categories: ['navigation'],
+    keywords: ['collapse', 'fold', 'collapse all', 'close', 'accordion', 'group', 'both']
+  },
+  listTree: {
+    label: 'List Tree',
+    categories: ['action'],
+    keywords: [
+      'tree',
+      'hierarchy',
+      'group',
+      'group by',
+      'grouping',
+      'nested',
+      'outline',
+      'children'
+    ]
+  },
+  rotateCcw: {
+    label: 'Rotate Counterclockwise',
+    categories: ['action'],
+    keywords: [
+      'reset',
+      'restore',
+      'revert',
+      'rotate',
+      'counterclockwise',
+      'turn left',
+      'start over'
+    ]
+  },
+  rotateCw: {
+    label: 'Rotate Clockwise',
+    categories: ['action'],
+    keywords: ['rotate', 'clockwise', 'turn right', 'retry', 'reload', 'repeat']
+  },
+  diamond: {
+    label: 'Diamond',
+    categories: ['layout'],
+    keywords: ['shape', 'rhombus', 'lozenge', 'milestone', 'marker', 'geometry']
   }
 };
 
