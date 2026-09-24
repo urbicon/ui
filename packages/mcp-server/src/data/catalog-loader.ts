@@ -7,8 +7,8 @@ import type {
   RecipeEntry
 } from '@urbicon-ui/design-engine/search';
 
-// The catalog schema lives in the engine now (DESIGN-MCP-V2 §5) so the `urbicon`
-// CLI's find/get-component and this server share one authoritative type. Imported
+// The catalog schema lives in the engine so the `urbicon` CLI's
+// find/get-component and this server share one authoritative type. Imported
 // above for the loader below; re-exported here for the server's many local
 // importers (tools, resources, format-catalog) that still source it from here.
 export type { ComponentCatalog, ComponentCatalogEntry, RecipeEntry };

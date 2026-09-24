@@ -1,4 +1,4 @@
-/* === MINT MICRO-INTERACTION STYLES (XC-12) === */
+/* === MINT MICRO-INTERACTION STYLES === */
 
 /* Mint-system tokens. `--blocks-mint-glow-color` is the single source of
    truth for the `glow` effect — components and consumers set it on
@@ -140,13 +140,13 @@
   }
 }
 
-/* === RIPPLE EFFECT (XC-12) ===
+/* === RIPPLE EFFECT ===
    The active ripple effect is created dynamically by `mint/ripple.ts` —
    a `<span class="blocks-mint-ripple">` is appended to the host element
    on click with inline styles for position/size/opacity, then animated
-   via the Web Animations API. No standing CSS rule is needed; PAG-1
-   removed the previous `.blocks-mint-ripple::before` pseudo-implementation
-   which conflicted with the JS-generated span's class. */
+   via the Web Animations API. No standing CSS rule is needed, and a
+   `.blocks-mint-ripple::before` pseudo-implementation here would conflict
+   with the JS-generated span, which carries that same class. */
 
 /* === ACCESSIBILITY & REDUCED MOTION === */
 

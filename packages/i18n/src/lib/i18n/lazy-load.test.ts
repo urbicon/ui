@@ -3,11 +3,11 @@ import { createPackageI18n } from './package-integration';
 import { I18nRegistry } from './registry.svelte';
 
 /**
- * WP4 — opt-in per-package locale code-splitting. The eager bundle (typically
+ * Opt-in per-package locale code-splitting. The eager bundle (typically
  * `en`) is the base; other locales register as lazy loaders and resolve to the
  * fallback until their chunk is loaded, then to their own bundle.
  */
-describe('WP4 — per-package lazy loading', () => {
+describe('per-package lazy loading', () => {
   it('package hook path: lazy locale falls back until loaded, then resolves itself', async () => {
     const reg = new I18nRegistry();
     reg.registerPackage('lz', { en: { hi: 'Hello' } }); // eager base

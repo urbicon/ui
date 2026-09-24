@@ -219,9 +219,10 @@
 
 <style>
   /* `.blocks-mint-*` rules live in `packages/blocks/src/lib/mint/styles.css`
-     — see XC-12. The local glow override used `currentColor`, which gave
-     the wrong color in the badge's filled variants (white text → white
-     glow → invisible). The global token cascades via `blocks-intent-*`. */
+     — see `docs/ARCHITECTURE.md` § Mint (micro-interactions). The local glow
+     override used `currentColor`, which gave the wrong color in the badge's
+     filled variants (white text → white glow → invisible). The global token
+     cascades via `blocks-intent-*`. */
 
   /* `badge-pulse` keyframes live in blocks/style/index.css so the Tailwind
      arbitrary-animation utility on the badge (outside this component's

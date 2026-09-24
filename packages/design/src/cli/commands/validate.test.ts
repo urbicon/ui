@@ -108,7 +108,7 @@ describe('urbicon validate', () => {
     expect(await runValidate(['-'], {})).toBe(1);
   });
 
-  it('gates the craft axis only when --craft-floor is given (F-S6-3)', async () => {
+  it('gates the craft axis only when --craft-floor is given', async () => {
     // A token-correct but generic page: many craft notes, zero correctness errors.
     const file = join(dir, 'Generic.svelte');
     await writeFile(
@@ -180,7 +180,7 @@ describe('urbicon validate', () => {
     expect(parsed.ok).toBe(true);
   });
 
-  it('applies ## Token Overrides from the manifest so a project token is not flagged (F-S4-1)', async () => {
+  it('applies ## Token Overrides from the manifest so a project token is not flagged', async () => {
     const file = join(dir, 'Brand.svelte');
     // `bg-surface-brand` looks semantic but is not a built-in token → hallucination warning.
     await writeFile(file, '<div class="bg-surface-brand">x</div>\n');

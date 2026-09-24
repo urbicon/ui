@@ -1,7 +1,7 @@
 import { expect, type Locator, test } from '@playwright/test';
 
 /**
- * ACC-3 per-instance collapse motion. Verifies the runtime contract the variants + `style:`
+ * Per-instance collapse motion. Verifies the runtime contract the variants + `style:`
  * bindings rely on: the default resolves the `--blocks-collapse-*` token, per-instance props set
  * the vars inline, an Accordion propagates them to items via CSS-variable inheritance (which
  * hinges on Svelte's `style:{undefined}` leaving the property unset on the inner Collapsible), and
@@ -13,7 +13,7 @@ const URL = '/test-fixtures/collapse-motion';
 const duration = (l: Locator) => l.evaluate((el) => getComputedStyle(el).transitionDuration);
 const easing = (l: Locator) => l.evaluate((el) => getComputedStyle(el).transitionTimingFunction);
 
-test.describe('Collapse motion (ACC-3)', () => {
+test.describe('Collapse motion', () => {
   test('default resolves the token; props override duration + easing; accordion inherits', async ({
     page
   }) => {

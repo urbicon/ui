@@ -52,8 +52,8 @@ export function sectionTags(src: string): string[] {
  * `docs/DocsPageGuide.md` settles one of these and leaves the others open, so
  * they are written down here rather than left to whoever next reads the prose:
  *
- *   - `customization` — rule 5, explicit: "its own scope per XC-4 and not part
- *     of this Examples count".
+ *   - `customization` — rule 5, explicit: the Customization section "is its own
+ *     scope and not part of this Examples count".
  *   - `installation` — the import stanza. Every page has exactly one and it is
  *     `preview={false}` reference material, never a use-case.
  *   - `api` / `types` — generated reference, not authored examples.

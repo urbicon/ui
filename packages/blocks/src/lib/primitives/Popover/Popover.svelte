@@ -93,7 +93,7 @@
 
   const effectiveTriggerElement = $derived(triggerElement || internalTriggerElement);
 
-  // ── Exit-motion lag (ACC-3 rest) ───────────────────────────
+  // ── Exit-motion lag ────────────────────────────────────────
   //
   // Closing used to tear three things down in one flush: `open` flips, the
   // children block unmounts, and `useFloatingPanel` hides the panel. The CSS

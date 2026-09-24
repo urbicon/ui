@@ -15,7 +15,7 @@ export const accordionVariants = tv({
     ],
     chevron: [
       'shrink-0 text-text-tertiary',
-      // Collapse tokens (ACC-3) — retuned by Accordion's `transitionDuration`/`transitionEasing`
+      // Collapse tokens — retuned by Accordion's `transitionDuration`/`transitionEasing`
       // via CSS-variable inheritance; `motion-reduce` guards the inline-override path.
       'transition-transform duration-[var(--blocks-collapse-duration)] ease-[var(--blocks-collapse-easing)]',
       'motion-reduce:duration-[1ms]'

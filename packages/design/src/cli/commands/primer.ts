@@ -5,10 +5,9 @@
  *
  * Why a bundle instead of leaving it to `principles --topic component-selection`
  * + five `css-reference` calls: both are needed for essentially any task, and a
- * recorded agent run reaches for them unevenly. Measured 2026-07-27 on the same
- * task (`prototypes/artifact-frame`): Opus 5 assembled the token reference from
- * six separate calls, Sonnet 5 fetched only two sections and worked with
- * incomplete token knowledge. One call removes that variance — and it lands in
+ * recorded agent run reaches for them unevenly. Measured on one recorded task:
+ * Opus 5 assembled the token reference from six separate calls, Sonnet 5
+ * fetched only two sections and worked with incomplete token knowledge. One call removes that variance — and it lands in
  * the prompt cache on the first round, so the marginal cost over the rest of the
  * session is a rounding error: ~7 100 tokens ≈ $0.14 across 55 rounds, measured
  * at introduction (2026-07-27) and not re-measured since. The page has grown by

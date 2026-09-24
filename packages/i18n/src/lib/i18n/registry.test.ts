@@ -7,7 +7,7 @@ import { I18nRegistry } from './registry.svelte';
  * Ported from the old I18nService characterization suite. The registry holds no
  * mutable locale — every resolver takes `locale`/`fallbackLocale` explicitly — so
  * each test passes the locale in instead of mutating a stored value. Behaviour is
- * otherwise pinned exactly (these guarded the WP2 split).
+ * otherwise pinned exactly.
  */
 
 const PKG = {

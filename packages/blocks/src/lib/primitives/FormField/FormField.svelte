@@ -18,7 +18,7 @@
 
   const propsId = $props.id();
   // ARIA wiring is shared with every individual form primitive — see
-  // `useFormField` / XC-2 for the contract.
+  // `useFormField` for the contract.
   const ff = useFormField(() => ({
     fieldId: idProp ?? `field-${propsId}`,
     helper,

@@ -4,12 +4,11 @@
  * adapter, and any future caller. Keeping the verdict here (pure, no I/O, no exit)
  * means the CLI gate and the editor hook can never disagree on what "failing" means.
  *
- * Two axes, asymmetric on purpose (DESIGN-MCP-V2 §6 "two tracks, never mixed"):
- * **correctness** is always blocking — it is deterministic and false-positive free;
- * the **craft** axis is advisory by default and blocks only when the caller opts in
- * with a floor. Craft heuristics are FP-prone (even after hardening ~18% of this
- * repo's own files flag), so gating on them is a deliberate threshold a consumer
- * chooses, not a default that would break legitimate pages (F-S6-3).
+ * Two axes, asymmetric on purpose ("two tracks, never mixed"): **correctness** is
+ * always blocking — it is deterministic and false-positive free; the **craft** axis
+ * is advisory by default and blocks only when the caller opts in with a floor.
+ * Craft heuristics are FP-prone, so gating on them is a deliberate threshold a
+ * consumer chooses, not a default that would break legitimate pages.
  */
 
 import type { LintReport } from '@urbicon-ui/design-engine/linter';

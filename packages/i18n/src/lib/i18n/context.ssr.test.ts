@@ -7,7 +7,7 @@ import { getRegistry, I18nRegistry } from './registry.svelte';
 import type { I18nError } from './types';
 
 /**
- * WP2 acceptance — SSR correctness. Rendered with `svelte/server`'s `render`
+ * SSR correctness. Rendered with `svelte/server`'s `render`
  * (SSR-to-string, no DOM), which is exactly the server path that the removed
  * locale singleton corrupted across requests.
  */

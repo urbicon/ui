@@ -1,8 +1,9 @@
 /**
  * Scan a source tree for `data-design-pattern="…"` markers. This is the
  * convention (analogous to the `data-guide` namespace) that makes pattern usage
- * greppable instead of guessable — the answer to DESIGN-SYSTEM-INTELLIGENCE.md's
- * "how does the LLM reliably find which pages follow a pattern?".
+ * greppable instead of guessable, so an agent can reliably find which pages
+ * follow a pattern. Where the markers sit in the design loop:
+ * `docs/AI-NATIVE-DX.md` § The design loop.
  */
 
 import { readdir, readFile, stat } from 'node:fs/promises';

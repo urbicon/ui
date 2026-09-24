@@ -205,9 +205,10 @@
 
 <style>
   /* All `.blocks-mint-*` rules live in `packages/blocks/src/lib/mint/styles.css`
-     — see XC-12. Previously each primitive carried its own copy, which
-     duplicated logic and (in the case of `--intent-bg`) referenced an
-     undefined CSS variable that silently invalidated the declaration. The
+     — see `docs/ARCHITECTURE.md` § Mint (micro-interactions). Previously each
+     primitive carried its own copy, which duplicated logic and (in the case of
+     `--intent-bg`) referenced an undefined CSS variable that silently
+     invalidated the declaration. The
      `blocks-intent-{name}` class on the button root scopes the glow color
      via `mint/styles.css`. */
 
@@ -219,7 +220,7 @@
      `rgba(255,255,255,0.4)` plus its own @keyframes) that no element ever
      matched — nothing has emitted that class since the initial commit, and it
      would have been invisible on light variants had it matched. Removed rather
-     than tokenised; see the same note in `mint/styles.css` (XC-12/PAG-1). */
+     than tokenised; see the ripple note in `mint/styles.css`. */
 
   :global(.sr-only) {
     position: absolute;

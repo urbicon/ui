@@ -186,8 +186,9 @@ export const comboboxVariants = tv({
       // The multi-mode tokenizer (`control`/`search`/`tag`) tracks the same
       // ladder: `control` uses `min-h-*` (not `h-*`) so it grows as tags wrap,
       // and reserves right padding (`pr-*`) for the absolute chevron/clear.
-      // Option rows follow the shared listbox item rhythm (XC-9); the group
-      // label always shares the option's horizontal inset.
+      // Option rows follow the shared listbox item rhythm
+      // (docs/COMPONENT-FAMILIES.md § Listbox item rhythm); the group label
+      // always shares the option's horizontal inset.
       xs: {
         // `pointer-coarse:text-base` floors the input to 16px on touch-primary
         // devices so iOS Safari doesn't auto-zoom (and never un-zoom) on focus.

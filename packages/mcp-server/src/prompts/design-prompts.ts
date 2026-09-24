@@ -3,14 +3,14 @@ import { z } from 'zod';
 import { loadVerb } from '../data/verb-loader.js';
 
 /**
- * MCP prompts that ship the *process* — the full design-verb table (DESIGN-MCP-V2
- * §8). MCP prompts are the client-agnostic way to deliver a workflow: any MCP
- * client (Claude Code, Cursor, …) can invoke them, and they orchestrate the
- * server's read-only tools (get_pattern, validate_design, get_design_principles).
+ * MCP prompts that ship the *process* — the full design-verb table. MCP prompts
+ * are the client-agnostic way to deliver a workflow: any MCP client (Claude Code,
+ * Cursor, …) can invoke them, and they orchestrate the server's read-only tools
+ * (get_pattern, validate_design, get_design_principles).
  *
  * The recipe BODY is the single source authored under `@urbicon-ui/design`'s
  * `skill/verbs/*.md` and bundled into `@urbicon-ui/design-content` — the same text
- * the local skill ships, so a verb is maintained once and served two ways (§9).
+ * the local skill ships, so a verb is maintained once and served two ways.
  * Here we only wrap that body with the per-invocation header (brief / current code)
  * and register it. Manifest state lives in the consumer's repo — read/written with
  * the agent's own file tools or the `urbicon` CLI, never by this stateless server.
@@ -34,7 +34,7 @@ interface VerbSpec {
 }
 
 /**
- * The full verb table (§8). Names match the `skill/verbs/<name>.md` recipes one to
+ * The full verb table. Names match the `skill/verbs/<name>.md` recipes one to
  * one; `args` is the precise subset each verb uses (so `onboard` doesn't advertise
  * a `code` field it ignores). Order = the router's narrow-to-broad reading order.
  */

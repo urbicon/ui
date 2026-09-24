@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Badge from './Badge.svelte';
 import type { BadgeProps } from './index';
 
-// The `purpose` axis (BDG-1) is orchestrated in the component (it maps to the
+// The `purpose` axis is orchestrated in the component (it maps to the
 // existing tv() visual props), so it needs a mounted DOM to observe, not a
 // variant-config test. Also guards back-compat: the deprecated `variant="dot"`
 // and `counter` boolean must keep working when `purpose` is unset.
@@ -34,7 +34,7 @@ function render(props: Partial<BadgeProps> = {}) {
 // below, and a tag / counter / chip carries none.
 const badge = () => document.body.firstElementChild as HTMLElement;
 
-describe('Badge — purpose axis (BDG-1)', () => {
+describe('Badge — purpose axis', () => {
   it('reflects purpose on data-purpose', () => {
     render({ purpose: 'status', intent: 'success' });
     expect(badge().getAttribute('data-purpose')).toBe('status');

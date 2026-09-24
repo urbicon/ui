@@ -28,7 +28,7 @@ type LooseTranslate = (
 
 export interface CreatePackageI18nOptions {
   /**
-   * Per-locale lazy loaders (WP4 code-splitting). Each returns the package's
+   * Per-locale lazy loaders (code-splitting). Each returns the package's
    * bundle for that locale as a dynamic-import chunk, e.g.
    * `() => import('./translations/de').then((m) => m.default)`. Listed locales
    * stay out of the initial bundle until activated by the provider / `setLocale`;
@@ -49,7 +49,7 @@ export interface CreatePackageI18nOptions {
  * `TranslationSchema<T>` (T's structure with its string values widened), which
  * enforces key parity at compile time while allowing locale-specific strings.
  *
- * Opt-in code-splitting (WP4): pass `options.loaders` to keep non-base locales
+ * Opt-in code-splitting: pass `options.loaders` to keep non-base locales
  * out of the initial bundle as dynamic-import chunks, loaded only when activated.
  */
 export function createPackageI18n<const T extends Translations>(
@@ -57,7 +57,7 @@ export function createPackageI18n<const T extends Translations>(
   translations: { en: T } & Partial<Record<Locale, TranslationSchema<T>>>,
   options?: CreatePackageI18nOptions
 ): PackageI18n<T> {
-  // Lazy, first-use registration — deliberately NOT at module-eval (Codeberg #22).
+  // Lazy, first-use registration — deliberately NOT at module-eval.
   // A consumer's top-level `export const x = createPackageI18n(...)` must not call
   // getRegistry() during module initialisation: in a reordered *production* chunk
   // (Rollup, `sideEffects: false`) that call can run before the registry module's
@@ -80,7 +80,7 @@ export function createPackageI18n<const T extends Translations>(
     registered = true;
     const registry = getRegistry();
     registry.registerPackage(packageName, translations as PackageTranslations);
-    // Opt-in lazy locales (WP4): dynamic-import loaders alongside the eager base
+    // Opt-in lazy locales: dynamic-import loaders alongside the eager base
     // bundle, loaded on demand by the provider / setLocale.
     if (options?.loaders) {
       for (const [locale, loader] of Object.entries(options.loaders)) {

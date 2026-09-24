@@ -27,7 +27,7 @@ describe('separatorVariants', () => {
     expect(separatorVariants({ orientation: 'vertical', size: 'lg' })).toContain('w-0.5');
   });
 
-  it('never bakes in vertical/horizontal margins (SEP-1)', () => {
+  it('never bakes in vertical/horizontal margins', () => {
     // Spacing is the surrounding layout's responsibility (flex/grid gap,
     // `space-y-*`). Pre-v1.0 we ripped out built-in margins so consumers no
     // longer need `!my-0` overrides.

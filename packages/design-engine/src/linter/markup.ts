@@ -1,11 +1,11 @@
 /**
  * A small, dependency-free markup scanner — the structural pass the regex rules
- * cannot be (DESIGN-MCP-V2 §6/§10 "AST pass"). It does NOT build a full Svelte
- * AST (that would mean a `svelte/compiler` dependency, and this engine is
- * zero-dep): it extracts the one thing the line-based rules miss — *which
- * attribute belongs to which element* — by walking the source once and emitting a
- * flat list of opening tags with their attributes, plus a helper to slice an
- * element's inner content.
+ * cannot be. It does NOT build a full Svelte AST (that would mean a
+ * `svelte/compiler` dependency, and this engine is zero-dep): it extracts the
+ * one thing the line-based rules miss — *which attribute belongs to which
+ * element* — by walking the source once and emitting a flat list of opening
+ * tags with their attributes, plus a helper to slice an element's inner
+ * content.
  *
  * It is deliberately conservative: anything it cannot parse confidently (an
  * unterminated tag, an exotic expression) is skipped, never guessed. A rule built

@@ -1,6 +1,6 @@
 /**
  * `urbicon verbs` / `urbicon verb <name>` — the local half of the design-verb
- * delivery (DESIGN-MCP-V2 §8). The recipes ship inside this package
+ * delivery. The recipes ship inside this package
  * (`skill/verbs/*.md`) — the same single source the remote MCP prompts serve — so
  * the CLI reads them package-relative, no content bundle needed. `verbs` lists the
  * table; `verb <name>` prints one recipe (pipe it to an agent, or read it inline).

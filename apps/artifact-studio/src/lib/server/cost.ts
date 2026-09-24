@@ -4,7 +4,7 @@
  * Steht hier und nicht im Loop, weil die naive Rechnung (Input × Preis) bei
  * aktivem Caching um ein Vielfaches danebenliegt: Reads kosten ein Zehntel,
  * Writes ein Viertel mehr. Genau diese Rechnung wies einen Lauf mit $9,27 statt
- * der erwarteten Größenordnung aus (BEFUNDE §11) — dort fehlte allerdings das
+ * der erwarteten Größenordnung aus — dort fehlte allerdings das
  * Caching selbst, nicht die Formel.
  *
  * Die drei Input-Zahlen sind disjunkt: `inputTokens` ist ausschließlich der

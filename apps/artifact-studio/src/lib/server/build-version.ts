@@ -14,7 +14,7 @@
  *   dist/v<n>/…                Entry + Chunks + Komponenten-CSS
  *   dist/frame-v<n>.html       das Sandbox-Dokument
  *
- * Drei Entscheidungen stecken hier drin, alle in W0 gemessen (BEFUNDE.md):
+ * Drei Entscheidungen stecken hier drin, alle gemessen:
  *  - **EIN gemeinsames Stylesheet** statt eines pro Version. Das CSS ist zu
  *    98,5 % Token-Layer, also für jede Version fast identisch; der Content-Hash
  *    macht `immutable` ehrlich. (Sitzungslokal statt global: für eine lokale App
@@ -25,8 +25,8 @@
  *    `init_registry is not a function`.
  *  - **Das Komponenten-CSS muss mit.** Die blocks-Komponenten bringen eigene
  *    `<style>`-Blöcke mit (Icon-Animationen, Checkbox-/Progress-Details). Wer
- *    sie vergisst, liefert Artefakte mit fehlenden Animationen aus — in W0 fiel
- *    es nur nicht auf, weil das erste Artefakt sie nicht brauchte.
+ *    sie vergisst, liefert Artefakte mit fehlenden Animationen aus — was nicht
+ *    auffällt, solange ein Artefakt sie zufällig nicht braucht.
  *
  * Usage: bun build-version.ts --session <id> --version <n>
  *        → JSON auf stdout, Fortschritt auf stderr

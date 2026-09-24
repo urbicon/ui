@@ -3,7 +3,7 @@
  * UI design knowledge (component catalog, per-component `llm.txt`, design-system
  * principles + patterns, guide template, icon metadata) plus a package-relative
  * locator for it. The deterministic engine (linter/manifest/rubric) lives in
- * `@urbicon-ui/design-engine`; this package is the Knowledge plane (DESIGN-MCP-V2 §4).
+ * `@urbicon-ui/design-engine`; this package is the Knowledge plane.
  *
  * Consumers (the remote MCP server, the `urbicon` CLI) read the bundle through these
  * path helpers, so the content travels with the package — version-coherent and free

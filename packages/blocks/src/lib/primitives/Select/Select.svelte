@@ -97,7 +97,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   // All IDs are `$derived` so they react if the consumer changes `idProp`
   // or `label` after mount (e.g. dynamic form labels).
   const propsId = $props.id();

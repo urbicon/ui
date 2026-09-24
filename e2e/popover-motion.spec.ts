@@ -1,7 +1,7 @@
 import { expect, type Locator, test } from '@playwright/test';
 
 /**
- * Popover enter/exit motion (ACC-3 rest). Two layers of contract:
+ * Popover enter/exit motion. Two layers of contract:
  *
  * 1. Token plumbing (mirrors tooltip-motion.spec): the default resolves the
  *    `--blocks-popover-*` tokens, per-instance props set the vars inline on
@@ -33,7 +33,7 @@ async function gotoHydrated(page: import('@playwright/test').Page) {
   );
 }
 
-test.describe('Popover motion (ACC-3 rest)', () => {
+test.describe('Popover motion', () => {
   test('default resolves the fast token; props override duration + easing', async ({ page }) => {
     await page.goto(URL, { waitUntil: 'load' });
     await page.waitForSelector('[data-testid="popover-motion-fixtures"]');

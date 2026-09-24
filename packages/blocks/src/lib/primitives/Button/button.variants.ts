@@ -497,7 +497,7 @@ export const buttonVariants = tv({
     },
     // Active + Ghost: subtle intent background + ring outline + bolder text;
     // the subtle-tone alone is too close to surface-base on light pages —
-    // the ring is what makes the active state visible (BGR-2).
+    // the ring is what makes the active state visible.
     {
       active: true,
       variant: 'ghost',
@@ -626,7 +626,7 @@ export const buttonVariants = tv({
     },
     // ButtonGroupConnected + Filled: darker per-intent border so the
     // `-ml-px`/`-mt-px` overlap renders a visible divider between
-    // adjacent filled buttons (BGR-1). Since `variant.filled` went
+    // adjacent filled buttons. Since `variant.filled` went
     // `border-transparent`, this is the ONLY filled border that paints —
     // which is the right shape for it: it separates two buttons instead of
     // tracing one, so it cannot fall behind the fill the way the resting-stop

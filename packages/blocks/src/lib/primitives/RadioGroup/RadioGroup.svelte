@@ -50,7 +50,7 @@
   // consumer-supplied `aria-labelledby` (an external heading) is used as the
   // fallback so external labelling survives (see the group element below).
   const labelId = $derived(label ? `${groupId}-label` : undefined);
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   const ff = useFormField(() => ({
     fieldId: groupId,
     helper,
@@ -62,7 +62,7 @@
   // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
   // outside the component) merges with the internal error/helper chain instead
   // of replacing it — internal descriptions first, the consumer's supplemental
-  // one last (mirrors the Input role model, XC-2). Applied to the group element.
+  // one last (mirrors the Input role model). Applied to the group element.
   const describedBy = $derived(
     [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
   );

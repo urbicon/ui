@@ -179,7 +179,7 @@ describe('buttonVariants', () => {
     it('still paints the connected-group divider — a boundary, not a copy of a fill', () => {
       // The compound has to win the bucket over `variant.filled`'s transparent,
       // which is what the `not.toContain` pins: it is declared later, so it
-      // folds it. Without that the `-ml-px` overlap renders nothing (BGR-1).
+      // folds it. Without that the `-ml-px` overlap renders nothing.
       for (const intent of INTENTS) {
         const base = buttonVariants({
           intent,

@@ -7,7 +7,7 @@
  * (`node_modules/@urbicon-ui/design-content/content/`) with no sibling-path
  * assumptions. This replaces the MCP server's former resolution out to
  * `apps/docs/static/` + `design-system/`, which only worked inside a full monorepo
- * checkout and left a published server empty (see DESIGN-MCP-V2 §A.0/2, A.2).
+ * checkout and left a published server empty.
  *
  * `URBICON_CONTENT_DIR` overrides the base — for monorepo dev/tests pointing at a
  * freshly generated bundle, or to serve an alternate content set. The bundle is
@@ -35,7 +35,7 @@ export function getDesignSystemDir(): string {
   return resolve(getContentDir(), 'design-system');
 }
 
-/** The verb-recipe copy: `<verb>.md` per design verb (DESIGN-MCP-V2 §8). */
+/** The verb-recipe copy: `<verb>.md` per design verb. */
 export function getVerbsDir(): string {
   return resolve(getContentDir(), 'verbs');
 }
@@ -94,7 +94,7 @@ export function getComponentLlmPath(group: string, slug: string): string {
   return resolved;
 }
 
-/** Build provenance for the bundle (the version stamp surfaced in DESIGN-MCP-V2 Anhang B). */
+/** Build provenance for the bundle. */
 export interface ContentMeta {
   /** The `@urbicon-ui/*` release this bundle was built from. */
   version: string;

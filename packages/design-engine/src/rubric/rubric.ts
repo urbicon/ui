@@ -1,20 +1,20 @@
 /**
- * The design-quality scoring rubric — the qualitative half of the design loop
- * (docs/internal/DESIGN-MCP.md, step 3). Where `validate_design` answers "is it correct?"
- * deterministically, the rubric answers "is it good?" through a judge.
+ * The design-quality scoring rubric — the qualitative half of the design loop.
+ * Where `validate_design` answers "is it correct?" deterministically, the rubric
+ * answers "is it good?" through a judge.
  *
  * The eight criteria have been validated empirically against design-quality
  * comparisons, scoring each 1–5 and summing to /40. Keeping the same instrument
  * means new evaluations are directly comparable to that baseline. This is the
  * SINGLE SOURCE for the criteria: the
  * `get_design_principles(as="rubric")` tool renders it to Markdown, and the
- * eval-suite (WP5) imports the same constants to score programmatically.
+ * eval-suite (`mcp-server/src/eval`) imports the same constants to score
+ * programmatically.
  *
  * REVISED 2026-08-02 (`radius`, `ux`, plus the linter reference). Scores taken
  * before and after that date are NOT comparable on those two axes — any delta
  * has to have both of its sides judged under one version. The revision came out
- * of reading the rubric against the library it judges (docs/internal,
- * DESIGN-EVAL-2026-08/RUBRIK-AUDIT.md):
+ * of reading the rubric against the library it judges:
  *
  * - `radius` rewarded a per-element ladder ("hero > standard > compact" via
  *   `class`) — which is what the design system's own anti-pattern forbids, since

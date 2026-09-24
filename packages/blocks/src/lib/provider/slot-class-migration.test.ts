@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 // per-slot classes through `resolveSlotClasses` (full cascade incl. conditional
 // `overrides` + Tailwind-bucket conflict resolution), NOT the legacy additive
 // `mergeSlotClasses`. This test fails loudly if a component regresses or a new
-// one is scaffolded on the old helper — see docs/internal/CUSTOMIZATION-CONSOLIDATION.md.
+// one is scaffolded on the old helper — the cascade itself: docs/ARCHITECTURE.md
+// § The override cascade.
 
 const LIB_DIR = dirname(dirname(fileURLToPath(import.meta.url))); // …/src/lib
 

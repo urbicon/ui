@@ -45,7 +45,7 @@ describe('popoverVariants', () => {
     );
   });
 
-  it('carries the enter/exit motion fragment (ACC-3 rest)', () => {
+  it('carries the enter/exit motion fragment', () => {
     const result = popoverVariants();
     // The discrete transition list is what keeps the panel painted through
     // hidePopover()/light dismiss; @starting-style supplies the enter

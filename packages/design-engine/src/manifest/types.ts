@@ -1,8 +1,7 @@
 /**
  * Types for the design manifest — the per-consumer-project memory of design
- * intent (docs/internal/DESIGN-MCP.md, Option C). The manifest is a Markdown file
- * (`design.manifest.md`) at the consumer's project root, plus a sidecar ndjson
- * log. Its parts (DESIGN-MCP-V2 §7):
+ * intent. The manifest is a Markdown file (`design.manifest.md`) at the
+ * consumer's project root, plus a sidecar ndjson log. Its parts:
  *
  *  1. Frontmatter — the enforced intake decisions (paradigm, theme, density).
  *  2. Product Intent — the target identity (audience, voice, references,
@@ -12,7 +11,7 @@
  *     manifest-sourced counterpart to the remote `validate_design(extraTokens)`).
  *  4. Pattern Usages — an auto-generated index of `data-design-pattern` markers
  *     found in the source (so "which pages follow pattern X" is a grep, not a
- *     guess — answering the open question from DESIGN-SYSTEM-INTELLIGENCE.md).
+ *     guess).
  *  5. Design Decisions — append-only ADRs recording deliberate deviations.
  *
  * The Validation History ({@link ValidationHistoryEntry}) lives in a sidecar
@@ -58,7 +57,7 @@ export interface DesignDecision {
 
 /**
  * The target identity a project designs toward — the "missing half" of design
- * memory (DESIGN-MCP-V2 §7). Without it, "consistent change" has no anchor and
+ * memory. Without it, "consistent change" has no anchor and
  * generation drifts to generic-pretty. Arrays default to `[]` (never undefined);
  * an entirely empty intent means the `## Product Intent` section is absent or blank.
  */
@@ -75,7 +74,7 @@ export interface ProductIntent {
 
 /**
  * One validation run, appended to the sidecar `*.history.ndjson` so design drift
- * is measurable over time (DESIGN-MCP-V2 §7). One entry per `urbicon validate
+ * is measurable over time. One entry per `urbicon validate
  * --record` invocation; scores are the mean across the files in that run, counts
  * are summed. ndjson (not a Markdown table) keeps it append-only and machine-owned.
  */

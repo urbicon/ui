@@ -6,7 +6,7 @@
  * remote MCP adapter, and editor/CI hooks. The CLI is the local, version-correct
  * path (the knowledge is the installed library version) and the home of the
  * filesystem operations a stateless remote server structurally cannot do.
- * See docs/internal/DESIGN-MCP-V2.md.
+ * What each command serves: `docs/AI-NATIVE-DX.md` § The `urbicon` CLI.
  *
  * Bundled to `dist/cli.js` (Node-runnable, shebang preserved) so consumers need
  * no Bun. In the monorepo, run the TypeScript source directly via `bun run`.

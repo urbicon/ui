@@ -1,6 +1,6 @@
 /**
- * Public API of the design-manifest module — the persistent design-intent layer
- * (docs/internal/DESIGN-MCP.md, Option C). Consumed by the `urbicon` CLI
+ * Public API of the design-manifest module — the persistent design-intent layer.
+ * Consumed by the `urbicon` CLI
  * (context / record-decision / sync-manifest) in `@urbicon-ui/design`.
  */
 

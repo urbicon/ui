@@ -1,7 +1,7 @@
 import { expect, type Locator, test } from '@playwright/test';
 
 /**
- * Tooltip fade motion (ACC-3 follow-up). Verifies the runtime contract the tooltip variants +
+ * Tooltip fade motion. Verifies the runtime contract the tooltip variants +
  * `style:` bindings rely on: the default resolves the `--blocks-tooltip-*` token (deliberately the
  * fast/150ms value, not the 200ms panel-overlay duration), per-instance props set the vars inline
  * on the panel, and a `motion-reduce` guard beats an inline override under reduced motion. The
@@ -14,7 +14,7 @@ const URL = '/test-fixtures/tooltip-motion';
 const duration = (l: Locator) => l.evaluate((el) => getComputedStyle(el).transitionDuration);
 const easing = (l: Locator) => l.evaluate((el) => getComputedStyle(el).transitionTimingFunction);
 
-test.describe('Tooltip motion (ACC-3 follow-up)', () => {
+test.describe('Tooltip motion', () => {
   test('default resolves the fast token; props override duration + easing', async ({ page }) => {
     await page.goto(URL, { waitUntil: 'load' });
     await page.waitForSelector('[data-testid="tooltip-motion-fixtures"]');

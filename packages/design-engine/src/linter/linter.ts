@@ -2,7 +2,7 @@
  * The design linter engine: masks comments, runs the deterministic rules and the
  * distribution heuristics, and reduces the findings to a 0–100 score. Pure and
  * dependency-free so it is trivially unit-testable (one of the explicit wins of
- * a linter over prose guidance — see docs/internal/DESIGN-MCP.md, Option B).
+ * a linter over prose guidance).
  */
 
 import { runHeuristics } from './heuristics.js';
@@ -101,7 +101,7 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
     return SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
   });
 
-  // Two axes, never mixed (§6): deterministic findings deduct from correctness
+  // Two axes, never mixed: deterministic findings deduct from correctness
   // (per occurrence, weighted by severity), heuristic findings from craft (flat per
   // finding). `kind`, not `severity`, decides the axis — so a future deterministic
   // `info` would still score against correctness, where it belongs. Suppressed

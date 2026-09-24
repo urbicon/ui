@@ -79,7 +79,7 @@ export const selectVariants = tv({
     ],
     // `space-y-0.5` keeps grouped options on the same item-to-item rhythm as
     // the flat listbox (whose spacing lives on the `listbox` slot) — without
-    // it, adjacent selected-highlights inside a group touch (XC-9).
+    // it, adjacent selected-highlights inside a group touch.
     group: ['space-y-0.5'],
     groupLabel: ['px-3 py-1.5 text-xs font-medium text-text-tertiary uppercase tracking-wider'],
     label: ['block font-medium text-text-secondary text-sm'],
@@ -115,8 +115,9 @@ export const selectVariants = tv({
       // Full xs–xl scale, mirroring Input's h-7…h-14 ladder (form-family
       // symmetry: a dense form should not pair an xs Input with an sm Select).
       // Option inset (`px`) and the group label track the shared listbox item
-      // rhythm (XC-9): px-2 below md, px-3 at md/lg (slot base), px-4 at xl —
-      // the group header always shares the item's horizontal inset.
+      // rhythm (docs/COMPONENT-FAMILIES.md § Listbox item rhythm): px-2 below
+      // md, px-3 at md/lg (slot base), px-4 at xl — the group header always
+      // shares the item's horizontal inset.
       xs: {
         trigger: 'h-7 pl-2 pr-7 text-xs gap-1.5',
         chevron: 'w-3 h-3',

@@ -28,9 +28,9 @@ export const scrollerVariants = tv({
     // min-content floor so the row can actually be narrower than its items —
     // without it the container simply grows and never overflows.
     //
-    // The native scrollbar is deliberately NOT hidden (plan §3.4/§7): on pointer
-    // devices it is the only standing promise that there is more to see. Touch
-    // platforms hide it themselves.
+    // The native scrollbar is deliberately NOT hidden: on pointer devices it is
+    // the only standing promise that there is more to see. Touch platforms hide
+    // it themselves.
     //
     // No `scroll-padding`: its job — never leaving a focused item half outside —
     // is already done by `scroll-snap-align` (the browser scrolls focus to the
@@ -106,7 +106,7 @@ export const scrollerVariants = tv({
     },
 
     snap: {
-      // Default (plan §3.5).
+      // Default.
       /** Snaps when you let go nearby and otherwise stays out of the way. */
       proximity: { viewport: 'snap-x snap-proximity' },
       /**
@@ -140,9 +140,9 @@ export const scrollerVariants = tv({
     },
 
     // Whether the native scrollbar shows. It is the only standing promise that
-    // there is more to see (plan §3.4/§7) — but once jump buttons or dots are on
-    // screen they carry that promise, and stacking a scrollbar directly above a
-    // control bar is three indicators for one fact. The component hides it only
+    // there is more to see — but once jump buttons or dots are on screen they
+    // carry that promise, and stacking a scrollbar directly above a control bar
+    // is three indicators for one fact. The component hides it only
     // where a replacement is actually visible.
     scrollbar: {
       visible: {},
@@ -157,17 +157,17 @@ export const scrollerVariants = tv({
     // `animation-timeline: view(inline)` ties progress to where the item sits in
     // the scrollport, so nothing needs keeping in sync and there is nothing to
     // fall back to — where the timeline is unsupported the animation never
-    // advances and the row is exactly as usable, only flat (plan §3.7). In
-    // practice that is Firefox < 156 (ships in 156; Chrome 115+/Safari 26+ are
-    // fine) — accepted, see docs/technical-debt.md.
+    // advances and the row is exactly as usable, only flat. In practice that is
+    // Firefox < 156 (ships in 156; Chrome 115+/Safari 26+ are fine) — accepted,
+    // see docs/technical-debt.md.
     //
     // With `align="start"` there is no middle for an item to arrive at, so the
     // same animation would make cards breathe for no discernible reason. The
     // component warns about that combination in DEV rather than rendering it.
     //
-    // Neighbours are never dimmed or blurred (plan §3.7 condition 1): the point
-    // is to mark the middle, not to devalue the edges — dimming destroys the
-    // "you can see how many there are" that justifies the variant at all.
+    // Neighbours are never dimmed or blurred: the point is to mark the middle,
+    // not to devalue the edges — dimming destroys the "you can see how many
+    // there are" that justifies the variant at all.
     ...(['subtle', 'strong'] as const).map((strength) => ({
       align: 'center' as const,
       emphasis: strength,

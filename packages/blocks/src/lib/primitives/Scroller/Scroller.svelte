@@ -52,8 +52,8 @@
 
   // Snap strictness follows the alignment, because the two alignments mean
   // different things. A `start` row is a list you sweep across — `mandatory`
-  // there can strand content between snap points (plan §3.5), and a chip bar
-  // that fights every flick is worse than one that doesn't snap. A `center` row
+  // there can strand content between snap points, and a chip bar that fights
+  // every flick is worse than one that doesn't snap. A `center` row
   // is a stage: the middle IS the unit, so it has to land on one, and
   // `proximity` there reads as "snapping is broken" because it rarely engages.
   const snap = $derived(snapProp ?? (align === 'center' ? 'mandatory' : 'proximity'));
@@ -181,8 +181,8 @@
   // the first and last item can reach the middle. When the items are nearly as
   // wide as the viewport that padding is most of the row, and the result reads
   // as a broken layout — one card adrift in empty space — rather than a stage.
-  // The pattern wants roughly three visible with two peeking (plan §3.7
-  // condition 4); below two-and-a-bit it stops being one.
+  // The pattern wants roughly three visible with two peeking; below
+  // two-and-a-bit it stops being one.
   let warnedCentreTooNarrow = false;
   $effect(() => {
     const itemWidth = items[0]?.size ?? 0;

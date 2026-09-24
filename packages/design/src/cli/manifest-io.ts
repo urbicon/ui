@@ -43,9 +43,8 @@ export function resolveHistoryPath(manifestPath: string): string {
  * The project's declared token overrides, read from the manifest best-effort.
  * Any failure — no manifest, unreadable, malformed — yields `[]`: validation must
  * never break because the manifest is absent or odd (read tolerant). This is the
- * local, manifest-sourced feed for the linter's `extraTokens` (DESIGN-MCP-V2 §7,
- * resolving F-S4-1) — the on-disk counterpart to the remote `validate_design`'s
- * `extraTokens` parameter.
+ * local, manifest-sourced feed for the linter's `extraTokens` — the on-disk
+ * counterpart to the remote `validate_design`'s `extraTokens` parameter.
  */
 export async function readTokenOverrides(manifestPath: string): Promise<string[]> {
   try {

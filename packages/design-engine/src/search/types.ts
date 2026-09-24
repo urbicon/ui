@@ -4,7 +4,7 @@
  * assembles. It lives in the engine (not the content package) so the search logic
  * and every consumer — the `urbicon` CLI's `find`/`get-component`, the remote MCP
  * server's `find_components`/`get_component` — share one authoritative type, while
- * `design-content` stays a pure path locator (DESIGN-MCP-V2 §5, "engine/search + content").
+ * `design-content` stays a pure path locator.
  */
 
 export interface ComponentCatalogVariant {

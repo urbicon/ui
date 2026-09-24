@@ -6,9 +6,9 @@
  * *which* flags a command has, so `urbicon icons --query moon` used to drop the
  * unknown `--query` without a word and print the full 13.6 kB icon reference — a
  * plausible, well-formed answer to a question nobody asked. A human re-reads the
- * usage line; an agent cannot tell that from a result. Measured in the recorded
- * consumer-path run (`prototypes/artifact-frame`, 2026-07-26): three `--query`
- * calls, three identical full listings, ~41 kB of context spent on nothing.
+ * usage line; an agent cannot tell that from a result. Measured in a recorded
+ * consumer-path agent run: three `--query` calls, three identical full
+ * listings, ~41 kB of context spent on nothing.
  *
  * The table is the source of truth for validation only — `help.ts` still authors
  * the prose. `command-flags.test.ts` diffs the two so neither can drift silently

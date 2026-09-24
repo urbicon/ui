@@ -5,7 +5,8 @@ import { I18nState } from './context.svelte';
 import { I18nRegistry } from './registry.svelte';
 
 /**
- * Reactivity invariants after the WP2 split.
+ * Reactivity invariants of the split between registry data and the request-scoped
+ * locale.
  *
  * Two independent reactive sources must keep `$derived` resolution live:
  *  - the registry's `SvelteMap` of package translations (re-resolve when a

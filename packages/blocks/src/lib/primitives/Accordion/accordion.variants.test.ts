@@ -15,7 +15,7 @@ describe('accordionVariants', () => {
   it('uses design tokens for transitions', () => {
     const styles = accordionVariants();
     expect(styles.trigger()).toContain('duration-[var(--blocks-duration-fast)]');
-    // ACC-3: chevron + content animate on the collapse tokens so `transitionDuration` /
+    // Chevron + content animate on the collapse tokens so `transitionDuration` /
     // `transitionEasing` can retune them, with a motion-reduce guard for the inline-override path.
     expect(styles.chevron()).toContain('duration-[var(--blocks-collapse-duration)]');
     expect(styles.chevron()).toContain('ease-[var(--blocks-collapse-easing)]');

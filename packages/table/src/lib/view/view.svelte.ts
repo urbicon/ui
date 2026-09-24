@@ -1,8 +1,8 @@
 /**
- * The v8 view object (#152/#157, TABLE-VIEW-STATE-2026-08.md §3): the six
- * axes that decide *which data is shown* — search, sort, page, pageSize,
- * filters, groupBy — as one consumer-constructed reactive object with one
- * name scheme, fully resolved against `defaults`.
+ * The v8 view object (#152/#157; consumer side: `docs/MIGRATION-V8.md` § View
+ * state): the six axes that decide *which data is shown* — search, sort, page,
+ * pageSize, filters, groupBy — as one consumer-constructed reactive object with
+ * one name scheme, fully resolved against `defaults`.
  *
  * Construction and getters are SSR-safe — no effects anywhere (the #10
  * lesson). The table reads and writes the fields directly (`view.page = 3`);

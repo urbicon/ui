@@ -1,7 +1,7 @@
 /**
- * The AST-pass rules (DESIGN-MCP-V2 §6/§10, Funde F-G/F-J): correctness checks that
- * need to know *which attribute belongs to which element* — what the line-based
- * regex rules in `rules.ts` structurally cannot see. They run on the flat element
+ * The AST-pass rules: correctness checks that need to know *which attribute
+ * belongs to which element* — what the line-based regex rules in `rules.ts`
+ * structurally cannot see. They run on the flat element
  * list from {@link scanMarkup}, scanned once per lint and shared via a tiny cache.
  *
  * All are scoped to Urbicon UI's own components (a curated name set) so they never
@@ -97,7 +97,7 @@ const PROP_NAME_CONFUSIONS: Readonly<Record<string, string>> = {
  * real Tab variant, `default` a real one elsewhere), so a global value map is only
  * safe for values that exist nowhere. `outline` (the shadcn spelling of `outlined`)
  * is the one that qualifies. Fuller per-component value validation needs the
- * catalog and is deferred with the find/init step (F-J, see DESIGN-MCP-V2 §10).
+ * catalog's per-component props, which the linter is not given.
  */
 const VALUE_CONFUSIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   variant: { outline: 'outlined' }
@@ -168,7 +168,7 @@ function hasIconChild(inner: string): boolean {
 }
 
 /**
- * F-G: an icon-only Button/button with no accessible name — a screen reader
+ * An icon-only Button/button with no accessible name — a screen reader
  * announces nothing. Conservative: skips when a spread might carry the label, when
  * content holds a `{…}` expression (a dynamic label), when any text (visible or
  * sr-only) is present, and only fires when an actual icon child is the sole

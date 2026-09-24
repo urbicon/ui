@@ -3,7 +3,7 @@ import { createPackageI18n, validatePackageTranslations } from './package-integr
 import { getRegistry } from './registry.svelte';
 
 /**
- * WP1 — type-safety end-to-end through the generic factory.
+ * Type-safety end-to-end through the generic factory.
  *
  * Runtime resolution is covered in service.test.ts; this file pins the *types*.
  * The `@ts-expect-error` lines are verified at check time (svelte-check / tsc),
@@ -28,7 +28,7 @@ describe('createPackageI18n — generic factory, runtime', () => {
   });
 });
 
-describe('createPackageI18n — lazy registration (Codeberg #22, registry TDZ)', () => {
+describe('createPackageI18n — lazy registration (registry TDZ)', () => {
   it('does not touch the registry at creation, then registers synchronously on first use', () => {
     const registry = getRegistry();
     // Creating the package must NOT call getRegistry().registerPackage at module-eval
@@ -92,7 +92,7 @@ describe('createPackageI18n — non-en locales are checked against the en schema
   });
 });
 
-describe('validatePackageTranslations — runtime deep-key parity (WP5)', () => {
+describe('validatePackageTranslations — runtime deep-key parity', () => {
   it('passes when locales share the same nested keys', () => {
     const r = validatePackageTranslations('p', {
       en: { a: 'A', nested: { x: 'X' } },

@@ -658,11 +658,11 @@ describe('VariantProps', () => {
   });
 });
 
-// ─── tv: tailwind conflict resolver (XC-3) ──────────────────────────────────
+// ─── tv: tailwind conflict resolver ─────────────────────────────────────────
 
 describe('tv – tailwind conflict resolver', () => {
   describe('pipeline: variant strips base, compound strips variant, override strips all', () => {
-    it('BGR-3: ButtonGroup outlined-active-neutral — compound bg-neutral wins over variant bg-transparent', () => {
+    it('ButtonGroup outlined-active-neutral — compound bg-neutral wins over variant bg-transparent', () => {
       // Browser-verified 2026-05-11: pre-fix the source-order cascade let
       // `bg-transparent` win against the active-compound's `bg-neutral`,
       // rendering active buttons as white-on-white. Tests against the real
@@ -689,7 +689,7 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('border-1');
     });
 
-    it('SBR-1: Sidebar branded panel — slotProps strip slot-base bg', () => {
+    it('Sidebar branded panel — slotProps strip slot-base bg', () => {
       // Browser-verified: sidebar branded example needs `bg-neutral-900` to
       // defeat slot-base `bg-surface-elevated`.
       const styles = sidebarVariants();
@@ -701,7 +701,7 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('border-neutral-800');
     });
 
-    it('CHK-7: Checkbox slotClasses.box rounded-full wins over slot-base rounded-sm', () => {
+    it('Checkbox slotClasses.box rounded-full wins over slot-base rounded-sm', () => {
       const styles = checkboxVariants({ size: 'md' });
       const rounded = styles.box({ class: 'rounded-full' });
       const tokens = rounded.split(/\s+/);
@@ -709,7 +709,7 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('rounded-full');
     });
 
-    it('CHK-7: Checkbox slotClasses.box w-7 h-7 wins over size=md slot-variant w-5 h-5', () => {
+    it('Checkbox slotClasses.box w-7 h-7 wins over size=md slot-variant w-5 h-5', () => {
       const styles = checkboxVariants({ size: 'md' });
       const resized = styles.box({ class: 'w-7 h-7' });
       const tokens = resized.split(/\s+/);
@@ -719,7 +719,7 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('h-7');
     });
 
-    it('CHK-3: Checkbox error-state message wins text-color vs. slot-base text-text-tertiary', () => {
+    it('Checkbox error-state message wins text-color vs. slot-base text-text-tertiary', () => {
       // Real-world: helper-text slot defaults to `text-text-tertiary`; the
       // error-variant adds `text-danger-text`. Browser-verified that pre-fix the
       // tertiary color won the cascade.
@@ -731,7 +731,7 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('text-xs'); // text-size bucket different — kept
     });
 
-    it('MNU-2: Menu open+fade chevron opacity-30 wins over base opacity-70', () => {
+    it('Menu open+fade chevron opacity-30 wins over base opacity-70', () => {
       const styles = menuVariants({ open: true, chevronAnimation: 'fade' });
       const cls = styles.chevron();
       const tokens = cls.split(/\s+/);
@@ -1179,7 +1179,7 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).toContain('bg-blue');
     });
 
-    it('XC-10: the underline variant beats the tier radius deterministically', () => {
+    it('the underline variant beats the tier radius deterministically', () => {
       // Pre-fold both `rounded-modify` (tier axis) and `rounded-none`
       // (variant axis) were emitted and stylesheet order decided the winner.
       const tokens = inputVariants({ variant: 'underline' }).base().split(/\s+/);

@@ -42,8 +42,9 @@
  *
  * Aufruf: `bun apps/docs/scripts/channels-gen.ts` (vom Repo-Root).
  * Die emittierten Dateien sind eingecheckt — Regeneration bei Registeränderung
- * hier ODER wenn der Katalog neue Komponenten/Familien bekommt. Konzept:
- * docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
+ * hier ODER wenn der Katalog neue Komponenten/Familien bekommt. Warum die
+ * Landing Volltöne durch das eigene Theming schickt: Kopfkommentar von
+ * src/routes/+page.svelte.
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // E2E fixture for ACC-3 per-instance collapse motion (Playwright). Renders Collapsible +
+  // E2E fixture for the per-instance collapse motion (Playwright). Renders Collapsible +
   // Accordion in default and prop-overridden states, open, so a test can read the computed
   // transition-duration / -timing-function off each content region. Not part of the docs nav.
   import { Accordion, AccordionItem, Collapsible } from '@urbicon-ui/blocks';

@@ -9,7 +9,7 @@ function apiFindings(code: string) {
   return lintDesign(code).findings.filter((f) => f.ruleId === 'api-hallucination');
 }
 
-describe('api-hallucination (F-J)', () => {
+describe('api-hallucination', () => {
   it('flags a foreign prop name and suggests the real one', () => {
     const f = apiFindings('<Button tone="primary">Go</Button>');
     expect(f).toHaveLength(1);
@@ -68,7 +68,7 @@ function ariaFindings(code: string) {
   return lintDesign(code).findings.filter((f) => f.ruleId === 'icon-button-no-label');
 }
 
-describe('icon-button-no-label (F-G)', () => {
+describe('icon-button-no-label', () => {
   it('flags an icon-only button with no accessible name', () => {
     const f = ariaFindings('<button><SearchIcon /></button>');
     expect(f).toHaveLength(1);

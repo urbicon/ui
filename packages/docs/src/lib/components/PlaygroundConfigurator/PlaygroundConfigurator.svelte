@@ -100,7 +100,7 @@
   // has a description — pages without any docs hide the affordance.
   let helpVisible = $state(false);
 
-  // XC-5: variable-size previews (Calendar month grids with 5 vs. 6 week
+  // Variable-size previews (Calendar month grids with 5 vs. 6 week
   // rows, event lists, …) oscillate in height while the user interacts
   // with the demo itself, which shifts the controls strip + code panel
   // below — the configurator "drifts" away from the pointer. Latch the

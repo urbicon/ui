@@ -1,5 +1,5 @@
 <script lang="ts">
-  // E2E fixture for the Popover enter/exit motion (ACC-3 rest, Playwright).
+  // E2E fixture for the Popover enter/exit motion (Playwright).
   // Three surfaces:
   //  - `pop-default` — token-driven motion (--blocks-popover-duration/easing);
   //  - `pop-prop` — per-instance transitionDuration/transitionEasing overrides,

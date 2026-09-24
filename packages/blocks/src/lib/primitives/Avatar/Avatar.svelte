@@ -227,9 +227,10 @@
 
 <style>
   /* `.blocks-mint-*` rules live in `packages/blocks/src/lib/mint/styles.css`
-     — see XC-12. Previously Avatar duplicated scale/translate/rotate/glow
-     and used `currentColor` for the glow, which made it impossible to
-     consume the global intent-aware glow token.
+     — see `docs/ARCHITECTURE.md` § Mint (micro-interactions). Previously
+     Avatar duplicated scale/translate/rotate/glow and used `currentColor` for
+     the glow, which made it impossible to consume the global intent-aware
+     glow token.
 
      The pulse override is scoped to the avatar root: an unscoped
      `:global(.blocks-mint-pulse)` redefined the pulse for every mint user on
@@ -256,7 +257,7 @@
     }
   }
 
-  /* AVT-3: opt-in "live" pulse on the status dot. A radar ring radiates via an
+  /* Opt-in "live" pulse on the status dot. A radar ring radiates via an
      animated box-shadow — no extra DOM — coloured to match the status through
      the per-status `--blocks-avatar-pulse-color` set in avatar.variants.ts.
      The dot now sits outside the frame's overflow-hidden clip, so the ring is
