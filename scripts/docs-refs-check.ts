@@ -1,20 +1,32 @@
 #!/usr/bin/env bun
 /**
  * docs-refs-check — does every reference the instruction docs make still
- * resolve? Four systems answer, never a model of them:
+ * resolve, and does any tracked file point where nobody else can follow? Five
+ * systems answer, never a model of them:
  *
  *   1. `package.json` — for every `bun run <name>` span the root scripts, for
  *      every `bun --filter='<pkg>' run <name>` that package's.
  *   2. the file tree — for every backtick span shaped like a repo path and for
  *      every `file.ts:123` pointer. `git check-ignore` decides the one case the
- *      tree cannot: a path that is absent by design (`docs/internal/`,
- *      generated catalogs) is unverifiable, not broken.
+ *      tree cannot: a path that is absent by design (a generated catalog, a
+ *      built `dist/`) is unverifiable, not broken.
  *   3. the sources — `packages/*` and `apps/*` src+scripts, `scripts`,
  *      `.github`, the root configs — word-boundary-grepped for every
  *      `UPPER_SNAKE_CASE` span, so a deleted constant stops being documented as
  *      an exemption an agent then looks for.
  *   4. the target document's headings, slugified the way GitHub does, for every
  *      `[…](file.md#anchor)` link.
+ *   5. git's index — `git ls-files` — for every tracked file, code included,
+ *      that names a path *below* one of `PRIVATE_DIRS` (`docs/internal/`,
+ *      `docs/archive/`, `prototypes/`). Those are the maintainer's private
+ *      working directories: never generated and never published, so for them
+ *      rule 2's "absent by design" flips into "dead for everyone but the
+ *      maintainer" — and a pointer in a comment ships with the tarball as
+ *      readily as one in a doc. The index decides what is published: a pointer
+ *      to a file git tracks there is fine, anything else is a finding. The bare
+ *      folder name is not a pointer — prose about the folder names no document
+ *      — and `UNSCANNED` lists the kinds of tracked file this rule does not
+ *      read, one reason each.
  *
  * It owns existence and nothing else. A path that exists but is the wrong one,
  * a count that has drifted, two docs that contradict each other, a rule that no
@@ -22,12 +34,14 @@
  * it. The split is worth having because the existence half is the half that
  * rots on every rename, and it needs no reader.
  *
- * Extraction is narrow, because a false positive is paid for in exemptions:
- * inline code spans only (never fenced blocks), a path only when the span
- * carries a `/` and ends in `/` or an alphabetic extension, and never a span
- * carrying `*`, `<`, `>`, `{`, `}`, `…`, `$`, `?`, `|` or `...` — a pattern or
- * a placeholder is not a claim that a file exists. A span inside a link's label
- * is skipped too: the target is the claim, the label only names it.
+ * Rules 1–4 extract narrowly, because a false positive is paid for in
+ * exemptions: inline code spans only (never fenced blocks), a path only when
+ * the span carries a `/` and ends in `/` or an alphabetic extension, and never
+ * a span carrying `*`, `<`, `>`, `{`, `}`, `…`, `$`, `?`, `|` or `...` — a
+ * pattern or a placeholder is not a claim that a file exists. A span inside a
+ * link's label is skipped too: the target is the claim, the label only names
+ * it. Rule 5 reads every line, fences and comments included: a path below a
+ * private directory is a pointer wherever it is written.
  *
  * The docs name a file by as much of its path as identifies it
  * (`Tab/tab.context.ts`), so a token is resolved against the root, the
@@ -60,7 +74,7 @@
  * another tree, `--json` prints findings as JSON. Exit 1 on any finding, 2 on
  * a malformed argument.
  */
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { Glob } from 'bun';
 
@@ -83,10 +97,14 @@ export const ALLOWLIST: ReadonlyArray<readonly [what: string, why: string]> = [
   [
     'TABLE_QUERY_FILTER_OPERATORS',
     'the v7 name in a rename table: retired by design, and the row is why'
+  ],
+  [
+    'prototypes/artifact-frame/serve.ts',
+    'a port-in-use error of the private, local-only artifact studio: whoever reads it runs the checkout that holds prototypes/'
   ]
 ];
 
-export type Kind = 'script' | 'path' | 'ident' | 'link' | 'budget' | 'allowlist';
+export type Kind = 'script' | 'path' | 'ident' | 'link' | 'private' | 'budget' | 'allowlist';
 
 export interface Finding {
   file: string;
@@ -99,6 +117,8 @@ export interface Finding {
 export interface Report {
   sources: number;
   references: number;
+  /** Tracked files rule 5 read — 0 outside a git checkout, which is how a blind run shows. */
+  tracked: number;
   words: number;
   findings: Finding[];
 }
@@ -125,6 +145,40 @@ const ARTIFACT = /(^|\/)(node_modules|dist|\.svelte-kit)(\/|$)/;
 const SKIP_DIR = /(^|\/)(node_modules|dist|\.svelte-kit|\.git|build|coverage|test-results)(\/|$)/;
 const BINARY =
   /\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|eot|mp4|webm|mp3|pdf|zip|gz|tgz|svg|lock)$/i;
+
+/**
+ * The maintainer's private working directories (rule 5), one reason each. Not
+ * derivable from `.gitignore`: it also ignores what a build regenerates
+ * (`dist/`, the catalogs), and a pointer there comes back with the next build.
+ */
+export const PRIVATE_DIRS: ReadonlyArray<readonly [dir: string, why: string]> = [
+  ['docs/internal/', 'planning and review working docs, git-ignored'],
+  ['docs/archive/', 'the retired archive; its documents moved under docs/internal/'],
+  ['prototypes/', 'throwaway spikes and their findings, git-ignored']
+];
+
+/**
+ * A path below one of `PRIVATE_DIRS`: group 1 the path, group 2 the directory.
+ * The lookbehind keeps `apps/docs/internal/…` out; the capture stops at
+ * whitespace, quotes, brackets, globs and `?`, so `docs/internal/`,
+ * `docs/internal/**` and a sentence ending on the folder name capture nothing
+ * below it.
+ */
+const PRIVATE_POINTER = new RegExp(
+  `(?<![\\w./-])(?:\\.\\./)*((${PRIVATE_DIRS.map(([dir]) => dir.replace(/[.*+?^$|()[\]{}\\/]/g, '\\$&')).join('|')})[^\\s\`'"()<>[\\]{}*,;|?]+)`,
+  'g'
+);
+
+/**
+ * Tracked files rule 5 does not read, one reason each. A pattern names a kind of
+ * file rather than suppressing a finding, so unlike `ALLOWLIST` it has no stale
+ * state to report.
+ */
+export const UNSCANNED: ReadonlyArray<readonly [pattern: RegExp, why: string]> = [
+  [/^CHANGELOG\.md$/, 'git-cliff writes it from commit messages; it is never edited by hand'],
+  [/(^|\/)\.gitignore$/, 'the ignore rules name the private directories to keep them out'],
+  [/^bun\.lock$/, 'a lockfile, not prose']
+];
 
 /** What the identifier grep reads. Never node_modules, dist or .svelte-kit. */
 const CORPUS_GLOBS = [
@@ -341,13 +395,15 @@ export function check(root: string): Report {
     if (allow.has(what)) allowHit.add(what);
   };
 
-  const report = (src: Source, line: number, kind: Kind, what: string, why: string) => {
+  const reportAt = (file: string, line: number, kind: Kind, what: string, why: string) => {
     if (allow.has(what)) {
       allowHit.add(what);
       return;
     }
-    findings.push({ file: src.display, line, kind, what, why });
+    findings.push({ file, line, kind, what, why });
   };
+  const report = (src: Source, line: number, kind: Kind, what: string, why: string) =>
+    reportAt(src.display, line, kind, what, why);
 
   const checkPathLike = (src: Source, line: number, token: string) => {
     const bases = [ROOT, src.dir];
@@ -509,6 +565,53 @@ export function check(root: string): Report {
     }
   }
 
+  // 5 — private pointers, in every tracked file rather than the doc sources.
+  const tracked = gitTracked(ROOT);
+  const published = (target: string): boolean => {
+    if (tracked.has(target)) return true;
+    const dir = target.endsWith('/') ? target : `${target}/`;
+    for (const p of tracked) if (p.startsWith(dir)) return true;
+    return false;
+  };
+  // Never this file or its test: the pattern and the positive controls spell out
+  // the very pointers they look for. (Outside ROOT both resolve to `../…` and
+  // match nothing, which is right for a fixture root.)
+  const own = new Set([
+    relative(ROOT, import.meta.path),
+    relative(ROOT, join(import.meta.dir, 'docs-refs-check.test.ts'))
+  ]);
+  let scanned = 0;
+  for (const path of [...tracked].sort(cmp)) {
+    if (own.has(path) || BINARY.test(path) || UNSCANNED.some(([re]) => re.test(path))) continue;
+    const abs = join(ROOT, path);
+    let text: string;
+    try {
+      // A tracked symlink is a doc whose target git tracks on its own; reading
+      // both would report every pointer twice.
+      if (lstatSync(abs).isSymbolicLink()) continue;
+      text = readFileSync(abs, 'utf-8');
+    } catch {
+      continue; // deleted in the worktree, still in the index
+    }
+    if (text.includes('\0')) continue;
+    scanned++;
+    for (const [i, line] of text.split('\n').entries())
+      for (const m of line.matchAll(PRIVATE_POINTER)) {
+        const target = (m[1] ?? '').replace(/[.:!]+$/, '');
+        const dir = m[2] ?? '';
+        if (target === dir) continue;
+        seenRef(target);
+        if (!published(target))
+          reportAt(
+            path,
+            i + 1,
+            'private',
+            target,
+            `below ${dir}, which git does not track — it resolves for nobody but the maintainer`
+          );
+      }
+  }
+
   // A path git ignores is absent by design — a generated catalog, a working
   // directory that lives only in the main checkout. The tree cannot answer for
   // it, so neither does this check.
@@ -540,7 +643,7 @@ export function check(root: string): Report {
       });
 
   kept.sort((a, b) => cmp(a.file, b.file) || a.line - b.line || cmp(a.what, b.what));
-  return { sources: sources.length, references, words, findings: kept };
+  return { sources: sources.length, references, tracked: scanned, words, findings: kept };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -606,6 +709,19 @@ function splitFragment(target: string): [string, string | null] {
   return i === -1 ? [target, null] : [target.slice(0, i), target.slice(i + 1)];
 }
 
+/**
+ * The files git tracks — what the repo publishes. Outside a checkout (a fixture
+ * root, no git) the answer is empty and the report says `0 tracked files`.
+ */
+function gitTracked(root: string): Set<string> {
+  const proc = Bun.spawnSync(['git', '-C', root, 'ls-files', '-z'], {
+    stdout: 'pipe',
+    stderr: 'pipe'
+  });
+  if (proc.exitCode !== 0) return new Set();
+  return new Set(proc.stdout.toString().split('\0').filter(Boolean));
+}
+
 /** Asks git, so the ignore rules live in `.gitignore` and not in a second list. */
 function gitIgnored(root: string, paths: string[]): Set<string> {
   if (paths.length === 0) return new Set();
@@ -648,7 +764,7 @@ if (import.meta.main) {
     if (result.words > 0)
       console.log(`\nAGENTS.md: ${result.words} words (budget ${AGENTS_WORD_BUDGET})`);
     console.log(
-      `docs-refs-check: ${result.sources} sources, ${result.references} references, ${result.findings.length} findings`
+      `docs-refs-check: ${result.sources} sources, ${result.references} references, ${result.tracked} tracked files, ${result.findings.length} findings`
     );
   }
   process.exit(result.findings.length > 0 ? 1 : 0);
