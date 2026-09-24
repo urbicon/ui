@@ -8,7 +8,7 @@
     ArrowRightIcon,
     BellIcon,
     CheckIcon,
-    CircleHelpIcon,
+    HelpCircleIcon,
     CoffeeIcon,
     FingerprintIcon,
     GaugeIcon,
@@ -532,7 +532,7 @@
       <div class="w-full space-y-1">
         <div class="flex items-center gap-1">
           <span class="text-text-secondary text-[8px] font-medium">Allocation key</span>
-          <CircleHelpIcon class="text-text-quaternary h-2.5 w-2.5" />
+          <HelpCircleIcon class="text-text-quaternary h-2.5 w-2.5" />
         </div>
         <div
           class="bg-surface-inverted relative w-[152px] rounded px-1.5 py-1 shadow-[var(--blocks-shadow-md)]"

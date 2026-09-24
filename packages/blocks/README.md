@@ -127,7 +127,7 @@ Two kinds of axis are deliberately not addressable. A component whose look carri
 
 ## Icons
 
-358 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. Discover them with `urbicon icons <query>`.
+363 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. Discover them with `urbicon icons <query>`.
 
 ## i18n
 

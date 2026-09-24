@@ -143,12 +143,17 @@ to carry a local `transform` (see `ruler.svg`, which draws an axis-aligned ruler
 
 ### Live area & trim
 
-The drawing sits in a **~20×20 live area** centred in the 24×24 box, leaving a **≥1.5px trim
-margin** to the edge so icons never feel cramped and align optically when placed in a row.
+No stroke comes closer than **1px to the edge** of the 24×24 box: the outer edge of every stroke —
+the path plus half the stroke width, round caps and joins included — stays inside the **22×22
+live area**. Most shapes sit well inside it; the line only binds the extremes a diagonal or a
+curve pushes outward (a pencil tip, a speech-bubble tail, a scale pan, a ray).
 
 - **Round full-bleed shapes** use `r="9.5"` at `cx/cy="12"` (outer stroke edge ≈ 10.5 → 1.5px
   trim). This is the canonical status-ring size — see the whole circle family.
 - **Rectangular containers** span roughly `3 … 21` (≈17–18 per side).
+- **The linter does not check the trim.** An extent needs the path's real bounding box —
+  Bézier and arc extremes included — which the renderer computes and `icons:lint` does not. Measure
+  it on the contact sheet (§8): `getBBox()` of the drawing, grown by 1 on every side.
 - **Optical centring beats geometric centring.** A shape's visual mass should sit at the centre,
   which is *not* always its bounding-box centre (a play triangle, a teardrop, a cloud lean
   slightly off-centre on purpose). Match the reference icon rather than forcing the bbox to 12,12.
@@ -185,10 +190,12 @@ Reuse one shape for one idea so repeated elements are pixel-consistent:
 | Checkmark (in-circle) | `<path d="M8.5 12l2.5 3L16 9" />` | `check-circle` **and** `success-circle` share it |
 | Checkmark (standalone) | `<path d="M5.5 12l4.5 5L18.5 6.5" />` | the larger `check`; same ~0.5 arm ratio, scaled up |
 | Dot | `<circle r="1" />` | grip dots, `more-horizontal/vertical`, list bullets |
-| Small node / hub | `<circle r="1.5" />` | dial hubs (`gauge`, `meter`), `tag` eyelet |
+| Small node / hub | `<circle r="1.5" />` | dial hubs (`gauge`), `tag` eyelet |
 | Graph node | `<circle r="2.5" />` | `git-branch`, `share` endpoints |
 | Head / lens | `<circle r="4.5" />` (person) · `r="3.5"` (lens) | `user`, `eye`, `camera` |
 | Pip / "i" dot | `<path d="M12 8h.01" />` | info, help, warning |
+| Arrowhead (standalone) | arms `6.5` long: `<path d="M13 5.5l6.5 6.5-6.5 6.5" />` | `arrow-right` and its three siblings |
+| Arrowhead (composite) | arms `4` long: `<path d="M9 8l-4 4 4 4" />` | double arrows, corner arrows, `sort-asc`, `export`; a tray or cloud may push it 0.5 either way |
 
 Two glyphs may be **intentionally identical** when they're semantic aliases (`check-circle` vs
 `success-circle`): same drawing, different name and colour token. That's fine — don't introduce a
@@ -209,8 +216,7 @@ dense smears into a blob.
 ## 6 · Path style (soft — warnings)
 
 - **Compact notation:** `M12 3C9 7 6 11 6 14.5` — no spaces between a command letter and its
-  numbers. The set is 95% compact; the spaced minority (`droplet`, `fuel`, `rocket`, …) are
-  warned, not blocked. New icons should be compact.
+  numbers. The whole set is compact; the linter warns on a spaced path rather than blocking it.
 - **Multi-element over compound:** distinct sub-shapes are separate `<path>/<circle>/<rect>/<line>`
   elements, not crammed into one `d`. (A single outline that happens to be complex, like a file
   with a folded corner, is still one path — that's correct.)
@@ -227,13 +233,14 @@ When drawing a new icon, find its class and start from that file's geometry:
 | Mid container | `server`, `printer` | `rect rx=1.5` |
 | Capsule | `mic`, `pause` | `rx = short/2` |
 | Document | `file`, `file-check` | folded-corner outline; one path |
-| Teardrop | `droplet`, `flame` | shared `M12 3 C9 7 6 11 6 14.5 a6 6 0 0 0 12 0 …` |
-| Inline meter | `meter`, `water-meter` | `r=6` dial + side flanges at `x=3/21` |
+| Teardrop | `droplet`, `flame` | shared `M12 3C9 7 6 11 6 14.5a6 6 0 0 0 12 0…` |
+| Inline meter | `meter`, `water-meter` | `rect 6…18 rx=2.5` housing + pipe stubs, flanges at `x=2.5/21.5` |
 | Person | `user`, `users` | `r=4.5` head + shoulder arc |
 | Arrow | `arrow-right` | shaft `M4.5 12h15` + head |
 | Chevron | `chevron-right` | `M9.5 7l5 5-5 5` |
-| Bars / chart | `bar-chart`, `pellet` | parallel strokes ≥2px apart |
+| Bars / chart | `bar-chart`, `sort-asc` | parallel strokes ≥2px apart |
 | Toggle pair | `eye`/`eye-off`, `mic`/`mic-off` | base glyph + diagonal slash `M…l…` |
+| Git graph | `git-branch`, `git-merge`, `git-pull-request` | `r=2.5` nodes; time runs bottom-up as in `git log --graph`, so a branch splits upward and a merge joins upward |
 
 ## 8 · Adding a new icon — touch ALL of these
 
@@ -255,6 +262,22 @@ Semantic aliases are allowed: a `DEFAULT_ICONS` key may map to a differently-nam
 integrator then adds the wrappers and steps 2–5 for all of them, so parallel work never collides
 in the shared registry files. Before merging, pass `icons:lint` and review a contact sheet of the
 new icons at 44px and at 16px, the size where density fails (§5).
+
+**Put each drawing next to its nearest neighbour in shape.** A circle on a stick is a pin whatever
+its name says, a ring with two radii is a clock, an arrow on a line is an upload. At 16px only the
+silhouette survives, so compare silhouettes: `tree` beside `pin`, `pieChart` beside
+`clock`, `navigation` beside `send`. The linter passes an icon that reads as another one.
+
+### Naming
+
+- **Base first, modifier after:** `fileX`, `bellOff`, `userCog`, `checkCircle`, `helpCircle`. A
+  variant carries its base's name: `funnel` and `funnelX`.
+- **No numbers:** a name says what differs (`table` and `tableGrid`). `building2` is the one
+  exception left, because no name says better what sets it apart from `building`.
+- **A generic drawing gets a generic name.** `granules` is any heap of small pieces — pellets,
+  gravel, grain — and the domain word goes into the keywords. A drawing that only one domain
+  recognises keeps the domain name (`heatPump`, `waterMeter`), and its look-alikes go into the
+  keywords (`air conditioner`, `outdoor unit`).
 
 ## 9 · The linter
 

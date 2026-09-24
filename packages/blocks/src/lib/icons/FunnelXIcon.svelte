@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { IconProps } from './icon.context';
   import IconWrapper from './IconWrapper.svelte';
-  import content from './svg/circle-percent.svg?raw';
+  import content from './svg/funnel-x.svg?raw';
 
   let props: IconProps = $props();
 </script>

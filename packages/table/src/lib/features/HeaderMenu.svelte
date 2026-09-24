@@ -13,14 +13,14 @@
     MenuItem,
     MenuSubmenu,
     resolveIcon,
-    ArrowDownIcon as ArrowDownIconDefault,
-    ArrowUpIcon as ArrowUpIconDefault,
     CalculatorIcon as CalculatorIconDefault,
     EyeIcon as EyeIconDefault,
     EyeOffIcon as EyeOffIconDefault,
-    FilterXIcon as FilterXIconDefault,
+    FunnelXIcon as FunnelXIconDefault,
+    ListTreeIcon as ListTreeIconDefault,
     MoreVerticalIcon as MoreVerticalIconDefault,
-    UsersIcon as UsersIconDefault,
+    SortAscIcon as SortAscIconDefault,
+    SortDescIcon as SortDescIconDefault,
     type MenuObjectOption
   } from '@urbicon-ui/blocks';
   import { useTableI18n } from '$lib/i18n';
@@ -39,14 +39,14 @@
     isActive?: boolean;
   };
 
-  const ArrowDownIcon = resolveIcon('arrowDown', ArrowDownIconDefault);
-  const ArrowUpIcon = resolveIcon('arrowUp', ArrowUpIconDefault);
   const CalculatorIcon = resolveIcon('calculator', CalculatorIconDefault);
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
   const EyeOffIcon = resolveIcon('eyeOff', EyeOffIconDefault);
-  const FilterXIcon = resolveIcon('filterX', FilterXIconDefault);
+  const FunnelXIcon = resolveIcon('funnelX', FunnelXIconDefault);
+  const ListTreeIcon = resolveIcon('listTree', ListTreeIconDefault);
   const MoreVerticalIcon = resolveIcon('moreVertical', MoreVerticalIconDefault);
-  const UsersIcon = resolveIcon('users', UsersIconDefault);
+  const SortAscIcon = resolveIcon('sortAsc', SortAscIconDefault);
+  const SortDescIcon = resolveIcon('sortDesc', SortDescIconDefault);
 
   let { column, isActive = false }: HeaderMenuProps = $props();
 
@@ -242,14 +242,14 @@
       <!-- The two directions are one radio pair: the effective direction is
            machine-readable state (`aria-checked`), not just a tint. -->
       <MenuItem
-        icon={ArrowUpIcon}
+        icon={SortAscIcon}
         label={tt('headerMenu.sortAscending')}
         checked={isSorted && sortDirection === 'asc'}
         class={itemClass('default', isSorted && sortDirection === 'asc')}
         onSelect={handleSortAsc}
       />
       <MenuItem
-        icon={ArrowDownIcon}
+        icon={SortDescIcon}
         label={tt('headerMenu.sortDescending')}
         checked={isSorted && sortDirection === 'desc'}
         class={itemClass('default', isSorted && sortDirection === 'desc')}
@@ -260,7 +260,7 @@
 
     {#if hasFilter}
       <MenuItem
-        icon={FilterXIcon}
+        icon={FunnelXIcon}
         label={tt('headerMenu.removeFilter')}
         class={itemClass('filter')}
         onSelect={handleRemoveFilters}
@@ -272,7 +272,7 @@
            ("Group by column" / "Remove grouping"), so `checked` would say the
            same thing twice with a contradicting label. -->
       <MenuItem
-        icon={UsersIcon}
+        icon={ListTreeIcon}
         label={isGrouped ? tt('headerMenu.removeGrouping') : tt('headerMenu.groupByColumn')}
         class={itemClass(isGrouped ? 'group' : 'default', isGrouped)}
         onSelect={handleGroupBy}
