@@ -5,7 +5,9 @@
     createDraggable,
     findDropTarget,
     ChevronDownIcon as ChevronDownIconDefault,
-    ChevronUpIcon as ChevronUpIconDefault
+    ChevronUpIcon as ChevronUpIconDefault,
+    ChevronsDownUpIcon as ChevronsDownUpIconDefault,
+    ChevronsUpDownIcon as ChevronsUpDownIconDefault
   } from '@urbicon-ui/blocks';
   import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
   import { resolveColumnId } from '$lib/utils';
@@ -16,6 +18,8 @@
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   const ChevronUpIcon = resolveIcon('chevronUp', ChevronUpIconDefault);
+  const ChevronsDownUpIcon = resolveIcon('chevronsDownUp', ChevronsDownUpIconDefault);
+  const ChevronsUpDownIcon = resolveIcon('chevronsUpDown', ChevronsUpDownIconDefault);
   import HeaderMenu from '../features/HeaderMenu.svelte';
   import { useTableI18n } from '../i18n';
   import { tableHeaderVariants, headerIndicatorVariants } from '$lib/variants';
@@ -193,9 +197,9 @@
             data-testid="toggle-all-groups"
           >
             {#if tableState.allGroupsExpanded}
-              <ChevronUpIcon class="h-4 w-4" />
+              <ChevronsDownUpIcon class="h-4 w-4" />
             {:else}
-              <ChevronDownIcon class="h-4 w-4" />
+              <ChevronsUpDownIcon class="h-4 w-4" />
             {/if}
           </button>
         </th>

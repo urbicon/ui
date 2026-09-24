@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
-  import { Select, resolveIcon, LayersIcon as LayersIconDefault } from '@urbicon-ui/blocks';
+  import { Select, resolveIcon, ListTreeIcon as ListTreeIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
   import { buildGroupingEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 
@@ -12,7 +12,7 @@
    */
   const tt = useTableI18n();
 
-  const LayersIcon = resolveIcon('layers', LayersIconDefault);
+  const ListTreeIcon = resolveIcon('listTree', ListTreeIconDefault);
 
   const tableContext = getTableContext();
   const { state: tableState, setGroupBy } = tableContext;
@@ -55,7 +55,7 @@
 </script>
 
 {#snippet triggerIcon()}
-  <LayersIcon class="h-4 w-4" />
+  <ListTreeIcon class="h-4 w-4" />
 {/snippet}
 
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
