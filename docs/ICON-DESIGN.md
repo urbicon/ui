@@ -268,10 +268,10 @@ off-grid axis-aligned coordinates, illegal `rect` `rx`, registry integrity
 (svg ↔ `.svelte` ↔ `index.ts` ↔ `DEFAULT_ICONS` ↔ `ICON_METADATA` ↔ `IconName`), and the
 **documented icon count**.
 
-That last one exists because the size of the set was quoted in fifteen places and every one of
-them had gone stale. Twelve were decoration ("drags all N icons into the bundle" — the number
-carried nothing "the whole set" doesn't) and were deleted rather than maintained; a number nobody
-acts on is a number that only rots. The ones that inform a reader — `COUNT_CLAIMS` in
+That last one exists because every quoted size of the set had gone stale. Most quotes were
+decoration ("drags all N icons into the bundle" — the number carried nothing "the whole set"
+doesn't) and were deleted rather than maintained; a number nobody acts on is a number that only
+rots. The ones that inform a reader — `COUNT_CLAIMS` in
 `icons-lint.ts` — are checked against the count the linter already has from the `svg/` directory,
 so the claim cannot drift from the thing it describes. Rewording the sentence so the pattern stops
 matching is an error too, not a silent detachment.

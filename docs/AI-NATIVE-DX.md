@@ -58,16 +58,10 @@ server. Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-is-deployed-not-advertis
 
 ## Design System Intelligence
 
-The design model has five layers: **1 Foundation** tokens (raw OKLCH palettes, radius scale,
-z-index), **2 Semantic** tokens (surface, text, border, intent), **3 Component** (variant
-defaults, slot classes, presets), **4 Composition** (page layout and arrangement) and
-**5 Principles** (heuristics, selection rules). The asymmetry between them shapes the design
-loop: **tokens propagate through code, patterns only through knowledge.** Change something in
-layers 1–3 and everything above it follows through CSS custom properties and `tv()`. Change a
-pattern or a principle and nothing moves until an agent finds every page that followed it —
-which is why pattern usage is marked in the code (`data-design-pattern`) and indexed in the
-manifest (see the design loop below). The layer table and the change decision tree live in
-`design-system/principles.md`.
+In the [five-layer model](../design-system/principles.md#the-5-layer-token-hierarchy),
+**tokens propagate through code, patterns only through knowledge** — a changed pattern reaches
+no page until an agent finds every page that followed it, which is why pattern usage is marked
+in the code (`data-design-pattern`) and indexed in the manifest (see the design loop below).
 
 `design-system/` holds layers 4 and 5:
 
@@ -95,15 +89,13 @@ Serving knowledge is only half of it. The loop is generate → validate → judg
   turn the loop from advisory into required. Correctness always gates; the craft axis is
   opt-in via `--craft-floor`. Templates ship under `@urbicon-ui/design/templates`.
 
-**What it is measured to do — and not to do.** Blind-judged A/B runs (2026-08, waves 1–3 plus
-the replication of 2026-08-18) support one claim: the loop holds generated markup on the token
-system. On a budget model, the run reading the installed package on its own produced hundreds
-of linter findings where the wired run produced a clean `validate`. Three things it does
-**not** do, each measured rather than assumed: it does not raise design-craft scores on any
-model tier — adding the visual-hierarchy principle to the primer did not lift the `hierarchy`
-score either (a single A/B run, in which an unpatched arm matched it), so `CORE_PRINCIPLES` in
-the primer stays small; it does not make runs cheaper (two independent pairs, no advantage
-either time); and a clean gate is not the same as correct. The token check knows the
-library's own roots — `text-on-surface-muted` or `bg-surface-made-up` fails — but a colour
-class on a root it does not know, such as `bg-made-up-token`, passes, because it cannot be
-told apart from a project's own colour. Public claims are held to this list.
+**What it is measured to do — and not to do.** Blind-judged A/B runs support one claim: the loop
+holds generated markup on the token system — on a budget model, a run reading the installed
+package on its own failed `validate` where the wired run passed it. Three things it does **not**
+do, each measured rather than assumed: it does not raise design-craft scores, and more principle
+prose in the primer did not change that in the one run that tried it, which is why
+`CORE_PRINCIPLES` stays small; it does not make runs cheaper; and a clean gate is not the same
+as correct. The token check knows the library's own roots — `text-on-surface-muted` or
+`bg-surface-made-up` fails — but a colour class on a root it does not know, such as
+`bg-made-up-token`, passes, because it cannot be told apart from a project's own colour. Public
+claims are held to this list.

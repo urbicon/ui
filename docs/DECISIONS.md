@@ -140,8 +140,8 @@ A component the library lacks is not automatically a gap. These were weighed and
 - **Kanban and Gantt** — at most a recipe over existing components.
 - **Voice/persona UI, transfer lists, cascaders** — too far from the core, or no demand in the
   target segment.
-- **A carousel.** Rotating slides are ignored — what gets clicked is almost always the first —
-  and motion the reader did not start competes with reading. The heavier reason is this
+- **A carousel.** Auto-rotating slides are a long-documented usability anti-pattern: motion
+  the reader did not start competes with reading. The heavier reason is this
   library's own: it ships a linter and a primer that steer agents, and a component whose main
   function is a known anti-pattern would be used by them the moment it exists — anything named
   `Carousel` gets used as one. `Scroller` is an overflow behaviour and never rotates. If
@@ -153,8 +153,7 @@ A component the library lacks is not automatically a gap. These were weighed and
   A pager is its own component, built when a real case appears; until then `Tab` covers one
   item at a time.
 - **Stateless layout compositions** such as a page header — no state, no variants, no
-  behaviour — are recipes, not components. `PageHeader` was a component once and became the
-  page-header recipe.
+  behaviour — are recipes, not components; the page header is one.
 
 **Revisit only if:** a consumer asks for one, with the use case rather than the name.
 
@@ -220,11 +219,11 @@ pipeline rather than by the tag itself. See [VERSIONING.md](VERSIONING.md).
 `bun run size --check` gates in `scripts/bump.sh`, once per release; per PR, CI's
 `size-report` job runs the same measurement as a report and fails nothing.
 
-As a per-PR gate it fired mostly on growth that was intended — a new feature is bigger — and
-the answer was almost always another baseline commit, not a decision. A baseline refreshed by
-hand after every intentional change is a second hand-written copy of what the build already
-knows, and the gate was the slowest step of the build job. At the bump the growth of a whole
-release is judged once, and a deliberate `--update-baseline` travels in the release commit.
+As a per-PR gate it fired on intentional growth too — a new feature is bigger — and the
+answer was a baseline commit rather than a decision
+(`git log -i -E --grep='^(chore|test|docs)(\(.*\))?:.*size baseline'` lists them). A baseline refreshed by hand after every intentional change is a second hand-written
+copy of what the build already knows. At the bump the growth of a whole release is judged
+once, and a deliberate `--update-baseline` travels in the release commit.
 
 **Revisit only if:** growth the bump catches keeps turning out unintended and hard to trace to
 its PR — then a per-PR gate that fires only on undeclared growth, not the baseline ritual.
@@ -280,7 +279,8 @@ Redesigns of `packages/auth` drafted from its requirements alone proposed three 
 does not have:
 
 - **One constructor** — a single `createAuth` yielding the handle and every handler from one
-  resolved config, instead of `createAuthDeps`, `createAuthHandle` and a factory per handler.
+  resolved config, instead of `createAuthDeps`, `createAuthHandle` and handler factories the
+  consumer wires one by one.
   It would make the two entry points unable to disagree.
 - **Token families** — one descriptor per single-use token purpose feeding both the runtime
   and the conformance suite, instead of a column group and purpose-specific methods per token
@@ -346,6 +346,5 @@ works.
 in its own right (then the answer is LLM generation plus deterministic verification, not
 deterministic projection), or hundreds of near-identical entities need scaffolding (then a
 config-driven library extension, not a projection tool). The DSL half is revisited only if
-non-developers are to iterate on designs themselves. The full write-up lives on the
-frozen branch `experiment/domain-projection`; reactivate with
-`git worktree add ../ui-domain-projection experiment/domain-projection && bun install`.
+non-developers are to iterate on designs themselves. The full write-up lives on that
+maintainer-local branch.

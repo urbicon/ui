@@ -60,7 +60,7 @@ This was a silent, library-wide defect: 12 variant slots listed `transform` and 
 
 ## Preflight no longer sets `cursor: pointer` on buttons
 
-Tailwind 3's preflight gave `button` and `[role="button"]` a pointer cursor; Tailwind 4's (`node_modules/tailwindcss/preflight.css`) does not, so a bare `<button>` shows the browser's default arrow. The library adds no global rule to bring it back. Every slot that renders a trigger sets `cursor-pointer` itself — `button.variants.ts`, the internal `CoreIconButton`, the item slots of Menu and Tab — together with `cursor-not-allowed` for the disabled state where there is one. A new trigger slot has to do the same, and so does a consumer's own `<button>` outside the library.
+Tailwind 3's preflight gave `button` and `[role="button"]` a pointer cursor; Tailwind 4's (`node_modules/tailwindcss/preflight.css`) does not, so a bare `<button>` shows the browser's default arrow. The library adds no global rule to bring it back, so a slot that renders a trigger has to set `cursor-pointer` itself — as `button.variants.ts`, the internal `CoreIconButton` and the item slots of Menu and Tab do — together with `cursor-not-allowed` for the disabled state where there is one. A trigger slot without the class shows the arrow. The same holds for a consumer's own `<button>` outside the library.
 
 ## @source and Monorepo Packages
 

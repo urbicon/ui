@@ -20,13 +20,10 @@ for the PR-based form.
    merge of `main` into a sibling costs a MIGRATION/baseline conflict and a
    CI round, see CI and merge), so a third parallel PR saves wall-clock only
    up to the merge queue, while every agent in flight adds its own cache
-   reads — priced, the bulk of a wave's spend, several times the
-   orchestrator's — and adds reports and routing to the orchestrator's
-   output, under a third of a wave's output on a floor that undercounts the
-   subagents, not the largest line (measured 2026-09-22 over the waves of
-   2026-08-18 to 2026-09-17; its transcripts are being pruned, so a re-run
-   no longer reproduces it — a dated baseline; Wave close measures a new
-   wave). The agent does not commit;
+   reads — priced, the subagents' cache reads are the bulk of a wave's
+   spend, the orchestrator a small share — and adds reports and routing to
+   the orchestrator's output (Wave close measures each wave). The agent
+   does not commit;
    you commit, push and open the PR from its report, without re-running its
    gates (CI on the head SHA is the oracle, see CI and merge).
 2. **Adversarial review in a fresh context** — never the implementing
@@ -183,13 +180,11 @@ the turns that followed a pause longer than five minutes, the fresh-context
 cost of each agent, the peak number of agents active in the same minute,
 and the word each role was read from; an output figure marked as a floor
 is one whose transcript carries no final usage for some turns. The table
-goes into the wave's internal protocol, to be read against the dated
-baseline in step 1. Claude Code prunes transcripts after
-`cleanupPeriodDays` (30 by default), so a wave measured later than that
-has no data left — which is what made that baseline unreproducible —
-record it at close, not
-at the next audit; and the session doing the recording is in the
-population it reads.
+goes into the wave's protocol; compare it with the previous wave's table
+there. Claude Code prunes transcripts after `cleanupPeriodDays` (30 by
+default), so a wave measured later than that has no data left — record
+it at close, not at the next audit; and the session doing the recording
+is in the population it reads.
 
 Then prune what the wave made obsolete, as a named step rather than a
 someday: memory entries whose delete-condition the wave met; every

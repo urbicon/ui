@@ -730,13 +730,14 @@ Pure date math lives in `packages/blocks/src/lib/date/` (`geometry`, `range`, `c
 
 `Planner<T>` is the generic planning-board component built on that core — event type is
 caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised — and the only caller of
-`DateGridScaffold`, which covers the cell-based views (month 6×7, week, range). Calendar
-shares the controller, its context and `handleDateGridKeydown`, but draws its own grid in
-`CalendarGrid.svelte`, by design: the scaffold makes its own `role="gridcell"` element the
-interactive one (roving `tabindex`, click, keyboard) and renders the caller's `cell` snippet
-inside it, while Calendar's `CalendarDay` is itself an interactive `<button role="gridcell">`
-with its own popover, drag target and `dayState` styling. On the scaffold every day would
-carry the gridcell role twice, or the scaffold would have to absorb Calendar's specifics.
+`DateGridScaffold`, which covers the cell-based views (month 6×7, week, range). Calendar shares
+the `DateGridController` and `handleDateGridKeydown`, keeps a context of its own
+(`calendar.context.ts`), and draws its own grid in `CalendarGrid.svelte`, by design: the
+scaffold makes its own `role="gridcell"` element the interactive one (roving `tabindex`, click,
+keyboard) and renders the caller's `cell` snippet inside it, while Calendar's `CalendarDay` is
+itself an interactive `<button role="gridcell">` with its own popover, drag target and
+`dayState` styling. On the scaffold every day would carry the gridcell role twice, or the
+scaffold would have to absorb Calendar's specifics.
 
 `ResourceTimeline<T>` is the third consumer and the one with a second axis: one lane per
 resource against a day window, items drawn as bars over an inclusive `[start, end]` day
