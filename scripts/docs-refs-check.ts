@@ -17,16 +17,17 @@
  *   4. the target document's headings, slugified the way GitHub does, for every
  *      `[…](file.md#anchor)` link.
  *   5. git's index — `git ls-files` — for every tracked file, code included,
- *      that names a path *below* one of `PRIVATE_DIRS` (`docs/internal/`,
- *      `docs/archive/`, `prototypes/`). Those are the maintainer's private
- *      working directories: never generated and never published, so for them
- *      rule 2's "absent by design" flips into "dead for everyone but the
- *      maintainer" — and a pointer in a comment ships with the tarball as
- *      readily as one in a doc. The index decides what is published: a pointer
- *      to a file git tracks there is fine, anything else is a finding. The bare
- *      folder name is not a pointer — prose about the folder names no document
- *      — and `UNSCANNED` lists the kinds of tracked file this rule does not
- *      read, one reason each.
+ *      that names a path *below* a `PRIVATE_DIRS` entry: the maintainer's
+ *      private working directories, each listed there with its reason. They
+ *      are never generated and never published, so for them rule 2's "absent
+ *      by design" flips into "dead for everyone but the maintainer" — and a
+ *      pointer in a comment ships with the tarball as readily as one in a doc.
+ *      The index decides what is published: a pointer to a file git tracks
+ *      there is fine, anything else is a finding. The bare folder name and a
+ *      placeholder are not pointers (`privateTarget`), and `UNSCANNED` lists
+ *      the kinds of tracked file this rule does not read, one reason each. A
+ *      checkout whose index git cannot read exits 2 rather than passing on
+ *      zero files.
  *
  * It owns existence and nothing else. A path that exists but is the wrong one,
  * a count that has drifted, two docs that contradict each other, a rule that no
@@ -72,7 +73,7 @@
  *
  * Run: `bun run docs:refs:check` — no build needed. `--root <dir>` points it at
  * another tree, `--json` prints findings as JSON. Exit 1 on any finding, 2 on
- * a malformed argument.
+ * a malformed argument or a checkout whose index git cannot read.
  */
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -158,16 +159,38 @@ export const PRIVATE_DIRS: ReadonlyArray<readonly [dir: string, why: string]> = 
 ];
 
 /**
- * A path below one of `PRIVATE_DIRS`: group 1 the path, group 2 the directory.
- * The lookbehind keeps `apps/docs/internal/…` out; the capture stops at
- * whitespace, quotes, brackets, globs and `?`, so `docs/internal/`,
- * `docs/internal/**` and a sentence ending on the folder name capture nothing
- * below it.
+ * A token starting with one of `PRIVATE_DIRS`, optionally behind `./` or `../`:
+ * group 1 the token, group 2 the directory. The lookbehind keeps
+ * `apps/docs/internal/…` out; the token runs to whitespace, a quote or a
+ * bracket, and what it may not be is decided after the match (`privateTarget`).
  */
 const PRIVATE_POINTER = new RegExp(
-  `(?<![\\w./-])(?:\\.\\./)*((${PRIVATE_DIRS.map(([dir]) => dir.replace(/[.*+?^$|()[\]{}\\/]/g, '\\$&')).join('|')})[^\\s\`'"()<>[\\]{}*,;|?]+)`,
+  `(?<![\\w./-])(?:\\.{1,2}/)*((${PRIVATE_DIRS.map(([dir]) => dir.replace(/[.*+?^$|()[\]{}\\/]/g, '\\$&')).join('|')})[^\\s\`'"()<>[\\]{},;|]*)`,
   'g'
 );
+
+/** A placeholder or a pattern, as in rules 1–4 — `→` because prose points with it. */
+const PLACEHOLDER = /[*<>{}…$?|→]|\.\.\./;
+
+/**
+ * The path a rule-5 token names, or null when it names none: sentence
+ * punctuation, a `#anchor` and a `:line` suffix come off first, so a pointer
+ * into a tracked file is looked up as that file. The bare directory, a
+ * placeholder (`docs/internal/…`, `$FILE`) and a compound written onto the
+ * folder name (`docs/internal/-Dokumente`) are not pointers.
+ */
+function privateTarget(token: string, dir: string): string | null {
+  const target = token
+    .replace(/[.,;:!?]+$/, '')
+    .replace(/#.*$/, '')
+    .replace(/:\d+(?:-\d+)?(?::\d+)?$/, '');
+  const below = target.slice(dir.length);
+  if (below === '' || below.startsWith('-') || PLACEHOLDER.test(target)) return null;
+  return target;
+}
+
+/** The environment cannot answer — exit 2, like a malformed argument, never a clean run. */
+export class EnvironmentError extends Error {}
 
 /**
  * Tracked files rule 5 does not read, one reason each. A pattern names a kind of
@@ -566,7 +589,12 @@ export function check(root: string): Report {
   }
 
   // 5 — private pointers, in every tracked file rather than the doc sources.
-  const tracked = gitTracked(ROOT);
+  // A checkout whose index git cannot read would otherwise pass with "0 tracked
+  // files"; only a root that is no checkout at all (a fixture) may answer empty.
+  const index = gitTracked(ROOT);
+  if (index === null && existsSync(join(ROOT, '.git')))
+    throw new EnvironmentError(`git ls-files failed in ${ROOT} — rule 5 cannot read the index`);
+  const tracked = index ?? new Set<string>();
   const published = (target: string): boolean => {
     if (tracked.has(target)) return true;
     const dir = target.endsWith('/') ? target : `${target}/`;
@@ -597,9 +625,9 @@ export function check(root: string): Report {
     scanned++;
     for (const [i, line] of text.split('\n').entries())
       for (const m of line.matchAll(PRIVATE_POINTER)) {
-        const target = (m[1] ?? '').replace(/[.:!]+$/, '');
         const dir = m[2] ?? '';
-        if (target === dir) continue;
+        const target = privateTarget(m[1] ?? '', dir);
+        if (target === null) continue;
         seenRef(target);
         if (!published(target))
           reportAt(
@@ -619,7 +647,21 @@ export function check(root: string): Report {
     ROOT,
     findings.filter((f) => f.kind === 'path').map((f) => f.what)
   );
-  const kept = findings.filter((f) => f.kind !== 'path' || !ignored.has(f.what));
+  // Rule 5 owns a path below a private directory: where it reported one, the
+  // `path`/`link` finding rules 2 and 4 raised at the same line is the same
+  // pointer a second time.
+  const privateAt = new Set(
+    findings.filter((f) => f.kind === 'private').map((f) => `${f.file}:${f.line}`)
+  );
+  const kept = findings.filter(
+    (f) =>
+      !(f.kind === 'path' && ignored.has(f.what)) &&
+      !(
+        (f.kind === 'path' || f.kind === 'link') &&
+        privateAt.has(`${f.file}:${f.line}`) &&
+        PRIVATE_DIRS.some(([dir]) => f.what.replace(/^(?:\.{1,2}\/)+/, '').startsWith(dir))
+      )
+  );
 
   const agents = sources.find((s) => s.display === 'AGENTS.md');
   const words = agents ? agents.text.trim().split(/\s+/).filter(Boolean).length : 0;
@@ -710,16 +752,21 @@ function splitFragment(target: string): [string, string | null] {
 }
 
 /**
- * The files git tracks — what the repo publishes. Outside a checkout (a fixture
- * root, no git) the answer is empty and the report says `0 tracked files`.
+ * The files git tracks — what the repo publishes — or null when git cannot say
+ * (no checkout, no git, a broken `GIT_DIR`). The caller decides which of those
+ * is an error.
  */
-function gitTracked(root: string): Set<string> {
-  const proc = Bun.spawnSync(['git', '-C', root, 'ls-files', '-z'], {
-    stdout: 'pipe',
-    stderr: 'pipe'
-  });
-  if (proc.exitCode !== 0) return new Set();
-  return new Set(proc.stdout.toString().split('\0').filter(Boolean));
+function gitTracked(root: string): Set<string> | null {
+  try {
+    const proc = Bun.spawnSync(['git', '-C', root, 'ls-files', '-z'], {
+      stdout: 'pipe',
+      stderr: 'pipe'
+    });
+    if (proc.exitCode !== 0) return null;
+    return new Set(proc.stdout.toString().split('\0').filter(Boolean));
+  } catch {
+    return null; // no git binary at all
+  }
 }
 
 /** Asks git, so the ignore rules live in `.gitignore` and not in a second list. */
@@ -748,7 +795,14 @@ if (import.meta.main) {
     console.error('docs-refs-check: --root needs a directory');
     process.exit(2);
   }
-  const result = check(given ? resolve(given) : resolve(import.meta.dir, '..'));
+  let result: Report;
+  try {
+    result = check(given ? resolve(given) : resolve(import.meta.dir, '..'));
+  } catch (error) {
+    if (!(error instanceof EnvironmentError)) throw error;
+    console.error(`docs-refs-check: ${error.message}`);
+    process.exit(2);
+  }
 
   if (argv.includes('--json')) {
     console.log(JSON.stringify(result, null, 2));

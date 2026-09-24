@@ -388,6 +388,50 @@ describe('docs-refs-check', () => {
     expect(code).toBe(0);
   });
 
+  it('reports a pointer behind `./` or `../`, and a doc-source span only once', () => {
+    const root = fixture();
+    const dot = appendLine(root, 'scripts/keeper.ts', '// see ./docs/internal/PLAN.md');
+    const up = appendLine(root, 'scripts/keeper.ts', '// see ../docs/internal/OTHER.md');
+    const span = appendLine(root, 'AGENTS.md', 'Details: `docs/archive/OLD.md`.');
+    track(root);
+    const { out } = run(root);
+    expect(out).toContain(`scripts/keeper.ts:${dot}  private  docs/internal/PLAN.md`);
+    expect(out).toContain(`scripts/keeper.ts:${up}  private  docs/internal/OTHER.md`);
+    expect(out).toContain(`AGENTS.md:${span}  private  docs/archive/OLD.md`);
+    // Rule 2 sees the same span as a missing path; rule 5 owns it.
+    expect(out.match(/docs\/archive\/OLD\.md/g)).toHaveLength(1);
+  });
+
+  it('passes placeholders, a compound on the folder name, and a tracked target with a suffix', () => {
+    const root = fixture();
+    for (const text of [
+      '// a placeholder: docs/internal/…',
+      '// an arrow: docs/internal/→ the plan',
+      '// a variable: docs/internal/$FILE',
+      '// a German compound: die docs/internal/-Dokumente',
+      '// an anchor: docs/archive/KEPT.md#the-section',
+      '// a line: docs/archive/KEPT.md:12'
+    ])
+      appendLine(root, 'scripts/keeper.ts', text);
+    write(root, 'docs/archive/KEPT.md', '# Kept\n\n## The section\n');
+    track(root);
+    const { code, out } = run(root);
+    expect(out).toContain('0 findings');
+    expect(code).toBe(0);
+  });
+
+  it('exits 2 when a checkout cannot answer for its index, instead of reading 0 files', () => {
+    const root = fixture();
+    track(root);
+    const proc = Bun.spawnSync([process.execPath, SCRIPT, '--root', root], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: { ...process.env, GIT_DIR: join(root, 'no-such-git-dir') }
+    });
+    expect(proc.stderr.toString()).toContain('git ls-files failed');
+    expect(proc.exitCode).toBe(2);
+  });
+
   // Explicit over a fallback: a `--root` that names nothing must not silently
   // check this repo and report it clean.
   it('refuses a --root with no directory behind it', () => {
