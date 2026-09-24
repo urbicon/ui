@@ -37,7 +37,7 @@ describe('Scroller variants — the scroll mechanic is CSS', () => {
     expect(base).toContain('py-1');
   });
 
-  it('keeps the native scrollbar by default (plan §3.4/§7)', () => {
+  it('keeps the native scrollbar by default', () => {
     // A bare row has no other way to promise there is more to see. It is hidden
     // only where controls or dots take over that job — see the scrollbar axis.
     const base = viewport();
@@ -134,7 +134,7 @@ describe('Scroller variants — emphasis', () => {
     expect(lifted('subtle')).not.toContain('motion-reduce:[&>*]:[animation-timeline:none]');
   });
 
-  it('never dims or blurs the neighbours (§3.7 condition 1)', () => {
+  it('never dims or blurs the neighbours', () => {
     // Coverflow's inheritance. Dimming the edges destroys the very thing the
     // centred variant exists for — seeing how many there are.
     expect(lifted('strong')).not.toContain('blur');

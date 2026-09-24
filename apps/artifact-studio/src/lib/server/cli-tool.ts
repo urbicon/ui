@@ -22,7 +22,7 @@ const CLI = join(REPO_ROOT, 'packages/design/src/cli/index.ts');
  * Lesend ist alles erlaubt. **`record-decision` ebenfalls** — seit die CLI mit
  * dem Sitzungsordner als cwd läuft, hat es dort einen echten Adressaten: das
  * Manifest der Sitzung. Ohne das war der Kreislauf halbiert, und das Modell lief
- * sichtbar dagegen (BEFUNDE §10: es versuchte `record-decision` von selbst und
+ * sichtbar dagegen (es versuchte `record-decision` von selbst und
  * wurde von dieser Liste gestoppt).
  *
  * Gesperrt bleiben `init` und `hook`: die schreiben in ein *Projekt* (AGENTS.md,

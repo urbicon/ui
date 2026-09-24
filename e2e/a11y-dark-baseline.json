@@ -16,8 +16,8 @@
     "",
     "Scope: the 13 static fixture primitives in their default states — no open",
     "overlays, focus/hover states, or Menu/Tooltip surfaces. A dark-only bug in an",
-    "overlay, focus ring, or the Rooms-skin dark primary-as-foreground (see",
-    "technical-debt) is out of this gate's reach; style/contrast.test.ts guards the",
+    "overlay, focus ring, or the Rooms-skin dark primary-as-foreground (#49)",
+    "is out of this gate's reach; style/contrast.test.ts guards the",
     "token math for every intent x mode statically."
   ],
   "exceptions": []

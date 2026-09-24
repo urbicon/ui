@@ -256,7 +256,7 @@ describe('Dialog (component interaction)', () => {
   });
 });
 
-// Draggable mode (DLG-4). The header is the drag handle; dragging translates the
+// Draggable mode. The header is the drag handle; dragging translates the
 // panel from its centred position. Pointer sequences use fireEvent (not
 // user-event) for deterministic clientX/clientY control. jsdom has no layout, so
 // these assert the offset bookkeeping, not visual position.

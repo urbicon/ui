@@ -28,6 +28,9 @@ imitated verbatim; pointers do not.
   the canon never opened, came back with "components that take full control", "so you store one
   object instead of fifty", and an exception sentence the guide forbids).
 - Verify every behaviour claim in the package source before writing or keeping it.
+- Braces in markup are Svelte expressions, inline `<code>` included: `connected={false}` renders
+  as `connected=false`, `{null}` as nothing, and no gate reports it. Write `&#123;false&#125;` or
+  a string expression, `{'connected={false}'}`.
 - Single-prop rules → the prop's JSDoc (`component-metadata` skill); the page explains relations
   between props.
 - Information must not drop. Misplaced facts move; they are not cut.

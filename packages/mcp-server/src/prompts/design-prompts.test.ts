@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { loadVerb } from '../data/verb-loader.js';
 import { buildVerbPrompt, variantCount } from './design-prompts.js';
 
-/** The full §8 verb table — every recipe must be present in the bundle. */
+/** The full verb table — every recipe must be present in the bundle. */
 const VERB_NAMES = [
   'onboard',
   'adopt',
@@ -59,7 +59,7 @@ describe('buildVerbPrompt', () => {
 });
 
 describe('loadVerb (against the bundled recipes)', () => {
-  it('loads every verb in the §8 table, non-empty', async () => {
+  it('loads every verb in the table, non-empty', async () => {
     for (const name of VERB_NAMES) {
       const body = await loadVerb(name);
       expect(body.length, name).toBeGreaterThan(0);

@@ -92,7 +92,7 @@
     border-color var(--blocks-duration-fast) var(--blocks-ease-gentle),
     color var(--blocks-duration-fast) var(--blocks-ease-gentle);
 
-  /* === OVERLAY ANIMATION TOKENS (XC-11) ===
+  /* === OVERLAY ANIMATION TOKENS ===
      Shared enter/exit motion for the panel overlays: Dialog, Drawer,
      ConfirmDialog (via Dialog) and Toast. All four drive Svelte `fly`/`scale`
      transitions, so they read these through the JS mirror in
@@ -119,7 +119,7 @@
      backdrops to the token had to follow the rendering rather than change it. */
   --blocks-overlay-backdrop-blur: 8px;
 
-  /* === TOOLTIP FADE TOKENS (ACC-3 follow-up) ===
+  /* === TOOLTIP FADE TOKENS ===
      The CSS opacity fade shared by the hover/focus tooltip. Deliberately faster
      than the panel overlays above — a hint should feel instant, not staged — so
      it defaults to the `fast` duration (150ms) + the `confident` easing. That
@@ -134,7 +134,7 @@
   --blocks-tooltip-duration: var(--blocks-duration-fast);
   --blocks-tooltip-easing: var(--blocks-ease-confident);
 
-  /* === POPOVER MOTION TOKENS (ACC-3 rest) ===
+  /* === POPOVER MOTION TOKENS ===
      The CSS-native enter/exit fade+scale for Popover (and Menu, which passes
      the same motion fragment to its inner Popover). Anchored panels should
      feel snappier than the 200ms modal overlays but calmer than an instant
@@ -151,7 +151,7 @@
   --blocks-popover-duration: var(--blocks-duration-fast);
   --blocks-popover-easing: var(--blocks-ease-confident);
 
-  /* === COLLAPSE ANIMATION TOKENS (ACC-3) ===
+  /* === COLLAPSE ANIMATION TOKENS ===
      The CSS-driven grid-template-rows collapse shared by Accordion +
      Collapsible (and their chevron spin). Default to the normal/smooth
      tokens — so `prefers-reduced-motion` below collapses them to 1ms via
@@ -195,7 +195,7 @@
     --blocks-duration-slower: 1ms;
     --blocks-duration-slowest: 1ms;
 
-    /* Collapse overlay enter/exit motion (XC-11) */
+    /* Collapse overlay enter/exit motion */
     --blocks-overlay-enter-duration: 1ms;
     --blocks-overlay-exit-duration: 1ms;
     --blocks-overlay-backdrop-enter-duration: 1ms;
@@ -273,11 +273,11 @@
    edges. Both values are retunable per instance without widening the component
    API (the Tooltip convention).
 
-   Kept small on purpose (plan §3.7 condition 2): anything beyond ~1.05 wobbles
-   while scrolling and pulls attention away from reading. `prefers-reduced-motion`
-   is handled at the utility (`motion-reduce:[&>*]:[animation:none]`) rather than
-   here — dropping only the timeline would hand the animation back to the
-   document clock, which is the opposite of what reduced motion asks for. */
+   Kept small on purpose: anything beyond ~1.05 wobbles while scrolling and
+   pulls attention away from reading. `prefers-reduced-motion` is handled at
+   the utility (`motion-reduce:[&>*]:[animation:none]`) rather than here —
+   dropping only the timeline would hand the animation back to the document
+   clock, which is the opposite of what reduced motion asks for. */
 @keyframes blocks-scroller-emphasis {
   50% {
     scale: var(--blocks-scroller-emphasis-scale, 1.04);

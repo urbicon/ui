@@ -5,7 +5,7 @@
  * today by `get_design_principles`, `suggest_implementation`,
  * `get_implementation_checklist`) into executable checks. Deterministic rules
  * produce `error`/`warning` findings; distribution heuristics produce `info`
- * findings. See the design-loop context in docs/internal/DESIGN-MCP.md.
+ * findings. The loop they serve: `docs/AI-NATIVE-DX.md` § The design loop.
  */
 
 /** How serious a finding is. Drives the score deduction and the report grouping. */
@@ -85,7 +85,7 @@ export interface Rule {
 }
 
 /**
- * Two-axis design score (DESIGN-MCP-V2 §6: "two tracks, never mixed"). Each axis
+ * Two-axis design score ("two tracks, never mixed"). Each axis
  * is an independent 0–100 so a correctness defect never hides behind a clean craft
  * axis, and a generic-looking page never passes just because its tokens are valid.
  */

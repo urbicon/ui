@@ -42,7 +42,7 @@ export class I18nRegistry {
   // Non-reactive per-instance cache; SvelteMap is unnecessary here.
   private translationLoaders = new Map<Locale, TranslationLoader>();
 
-  // Per-package lazy loaders (WP4 code-splitting), keyed `${packageName}::${locale}`.
+  // Per-package lazy loaders (code-splitting), keyed `${packageName}::${locale}`.
   // Registered at module-eval, read in setLocale/loadLocale (not in a $derived), so
   // a plain Map suffices. The *loaded data* lands in the reactive packageTranslations,
   // which is what re-resolves `$derived` reads when a chunk arrives.
@@ -131,7 +131,7 @@ export class I18nRegistry {
   }
 
   /**
-   * Register a per-package lazy loader for one locale (WP4 code-splitting). The
+   * Register a per-package lazy loader for one locale (code-splitting). The
    * loader returns that package's bundle for `locale` (typically
    * `() => import('./translations/de').then((m) => m.default)`), kept out of the
    * initial chunk until the locale is activated.
@@ -576,13 +576,15 @@ export class I18nRegistry {
 
 // Lazy, hoisted accessor for the process-wide registry. Holding the registry at
 // module scope is correct *because* it carries no per-request mutable locale —
-// only static, request-identical translation data. But it is built on first
-// touch (not at module top-level) and reached through this hoisted function so
-// that a consumer chunk's top-level `createPackageI18n` side-effect — which
-// Vite 8 / Rolldown may order before this module's body — still finds a callable
-// binding and an initialised instance, instead of a value in the temporal dead
-// zone (the `Cannot read properties of undefined (reading 'registerPackage')`
-// class of bug the old lazy singleton guarded against).
+// only static, request-identical translation data. The instance is built on the
+// first call, not at module top-level. Hoisting keeps the *function* callable from
+// a module that runs before this module's body, but it does not make an early call
+// safe: natively, the first read of the `let _registry` binding below throws
+// ("Cannot access '_registry' before initialization"); in a reordered bundled
+// chunk the class binding is still unassigned, so it is `new (undefined)()`.
+// Nothing may therefore call this during module initialisation — which is why
+// `createPackageI18n` registers lazily, on first use (`ensureRegistered()`),
+// rather than at module-eval.
 let _registry: I18nRegistry | undefined;
 
 export function getRegistry(): I18nRegistry {

@@ -37,7 +37,7 @@ export async function loadComponentLlmTxt(slug: string): Promise<string | null> 
   return null;
 }
 
-// The section parser lives in the engine now (DESIGN-MCP-V2 §5) so this server and
-// the `urbicon` CLI extract llm.txt sections identically. Re-exported here for the
-// server's local importers (get-component, get-recipe, …).
+// The section parser lives in the engine so this server and the `urbicon` CLI
+// extract llm.txt sections identically. Re-exported here for the server's local
+// importers (get-component, get-recipe, …).
 export { extractSection, type LlmTxtSection } from '@urbicon-ui/design-engine/search';

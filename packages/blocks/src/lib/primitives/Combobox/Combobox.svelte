@@ -76,7 +76,7 @@
   const tierCtx = getTierContext();
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
 
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   const propsId = $props.id();
   const id = $derived(idProp ?? `combobox-${propsId}`);
   const ff = useFormField(() => ({

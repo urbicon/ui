@@ -77,7 +77,6 @@ and a link to that place, and in these reference docs the owning section says so
 ## Icons
 
 - [ICON-DESIGN.md](ICON-DESIGN.md) — icon design language: hard contract, grid/radius scale, canonical motifs, tree-shaking rules (enforced by `bun run icons:lint`)
-- [ICON-ROADMAP.md](ICON-ROADMAP.md) — how the set grew from 156 to 358, and the open polish backlog
 
 ## Auth
 
@@ -85,7 +84,7 @@ and a link to that place, and in these reference docs the owning section says so
 
 ## Project tracking
 
-- [technical-debt.md](technical-debt.md) — pointer: open findings live as GitHub issues (`debt:*` labels) since 2026-07-31; the file keeps the entry format and the resolved-entry trace
+- [technical-debt.md](technical-debt.md) — pointer: open findings live as GitHub issues (`debt:*` labels) since 2026-07-31; the file keeps the entry format
 
 ---
 
@@ -93,7 +92,6 @@ Package-level READMEs cover each package's own API surface (`packages/*/README.m
 documentation site has its own ([`apps/docs/README.md`](../apps/docs/README.md)), which is
 also where the Color Rooms theme is documented.
 
-Internal strategy and analysis working docs are kept local under `docs/internal/`, completed
-plans under `docs/archive/` — both git-ignored and not part of the published repo. **Do not
-link to either from a tracked document**: the link resolves for maintainers and 404s for
-everyone else.
+Internal strategy and analysis working docs are kept local under `docs/internal/`, git-ignored
+and not part of the published repo. **Do not link to it from a tracked document**: the link
+resolves for maintainers and 404s for everyone else.

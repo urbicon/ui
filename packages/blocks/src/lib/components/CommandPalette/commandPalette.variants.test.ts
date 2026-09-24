@@ -87,7 +87,7 @@ describe('commandPaletteVariants', () => {
     expect(styles.list()).toContain('max-h-72');
   });
 
-  it('list carries the shared listbox rhythm (XC-9)', () => {
+  it('list carries the shared listbox rhythm', () => {
     // 4px edge inset + 2px item-to-item gap — the same panel rhythm as the
     // Select/Combobox listboxes and the Menu panel.
     const list = commandPaletteVariants().list();

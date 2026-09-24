@@ -27,7 +27,7 @@
 
   // The generated @related list is the sibling Guide surfaces — self-referential on this
   // family page. Point "related" at the spatial, event-driven overlays Guide contrasts with
-  // (§1: Guide is the sequential, system-driven overlay) instead.
+  // (Guide is the sequential, system-driven overlay) instead.
   const relatedLinks = buildRelatedLinks({
     relatedComponents: ['Dialog', 'Drawer', 'Popover', 'Tooltip']
   });

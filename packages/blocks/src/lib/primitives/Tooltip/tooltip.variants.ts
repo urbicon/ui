@@ -22,11 +22,11 @@ export const tooltipVariants = tv({
       'z-[var(--z-tooltip)] overflow-visible',
       'font-medium text-center whitespace-normal max-w-xs',
       'rounded-contain pointer-events-none',
-      // Tooltip fade tokens (ACC-3 follow-up) so `transitionDuration`/
-      // `transitionEasing` can retune the opacity fade per instance. `motion-reduce`
-      // guards the inline-override path (an inline duration bypasses the token that
-      // reduced-motion collapses to 1ms). The default easing token resolves to
-      // Tailwind's implicit transition curve, so the resting fade is unchanged.
+      // Tooltip fade tokens so `transitionDuration`/`transitionEasing` can retune the
+      // opacity fade per instance. `motion-reduce` guards the inline-override path (an
+      // inline duration bypasses the token that reduced-motion collapses to 1ms). The
+      // default easing token resolves to Tailwind's implicit transition curve, so the
+      // resting fade is unchanged.
       //
       // display/overlay + `transition-discrete` and the `starting:` before-state
       // are what make the fade actually PLAY in top-layer mode (same mechanism

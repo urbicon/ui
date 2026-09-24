@@ -210,7 +210,7 @@
   // Without it the button keeps Button's `active` + `ghost` compound, which adds
   // `ring-1 ring-inset` on top of the subtle ground. That ring is right where it
   // was written for — a ghost button lit on `surface-base`, where the subtle
-  // tone alone is too faint to read (BGR-2) — and wrong here: inside the
+  // tone alone is too faint to read — and wrong here: inside the
   // toolbar's own `surface-quiet` capsule it is the redundant chrome
   // `smartFilterBarTriggerVariants` exists to strip, which is why the other five
   // do not have it. Moving this button into the capsule without also giving it

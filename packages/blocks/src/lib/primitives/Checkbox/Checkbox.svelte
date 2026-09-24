@@ -44,7 +44,7 @@
   const tierCtx = getTierContext();
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
 
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   const propsId = $props.id();
   const id = $derived(idProp ?? propsId);
   const ff = useFormField(() => ({
@@ -58,7 +58,7 @@
   // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
   // outside the component) merges with the internal error/helper chain instead
   // of replacing it — internal descriptions first, the consumer's supplemental
-  // one last (mirrors the Input role model, XC-2).
+  // one last (mirrors the Input role model).
   const describedBy = $derived(
     [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
   );
@@ -106,7 +106,7 @@
 
   // Mint targets the directional box (the visual checkbox), not the enclosing
   // <label> that also wraps the text — a hover/scale effect belongs to the
-  // control surface, mirroring SegmentItem/Button (XC-1).
+  // control surface, mirroring SegmentItem/Button.
   function handleChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
     if (disabled) return;
     if (indeterminate) indeterminate = false;

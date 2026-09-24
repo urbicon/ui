@@ -32,7 +32,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // ACC-3: per-instance collapse motion. Set the shared collapse CSS variables inline only when
+  // Per-instance collapse motion. Set the shared collapse CSS variables inline only when
   // a prop is provided, so the unset default keeps inheriting the reduced-motion-aware token.
   const collapseDuration = $derived(
     transitionDuration != null ? `${transitionDuration}ms` : undefined

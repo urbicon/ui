@@ -8,9 +8,8 @@ import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
 
 /**
- * Two tables on ONE view object — the §7.2 rest case the spike left unmeasured
- * (review m6: "the nearest source of conflict after the bindings, due as a
- * test when it is built").
+ * Two tables on ONE view object — the nearest source of conflict after the
+ * bindings, and a case the spike left unmeasured.
  *
  * The view is a consumer-owned identity, and nothing in `TableProvider` claims
  * it: `resolveViewProp` takes the object as given, so handing the same one to

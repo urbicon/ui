@@ -5,10 +5,10 @@ import { getVerbsDir } from '@urbicon-ui/design-content';
 /**
  * Loads design-verb recipes from the version-pinned content bundle
  * (`@urbicon-ui/design-content/content/verbs/`). The recipes are the single source
- * the local skill ships and these remote prompts serve — same text, two channels
- * (DESIGN-MCP-V2 §8). Cached per process; read tolerant (a missing file yields the
- * empty string, so one absent recipe never breaks server construction — the prompt
- * wrapper degrades to a rebuild hint instead).
+ * the local skill ships and these remote prompts serve — same text, two channels.
+ * Cached per process; read tolerant (a missing file yields the empty string, so
+ * one absent recipe never breaks server construction — the prompt wrapper
+ * degrades to a rebuild hint instead).
  */
 
 const cache = new Map<string, string>();

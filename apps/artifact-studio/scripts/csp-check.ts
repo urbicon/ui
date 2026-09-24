@@ -2,9 +2,9 @@
 /**
  * csp-check.ts — der Negativtest zur Sandbox.
  *
- * Bis hierher war nur belegt, dass die CSP das Artefakt **nicht behindert**
- * (BEFUNDE §22). Das ist die uninteressante Hälfte: eine Richtlinie, die nichts
- * blockt, behindert auch nichts. Dieses Skript prüft die andere Hälfte — es baut
+ * Bis hierher war nur belegt, dass die CSP das Artefakt **nicht behindert**.
+ * Das ist die uninteressante Hälfte: eine Richtlinie, die nichts blockt,
+ * behindert auch nichts. Dieses Skript prüft die andere Hälfte — es baut
  * ein Artefakt, das absichtlich alles versucht, was verboten sein soll, und
  * schlägt fehl, wenn auch nur einer dieser Versuche durchkommt.
  *

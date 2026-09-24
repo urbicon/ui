@@ -9,7 +9,7 @@ describe('collapsibleVariants', () => {
     }
   });
 
-  it('animates the collapse on the retunable collapse tokens with a motion-reduce guard (ACC-3)', () => {
+  it('animates the collapse on the retunable collapse tokens with a motion-reduce guard', () => {
     const styles = collapsibleVariants();
     // The trigger keeps the fast token — that is the hover/focus micro-interaction, not the
     // collapse — so `transitionDuration`/`transitionEasing` must not retune it.

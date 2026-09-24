@@ -366,6 +366,10 @@ One shape of exception: where the outermost element is a shell that only positio
 
 Do not read "root slot" as "the first slot the `tv()` config declares". The two come apart wherever a component declares its trigger before its wrapper, which `ReasoningDisclosure` and `ToolCallCard` both do — their first slot is a `<button>`, their `class` carrier the root `<div>`. **Which element carries `class` is a per-component fact, and every component states it at its own `class` prop**: that is the place to check it, and the place to fix it when it is wrong.
 
+### `preset` names a look the consumer registers
+
+`preset` is a plain `string` on every visible component, and **the library ships no presets**: `BlocksProvider`'s `presets` defaults to `{}`, and a name nobody registered resolves to nothing, with a development warning in the browser that prints the registration snippet. A preset is the consumer's name for a combination of `slotClasses` in its own product — `presets={{ Button: { overlay: { … } } }}` on its provider, `<Button preset="overlay">` at the call site. A look the library itself wants to offer goes into the component instead, as a variant, size or `intent`, where it is typed and held to the [variant contract](../packages/blocks/docs/VARIANT-CONTRACT.md). So a request for a library preset — `preset="circle"` on Button, say — is declined: it is a look for the consumer's `presets`, not a catalogue the library maintains. How a registered preset folds into the cascade is [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade).
+
 ### The override ladder
 
 The five rungs a consumer reaches for, the rule that their numbering is blast radius rather than cascade strength, and how `unstyled` propagates are in [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade). Two consequences bind the **prop surface** and belong here:
@@ -388,6 +392,8 @@ Three rules follow, and the first is the one that decides the other two: **the k
 - **A component whose `tv()` declares no axes cannot be targeted conditionally at all** (`Chat`, `ChatMessageList`, the five `Guide*` parts). `tv()` sees the same emptiness, so there is nothing to select on and nothing to fold in; unconditional `slotClasses` and presets still reach them. `DatePicker` / `DateRangePicker` are the deliberate exception — the root is a positioning context with no axes, so their object is built for `resolveSlotClasses` alone, out of the values they forward to the components they wrap.
 
 A **wrapper** names no axes at all. It hands its name to the component it wraps, and that component's `variantProps` — this same object — is what the wrapper's rules are matched against, so one rule gets one answer under both names instead of two. An item beside its siblings speaks only for the axes it names, and must not stand in for its neighbour's.
+
+**An axis that carries a prop is named like the prop.** A consumer writes an `overrides` condition in the vocabulary of the props it set, so where a `tv()` axis exists to paint one prop's value, rename the axis to the prop rather than mapping one name onto the other in `variantProps`. Stepper's `stepState` and `stepDisabled` axes were renamed to `state` and `disabled` for that reason ([MIGRATION.md](../packages/blocks/docs/MIGRATION.md#stepstate--state-stepdisabled--disabled)). An axis that no prop sets directly keeps a name of its own — a structural flag the component derives, or an axis several props resolve into, like Card's `interactive` [above](#the-make-it-operable-boolean).
 
 **The house axis order** in `*.variants.ts` is `tier → variant → size → intent → structural flags (hasIcon, striped, …) → state axes (disabled, readonly, messageType, error, pressed, active, connected)`. States come last because a state must dominate the resting look, and the order is load-bearing rather than cosmetic: the engine folds axes in declaration order and every later one strips the earlier one's Tailwind buckets ([ARCHITECTURE.md § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine)). Deviate deliberately and leave a comment — Button declares `pressed` before `variant`, the table `sortable` after `sorted`.
 
@@ -422,6 +428,12 @@ When you need a link that looks like a *button* — `Link` is a link look — wr
 ```
 
 This keeps the controls narrow, leaves `resolve()` decisions in app code, and avoids the polymorphic type. Apply the same approach for an anchor styled like a Badge — call `badgeVariants()` directly. The recipe has to reach consumers where they look — the primer, `get-component Button`, the Button docs page (#428) — a rule that lives only in this file is a rule nobody follows.
+
+## Behaviour without layout: a helper, not a render mode
+
+A component has one render mode. It does not take a `headless` prop that switches it into a second mode rendering no markup of its own: every decision the component makes — its ARIA wiring, `slotClasses`, `unstyled`, its tests — would have to be made again for each mode. When a consumer needs the behaviour without the layout, the behaviour becomes a helper — a `use*` or `create*` function exported from the package root — and the component consumes that helper itself, so both read from one source.
+
+`useDisclosure()` is the model. It carries Collapsible's open state, its toggle and the `aria-expanded` / `aria-controls` / `inert` wiring for content that cannot live inside Collapsible's own layout (the next row of a grid, a panel in another column), and `Collapsible` and `SidebarLayout` both run on it. `useFormField` does the same for the ids and the `aria-describedby` / `aria-invalid` wiring between a field, its label, helper and error — behind the form fields and the standalone `<FormField>`.
 
 ## Snippet vs. Component Cell Rendering
 

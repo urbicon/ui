@@ -63,11 +63,8 @@ export function useNavLabel(): (item: NavItem) => string {
  * page must ALSO opt out of the static build via `export const prerender =
  * false` in its `+page.ts` (same pattern as `test-fixtures/`), so the route
  * disappears from the published site but stays reachable in dev for rework.
- * Re-publishing = remove the entry here + delete the prerender override.
- * Tracked in docs/internal/DOCS-PAGE-TRIAGE-2026-07.md.
- *
- * Empty today. `/recipes/profile-card` was the only draft and was deleted
- * rather than reworked (2026-08-14), which is the other way a draft ends.
+ * Re-publishing = remove the entry here + delete the prerender override; the
+ * other way a draft ends is deleting the page and its entry.
  */
 export const DRAFT_ROUTES: ReadonlySet<NavHref> = new Set<NavHref>([]);
 

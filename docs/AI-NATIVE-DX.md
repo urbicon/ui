@@ -10,7 +10,7 @@ surface is the one consumers actually install.
 | `llms.txt` | Brief library overview (llms.txt standard) — generated from the component catalog + a small template, tracked, checked by `llms:check` |
 | `llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
 | **`urbicon` CLI** (`packages/design`) | **The primary, consumer-facing surface**: one dev-dependency, version-pinned knowledge |
-| MCP server (`packages/mcp-server`) | A thin remote adapter over the same engine and content |
+| MCP server (`packages/mcp-server`) | A thin remote adapter over the same engine and content — deployed, not advertised, being retired |
 
 ## The `urbicon` CLI
 
@@ -25,11 +25,16 @@ One dev-dependency, so the knowledge a project gets is pinned to the version it 
 - **Judgment** — `validate`, plus `hook` and the CI entry point.
 - **Memory** — `context`, `record-decision`, `sync-manifest`.
 - **Process** — `verbs` / `verb <name>`, plus the `urbicon-design` skill.
-- **Onboarding** — `init`: writes the AGENTS.md block, scaffolds the manifest, optionally
-  `--hook` / `--ci`.
+- **Onboarding** — `init`: writes the AGENTS.md block, wires CLAUDE.md to it, scaffolds the
+  manifest, optionally `--hook` / `--ci`.
 
 `init` details worth knowing before changing it:
 
+- `--claude-md` (default on) exists because Claude Code loads `CLAUDE.md` and does not read
+  `AGENTS.md` on its own. `init` creates a `CLAUDE.md` carrying an `@AGENTS.md` import, or
+  prepends the import to an existing one; a `CLAUDE.md` symlinked to `AGENTS.md` already
+  delivers and is left alone. A prose mention of AGENTS.md does not count as delivery.
+  `--claude-md=false` is for a harness that delivers the block itself.
 - `--with-primer` (default on) adds the "load the primer" step. The shipped template
   deliberately omits it, so a harness that injects the primer itself can take the template
   verbatim.
@@ -44,47 +49,53 @@ One dev-dependency, so the knowledge a project gets is pinned to the version it 
 Streamable HTTP, 10 read-only tools, 10 verb prompts, 7 guide resources — all over the same
 engine and content the CLI uses.
 
-**Deliberately not advertised or hosted pre-launch** (Option B, 2026-07-10): the package
-track is the story, and hosting the public endpoint is a launch decision. The package stays
-in the repo and green. No local-install **consumer** path is documented anywhere
-— the old `bunx`-stdio setup on `/ai` was removed; the stdio entry in the package README runs
-the server from a repo checkout, for working on it. Manifest read and write live in the CLI, never on the stateless
-server.
+**Deployed, not advertised, and being retired** (#500): `.github/workflows/deploy.yml` ships
+it to the host, but no page names the endpoint, and next to the CLI it has no use case of its
+own. Until it is removed it stays in the repo and green. No local-install **consumer** path is
+documented anywhere — the stdio entry in the package README runs the server from a repo
+checkout, for working on it. Manifest read and write live in the CLI, never on the stateless
+server. Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-is-deployed-not-advertised-and-being-retired).
 
 ## Design System Intelligence
 
-`design-system/` holds layers 4 and 5 of the five-layer design model:
+In the [five-layer model](../design-system/principles.md#the-5-layer-token-hierarchy),
+**tokens propagate through code, patterns only through knowledge** — a changed pattern reaches
+no page until an agent finds every page that followed it, which is why pattern usage is marked
+in the code (`data-design-pattern`) and indexed in the manifest (see the design loop below).
+
+`design-system/` holds layers 4 and 5:
 
 - `principles.md` — heuristics, paradigm profiles, the change decision tree
 - `patterns/*.md` — composition patterns, one file per page archetype; `urbicon pattern`
   with no name lists what the bundle ships
 
-Served locally by `urbicon principles` / `urbicon pattern`, remotely by
-`get_design_principles` / `get_pattern`, both out of the `design-content` bundle.
+Served by `urbicon principles` / `urbicon pattern` out of the `design-content` bundle (and,
+until its removal, by the MCP tools `get_design_principles` / `get_pattern`).
 
 ## The design loop
 
 Serving knowledge is only half of it. The loop is generate → validate → judge → synthesise:
 
-- **`urbicon validate`** (= remote `validate_design`, same engine) lints generated markup:
-  deterministic rules, a token whitelist, heuristics.
+- **`urbicon validate`** lints generated markup: deterministic rules, a token whitelist,
+  heuristics (the MCP tool `validate_design` runs the same engine).
 - **`data-design-pattern` markers + `design.manifest.md`** persist design intent per
   consumer project, maintained consumer-side through `context` / `record-decision` /
   `sync-manifest`.
 - **`urbicon principles --rubric`** serves the 1–5 judge rubric.
 - **The design verbs** — onboard, adopt, compose, redesign, polish, critique, fix, retheme,
-  audit, migrate — ship both as the local skill in `@urbicon-ui/design` and as MCP prompts,
-  from the same text.
+  audit, migrate — ship as the local skill in `@urbicon-ui/design` (and, from the same text,
+  as MCP prompts until the server is removed).
 - **Enforcement is local**: a `PostToolUse` hook (`urbicon hook`) and CI (`urbicon validate`)
   turn the loop from advisory into required. Correctness always gates; the craft axis is
   opt-in via `--craft-floor`. Templates ship under `@urbicon-ui/design/templates`.
 
-**What it is measured to do — and not to do.** Blind-judged A/B runs (2026-08, waves 1–3 plus
-the replication of 2026-08-18; sources in `docs/internal/DESIGN-EVAL-2026-08/`) support one
-claim: the loop holds generated markup on the token system. On a budget model, the run reading
-the installed package on its own produced 373 linter findings where the wired run produced a
-clean `validate`. Three things it does **not** do, each measured rather than assumed: it does
-not raise design-craft scores on any model tier; it does not make runs cheaper (two independent
-pairs, no advantage either time); and a clean gate is not the same as correct — the wired run
-still shipped a class naming no token, and the linter missed it. Public claims are held to
-this list.
+**What it is measured to do — and not to do.** Blind-judged A/B runs support one claim: the loop
+holds generated markup on the token system — on a budget model, a run reading the installed
+package on its own failed `validate` where the wired run passed it. Three things it does **not**
+do, each measured rather than assumed: it does not raise design-craft scores, and more principle
+prose in the primer did not change that in the one run that tried it, which is why
+`CORE_PRINCIPLES` stays small; it does not make runs cheaper; and a clean gate is not the same
+as correct. The token check knows the library's own roots — `text-on-surface-muted` or
+`bg-surface-made-up` fails — but a colour class on a root it does not know, such as
+`bg-made-up-token`, passes, because it cannot be told apart from a project's own colour. Public
+claims are held to this list.

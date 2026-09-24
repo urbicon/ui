@@ -1,6 +1,6 @@
 /**
  * Optional per-surface DATA schema for the A2UI engine — the data-model side of
- * the registry's prop typing (findings §4.3). A schema declares the shape of the
+ * the registry's prop typing. A schema declares the shape of the
  * fields a surface's data model may hold (JSON Pointer → type + optional
  * enum/format/description). It does two things:
  * - documents the declared fields in the system prompt (`a2uiDataSchemaSection`),

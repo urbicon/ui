@@ -25,7 +25,10 @@ This set is **not** a general-purpose icon library and should not grow into one.
 hand-drawn against the contract below, so each one is permanent maintenance — a name in the
 `IconName` union that a consumer may pin, a keyword entry `find_icons` searches, a drawing that
 has to be re-checked whenever the design language moves. Coverage is therefore chosen, not
-accumulated.
+accumulated — for **family symmetry** (a `bell` comes with `bellOff`, a `user` with
+`userPlus`/`userX`/`userCheck`) and for **depth in the domains the consuming apps serve**: real
+estate, energy and utilities, finance, auth. That depth, not breadth, is what a generic set such
+as Lucide does not offer.
 
 **Take an icon when one of these holds:**
 
@@ -149,6 +152,9 @@ margin** to the edge so icons never feel cramped and align optically when placed
 - **Optical centring beats geometric centring.** A shape's visual mass should sit at the centre,
   which is *not* always its bounding-box centre (a play triangle, a teardrop, a cloud lean
   slightly off-centre on purpose). Match the reference icon rather than forcing the bbox to 12,12.
+- **Drawn for motion.** `loader` is drawn to be rotated — render it as
+  `<LoaderIcon animation="spin" />` — and its gap sits off-centre on purpose, so that standing
+  still it reads as a ring with a gap rather than as the letter U.
 - Keep optical *size* consistent: a new icon should fill about as much of the live area as its
   neighbours. Compact glyphs (`droplet`, `flame`) are the floor; don't go smaller without reason.
 
@@ -245,6 +251,11 @@ picker, or `find_icons`. `icons:lint` checks every link in this chain.
 Semantic aliases are allowed: a `DEFAULT_ICONS` key may map to a differently-named component
 (`info: InfoCircleIcon`). The linter follows the component, not the name.
 
+**Adding a batch.** Parallel drawers (one per family) write only their own `svg/<name>.svg`; one
+integrator then adds the wrappers and steps 2–5 for all of them, so parallel work never collides
+in the shared registry files. Before merging, pass `icons:lint` and review a contact sheet of the
+new icons at 44px and at 16px, the size where density fails (§5).
+
 ## 9 · The linter
 
 ```bash
@@ -257,10 +268,10 @@ off-grid axis-aligned coordinates, illegal `rect` `rx`, registry integrity
 (svg ↔ `.svelte` ↔ `index.ts` ↔ `DEFAULT_ICONS` ↔ `ICON_METADATA` ↔ `IconName`), and the
 **documented icon count**.
 
-That last one exists because the size of the set was quoted in fifteen places and every one of
-them had gone stale. Twelve were decoration ("drags all N icons into the bundle" — the number
-carried nothing "the whole set" doesn't) and were deleted rather than maintained; a number nobody
-acts on is a number that only rots. The four that inform a reader — `COUNT_CLAIMS` in
+That last one exists because every quoted size of the set had gone stale. Most quotes were
+decoration ("drags all N icons into the bundle" — the number carried nothing "the whole set"
+doesn't) and were deleted rather than maintained; a number nobody acts on is a number that only
+rots. The ones that inform a reader — `COUNT_CLAIMS` in
 `icons-lint.ts` — are checked against the count the linter already has from the `svg/` directory,
 so the claim cannot drift from the thing it describes. Rewording the sentence so the pattern stops
 matching is an error too, not a silent detachment.

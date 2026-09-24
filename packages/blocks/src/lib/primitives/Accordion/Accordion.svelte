@@ -27,7 +27,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // ACC-3: per-instance collapse motion. Set on the root; every item's content + chevron inherit
+  // Per-instance collapse motion. Set on the root; every item's content + chevron inherit
   // the vars (AccordionItem renders an unstyled Collapsible that leaves them unset). Inline only
   // when a prop is given, so the default keeps the reduced-motion-aware token.
   const collapseDuration = $derived(

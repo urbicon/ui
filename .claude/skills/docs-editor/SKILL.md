@@ -94,6 +94,17 @@ has to switch every view, open every menu and dropdown, click the interactive ce
 visible label — then split each finding into a page fix or a component bug. On an interactive
 component this pass runs **early**, not last: its findings decide what the prose must cover.
 
+Before a measurement becomes a component bug, rule out the rig:
+
+- A role selector hits the page's Playground first (`getByRole('combobox').first()` is a
+  Playground control) — target the example by its label or scope to its container.
+- Playwright's `name` matches substrings ("Persistent" also hits "Add Persistent") — pass
+  `exact: true`; the code snippet under a preview repeats the text once more.
+- Examples that share a readout ("Last action: —") need a selector scoped to the one you drove;
+  `.first()` reads the first example's and makes a working action look like no effect.
+- A synthetic Ctrl+V carries no clipboard data — dispatch a real `ClipboardEvent('paste')` with
+  a `DataTransfer` before reporting a paste defect.
+
 ## Gates and reporting
 
 `bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint`,

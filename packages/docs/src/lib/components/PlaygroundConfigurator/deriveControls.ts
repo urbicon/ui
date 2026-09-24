@@ -132,7 +132,7 @@ function parseDefault(raw: string | undefined): unknown {
  *
  * Two shapes stay unresolvable and need an `override`: computed unions
  * (`(typeof INTENTS)[number]`) and indexed variant access
- * (`ButtonVariants['variant']`). Both are recorded in docs/technical-debt.md.
+ * (`ButtonVariants['variant']`). Both are open in #42.
  */
 function resolveAliasValues(
   type: string | undefined,

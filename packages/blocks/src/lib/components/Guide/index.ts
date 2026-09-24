@@ -444,7 +444,7 @@ export interface GuideProps {
 
 /**
  * @summary A quiet pulsing dot that offers a tour instead of starting one.
- * @description A waiting, pulsing hotspot that invites the user into an opt-in guided tour (§6.3)
+ * @description A waiting, pulsing hotspot that invites the user into an opt-in guided tour
  * — the gentlest tour entry point, the opposite of an auto-starting tour. A real `<button>` the
  * consumer positions (inline, or absolutely over a feature corner); on activation it starts the
  * given `tour` and/or calls `onActivate`. Hides itself once that tour has been seen. The pulse

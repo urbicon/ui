@@ -102,7 +102,7 @@ describe('selectVariants', () => {
     expect(unselected).not.toContain('font-medium');
   });
 
-  it('options follow the shared listbox item rhythm (XC-9)', () => {
+  it('options follow the shared listbox item rhythm', () => {
     // px: 2 below md, 3 at md/lg, 4 at xl; min-h staggered 1.75→3.5rem.
     const xs = selectVariants({ size: 'xs' }).option();
     expect(xs).toContain('px-2');

@@ -344,7 +344,7 @@ import type {
 } from '@urbicon-ui/i18n';
 ```
 
-> **Breaking (major):** the pre-WP2 module singleton (`i18n`, the free `t` / `plural`, `I18nService`) was **removed** — it leaked the locale across SSR requests. Mount `<I18nProvider>` / `provideI18n` and read through the hooks; replace `i18n.t(k)` → `useI18n().t(k)`, `bt(k)` → `const bt = useBlocksI18n()`.
+> **Breaking (major):** the module-level singleton (`i18n`, the free `t` / `plural`, `I18nService`) was **removed** — it leaked the locale across SSR requests. Mount `<I18nProvider>` / `provideI18n` and read through the hooks; replace `i18n.t(k)` → `useI18n().t(k)`, `bt(k)` → `const bt = useBlocksI18n()`.
 
 ## Supported Locales (Core)
 

@@ -17,8 +17,8 @@
   · Master/Detail — Zeile anklicken heißt: die echte Komponente steht daneben.
 
   Links läuft die echte `Table` (Sortieren, Suchen, Keyboard-Nav,
-  Virtualisierung) — kein Nachbau. Konzept:
-  docs/internal/LANDING-CONCEPT-2026-07.md
+  Virtualisierung) — kein Nachbau. Die Beschlüsse zur Landing selbst stehen im
+  Kopfkommentar von src/routes/+page.svelte.
 -->
 <script lang="ts">
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';

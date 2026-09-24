@@ -9,7 +9,7 @@ describe('tooltipVariants', () => {
     }
   });
 
-  it('fades on the retunable tooltip tokens with a motion-reduce guard (ACC-3 follow-up)', () => {
+  it('fades on the retunable tooltip tokens with a motion-reduce guard', () => {
     // Mirrors the collapse-motion contract: the fade must resolve the shared
     // `--blocks-tooltip-*` vars (so `transitionDuration`/`transitionEasing` can
     // retune it inline) and carry the `motion-reduce` guard, since an inline

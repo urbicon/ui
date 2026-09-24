@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { AGENTS_WORD_BUDGET, ALLOWLIST } from './docs-refs-check';
+import { AGENTS_WORD_BUDGET, ALLOWLIST, PRIVATE_DIRS } from './docs-refs-check';
 
 /**
  * Positive controls for the docs-reference gate, against its own oracles.
@@ -159,6 +159,17 @@ function runArgs(...args: string[]): { code: number; out: string } {
 
 const run = (root: string) => runArgs('--root', root);
 
+/** Turns a fixture into a checkout whose index holds every file in it — rule 5's oracle. */
+function track(root: string) {
+  for (const cmd of [
+    ['git', 'init', '-q'],
+    ['git', 'add', '-A']
+  ]) {
+    const proc = Bun.spawnSync(cmd, { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+    if (proc.exitCode !== 0) throw new Error(`${cmd.join(' ')}: ${proc.stderr.toString()}`);
+  }
+}
+
 describe('docs-refs-check', () => {
   it('passes a fixture repo whose references all resolve, having read some', () => {
     const { code, out } = run(fixture());
@@ -305,6 +316,120 @@ describe('docs-refs-check', () => {
     expect(out).toMatch(/AGENTS\.md:1 {2}budget {2}\d+ words/);
     expect(out).toContain(`over the ${AGENTS_WORD_BUDGET}-word budget`);
     expect(code).toBe(1);
+  });
+
+  it('reports a pointer below docs/internal/ or docs/archive/ in any tracked file', () => {
+    const root = fixture();
+    const code = appendLine(
+      root,
+      'packages/table/src/lib/thing.ts',
+      '// The rule comes from docs/internal/PLAN-2026-09.md §3.'
+    );
+    write(
+      root,
+      'packages/table/README.md',
+      '# Table\n\nSee (docs/archive/2026-05/OLD-AUDIT.md).\n'
+    );
+    track(root);
+    const result = run(root);
+    expect(result.out).toContain(
+      `packages/table/src/lib/thing.ts:${code}  private  docs/internal/PLAN-2026-09.md`
+    );
+    expect(result.out).toContain(
+      'packages/table/README.md:3  private  docs/archive/2026-05/OLD-AUDIT.md'
+    );
+    expect(result.out).toContain('which git does not track');
+    expect(result.code).toBe(1);
+  });
+
+  it('reports a pointer into every PRIVATE_DIRS entry, prototypes/ included', () => {
+    const root = fixture();
+    const lines = PRIVATE_DIRS.map(([dir]) =>
+      appendLine(root, 'scripts/keeper.ts', `// measured in ${dir}spike/NOTES.md`)
+    );
+    track(root);
+    const { code, out } = run(root);
+    PRIVATE_DIRS.forEach(([dir], i) => {
+      expect(out).toContain(`scripts/keeper.ts:${lines[i]}  private  ${dir}spike/NOTES.md`);
+    });
+    expect(PRIVATE_DIRS.map(([dir]) => dir)).toContain('prototypes/');
+    expect(code).toBe(1);
+  });
+
+  it('passes the bare folder name — prose about the folder names no document', () => {
+    const root = fixture();
+    appendLine(
+      root,
+      'scripts/keeper.ts',
+      '// Working docs live in `docs/internal/` (git-ignored).'
+    );
+    appendLine(root, 'scripts/keeper.ts', '// And the old ones under docs/archive/.');
+    appendLine(root, 'scripts/keeper.ts', '// Ignored as docs/internal/** by the ignore rules.');
+    appendLine(root, 'scripts/keeper.ts', '// Spikes stay in `prototypes/`.');
+    track(root);
+    const { code, out } = run(root);
+    expect(out).toContain('0 findings');
+    expect(code).toBe(0);
+    // The blindness guard: a checkout the rule could not read would pass too.
+    expect(Number(out.match(/(\d+) tracked files/)?.[1])).toBeGreaterThan(5);
+  });
+
+  it('asks the index: a tracked target, an UNSCANNED file and an untracked one pass', () => {
+    const root = fixture();
+    write(root, 'docs/archive/KEPT.md', '# Kept\n');
+    appendLine(root, 'scripts/keeper.ts', '// Published: docs/archive/KEPT.md.');
+    write(root, 'CHANGELOG.md', '# Changelog\n\n- moved docs/internal/PLAN.md\n');
+    track(root);
+    // Written after `git add`: on disk, not in the index — neither published
+    // nor a source.
+    write(root, 'scripts/scratch.ts', '// docs/internal/PLAN.md\n');
+    const { code, out } = run(root);
+    expect(out).toContain('0 findings');
+    expect(code).toBe(0);
+  });
+
+  it('reports a pointer behind `./` or `../`, and a doc-source span only once', () => {
+    const root = fixture();
+    const dot = appendLine(root, 'scripts/keeper.ts', '// see ./docs/internal/PLAN.md');
+    const up = appendLine(root, 'scripts/keeper.ts', '// see ../docs/internal/OTHER.md');
+    const span = appendLine(root, 'AGENTS.md', 'Details: `docs/archive/OLD.md`.');
+    track(root);
+    const { out } = run(root);
+    expect(out).toContain(`scripts/keeper.ts:${dot}  private  docs/internal/PLAN.md`);
+    expect(out).toContain(`scripts/keeper.ts:${up}  private  docs/internal/OTHER.md`);
+    expect(out).toContain(`AGENTS.md:${span}  private  docs/archive/OLD.md`);
+    // Rule 2 sees the same span as a missing path; rule 5 owns it.
+    expect(out.match(/docs\/archive\/OLD\.md/g)).toHaveLength(1);
+  });
+
+  it('passes placeholders, a compound on the folder name, and a tracked target with a suffix', () => {
+    const root = fixture();
+    for (const text of [
+      '// a placeholder: docs/internal/…',
+      '// an arrow: docs/internal/→ the plan',
+      '// a variable: docs/internal/$FILE',
+      '// a German compound: die docs/internal/-Dokumente',
+      '// an anchor: docs/archive/KEPT.md#the-section',
+      '// a line: docs/archive/KEPT.md:12'
+    ])
+      appendLine(root, 'scripts/keeper.ts', text);
+    write(root, 'docs/archive/KEPT.md', '# Kept\n\n## The section\n');
+    track(root);
+    const { code, out } = run(root);
+    expect(out).toContain('0 findings');
+    expect(code).toBe(0);
+  });
+
+  it('exits 2 when a checkout cannot answer for its index, instead of reading 0 files', () => {
+    const root = fixture();
+    track(root);
+    const proc = Bun.spawnSync([process.execPath, SCRIPT, '--root', root], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: { ...process.env, GIT_DIR: join(root, 'no-such-git-dir') }
+    });
+    expect(proc.stderr.toString()).toContain('git ls-files failed');
+    expect(proc.exitCode).toBe(2);
   });
 
   // Explicit over a fallback: a `--root` that names nothing must not silently

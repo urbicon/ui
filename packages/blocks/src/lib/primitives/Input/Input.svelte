@@ -145,7 +145,7 @@
     )
   );
 
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   // A consumer-supplied `id` wins over the generated one: pairing an Input
   // with an external `<label for>` is only possible if the id we are handed
   // actually reaches the `<input>`. `$props.id()` may only appear as a

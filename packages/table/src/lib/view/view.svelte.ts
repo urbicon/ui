@@ -1,8 +1,8 @@
 /**
- * The v8 view object (#152/#157, TABLE-VIEW-STATE-2026-08.md §3): the six
- * axes that decide *which data is shown* — search, sort, page, pageSize,
- * filters, groupBy — as one consumer-constructed reactive object with one
- * name scheme, fully resolved against `defaults`.
+ * The v8 view object (#152/#157; consumer side: `docs/MIGRATION-V8.md` § View
+ * state): the six axes that decide *which data is shown* — search, sort, page,
+ * pageSize, filters, groupBy — as one consumer-constructed reactive object with
+ * one name scheme, fully resolved against `defaults`.
  *
  * Construction and getters are SSR-safe — no effects anywhere (the #10
  * lesson). The table reads and writes the fields directly (`view.page = 3`);
@@ -175,7 +175,7 @@ export class TableView {
       !inComponentInit()
     ) {
       // Module-scope construction on the server is cross-request state. A
-      // warning rather than the DEV-*error* §8.2 would prefer, deliberately:
+      // warning rather than a DEV *error*, deliberately:
       // the `inComponentInit` probe cannot tell module scope from a
       // request-scoped `load` (both are outside component init), and an error
       // would break that legitimate construction site. Documented deviation.

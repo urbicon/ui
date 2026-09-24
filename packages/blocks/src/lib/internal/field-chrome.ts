@@ -33,7 +33,7 @@
  * `inline-flex` container), the `underline` variant and Input's `placeholder`
  * colour, PinInput's `focus-visible:z-10`, TimeInput's `fullWidth` and its
  * cursor-free readonly. The shared label/message MARKUP in the `.svelte` files
- * is a separate, larger cut (see technical-debt "Field chrome…" part b).
+ * is a separate, larger cut.
  *
  * This is not a component and imports nothing from other component dirs, so it
  * is exempt from the cross-component import guard (imports-lint treats

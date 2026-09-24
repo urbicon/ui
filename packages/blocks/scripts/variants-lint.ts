@@ -1,9 +1,9 @@
 /**
  * variants-lint — behavioural lint over every tv() config in the monorepo.
  *
- * Since the within-stage fold (XC-10) the pipeline resolves same-bucket
- * conflicts deterministically: later sources (axes in declaration order,
- * compounds in array order) strip earlier ones. That makes a new failure
+ * The pipeline's within-stage fold resolves same-bucket conflicts
+ * deterministically: later sources (axes in declaration order,
+ * compounds in array order) strip earlier ones. That makes a failure
  * mode possible: a class token that is stripped in EVERY reachable
  * combination — dead weight that silently never renders (historic examples:
  * Button's variant.text `px-2`, JourneyTimeline's focused title colour).

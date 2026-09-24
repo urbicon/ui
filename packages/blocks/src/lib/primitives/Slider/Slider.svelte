@@ -44,7 +44,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   // Slider additionally injects a `statusId` into describedBy when the
   // current value enters a constrained zone (see hasRangeConstraints below).
   const propsId = $props.id();

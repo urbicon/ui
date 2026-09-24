@@ -1,8 +1,7 @@
 /**
  * The eval-suite design briefs — the standing benchmark for "does a change to the
  * design layers actually improve generation, or just lengthen the context?"
- * (docs/internal/DESIGN-MCP.md, cross-cutting eval). Systematises earlier one-off
- * design-quality comparisons into a repeatable set.
+ * Systematises earlier one-off design-quality comparisons into a repeatable set.
  *
  * Each brief is generated under two conditions (baseline vs. design-MCP loop),
  * then scored by `scoreImplementation` (deterministic linter) and the judge

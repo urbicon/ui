@@ -1,10 +1,10 @@
 <script lang="ts">
-  // E2E fixture for the Tooltip fade motion (ACC-3 follow-up, Playwright). Renders tooltips in
-  // default (token) and prop-overridden states so a test can read the computed transition-duration
-  // / -timing-function off each tooltip panel. The panel carries the `transition-opacity` class
-  // regardless of open state (popover manual → display:none until shown), so the computed value is
-  // readable without hovering. `data-testid` rides `{...restProps}` onto the panel element. Not
-  // part of the docs nav.
+  // E2E fixture for the Tooltip fade motion (Playwright). Renders tooltips in default (token) and
+  // prop-overridden states so a test can read the computed transition-duration / -timing-function
+  // off each tooltip panel. The panel carries the `transition-opacity` class regardless of open
+  // state (popover manual → display:none until shown), so the computed value is readable without
+  // hovering. `data-testid` rides `{...restProps}` onto the panel element. Not part of the docs
+  // nav.
   import { Tooltip } from '@urbicon-ui/blocks';
 </script>
 

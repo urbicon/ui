@@ -7,7 +7,7 @@ import type { ToastProps } from './index';
 import Toaster from './Toaster.svelte';
 import { toaster } from './toast.store.svelte';
 
-// Interaction layer for the Toaster action/cancel buttons (TST-1). The store
+// Interaction layer for the Toaster action/cancel buttons. The store
 // logic (promise/update) is covered in toast.store.test.ts; here we mount the
 // renderer, push a toast through the store, and drive the buttons. Same stack as
 // the other DOM tests: Svelte's own mount/unmount, @testing-library/dom + native

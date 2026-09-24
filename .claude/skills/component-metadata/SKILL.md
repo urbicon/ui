@@ -49,6 +49,10 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 - **Only *direct* props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary. The first version of the gate missed this and reported 56 knobs that show nothing to anyone.
 - The API table on the docs page keeps showing the **description** — that is where the contract belongs. Measured on Dialog: 53 characters beside the knob, 375 in the table, same prop.
 
+## A prop's `@default` is copied, never checked
+
+docs-gen takes a direct prop's default from its `@default` tag alone (`PropsExtractor.ts`), never from the `$props()` destructuring; only a tv() axis reads its default from code (`defaultVariants`). A wrong `@default` travels unchecked into `api.ts`, the component's `llm.txt` and everything serving it (`llms-full.txt`, MCP `get_component`, the `urbicon` CLI) — no gate compares it with the code. Change the tag in the same edit as the destructuring default.
+
 ## A variant value's description lives in `*.variants.ts`
 
 A tv() value is a bare key (`dot: {}`), so its meaning lives in the JSDoc block on that key — read exactly as a prop's JSDoc is (TypeScript's own attachment) — and becomes `variants[].valueDescriptions.<value>` in the catalog, the search index, and an indented line under the axis in `llm.txt`:

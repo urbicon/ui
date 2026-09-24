@@ -1,6 +1,6 @@
 /**
  * The validation-history sidecar: an append-only ndjson log of `urbicon validate
- * --record` runs, so design drift is measurable over time (DESIGN-MCP-V2 §7).
+ * --record` runs, so design drift is measurable over time.
  *
  * Pure string ⇆ object conversion only — the file I/O (resolving the sidecar path,
  * appending a line) lives in the CLI's `manifest-io`, mirroring the rest of the

@@ -1,10 +1,10 @@
 /**
  * Public API of the Urbicon UI design linter.
  *
- * The linter is the deterministic half of the "generate → validate → fix" loop
- * (docs/internal/DESIGN-MCP.md, Option B). It is consumed by the `validate_design` MCP
- * tool and, programmatically, by the eval-suite (WP5) which scores generated
- * pages without an LLM in the loop.
+ * The linter is the deterministic half of the "generate → validate → fix" loop.
+ * It is consumed by the `validate_design` MCP tool and, programmatically, by the
+ * eval-suite (`mcp-server/src/eval`) which scores generated pages without an LLM
+ * in the loop.
  */
 
 export { HEURISTIC_RULE_IDS, HEURISTIC_THRESHOLDS } from './heuristics.js';

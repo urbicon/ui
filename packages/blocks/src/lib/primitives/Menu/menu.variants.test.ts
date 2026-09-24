@@ -91,7 +91,7 @@ describe('menuVariants', () => {
     expect(menuVariants({ itemSize: 'lg' }).section()).toContain('px-4');
   });
 
-  it('items follow the shared listbox baseline (min-h, XC-9)', () => {
+  it('items follow the shared listbox baseline (min-h)', () => {
     expect(menuVariants({ itemSize: 'sm' }).item()).toContain('min-h-[2rem]');
     expect(menuVariants({ itemSize: 'md' }).item()).toContain('min-h-[2.5rem]');
     expect(menuVariants({ itemSize: 'lg' }).item()).toContain('min-h-[3rem]');

@@ -44,7 +44,7 @@
 
   let textareaRef = $state<HTMLTextAreaElement>();
 
-  // ARIA wiring is shared with every form primitive — see XC-2.
+  // ARIA wiring is shared with every form primitive — see `useFormField`.
   // A consumer-supplied `id` wins over the generated one, so an external
   // `<label for>` can address the `<textarea>` (mirrors the Input role model).
   const propsId = $props.id();
@@ -60,7 +60,7 @@
   // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
   // outside the component) merges with the internal error/helper chain instead
   // of replacing it — internal descriptions first, the consumer's supplemental
-  // one last (mirrors the Input role model, XC-2).
+  // one last (mirrors the Input role model).
   const describedBy = $derived(
     [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
   );

@@ -1,7 +1,7 @@
 import { tv, type VariantProps } from '$lib/utils/variants';
 
 /**
- * CSS-native enter/exit motion for the floating panel (ACC-3 rest), keyed on
+ * CSS-native enter/exit motion for the floating panel, keyed on
  * the `data-state` attribute Popover always stamps. Kept as its own fragment
  * because two call sites need exactly these classes: `popoverVariants.base`
  * below, and Menu — which renders its inner Popover `unstyled` (to avoid a

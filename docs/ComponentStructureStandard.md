@@ -297,12 +297,10 @@ Props whose description comes exclusively from `tv()` (no JSDoc in `index.ts`) a
 Page content is not this document's subject — see **[DocsPageGuide.md](DocsPageGuide.md)** for
 section order, the examples strategy and the accessibility section.
 
-> This file used to carry a "Required Example Sections" list demanding a Variants, an Intents and
-> a Sizes section on every page. The DocsPageGuide has told authors to delete exactly those on
-> sight since XC-6, and the pages followed the guide: of 185 pages, **one** has a `variants`
-> section, **two** have `sizes`, **none** has `intents`. The list was contradicted by the
-> codebase and by the other document at the same time, so it is gone rather than reconciled.
-> The Playground is the variant explorer; examples are use-cases.
+> This file carries no "Required Example Sections" list, and a Variants, an Intents or a Sizes
+> section is not one to add back: rule 1 of the
+> [Examples Strategy](DocsPageGuide.md#examples-strategy) has authors delete exactly those, and
+> the pages follow it. The Playground is the variant explorer; examples are use-cases.
 
 ## docs-gen Integration
 

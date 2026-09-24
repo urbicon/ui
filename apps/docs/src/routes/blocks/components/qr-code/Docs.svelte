@@ -123,13 +123,13 @@
       Bound the size with <code>maxVersion</code> when a code has to stay physically small. Data
       that overflows that bound calls <code>onError</code> and renders a visible fallback in place
       of the code, so the surrounding page keeps rendering. Type past the
-      <code>maxVersion={4}</code> capacity below to see the fallback.
+      <code>maxVersion=&#123;4&#125;</code> capacity below to see the fallback.
     </p>
   </div>
 
   <CodeExample
     title="Live capacity demo"
-    description="The bound value is encoded on every change. When it overflows maxVersion={4}, onError fires and the fallback shows in place of the code."
+    description="The bound value is encoded on every change. When it overflows `maxVersion=&#123;4&#125;`, `onError` fires and the fallback shows in place of the code."
     code={`<` +
       `script>
   let payload = $state('https://ui.urbicon.de/docs');

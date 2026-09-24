@@ -12,9 +12,12 @@ carries a justification naming the measurement that forced it. Reading convinces
 by exception. **The number of exceptions is the finding, and it is invisible while reading.**
 
 Change the question instead. Run the sondes below in order and stop when the answer is clear.
-First full run: `packages/table`, 2026-08-18, 18 agents; three more followed on the same package
-(`features/` 22.08., sticky/pinning 25.08.). The write-ups are maintainer-local and unpublished —
-`docs/archive/2026-08/TABLE-{MIGRATIONEN,FEATURES-SONDE,STICKY-SONDE}-*.md` in a full checkout.
+First full run: `packages/table`, 2026-08-18, 18 agents; follow-up runs covered table's
+`features/` layer and sticky/pinning, then `packages/auth`. **A run drills where archaeology and
+matrix point; it does not cover the package.** End every run with a coverage map — probed, not
+probed, which sonde would fit — or the report reads more complete than it was. The map's own
+guesses are claims too: table's sticky/pinning was filed "pixel-only" and kept being deferred,
+yet most of its findings were decidable in jsdom.
 
 ## Two rules, without which none of the sondes carries
 
@@ -29,6 +32,12 @@ Finder agents must be told: *no overall judgement, no grade, no praise, only lis
 volunteer a verdict otherwise, and the verdict is what you are trying not to get.
 
 ## The order
+
+**First, two cheap counts that predict where findings sit.** Test LOC against production LOC per
+layer — on table and on auth coverage ran inverse to user proximity, and auth's client components
+had no test at all. And which parts a live demo or e2e ever executes: a feature without an
+executable oracle collects defects silently (table's `fit="viewport"` was rendered nowhere in the
+repo and held most of its probe's confirmed consumer defects).
 
 ### 1. Git archaeology — one agent, cheapest, highest yield
 
@@ -56,6 +65,13 @@ inconsistencies. The deviation then falls out of the table instead of being inve
 Highest hit rate for concrete bugs of all five sondes.
 
 An inconsistency without a `price` field does not count. Require it in the schema.
+
+**Ask whether a concern has an executable oracle before sending reading agents.** On
+sticky/pinning the two concerns that ran the real `tv()` engine and a Tailwind compile returned
+numbers no reading would have. **A census for disagreement cannot see one name with two jobs
+whose populations happen to agree:** on auth, one error code named a signed-in and a signed-out
+ceremony, both answered 400, and the census found nothing. After the census, ask per name whether
+every site means the same thing.
 
 ### 3. Empirical verification — the obligation, not a sonde
 
@@ -128,6 +144,28 @@ do not replace each other.
   renderer exists three times" is a state, not a task; as an issue it sits open for a year. Issue
   the *work* that ends the state, and let it link back.
 - **Method learnings** → this file.
+- **The probe is not the last instrument.** Sondes measure state; the class "shows only when you
+  change it" surfaces during implementation — table's migration waves found defects the probe had
+  missed. Keep the adversarial review of every implementation PR (`pr-wave` skill).
+
+## Is a rebuild net better?
+
+When the diagnosis proposes a redesign, decide after a spike and before building, with
+instruments that return a number or a yes/no — table's v8 view object was decided this way:
+
+- **Defect classes are the currency:** unrepresentable > test/guard > rule the consumer must know.
+  The rebuild wins when more existing defects move down a class than new risks appear, and no new
+  risk ends as a rule. Trading a rule for a rule counts zero.
+- **Backward probe:** for each real defect of recent months — in the target design, would it be
+  unrepresentable, a red test, or still possible? Ask the same of the fallback (consolidating in
+  place).
+- **Count rules on the new surfaces too** (binding options, phase contracts), not only the ones the
+  rebuild removes.
+- **Docs-first litmus:** write the target page and the new props' JSDoc before any code. A page that
+  again needs a conflict-resolution section, or a prop that needs a "never pass X" box, fails the
+  design before it exists.
+- **Abort criteria fixed before the spike**, against sunk cost: the measurements that tip the
+  decision to the fallback.
 
 ## Learnings from the second run (features/ layer, 2026-08-22)
 

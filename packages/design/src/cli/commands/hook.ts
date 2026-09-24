@@ -1,8 +1,8 @@
 /**
  * `urbicon hook` — the editor-hook adapter that turns the design gate from "the
- * agent should run it" into "the harness runs it" (DESIGN-MCP-V2 §5.3). Wired as a
- * Claude Code `PostToolUse` hook (matcher `Edit|MultiEdit|Write`), it fires after
- * every file edit; a plain `urbicon validate` cannot, because the hook event
+ * agent should run it" into "the harness runs it". Wired as a Claude Code
+ * `PostToolUse` hook (matcher `Edit|MultiEdit|Write`), it fires after every
+ * file edit; a plain `urbicon validate` cannot, because the hook event
  * arrives as JSON on stdin, not as a path argument.
  *
  * It reads that event, pulls the edited file out of `tool_input.file_path`, and —

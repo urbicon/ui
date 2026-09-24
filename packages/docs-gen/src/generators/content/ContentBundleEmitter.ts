@@ -20,8 +20,7 @@ import { parseIconRegistry } from './icons';
  * `@urbicon-ui/design-content` bundle (`packages/design-content/content/`). Runs
  * last in `docs:gen:all`, after the MCP catalog + per-component llm.txt have been
  * produced. The bundle is what the remote MCP server and the urbicon CLI read at
- * runtime — so it must be self-contained (no monorepo sibling paths). See
- * DESIGN-MCP-V2 §A.2.
+ * runtime — so it must be self-contained (no monorepo sibling paths).
  */
 export interface ContentBundleEmitterConfig {
   /** `apps/docs/static` — the assembled catalog (`mcp/`) + per-component `llm.txt` tree. */
@@ -32,7 +31,7 @@ export interface ContentBundleEmitterConfig {
   templatePath: string;
   /** `blocks/src/lib/icons/icon-registry.ts` — parsed into `icons.json`. */
   iconRegistryPath: string;
-  /** `packages/design/skill/verbs` — the single-source verb recipes (DESIGN-MCP-V2 §8). */
+  /** `packages/design/skill/verbs` — the single-source verb recipes. */
   verbsDir: string;
   /**
    * Canonical package guides copied to `guides/<slug>.md` + indexed in
@@ -131,7 +130,7 @@ export class ContentBundleEmitter {
       path.join(outputDir, 'design-system')
     );
 
-    // 4. Verb recipes — the single-source design verbs (DESIGN-MCP-V2 §8), copied so
+    // 4. Verb recipes — the single-source design verbs, copied so
     //    the remote MCP prompts read the same text the local skill ships.
     const verbCount = await this.copyVerbs(verbsDir, path.join(outputDir, 'verbs'));
 
@@ -171,7 +170,7 @@ export class ContentBundleEmitter {
     const icons = parseIconRegistry(registry);
     await fs.writeFile(path.join(outputDir, 'icons.json'), JSON.stringify(icons, null, 2), 'utf-8');
 
-    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a fingerprint of the bundle.
+    // 7. Meta — version stamp + a fingerprint of the bundle.
     const version = await this.readVersion(outputDir);
     const contentHash = await this.fingerprint(outputDir, catalogRaw);
     const meta = { version, builtAt: new Date().toISOString(), contentHash };

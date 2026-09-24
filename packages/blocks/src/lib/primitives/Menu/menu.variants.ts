@@ -33,7 +33,8 @@ export const menuVariants = tv({
     section: ['px-3 py-1.5 text-xs font-medium text-text-tertiary'],
     divider: ['my-1 h-px bg-border-hairline'],
     // No extra `py` — the `content` slot's `p-1` is the single edge inset
-    // (symmetric 4px, same rhythm as the Select/Combobox listboxes, XC-9).
+    // (symmetric 4px, same rhythm as the Select/Combobox listboxes — see
+    // docs/COMPONENT-FAMILIES.md § Listbox item rhythm).
     items: ['space-y-0.5'],
     // tier: modify — menu items are momentary affordances inside the contain panel.
     item: [
@@ -83,7 +84,7 @@ export const menuVariants = tv({
     },
     // Size for menu items. Typo tracks the Button ladder (text-sm/base/lg —
     // Action-family items read like the Button that opened them); py/min-h
-    // sit on the shared listbox baseline (2 / 2.5 / 3 rem, XC-9). The section
+    // sit on the shared listbox baseline (2 / 2.5 / 3 rem). The section
     // header always shares the item's horizontal inset (px-3 lives on the
     // `section` slot base for md).
     itemSize: {

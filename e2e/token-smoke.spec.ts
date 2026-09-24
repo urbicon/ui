@@ -8,8 +8,8 @@ import { parseDeclarations } from '../apps/docs/src/lib/css-declarations';
  * Structural token smoke test. The VR suite compares pixels against committed baselines
  * and tolerates token-level total failures (a baseline captured with broken tokens keeps
  * passing). This spec instead asserts that var()-consuming token families RESOLVE to
- * real computed values: box-shadow (f7a9093 — light-dark() is color-only, shadows
- * defined through it computed to 'none' everywhere), transition-duration (an unresolved
+ * real computed values: box-shadow (light-dark() is color-only, so a shadow defined
+ * through it computes to 'none' everywhere), transition-duration (an unresolved
  * var() collapses to 0s), and the tier border-radius scale. DOM/computed-style only —
  * portable to Linux CI.
  *
@@ -84,7 +84,7 @@ test.describe('Token smoke', () => {
     const button = page.getByTestId('probe-button');
 
     // Shadow family: --blocks-shadow-tint → --blocks-shadow-scale-md → --blocks-shadow-md.
-    // A broken chain computes to 'none' (exactly the f7a9093 total failure).
+    // A broken chain computes to 'none' — the total failure described in the header.
     const boxShadow = await style(card, 'box-shadow');
     expect(boxShadow).not.toBe('none');
     expect(boxShadow).not.toBe('');

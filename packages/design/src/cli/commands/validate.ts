@@ -150,7 +150,7 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   const skipHeuristics = boolFlag(flags, 'skip-heuristics');
   const record = boolFlag(flags, 'record');
 
-  // F-S6-3: the craft axis is advisory by default and only gates when the caller
+  // The craft axis is advisory by default and only gates when the caller
   // opts in with a floor (craft heuristics are FP-prone). A malformed floor is a
   // usage error, never a silently skipped gate.
   const craftFloor = parseCraftFloor(flags['craft-floor']);
@@ -159,13 +159,13 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
     return EXIT.USAGE;
   }
 
-  // F-S4-1: feed the linter the project's own token overrides from the manifest,
+  // Feed the linter the project's own token overrides from the manifest,
   // so a customised token set is not flagged as hallucinated. Best-effort: no
   // manifest ⇒ no overrides ⇒ identical to before.
   //
-  // Since `token-hallucination` became an error (2026-07-31) this moves a real
-  // gate, not just a warning: for a project with its own tokens, the manifest is
-  // what keeps `validate` at exit 0. No other error rule is affected.
+  // `token-hallucination` is an error, so this moves a real gate, not just a
+  // warning: for a project with its own tokens, the manifest is what keeps
+  // `validate` at exit 0. No other error rule is affected.
   const manifestPath = resolveManifestPath(stringFlag(flags, 'manifest'));
   const extraTokens = await readTokenOverrides(manifestPath);
   // Manifest-declared exemptions for deliberately off-system surfaces; matched per

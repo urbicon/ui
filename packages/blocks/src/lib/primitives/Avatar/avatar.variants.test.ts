@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { avatarVariants } from './avatar.variants';
 
 describe('avatarVariants', () => {
-  // Regression guard for the AVT-1 clipping fix: the clip lives on `frame`, and
-  // `base` must stay clip-free so the status dot (a sibling of `frame`) is never
-  // cut into a crescent.
+  // The clip lives on `frame`, and `base` must stay clip-free so the status dot
+  // (a sibling of `frame`) is never cut into a crescent.
   it('confines overflow-hidden to the frame, never the base — for every shape', () => {
     for (const variant of ['circle', 'rounded', 'square'] as const) {
       const styles = avatarVariants({ variant });

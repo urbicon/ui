@@ -86,6 +86,22 @@ The internal TODO is a Stand document, not a list: any `- [ ]` item is either a
 GitHub issue or dropped. The internal index names exactly the files present —
 no ghosts, no unlisted ones.
 
+Internal docs have a lifecycle, not an archive. `docs/internal/` is its own
+local git repository (since 2026-09-24; this repo still ignores it). A living
+doc names its end condition in its head; when the work ends it is harvested,
+then removed with `git rm` in that repository — no archive folder, no row left
+in the index; the history is the archive:
+
+- decision → `docs/DECISIONS.md` with *Revisit only if*, or the contract doc
+  that owns the rule
+- rule → canon doc or skill; trap or method → skill if it is procedure, else
+  memory
+- open rest → an issue only if someone noticed the problem without looking for
+  it, else dropped
+- measurement → only with the command that reproduces it
+
+A doc past its end condition, or naming none, is a finding.
+
 ## Output
 
 One finding per piece of evidence: `file:line`, what is wrong, and **who pays**
@@ -94,5 +110,5 @@ keep the two apart. No global grade: "the docs are good" is the answer the
 question invites and the one that changes nothing.
 
 Then stop. Act on the findings as a `pr-wave`, in fresh contexts — the audit
-context is the worst place to fix what it just found. The 2026-09-14 run, whose
-write-ups are maintainer-local, is the worked example.
+context is the worst place to fix what it just found. The 2026-09-14 run is the
+worked example; its write-up lives in the internal repository's history.

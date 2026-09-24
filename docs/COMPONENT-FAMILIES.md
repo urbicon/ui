@@ -220,6 +220,13 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 
 The consumer-facing sentence is in `design-system/principles.md` § Visual Hierarchy.
 
+**Where the intent lands** — on the surface, or only on its markers — follows what the component carries, not its family:
+
+- **A component that *is* the message tints its own surface.** `Alert` (its `soft` and `filled` variants), `Badge`, and `Tooltip`, whose body is its `label` string and never foreign markup.
+- **A component that frames arbitrary content tints only its markers** and keeps the surface neutral. `Toast` colours its icon and progress bar on `bg-surface-overlay`, `Dialog` its title and header icon, `Drawer` at most an accent edge (`accentEdge`); Dialog and Drawer also expose the value as `data-intent` on the panel. A tinted surface under a consumer's form, table or code block would take over that content's contrast ratios.
+
+The split cuts across families: Alert is a Container and tints, Toast is Feedback and does not.
+
 ---
 
 ## Listbox item rhythm

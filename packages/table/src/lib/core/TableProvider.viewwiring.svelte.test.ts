@@ -8,9 +8,9 @@ import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';
 
 /**
- * The provider's view wiring, mounted — the §12.11 answers of the v8 review
- * pinned against the real component tree (`Table.render.svelte.test.ts` is
- * the model; this file covers the wiring the render suite does not):
+ * The provider's view wiring, mounted — pinned against the real component tree
+ * (`Table.render.svelte.test.ts` is the model; this file covers the wiring the
+ * render suite does not):
  *
  * - virtualization × grouping, both arrival paths: a grouping the view
  *   *arrives* with and one arriving later through a binding's

@@ -131,7 +131,7 @@ export function provideI18n(
     });
   }
 
-  // Ensure the initial active + fallback locales' lazy bundles are loaded (WP4) —
+  // Ensure the initial active + fallback locales' lazy bundles are loaded —
   // a no-op when everything is eager. Client-only (effects don't run during SSR),
   // so a lazy non-base initial locale renders the fallback on the server and the
   // first client paint, then re-resolves once the chunk lands. Subsequent switches

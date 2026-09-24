@@ -227,13 +227,13 @@ function lintRegistry(svgNames: string[]): void {
 
 // ── Documented counts ────────────────────────────────────────────────────────
 /**
- * Four docs quote the set's size as information a reader acts on (how big is
- * this set / how far did it grow). Everywhere else the number was decoration —
+ * The docs below quote the set's size as information a reader acts on (how big
+ * is this set). Everywhere else the number was decoration —
  * "drags all N icons into the bundle" says nothing "the whole set" doesn't — and
  * those copies were deleted rather than maintained, because a number that no one
  * reads is a number that only goes stale.
  *
- * These four stay, bound to the count this linter already has in hand. That is
+ * They stay, bound to the count this linter already has in hand. That is
  * the whole justification for the check: it asks no new oracle and re-implements
  * no parser — it compares a prose claim against the directory it is a claim
  * about. A pattern that stops matching is an error too, so rewording the
@@ -246,9 +246,7 @@ function lintRegistry(svgNames: string[]): void {
 const REPO_ROOT = join(import.meta.dir, '../../..');
 const COUNT_CLAIMS: ReadonlyArray<readonly [string, RegExp]> = [
   ['packages/blocks/README.md', /(\d+) hand-rolled SVG icons/],
-  ['docs/ARCHITECTURE.md', /icon set \((\d+) icons\)/],
-  ['docs/README.md', /how the set grew from 156 to (\d+)/],
-  ['docs/ICON-ROADMAP.md', /\*\*156 icons to the current set of (\d+)\*\*/]
+  ['docs/ARCHITECTURE.md', /icon set \((\d+) icons\)/]
 ];
 
 function lintDocumentedCounts(actual: number): void {

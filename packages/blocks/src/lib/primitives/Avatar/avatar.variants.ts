@@ -4,7 +4,7 @@ export const avatarVariants = tv({
   slots: {
     // Outer positioning context. Carries sizing, the ring, interactive/mint
     // effects — but NOT `overflow-hidden`, so the status dot (a sibling of
-    // `frame`) is never clipped (AVT-1). The radius is mirrored here purely so
+    // `frame`) is never clipped. The radius is mirrored here purely so
     // the ring follows the avatar's shape.
     base: [
       'relative inline-flex shrink-0',
@@ -114,7 +114,7 @@ export const avatarVariants = tv({
       }
     },
     // Status dot is translated out of the avatar's edge so it half-overlaps the
-    // corner (AVT-1). Translation magnitude is intentionally fractional — the
+    // corner. Translation magnitude is intentionally fractional — the
     // dot sits half-overlapping the edge, which matches the conventional badge
     // look (Slack, Discord, Linear).
     statusPosition: {

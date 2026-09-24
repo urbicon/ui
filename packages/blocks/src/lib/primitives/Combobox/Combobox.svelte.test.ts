@@ -185,7 +185,7 @@ describe('Combobox (component interaction)', () => {
   });
 });
 
-// Group support (CMB-5). Grouped options render under section headers; filtering
+// Group support. Grouped options render under section headers; filtering
 // hides empty groups; keyboard nav + selection flow across group boundaries via
 // the same flattened `filtered` cursor a flat list uses.
 const GROUPS = [
@@ -248,7 +248,7 @@ describe('Combobox (groups)', () => {
   });
 });
 
-// Async / server-side search (CMB-3). queryFn replaces client filtering: it is
+// Async / server-side search. queryFn replaces client filtering: it is
 // debounced, its result replaces the option list, a superseded request is
 // aborted so a slow stale response can't clobber a fresh one, and the selected
 // label survives a later result set that no longer contains it.
@@ -495,7 +495,7 @@ describe('Combobox (async queryFn)', () => {
   });
 });
 
-// Multi-select with tags (CMB-2). `multiple` binds `value` to an array; picks
+// Multi-select with tags. `multiple` binds `value` to an array; picks
 // render as removable tag chips below the search input; selecting keeps the
 // listbox open; Backspace on an empty query removes the last tag; `maxItems`
 // caps additions; a selected option can always be toggled back off.

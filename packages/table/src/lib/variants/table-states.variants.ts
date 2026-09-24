@@ -305,8 +305,8 @@ export const skeletonRowVariants = tv({
  * (`border-border-subtle` + `rounded-contain` + `mb-3` + a hover shadow), so a
  * phone showed a stack of outlined panels inside whatever surface the table
  * already had — and it drew that outline from the FORM family, which the
- * variant contract (§7) reserves for input affordances; container surfaces take
- * `border-hairline`.
+ * variant contract (VARIANT-CONTRACT.md §7) reserves for input affordances;
+ * container surfaces take `border-hairline`.
  *
  * The frame and the surface now belong to the list instead: `TableMobile`
  * applies the table's own `scrollArea` slot, so `variant` (flush / surface /

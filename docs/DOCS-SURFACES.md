@@ -104,6 +104,6 @@ never link to it as a source.
 
 New consumer-relevant docs follow this file's model from the start; there is
 no open migration debt. The one deliberate asymmetry: the `urbicon` CLI lists
-every bundled guide dynamically (`guides/index.json`), while the unhosted MCP
-server statically advertises only the auth guide alongside its six
+every bundled guide dynamically (`guides/index.json`), while the MCP server
+(being retired, #500) statically advertises only the auth guide alongside its six
 template-sliced resources.

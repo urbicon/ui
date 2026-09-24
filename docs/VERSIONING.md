@@ -48,17 +48,20 @@ table applies without exception.
 
 ## What the bump scripts do
 
-Before any of the steps below, the script runs the build/test verification (skippable together via `BUMP_SKIP_VERIFY=1`) and then `bun run size --check` against `bundle-size.baseline.json`, aborting the bump on unexplained bundle growth until the baseline is updated deliberately.
+`scripts/bump.sh` refuses a dirty tree (`bundle-size.baseline.json` is the one file allowed to be modified). Before any of the steps below, it runs the build/test verification (skippable together via `BUMP_SKIP_VERIFY=1`) and then `bun run size --check` against `bundle-size.baseline.json`, aborting the bump on unexplained bundle growth until the baseline is updated deliberately. The script is Bun-native and needs no node/npm.
 
-1. Bumps root `package.json` version via `npm version --no-git-tag-version`
-2. Sets all `packages/*/package.json` to the same version
-3. Runs `bunx git-cliff --tag vX.Y.Z --output CHANGELOG.md` — regenerates the full changelog
-4. Creates a single release commit: `chore: release vX.Y.Z`
-5. Creates annotated git tag `vX.Y.Z` on HEAD
+1. Computes the next version from the root `package.json` and the bump level, and writes it there (`bun -e`)
+2. Sets every non-private `package.json` under `packages/` to the same version, and rewrites an explicit semver range on a bumped sibling to `^<major>.0.0` — `workspace:` ranges stay untouched
+3. Runs `bun install` so the lockfile follows
+4. Runs `bunx git-cliff --tag vX.Y.Z --output CHANGELOG.md` — regenerates the full changelog
+5. Stages exactly the files it touched — plus the lockfile if the install changed it, and a baseline updated ahead of the run — and creates a single release commit: `chore: release vX.Y.Z`
+6. Creates annotated git tag `vX.Y.Z` on HEAD
+
+A failure in any of these steps rolls back to the commit the bump started from and deletes the tag.
 
 Result: one release commit + one annotated tag on HEAD. The tag on HEAD is critical — pushing it is what starts the release. Push with `git push --follow-tags`. **Never edit `CHANGELOG.md` manually** — it is fully auto-generated.
 
-**Where publishing actually happens.** The tag triggers `.github/workflows/release.yml`, which both gates and publishes: a `gate` job runs lint, typecheck, unit tests and e2e against the tagged commit and packs the tarballs, then a separate `publish` job uploads them over npm trusted publishing (OIDC — no long-lived token, and no `bun install` in the credential-bearing job). Live since 2026-08-01 (v6.48.1). The docs site is deployed separately by `.github/workflows/deploy.yml`, which waits for a green pipeline rather than for the tag. See [DECISIONS.md](DECISIONS.md#the-publishing-job-holds-a-credential-and-nothing-else).
+**Where publishing actually happens.** The tag triggers `.github/workflows/release.yml`, which both gates and publishes: a `gate` job runs lint, typecheck, unit tests and e2e against the tagged commit (e2e only when CI has not already passed on it) and packs the tarballs, then a separate `publish` job uploads them over npm trusted publishing (OIDC — no long-lived token, and no `bun install` in the credential-bearing job). Live since 2026-08-01 (v6.48.1). The docs site is deployed separately by `.github/workflows/deploy.yml`, which waits for a green pipeline rather than for the tag. See [DECISIONS.md](DECISIONS.md#the-publishing-job-holds-a-credential-and-nothing-else).
 
 **`apps/*` are intentionally out of scope.** The bump only scans `packages/`, and the version write is additionally guarded to non-private packages. `apps/docs` is a private, never-published app, so it keeps its own `package.json` version (currently `0.0.1`) rather than tracking the library version — a private app sharing the public library version would be misleading. This is by design, not a drift to fix.
 

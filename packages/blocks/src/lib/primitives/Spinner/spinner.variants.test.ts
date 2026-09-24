@@ -19,7 +19,7 @@ describe('spinnerVariants', () => {
 
   it('exposes `current` so the spinner inherits the parent text-color', () => {
     // `text-current` is the contract for use inside coloured surfaces
-    // (filled Button, Toast action, ConfirmDialog primary) — BTN-1 fix.
+    // (filled Button, Toast action, ConfirmDialog primary).
     expect(spinnerVariants({ intent: 'current' }).base()).toContain('text-current');
   });
 

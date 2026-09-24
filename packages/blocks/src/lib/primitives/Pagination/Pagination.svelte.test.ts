@@ -8,7 +8,7 @@ import type { PaginationItemContext, PaginationProps } from './index';
 import Pagination from './Pagination.svelte';
 import PaginationItem from './PaginationItem.svelte';
 
-// Interaction layer for the `renderItem` snippet (PAG-3). Pagination is
+// Interaction layer for the `renderItem` snippet. Pagination is
 // declarative — no context children — so the snippet is supplied with
 // `createRawSnippet`; its `setup` hook wires a real click handler onto the
 // custom node so the `select` callback can be exercised end-to-end. Same stack

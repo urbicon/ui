@@ -555,7 +555,7 @@ Slider) routes its ARIA wiring through one hook in
 const propsId = $props.id();
 const ff = useFormField(() => ({
   fieldId: idProp ?? `prefix-${propsId}`,
-  hint: helper,
+  helper,
   error,
   required,
   disabled
@@ -565,12 +565,12 @@ const ff = useFormField(() => ({
 ```svelte
 <input id={ff.fieldId} aria-invalid={ff.invalid ? 'true' : undefined} aria-describedby={ff.describedBy} />
 {#if ff.errorId}<div id={ff.errorId} role="alert">{error}</div>
-{:else if ff.hintId}<div id={ff.hintId}>{helper}</div>{/if}
+{:else if ff.helperId}<div id={ff.helperId}>{helper}</div>{/if}
 ```
 
-The hook derives `errorId`, `hintId`, `describedBy` (error-first), `invalid`, plus
-pass-through `required`/`disabled`. Hint and error are mutually exclusive — an error
-suppresses the hint (Material / Carbon / Polaris convention). `fieldId` is supplied by the
+The hook derives `errorId`, `helperId`, `describedBy` (error-first), `invalid`, plus
+pass-through `required`/`disabled`. Helper and error are mutually exclusive — an error
+suppresses the helper (Material / Carbon / Polaris convention). `fieldId` is supplied by the
 caller because `$props.id()` is only valid at component top level; routing it through the
 hook input keeps the hook runnable from tests.
 
@@ -594,6 +594,15 @@ wrapper is one line of `$derived` glue. The standalone `<FormField>` uses the sa
   tokens as fallback.
 - **Accessibility:** respects `prefers-reduced-motion` automatically
 - **Usage:** `<Button mint="scale">` or `<Card mint={['scale', 'ripple']}>`
+
+**Where a mint lands.** On the smallest interactive unit, never on a label or a container:
+Checkbox's box and Toggle's track rather than the `<label>` that wraps them with their text,
+the `<input>` of Input and Combobox, and each item of Tab, SegmentGroup and Menu rather than
+the bar or panel around them — the group holds the `mint` prop and hands it to its items
+through context. And only while there is something to operate: `Card`, `Badge` and `Avatar`
+apply their mint only while interactive, and no component applies one while disabled.
+`RadioItem` is the exception today: its mint lands on the `<label>` that holds indicator and
+text.
 
 All effects share one stylesheet (`mint/styles.css`, imported once by `style/index.css`).
 Components apply the `blocks-mint-*` class on the affected element and never inline the
@@ -720,9 +729,15 @@ Pure date math lives in `packages/blocks/src/lib/date/` (`geometry`, `range`, `c
 `format`) and **is** public via the `./date` subpath export.
 
 `Planner<T>` is the generic planning-board component built on that core — event type is
-caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised. Calendar keeps its
-own month-view rendering by design: the scaffold owns time-grid mechanics, not month-grid
-layout.
+caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised — and the only caller of
+`DateGridScaffold`, which covers the cell-based views (month 6×7, week, range). Calendar shares
+the `DateGridController` and `handleDateGridKeydown`, keeps a context of its own
+(`calendar.context.ts`), and draws its own grid in `CalendarGrid.svelte`, by design: the
+scaffold makes its own `role="gridcell"` element the interactive one (roving `tabindex`, click,
+keyboard) and renders the caller's `cell` snippet inside it, while Calendar's `CalendarDay` is
+itself an interactive `<button role="gridcell">` with its own popover, drag target and
+`dayState` styling. On the scaffold every day would carry the gridcell role twice, or the
+scaffold would have to absorb Calendar's specifics.
 
 `ResourceTimeline<T>` is the third consumer and the one with a second axis: one lane per
 resource against a day window, items drawn as bars over an inclusive `[start, end]` day
@@ -859,7 +874,7 @@ the `urbicon-design` skill. Onboarding: `init`.
 
 `design-engine` is the zero-dep linter, manifest parser and rubric; `design-content` is the
 versioned knowledge bundle both the CLI and the MCP server read. `mcp-server` is a thin
-remote adapter over the same two — [deliberately unhosted](DECISIONS.md#the-mcp-server-is-built-green-and-not-hosted).
+remote adapter over the same two — [deployed but not advertised, and being retired](DECISIONS.md#the-mcp-server-is-deployed-not-advertised-and-being-retired).
 
 ---
 
@@ -961,6 +976,6 @@ at build time) and the full changelog at `/changelog` (via the `virtual:changelo
 
 Decisions that look like oversights and are not — Biome's lack of type-awareness, the
 pre-commit scope, `mcp-server` shipping without a build, the `import.meta.env` advisory, the
-narrow `tv()` engine, the unhosted MCP server, and where publishing actually happens:
+narrow `tv()` engine, the unadvertised MCP server, and where publishing actually happens:
 
 → **[DECISIONS.md](DECISIONS.md)**

@@ -16,7 +16,19 @@
   meistgebrauchten Türen plus Suche, sticky — die Seitenmitte war sonst türlos.
   Fußzeile auf Ink: die vollständige Liste der Türen nach draußen. Alle Farben
   aus dem generierten Register ($lib/landing/channels).
-  Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
+
+  Beschlüsse, die der Code nicht zeigt:
+  · Vollton-Palette, eine Farbe pro Kachel — aber durch das eigene Theming:
+    OKLCH-Kanal-Paare als light-dark() (scripts/channels-gen.ts), sonst wäre
+    die Livery kein Theming-Beweis mehr.
+  · Echtheit: lebende Komponenten in jeder Kachel. Die Agent-Kachel ist eine
+    komponierte Szene; nur ihre zwei Gate-Zeilen sind wörtlich aufgezeichnete
+    Ausgabe (Ehrlichkeitsvertrag in $lib/landing/agent-output).
+  · Kein Auto-Advance der Kacheln.
+  · Verworfen: ein scroll-getriebenes vertikales Deck für Zeile 1
+    (Scroll-Jacking — eine Seite soll scrollen) und der Score als Einstieg in
+    die Agent-Kachel (den Besucher zuerst zu benoten ist oberlehrerhaft; erst
+    das Ergebnis, dann der Code).
 -->
 <!-- urbicon-ignore important-modifier — the `!` modifiers are all slot overrides
      (PLAYGROUND_SLOTS, the Scroller control map, the inventory table, the copy

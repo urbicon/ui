@@ -13,7 +13,7 @@ export const collapsibleVariants = tv({
     ],
     chevron: [
       'shrink-0 text-text-tertiary',
-      // Collapse tokens (ACC-3) so `transitionDuration`/`transitionEasing` can retune the spin
+      // Collapse tokens so `transitionDuration`/`transitionEasing` can retune the spin
       // in sync with the content. `motion-reduce` guards the inline-override path (an inline
       // duration bypasses the token that reduced-motion collapses to 1ms).
       'transition-transform duration-[var(--blocks-collapse-duration)] ease-[var(--blocks-collapse-easing)]',

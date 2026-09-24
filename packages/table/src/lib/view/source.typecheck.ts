@@ -133,7 +133,7 @@ interface UntaggedAndUnguarded<T> {
 declare function acceptUntaggedAndUnguarded<T>(source: UntaggedAndUnguarded<T>): void;
 acceptUntaggedAndUnguarded(untaggedServerConfig); // compiles — both lines down
 
-// ── TS ergonomics under generics (§7.3): narrowing survives the generic ───
+// ── TS ergonomics under generics: narrowing survives the generic ──────────
 export function genericConsumer<T>(source: TableSource<T>): T[] {
   const resolved = resolveSource(source);
   if (resolved.mode === 'server-managed') {

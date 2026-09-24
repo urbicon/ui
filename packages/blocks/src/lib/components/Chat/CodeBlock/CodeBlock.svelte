@@ -40,8 +40,8 @@
   // by embedding it (+25% each, measured against bundle-size.baseline.json). A
   // consumer localises through the three label props; ChatMessage, which already
   // carries the registry via Alert/Avatar/Button/Tooltip, does use the
-  // translations because there it is free. See technical-debt.md — splitting
-  // translations/en.ts per area would remove the trade-off.
+  // translations because there it is free. Splitting translations/en.ts per area
+  // would remove the trade-off (#53).
 
   const variantProps: CodeBlockVariants = $derived({ variant, wrap });
   const styles = $derived(codeBlockVariants(variantProps));

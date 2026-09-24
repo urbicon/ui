@@ -78,7 +78,7 @@ export const stepperVariants = tv({
         step: 'items-center w-full',
         // `flex-col` on the indicator column makes the separator's `flex-1`
         // grow vertically (= the intended thin line) instead of horizontally
-        // (which produced a wide rounded pill — STP-2).
+        // (which would render a wide rounded pill).
         indicatorColumn: 'flex-col',
         separator: 'w-0.5 flex-1 my-1.5 min-h-6',
         content: 'pt-2 pb-1'
@@ -111,7 +111,7 @@ export const stepperVariants = tv({
         indicatorColumn: 'w-11'
       }
     },
-    // Variant contract (XC-13):
+    // Variant contract:
     //   default  → tinted surface, subtle border — reads as "in-page step"
     //   outlined → transparent surface, stronger border — reads as "outline of
     //              a step"; visually distinct from default on bg-surface-base

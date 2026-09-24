@@ -27,8 +27,8 @@
   /**
    * Was gerade passiert — der Maschinenraum eines laufenden Turns.
    *
-   * Er steht bewusst nicht auf der Bühne (ARTEFAKTE §4.3: die Erfahrung ist der
-   * Inhalt, nicht der Linter), aber während der 40 Sekunden, die ein Wunsch
+   * Er steht bewusst nicht auf der Bühne (die Erfahrung ist der Inhalt, nicht
+   * der Linter), aber während der Dutzenden Sekunden, die ein Wunsch
    * dauert, ist er das Einzige, was den Unterschied zwischen „arbeitet" und
    * „hängt" zeigt.
    */
@@ -182,14 +182,14 @@
 
 <div class="flex h-dvh flex-col">
   <header
-    class="flex shrink-0 items-baseline justify-between gap-4 border-b border-border-subtle px-5 py-3"
+    class="border-border-subtle flex shrink-0 items-baseline justify-between gap-4 border-b px-5 py-3"
   >
     <div class="flex items-baseline gap-3 overflow-hidden">
-      <a href="/" class="shrink-0 text-sm text-text-tertiary hover:text-text-primary">← Sitzungen</a
+      <a href="/" class="text-text-tertiary hover:text-text-primary shrink-0 text-sm">← Sitzungen</a
       >
       <h1 class="truncate font-medium">{session.title}</h1>
     </div>
-    <span class="shrink-0 font-mono text-xs text-text-tertiary">
+    <span class="text-text-tertiary shrink-0 font-mono text-xs">
       {session.model} · effort {session.effort}
     </span>
   </header>
@@ -197,8 +197,8 @@
   <div class="flex min-h-0 flex-1">
     <!-- Der Verlauf ist bewusst schmal: das Artefakt-Panel muss über dem
          lg-Breakpoint (1024 px) bleiben, sonst zeigen responsive Artefakte
-         dauerhaft ihre Tablet-Variante (BEFUNDE §21). -->
-    <aside class="flex w-80 shrink-0 flex-col border-r border-border-subtle">
+         dauerhaft ihre Tablet-Variante. -->
+    <aside class="border-border-subtle flex w-80 shrink-0 flex-col border-r">
       <div
         class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4"
         {@attach followTail}
@@ -218,7 +218,7 @@
                   onclick={() => (shown = version.n)}
                 >
                   <span class="block text-sm">{version.prompt}</span>
-                  <span class="mt-1 block font-mono text-xs text-text-tertiary">
+                  <span class="text-text-tertiary mt-1 block font-mono text-xs">
                     v{version.n} · {(version.durationMs / 1000).toFixed(0)} s ·
                     {version.lint.counts.error} E / {version.lint.counts.warning} W · ${version.costUsd.toFixed(
                       2
@@ -238,18 +238,18 @@
           <ol
             class={[
               'flex flex-col gap-2 font-mono text-xs',
-              versions.length && 'border-t border-border-subtle pt-4'
+              versions.length && 'border-border-subtle border-t pt-4'
             ]}
           >
             {#each keyed as entry (entry.id)}
               {@const step = entry.step}
               <li
                 class={[
-                  step.kind === 'wish' && 'font-sans text-sm text-text-primary',
+                  step.kind === 'wish' && 'text-text-primary font-sans text-sm',
                   step.kind === 'fix' && 'text-warning-600',
                   step.kind === 'cli' && 'text-text-tertiary',
                   step.kind === 'edit' && (step.ok ? 'text-text-secondary' : 'text-danger-600'),
-                  step.kind === 'say' && 'font-sans text-sm text-text-secondary',
+                  step.kind === 'say' && 'text-text-secondary font-sans text-sm',
                   step.kind === 'lint' && (step.clean ? 'text-success-600' : 'text-warning-600'),
                   step.kind === 'build' && 'text-text-tertiary'
                 ]}
@@ -258,7 +258,7 @@
               </li>
             {/each}
             {#if running}
-              <li class="flex items-center gap-2 text-text-tertiary">
+              <li class="text-text-tertiary flex items-center gap-2">
                 <Spinner size="xs" /> arbeitet
               </li>
             {/if}
@@ -266,7 +266,7 @@
         {/if}
       </div>
 
-      <form class="shrink-0 border-t border-border-subtle p-3" onsubmit={submit}>
+      <form class="border-border-subtle shrink-0 border-t p-3" onsubmit={submit}>
         <Textarea
           bind:value={wish}
           placeholder={versions.length ? 'Was soll sich ändern?' : 'Was soll entstehen?'}
@@ -292,7 +292,7 @@
 
     <main class="flex min-w-0 flex-1 flex-col">
       <div
-        class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-5 py-2"
+        class="border-border-subtle flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-5 py-2"
       >
         <div class="flex flex-wrap items-center gap-1.5">
           {#each versions as version (version.n)}
@@ -306,7 +306,7 @@
             </Button>
           {/each}
           {#if current}
-            <span class="ml-2 font-mono text-xs text-text-tertiary">
+            <span class="text-text-tertiary ml-2 font-mono text-xs">
               {current.lint.counts.error} E / {current.lint.counts.warning} W · correctness {current
                 .lint.scores.correctness} · craft {current.lint.scores.craft} ·
               {(current.durationMs / 1000).toFixed(0)} s + {(current.buildMs / 1000).toFixed(1)} s Build
@@ -330,7 +330,7 @@
       <div class="min-h-0 flex-1">
         {#if !current}
           <div class="flex h-full items-center justify-center px-6 text-center">
-            <p class="max-w-sm text-text-tertiary">
+            <p class="text-text-tertiary max-w-sm">
               {running
                 ? 'Der Agent recherchiert, schreibt und validiert. Der erste Wurf dauert typischerweise unter einer Minute.'
                 : 'Noch keine Version. Beschreibe links, was entstehen soll.'}
@@ -344,17 +344,17 @@
             auf 127.0.0.1:5211, also gewährt `allow-same-origin` ihr nur Zugriff
             auf sich selbst, nie auf den Host. Ohne das Attribut wäre die Origin
             opak, und dagegen matcht die CSP-Quelle `'self'` nicht mehr — der
-            Browser blockt dann das eigene Artefakt-Modul (BEFUNDE §3).
+            Browser blockt dann das eigene Artefakt-Modul.
           -->
           <iframe
             title="Artefakt v{current.n}"
             src={current.frameUrl}
             sandbox="allow-scripts allow-same-origin"
             referrerpolicy="no-referrer"
-            class="h-full w-full border-0 bg-surface-base"
+            class="bg-surface-base h-full w-full border-0"
           ></iframe>
         {:else}
-          <div class="h-full overflow-auto bg-surface-quiet">
+          <div class="bg-surface-quiet h-full overflow-auto">
             <pre class="p-5 font-mono text-xs leading-relaxed"><code>{current.code}</code></pre>
           </div>
         {/if}

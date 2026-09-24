@@ -1,5 +1,5 @@
 /**
- * Overlay animation tokens (XC-11).
+ * Overlay animation tokens.
  *
  * Single JS source of truth that mirrors the CSS custom properties in
  * `style/interaction.css`. Svelte transitions need numeric inputs at the

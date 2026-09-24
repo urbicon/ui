@@ -37,7 +37,6 @@ export function createServer(): McpServer {
   // Tools — all read-only. Manifest read/write (context · record-decision ·
   // sync-manifest) lives in the consumer's repo via the `urbicon` CLI or the
   // agent's own file tools, not on this stateless remote server.
-  // See docs/internal/DESIGN-MCP-V2.md.
   registerFindComponentsTool(server);
   registerGetComponentTool(server);
   registerGetRecipeTool(server);

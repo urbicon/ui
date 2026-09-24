@@ -38,9 +38,9 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // ACC-3 follow-up: per-instance fade motion. Set the shared tooltip CSS
-  // variables inline only when a prop is provided, so the unset default keeps
-  // inheriting the reduced-motion-aware token.
+  // Per-instance fade motion. Set the shared tooltip CSS variables inline only when
+  // a prop is provided, so the unset default keeps inheriting the reduced-motion-aware
+  // token.
   const tooltipDuration = $derived(
     transitionDuration != null ? `${transitionDuration}ms` : undefined
   );

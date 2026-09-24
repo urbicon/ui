@@ -57,7 +57,7 @@ describe('comboboxVariants', () => {
     expect(xl.input()).toContain('text-xl');
   });
 
-  it('options follow the shared listbox item rhythm (XC-9, parity with Select)', () => {
+  it('options follow the shared listbox item rhythm (parity with Select)', () => {
     const xs = comboboxVariants({ size: 'xs' }).option();
     expect(xs).toContain('px-2');
     expect(xs).toContain('min-h-[1.75rem]');
@@ -160,7 +160,7 @@ describe('comboboxVariants', () => {
     }
   });
 
-  // ── Multi-select tokenizer slots (CMB-2) ──────────────────────────────────
+  // ── Multi-select tokenizer slots ──────────────────────────────────────────
   it('exposes the tokenizer slot functions', () => {
     const styles = comboboxVariants();
     expect(typeof styles.control).toBe('function');

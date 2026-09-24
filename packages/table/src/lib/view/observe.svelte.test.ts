@@ -7,9 +7,8 @@ import type { TableSource } from './source';
 import { createTableView, type TableView, type TableViewSnapshot } from './view.svelte';
 
 /**
- * The managed fetch layer and `observeView`, ported from the v8 spike
- * (§7.4, spike.fetch / spike.review-fixes at 5c0f42f8): exactly one fetch
- * per interaction, the first immediate, echoes free of second fetches
+ * The managed fetch layer and `observeView`, ported from the v8 spike: exactly
+ * one fetch per interaction, the first immediate, echoes free of second fetches
  * (Prüfstein 12), identity-hardening against fresh source literals, abort
  * on supersede, destroy teardowns (M4), and `observeView` as the
  * `onQueryChange` replacement (Prüfstein 13).

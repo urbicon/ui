@@ -31,7 +31,7 @@ Mandatory best practices for the Urbicon UI codebase. This file is the detailed 
 | `onMount + addEventListener('window', …)`                                                                                         | `<svelte:window onkeydown={…}>`                                      | 🟡       |
 | `onMount + matchMedia(…)`                                                                                                         | `new MediaQuery('(...)')` from `svelte/reactivity`                   | 🟡       |
 | `console.log($state(...))`                                                                                                        | `$inspect(...)` or `$state.snapshot(...)`                            | 🟡       |
-| Late-init singleton (`export const x = new ReactiveClass()`) dereferenced from another module at **module eval** time            | Lazy getter + hoisted function export + proxy facade (see below)    | 🟠       |
+| Late-init singleton (`export const x = new ReactiveClass()`) dereferenced from another module at **module eval** time            | Side effect on first use + hoisted lazy getter (see below)          | 🟠       |
 
 ## Positive Patterns (do!)
 
@@ -135,7 +135,7 @@ Rule of thumb: **if the parent's existence already follows from the DOM structur
 A module-global reactive singleton is **fine in itself** — `export const overlayStack = new OverlayStack()`, `toaster`, `mintRegistry` are role models. **One specific combination** becomes dangerous: a late-init singleton (`export const x = new ReactiveClass()`, often at the end of the module) that **another** module dereferences **during its own module eval** — typically an eager registration side effect required for SSR correctness:
 
 ```ts
-// Dangerous form — i18n had exactly this before v6 (now solved via getRegistry()):
+// Dangerous form — i18n had exactly this (now solved by registering on first use, below):
 // my-service.svelte.ts
 export const svc = new ReactiveService(); // at end of module → late init
 
@@ -150,20 +150,43 @@ Under **Vite 8 / Rolldown** the bundler may split statically and dynamically imp
 
 **The nuance:** singletons consumed **lazily only** (in component scripts, `$derived`, event handlers — i.e. at render time, after module eval) are safe. `overlayStack`/`toaster` are used exactly this way → not a concern. The trigger is solely **eval-time access from a foreign module**.
 
-**Fix — the core is part 1, the hoisted lazy getter** (role model `packages/i18n/src/lib/i18n/registry.svelte.ts`, `getRegistry()`). **Part 2 (the proxy facade) is optional** — only needed when a value-import API (`import { x }`) must be preserved; i18n removed it along with the public singleton, and the registry is now purely internal (only `getRegistry()`):
+**Fix — take the access out of module eval.** The trigger is eval-time access, so the fix is to have none: the foreign module's side effect runs on **first use** instead, when every chunk has evaluated. Role model: `createPackageI18n` in `packages/i18n/src/lib/i18n/package-integration.ts` — a top-level `createPackageI18n(...)` builds closures and touches no registry; the registration runs in `ensureRegistered()`, called synchronously from `useTranslate()`, `t()`, `exists()`, `getLocales()` and `register()`, so the first call already resolves the real string.
+
+The **hoisted lazy getter** (`getRegistry()` in `packages/i18n/src/lib/i18n/registry.svelte.ts`) stays, but it is **not sufficient on its own**: a function declaration is callable from module start where a `const` is in the TDZ, yet the `class` it constructs is still a TDZ binding until its statement has run — an eval-time call in a reordered chunk reaches the getter and ends in `X is not a constructor`. The **proxy facade** is optional — only needed when a value-import API (`import { x }`) must be preserved; i18n removed it along with the public singleton, and the registry is now purely internal (only `getRegistry()`):
 
 ```ts
-// 1. Lazy getter as a HOISTED function declaration — defers the `new` (including
-//    its inner SvelteMap/SvelteSet) to first access and is available as a function
-//    from module start (a const would be in the TDZ until its line).
+// 1. The eval-time side effect becomes a first-use one. A top-level
+//    `createThing('x')` only builds closures; nothing reaches the service until
+//    a component or a call asks for it — by then every chunk has evaluated.
+export function createThing(name: string) {
+  let registered = false;
+  const ensureRegistered = () => {
+    if (registered) return;
+    registered = true;
+    getMyService().register(name);
+  };
+  return {
+    t: (key: string) => {
+      ensureRegistered();
+      return getMyService().t(name, key);
+    }
+  };
+}
+
+// 2. Lazy getter as a HOISTED function declaration — callable from module start
+//    (a const would be in the TDZ until its line) and defers the `new` (including
+//    its inner SvelteMap/SvelteSet) to first call. Necessary, not sufficient: the
+//    class it constructs is itself in the TDZ until its line, which is why step 1
+//    carries the fix.
 let _svc: MyService | undefined;
 export function getMyService(): MyService {
   return (_svc ??= new MyService());
 }
 
-// 2. Proxy facade: `import { myService }` stays a value (API compat). Bind methods
-//    in the get trap to the instance (internal `this`); getters dispatch
-//    synchronously so a $state read in `$derived(myService.foo)` stays tracked.
+// 3. Optional proxy facade: `import { myService }` stays a value (API compat).
+//    Bind methods in the get trap to the instance (internal `this`); getters
+//    dispatch synchronously so a $state read in `$derived(myService.foo)` stays
+//    tracked.
 export const myService: MyService = new Proxy({} as MyService, {
   get(_t, p) {
     const inst = getMyService();
@@ -171,10 +194,6 @@ export const myService: MyService = new Proxy({} as MyService, {
     return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(inst) : v;
   }
 });
-
-// 3. Eval-time access paths (registration) go through getMyService(), NOT through
-//    the `myService` const — the hoisted function survives chunk reordering.
-export const t = (...a: Parameters<MyService['t']>) => getMyService().t(...a);
 ```
 
 A characterization test **before** the rework is mandatory when the service is untested — otherwise you refactor resolution/fallback behavior blindly (role model: `packages/i18n/src/lib/i18n/registry.test.ts` + `reactivity.svelte.test.ts`).
@@ -326,7 +345,8 @@ rg "\(\s*i\s*\)\s*\}" packages/ -t svelte
 | Pattern                                                                   | Role-model file                                                          |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Class with a `$state` field + **lazily consumed** singleton + `untrack`   | `packages/blocks/src/lib/utils/overlay-stack.svelte.ts`                   |
-| Hoisted lazy getter (bundler-order-tolerant, for eval-time registration)  | `packages/i18n/src/lib/i18n/registry.svelte.ts` (`getRegistry()`)         |
+| Registration on first use, never at module eval                           | `packages/i18n/src/lib/i18n/package-integration.ts` (`createPackageI18n`) |
+| Hoisted lazy getter (defers the `new`; not enough alone at module eval)   | `packages/i18n/src/lib/i18n/registry.svelte.ts` (`getRegistry()`)         |
 | `createContext<T>()` for compounds                                        | `packages/blocks/src/lib/primitives/Tab/tab.context.ts`                   |
 | `SvelteMap` + reactive `$effect`                                          | `packages/blocks/src/lib/primitives/Tab/Tab.svelte`                       |
 | `MediaQuery` from `svelte/reactivity` (instance-local, deliberately over `svelte/reactivity/window`) | `Sidebar/Sidebar.svelte`, `Pagination/Pagination.svelte`               |

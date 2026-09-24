@@ -19,7 +19,8 @@
  *                   `find_components`/`get_component`/`find_icons`.
  *
  * Extracted from `@urbicon-ui/mcp-server` so the same engine can back the MCP server,
- * a CLI, and editor hooks. See docs/internal/DESIGN-MCP-V2.md.
+ * a CLI, and editor hooks. How the three design packages split the work:
+ * `docs/ARCHITECTURE.md` § `design`, `design-content`, `design-engine`.
  */
 
 export * from './linter/index.js';

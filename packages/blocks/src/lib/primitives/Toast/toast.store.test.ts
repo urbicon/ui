@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toaster } from './toast.store.svelte';
 
-// Store-level tests for the Sonner-style extensions (TST-1): action/cancel
+// Store-level tests for the Sonner-style extensions: action/cancel
 // fields, `update()` in-place mutation, and `promise()` lifecycle. No DOM — the
 // store is a plain reactive module; the `$state` array is read back directly
 // after each mutation. The button rendering + click→dismiss wiring lives in the
@@ -15,7 +15,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('toaster store — actions, update & promise (TST-1)', () => {
+describe('toaster store — actions, update & promise', () => {
   it('carries action/cancel/loading through add()', () => {
     const onClick = vi.fn();
     const id = toaster.add({

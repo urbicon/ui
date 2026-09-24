@@ -665,7 +665,7 @@ describe('GuideController — highlight', () => {
   });
 });
 
-// ─── Direction resolution (§4.3) ─────────────────────────────────────────
+// ─── Direction resolution (GUIDE.md §4) ──────────────────────────────────
 
 describe('GuideController — resolveDirection', () => {
   it('defaults to "both" for an unregistered or meta-less topic', () => {
@@ -1188,7 +1188,7 @@ describe('GuideController — synchronous navigationSource (re-entrancy, #41)', 
 // `#navigate()` call. With an asynchronous source (the default Navigation-API one, or a
 // tick-deferred custom router) the report lands after the flag is reset, so recognizing the tour's
 // own navigation falls to path matching — which used to be exact-only. Two latent false-stops
-// followed (archived in docs/archive/2026-07/CR-guide-cross-route-followups.md):
+// followed:
 //   (a) a router-normalized landing (`/expenses/`, `/de/expenses`) for a raw `step.route` failed
 //       the exact match → the tour's OWN navigation stopped it as foreign (the async form of #41);
 //       likewise a late report of a navigation superseded by a rapid next()/prev() (epoch race).
@@ -1360,10 +1360,10 @@ describe('GuideController — async navigationSource false-stop hardening (debt 
   });
 });
 
-// Async storage adapter (CR-4). `load()` may return a Promise for a DB-/remote-
+// Async storage adapter. `load()` may return a Promise for a DB-/remote-
 // backed seen-state. The set starts empty and unions the resolved ids in when
 // the promise settles; a rejection fails open (tour stays unseen, no crash).
-describe('GuideController — async storage adapter (CR-4)', () => {
+describe('GuideController — async storage adapter', () => {
   it('starts empty and merges the resolved ids for an async load', async () => {
     let resolve!: (ids: string[]) => void;
     const load = vi.fn(

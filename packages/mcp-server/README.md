@@ -2,18 +2,18 @@
 
 Model Context Protocol server for the Urbicon UI design system. Gives LLMs first-class access to the component catalog, design tokens, recipes, and implementation guidance.
 
-> **Status (Option B, 2026-07-10): built, green, not advertised.** The consumer-facing
-> surface is the `urbicon` CLI in [`@urbicon-ui/design`](https://github.com/urbicon/ui/blob/main/packages/design/README.md) — one dev-dependency,
+> **Slated for removal** in favour of the `urbicon` CLI ([#500](https://github.com/urbicon/ui/issues/500)).
+>
+> **Status: deployed, not advertised.** The consumer-facing surface is the `urbicon` CLI in
+> [`@urbicon-ui/design`](https://github.com/urbicon/ui/blob/main/packages/design/README.md) — one dev-dependency,
 > version-pinned, covers the full knowledge/judgment/memory surface locally. This server is
 > the thin **remote adapter** over the same engine (`@urbicon-ui/design-engine`) and content
-> bundle (`@urbicon-ui/design-content`), kept for the launch decision of hosting a public
-> endpoint (evaluation/reach: "point your agent at Urbicon without installing anything").
-> It is deliberately absent from the public docs until that endpoint exists, and a local
-> install is **not** a supported consumer path: manifest read/write is a working-directory
-> concern and lives in the CLI, so a locally installed copy of this stateless server would
-> offer strictly less than the dev-dependency it duplicates.
+> bundle (`@urbicon-ui/design-content`). Its endpoint is named nowhere in the public docs,
+> and a local install is **not** a supported consumer path: manifest read/write is a
+> working-directory concern and lives in the CLI, so a locally installed copy of this
+> stateless server would offer strictly less than the dev-dependency it duplicates.
 
-**Transports:** stdio (default, for in-repo development) and streamable HTTP (the intended remote deployment).
+**Transports:** stdio (default, for in-repo development) and streamable HTTP (the deployed endpoint).
 
 ## Installation
 
@@ -23,15 +23,13 @@ This package ships inside the Urbicon UI monorepo. Install from repo root:
 bun install
 ```
 
-Runtime dependencies: `@modelcontextprotocol/sdk`, `zod`.
+Runtime dependencies: `@modelcontextprotocol/sdk`, `zod`, `@urbicon-ui/design-engine`, `@urbicon-ui/design-content`.
 
 > **Bun is required** (declared via `engines.bun`). `package.json#main`
 > points at `./src/index.ts` directly — there is no build or transpilation
 > step, and deliberately no `bin`: the server is launched via `bun run`
-> (see Quick Start), in-repo, with the hosted HTTP endpoint as the only
-> planned deployment. Node-only setups (`npm i -g`, `npx`) will not work.
-> If a local-install consumer path ever becomes supported, the launch
-> decision reintroduces a `dist` build plus a node-runnable `bin`.
+> (see Quick Start), in-repo or as the deployed HTTP endpoint.
+> Node-only setups (`npm i -g`, `npx`) will not work.
 
 ## Quick Start
 
@@ -155,7 +153,7 @@ src/
 │   ├── design-system-loader.ts  principles.md + patterns/*.md
 │   ├── component-loader.ts  per-component llm.txt
 │   └── icon-loader.ts       icons.json
-└── utils/                   search, format-catalog
+└── utils/                   format-catalog (search comes from @urbicon-ui/design-engine)
 ```
 
 The server reads its data from the version-pinned [`@urbicon-ui/design-content`](https://github.com/urbicon/ui/blob/main/packages/design-content/README.md) bundle (built by [`@urbicon-ui/docs-gen`](https://github.com/urbicon/ui/blob/main/packages/docs-gen/README.md): `component-catalog.json` with recipes, per-component `llm.txt`, design-system, guide template, `icons.json`). That means JSDoc in a component's `index.ts` is the **single source of truth**: one edit propagates to the docs site, `llms-full.txt`, and every MCP tool.
@@ -167,18 +165,10 @@ bun --filter='@urbicon-ui/mcp-server' run dev        # watch mode (stdio)
 bun --filter='@urbicon-ui/mcp-server' run start      # stdio, one-shot
 bun --filter='@urbicon-ui/mcp-server' run start:http # HTTP on port 3001
 bun --filter='@urbicon-ui/mcp-server' run check      # tsc --noEmit
+bun --filter='@urbicon-ui/mcp-server' run test:run   # content loading, tool and prompt wiring
 ```
 
 Bun runs TypeScript directly — no build step.
-
-## Roadmap
-
-Next steps:
-
-- **`compose_layout`** — takes natural-language intent and returns a full component tree with props (v1.x)
-- **`llm.json` per component** — structured, token-efficient sibling of `llm.txt` (v1.x)
-
-Smoke tests for catalog loading, tool wiring, and fuzzy search are already in place (`bunx --bun vitest run` in this package).
 
 ## Related
 

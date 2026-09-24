@@ -5,11 +5,10 @@ import type { TablePage } from '$lib/types/tableTypes';
 import { resolveSource, type TableSource } from './source';
 
 /**
- * Runtime half of the source union, ported from the v8 spike (§7.3,
- * spike.source at 5c0f42f8): dispatch correctness and the identity-tracking
- * measurement (M2). The type-level half (excess-property guards on the
- * required `processing` tag and the `?: never` fields) lives in the svelte-check gate,
- * not here.
+ * Runtime half of the source union, ported from the v8 spike: dispatch
+ * correctness and the identity-tracking measurement (M2). The type-level half
+ * (excess-property guards on the required `processing` tag and the `?: never`
+ * fields) lives in the svelte-check gate, not here.
  */
 
 const ITEMS = [

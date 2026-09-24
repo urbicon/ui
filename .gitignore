@@ -110,8 +110,6 @@ experiment/
 # — kept local; the tracked source of the shared tools is apps/artifact-studio/
 prototypes/
 
-# Completed plans & audits (historical working docs) — kept local, not part of the published OSS repo
-docs/archive/
 # Packed tarballs from scripts/pack-release.ts — a release artefact, never committed
 release-tarballs/
 # Bundled MCP server from scripts/bundle-mcp.ts — a deploy artefact, never committed

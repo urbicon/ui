@@ -1,6 +1,6 @@
 /**
- * The craft floor — stage 2 of the validator (DESIGN-MCP-V2 §6). Unlike the
- * deterministic correctness rules (which are Urbicon-specific: token whitelist,
+ * The craft floor — stage 2 of the validator. Unlike the deterministic
+ * correctness rules (which are Urbicon-specific: token whitelist,
  * `dark:`/`focus:`), these are **system-agnostic** judgements about whether the
  * markup *looks generic* — the faceless, default-everything output that reads as
  * "an AI made this". They operationalise the Design-Quality guidance ("Color =
@@ -14,8 +14,8 @@
  * holistic verdict about the page, carrying the first occurrence's line plus a
  * count, so a repeated sin costs one flat craft penalty, not N.
  *
- * Thresholds are named constants so the eval-suite (§9) can tune them with data
- * instead of guesswork.
+ * Thresholds are named constants so the eval-suite (`mcp-server/src/eval`) can
+ * tune them with data instead of guesswork.
  */
 
 import type { Finding } from './types.js';

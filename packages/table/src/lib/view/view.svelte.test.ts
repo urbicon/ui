@@ -18,7 +18,7 @@ import { createTableView, resolveViewProp, type TableView } from './view.svelte'
  *   kinds cannot defeat the guard (M1), and the product's new
  *   `releaseAxes` for remounting bindings,
  * - `resolveViewProp` (M7), the onReady contract (Prüfstein 20), and the
- *   live-update navigation effect reading the view object (§7.5).
+ *   live-update navigation effect reading the view object.
  *
  * The binding-level half of the origin measurements (what actually lands in
  * storage) lives in storage-binding.svelte.test.ts.
@@ -322,7 +322,7 @@ describe('per-axis (revision, origin) bookkeeping — candidate 1', () => {
       flushSync(); // registration pass
       expect(observerRuns).toBe(1);
 
-      // The §7.1 setup: a click and a programmatic navigation in the same tick.
+      // The setup: a click and a programmatic navigation in the same tick.
       view.page = 3; // reader interaction
       view.applyExternal({ search: 'from-url' }, 'external'); // URL application
       flushSync();
@@ -563,7 +563,7 @@ describe('onReady contract (Prüfstein 20)', () => {
     const cleanup = $effect.root(() => {
       const view = createTableView();
       // What the v8 table state does: loose fields become pass-throughs onto
-      // the view object (§3.6), and onReady hands out THIS object.
+      // the view object, and onReady hands out THIS object.
       const state = {
         get searchTerm() {
           return view.search;
@@ -608,7 +608,7 @@ describe('onReady contract (Prüfstein 20)', () => {
   });
 });
 
-describe('live-update navigation effect over the view object (§7.5)', () => {
+describe('live-update navigation effect over the view object', () => {
   /**
    * The v7 effect tracked six loose state fields (`void state.currentPage;
    * void state.sortColumn; …`) to auto-apply buffered live updates on

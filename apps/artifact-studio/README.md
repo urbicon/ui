@@ -6,8 +6,7 @@ das Ergebnis wird gelintet, gebaut und in einer Sandbox auf eigener Origin angez
 Jeder weitere Wunsch ändert dieselbe Datei und legt eine neue Version an.
 
 **Rein lokal.** Kein Deploy-Target, kein öffentlicher Zugang. Das Studio führt Modellcode
-im Browser aus und verbraucht Inferenz — beides gehört hinter keine öffentliche URL
-(ARTEFAKTE-2026-07.md, E1). Der Präzedenzfall im Repo ist `apps/chat-demo`.
+im Browser aus und verbraucht Inferenz — beides gehört hinter keine öffentliche URL.
 
 ## Starten
 
@@ -20,9 +19,9 @@ Voraussetzungen:
 - **Gebautes `@urbicon-ui/blocks`** (`bun run build:packages` im Repo-Wurzelverzeichnis).
   Die Artefakte werden gegen `packages/blocks/dist` kompiliert; ohne das scheitert der Build
   jeder Version.
-- **`ANTHROPIC_API_KEY`** — aus der Umgebung, aus `apps/artifact-studio/.env` oder aus
-  `apps/chat-demo/.env` (in dieser Reihenfolge). Fehlt er, scheitert das Anlegen einer
-  Sitzung laut und sichtbar in der Oberfläche.
+- **`ANTHROPIC_API_KEY`** — aus der Umgebung, aus `apps/artifact-studio/.env` oder aus der
+  `.env` im Repo-Wurzelverzeichnis (in dieser Reihenfolge). Fehlt er, scheitert das Anlegen
+  einer Sitzung laut und sichtbar in der Oberfläche.
 
 ## Zwei Origins, und warum
 
@@ -80,9 +79,8 @@ nicht die CSP. Genau diese Zeile zeigt, was welche Maßnahme beiträgt.
 | Ereignisstrom-Kontrakt | `src/lib/events.ts` |
 | Oberfläche | `src/lib/Studio.svelte` |
 
-`cli-tool.ts` und `editor-tool.ts` sind zugleich die Quelle für den Fixture-Recorder unter
-`prototypes/artifact-frame/recorder/` — der importiert sie von hier, statt eine zweite
-Fassung zu pflegen.
+`cli-tool.ts` und `editor-tool.ts` sind die einzige Fassung dieser Werkzeuge: ein lokaler,
+git-ignorierter Fixture-Recorder importiert sie von hier, statt eine zweite zu pflegen.
 
 Sitzungen liegen unter `.artifacts/<id>/` (git-ignoriert): die Arbeitsdatei, `session.json`
 mit Historie und Versionen, `versions/v<n>.svelte` als eingefrorene Stände, `dist/` mit dem

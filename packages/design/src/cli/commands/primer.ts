@@ -5,15 +5,13 @@
  *
  * Why a bundle instead of leaving it to `principles --topic component-selection`
  * + five `css-reference` calls: both are needed for essentially any task, and a
- * recorded agent run reaches for them unevenly. Measured 2026-07-27 on the same
- * task (`prototypes/artifact-frame`): Opus 5 assembled the token reference from
- * six separate calls, Sonnet 5 fetched only two sections and worked with
- * incomplete token knowledge. One call removes that variance — and it lands in
- * the prompt cache on the first round, so the marginal cost over the rest of the
- * session is a rounding error: ~7 100 tokens ≈ $0.14 across 55 rounds, measured
- * at introduction (2026-07-27) and not re-measured since. The page has grown by
- * the layout section, the override ladder and the link-as-button recipe —
- * 30 635 B today, 873 B of it the ladder block and 1 114 B the link recipe.
+ * recorded agent run reaches for them unevenly: on the same task one model
+ * assembled the token reference from many separate calls, another fetched only
+ * part of it and worked with incomplete token knowledge. One call removes that
+ * variance — and it lands in the prompt cache on the first round, so what it
+ * costs over the rest of the session is small. The page has grown since by the
+ * layout section, the override ladder and the link-as-button recipe;
+ * `bunx urbicon primer | wc -c` gives its size today.
  *
  * What is deliberately NOT here: patterns and recipes. Those are task-dependent
  * (a settings page needs `settings-page`, not the whole set), so bundling them would
@@ -46,7 +44,7 @@ const CORE_SECTIONS = ['surfaces', 'text', 'borders', 'intents', 'shadows'] as c
  * commands (`context`, `find`, `get-component`, `validate`) and **`principles`
  * not once**. A section nobody fetches teaches nobody — and unlike patterns or
  * recipes, layout is not task-dependent: every UI task arranges something. It
- * costs ~1.2 kB against a 13.6 kB bundle, cached after the first round.
+ * is a small share of the bundle, cached after the first round.
  *
  * Still deliberately absent: patterns and recipes. Those *are* task-dependent
  * (a settings page needs `settings-page`, not the whole set), so bundling them would

@@ -112,7 +112,7 @@ export const drawerVariants = tv({
       warning: { panel: '[--drawer-accent:var(--color-warning)]' },
       danger: { panel: '[--drawer-accent:var(--color-danger)]' }
     },
-    // Opt-in edge accent (DRW-1 completion). Off by default so the Drawer keeps
+    // Opt-in edge accent. Off by default so the Drawer keeps
     // Dialog symmetry; on, the docked (viewport-facing) edge is thickened to 2px
     // and tinted in the intent colour via the placement compounds below.
     accentEdge: {
