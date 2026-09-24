@@ -8,8 +8,7 @@
       "!**/*.css",
       "!**/*.gen.ts",
       "!**/replay/*-fixture.json",
-      "!**/CHANGELOG.md",
-      "!**/docs/archive"
+      "!**/CHANGELOG.md"
     ]
   },
   "linter": {
