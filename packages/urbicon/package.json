@@ -1,6 +1,6 @@
 {
   "name": "urbicon",
-  "version": "8.25.0",
+  "version": "8.26.0",
   "description": "The unscoped name for the urbicon CLI — `bunx urbicon …` resolves to @urbicon-ui/design in every project, installed or not.",
   "license": "MIT",
   "repository": {

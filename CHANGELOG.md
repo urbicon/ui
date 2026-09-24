@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.26.0](https://github.com/urbicon/ui/compare/v8.25.0...v8.26.0) - 2026-09-24
+
+### Breaking Changes
+- **blocks**: Icons that read as another icon are drawn anew, and five join the set ([#504](https://github.com/urbicon/ui/issues/504))
+> **BREAKING:** 47 icons redrawn under their names, Slider status is an icon (MIGRATION 8.26.0) * feat(table)!: the header sorts, groups and folds with icons that say so The header menu drew "Sort ascending/descending" with `arrowUp`/`arrowDown` and "Group by column" with `users`, a group of people. The group toggle in the header row drew `chevronUp`/ `chevronDown`, the same glyphs as the sort indicator one cell over. They now draw `sortAsc`/ `sortDesc`, `listTree` and `chevronsDownUp`/`chevronsUpDown`; the SmartFilterBar's grouping select takes `listTree` instead of `layers`, so grouping has one icon across  …
+> **BREAKING:** header menu, group toggle and grouping select resolve new icon names * feat(blocks)!: seven icons take base-first names, and gitBranch and gitMerge read bottom-up The naming rule added with the redraw (base first, no numbers) had seven exceptions left: `circleDot`, `circleHelp`, `circlePercent` and `circleUser` become `dotCircle`, `helpCircle`, `percentCircle` and `userCircle`, matching the eight `*Circle` icons; `filterX` becomes `funnelX`, the variant of `funnel`; `table2`, now a 3×3 grid, becomes `tableGrid`. `pellet` becomes `granules`, because the drawing is any heap of small pieces and " …
+> **BREAKING:** seven icons renamed, gitBranch and gitMerge swapped (MIGRATION.md, 8.26.0) * feat(blocks): granules draws a loose heap of dots Of three drafts on the comparison page (pieces on a ground line, a heap of dots, dots inside a mound outline) the heap of dots reads most as bulk material at 16px. It sits one unit higher than the draft so its centre lands on the box's. ---------
+
+### Documentation
+- Retire the internal working docs into the canon, and refuse pointers into unpublished folders ([#503](https://github.com/urbicon/ui/issues/503))
+
 ## [8.25.0](https://github.com/urbicon/ui/compare/v8.24.0...v8.25.0) - 2026-09-22
 
 ### Bug Fixes

@@ -10,29 +10,29 @@
   },
   "sizes": {
     "A2UIView": {
-      "min": 401960,
-      "gz": 105144,
+      "min": 402753,
+      "gz": 105243,
       "net": {
-        "min": 385757,
-        "gz": 99963
+        "min": 386560,
+        "gz": 100079
       },
       "lazy": {
         "min": 7552,
-        "gz": 3277
+        "gz": 3279
       },
       "pkg": "blocks",
       "exports": ["A2UIView"]
     },
     "A2UIViewUrbicon": {
-      "min": 513514,
-      "gz": 131204,
+      "min": 514336,
+      "gz": 131316,
       "net": {
-        "min": 497305,
-        "gz": 126013
+        "min": 498131,
+        "gz": 126136
       },
       "lazy": {
         "min": 7552,
-        "gz": 3277
+        "gz": 3279
       },
       "pkg": "blocks",
       "exports": ["A2UIView", "urbiconA2uiCatalog"]
@@ -598,11 +598,11 @@
       ]
     },
     "Icon": {
-      "min": 170541,
-      "gz": 20698,
+      "min": 172769,
+      "gz": 20816,
       "net": {
-        "min": 170362,
-        "gz": 20776
+        "min": 172590,
+        "gz": 20885
       },
       "lazy": {
         "min": 0,
@@ -822,11 +822,11 @@
       "exports": ["PasskeyManager"]
     },
     "PinInput": {
-      "min": 41180,
-      "gz": 13887,
+      "min": 41229,
+      "gz": 13915,
       "net": {
-        "min": 24969,
-        "gz": 8723
+        "min": 25016,
+        "gz": 8747
       },
       "lazy": {
         "min": 5116,
@@ -1116,15 +1116,15 @@
       "exports": ["Skeleton"]
     },
     "Slider": {
-      "min": 50879,
-      "gz": 15993,
+      "min": 53709,
+      "gz": 16877,
       "net": {
-        "min": 34665,
-        "gz": 10826
+        "min": 37500,
+        "gz": 11709
       },
       "lazy": {
         "min": 9945,
-        "gz": 4090
+        "gz": 4089
       },
       "pkg": "blocks",
       "exports": ["Slider"]
@@ -1214,15 +1214,15 @@
       "exports": ["Tab", "TabItem", "TabPanel"]
     },
     "Table": {
-      "min": 403881,
-      "gz": 102318,
+      "min": 404328,
+      "gz": 102385,
       "net": {
-        "min": 387660,
-        "gz": 97134
+        "min": 388107,
+        "gz": 97187
       },
       "lazy": {
         "min": 7552,
-        "gz": 3277
+        "gz": 3278
       },
       "pkg": "table",
       "exports": ["Table"]
