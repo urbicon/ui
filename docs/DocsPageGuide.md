@@ -433,7 +433,7 @@ Core principles:
 - **Semantic tokens in the docs app itself** – the docs must follow the same token rules as the component library (no `dark:` overrides, no hardcoded colors)
 - **Functional, not promotional descriptions** – "Display user profile images with fallback initials and status indicators", not "Documentation for the Avatar component" and not "Beautiful, versatile avatars". The hero says what the component does, never how good it is (see **Description** under Key Details)
 - **Dogfooding** – use own components wherever possible (Breadcrumb for navigation, Dialog for search, CodeExample for code blocks)
-- **Consistently English** UI and content
+- **English content, bilingual chrome** – page prose and code are English only; the site chrome (skip link, sidebar, prev/next, table of contents) follows the active locale, English or German, and each switchable chrome subtree carries its own `lang` so the article body keeps `lang="en"` (see the comment in `apps/docs/src/routes/+layout.svelte`)
 
 ## Typography Hierarchy
 

@@ -82,6 +82,16 @@ rather than discovered by a consumer whose override does not land. Deriving the 
 the compiler instead was measured and rejected — it is a breaking change and costs +7.8 KB
 gzip in every consumer bundle, while the gate ships nothing.
 
+Two other override architectures were weighed and not built. **Cascade layers** (`@layer`)
+would make the conflict unrepresentable instead of computed: one declared layer order decides,
+per property, with no vocabulary to maintain. Two redesigns drafted independently from the
+requirements alone, without sight of the current mechanism, both chose it. It is a new
+styling contract rather than a change to this one — the library would ship its own layered
+stylesheet instead of Tailwind utilities in its markup, a migration across every component and
+every documented override route. A **runtime reading of the CSSOM** is ruled out: the engine
+also runs during server rendering, where there is no `document.styleSheets`, so server and
+client would merge differently.
+
 If a future change genuinely needs full `twMerge` semantics, extend `variants.ts` — do not
 re-introduce `tailwind-variants`. See
 [ARCHITECTURE.md § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine).
@@ -119,16 +129,61 @@ The proof that the boundary holds is in the repo: the Color Rooms skin
 ramps, typography, first-class light and dark via `light-dark()` — as a scoped token override
 with no parallel component tree.
 
-## The MCP server is built, green, and not hosted
+## Deliberately not in the catalog
+
+A component the library lacks is not automatically a gap. These were weighed and left out:
+
+- **Layout primitives** (Stack, Grid, AspectRatio, VisuallyHidden) — Tailwind's job, and
+  `sr-only` for the last one.
+- **A rich-text editor** — not seriously buildable without ProseMirror or Tiptap, which breaks
+  the zero-dependency rule.
+- **Kanban and Gantt** — at most a recipe over existing components.
+- **Voice/persona UI, transfer lists, cascaders** — too far from the core, or no demand in the
+  target segment.
+- **A carousel.** Rotating slides are ignored — what gets clicked is almost always the first —
+  and motion the reader did not start competes with reading. The heavier reason is this
+  library's own: it ships a linter and a primer that steer agents, and a component whose main
+  function is a known anti-pattern would be used by them the moment it exists — anything named
+  `Carousel` gets used as one. `Scroller` is an overflow behaviour and never rotates. If
+  rotation is ever needed, it is opt-in only, with a pause control that cannot be switched off
+  (WCAG 2.2.2), a stop on hover and focus, and `prefers-reduced-motion` honoured.
+- **A pager as a `Scroller` mode.** One item at a time diverges from a scrolling row on all
+  three axes — ARIA (slides in a carousel vs. a group), keyboard (paging vs. scrolling), state
+  (active index vs. scroll position) — so a `mode` prop would be two components in one coat.
+  A pager is its own component, built when a real case appears; until then `Tab` covers one
+  item at a time.
+- **Stateless layout compositions** such as a page header — no state, no variants, no
+  behaviour — are recipes, not components. `PageHeader` was a component once and became the
+  page-header recipe.
+
+**Revisit only if:** a consumer asks for one, with the use case rather than the name.
+
+## Positioning stays in JavaScript
+
+Anchored overlays — Popover (and Menu and DatePicker through it), Select, Combobox, Tooltip,
+the Guide — are placed by `packages/blocks/src/lib/utils/floating.ts`, a zero-dependency
+`computePosition` with middleware and `autoUpdate`. Two platform features would replace parts
+of it and are held back:
+
+- **CSS Anchor Positioning** is Baseline only as *newly* available. Browsers without it are
+  still in use, so the JS path would have to stay beside it — adopting it now adds a second
+  positioning path instead of removing one.
+- **`popover="hint"`** for Tooltip is blocked by Safari, which does not ship it.
+
+**Revisit only if:** Anchor Positioning is Baseline *widely* available (then replace, do not
+add), or Safari ships `popover="hint"` (then Tooltip migrates).
+
+## The MCP server is deployed, not advertised, and being retired
 
 `packages/mcp-server` is a thin remote adapter over the same engine and content the
-`urbicon` CLI uses. It is deliberately **not advertised or hosted** (decided 2026-07-10):
-the package track is the story, and hosting a public endpoint is a launch decision rather
-than an engineering one.
+`urbicon` CLI uses. `.github/workflows/deploy.yml` ships it to the host behind every green
+pipeline, next to the docs site, but it is **not advertised**: the docs site names no
+endpoint, and no local-install **consumer** path is documented anywhere — the package
+README's stdio entry points at a checkout of this repo, for working on the server.
 
-It stays in the repo and stays green. No local-install **consumer** path is documented
-anywhere — the package README's stdio entry points at a checkout of this repo, for working on
-the server — and manifest read/write lives in the CLI, never on the stateless server.
+It is being **retired** (#500, decided 2026-09-24): next to the CLI, which is the consumer
+surface, it has no use case of its own. Until it is removed it stays in the repo and stays
+green. Manifest read/write lives in the CLI, never on the stateless server.
 
 ## The publishing job holds a credential and nothing else
 
@@ -159,6 +214,20 @@ way back if it is ever needed.
 
 The docs site is a separate path — `.github/workflows/deploy.yml`, triggered by a green
 pipeline rather than by the tag itself. See [VERSIONING.md](VERSIONING.md).
+
+## The bundle-size gate runs at the release bump, not per PR
+
+`bun run size --check` gates in `scripts/bump.sh`, once per release; per PR, CI's
+`size-report` job runs the same measurement as a report and fails nothing.
+
+As a per-PR gate it fired mostly on growth that was intended — a new feature is bigger — and
+the answer was almost always another baseline commit, not a decision. A baseline refreshed by
+hand after every intentional change is a second hand-written copy of what the build already
+knows, and the gate was the slowest step of the build job. At the bump the growth of a whole
+release is judged once, and a deliberate `--update-baseline` travels in the release commit.
+
+**Revisit only if:** growth the bump catches keeps turning out unintended and hard to trace to
+its PR — then a per-PR gate that fires only on undeclared growth, not the baseline ritual.
 
 ## Prop-driven state is derived, never synced in an effect
 
@@ -205,6 +274,31 @@ cut removed the question rather than the symptoms. Column visibility and column 
 out of the URL entirely — they are presentation, not selection, and live in the `prefs`
 channel.
 
+## Three auth restructurings wait for a breaking release
+
+Redesigns of `packages/auth` drafted from its requirements alone proposed three shapes the code
+does not have:
+
+- **One constructor** — a single `createAuth` yielding the handle and every handler from one
+  resolved config, instead of `createAuthDeps`, `createAuthHandle` and a factory per handler.
+  It would make the two entry points unable to disagree.
+- **Token families** — one descriptor per single-use token purpose feeding both the runtime
+  and the conformance suite, instead of a column group and purpose-specific methods per token
+  on the user repository.
+- **The cascade from the library** — account deletion driven by a declared list of dependent
+  repositories, instead of the adapter's transaction and the schema's `onDelete: Cascade`.
+
+Each divergence is real, and each fix is a breaking change: the first rewrites the public
+wiring and every wiring snippet in the docs, the other two change the adapter contract for
+every custom adapter. The damage each would prevent has already been paid down another way —
+resolved-config accessors keep the entry points in agreement (#307), and the conformance suite
+pins that a deletion erases every declared dependent, against a test double whose cascade is
+read from the reference schema (#305). None of them is worth a break on its own.
+
+**Revisit only if:** a consumer pays for the divergence again, or a breaking release is being
+cut anyway. Until the launch, [VERSIONING.md § The pre-launch window](VERSIONING.md#the-pre-launch-window)
+ships a breaking set as a minor, which makes that window the cheapest moment for all three.
+
 ## The docs highlighter is synchronous, and pays for it in the eager bundle
 
 `highlighterService.highlightCode()` returns a string, not a promise: Shiki's `Sync` core with
@@ -241,9 +335,17 @@ markup, which was never the generator's value. A UI is an inhabited artefact —
 a person then hand-edits degrades the way Sencha-style codegen did — and a good library plus
 an LLM already closes most of the gap a round-trip tool would have bought.
 
+The same holds one level up: **no design DSL** — no page-level spec language compiled into
+pages. It would be a second source of truth next to the code; it would fight the one thing the
+LLM is good at, fuzzy inference ("past a handful of options, prefer a Combobox"), by forcing it
+back into explicit thresholds; and it has an expressiveness ceiling — real pages deviate from
+any schema, and then the DSL is bypassed or bloated. Recipes as scaffolds are the dose that
+works.
+
 **Revisit only if:** the library grows dozens of consumers with "domain → app" as a product
 in its own right (then the answer is LLM generation plus deterministic verification, not
 deterministic projection), or hundreds of near-identical entities need scaffolding (then a
-config-driven library extension, not a projection tool). The full write-up lives on the
-frozen branch at `docs/internal/domain-projection/DECISION.md`; reactivate with
+config-driven library extension, not a projection tool). The DSL half is revisited only if
+non-developers are to iterate on designs themselves. The full write-up lives on the
+frozen branch `experiment/domain-projection`; reactivate with
 `git worktree add ../ui-domain-projection experiment/domain-projection && bun install`.

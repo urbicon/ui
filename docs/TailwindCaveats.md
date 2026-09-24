@@ -58,6 +58,10 @@ The `transition-transform` shorthand is safe — it expands to `transform, trans
 
 This was a silent, library-wide defect: 12 variant slots listed `transform` and animated nothing, **including `Button`** — the canonical press cue had been jumping since it was written. `bun run variants:lint` now errors on an arbitrary transition list that omits a discrete property the same class chain uses (rule documented at the top of `packages/blocks/scripts/variants-lint.ts`). It inspects the *rendered* class chain, so a compound that only adds `scale-*` under one variant is caught too. Verified against compiled output, not inferred from the docs.
 
+## Preflight no longer sets `cursor: pointer` on buttons
+
+Tailwind 3's preflight gave `button` and `[role="button"]` a pointer cursor; Tailwind 4's (`node_modules/tailwindcss/preflight.css`) does not, so a bare `<button>` shows the browser's default arrow. The library adds no global rule to bring it back. Every slot that renders a trigger sets `cursor-pointer` itself — `button.variants.ts`, the internal `CoreIconButton`, the item slots of Menu and Tab — together with `cursor-not-allowed` for the disabled state where there is one. A new trigger slot has to do the same, and so does a consumer's own `<button>` outside the library.
+
 ## @source and Monorepo Packages
 
 Tailwind 4 only scans explicitly configured source directories for class names. In a monorepo, packages that use Tailwind utility classes in their templates must be registered as `@source` in the consuming app:

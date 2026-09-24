@@ -23,10 +23,10 @@ for the PR-based form.
    reads — priced, the bulk of a wave's spend, several times the
    orchestrator's — and adds reports and routing to the orchestrator's
    output, under a third of a wave's output on a floor that undercounts the
-   subagents, not the largest line (`bun run wave:cost --since 2026-08-18
-   --until 2026-09-17`; the table and its pricing sit in the orchestration
-   note under `docs/internal/`, which is local only). The agent does not
-   commit;
+   subagents, not the largest line (measured 2026-09-22 over the waves of
+   2026-08-18 to 2026-09-17; its transcripts are being pruned, so a re-run
+   no longer reproduces it — a dated baseline; Wave close measures a new
+   wave). The agent does not commit;
    you commit, push and open the PR from its report, without re-running its
    gates (CI on the head SHA is the oracle, see CI and merge).
 2. **Adversarial review in a fresh context** — never the implementing
@@ -138,7 +138,11 @@ reading of the whole conversation per PR.
   ```
 - Squash-merge with explicit `--subject`/`--body` — the body lands in the
   changelog. `Closes #N` only on the wave that finishes the issue; earlier
-  waves say `Refs #N`.
+  waves say `Refs #N`. GitHub's keyword parser knows no negation — "This
+  does not close #14." closed #14 — so no close/fix/resolve in any form
+  directly before `#N` in a commit or PR text that should not close it
+  ("#14 stays open: …"); after a merge that names an issue, check
+  `gh issue view <N> --json state`.
 - Document the review outcome as a PR comment (findings → what happened to
   each, including the ones deliberately not done and why).
 - **Parallel PRs collide on `packages/blocks/docs/MIGRATION.md`.** Every
@@ -179,11 +183,11 @@ the turns that followed a pause longer than five minutes, the fresh-context
 cost of each agent, the peak number of agents active in the same minute,
 and the word each role was read from; an output figure marked as a floor
 is one whose transcript carries no final usage for some turns. The table
-goes into the wave protocol under `docs/internal/`, next to the
-orchestration note that
-holds the baseline (local only — `docs/internal/` is git-ignored). Claude
-Code prunes transcripts after `cleanupPeriodDays` (30 by default), so a
-wave measured later than that has no data left — record it at close, not
+goes into the wave's internal protocol, to be read against the dated
+baseline in step 1. Claude Code prunes transcripts after
+`cleanupPeriodDays` (30 by default), so a wave measured later than that
+has no data left — which is what made that baseline unreproducible —
+record it at close, not
 at the next audit; and the session doing the recording is in the
 population it reads.
 

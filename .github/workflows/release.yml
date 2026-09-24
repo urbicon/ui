@@ -194,10 +194,12 @@ jobs:
 
       - name: Playwright e2e
         if: steps.ci_status.outputs.green != 'true'
-        # `--grep-invert @pixel` for the same reason as in ci.yml: the linux
-        # screenshot baselines are bound to the deploy host, not to a
-        # GitHub runner. Excluding them here means a release tag is gated on
-        # behaviour, not on font rendering.
+        # `--grep-invert @pixel`, unlike ci.yml, which runs them: the linux
+        # screenshot baselines are bound to the pinned Playwright image they are
+        # generated in (e2e-baselines.yml), and this job runs on the bare
+        # runner with a browser from `playwright install`. The step
+        # runs only when CI has not passed on this commit, so a release tag is
+        # gated here on behaviour, not on font rendering.
         run: bunx playwright test --grep-invert @pixel
 
       # Everything the publish job needs, produced here where the workspace

@@ -51,13 +51,13 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - `docs:fences:lint` — compiles the opted-in `ts` fences of every `packages/*/README.md` and `packages/*/docs/*.md` against a throwaway consumer project, so imports resolve through the published exports map — the class of error `examples:lint` cannot see. A fence opts in per `<!-- typecheck -->` on the line above it. Needs `build:packages` first; runs in `gates`. Marker rules and ambient declarations: head of `packages/docs-gen/scripts/doc-fences-lint.ts`
 - `summary:lint` — component `@summary` budget · `playgrounds:lint` — playground snippets **and** the knob-hint budget (a knob whose hint runs past 120 chars needs a prop-level `@summary`; see the `component-metadata` skill). Both read the generated catalogs, so run `docs:gen:all` first
 - `registry:lint` — a docs page is hand-registered in three places (sidebar, `componentLinks`, recipes cookbook) and forgetting one is silent; checks all three against the routes and the catalogs, a deliberate omission needs an `UNLISTED` / `PAGELESS` entry with a reason, stale entries are errors too. Reads the generated catalogs — `docs:gen:all` first. What each registry feeds: its script header
-- `examples:budget` — the 2–4 `<CodeExample>` budget per component page (`docs/DocsPageGuide.md` XC-6), in the `gates` job. **Not** `examples:lint` (that one type-checks `@example` JSDoc). Exemptions are `OVERSIZE_OK` / `NO_EXAMPLES` entries with a reason; stale ones are errors. Which sections count: head of `apps/docs/scripts/example-budget-lint.ts` (+ `.rules.ts`)
+- `examples:budget` — the 2–4 `<CodeExample>` budget per component page (`docs/DocsPageGuide.md`), in the `gates` job. **Not** `examples:lint` (that one type-checks `@example` JSDoc). Exemptions are `OVERSIZE_OK` / `NO_EXAMPLES` entries with a reason; stale ones are errors. Which sections count: head of `apps/docs/scripts/example-budget-lint.ts` (+ `.rules.ts`)
 - `sections:lint` — catches a docs page's TOC links, sections and nav order disagreeing: a link that scrolls nowhere, a section no TOC entry reaches. Reads no generated output, so it runs standalone
 - `typesref:lint` — a component page documents its types in two hand-written halves (`types=` on `<ApiReference>`, a `<TypesReference>` section), each silent without the other; enforces both directions and that both read the **same** `componentData` from the page's own `'./api'`. Exemptions: `NO_PAGE`. Reads the generated api.ts — `docs:gen:all` first. **Not** `types:guard` (that one is declaration emit). Which slips that catches: head of `apps/docs/scripts/typesref-lint.ts`
 - `examples:lint` — type-checks every `@example` block of every `*Props` JSDoc (blocks/table/auth/docs) as a real `.svelte` file through `svelte-check`. Slow and needs the workspace deps built — a pre-merge/pre-bump gate, not a per-commit one. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry in `packages/docs-gen/scripts/examples-lint.ts`; stale entries are errors (same contract as `imports:lint`). The same run compiles every `svelte` fence of `design-system/patterns/*.md` as a whole component, with nothing exempt — `urbicon pattern` serves those verbatim. Positive control: `bun test packages/docs-gen/scripts/examples-lint.test.ts` (own step in the `test` job)
 - `docs:gen:all` — root `bun run docs:gen` already defaults to this; a scoped `docs:gen:<target>` skips the MCP catalog assembly
 - `llms:check` — `git diff --exit-code` over `llms.txt` and its `apps/docs/static/` copy: both must equal what the last `docs:gen` wrote. Run `docs:gen` first; the check has no build step of its own, it only asks git
-- `docs:refs:check` — every `bun run` span, path, `<file>.ts:<line>` pointer, `UPPER_SNAKE` identifier and `[…](<doc>.md#<anchor>)` link in AGENTS.md, `docs/*.md` (symlinks resolved) and the skills must exist — asked of `package.json`, the tree (`git check-ignore` decides what is absent by design), a word-boundary grep and the target's heading slugs — plus the AGENTS.md word budget it prints. Existence only; a wrong-but-existing reference is the review's. Exemptions are allowlist entries with a reason, stale ones error. Runs in `lint`, no build; positive controls `bun test scripts/docs-refs-check.test.ts`
+- `docs:refs:check` — every `bun run` span, path, `<file>.ts:<line>` pointer, `UPPER_SNAKE` identifier and `[…](<doc>.md#<anchor>)` link in AGENTS.md, `docs/*.md` (symlinks resolved) and the skills must exist — asked of `package.json`, the tree (`git check-ignore` excuses ignored paths), a word-boundary grep and the target's heading slugs — plus the AGENTS.md word budget it prints. No tracked file may name a path below `docs/internal/` or `prototypes/`. Existence only; a wrong-but-existing reference is the review's. Exemptions are allowlist entries with a reason, stale ones error. Runs in `lint`, no build; positive controls `bun test scripts/docs-refs-check.test.ts`
 
 ## Coding Conventions
 
@@ -126,14 +126,14 @@ Vitest runs in every package that has a `vitest.config.*` (`bun --filter=<pkg> r
 ## AI-Native DX
 
 The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt`, the **`urbicon`
-CLI** (`packages/design`, the consumer surface) and a remote MCP adapter over the same engine.
+CLI** (`packages/design`, the consumer surface) and a remote MCP adapter (retiring, #500).
 `urbicon validate` gates the loop by linting generated markup. In this repo it runs only in CI,
 against `packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`); the
 `PostToolUse` hook is what `urbicon init --hook` installs for *consumers*, not something this
 repo uses.
 
-Which command serves what, the `init` contract, why the MCP endpoint stays unhosted before
-launch: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
+Which command serves what, the `init` contract, the MCP adapter's
+retirement: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
 
 ## Icons
 
@@ -166,7 +166,7 @@ One unified version across all packages, bumped once at the end of a coherent se
 
 - **`parked`** — closed, but the finding stands; nobody was hurt by it. `gh issue list --state closed --label parked` brings the set back, bodies and comments intact. Reopen when it costs someone something real. Prefer parking to a low priority: an open list of sixty crushes regardless of which number sits beside each entry.
 
-- [docs/technical-debt.md](docs/technical-debt.md) is only a pointer plus the resolved-entry trace, so **do not add new entries to that file**. Actively planned work lives in the internal TODO (docs/internal/) instead.
+- [docs/technical-debt.md](docs/technical-debt.md) is only a pointer plus the entry format, so **do not add new entries to that file**. Actively planned work lives in the internal TODO (docs/internal/) instead.
 
 - **Every issue carries four label axes**, set when it is opened (`enhancement` issues carry no `debt:` axis) — a new issue with only a `debt:` label erodes the taxonomy:
 
