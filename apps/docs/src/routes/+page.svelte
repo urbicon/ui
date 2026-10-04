@@ -137,7 +137,7 @@
     {
       key: 'table',
       title: 'Table',
-      line: 'Enterprise grid: sorting, grouping, selection, virtual rows, remote data, live updates',
+      line: 'Data grid: sorting, grouping, selection, virtual rows, remote data, live updates',
       channel: CHANNELS[TILE_CHANNEL.table]
     },
     {
@@ -151,7 +151,7 @@
     {
       key: 'agent',
       title: 'Agents',
-      line: 'Let agents write and maintain clean and consistent, readable code.',
+      line: 'Your AI agent understands how to use the platform and checks everything it creates.',
       channel: CHANNELS[TILE_CHANNEL.agents]
     },
     {
@@ -1285,7 +1285,7 @@
                 </div>
                 {#if tile.href}
                   <a class="tile-link" href={tile.href}
-                    >{tile.linkLabel} <span aria-hidden="true">↗</span></a
+                    >{tile.linkLabel} <span aria-hidden="true">→</span></a
                   >
                 {:else if tile.key === 'blocks'}
                   <!-- Der Schalter steht AUF der Kachel, nicht in der Karte: er
@@ -1431,7 +1431,7 @@
             <h2>
               {#if specimen}
                 <a href={specimen.docsHref}>
-                  {selected.name}<span class="arrow" aria-hidden="true">↗</span>
+                  {selected.name}<span class="arrow" aria-hidden="true">→</span>
                 </a>
               {:else}
                 {selected.name}
@@ -1573,8 +1573,8 @@
           <p class="step-line">
             Built with the set — the gate ran on every file the agent touched.
           </p>
-          <a class="step-link" href="/getting-started"
-            >Full guide <span aria-hidden="true">↗</span></a
+          <a class="step-link" href={resolve('/getting-started')}
+            >Full guide <span aria-hidden="true">→</span></a
           >
         </div>
       </div>
@@ -2443,7 +2443,7 @@
     text-decoration: none;
   }
   .preview h2 a:hover .arrow {
-    translate: 0.1em -0.1em;
+    translate: 0.15em 0;
   }
   .arrow {
     display: inline-block;
