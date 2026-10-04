@@ -84,6 +84,7 @@ const allNavigationItems: NavItem[] = [
     href: '/getting-started',
     standalone: true
   },
+  { name: 'AI & DX', nameKey: 'nav.aiDx', href: '/ai', standalone: true },
   {
     name: 'Blocks',
     nameKey: 'nav.blocks',
@@ -415,7 +416,6 @@ const allNavigationItems: NavItem[] = [
       { name: 'Unsaved Changes Guard', href: '/recipes/unsaved-changes-guard' }
     ]
   },
-  { name: 'AI & DX', nameKey: 'nav.aiDx', href: '/ai', standalone: true },
   {
     name: 'Doc Components',
     nameKey: 'nav.docComponents',
