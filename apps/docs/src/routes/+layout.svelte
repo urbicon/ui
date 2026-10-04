@@ -10,6 +10,7 @@
   import { navigationItems } from '$lib/navigation';
   import { channelNameForRoute } from '$lib/landing/route-channel.gen';
   import PrevNextNav from '$lib/PrevNextNav.svelte';
+  import Wordmark from '$lib/Wordmark.svelte';
   import DocsPageNavProvider from '$lib/DocsPageNavProvider.svelte';
   import {
     LocaleSwitcher,
@@ -183,10 +184,8 @@
     >
       {#snippet sidebarHeader()}
         <div class="flex h-14 w-full items-center justify-between" lang={i18nState.locale}>
-          <a href={resolve('/')} class="text-text-primary text-lg font-bold tracking-tight">
-            {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
-              >|</span
-            >
+          <a href={resolve('/')} class="text-text-primary text-lg">
+            <Wordmark />
           </a>
           <ThemeSwitcher size="sm" />
         </div>
@@ -291,10 +290,8 @@
           >
             <MenuIcon class="h-6 w-6" />
           </button>
-          <span class="text-text-primary text-lg font-semibold">
-            {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
-              >|</span
-            >
+          <span class="text-text-primary text-lg">
+            <Wordmark />
           </span>
           <div class="ml-auto">
             <ThemeSwitcher size="sm" />

@@ -129,7 +129,6 @@ export default {
   },
   chrome: {
     aiDx: 'AI & DX',
-    appTitle: 'Urbicon UI',
     changelog: 'Changelog',
     docsNav: 'Dokumentation',
     footerNav: 'Fußzeilen-Navigation',

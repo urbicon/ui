@@ -31,7 +31,7 @@ export type AppT = (
  *
  * ```svelte
  * const ta = useAppI18n();
- * <h1>{ta('chrome.appTitle')}</h1>
+ * <a href="/changelog">{ta('chrome.changelog')}</a>
  * ```
  *
  * Resolves against the `provideI18n` set up in the root layout.

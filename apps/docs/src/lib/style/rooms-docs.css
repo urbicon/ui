@@ -423,30 +423,6 @@
   content: none;
 }
 
-/* ── Block cursor (logo wordmark only) ───────────────────────────────────
- * Once a caret after every doc title; that decoration was removed — the
- * colour-field headers carry the title alone. The class survives ONLY for the
- * sidebar wordmark's brand mark (which mirrors the favicon), painted in the
- * current room accent. `.pipe` ships hidden so the bare library skin never
- * renders an orphan glyph. */
-.pipe {
-  display: none;
-}
-
-.docs-rooms .pipe {
-  display: inline-block;
-  width: 0.5em;
-  height: 0.86em;
-  margin-left: 0.3em;
-  transform: translateY(0.06em);
-  background: var(--room-accent);
-  color: transparent;
-  font-weight: 400;
-  letter-spacing: normal;
-  vertical-align: baseline;
-  overflow: hidden;
-}
-
 /* ── Variante C — the header / hero colour fields ────────────────────────
  * Three hooks, one treatment — all full-width bands flush to the app sidebar
  * (spanning the whole content area), each with an inner max-width wrapper that
