@@ -4,9 +4,8 @@ export const prerender = true;
 
 // Route list derived from the file system at build time: every +page.svelte is
 // a static route (no dynamic segments in this app). test-fixtures and the
-// scaffold template are internal; the redirect routes (/blocks/primitives,
-// /blocks/components, /semantic-radii) have no +page.svelte and therefore
-// don't appear. Imprint/privacy are noindex (mandatory legal pages only) and
+// scaffold template are internal; a redirect route (/table, /semantic-radii,
+// …) is a +page.ts without a +page.svelte and therefore doesn't appear. Imprint/privacy are noindex (mandatory legal pages only) and
 // thus don't belong in the sitemap; the contained-scroll demo is noindex for a
 // different reason — it is the framed exhibit of /table/sticky-pinning, a
 // chrome-less page whose only way back into the docs is its own single link, so
