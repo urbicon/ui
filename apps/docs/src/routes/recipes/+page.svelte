@@ -2,16 +2,7 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { r } from '$lib/route';
-  import {
-    ArrowRightIcon,
-    Badge,
-    BookOpenIcon,
-    Button,
-    buttonVariants,
-    Card,
-    CopyIcon,
-    LayersIcon
-  } from '@urbicon-ui/blocks';
+  import { ArrowRightIcon, Badge, Button, buttonVariants, Card } from '@urbicon-ui/blocks';
   import RecipePreview from './RecipePreview.svelte';
   import { RECIPE_ORDER, type RecipeMeta } from './recipe-meta';
 
@@ -36,8 +27,6 @@
   let filtered = $derived(
     activeCategory === 'All' ? recipes : recipes.filter((r) => r.category === activeCategory)
   );
-
-  const totalComponents = $derived(new Set(recipes.flatMap((r) => r.components)).size);
 </script>
 
 <SeoMeta
@@ -46,64 +35,30 @@
 />
 
 <!-- Color Rooms hero field (default blocks room) — full-width band flush to the
-     app sidebar; stats stay on paper below, inner wrapper aligns with the body. -->
+     app sidebar; the inner wrapper aligns with the body. -->
 <div data-room-hero>
   <div class="mx-auto max-w-6xl px-6">
     <h1 class="text-text-primary text-4xl font-bold">UI Recipes</h1>
     <p class="text-text-secondary mt-3 max-w-2xl text-lg">
-      Production-ready UI patterns built with Urbicon UI. Each recipe includes a live preview,
-      copyable source code, and links to every component used.
+      Whole screens composed from the set — {recipes.length} of them, each with a live preview, the source
+      to copy and a link to every component it uses.
     </p>
   </div>
 </div>
 
 <div class="mx-auto max-w-6xl px-6 pt-10 pb-12">
-  <!-- Hero stats -->
-  <div class="mb-12">
-    <!-- Stats Row -->
-    <div class="mb-8 flex flex-wrap gap-6">
-      <div class="flex items-center gap-2">
-        <div class="bg-primary-subtle rounded-modify flex h-8 w-8 items-center justify-center">
-          <BookOpenIcon size={16} class="text-primary" />
-        </div>
-        <div>
-          <div class="text-text-primary text-lg font-bold">{recipes.length}</div>
-          <div class="text-text-tertiary text-xs">Recipes</div>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="bg-success-subtle rounded-modify flex h-8 w-8 items-center justify-center">
-          <LayersIcon size={16} class="text-success" />
-        </div>
-        <div>
-          <div class="text-text-primary text-lg font-bold">{totalComponents}</div>
-          <div class="text-text-tertiary text-xs">Components</div>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="bg-warning-subtle rounded-modify flex h-8 w-8 items-center justify-center">
-          <CopyIcon size={16} class="text-warning" />
-        </div>
-        <div>
-          <div class="text-text-primary text-lg font-bold">100%</div>
-          <div class="text-text-tertiary text-xs">Copy-Paste Ready</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Category Filter -->
-    <div class="flex flex-wrap gap-2">
-      {#each categories as category (category)}
-        <Button
-          size="sm"
-          variant={activeCategory === category ? 'filled' : 'ghost'}
-          intent={activeCategory === category ? 'primary' : 'neutral'}
-          onclick={() => (activeCategory = category)}
-        >
-          {category}
-        </Button>
-      {/each}
-    </div>
+  <!-- Category Filter -->
+  <div class="mb-10 flex flex-wrap gap-2">
+    {#each categories as category (category)}
+      <Button
+        size="sm"
+        variant={activeCategory === category ? 'filled' : 'ghost'}
+        intent={activeCategory === category ? 'primary' : 'neutral'}
+        onclick={() => (activeCategory = category)}
+      >
+        {category}
+      </Button>
+    {/each}
   </div>
 
   <!-- Recipe Grid -->
