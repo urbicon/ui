@@ -79,4 +79,9 @@ commit_parsers = [
     { message = "^build", group = "Build" },
 ]
 filter_commits = false
+# The changelog is the published packages' — plus the design-system docs that
+# `urbicon pattern` serves. A commit touching neither (skills, CI, release
+# scripts, internal docs, the docs site) stays out. Paths, not scopes: an
+# unscoped commit is as often a real package fix as a repo chore.
+include_paths = ["packages/**", "design-system/**"]
 tag_pattern = "v[0-9].*"
