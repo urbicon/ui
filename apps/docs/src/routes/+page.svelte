@@ -1,6 +1,7 @@
 <!--
   Die Landing — "3-Zeilen-Journey": erinnern → staunen → erforschen → handeln.
-  Zeile 1: Namens-Kachel + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
+  Zeile 1: Namens-Kachel (Name, Anspruch, zwei Türen: Guide und Komponenten)
+  + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
   light-dark()-Paare); die ersten vier Kacheln teilen das Hotel-Universum
   "Fermata" ($lib/hotel-tools) — drei Häuser als Sub-Brands (Cala/Menorca,
   Firn/Engadin, Duna/Comporta), damit Dashboard und Grid
@@ -70,7 +71,7 @@
   // importiert: außer der Namens-Kachel (und dem OG-Fixture) spricht niemand
   // diese Schrift, also lädt sie auch nur hier.
   import '@fontsource/special-elite/400.css';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
   import BookingCard from '$lib/hotel/BookingCard.svelte';
   import LiveryTile from '$lib/hotel/LiveryTile.svelte';
@@ -844,6 +845,12 @@
                gedämpft; die Striche bleiben die einzige Buntheit auf dieser
                Fläche. -->
           <p class="claim">{CLAIM}</p>
+          <div class="ctas">
+            <a class="cta cta-primary" href={resolve('/getting-started')}
+              >Get started <span aria-hidden="true">→</span></a
+            >
+            <a class="cta" href={resolve('/blocks')}>Browse components</a>
+          </div>
         </div>
         <p class="proof">{PROOF}</p>
       </div>
@@ -1763,6 +1770,49 @@
     /* Eine Tonstufe unter dem Namen (#f4f4f2) und deutlich über den 0.6-Klammern
        — die mittlere Stimme der Kachel, auch im Ton. */
     color: #d6d6d1;
+  }
+  .ctas {
+    margin-top: 1.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  /* Dieselbe Pillenform wie Button (commit-Stufe): die Tür sieht aus wie die
+     Knöpfe, die das Set selbst baut. Ein <a>, kein Button — sie navigiert. */
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.55rem 1.1rem;
+    border: 1px solid rgb(244 244 242 / 0.35);
+    border-radius: var(--radius-commit);
+    color: #f4f4f2;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+  .cta:hover {
+    border-color: #f4f4f2;
+  }
+  .cta-primary {
+    background: #f4f4f2;
+    border-color: #f4f4f2;
+    color: #141414;
+  }
+  .cta-primary:hover {
+    background: #ffffff;
+  }
+  .cta:focus-visible {
+    outline: 2px solid #f4f4f2;
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cta {
+      transition: none;
+    }
   }
   .proof {
     font-family: 'JetBrains Mono', monospace;
