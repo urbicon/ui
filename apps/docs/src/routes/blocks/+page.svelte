@@ -68,6 +68,7 @@
     Input,
     JourneyTimeline,
     Kbd,
+    Link,
     LineChart,
     LocaleSwitcher,
     Menu,
@@ -1492,8 +1493,8 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
-      <!-- Breadcrumb ── 2×1 -->
-      <div class={cellWd} data-specimen="Breadcrumb">
+      <!-- Breadcrumb ── 1×1 -->
+      <div class={cell} data-specimen="Breadcrumb">
         <a
           href={resolve('/blocks/primitives/breadcrumb')}
           class={cellLink}
@@ -1506,10 +1507,27 @@ Tokens switch light and dark automatically:
               items={[
                 { label: 'Home', href: '#' },
                 { label: 'Docs', href: '#' },
-                { label: 'Components' }
+                { label: 'Tokens' }
               ]}
               size="sm"
             />
+          </div>
+        </div>
+      </div>
+
+      <!-- Link ── 1×1: both voices, prose and a standalone handle -->
+      <div class={cell} data-specimen="Link">
+        <a href={resolve('/blocks/primitives/link')} class={cellLink} aria-label="Link docs"></a>
+        <div class={inner} inert>
+          {@render heading('Link')}
+          <div class="{demo} flex-col gap-3">
+            <p class="text-text-secondary text-sm">
+              Read the <Link href="#">docs</Link> first.
+            </p>
+            <div class="flex gap-4 text-sm">
+              <Link variant="standalone" href="#" active>Overview</Link>
+              <Link variant="standalone" href="#">Settings</Link>
+            </div>
           </div>
         </div>
       </div>
