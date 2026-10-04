@@ -280,9 +280,16 @@
     { label: 'Sun', values: [38, 6] }
   ];
   // Der Toggle ist keine Deko: ohne Same-day verschwindet die zweite Serie aus
-  // Chart UND Legende, und der Badge in der Fußzeile sagt etwas anderes.
+  // Chart UND Legende, und der Badge neben ihm sagt etwas anderes.
+  // Die Farben sind die, die der Chart ohnehin zöge (Palette 1, 2) — explizit,
+  // weil die Legende im Zellkopf dieselben Töne als Punkte trägt.
   const BOOKING_SERIES: ChartSeries[] = $derived(
-    sameDay ? [{ label: 'Reserved' }, { label: 'Same-day' }] : [{ label: 'Reserved' }]
+    sameDay
+      ? [
+          { label: 'Reserved', color: 'var(--color-chart-1)' },
+          { label: 'Same-day', color: 'var(--color-chart-2)' }
+        ]
+      : [{ label: 'Reserved', color: 'var(--color-chart-1)' }]
   );
   const bookingsData = $derived(
     WEEK_ARRIVALS.map((d) => ({
@@ -365,8 +372,9 @@
       nights: OCCUPANCY_NIGHTS
     })
   );
-  // Ein Haus braucht keine Gruppenzeile — sein Name steht in der Unterzeile der
-  // Karte. Die Gruppen-Sicht braucht sie: sonst wäre die Spur „101" dreimal da.
+  // Ein Haus braucht keine Gruppenzeile — sein Name steht im gewählten Chip
+  // des Kartenkopfs. Die Gruppen-Sicht braucht sie: sonst wäre die Spur „101"
+  // dreimal da.
   const occupancyGroups = $derived(activeHouse ? undefined : occupancy.groups);
   // Freie Zimmer heute Nacht — GEZÄHLT, in derselben Menge, die das Raster
   // zeichnet. Vorher stand hier der unbelegte Anteil des Bestands
@@ -375,13 +383,6 @@
   // Firn im Raster auf 0 von 9, während der Badge 1 behauptete (Review-Befund
   // 2026-08-12). Die Prozentzahl gilt dem Fenster, diese Zahl der Nacht.
   const freeRooms = $derived(freeRoomsOn(occupancy, windowStart));
-
-  // Die Unterzeile der Karte. Bei „All" zeigt die Rooms-Ansicht alle drei
-  // Häuser mit Gruppenzeilen, bei einem Haus trägt DIESE Zeile den Namen —
-  // darum braucht das Raster dort keine Gruppenzeile (s. `occupancyGroups`).
-  const cardSubtitle = $derived(
-    activeHouse ? `${activeHouse.name} · ${activeHouse.city}` : 'All three houses'
-  );
 
   // ── Flow: woher die 344 Gäste kommen und wo sie schlafen ───────────
   // Drei Ebenen, und jede Ebene summiert sich auf dieselben 344 wie der Donut;
@@ -460,6 +461,14 @@
   // auf 900-px-Schirmen die Ansicht um 7 px überlaufen ließ (beides
   // Review-Befunde 2026-08-12).
   let flowHostHeight = $state(0);
+  // Dasselbe für den Ankünfte-Chart der Overview: zweispaltig nimmt seine Zeile
+  // die Resthöhe der Karte, und der Chart füllt sie, statt auf großen Bühnen
+  // ein Loch unter sich zu lassen. Den Boden setzt CSS (`min-height` des
+  // Hosts, darunter laufen die fünf Marken der y-Achse ineinander), die Decke
+  // hält den Chart auf breiten Schirmen in einem lesbaren Seitenverhältnis.
+  // Einspaltig gibt CSS dem Host eine feste Höhe — CSS entscheidet, JS liest.
+  let arrivalsHostHeight = $state(0);
+  const arrivalsHeight = $derived(Math.min(240, arrivalsHostHeight));
   const flowHeight = $derived(Math.max(200, flowHostHeight - 30));
 
   // ── Table: die heutigen Ankünfte der GRUPPE, gruppiert nach Haus ──
@@ -918,163 +927,192 @@
                        `.xray` im Stilblock) — die Kachel für „Umfang" zeigt
                        damit auf Wunsch, woraus sie besteht. -->
                   <div class={['card', 'dash2', xray && 'xray']}>
+                    <!-- Der Kopf ist der Rahmen der Karte: wer (die Gruppe, die
+                         Haus-Wahl) links, welche Ansicht rechts, in EINER Zeile,
+                         sobald die Karte breit genug ist — jede Kopfzeile mehr
+                         fehlt der Overview auf Laptop-Schirmen. Die Haus-Chips
+                         wirken auf alle drei Ansichten und stehen darum hier,
+                         nicht in einer Ansicht; die Zeilen der Auslastung bleiben
+                         zusätzlich klickbar — zwei Wege, ein Zustand, wie
+                         Filterleiste und Zeilenklick in einer Tabelle. -->
                     <div class="dash-head">
-                      <div>
-                        <p class="dash-title">{GROUP_NAME}</p>
-                        <p class="dash-sub">{cardSubtitle}</p>
-                      </div>
-                      <div class="blk" data-blk="SegmentGroup">
+                      <p class="dash-title">{GROUP_NAME}</p>
+                      <div class="dash-view blk" data-blk="SegmentGroup">
                         <SegmentGroup bind:value={dashView} size="sm" ariaLabel="Backoffice view">
                           <SegmentItem value="overview">Overview</SegmentItem>
                           <SegmentItem value="rooms">Rooms</SegmentItem>
                           <SegmentItem value="flow">Flow</SegmentItem>
                         </SegmentGroup>
                       </div>
-                    </div>
-                    <!-- Der Geltungsbereich steht ÜBER den Ansichten, weil er
-                         auf alle drei wirkt. Bis 2026-08-03 war er nur eine
-                         Auslastungszeile im Körper der Overview — also eine
-                         Ebene unter dem, worauf er wirkt, und ausgerechnet in
-                         der damaligen Schedule-Ansicht unerreichbar, die per
-                         Bauart eine Ein-Haus-Ansicht war. Die Zeilen bleiben
-                         zusätzlich
-                         klickbar: zwei Wege, ein Zustand, wie Filterleiste und
-                         Zeilenklick in einer Tabelle. -->
-                    <div class="scope" role="group" aria-label="House">
-                      {#each SCOPES as s (s.key)}
-                        <button
-                          type="button"
-                          class="chip"
-                          aria-pressed={house === s.key}
-                          onclick={() => (house = s.key)}
-                        >
-                          <span class="blk" data-blk="Badge">
-                            <Badge
-                              size="sm"
-                              tier="commit"
-                              variant={house === s.key ? 'filled' : 'soft'}
-                              intent={house === s.key ? 'primary' : 'neutral'}>{s.label}</Badge
-                            >
-                          </span>
-                        </button>
-                      {/each}
+                      <div class="scope" role="group" aria-label="House">
+                        {#each SCOPES as s (s.key)}
+                          <button
+                            type="button"
+                            class="chip"
+                            aria-pressed={house === s.key}
+                            onclick={() => (house = s.key)}
+                          >
+                            <span class="blk" data-blk="Badge">
+                              <Badge
+                                size="sm"
+                                tier="commit"
+                                variant={house === s.key ? 'filled' : 'soft'}
+                                intent={house === s.key ? 'primary' : 'neutral'}>{s.label}</Badge
+                              >
+                            </span>
+                          </button>
+                        {/each}
+                      </div>
                     </div>
                     {#if dashView === 'overview'}
+                      <!-- Vier Blöcke, jeder mit eigener kleiner Überschrift —
+                           ohne sie war der Chart eine unbeschriftete Kurve und der
+                           Umsatzmix vier Farben ohne Aussage. Zweispaltig ein
+                           2×2-Raster: Ankünfte und Auslastung oben (die Aussage
+                           der Kachel), Umsatzmix und Gäste darunter. Einspaltig
+                           dieselbe Reihenfolge. -->
                       <div class="dash-body">
-                        <!-- Jeder Block trägt seine eigene kleine Überschrift:
-                             ohne sie war der Chart eine unbeschriftete Kurve
-                             und der Umsatzmix vier Farben ohne Aussage
-                             (Review-Befund 2026-08-10). Der Chart nimmt die
-                             volle Kartenbreite; die Legende ist an, weil zwei
-                             ungelabelte Serien nicht selbsterklärend sind.
-                             Gestapelt, weil Same-day ein TEIL der Tages-
-                             ankünfte ist: als eigene Fläche kroch die kleine
-                             Serie (4–11 gegen 24–60) als Strich am Chart-Boden
-                             und las sich als Renderfehler; als Band auf
-                             Reserved ist die Summe die Kurve — dieselben
-                             Tagessummen, deren Dichte das Zeitraster zeigt. -->
-                        <div>
-                          <p class="dash-sub">Arrivals this week</p>
-                          <div class="blk mt-2" data-blk="AreaChart">
+                        <!-- Gestapelt, weil Same-day ein TEIL der Tagesankünfte
+                             ist: als eigene Fläche kroch die kleine Serie als
+                             Strich am Chart-Boden; als Band auf Reserved ist die
+                             Summe die Kurve. Die Legende steht im Zellkopf statt
+                             unter dem Chart: so ist der Host nur die Zeichenfläche,
+                             und seine gemessene Höhe ist die des Charts. -->
+                        <div class="dash-cell">
+                          <div class="cell-head">
+                            <p class="dash-sub">Arrivals this week</p>
+                            <p class="dash-sub">
+                              {#each BOOKING_SERIES as serie (serie.label)}
+                                <span class="mix-pair"
+                                  ><span class="mix-dot" style:background={serie.color}
+                                  ></span>{serie.label}</span
+                                >
+                              {/each}
+                            </p>
+                          </div>
+                          <div
+                            class="chart-host blk"
+                            data-blk="AreaChart"
+                            bind:clientHeight={arrivalsHostHeight}
+                          >
                             <AreaChart
                               data={bookingsData}
                               series={BOOKING_SERIES}
-                              height={96}
-                              showLegend
+                              height={arrivalsHeight}
+                              showLegend={false}
                               stacked
                             />
                           </div>
+                          <!-- Same-day wirkt auf die Chart-Serie und auf den Badge
+                               daneben, also steht es unter dem Chart, auf den es
+                               wirkt. `modify` statt der Badge-Voreinstellung
+                               `commit`: als Status liest der kleine Radius richtig,
+                               und neben den Chips, die wirklich schalten, sähe eine
+                               Pille wie ein Knopf aus, der keiner ist. -->
+                          <div class="dash-controls">
+                            <div class="blk" data-blk="Toggle">
+                              <Toggle bind:checked={sameDay} label="Same-day arrivals" size="sm" />
+                            </div>
+                            <div class="blk" data-blk="Badge">
+                              <Badge
+                                intent={sameDay ? 'success' : 'neutral'}
+                                variant="soft"
+                                tier="modify"
+                              >
+                                {sameDay ? `${freeRooms} rooms free tonight` : 'Reservations only'}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                        <div class="dash-cols">
-                          <div class="dash-main">
-                            <div>
-                              <p class="dash-sub">Revenue by room type</p>
-                              <!-- Die Werte SIND Prozente: formatValue macht sie
-                                 zur Anzeige, showPercentages bliebe sonst als
-                                 Doppelung daneben stehen (Legende druckt Wert
-                                 immer). -->
-                              <div class="blk mt-2" data-blk="CompositionBar">
-                                <CompositionBar
-                                  items={revenueMix}
-                                  size="sm"
-                                  showLegend
-                                  showPercentages={false}
-                                  formatValue={(v) => `${v} %`}
-                                  legendPlacement="bottom"
-                                />
-                              </div>
+                        <div class="dash-cell">
+                          <div class="cell-head">
+                            <p class="dash-sub">
+                              {activeHouse ? 'Occupancy · on duty' : 'Occupancy today · on duty'}
+                            </p>
+                            <!-- Die Gesichter zeigen das Team des gewählten Hauses
+                                 und wechseln mit ihm; die Zeile benennt sie („on
+                                 duty"), sonst wären Status-Avatare neben einer
+                                 Belegungsliste ein Fragezeichen. -->
+                            <div class="blk" data-blk="AvatarGroup">
+                              <AvatarGroup items={team} max={4} size="sm" />
+                            </div>
+                          </div>
+                          <!-- Eine Zeile je Haus, und jede ist ein Schalter: der
+                               Klick zieht Chart, Umsatzmix, Donut, Team und die
+                               Chips mit. Progress ist eine Anzeige — die
+                               Bedienbarkeit gehört dem Button darum. -->
+                          <div class="houses">
+                            {#each HOUSES as h (h.name)}
+                              <!-- Eigenes `aria-label`: der einzige Inhalt des
+                                   Buttons ist ein `role="progressbar"`, dessen
+                                   Name auf ihm selbst sitzt und nicht nach oben
+                                   durchschlägt — ohne diese Zeile ist es ein Knopf
+                                   ohne Namen. -->
+                              <button
+                                type="button"
+                                class={['house', house === h.name && 'on']}
+                                aria-pressed={house === h.name}
+                                aria-label={`${h.name}, ${h.city} — ${h.load} % booked`}
+                                onclick={() => (house = house === h.name ? null : h.name)}
+                              >
+                                <span class="blk" data-blk="Progress">
+                                  <Progress
+                                    value={h.load}
+                                    label={h.name}
+                                    showValue
+                                    size="sm"
+                                    formatValue={(v) => `${v} %`}
+                                  />
+                                </span>
+                              </button>
+                            {/each}
+                          </div>
+                        </div>
+                        <div class="dash-cell">
+                          <p class="dash-sub">Revenue by room type</p>
+                          <!-- Die Werte SIND Prozente: formatValue macht sie zur
+                               Anzeige, showPercentages bliebe sonst als Doppelung
+                               daneben stehen (die Legende druckt den Wert immer). -->
+                          <div class="blk" data-blk="CompositionBar">
+                            <CompositionBar
+                              items={revenueMix}
+                              size="sm"
+                              showLegend
+                              showPercentages={false}
+                              formatValue={(v) => `${v} %`}
+                              legendPlacement="bottom"
+                            />
+                          </div>
+                        </div>
+                        <!-- Die Überschrift steht neben dem Ring, nicht darüber:
+                             die zweite Rasterzeile ist so hoch wie ihr höchster
+                             Block, und jede Zeile hier fehlt der Overview auf
+                             Laptop-Schirmen. -->
+                        <div class="dash-cell">
+                          <div class="dash-donut">
+                            <div class="blk" data-blk="DonutChart">
+                              <DonutChart
+                                data={returnMix}
+                                size={72}
+                                showLegend={false}
+                                showTotal
+                                totalLabel="guests"
+                                ariaLabel="Returning guests this week"
+                              />
                             </div>
                             <div>
                               <p class="dash-sub">Guests in house</p>
-                              <div class="dash-donut">
-                                <div class="blk" data-blk="DonutChart">
-                                  <DonutChart
-                                    data={returnMix}
-                                    size={72}
-                                    showLegend={false}
-                                    showTotal
-                                    totalLabel="guests"
-                                    ariaLabel="Returning guests this week"
-                                  />
-                                </div>
-                                <p class="aside-note">
-                                  <span class="mix-pair"
-                                    ><span class="mix-dot" style:background={returnMix[0].color}
-                                    ></span><strong>{returnMix[0].value}</strong> returning</span
-                                  >
-                                  ·
-                                  <span class="mix-pair"
-                                    ><span class="mix-dot" style:background={returnMix[1].color}
-                                    ></span><strong>{returnMix[1].value}</strong> first stay</span
-                                  >
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="dash-side">
-                            <div class="dash-head">
-                              <p class="dash-sub">
-                                {activeHouse ? 'Occupancy · on duty' : 'Occupancy today · on duty'}
-                              </p>
-                              <!-- Die Gesichter sind nicht mehr Deko: sie zeigen
-                                   das Team des gewählten Hauses und wechseln mit
-                                   ihm. Die Zeile benennt sie in BEIDEN Sichten
-                                   („on duty") — unbeschriftete Status-Avatare
-                                   neben einer Belegungsliste waren ein
-                                   Fragezeichen (Screenshot-Befund 2026-08-12). -->
-                              <div class="blk" data-blk="AvatarGroup">
-                                <AvatarGroup items={team} max={4} size="sm" />
-                              </div>
-                            </div>
-                            <!-- Eine Zeile je Haus, und jede ist ein Schalter:
-                                 der Klick zieht Chart, Umsatzmix, Donut, Team,
-                                 Kopfzeile und die Terminwoche mit. Progress ist
-                                 eine Anzeige — die Bedienbarkeit gehört dem
-                                 Button darum, nicht der Komponente darin. -->
-                            <div class="houses">
-                              {#each HOUSES as h (h.name)}
-                                <!-- Eigenes `aria-label`: der einzige Inhalt des
-                                     Buttons ist ein `role="progressbar"`, dessen
-                                     Name auf ihm selbst sitzt und nicht nach
-                                     oben durchschlägt — ohne diese Zeile ist es
-                                     ein Knopf ohne Namen. -->
-                                <button
-                                  type="button"
-                                  class={['house', house === h.name && 'on']}
-                                  aria-pressed={house === h.name}
-                                  aria-label={`${h.name}, ${h.city} — ${h.load} % booked`}
-                                  onclick={() => (house = house === h.name ? null : h.name)}
+                              <p class="aside-note mt-1">
+                                <span class="mix-pair"
+                                  ><span class="mix-dot" style:background={returnMix[0].color}
+                                  ></span><strong>{returnMix[0].value}</strong> returning</span
                                 >
-                                  <span class="blk" data-blk="Progress">
-                                    <Progress
-                                      value={h.load}
-                                      label={h.name}
-                                      showValue
-                                      formatValue={(v) => `${v} %`}
-                                    />
-                                  </span>
-                                </button>
-                              {/each}
+                                ·
+                                <span class="mix-pair"
+                                  ><span class="mix-dot" style:background={returnMix[1].color}
+                                  ></span><strong>{returnMix[1].value}</strong> first stay</span
+                                >
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1185,36 +1223,6 @@
                             nodePadding={10}
                             formatValue={(v) => `${v} guests`}
                           />
-                        </div>
-                      </div>
-                    {/if}
-                    <!-- Nur in der Overview: der Toggle wirkt auf Chart-Serie
-                         und Badge — in Rooms und Flow stünde er als
-                         Schalter ohne Wirkung herum (Review-Befund
-                         2026-08-10). -->
-                    {#if dashView === 'overview'}
-                      <div class="dash-foot">
-                        <div class="blk" data-blk="Toggle">
-                          <Toggle bind:checked={sameDay} label="Take same-day arrivals" size="sm" />
-                        </div>
-                        <!-- `modify` statt der Badge-Voreinstellung `commit`: die
-                         Pille sah aus wie ein Knopf und war keiner — auf einer
-                         Fläche, auf der jetzt alles andere wirklich schaltet,
-                         ist genau das die Irreführung. Als Status liest der
-                         kleine Radius richtig.
-                         soft ist Geschmack, nicht mehr Notwehr: die solide
-                         Intent-Fläche trug text-on-primary, das im
-                         .room-accent-Scope auf den Kanal umgefärbt wurde. Seit
-                         2026-07-31 tragen die nicht-primary Füllungen
-                         text-on-fill, das kein Raum überschreibt (#47). -->
-                        <div class="blk" data-blk="Badge">
-                          <Badge
-                            intent={sameDay ? 'success' : 'neutral'}
-                            variant="soft"
-                            tier="modify"
-                          >
-                            {sameDay ? `${freeRooms} rooms free tonight` : 'Reservations only'}
-                          </Badge>
                         </div>
                       </div>
                     {/if}
@@ -1858,6 +1866,11 @@
     padding: 1rem 0;
     min-height: 0;
   }
+  @media (max-height: 780px) {
+    .tile-body {
+      padding-block: 0.5rem;
+    }
+  }
   .tile-title {
     font-size: clamp(1.5rem, 2.4vw, 2.2rem);
     font-weight: 800;
@@ -1884,8 +1897,8 @@
    * EIN Dashboard, EINE Karte: `.dash2` ist ihr eigener @container und baut
    * sich nach der EIGENEN Breite um, nicht nach dem Viewport — schmal alles
    * gestapelt (Mobile sieht das ganze Backoffice, statt wie früher die
-   * Nebenkarte zu verlieren), ab ~30rem Kartenbreite rückt die
-   * Auslastungs-Spalte neben den Chart-Block. Der alte Vorbehalt gegen
+   * Nebenkarte zu verlieren), ab 28rem Kartenbreite das 2×2-Raster der
+   * Overview (`.dash-body`). Der alte Vorbehalt gegen
    * `container-type` galt der KACHEL (sie würde zum Bezugsrahmen für die
    * `position: fixed`-Overlays der Table) — auf der Karte selbst gibt es nur
    * Chart-Tooltips, absolut im eigenen Wrapper. Läuft der Stapel auf kleinen
@@ -1913,10 +1926,10 @@
         100% 0.6rem no-repeat scroll,
       var(--card-bg);
   }
-  /* Kopf und Fuß stehen, der Inhalt dazwischen scrollt. Bis 2026-08-03 scrollte
-     die ganze Karte — mit drei Ansichten unterschiedlicher Höhe hieß das, dass
-     die Fußzeile (Toggle + Badge) je nach Ansicht unter die Kante rutschte.
-     Ein Backoffice, dessen Bedienung wegscrollt, ist keins. */
+  /* Der Kopf steht, die Ansicht darunter scrollt, wenn sie muss: mit drei
+     Ansichten unterschiedlicher Höhe rutschte sonst die Bedienung je nach
+     Ansicht unter die Kante. Ein Backoffice, dessen Bedienung wegscrollt, ist
+     keins — darum trägt der Kopf auch Same-day, nicht ein Fuß. */
   .dash2 {
     container-type: inline-size;
     width: min(520px, 100%);
@@ -1925,18 +1938,15 @@
        und SegmentGroup springen. */
     height: 100%;
     display: grid;
-    /* Kopf · Geltungsbereich · Ansicht · Fußzeile. */
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    /* Kopf · Ansicht. */
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 0.9rem;
   }
-  /* Die Chip-Zeile trennt sich mit einer Haarlinie vom Inhalt darunter — sie
-     gehört zum Rahmen der Karte, nicht zur Ansicht. */
   .scope {
+    grid-area: scope;
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
-    padding-block-end: 0.5rem;
-    border-block-end: 1px solid light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
   }
   .chip {
     font: inherit;
@@ -1962,6 +1972,11 @@
     overflow-y: auto;
     min-height: 0;
     scrollbar-width: thin;
+    /* Overlay-Scrollleisten (macOS, iOS) liegen ÜBER dem Inhalt — am rechten
+       Rand säßen sie auf Legenden, Avataren und Balkenenden. Die Scrollfläche
+       reicht darum ins Polster der Karte, und der Inhalt hält davon Abstand. */
+    padding-inline-end: 0.75rem;
+    margin-inline-end: -0.75rem;
   }
   /* Die Rooms-Ansicht scrollt NICHT als Bühne: 39 Spuren sind höher als jede
      Kachelbühne, und mit der Bühne fahren Datumsachse und Legende hinaus (nach
@@ -2010,57 +2025,66 @@
     padding-block-start: 0.7rem;
     margin-block-start: -0.7rem;
   }
-  /* Der Chart liegt über der vollen Kartenbreite, die zwei Spalten darunter.
-     Vorher stand er in der linken Spalte, die damit deutlich kürzer war als
-     die rechte — das Loch unten links war die Differenz, nicht Absicht. */
+  /* Die Overview: einspaltig gestapelt, ab 28rem Kartenbreite ein 2×2-Raster.
+     Die Höhe ist der Punkt — der Chart über zwei Spalten war eine Zeile mehr,
+     und die stand auf Laptop-Schirmen hinter der Scroll-Ausblendung der Karte,
+     statt zu sehen zu sein. */
   .dash-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 1rem;
     min-height: 0;
   }
-  .dash-cols {
-    display: grid;
-    gap: 0.75rem;
-    min-width: 0;
-    /* Die Spaltenzeile nimmt die Resthöhe des Bodys — erst damit greift das
-       space-between in den Spalten. Ohne dieses Wachsen sammelte sich die
-       Resthöhe als Loch zwischen Donut und Fußzeile (Screenshot-Befund
-       2026-08-12). */
-    flex: 1;
+  /* Einspaltig hat der Chart-Host eine feste Höhe (96 px Chart); zweispaltig
+     nimmt die erste Zeile die Resthöhe, und der Host wächst mit ihr.
+     `contain: size`: der Host bringt keine Inhaltsgröße mit in die
+     Spurberechnung. Sonst hielte das zuletzt gezeichnete SVG die Zeile auf
+     seiner Höhe fest, und die Zeile könnte beim Verkleinern nicht mehr
+     schrumpfen. */
+  .chart-host {
+    height: 6rem;
+    min-height: 0;
+    contain: size;
   }
-  /* Einspaltig (schmale Karte) steht die Auslastung der Häuser VOR dem
-     Umsatzmix: sie ist die Aussage der Kachel, und was hier unten steht,
-     erreicht man nur durch Scrollen in der Karte. Zweispaltig hebt die
-     Grid-Zuordnung das wieder auf. */
-  .dash-side {
-    order: -1;
+  @container (min-width: 28rem) {
+    /* Die erste Zeile nimmt den Rest, aber nie weniger als ihr Inhalt: sonst
+       schöbe sich die Auslastung auf niedrigen Bühnen über Umsatzmix und
+       Donut, statt die Karte scrollen zu lassen. */
+    .dash-body {
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      grid-template-rows: minmax(min-content, 1fr) auto;
+      gap: 0.9rem 1.6rem;
+    }
+    /* Der Boden des Charts: darunter liefen die Marken der y-Achse
+       ineinander. Er steht am Host, nicht als Zahl im Script, damit der Chart
+       nie höher wird als sein Host und über Same-day und Badge ragt. */
+    .chart-host {
+      flex: 1 1 0;
+      height: auto;
+      min-height: 4.75rem;
+    }
+    /* Die Auslastungs-Spalte teilt sich die Zeile mit dem Chart; ihre drei
+       Häuser verteilen sich über die Höhe, statt oben zu kleben. */
+    .houses {
+      flex: 1;
+      justify-content: space-evenly;
+    }
   }
-  .dash-main,
-  .dash-side {
+  .dash-cell {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
-  @container (min-width: 30rem) {
-    .dash-cols {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      /* Die eine Grid-Zeile spannt die volle Resthöhe auf — sonst bliebe das
-         flex-Wachsen der Zeile ohne Wirkung auf die Spalten darin. */
-      grid-template-rows: minmax(0, 1fr);
-      gap: 1.6rem;
-      align-items: stretch;
-    }
-    /* Was an Resthöhe bleibt, verteilt sich zwischen den Blöcken der kürzeren
-       Spalte, statt sich unten zu einem Loch zu sammeln. */
-    .dash-main,
-    .dash-side {
-      justify-content: space-between;
-    }
-    .dash-side {
-      order: 0;
-    }
+  /* Bricht um, statt über den Rand zu laufen: in einer schmalen Karte rückt
+     die Legende bzw. das Team unter die Überschrift. */
+  .cell-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
   }
   @media (min-width: 78rem) {
     .dash2 {
@@ -2070,7 +2094,6 @@
   .dash-donut {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 1rem;
   }
   /* Farbpunkte für Donut-Textzeile und Rooms-Legende — dieselben Töne wie
@@ -2174,32 +2197,45 @@
     font-weight: 700;
     color: inherit;
   }
-  .dash-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  /* Der KARTENKOPF (nicht der Kopf der Auslastungs-Spalte, der bleibt einzeilig):
-     Titel und Bereichswahl teilen sich eine Zeile erst, wenn die Karte breit
-     genug für beide ist. Darunter quetschte die Zeile beides gleichzeitig — der
-     Titel brach zweizeilig um UND die SegmentGroup fiel in ihre
-     Überlauf-Degradation (vertikaler Stapel, korrekt für ein Formular, im Kopf
-     einer Karte aber wie ein Fehler aussehend). Gestapelt hat die Gruppe die
-     131 px, die ihr Track waagerecht braucht. */
+  /* Der Kartenkopf: ab 36rem Kartenbreite Titel, Haus-Chips und Ansichtswahl
+     in einer Zeile, darunter in zwei, eine Haarlinie unter allem — er ist der
+     Rahmen der Karte, nicht Teil einer Ansicht. Unter 24rem stapelt er:
+     zusammengepresst brach der Titel zweizeilig um UND die SegmentGroup fiel
+     in ihre Überlauf-Degradation (vertikaler Stapel, im Kopf einer Karte wie
+     ein Fehler aussehend). */
   .dash2 > .dash-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'view' 'scope';
+    align-items: center;
+    gap: 0.6rem 1rem;
+    padding-block-end: 0.75rem;
+    border-block-end: 1px solid light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
   }
   @container (min-width: 24rem) {
     .dash2 > .dash-head {
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 1rem;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: 'title view' 'scope scope';
     }
   }
+  @container (min-width: 36rem) {
+    .dash2 > .dash-head {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas: 'title scope view';
+      column-gap: 1.25rem;
+    }
+  }
+  .dash-view {
+    grid-area: view;
+  }
+  .dash-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+  }
   .dash-title {
+    grid-area: title;
     font-weight: 800;
     font-size: 1.05rem;
     letter-spacing: -0.01em;
@@ -2207,12 +2243,6 @@
   .dash-sub {
     font-size: 0.75rem;
     color: light-dark(#77776f, #8a8a84);
-  }
-  .dash-foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
   }
   .card-table {
     width: min(680px, 100%);
