@@ -98,7 +98,7 @@
   import { I18nProvider } from '@urbicon-ui/i18n';
   import { MediaQuery } from 'svelte/reactivity';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
-  import { createTableView, Table } from '@urbicon-ui/table';
+  import { createTableView, Table, type TableProps } from '@urbicon-ui/table';
   import type { Component } from 'svelte';
   import type { PageData } from './$types';
   // Nur für `.room-accent` (primary-Familie aus --room-accent/--room-accent-fg
@@ -701,6 +701,11 @@
 
   let query = $state('');
 
+  /** Kippschritt der Inventar-Table UND Untergrenze ihrer Spalte — ein Wert,
+   *  damit die Spalte nie schmaler wird als der Schritt, an dem die Table in
+   *  Karten kippt. */
+  const INVENTORY_STEP: NonNullable<TableProps['cardsBelow']> = '32rem';
+
   // Das Inventar hat sein eigenes View: Die Suche steht in einem `Input`
   // daneben, also schreibt sie von außen auf die Achse. Sortierung und
   // Seitengröße sind Startwerte dieses Views, keine zweite Prop-Ebene.
@@ -731,6 +736,8 @@
   // unverändert dieselbe Ansicht, geteilte Links bleiben gültig.
   /** Ziel des Beobachters der Kopfleiste: die große Marke (LandingHeader). */
   let brandEl = $state<HTMLElement | undefined>();
+  /** Höhe der klebenden Kopfleiste — die klebende Inventarspalte hält Abstand. */
+  let barHeight = $state(0);
 
   const [selectedSlug, setSelectedSlug] = useUrlParam<string | null>('c', {
     parse: (sp) => sp.get('c'),
@@ -803,8 +810,8 @@
 <!-- Englisch gepinnt wie im Hero: sonst rutschen Playground-Labels und
      Calendar-Monatsnamen in die Browser-Sprache, mitten in eine englische Seite. -->
 <I18nProvider locale="en">
-  <LandingHeader watch={brandEl} />
-  <main class="proto" lang="en">
+  <LandingHeader watch={brandEl} bind:height={barHeight} />
+  <main class="proto" lang="en" style:--bar-h="{barHeight}px">
     <!-- ── Zeile 1: erinnern + staunen ─────────────────────────────── -->
     <section class="row1" aria-label="Hero">
       <div class="name-tile">
@@ -1316,6 +1323,7 @@
       style:--room-accent-fg={rowAccentFg}
       style:--room-accent-text={rowAccentText}
       style:--room-accent-text-fg="#fbfaf6"
+      style:--inventory-step={INVENTORY_STEP}
     >
       <div class="inv-col">
         <div class="inv-head">
@@ -1332,37 +1340,26 @@
             clearable
             autocomplete="off"
             name="component-filter"
-            placeholder="Filter {data.rows.length} components"
+            placeholder="Filter by name or family"
             aria-label="Filter components"
           />
         </div>
         <!-- Alle Zeilen auf einmal, die Spalte scrollt selbst; der leere
            pagination-Snippet nimmt dem Fuß das Chrom (wie im Hero).
-           `sticky="header"`: bei 99 Zeilen ist die Kopfzeile die einzige
-           Auskunft darüber, dass 41.6 die kB-Spalte ist und nicht die Props —
+           `sticky="header"`: bei hundert Zeilen ist die Kopfzeile die einzige
+           Auskunft darüber, welche Zahl die kB-Spalte ist und welche die Props —
            sie muss stehen bleiben. Die Table pinnt gegen ihren Scroll-Vorfahren
            (hier `.inventory`) und lässt dafür den eigenen `overflow-x`-Wrapper
            weg, der jedes Pinning von außen aushebeln würde.
 
-           `cardsBelow`: die Table misst ihre eigene Box, und diese Spalte ist
-           per Grid auf 34rem gedeckelt — beim Standardschritt (48rem) fiele sie
-           also bei JEDER Fensterbreite in die Kartenansicht, obwohl die vier
-           Spalten hier viel weniger brauchen. 32rem ist der nächste Schritt über
-           dem, was sie zusammen fordern: 29rem plus Zellpolster sind gemessene
-           487px, und der Schritt darunter (28rem = 448px) ließ die Tabelle bei
-           1300px Fensterbreite um 19px aus ihrer Spalte laufen. Die Spalte (36vw)
-           erreicht 32rem ab 1420px Fensterbreite; darunter — und einspaltig
-           gestapelt unter 48rem sowieso — stehen die Karten.
-           Ein `!min-w-0` braucht die Tabelle dafür nicht mehr: das Raster trägt
-           gar keine Mindestbreite mehr, weil der Schritt selbst schon garantiert,
-           dass es nur oberhalb seiner eigenen Breite rendert.
-
-           Die 1420px sind knapp: `scripts/capture-shots.ts` nimmt bei 1440px auf,
-           die Spalte misst dort 518px gegen 512px Schwelle — 6px Spaltenluft,
-           bei 36vw rund 17px Fensterbreite. Deshalb prüft der
-           Aufnahmelauf am DOM nach, dass er das Raster fotografiert und nicht die
-           Karten (`assertInventoryRendersAsGrid`) — wer hier am Spaltenverhältnis
-           dreht, bekommt einen Fehlschlag statt vier still getauschter Bilder. -->
+           `cardsBelow` misst die Spalte, nicht den Viewport, und die Spalte
+           ist nie schmaler als dieser Schritt (`INVENTORY_STEP`, dieselbe
+           Konstante in der Grid-Klammer von `.row2`). Die Tabelle steht also
+           bei jeder zweispaltigen Breite, solange ihre Spaltenbreiten samt
+           Zellpolster in den Schritt passen; dafür sind sie schmaler als die
+           Inhalte, die sie selten erreichen. Wer eine Spalte hinzufügt oder
+           verbreitert, misst die Tabelle bei der schmalsten zweispaltigen
+           Breite nach, `scrollWidth` gegen `clientWidth` von `.inventory`. -->
         <div class="inventory">
           <Table
             items={data.rows}
@@ -1371,7 +1368,7 @@
             variant="flush"
             size="sm"
             sticky="header"
-            cardsBelow="32rem"
+            cardsBelow={INVENTORY_STEP}
             ariaLabel="Every component in the set"
             onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
             activeRowId={selected.id}
@@ -1386,7 +1383,7 @@
                 title: 'Component',
                 sortable: true,
                 searchable: true,
-                width: '15rem',
+                width: '13rem',
                 cell: nameCell
               },
               {
@@ -1394,7 +1391,7 @@
                 title: 'Family',
                 sortable: true,
                 searchable: true,
-                width: '6rem',
+                width: '5.5rem',
                 cell: quietCell
               },
               {
@@ -1403,7 +1400,7 @@
                 title: 'kB',
                 sortable: true,
                 align: 'right',
-                width: '4rem',
+                width: '3.5rem',
                 cell: sizeCell
               },
               {
@@ -1411,7 +1408,7 @@
                 title: 'Props',
                 sortable: true,
                 align: 'right',
-                width: '4rem',
+                width: '3.5rem',
                 cell: propsCell
               }
             ]}
@@ -2359,14 +2356,17 @@
     --row2-base: clamp(560px, 82vh, 860px);
     min-height: var(--row2-base);
     display: grid;
-    grid-template-columns: clamp(26rem, 36vw, 34rem) minmax(0, 1fr);
+    grid-template-columns: clamp(var(--inventory-step), 36vw, 34rem) minmax(0, 1fr);
     gap: clamp(1.5rem, 4vw, 4rem);
     padding: var(--row2-pad);
     /* Ohne dies streckt das Grid beide Spalten auf die Zeilenhöhe — die
        gewachsene Zeile zöge dann die klebende Liste mit in die Länge. */
     align-items: start;
   }
-  @media (max-width: 48rem) {
+  /* Gestapelt schon ab 64rem abwärts: zweispaltig hat die Liste ihre
+     Untergrenze (`--inventory-step`), und darunter bliebe der Vorschau weniger
+     Breite, als ein Playground braucht. */
+  @media (max-width: 64rem) {
     .row2 {
       grid-template-columns: 1fr;
     }
@@ -2378,15 +2378,17 @@
     /* Die Liste ist auf die Grundhöhe der Zeile begrenzt, nicht auf den
        Viewport: sonst gäbe SIE der Zeile die Höhe und machte sie doch wieder
        bildschirmfüllend — genau das, was die Zeile nicht sein will. */
-    max-height: calc(var(--row2-base) - 2 * var(--row2-pad));
+    max-height: calc(var(--row2-base) - 2 * var(--row2-pad) - var(--bar-h, 0px));
     position: sticky;
-    top: var(--row2-pad);
+    /* Unter der klebenden Kopfleiste, nicht hinter ihr — ihre Höhe misst die
+       Leiste selbst (LandingHeader, `height`). */
+    top: calc(var(--bar-h, 0px) + var(--row2-pad));
     min-height: 0;
     gap: 0.5rem;
   }
   /* Einspaltig gestapelt gibt es nichts, woran die Liste kleben könnte —
      sie stünde sonst über der Vorschau fest, die unter ihr durchläuft. */
-  @media (max-width: 48rem) {
+  @media (max-width: 64rem) {
     .inv-col {
       position: static;
       max-height: none;
@@ -2401,7 +2403,7 @@
     overflow-y: auto;
     scrollbar-width: thin;
   }
-  @media (max-width: 48rem) {
+  @media (max-width: 64rem) {
     .inventory {
       max-height: 45vh;
     }

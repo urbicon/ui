@@ -105,18 +105,15 @@ async function openPage(target: Browser, path: string, scale: number): Promise<P
 }
 
 /**
- * Die Inventar-Table auf der Landing steht dicht an ihrer eigenen Kippkante:
- * ihre Spalte ist 36vw, `cardsBelow` ist 32rem (512px), und beim gepinnten
- * Viewport von 1440px misst die Spalte 518px — also **6px** Spaltenluft. Bei
- * 36vw entspricht das rund 17px Fensterbreite; gemessen kippt die Seite bei
- * 1420px, das sind 20px unter dem Aufnahme-Viewport (2026-08-14).
- *
- * Das ist eine Design-Entscheidung mit Begründung (der Schritt darunter ließ
- * die Table aus ihrer Spalte laufen), keine zu behebende Enge. Was nicht
- * passieren darf, ist dass eine Änderung am Spaltenverhältnis, an der
- * Seitenpolsterung oder an diesem Viewport die README-Bilder unbemerkt auf ein
- * Layout umstellt, das die Seite bei ihrer üblichen Breite gar nicht zeigt.
- * Also fragt der Lauf das DOM, statt sich auf die Rechnung zu verlassen.
+ * Die Inventar-Table auf der Landing kippt unter ihrem `cardsBelow`-Schritt in
+ * eine Kartenliste. Ihre Spalte ist nie schmaler als dieser Schritt (beide lesen
+ * `INVENTORY_STEP` in `apps/docs/src/routes/+page.svelte`), also zeigt jede
+ * zweispaltige Breite die Tabelle — solange die Spalten der Tabelle in den
+ * Schritt passen. Genau das kann eine Änderung an den Spalten still brechen,
+ * und dann zeigten die README-Bilder ein Layout, das die Seite bei ihrer
+ * üblichen Breite gar nicht hat. Also fragt der Lauf das DOM, statt sich auf
+ * die Rechnung zu verlassen: Tabelle statt Karten, und keine Tabelle, die
+ * breiter ist als ihre Spalte.
  */
 async function assertInventoryRendersAsGrid(page: Page, shot: string): Promise<void> {
   const layout = await page.evaluate(() => {
@@ -129,7 +126,8 @@ async function assertInventoryRendersAsGrid(page: Page, shot: string): Promise<v
     return {
       grid: shown('[data-table-layout="desktop"]'),
       cards: shown('[data-table-layout="mobile"]'),
-      columnWidth: Math.round(inventory.getBoundingClientRect().width)
+      columnWidth: Math.round(inventory.getBoundingClientRect().width),
+      overflow: inventory.scrollWidth - inventory.clientWidth
     };
   });
 
@@ -147,9 +145,17 @@ async function assertInventoryRendersAsGrid(page: Page, shot: string): Promise<v
 
   if (!layout.grid || layout.cards) {
     throw new Error(
-      `${shot}: die Inventar-Table rendert als Kartenliste (Spalte ${layout.columnWidth}px, ` +
-        `cardsBelow-Schritt 512px). Das Bild zeigte ein Layout, das die Seite bei ${VIEWPORT.width}px ` +
-        'nicht hat — Spaltenverhältnis, Seitenpolsterung oder VIEWPORT prüfen.'
+      `${shot}: die Inventar-Table rendert als Kartenliste (Spalte ${layout.columnWidth}px). ` +
+        `Das Bild zeigte ein Layout, das die Seite bei ${VIEWPORT.width}px nicht hat — ` +
+        '`INVENTORY_STEP`, Spaltenverhältnis oder VIEWPORT prüfen.'
+    );
+  }
+
+  if (layout.overflow > 0) {
+    throw new Error(
+      `${shot}: die Inventar-Table ist ${layout.overflow}px breiter als ihre Spalte ` +
+        `(${layout.columnWidth}px) und scrollt waagerecht — ihre Spaltenbreiten passen nicht ` +
+        'mehr in `INVENTORY_STEP`.'
     );
   }
 }

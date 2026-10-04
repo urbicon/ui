@@ -29,9 +29,11 @@
   interface Props {
     /** Das Element, dessen Verschwinden die Marken-Einblendung schaltet. */
     watch?: HTMLElement;
+    /** Gerenderte Höhe der Leiste — was unter ihr klebt, hält diesen Abstand. */
+    height?: number;
   }
 
-  let { watch }: Props = $props();
+  let { watch, height = $bindable(0) }: Props = $props();
 
   const toggleSearch = getCommandSearchToggle();
 
@@ -55,7 +57,7 @@
   ];
 </script>
 
-<header class="bar">
+<header class="bar" bind:clientHeight={height}>
   <!-- Beide Schichten liegen im selben Grid-Feld und cross-faden; die
        unsichtbare ist für Leser wie Zeiger weg (`inert` wäre für Text
        Overkill — es gibt hier nichts zu fokussieren). -->
