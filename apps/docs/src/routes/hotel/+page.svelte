@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { BlocksProvider, Button } from '@urbicon-ui/blocks';
   import { DEFAULT_LIVERY, LIVERIES, liveryById } from '$lib/livery';
   // Livery-CSS route-lokal statt global (anders als in chat-demo): Tokens,
@@ -129,10 +130,19 @@
            be mistaken for part of the hotel's own palette. Solid, not blurred
            like the masthead behind it — a notice that dims with the backdrop is
            a notice someone can miss. -->
+      <!-- The banner also says what the page proves: without it the site reads
+           as a hotel template, and the point — the docs' own components under
+           another theme — is left for the footer. -->
       <div class="bg-warning text-text-on-warning">
-        <p class="mx-auto max-w-6xl px-6 py-2 text-xs font-medium">
-          Demo only — Fermata is a fictional hotel group. Nothing on this page can be booked.
-        </p>
+        <div
+          class="mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-6 py-2 text-xs font-medium"
+        >
+          <p>
+            Demo only — Fermata is a fictional hotel group, built from the same urbicon ui
+            components as the docs under a theme of its own. Nothing on this page can be booked.
+          </p>
+          <a class="shrink-0 underline underline-offset-2" href={resolve('/')}>urbicon ui →</a>
+        </div>
       </div>
       <div class="mx-auto flex max-w-6xl items-baseline justify-between px-6 py-4">
         <span class="livery-display text-base">{GROUP_NAME}</span>
