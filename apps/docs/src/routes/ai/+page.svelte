@@ -8,9 +8,9 @@
 # (already there if you set the project up with \`sv add @urbicon-ui\`):
 bun add -d @urbicon-ui/design
 
-# Insert the agent context block (AGENTS.md), scaffold design.manifest.md,
-# and optionally wire the edit-time hook + CI gate:
-bunx urbicon init --hook --ci
+# Insert the agent context block (AGENTS.md), scaffold design.manifest.md
+# and wire the edit-time gate (add --ci for the CI workflow too):
+bunx urbicon init --hook
 
 # Done — the next agent session reads AGENTS.md and takes over.`;
 

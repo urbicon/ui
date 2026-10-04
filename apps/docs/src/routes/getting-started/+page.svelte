@@ -128,8 +128,8 @@ export default {
   <Badge intent="success">Booked — see you in September, {name}.</Badge>
 {/if}`;
 
-  const agentExample = `bun add -d @urbicon-ui/design
-bunx urbicon init`;
+  const agentExample = `bun add -d @urbicon-ui/design   # skip it after the add-on
+bunx urbicon init --hook`;
 
   const themeExample = `/* app.css */
 @import 'tailwindcss';
@@ -178,7 +178,7 @@ bunx urbicon init`;
       far” preview grows with every step — by step 04, you repaint it yourself.
     </p>
     <p class="font-meta mt-6">
-      requires svelte 5 · tailwind css 4 · node 18+ or bun 1+ · typescript recommended
+      requires svelte 5 · tailwind css 4 · node 20.19+ / 22.12+ or bun 1+ · typescript recommended
     </p>
   </div>
 </div>
