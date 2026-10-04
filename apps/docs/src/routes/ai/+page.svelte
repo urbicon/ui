@@ -1,7 +1,7 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { asset } from '$app/paths';
-  import { Badge, Card, buttonVariants } from '@urbicon-ui/blocks';
+  import { Card, buttonVariants } from '@urbicon-ui/blocks';
   import { CodeExample } from '@urbicon-ui/docs';
 
   const cliSetupExample = `# One dev-dependency wires your agent into the design system
@@ -44,18 +44,15 @@ urbicon record-decision --title …  # write a decision the next session will se
   description="AI-native developer experience: the urbicon CLI puts version-matched design knowledge, a design linter and project memory next to your agent — plus per-component llms.txt. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
-<div class="mx-auto max-w-4xl px-6 pt-12">
-  <div class="flex flex-wrap gap-2">
-    <Badge variant="soft" intent="primary">urbicon CLI</Badge>
-    <Badge variant="soft" intent="secondary">llms.txt</Badge>
-  </div>
-</div>
-
-<!-- Color Rooms hero field (ai room = orange) — full-width band flush to the app
-     sidebar; badges sit on paper above, inner wrapper re-aligns with the body. -->
-<div data-room-hero class="mt-5">
+<!-- Color Rooms hero field — full-width band flush to the app sidebar, the
+     inner wrapper re-aligns with the body. The two topics of the page sit in
+     the band as its eyebrow, as on Getting started, not as chips above it. -->
+<div data-room-hero>
   <div class="mx-auto max-w-4xl px-6">
-    <h1 class="text-text-primary text-4xl font-bold">AI & Developer Experience</h1>
+    <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
+      AI &amp; DX — urbicon CLI · llms.txt
+    </p>
+    <h1 class="text-text-primary mt-4 text-4xl font-bold">AI & Developer Experience</h1>
     <p class="text-text-secondary mt-4 text-xl">
       Urbicon UI is built for AI-assisted development. The design system's knowledge, linter, and
       memory install with the library — version-matched, offline, and enforceable — so Claude,

@@ -125,30 +125,19 @@
   description="Browse all {allNames.length} icons in the Urbicon UI icon library. Search, filter by category, and copy import statements."
 />
 
-<div class="mx-auto max-w-6xl px-6 py-12">
-  <header class="mb-10">
-    <h1 class="text-text-primary text-3xl font-bold tracking-tight">Icons</h1>
-    <p class="text-text-secondary mt-2 text-lg">
+<!-- Color Rooms hero field, like the other overview pages: the count and what
+     a click does. How an icon sizes itself is reference, not the way in — it
+     follows the grid. -->
+<div data-room-hero>
+  <div class="mx-auto max-w-6xl px-6">
+    <h1 class="text-text-primary text-4xl font-bold">Icons</h1>
+    <p class="text-text-secondary mt-3 max-w-2xl text-lg">
       {allNames.length} original stroke-based icons. Click any icon to open it in the playground.
     </p>
-    <p class="text-text-secondary mt-3 max-w-2xl">
-      An icon without a <code class="text-text-primary">size</code> draws at
-      <code class="text-text-primary">1em</code> — the font size of whatever it sits in, so an icon
-      in a <code class="text-text-primary">size="sm"</code> Button is
-      <code class="text-text-primary">text-sm</code> and one in a
-      <code class="text-text-primary">size="lg"</code> Button is
-      <code class="text-text-primary">text-lg</code>. Pass
-      <code class="text-text-primary">size=&#123;20&#125;</code> for a fixed edge length, or a CSS
-      class (<code class="text-text-primary">size-4</code>) when neither the type step nor the prop
-      should decide: the class wins over both, because
-      <code class="text-text-primary">size</code> is an attribute. That contest runs
-      <em>per axis</em> — a one-axis class such as
-      <code class="text-text-primary">w-6</code> leaves the height at
-      <code class="text-text-primary">1em</code>, so reach for
-      <code class="text-text-primary">size-*</code> or set both.
-    </p>
-  </header>
+  </div>
+</div>
 
+<div class="mx-auto max-w-6xl px-6 pt-10 pb-12">
   <Section id="playground" title="Playground" titleHidden intent="primary">
     <PlaygroundConfigurator
       componentName={currentComponentName}
@@ -303,4 +292,23 @@
       {filteredIcons.length} of {allNames.length} icons. Click to preview, double-click to copy import.
     </p>
   {/if}
+  <section class="mt-16 max-w-2xl" aria-labelledby="icon-sizing">
+    <h2 id="icon-sizing" class="text-text-primary text-xl font-bold tracking-tight">Sizing</h2>
+    <p class="text-text-secondary mt-3">
+      An icon without a <code class="text-text-primary">size</code> draws at
+      <code class="text-text-primary">1em</code> — the font size of whatever it sits in, so an icon
+      in a <code class="text-text-primary">size="sm"</code> Button is
+      <code class="text-text-primary">text-sm</code> and one in a
+      <code class="text-text-primary">size="lg"</code> Button is
+      <code class="text-text-primary">text-lg</code>. Pass
+      <code class="text-text-primary">size=&#123;20&#125;</code> for a fixed edge length, or a CSS
+      class (<code class="text-text-primary">size-4</code>) when neither the type step nor the prop
+      should decide: the class wins over both, because
+      <code class="text-text-primary">size</code> is an attribute. That contest runs
+      <em>per axis</em> — a one-axis class such as
+      <code class="text-text-primary">w-6</code> leaves the height at
+      <code class="text-text-primary">1em</code>, so reach for
+      <code class="text-text-primary">size-*</code> or set both.
+    </p>
+  </section>
 </div>
