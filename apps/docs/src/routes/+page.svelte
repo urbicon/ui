@@ -130,7 +130,7 @@
     {
       key: 'blocks',
       title: 'Blocks',
-      line: `${data.counts.primitives} primitives, ${data.counts.composed} components, 0 dependencies`,
+      line: `${data.counts.components} components, ${data.counts.icons} icons, 0 dependencies`,
       channel: CHANNELS[TILE_CHANNEL.blocks]
     },
     {
@@ -639,8 +639,7 @@
 
   // ── Treppe: die restlichen Register — jede Stufe ist eine Tür ───
   const STEPS = $derived([
-    { label: `${data.counts.primitives} primitives`, href: '/blocks' },
-    { label: `${data.counts.composed} components`, href: '/blocks#display' },
+    { label: `${data.counts.components} components`, href: '/blocks' },
     { label: `${data.counts.icons} icons`, href: '/icons' },
     { label: 'calendar', href: '/blocks/components/calendar' },
     { label: 'guide', href: '/blocks/components/guide' },

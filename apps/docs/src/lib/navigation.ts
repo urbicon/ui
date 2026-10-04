@@ -454,4 +454,13 @@ const allNavigationItems: NavItem[] = [
 
 export const navigationItems: NavItem[] = pruneDrafts(allNavigationItems);
 
+/**
+ * The components documented under /blocks — one page each, so the Guide's
+ * nine surfaces count once. This is the number the site gives for the set:
+ * the specimen book's header and the landing both read it from here.
+ */
+export const BLOCKS_COMPONENT_COUNT = (
+  navigationItems.find((item) => item.href === '/blocks')?.children ?? []
+).reduce((n, group) => n + (group.children?.length ?? 0), 0);
+
 export type { NavItem as NavigationItem };

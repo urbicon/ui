@@ -20,7 +20,7 @@
 -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { navigationItems } from '$lib/navigation';
+  import { BLOCKS_COMPONENT_COUNT, navigationItems } from '$lib/navigation';
   import {
     A2UIView,
     A2UI_CATALOG_ID,
@@ -131,7 +131,6 @@
     count: group.children?.length ?? 0,
     traits: CHAPTER_TRAITS[group.name] ?? ''
   }));
-  const componentCount = chapters.reduce((n, chapter) => n + chapter.count, 0);
 
   // ── Scrollspy for the chapter register ────────────────────────────
   // The shared ScrollSpy from @urbicon-ui/docs (same instance class DocsLayout
@@ -402,7 +401,7 @@ Tokens switch light and dark automatically:
 
 <SeoMeta
   title="Blocks"
-  description={`${componentCount} Svelte 5 + Tailwind 4 components — form controls to charts. Interactive, accessible, token-driven.`}
+  description={`${BLOCKS_COMPONENT_COUNT} Svelte 5 + Tailwind 4 components — form controls to charts. Interactive, accessible, token-driven.`}
 />
 
 <!-- Color Rooms hero field — full-width band flush to the app sidebar; the
@@ -418,7 +417,7 @@ Tokens switch light and dark automatically:
         data-room-chip
         class="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-semibold"
       >
-        {componentCount}
+        {BLOCKS_COMPONENT_COUNT}
       </span>
     </div>
     <p class="text-text-secondary mt-4 max-w-xl text-base sm:text-lg">

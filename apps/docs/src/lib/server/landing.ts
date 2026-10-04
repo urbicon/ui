@@ -9,6 +9,7 @@
 
 import { ICON_METADATA } from '@urbicon-ui/blocks';
 import type { HeroRow, HeroStatus } from '$lib/landing/hero';
+import { BLOCKS_COMPONENT_COUNT } from '$lib/navigation';
 import baseline from '../../../../../bundle-size.baseline.json';
 import authCatalog from '../../../static/auth/_catalog.json';
 import blocksCatalog from '../../../static/blocks/_catalog.json';
@@ -45,20 +46,16 @@ interface BaselineEntry {
 }
 
 /**
- * Die Beweiszahlen der Zeile 1 — Zählungen über dieselben Kataloge, aus denen
- * auch die Zeilen kommen. "0 dependencies" ist bewusst keine Zahl von hier:
- * das ist eine Konstruktionseigenschaft, keine Messung.
+ * Die Beweiszahlen der Zeile 1. Die Komponentenzahl ist die der Doku-Seiten
+ * (`BLOCKS_COMPONENT_COUNT`, dieselbe wie im Kopf von /blocks), nicht die der
+ * Katalogeinträge: der Katalog führt die neun Guide-Oberflächen einzeln, und
+ * zwei Zählweisen ergaben zwei Zahlen für dieselbe Frage. "0 dependencies" ist
+ * bewusst keine Zahl von hier: das ist eine Konstruktionseigenschaft, keine
+ * Messung.
  */
 export function loadLandingCounts() {
-  const blocks = blocksCatalog as Array<{ group: string }>;
-  const primitives = blocks.filter((e) => e.group === 'primitives').length;
-  const composed = blocks.filter((e) => e.group === 'components').length;
   return {
-    primitives,
-    composed,
-    blocks: primitives + composed,
-    /** Das ganze Set (blocks + table + auth) — was llms.txt indexiert. */
-    set: primitives + composed + tableCatalog.length + authCatalog.length,
+    components: BLOCKS_COMPONENT_COUNT,
     icons: Object.keys(ICON_METADATA).length
   };
 }
