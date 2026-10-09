@@ -13,7 +13,15 @@
     content,
     children,
     ...restProps
-  }: IconProps & { content?: string; children?: Snippet } = $props();
+  }: IconProps & {
+    /**
+     * Trusted SVG markup, rendered unescaped — on the server too, where a
+     * `<script>` in it runs as the page parses. Never user input. The icon
+     * components pass their own `svg/<name>.svg?raw` import here.
+     */
+    content?: string;
+    children?: Snippet;
+  } = $props();
 
   const transform = $derived(buildSvgTransform(rotate, flip));
   /**
@@ -57,10 +65,9 @@
   }
 
   /**
-   * `content` is rendered as markup with `{@html}`, unescaped and on the
-   * server too, so it must be trusted: every icon component passes its own
-   * `./svg/<name>.svg?raw` import, after its prop spread so a caller's
-   * `content` loses (`IconWrapper.ssr.test.ts`).
+   * Every icon component passes its own `svg/<name>.svg?raw` import after its
+   * prop spread, so a caller's `content` loses — `IconWrapper.ssr.test.ts`
+   * checks that for every registered icon.
    *
    * `{@html}` because it renders on the server; an attachment does not, and
    * the server HTML is what the page shows until hydration. It has to stay
@@ -87,7 +94,7 @@
   {...restProps}
 >
   {#if content}
-    <!-- eslint-disable-next-line svelte/no-at-html-tags — `content` is trusted, see `geometry` -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags — trusted, see the `content` prop -->
     <g {transform}>{@html geometry}</g>
   {:else if children}
     <g {transform}>
