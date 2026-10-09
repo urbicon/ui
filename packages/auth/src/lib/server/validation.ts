@@ -1,3 +1,4 @@
+import './server-only.js';
 import { MAX_DISPLAY_NAME_LENGTH } from '../display-name.js';
 
 export interface ValidationError {

@@ -954,8 +954,8 @@ backstop of your own — see [Limitations](#limitations-deliberate-v1-scope).
 
 ### Upgrade note — SvelteKit 3
 
-The package requires `@sveltejs/kit` 3, and with it Node.js 22.17. Two things
-change for the machine callers above when an app upgrades:
+The package requires `@sveltejs/kit` 3, and with it Node.js 22.17. Three things
+change when an app upgrades — the first two for the machine callers above:
 
 - **The kernel gate's options live on the Vite plugin.** `csrf: { trustedOrigins }`
   is an option of `sveltekit()` in `vite.config.ts`; Kit 3 reads no
@@ -965,6 +965,14 @@ change for the machine callers above when an app upgrades:
   in a built Kit 3 app. Send `Content-Type: application/json` with it, or open
   the gate as described above — the `@urbicon-ui/sveltekit-utils` cron runner
   sends a JSON body for this reason.
+- **The `/server` entries are server-only.** Every module under
+  `@urbicon-ui/auth/server…` imports `$app/server`, so SvelteKit fails the
+  build when one of them reaches browser code (`server_only_import`, with the
+  import chain) instead of shipping the signing code to the client. The same
+  import needs SvelteKit's Vite plugin to resolve: a unit test that imports a
+  server entry runs under a Vitest config that includes `sveltekit()` — the
+  one `sv add vitest` writes does — and fails under a bare one with
+  `Cannot find module '…/$app/server'`.
 
 ### Upgrade note — user verification is enforced by default
 

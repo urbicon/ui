@@ -1,3 +1,4 @@
+import './server-only.js';
 import type { TokenTtlConfig } from '../types.js';
 
 /**

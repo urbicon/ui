@@ -1,3 +1,4 @@
+import './server-only.js';
 import type { AuthConfig, LockoutConfig, RateLimitConfig } from '../types.js';
 import type { FailedLoginLock } from './adapters/types.js';
 

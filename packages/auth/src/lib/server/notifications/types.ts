@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 export interface NotificationTypeDefinition {
   key: string;
   title: string | ((data: Record<string, unknown>) => string);

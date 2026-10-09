@@ -1,3 +1,4 @@
+import '../server-only.js';
 import { en } from '../../i18n/en.js';
 import { AUTH_ERROR_MESSAGE_KEYS, type UnkeyedErrorCode } from '../../i18n/error-keys.js';
 

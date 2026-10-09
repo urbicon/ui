@@ -1,5 +1,5 @@
 import { beforeEach } from 'vitest';
-import { __resetSeenSecretsForTests, resetRateLimiters } from './src/lib/server/secret-registry.js';
+import { __resetSeenSecretsForTests, resetRateLimiters } from './src/lib/secret-registry.js';
 
 // The two process-wide registries keyed on the `jwt.secret` — the rate-limit
 // counters and the repeat-bundle warning — and this suite builds its bundles

@@ -1,4 +1,5 @@
 import { DEFAULT_PASSWORD_POLICY, isValidMinLength } from '../password-policy.js';
+import { fingerprint, repeatWarningDue } from '../secret-registry.js';
 import type { AuthConfig, AuthLogger } from '../types.js';
 import type {
   BackupCodeRepository,
@@ -15,7 +16,6 @@ import {
 import type { EmailTransport } from './email/types.js';
 import { assertJwtConfigValid } from './jwt.js';
 import { shieldLogger } from './logger.js';
-import { fingerprint, repeatWarningDue } from './secret-registry.js';
 import { lockoutFor, resolveRateLimits } from './security-defaults.js';
 
 export interface AuthDeps<R extends string = string> {

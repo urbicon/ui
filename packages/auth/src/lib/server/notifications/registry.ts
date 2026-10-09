@@ -1,3 +1,4 @@
+import '../server-only.js';
 import type { NotificationTypeDefinition } from './types.js';
 
 export interface NotificationRegistry {

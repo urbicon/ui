@@ -1,3 +1,5 @@
+import './server-only.js';
+
 // One answer to "is this deployment HTTPS?" and one to "is this cookie's
 // SameSite/Secure pair legal?", for every cookie the package writes.
 

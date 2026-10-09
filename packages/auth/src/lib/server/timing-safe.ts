@@ -1,3 +1,5 @@
+import './server-only.js';
+
 /**
  * Constant-time comparison helpers, shared across the auth core (JWT HMAC,
  * password-hash verify) and the CSRF double-submit check so the timing-safe

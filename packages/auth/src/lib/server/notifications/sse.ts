@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 export interface SSEManager {
   addConnection(userId: string, controller: ReadableStreamDefaultController): void;
   removeConnection(userId: string, controller: ReadableStreamDefaultController): void;

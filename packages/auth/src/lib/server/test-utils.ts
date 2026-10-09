@@ -1,3 +1,4 @@
+import './server-only.js';
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';

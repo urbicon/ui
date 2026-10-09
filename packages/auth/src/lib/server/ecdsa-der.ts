@@ -1,3 +1,5 @@
+import './server-only.js';
+
 // ECDSA signature format conversion — DER (ASN.1) → raw r‖s (IEEE P1363).
 //
 // The Web Crypto API speaks raw fixed-width r‖s for ECDSA verify, while

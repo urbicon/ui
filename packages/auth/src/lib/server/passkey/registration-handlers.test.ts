@@ -19,9 +19,9 @@ vi.mock('./webauthn.js', async (importActual) => {
   return { ...actual, verifyRegistration: vi.fn() };
 });
 
+import { resetRateLimiters } from '../../secret-registry.js';
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
-import { resetRateLimiters } from '../secret-registry.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { createInMemoryChallengeStore } from './challenge-store.js';

@@ -21,6 +21,10 @@ Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x mi
 breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window));
 each one is listed under **Breaking Changes** in the changelog — read it before a minor upgrade.
 
+**Server-only.** The `@urbicon-ui/auth/server…` entries import `$app/server`: SvelteKit refuses
+them in browser code at build time, and a unit test that imports one needs the `sveltekit()`
+Vite plugin in its Vitest config ([AUTH.md → Upgrade note — SvelteKit 3](https://ui.urbicon.de/auth/guide#upgrade-note--sveltekit-3)).
+
 **Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
 `node_modules` on its own — each package ships a stylesheet whose `@source` directive points
 Tailwind at its components. Import this package's stylesheet next to the blocks one, in the

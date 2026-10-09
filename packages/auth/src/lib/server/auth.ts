@@ -2,6 +2,7 @@
 // CSPRNG token generation and the public-user projection. Password hashing
 // lives in password.ts, JWT signing/verification in jwt.ts.
 
+import './server-only.js';
 import { createHash, randomBytes } from 'node:crypto';
 import type { AuthUser } from '../types.js';
 import type { FullAuthUser } from './adapters/types.js';

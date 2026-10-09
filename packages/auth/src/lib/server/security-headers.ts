@@ -1,3 +1,5 @@
+import './server-only.js';
+
 /**
  * Response security headers applied by `createAuthHandle`.
  *

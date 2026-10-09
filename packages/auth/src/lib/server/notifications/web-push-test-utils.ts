@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 /**
  * Shared user-agent-side Web Push decryption for tests (RFC 8291 §3.4 +
  * RFC 8188 §2). Deliberately implemented WITHOUT importing any derivation

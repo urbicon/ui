@@ -1,6 +1,6 @@
+import { assertJwtSecret, fingerprint, limiterFor } from '../secret-registry.js';
 import type { AuthConfig, RateLimitConfig } from '../types.js';
 import { authError } from './handlers/errors.js';
-import { assertJwtSecret, fingerprint, limiterFor } from './secret-registry.js';
 import { type RateLimitKey, rateLimitFor } from './security-defaults.js';
 
 export interface RateLimitResult {

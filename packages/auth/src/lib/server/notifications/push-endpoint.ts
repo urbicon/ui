@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 /**
  * SSRF guard for Web-Push endpoints.
  *

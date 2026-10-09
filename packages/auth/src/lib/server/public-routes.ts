@@ -1,3 +1,4 @@
+import './server-only.js';
 import type { AuthLogger } from '../types.js';
 
 /**

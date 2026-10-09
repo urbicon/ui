@@ -3,6 +3,7 @@
 // short-lived signed token (pending-2FA handle etc.), which stays HMAC-based
 // under every algorithm. Split out of the former auth.ts god-file.
 
+import { assertJwtSecret } from '../secret-registry.js';
 import type {
   AuthLogger,
   AuthSession,
@@ -19,7 +20,6 @@ import {
   base64UrlEncodeString,
   toArrayBuffer
 } from './encoding.js';
-import { assertJwtSecret } from './secret-registry.js';
 import { timingSafeEqual } from './timing-safe.js';
 
 // Internal export: shared with the federated consumer handle

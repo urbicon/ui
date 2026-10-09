@@ -1,3 +1,4 @@
+import '../server-only.js';
 import type { AuthLocale } from '../../i18n/keys.js';
 import type { BuiltEmail } from './templates.js';
 
