@@ -183,7 +183,7 @@ One unified version across all packages, bumped once at the end of a coherent se
 
 - **Cross-links go in the body**, as a `**Related:**` block after a `---` at the end, and are worth writing when the connection crosses a milestone — that is exactly what the milestone view cannot show.
 
-- The board is [UI Backlog](https://github.com/users/urbicon/projects/1) (Priority / Size / State mirror the labels). It is a view, not a second source of truth: **labels stay authoritative**, the board is regenerated from them.
+- **There is no board.** A project board over these labels is a hand-synced copy of them; the `gh issue list` / milestone queries are the view.
 
 ## Task-scoped skills
 
