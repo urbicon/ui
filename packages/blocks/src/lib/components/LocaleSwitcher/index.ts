@@ -8,7 +8,10 @@ import type { SelectSingleProps } from '#lib';
  * @description Convenience wrapper around Select to switch UI locales.
  * Single-select only — locale is always exactly one value. Options, value,
  * form integration, multi-select, and null-option are all owned internally
- * and intentionally not forwarded to the underlying Select.
+ * and intentionally not forwarded to the underlying Select. A `placeholder` or
+ * `aria-label` you pass replaces the localized default. The placeholder shows
+ * only while the active locale is not among `locales`, and while a locale
+ * loads it is the localized loading text.
  *
  * @tag form
  * @related Select

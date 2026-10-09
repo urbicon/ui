@@ -4,6 +4,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { type CollapseMark, hostHasRoomAgain } from './overflow';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';
@@ -25,6 +26,7 @@
     preset,
     ariaLabel,
     collapseOnOverflow = true,
+    onkeydown: onkeydownProp,
     ...restProps
   }: SegmentGroupProps = $props();
 
@@ -299,7 +301,16 @@
   }
 </script>
 
+<!--
+  Spread first, so a consumer `role`, `aria-orientation` or `data-collapsed` cannot undo the
+  radiogroup role, its orientation or the collapsed layout. Two attributes merge instead,
+  because an explicit `undefined` after the spread removes the consumer's value: `aria-label`
+  takes the `ariaLabel` prop and falls back to a consumer `aria-label`; `aria-disabled` is
+  `true` while disabled and the consumer's otherwise. A consumer `onkeydown` runs after the
+  roving keyboard navigation.
+-->
 <div
+  {...restProps}
   bind:this={containerElement}
   role="radiogroup"
   data-collapsed={collapsed || undefined}
@@ -307,10 +318,9 @@
   class={unstyled
     ? resolveClassChain(slotClasses?.base, className)
     : styles.base({ class: [slotClasses?.base, className] })}
-  aria-label={ariaLabel}
-  aria-disabled={disabled || undefined}
-  onkeydown={handleKeyDown}
-  {...restProps}
+  aria-label={ariaLabel ?? restProps['aria-label']}
+  aria-disabled={disabled || restProps['aria-disabled'] || undefined}
+  onkeydown={composeHandlers(handleKeyDown, onkeydownProp)}
 >
   <div
     class={unstyled

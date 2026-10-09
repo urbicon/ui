@@ -242,3 +242,24 @@ describe('DatePicker (component interaction)', () => {
     expect(hidden?.value).toContain('T');
   });
 });
+
+// COMPONENT-API-CONVENTIONS § restProps ordering: the root spreads restProps first, and a
+// consumer onkeydown is composed after the picker's own keyboard handling rather than dropped.
+describe('DatePicker (restProps)', () => {
+  it('passes an unmodelled attribute through to the root', () => {
+    renderPicker({ 'data-testid': 'due-date' });
+    expect(screen.getByTestId('due-date').contains(input())).toBe(true);
+  });
+
+  it('runs a consumer onkeydown once, after ArrowDown has opened the calendar', () => {
+    const seen: boolean[] = [];
+    renderPicker({ onkeydown: (event) => seen.push(event.defaultPrevented) });
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+
+    expect(input().getAttribute('aria-expanded')).toBe('true');
+    // Once, and after the picker had claimed the key.
+    expect(seen).toEqual([true]);
+  });
+});

@@ -14,6 +14,7 @@
   import { formatDateInput, parseDateInput, isDateAllowed } from './datepicker.engine';
   import { coerceToDate, toDateInputValue } from '#lib/utils/date.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import type { DatePickerProps } from '.';
 
   const bt = useBlocksI18n();
@@ -63,6 +64,7 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    onkeydown: onkeydownProp,
     ...restProps
   }: DatePickerProps = $props();
 
@@ -293,7 +295,12 @@
   }
 </script>
 
-<div class={slot('base', className)} {...restProps} bind:this={triggerEl} onkeydown={handleKeydown}>
+<div
+  {...restProps}
+  bind:this={triggerEl}
+  class={slot('base', className)}
+  onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
+>
   <Input
     {unstyled}
     value={inputValue}

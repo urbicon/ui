@@ -11,6 +11,30 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.28.0
+
+### Four components let their own attributes win over yours
+
+`SegmentGroup`, `FileUpload`, `LocaleSwitcher` and `DatePicker` spread the props they do not model
+after their own attributes, so an attribute you passed replaced one they compute. They now spread
+it first, and the component's value wins where it has one:
+
+- **`SegmentGroup`** ignores a `role`, `aria-orientation` or `data-collapsed` you pass, and its
+  `aria-disabled` is `"true"` while `disabled` even against your `"false"`. An `onkeydown` of yours
+  no longer replaces the arrow-key navigation: both run, the group's first. A kebab-case
+  `aria-label` still names the group when `ariaLabel` is unset; with both, `ariaLabel` now wins.
+- **`FileUpload`** ignores a `role` you pass: the root stays a `region`. Your `aria-label` still
+  names it.
+- **`LocaleSwitcher`** shows the loading text instead of your `placeholder` while a locale loads.
+- **`DatePicker`** now runs an `onkeydown` you pass, after its own handler. Before, it was dropped
+  without a word, so a handler that never ran starts running.
+
+Nothing reports the change. The hits to read:
+
+```sh
+rg -nU '<(SegmentGroup|FileUpload|LocaleSwitcher|DatePicker)\b(?:=>|[^>])*?(\b(role|onkeydown|placeholder|aria-orientation|aria-disabled|data-collapsed|aria-label)=|\{(role|onkeydown|placeholder)\}|\{\.\.\.)' src
+```
+
 ## 8.26.0
 
 ### Seven icons are renamed

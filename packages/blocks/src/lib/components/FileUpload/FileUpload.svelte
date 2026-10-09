@@ -318,13 +318,18 @@
   }
 </script>
 
+<!--
+  Spread first, so the region landmark survives a consumer `role`. Its name is the consumer's
+  `aria-label` when given: two uploads on one page need two landmark names, and the i18n
+  default is the same for every instance.
+-->
 <div
+  {...restProps}
   class={unstyled
     ? resolveClassChain(slotClasses?.root, className)
     : styles.root({ class: [slotClasses?.root, className] })}
   role="region"
-  aria-label={bt('accessibility.fileUpload')}
-  {...restProps}
+  aria-label={restProps['aria-label'] ?? bt('accessibility.fileUpload')}
 >
   <!-- Hidden native input -->
   <input

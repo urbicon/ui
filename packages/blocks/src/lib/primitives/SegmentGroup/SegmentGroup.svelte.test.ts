@@ -220,3 +220,66 @@ describe('SegmentGroup (component interaction)', () => {
     expect(onValueChange).toHaveBeenLastCalledWith('c');
   });
 });
+
+// COMPONENT-API-CONVENTIONS § restProps ordering: the group spreads restProps first, so the
+// attributes it computes win, and composes a consumer onkeydown after its own roving keys.
+describe('SegmentGroup (restProps-first contract)', () => {
+  const group = () => screen.getByRole('radiogroup');
+
+  it('keeps its role, orientation and collapsed state against a consumer', () => {
+    renderSegments({
+      ariaLabel: 'View',
+      role: 'menu',
+      'aria-orientation': 'vertical',
+      'data-collapsed': 'true',
+      'data-testid': 'views'
+    });
+
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(group().getAttribute('data-testid')).toBe('views');
+    expect(group().getAttribute('aria-orientation')).toBe('horizontal');
+    expect(group().hasAttribute('data-collapsed')).toBe(false);
+  });
+
+  it('a real disabled beats a consumer aria-disabled="false"; idle falls back to the consumer value', () => {
+    renderSegments({ disabled: true, 'aria-disabled': 'false' });
+    expect(group().getAttribute('aria-disabled')).toBe('true');
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderSegments({ 'aria-disabled': 'true' });
+    expect(group().getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('takes an aria-label when ariaLabel is unset, and ariaLabel over it', () => {
+    renderSegments({ 'aria-label': 'Native label' });
+    expect(group().getAttribute('aria-label')).toBe('Native label');
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderSegments({ ariaLabel: 'Prop label', 'aria-label': 'Native label' });
+    expect(group().getAttribute('aria-label')).toBe('Prop label');
+  });
+
+  it('runs a consumer onkeydown once, after the roving keys still move selection and focus', async () => {
+    const user = userEvent.setup();
+    const seen: boolean[] = [];
+    const onValueChange = vi.fn();
+    renderSegments({
+      value: 'day',
+      onValueChange,
+      onkeydown: (event) => seen.push(event.defaultPrevented)
+    });
+
+    segment('Day').focus();
+    await user.keyboard('{ArrowRight}');
+
+    expect(checked('Week')).toBe('true');
+    expect(document.activeElement).toBe(segment('Week'));
+    expect(onValueChange).toHaveBeenCalledWith('week');
+    // Once, and after the group had claimed the key.
+    expect(seen).toEqual([true]);
+  });
+});
