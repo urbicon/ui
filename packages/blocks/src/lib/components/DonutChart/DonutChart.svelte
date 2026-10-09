@@ -48,7 +48,9 @@
 
   const fmt = $derived(formatValue ?? numberFormatter(locale));
   const pct = $derived(numberFormatter(locale, { style: 'percent', maximumFractionDigits: 0 }));
-  const total = $derived(data.reduce((sum, d) => sum + Math.max(0, d.value), 0));
+  // Each slice's value as the ring counts it: at or below zero, none.
+  const ringValues = $derived(data.map((d) => Math.max(0, d.value)));
+  const total = $derived(ringValues.reduce((sum, value) => sum + value, 0));
 
   const TAU = Math.PI * 2;
   const pad = $derived((padAngle * Math.PI) / 180);
@@ -66,10 +68,11 @@
     const center = size / 2;
     const outer = size / 2;
     const inner = outer * Math.min(0.95, Math.max(0, innerRadiusRatio));
-    const half = data.length > 1 ? pad / 2 : 0;
+    // A gap sits between two slices with a share; one alone closes the ring.
+    const half = ringValues.filter((value) => value > 0).length > 1 ? pad / 2 : 0;
     let angle = 0;
     return data.map((d, i) => {
-      const value = Math.max(0, d.value);
+      const value = ringValues[i];
       const sweep = (value / total) * TAU;
       const start = angle + half;
       const end = angle + sweep - half;
@@ -155,8 +158,8 @@
         {#each data as d, i (d.label + ' ' + i)}
           <tr>
             <th scope="row">{d.label}</th>
-            <td>{fmt(Math.max(0, d.value))}</td>
-            <td>{total > 0 ? pct(Math.max(0, d.value) / total) : pct(0)}</td>
+            <td>{fmt(ringValues[i])}</td>
+            <td>{total > 0 ? pct(ringValues[i] / total) : pct(0)}</td>
           </tr>
         {/each}
       </tbody>

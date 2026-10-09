@@ -122,13 +122,13 @@ describe('DonutChart — slices', () => {
     ]);
   });
 
-  it('leaves a padAngle gap between neighbouring slices', () => {
+  it.each([
+    ['two slices', [1, 1]],
+    ['a zero slice between them, which adds no gap of its own', [1, 0, 1]]
+  ])('leaves a padAngle gap between neighbouring slices: %s', (_name, values) => {
     const target = render({
       padAngle: 10,
-      data: [
-        { label: 'A', value: 1 },
-        { label: 'B', value: 1 }
-      ]
+      data: values.map((value, i) => ({ label: `S${i}`, value }))
     });
 
     expect(roundRings(arcs(target).flatMap(rings)).map(({ from, to }) => [from, to])).toEqual([
@@ -188,6 +188,56 @@ describe('DonutChart — degenerate data', () => {
       [0, 180],
       [180, 360]
     ]);
+  });
+
+  it.each([
+    ['zero', 0],
+    ['negative', -3]
+  ])(
+    'closes the ring around a lone slice under padAngle when its neighbour is %s',
+    (_name, other) => {
+      /** Every ring segment a mount draws, read back and unmounted again. */
+      function drawn(props: DonutChartProps) {
+        const target = render(props);
+        const read = roundRings(arcs(target).flatMap(rings));
+        dispose?.();
+        dispose = undefined;
+        target.remove();
+        return read;
+      }
+
+      const lone = drawn({ padAngle: 10, data: [{ label: 'A', value: 5 }] });
+      expect(lone.map(({ from, to }) => [from, to])).toEqual([
+        [0, 180],
+        [180, 360]
+      ]);
+      // A gap is between two slices; a neighbour with no share is not one.
+      expect(
+        drawn({
+          padAngle: 10,
+          data: [
+            { label: 'A', value: 5 },
+            { label: 'B', value: other }
+          ]
+        })
+      ).toEqual(lone);
+    }
+  );
+
+  it('leaves the gap of a slice thinner than padAngle instead of closing the ring over it', () => {
+    // B's 3.6° share is narrower than the 10° pad, so B draws nothing; it still has a share,
+    // so A stops short of the turn rather than claiming B's part of it.
+    const target = render({
+      padAngle: 10,
+      data: [
+        { label: 'A', value: 100 },
+        { label: 'B', value: 1 }
+      ]
+    });
+
+    const paths = arcs(target);
+    expect(paths).toHaveLength(1);
+    expect(roundRings(rings(paths[0])).map(({ from, to }) => [from, to])).toEqual([[5, 351.4]]);
   });
 
   it('drops a negative slice from the ring and the rest closes the turn', () => {
