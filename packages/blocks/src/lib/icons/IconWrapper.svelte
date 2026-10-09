@@ -13,7 +13,15 @@
     content,
     children,
     ...restProps
-  }: IconProps & { content?: string; children?: Snippet } = $props();
+  }: IconProps & {
+    /**
+     * Trusted SVG markup, rendered unescaped — on the server too, where a
+     * `<script>` in it runs as the page parses. Never user input. The icon
+     * components pass their own `svg/<name>.svg?raw` import here.
+     */
+    content?: string;
+    children?: Snippet;
+  } = $props();
 
   const transform = $derived(buildSvgTransform(rotate, flip));
   /**
@@ -57,17 +65,18 @@
   }
 
   /**
-   * Svelte attachment to inject trusted SVG content into an SVG <g> element.
-   * Uses .innerHTML because child elements must be created in the SVG
-   * namespace, which {@html} cannot guarantee. Content is build-time-only:
-   * sourced from our own .svg files via Vite `?raw` imports — never from
-   * user input. Safe.
+   * Every icon component passes its own `svg/<name>.svg?raw` import after its
+   * prop spread, so a caller's `content` loses — `IconWrapper.ssr.test.ts`
+   * checks that for every registered icon.
+   *
+   * `{@html}` because it renders on the server; an attachment does not, and
+   * the server HTML is what the page shows until hydration. It has to stay
+   * inside the `<g>` of this template: the compiler takes the SVG namespace
+   * from that parent element. The same `{@html}` handed in as a `children`
+   * snippet from another component mounts in the HTML namespace on the
+   * client, as unknown elements that draw nothing.
    */
-  function svgHtml(svg: string | undefined) {
-    return (node: SVGGElement) => {
-      node.innerHTML = svg ? stripSvgWrapper(svg) : '';
-    };
-  }
+  const geometry = $derived(content ? stripSvgWrapper(content) : '');
 </script>
 
 <svg
@@ -85,7 +94,8 @@
   {...restProps}
 >
   {#if content}
-    <g {transform} {@attach svgHtml(content)}></g>
+    <!-- eslint-disable-next-line svelte/no-at-html-tags — trusted, see the `content` prop -->
+    <g {transform}>{@html geometry}</g>
   {:else if children}
     <g {transform}>
       {@render children()}
