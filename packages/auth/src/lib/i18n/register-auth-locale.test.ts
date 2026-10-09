@@ -12,12 +12,13 @@ import type { AuthLocale } from './keys.js';
  */
 async function freshI18n() {
   vi.resetModules();
-  const [i18n, { de }, { en }] = await Promise.all([
-    import('./index.svelte.js'),
+  const [i18n, { resolveAuthLocale }, { de }, { en }] = await Promise.all([
+    import('./index.js'),
+    import('./registry.js'),
     import('./de.js'),
     import('./en.js')
   ]);
-  return { ...i18n, de, en };
+  return { ...i18n, resolveAuthLocale, de, en };
 }
 
 describe('registerAuthLocale', () => {

@@ -22,8 +22,11 @@ breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/ur
 each one is listed under **Breaking Changes** in the changelog — read it before a minor upgrade.
 
 **Server-only.** The `@urbicon-ui/auth/server…` entries import `$app/server`: SvelteKit refuses
-them in browser code at build time, and a unit test that imports one needs the `sveltekit()`
-Vite plugin in its Vitest config ([AUTH.md → Upgrade note — SvelteKit 3](https://ui.urbicon.de/auth/guide#upgrade-note--sveltekit-3)).
+them in browser code at build time, and only its Vite plugin resolves the specifier. A unit test
+that imports one needs `sveltekit()` in its Vitest config
+([AUTH.md → Upgrade note — SvelteKit 3](https://ui.urbicon.de/auth/guide#upgrade-note--sveltekit-3));
+`bun test` and a Bun or Node script need a preload that resolves `$app/server` to an empty module
+([AUTH.md → Outside Vite](https://ui.urbicon.de/auth/guide#outside-vite)).
 
 **Stylesheet.** The components emit Tailwind classes, and a Tailwind build never scans
 `node_modules` on its own — each package ships a stylesheet whose `@source` directive points
@@ -61,19 +64,19 @@ stylesheet existed adds the one line and is done.
 
 ## Package Exports
 
-| Export                                              | Condition      | Contents                                                                                                                                     |
-| --------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@urbicon-ui/auth`                                  | Universal      | Client stores, components, types                                                                                                             |
-| `@urbicon-ui/auth/server`                           | Server         | Handlers, auth core, adapters                                                                                                                |
-| `@urbicon-ui/auth/server/adapters/prisma`           | Server         | Prisma adapter factory (`createPrismaRepos`)                                                                                                 |
-| `@urbicon-ui/auth/server/adapters/in-memory`        | Server         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test                                  |
-| `@urbicon-ui/auth/server/adapters/conformance`      | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest                                                                 |
-| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The same suite without a runner import — pass `{ runner: { describe, it, expect } }` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
-| `@urbicon-ui/auth/server/email/lettermint`          | Server         | Lettermint email transport                                                                                                                   |
-| `@urbicon-ui/auth/server/email/console`             | Server         | Console email transport (dev only)                                                                                                           |
-| `@urbicon-ui/auth/sw`                               | Service worker | Push + notification-click handlers                                                                                                           |
-| `@urbicon-ui/auth/i18n/en`                          | Universal      | English locale bundle — the built-in one; import it for a parity test or as the base of your own                                             |
-| `@urbicon-ui/auth/i18n/de`                          | Universal      | German locale bundle — reaches the components once `registerAuthLocale('de', de)` has run                                                    |
+| Export                                              | Condition      | Contents                                                                                                                                                                                                                                                                          |
+| --------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@urbicon-ui/auth`                                  | Universal      | Client stores, components, types                                                                                                                                                                                                                                                  |
+| `@urbicon-ui/auth/server`                           | Server         | Handlers, auth core, adapters                                                                                                                                                                                                                                                     |
+| `@urbicon-ui/auth/server/adapters/prisma`           | Server         | Prisma adapter factory (`createPrismaRepos`)                                                                                                                                                                                                                                      |
+| `@urbicon-ui/auth/server/adapters/in-memory`        | Server         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test                                                                                                                                                                       |
+| `@urbicon-ui/auth/server/adapters/conformance`      | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest                                                                                                                                                                                                      |
+| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The same suite without a runner import — pass `{ runner: { describe, it, expect } }` (bun:test's as they are, jest's `expect` wrapped as `(a) => expect(a)`). Outside Vitest with `sveltekit()`, any runner needs `$app/server` mapped to an empty module (**Server-only** above) |
+| `@urbicon-ui/auth/server/email/lettermint`          | Server         | Lettermint email transport                                                                                                                                                                                                                                                        |
+| `@urbicon-ui/auth/server/email/console`             | Server         | Console email transport (dev only)                                                                                                                                                                                                                                                |
+| `@urbicon-ui/auth/sw`                               | Service worker | Push + notification-click handlers                                                                                                                                                                                                                                                |
+| `@urbicon-ui/auth/i18n/en`                          | Universal      | English locale bundle — the built-in one; import it for a parity test or as the base of your own                                                                                                                                                                                  |
+| `@urbicon-ui/auth/i18n/de`                          | Universal      | German locale bundle — reaches the components once `registerAuthLocale('de', de)` has run                                                                                                                                                                                         |
 
 ## UI Components
 
