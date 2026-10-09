@@ -332,9 +332,8 @@ describe('DonutChart — what a screen reader gets', () => {
   });
 
   it('formats the share column in the locale it is given', () => {
-    // Intl's de-DE percent sets the sign apart with a no-break space. Spelled
-    // by code point: the formatter turns a `\u00a0` escape into the bare,
-    // invisible character.
+    // Intl's de-DE percent sets the sign apart with a no-break space, spelled
+    // by code point so the expected string shows which space it is.
     const nbsp = String.fromCharCode(0xa0);
     const target = render({ ...CHANNELS, formatValue: undefined, locale: 'de-DE' });
     const shares = dataTable(target).rows.map((row) => row[2]);

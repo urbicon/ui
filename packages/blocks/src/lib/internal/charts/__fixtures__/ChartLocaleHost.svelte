@@ -22,9 +22,9 @@
 <script lang="ts">
   // A chart mounted under a request-scoped i18n state, so a test reads the
   // strings a chart translates itself — the data-table headers, the names of
-  // unnamed series — in a locale other than the base one. The bundle is
-  // registered eagerly, so resolution is synchronous instead of waiting for a
-  // lazy chunk.
+  // unnamed series — in a locale other than the base one. The caller registers
+  // the bundle first (`registerMarkedLocale`): `fr` has no loader, so without it
+  // every string resolves to English.
   import { provideI18n } from '@urbicon-ui/i18n';
   import type { Component } from 'svelte';
 
