@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { de } from './i18n/de.js';
 import { conformanceChecks } from './server/adapters/conformance-core.js';
 
 /**
@@ -22,9 +23,10 @@ import { conformanceChecks } from './server/adapters/conformance-core.js';
  *
  * The subject is the packed tarball (`bun pm pack` applies `files`), installed
  * into a consumer outside the repo next to the package's peers, so this needs a
- * build first: `bun run build:packages`. The `$app/server` stubs and the
- * bunfig are read out of docs/AUTH.md § Outside Vite, fence by fence, and run
- * as they stand — the doc cannot show a stub this file does not run.
+ * build first: `bun run build:packages`. The `$app/server` stubs, the bunfig
+ * (§ Outside Vite) and the German registration (§ Locales) are read out of
+ * docs/AUTH.md, fence by fence, and run as they stand — the doc cannot show a
+ * stub or a registration this file does not run.
  */
 
 const PKG = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -122,6 +124,41 @@ beforeAll(() => {
   for (const file of ['app-server-stub.ts', 'app-server-stub.mjs', 'bunfig.toml']) {
     writeFileSync(join(consumer, file), documented(file));
   }
+  writeFileSync(join(consumer, 'locales.ts'), documented('src/lib/locales.ts'));
+  // The reset mail of a script that registered German through the root entry,
+  // the way AUTH.md § Outside Vite says Bun can and Node cannot.
+  writeFileSync(
+    join(consumer, 'probe-mail-de.mjs'),
+    `import './locales.ts';
+import { createAuthDeps, createForgotPasswordHandler, createInMemoryRepos } from '@urbicon-ui/auth/server';
+const sent = [];
+const repos = createInMemoryRepos();
+await repos.user.create({ email: 'aya@example.com', name: 'Aya', passwordHash: 'x', role: 'USER' });
+const deps = createAuthDeps({
+  config: {
+    jwt: { secret: 'a-test-secret-that-is-long-enough-for-hs256-0123456789' },
+    appUrl: 'http://localhost:5173',
+    cookieSecure: false,
+    email: { locale: 'de' }
+  },
+  repos,
+  email: { send: async (mail) => void sent.push(mail) }
+});
+const url = new URL('http://localhost/api/auth/forgot-password');
+await createForgotPasswordHandler(deps).POST({
+  request: new Request(url, {
+    method: 'POST',
+    body: JSON.stringify({ email: 'aya@example.com' }),
+    headers: { 'Content-Type': 'application/json' }
+  }),
+  getClientAddress: () => '127.0.0.1',
+  url,
+  locals: {}
+});
+for (let i = 0; i < 100 && sent.length === 0; i++) await new Promise((r) => setTimeout(r, 10));
+console.log(JSON.stringify({ runtime: process.versions.bun ? 'bun' : 'node', subject: sent[0]?.subject }));
+`
+  );
   writeFileSync(
     join(consumer, 'probe.mjs'),
     `const entries = ${JSON.stringify(serverEntries)};
@@ -205,6 +242,19 @@ describe('the server entries outside Vite', () => {
       runtime: 'bun',
       entries: serverEntries.length,
       verified: true
+    });
+  }, 120_000);
+
+  it('register a locale through the root entry in a Bun script, as AUTH.md shows', () => {
+    const { status, output } = run(
+      'bun',
+      ['--preload', './app-server-stub.ts', './probe-mail-de.mjs'],
+      consumer
+    );
+    expect(status, output).toBe(0);
+    expect(probeResult(output)).toEqual({
+      runtime: 'bun',
+      subject: de.auth.emails.passwordReset.subject.replace('{appName}', 'localhost:5173')
     });
   }, 120_000);
 
