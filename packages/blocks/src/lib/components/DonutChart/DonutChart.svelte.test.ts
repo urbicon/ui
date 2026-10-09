@@ -224,6 +224,22 @@ describe('DonutChart — degenerate data', () => {
     }
   );
 
+  it('leaves the gap of a slice thinner than padAngle instead of closing the ring over it', () => {
+    // B's 3.6° share is narrower than the 10° pad, so B draws nothing; it still has a share,
+    // so A stops short of the turn rather than claiming B's part of it.
+    const target = render({
+      padAngle: 10,
+      data: [
+        { label: 'A', value: 100 },
+        { label: 'B', value: 1 }
+      ]
+    });
+
+    const paths = arcs(target);
+    expect(paths).toHaveLength(1);
+    expect(roundRings(rings(paths[0])).map(({ from, to }) => [from, to])).toEqual([[5, 351.4]]);
+  });
+
   it('drops a negative slice from the ring and the rest closes the turn', () => {
     const target = render({
       showTotal: true,
