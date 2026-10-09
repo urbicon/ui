@@ -96,8 +96,9 @@ export interface GuidePanelProps
   // `id` and `title` are modelled below; the rest of an element's attributes reach the
   // `<aside>`. Its accessible name stays the visible heading (`aria-labelledby`), which
   // an `aria-label` does not override. The panel's own Escape runs on the window, after
-  // overlays inside it have had the key, and disregards a `preventDefault` that came from
-  // a consumer `onkeydown`: that cannot keep the panel open. The consumer's handler still
+  // whatever inside it claims Escape in a listener (Select, Combobox, a manual-mode
+  // Popover), and disregards a `preventDefault` that came from a consumer `onkeydown`: that
+  // cannot keep the panel open. The consumer's handler still
   // runs first, so its `preventDefault` does stop a `document`-level overlay inside the
   // panel (a manual-mode Popover) from closing on that Escape.
   extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'children' | 'id' | 'title'> {

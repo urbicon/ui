@@ -66,6 +66,17 @@ describe('GuidePanel (Escape layering)', () => {
     }
   );
 
+  it.each([
+    ['no consumer handler', undefined],
+    ['a consumer onkeydown that prevents Escape', (e: KeyboardEvent) => e.preventDefault()]
+  ])('stays open when an element inside claims Escape first, with %s', (_, onkeydown) => {
+    const controller = render({ popoverOpen: false, panelProps: { onkeydown } });
+
+    pressEscapeOn('claimer');
+
+    expect(controller.panelOpen).toBe(true);
+  });
+
   it('closes on a second Escape once the popover is gone', () => {
     const controller = render();
 

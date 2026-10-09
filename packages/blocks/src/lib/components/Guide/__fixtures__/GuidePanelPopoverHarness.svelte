@@ -1,7 +1,8 @@
 <script lang="ts">
   // Test-only harness for Escape layering in GuidePanel: a manual-mode Popover
   // (`closeOnClickOutside={false}`, which dismisses through a `document` listener) inside an
-  // article of an open panel. Under __fixtures__/ so it is excluded from the published
+  // article of an open panel, next to a button that claims Escape at element level, the way
+  // an open Select does. Under __fixtures__/ so it is excluded from the published
   // package and never collected as a test file. Not exported from the barrel.
   import { Popover } from '#lib/primitives/Popover/index.js';
   import type { GuideController } from '#lib/utils/index.js';
@@ -30,6 +31,13 @@
         {/snippet}
         <button type="button" data-testid="pop-inner">Inner</button>
       </Popover>
+      <button
+        type="button"
+        data-testid="claimer"
+        onkeydown={(e) => {
+          if (e.key === 'Escape') e.preventDefault();
+        }}>Claims Escape</button
+      >
     </GuideArticle>
   </GuidePanel>
 </GuideProvider>
