@@ -89,7 +89,7 @@ export interface SegmentGroupProps
    */
   preset?: string;
 
-  /** Accessible label for the segment group. */
+  /** Accessible label for the segment group. An `aria-label` attribute is used when this is unset. */
   ariaLabel?: string;
 
   /**

@@ -90,7 +90,13 @@
   }
 </script>
 
+<!--
+  Spread first, so the loading text wins while a locale loads. Otherwise a consumer
+  `placeholder` or `aria-label` replaces the localized default, which says nothing that is
+  this instance's own.
+-->
 <Select
+  {...restProps}
   options={localeItems}
   value={currentLocale}
   onValueChange={handleLocaleChange}
@@ -98,8 +104,9 @@
   {size}
   {unstyled}
   class={className}
-  placeholder={isLoading ? bt('common.loading') : bt('localeSwitcher.placeholder')}
+  placeholder={isLoading
+    ? bt('common.loading')
+    : (restProps.placeholder ?? bt('localeSwitcher.placeholder'))}
   disabled={disabled || isLoading}
-  aria-label={bt('localeSwitcher.ariaLabel')}
-  {...restProps}
+  aria-label={restProps['aria-label'] ?? bt('localeSwitcher.ariaLabel')}
 />

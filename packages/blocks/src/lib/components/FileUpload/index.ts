@@ -58,6 +58,8 @@ export type FileUploadSlotName = FileUploadSlots;
 /**
  * @summary Drop files here: validation, previews and progress included.
  * @description Drag-and-drop file upload with validation, image previews, progress tracking, and animated file list.
+ * The root is a `region` landmark, named by an `aria-label` you pass or else the localized
+ * "File upload" — give each one its own name when a page has two.
  * @tag form
  * @related Input
  * @related Button
