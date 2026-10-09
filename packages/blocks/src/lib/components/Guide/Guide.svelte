@@ -357,7 +357,12 @@
 
   function onBubbleKeydown(e: KeyboardEvent) {
     if (e.defaultPrevented) return;
-    if (e.key === 'ArrowRight') {
+    // Escape is claimed here as well as on the window: a consumer `onkeydown` on the bubble
+    // runs before the window listener, and its `preventDefault` must not cancel the skip.
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      guide?.skip();
+    } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       // An advance:'action' step only moves via controller.next() — the user performs
       // the real action and the app advances imperatively (mirrors the gated footer).

@@ -506,11 +506,11 @@ All visible components should support:
 - `class` – for external class overrides (via `let { class: className } = $props()`)
 - `unstyled` – boolean to strip all default styles
 - `disabled` – boolean where applicable
-- `...restProps` – spread remaining props onto one element: the root, unless
-  the root is not the element a consumer addresses — a single-control field
-  puts them on its control (`Input`'s `<input>`, and `NumberInput`'s through
-  it), an overlay on its dialog surface (`Dialog`'s `<dialog>`, `Guide`'s
-  bubble). The `*Props` interface extends that element's HTML attribute type.
+- `...restProps` – spread remaining props onto one element, decided per
+  component: the root, or, where the root is not the element a consumer
+  addresses — `Input`'s `<input>`, `Dialog`'s `<dialog>`, `Guide`'s bubble —
+  the rest goes there. The `*Props` interface extends that element's HTML
+  attribute type.
 
 ### `restProps` ordering: the component's own attributes win
 

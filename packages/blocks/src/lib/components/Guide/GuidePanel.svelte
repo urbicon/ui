@@ -5,6 +5,7 @@
   import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '#lib/icons/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
   import { filterArticles, groupArticles, hasNamedGroups } from './guide-panel.articles';
@@ -26,6 +27,7 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    onkeydown: onkeydownProp,
     ...restProps
   }: GuidePanelProps = $props();
 
@@ -197,8 +199,6 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
 {#if guide}
   <aside
     {...restProps}
@@ -212,6 +212,7 @@
     data-placement={placement}
     inert={!open || undefined}
     aria-labelledby={`${panelId}-title`}
+    onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
   >
     <header
       class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}

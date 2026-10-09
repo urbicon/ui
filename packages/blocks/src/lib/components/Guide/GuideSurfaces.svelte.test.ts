@@ -133,6 +133,23 @@ describe('GuidePanel (restProps)', () => {
     expect(panel.getAttribute('data-state')).toBe('closed');
     expect(panel.getAttribute('aria-labelledby')).toBe(`${panel.id}-title`);
   });
+
+  it('still closes on Escape when a consumer onkeydown prevents it', () => {
+    const controller = render({
+      panelProps: { 'data-testid': 'panel', onkeydown: (event) => event.preventDefault() }
+    });
+    controller.openPanel();
+    flushSync();
+    const inside = byTestId('panel').querySelector('button') as HTMLButtonElement;
+    inside.focus();
+
+    inside.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
+    flushSync();
+
+    expect(controller.panelOpen).toBe(false);
+  });
 });
 
 describe('GuideArticle (restProps)', () => {

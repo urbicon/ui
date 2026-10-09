@@ -101,6 +101,22 @@ describe('QRCode (restProps)', () => {
     expect(root().hasAttribute('aria-describedby')).toBe(false);
   });
 
+  it('puts aria-labelledby on the image, not on the root, in both arms', () => {
+    render({ 'aria-labelledby': 'pairing-title', 'data-testid': 'pairing-code' });
+    expect(screen.getByRole('img').getAttribute('aria-labelledby')).toBe('pairing-title');
+    expect(root().hasAttribute('aria-labelledby')).toBe(false);
+    dispose?.();
+
+    render({
+      value: 'x'.repeat(60),
+      errorCorrection: 'H',
+      maxVersion: 1,
+      'aria-labelledby': 'pairing-title'
+    });
+    expect(svg()).toBeNull();
+    expect(screen.getByRole('img').getAttribute('aria-labelledby')).toBe('pairing-title');
+  });
+
   it('puts aria-describedby on the fallback image too', () => {
     render({
       value: 'x'.repeat(60),

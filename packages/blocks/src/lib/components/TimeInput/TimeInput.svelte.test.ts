@@ -237,14 +237,42 @@ describe('TimeInput (restProps)', () => {
     expect(root().hasAttribute('aria-label')).toBe(false);
   });
 
-  it('appends a consumer aria-describedby after its own message id, on every segment', () => {
-    render({ error: 'Too early', withSeconds: true, 'aria-describedby': 'outside-hint' });
-    for (const segment of screen.getAllByRole('spinbutton')) {
+  it.each([
+    ['24h', 3],
+    ['12h', 4]
+  ] as const)('appends a consumer aria-describedby on every %s segment', (format, count) => {
+    render({
+      format,
+      error: 'Too early',
+      required: true,
+      withSeconds: true,
+      'aria-describedby': 'outside-hint'
+    });
+    const segments = screen.getAllByRole('spinbutton');
+    // Hours, minutes, seconds — and the AM/PM segment in 12-hour format.
+    expect(segments).toHaveLength(count);
+    for (const segment of segments) {
       const parts = (segment.getAttribute('aria-describedby') ?? '').split(/\s+/);
       expect(parts).toHaveLength(2);
       expect(document.getElementById(parts[0])?.textContent).toBe('Too early');
       expect(parts[1]).toBe('outside-hint');
+      expect(segment.getAttribute('aria-invalid')).toBe('true');
+      expect(segment.getAttribute('aria-required')).toBe('true');
     }
+  });
+
+  it('appends a consumer aria-labelledby to the field group after its own label', () => {
+    render({ 'data-testid': 'start', label: 'Start', 'aria-labelledby': 'outside-label' });
+    const parts = (screen.getByRole('group').getAttribute('aria-labelledby') ?? '').split(/\s+/);
+    expect(parts).toHaveLength(2);
+    expect(document.getElementById(parts[0])?.textContent).toBe('Start');
+    expect(parts[1]).toBe('outside-label');
+    expect(root().hasAttribute('aria-labelledby')).toBe(false);
+  });
+
+  it('carries a consumer aria-labelledby alone when there is no visible label', () => {
+    render({ 'aria-labelledby': 'outside-label' });
+    expect(screen.getByRole('group').getAttribute('aria-labelledby')).toBe('outside-label');
   });
 
   it('carries a consumer aria-describedby alone when there is no message', () => {

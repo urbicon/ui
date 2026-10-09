@@ -88,4 +88,15 @@ describe('Guide (restProps)', () => {
     // The bubble had already claimed the key when the consumer's handler ran.
     expect(seen).toEqual([true]);
   });
+
+  it('still skips the tour on Escape when a consumer onkeydown prevents it', () => {
+    const controller = startTour({ onkeydown: (event) => event.preventDefault() });
+
+    bubble().dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
+    flushSync();
+
+    expect(controller.isTourActive).toBe(false);
+  });
 });

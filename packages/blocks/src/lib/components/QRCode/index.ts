@@ -25,12 +25,12 @@ import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
  */
 export interface QRCodeProps
   extends QRCodeVariants,
-    // `class`, `id`, `aria-label` and `aria-describedby` are modelled below; the
-    // rest of a span's attributes reach the root. The two ARIA attributes go to
-    // the `role="img"` element instead, the one an assistive technology reads.
+    // `class`, `id` and the three naming ARIA attributes are modelled below; the
+    // rest of a span's attributes reach the root. The ARIA attributes go to the
+    // `role="img"` element instead, the one an assistive technology reads.
     Omit<
       HTMLAttributes<HTMLSpanElement>,
-      'class' | 'id' | 'aria-label' | 'aria-describedby' | 'children'
+      'class' | 'id' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'children'
     > {
   /** The data to encode — text, a URL, an `otpauth://` URI, etc. */
   value: string;
@@ -78,6 +78,8 @@ export interface QRCodeProps
    * Avoid echoing sensitive payloads (e.g. a 2FA secret) into this label.
    */
   'aria-label'?: string;
+  /** Id(s) of an element naming the code, set on the `role="img"` element; wins over `aria-label`. */
+  'aria-labelledby'?: string;
   /** Id(s) of an element describing the code, set on the `role="img"` element beside its label. */
   'aria-describedby'?: string;
   /** Root id. */

@@ -95,7 +95,8 @@ export interface GuideProviderProps {
 export interface GuidePanelProps
   // `id` and `title` are modelled below; the rest of an element's attributes reach the
   // `<aside>`. Its accessible name stays the visible heading (`aria-labelledby`), which
-  // an `aria-label` does not override.
+  // an `aria-label` does not override. A consumer `onkeydown` runs after the panel's own
+  // Escape handling, so its `preventDefault` cannot keep the panel open.
   extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'children' | 'id' | 'title'> {
   /**
    * Stable DOM id for the panel root. `GuideMarker`s reference it via `aria-controls`.
@@ -440,7 +441,8 @@ export interface GuideProps
   // element `class` styles too, rendered only while a step shows. The scrim and
   // the popover layer around it are positioning machinery, not a surface.
   // `role`, `aria-label`, `aria-modal`, `tabindex` and `style` are the
-  // component's; a consumer `onkeydown` runs after the bubble's own arrow keys.
+  // component's; a consumer `onkeydown` runs after the bubble's own Escape and
+  // arrow keys, so its `preventDefault` cannot cancel the skip.
   extends Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'children'> {
   /**
    * Padding in px between the step target and the spotlight hole edge. Also frames the

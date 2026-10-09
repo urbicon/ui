@@ -139,6 +139,7 @@ describe('ThemeSwitcher (restProps)', () => {
 
   it('keeps its own type and state label against a contradicting consumer', () => {
     installMemoryStorage();
+    // Typed out of the props; an untyped caller can still send them.
     const target = render({ type: 'submit', 'aria-label': 'Theme', title: 'Theme' });
     const button = target.querySelector('button') as HTMLButtonElement;
 

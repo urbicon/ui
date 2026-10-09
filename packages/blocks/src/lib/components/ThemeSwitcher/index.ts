@@ -15,6 +15,8 @@ export type Theme = 'light' | 'dark' | 'system';
  * embedded webview) or a quota refusing the write, the button still switches the
  * theme and the choice simply does not survive a reload. So treat persistence as
  * best-effort — do not build a flow that depends on the stored key existing.
+ * The button's accessible name and tooltip always name the current theme, so it
+ * takes no `aria-label` or `title`.
  *
  * @tag action
  * @related LocaleSwitcher
@@ -31,10 +33,13 @@ export type Theme = 'light' | 'dark' | 'system';
  */
 export interface ThemeSwitcherProps
   // The rest of a button's attributes reach the `<button>`. `type`, `aria-label`
-  // and `title` are the component's: the label names the current theme, the
-  // only place an icon-only button can say it. A consumer `onclick` runs after
-  // the switch.
-  extends Omit<HTMLButtonAttributes, 'class' | 'children' | 'disabled'> {
+  // and `title` are the component's, so the type leaves them out: the label names
+  // the current theme, the only place an icon-only button can say it. A consumer
+  // `onclick` runs after the switch.
+  extends Omit<
+    HTMLButtonAttributes,
+    'class' | 'children' | 'disabled' | 'type' | 'aria-label' | 'title'
+  > {
   // ── Behavior ──────────────────────────────────────────
 
   /** Current theme. Supports `bind:theme`. @default 'system' */

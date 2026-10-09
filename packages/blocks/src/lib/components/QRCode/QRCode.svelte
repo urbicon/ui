@@ -25,6 +25,7 @@
     preset,
     id,
     'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
     'aria-describedby': ariaDescribedby,
     ...restProps
   }: QRCodeProps = $props();
@@ -96,6 +97,7 @@
       shape-rendering="crispEdges"
       role="img"
       aria-label={label}
+      aria-labelledby={ariaLabelledby}
       aria-describedby={ariaDescribedby}
       class={unstyled ? (slotClasses?.svg ?? '') : styles.svg({ class: slotClasses?.svg })}
     >
@@ -108,6 +110,7 @@
     <span
       role="img"
       aria-label={label}
+      aria-labelledby={ariaLabelledby}
       aria-describedby={ariaDescribedby}
       style="width: {size}px; height: {size}px;"
       class={unstyled
