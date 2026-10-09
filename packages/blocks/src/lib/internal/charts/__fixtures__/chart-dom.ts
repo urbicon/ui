@@ -61,6 +61,51 @@ export function num(el: Element, name: string): number {
   return value === null ? Number.NaN : Number(value) + 0;
 }
 
+const N = String.raw`-?[\d.]+`;
+
+/**
+ * The vertices `[x, y]` of a straight-segment path, read back from its `d`.
+ * `closed` says whether the path must end in `Z`: on a stroked line that `Z`
+ * draws a segment back to the start, so it is part of the shape. Anything else
+ * — a curve, a second move-to, a non-finite coordinate — throws rather than
+ * read as a path that moved.
+ */
+export function vertices(d: string, closed = false): number[][] {
+  const shape = new RegExp(`^(?:M${N},${N}(?:L${N},${N})*${closed ? 'Z' : ''})?$`);
+  if (!shape.test(d)) throw new Error(`not a straight ${closed ? 'closed' : 'open'} path: "${d}"`);
+  return [...d.matchAll(new RegExp(`[ML](${N}),(${N})`, 'g'))].map(([, x, y]) => [
+    Number(x),
+    Number(y)
+  ]);
+}
+
+/** Per mark, the text of its `<title>` child — the tooltip a browser shows on hover. */
+export function titles(marks: Iterable<Element>): (string | undefined)[] {
+  return [...marks].map((mark) => mark.querySelector(':scope > title')?.textContent?.trim());
+}
+
+/**
+ * The one data table a chart renders for screen readers, as text. A header
+ * cell reads `th[<scope>] <text>`, so a dropped `scope` reads `th[null] …`; a
+ * data cell reads `td <text>`. `hidden` is whether the table's container is
+ * the visually hidden one.
+ */
+export function dataTable(root: Element) {
+  const tables = root.querySelectorAll('table');
+  if (tables.length !== 1) throw new Error(`expected one <table>, found ${tables.length}`);
+  const table = tables[0];
+  return {
+    hidden: table.parentElement?.classList.contains('sr-only') ?? false,
+    caption: table.querySelector(':scope > caption')?.textContent?.trim(),
+    rows: [...table.querySelectorAll('tr')].map((row) =>
+      [...row.children].map((cell) => {
+        const text = cell.textContent?.trim() ?? '';
+        return cell.localName === 'th' ? `th[${cell.getAttribute('scope')}] ${text}` : `td ${text}`;
+      })
+    )
+  };
+}
+
 /**
  * Every attribute value and text node under `root` that spells a non-finite
  * number — `NaN`, `Infinity`, or the `∞` `Intl.NumberFormat` prints for it.

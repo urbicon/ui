@@ -240,6 +240,14 @@ describe('ChartFrame — around the plot', () => {
 
     expect([...(figure?.children ?? [])].map((el) => el.localName)).toEqual(['svg']);
   });
+
+  it('presents the svg as one image, named by ariaLabel', () => {
+    const target = render({ width: 500, ariaLabel: 'Weekly revenue' });
+    const svg = target.querySelector(':scope > figure > svg');
+
+    expect(svg?.getAttribute('role')).toBe('img');
+    expect(svg?.getAttribute('aria-label')).toBe('Weekly revenue');
+  });
 });
 
 describe('ChartFrame — slot contract', () => {

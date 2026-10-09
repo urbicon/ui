@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { nonFinite, num, vertices } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import type { ComponentDefaults, PresetMap } from '#lib/provider/blocks-context.js';
 import SparklineProviderHost from './__fixtures__/SparklineProviderHost.svelte';
 import type { SparklineProps } from './index';
@@ -72,6 +73,108 @@ describe('Sparkline (sizing contract)', () => {
     // The stroked line keeps a constant width under the non-uniform scale.
     const line = document.querySelector('path[stroke-linecap="round"]')!;
     expect(line.getAttribute('vector-effect')).toBe('non-scaling-stroke');
+  });
+});
+
+/**
+ * 100 × 20 with a 1 px stroke. The plot is inset by the stroke width (at
+ * least 1 px), so x runs from 1 to 99 and y from 19 (the minimum) up to 1
+ * (the maximum).
+ */
+const BOX = { width: 100, height: 20, strokeWidth: 1 } satisfies Partial<SparklineProps>;
+
+/** The trend line's vertices; its `fill` is "none". */
+function trend() {
+  return vertices(document.querySelector('path[fill="none"]')?.getAttribute('d') ?? '');
+}
+
+describe('Sparkline (geometry)', () => {
+  it('plots a higher value higher, spread across the width inside the inset', () => {
+    render({ ...BOX, data: [1, 3, 2] });
+
+    expect(trend()).toEqual([
+      [1, 19],
+      [50, 1],
+      [99, 10]
+    ]);
+  });
+
+  it('closes the area under the line on the bottom inset', () => {
+    render({ ...BOX, data: [1, 3, 2], area: true });
+    const band = document.querySelector('path[stroke="none"]')?.getAttribute('d') ?? '';
+
+    expect(vertices(band, true)).toEqual([
+      [1, 19],
+      [50, 1],
+      [99, 10],
+      [99, 19],
+      [1, 19]
+    ]);
+  });
+
+  it('puts the end point on the last value', () => {
+    render({ ...BOX, data: [1, 3, 2], showEndPoint: true });
+    const dots = document.querySelectorAll('circle');
+
+    expect(dots).toHaveLength(1);
+    expect([num(dots[0], 'cx'), num(dots[0], 'cy')]).toEqual([99, 10]);
+  });
+
+  it('draws flat data as a level line inside the box, without dividing by a zero range', () => {
+    render({ ...BOX, data: [5, 5, 5] });
+    const points = trend();
+
+    expect(points.map(([x]) => x)).toEqual([1, 50, 99]);
+    expect(new Set(points.map(([, y]) => y)).size).toBe(1);
+    expect(points[0][1]).toBeGreaterThanOrEqual(1);
+    expect(points[0][1]).toBeLessThanOrEqual(19);
+    expect(nonFinite(document.body)).toEqual([]);
+  });
+
+  it('draws a single value as one point inside the box, with the end point on it', () => {
+    render({ ...BOX, data: [7], showEndPoint: true });
+    const points = trend();
+    const dot = document.querySelector('circle');
+
+    expect(points).toHaveLength(1);
+    const [[x, y]] = points;
+    expect(x).toBeGreaterThanOrEqual(1);
+    expect(x).toBeLessThanOrEqual(99);
+    expect(y).toBeGreaterThanOrEqual(1);
+    expect(y).toBeLessThanOrEqual(19);
+    expect(dot && [num(dot, 'cx'), num(dot, 'cy')]).toEqual([x, y]);
+    expect(nonFinite(document.body)).toEqual([]);
+  });
+
+  it('draws nothing for empty data: no line, no area, no end point', () => {
+    render({ ...BOX, data: [], area: true, showEndPoint: true });
+
+    expect(document.querySelector('svg')?.children).toHaveLength(0);
+    expect(nonFinite(document.body)).toEqual([]);
+  });
+});
+
+describe('Sparkline (accessibility)', () => {
+  /** What assistive tech reads off the wrapper. */
+  function exposed() {
+    const root = document.querySelector('svg')?.parentElement;
+    return {
+      ariaHidden: root?.getAttribute('aria-hidden'),
+      role: root?.getAttribute('role'),
+      ariaLabel: root?.getAttribute('aria-label')
+    };
+  }
+
+  it('stays out of the accessibility tree without a label', () => {
+    render({ data: [1, 2, 3] });
+
+    expect(exposed()).toEqual({ ariaHidden: 'true', role: null, ariaLabel: null });
+  });
+
+  it('presents itself as one image named by ariaLabel', () => {
+    render({ data: [1, 2, 3], ariaLabel: 'Visits, last 7 days' });
+
+    expect(exposed()).toEqual({ ariaHidden: null, role: 'img', ariaLabel: 'Visits, last 7 days' });
   });
 });
 

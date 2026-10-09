@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
+import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import {
+  dataTable,
   expectedCarriers,
   nonFinite,
   probeCarriers,
-  probes
+  probes,
+  titles
 } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import { DONUT_CHART_SLOTS, type DonutChartSlot } from '#lib/internal/charts/slots.js';
 import DonutChart from './DonutChart.svelte';
@@ -28,15 +34,16 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function render(props: DonutChartProps): HTMLElement {
+/** Mounts the chart; under `locale`, inside a provider that switches to it. */
+function render(props: DonutChartProps, locale?: Locale): HTMLElement {
   const target = document.createElement('div');
   document.body.append(target);
-  const app = mount(DonutChart, {
-    target,
-    // `formatValue` does not reach the share column's percent formatter;
-    // `locale` does, and `nonFinite` reads its NaN in English.
-    props: { size: SIZE, formatValue: String, locale: 'en-US', ...props }
-  });
+  // `formatValue` does not reach the share column's percent formatter;
+  // `locale` does, and `nonFinite` reads its NaN in English.
+  const merged = { size: SIZE, formatValue: String, locale: 'en-US', ...props };
+  const app = locale
+    ? mount(ChartLocaleHost, { target, props: { locale, chart: DonutChart, props: merged } })
+    : mount(DonutChart, { target, props: merged });
   dispose = () => unmount(app);
   flushSync();
   return target;
@@ -280,6 +287,77 @@ describe('DonutChart — degenerate data', () => {
 
     expect(arcs(target)).toEqual([]);
     expect(nonFinite(target)).toEqual([]);
+  });
+});
+
+describe('DonutChart — what a screen reader gets', () => {
+  const CHANNELS = {
+    data: [
+      { label: 'Direct', value: 1 },
+      { label: 'Referral', value: 3 },
+      { label: 'Refund', value: -2 }
+    ],
+    formatValue: (value: number) => `${value} €`
+  } satisfies DonutChartProps;
+
+  it.each([
+    ['a generated summary', undefined, 'Donut chart: 3 segments, total 4 €'],
+    ['ariaLabel', 'Traffic by channel', 'Traffic by channel']
+  ])(
+    'presents the svg as one image named by %s, which also captions the table',
+    (_name, ariaLabel, name) => {
+      const target = render({ ...CHANNELS, ariaLabel });
+      const svg = target.querySelector(':scope > figure > svg');
+
+      expect(svg?.getAttribute('role')).toBe('img');
+      expect(svg?.getAttribute('aria-label')).toBe(name);
+      expect(dataTable(target).caption).toBe(name);
+    }
+  );
+
+  it('tabulates each slice’s formatted value and share in a visually hidden table', () => {
+    const target = render(CHANNELS);
+
+    // The ring counts a negative slice as none, and so does the table.
+    expect(dataTable(target)).toEqual({
+      hidden: true,
+      caption: 'Donut chart: 3 segments, total 4 €',
+      rows: [
+        ['th[col] Segment', 'th[col] Value', 'th[col] Share'],
+        ['th[row] Direct', 'td 1 €', 'td 25%'],
+        ['th[row] Referral', 'td 3 €', 'td 75%'],
+        ['th[row] Refund', 'td 0 €', 'td 0%']
+      ]
+    });
+  });
+
+  it('formats the share column in the locale it is given', () => {
+    // Intl's de-DE percent sets the sign apart with a no-break space, spelled
+    // by code point so the expected string shows which space it is.
+    const nbsp = String.fromCharCode(0xa0);
+    const target = render({ ...CHANNELS, formatValue: undefined, locale: 'de-DE' });
+    const shares = dataTable(target).rows.map((row) => row[2]);
+
+    expect(shares.slice(1)).toEqual([`td 25${nbsp}%`, `td 75${nbsp}%`, `td 0${nbsp}%`]);
+  });
+
+  it('heads the table in the active locale', () => {
+    const target = render(CHANNELS, registerMarkedLocale());
+
+    expect(dataTable(target).rows[0]).toEqual([
+      'th[col] fr:Segment',
+      'th[col] fr:Value',
+      'th[col] fr:Share'
+    ]);
+  });
+
+  it('titles each drawn slice with its label, formatted value and share', () => {
+    const target = render(CHANNELS);
+
+    expect(titles(target.querySelectorAll('svg path'))).toEqual([
+      'Direct: 1 € (25%)',
+      'Referral: 3 € (75%)'
+    ]);
   });
 });
 

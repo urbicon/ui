@@ -17,8 +17,7 @@
     </p>
     <p>
       Reach for it <strong>only when the chart you need isn't already in the family</strong>. For
-      the common cases prefer the ready-made charts — they handle scales, axes, legends and tooltips
-      for you:
+      the common cases prefer the ready-made charts — they handle scales, axes and legends for you:
     </p>
     <ul>
       <li><code>LineChart</code> / <code>AreaChart</code> — trends over a continuous axis</li>

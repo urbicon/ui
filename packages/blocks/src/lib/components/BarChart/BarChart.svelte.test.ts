@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
+import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import {
+  dataTable,
   expectedCarriers,
   nonFinite,
   num,
   probeCarriers,
-  probes
+  probes,
+  titles
 } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import { BAR_CHART_SLOTS, type BarChartSlot } from '#lib/internal/charts/slots.js';
 import BarChart from './BarChart.svelte';
@@ -38,10 +44,14 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function render(props: BarChartProps): HTMLElement {
+/** Mounts the chart; under `locale`, inside a provider that switches to it. */
+function render(props: BarChartProps, locale?: Locale): HTMLElement {
   const target = document.createElement('div');
   document.body.append(target);
-  const app = mount(BarChart, { target, props: { ...PLOT, ...props } });
+  const merged = { ...PLOT, ...props };
+  const app = locale
+    ? mount(ChartLocaleHost, { target, props: { locale, chart: BarChart, props: merged } })
+    : mount(BarChart, { target, props: merged });
   dispose = () => unmount(app);
   flushSync();
   return target;
@@ -222,6 +232,70 @@ describe('BarChart — degenerate data', () => {
     ]);
     expect(nonFinite(target)).toEqual([]);
   });
+});
+
+describe('BarChart — what a screen reader gets', () => {
+  const QUARTERS = {
+    series: [{ label: 'Revenue' }, { label: 'Cost' }],
+    data: [
+      { label: 'Q1', values: [12, 8] },
+      { label: 'Q2', values: [19] }
+    ],
+    formatValue: (value: number) => `${value}k`
+  } satisfies BarChartProps;
+
+  it.each([
+    ['a generated summary', undefined, 'Bar chart: 2 categories, 2 series'],
+    ['ariaLabel', 'Quarterly result', 'Quarterly result']
+  ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
+    const target = render({ ...QUARTERS, ariaLabel });
+
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+    expect(dataTable(target).caption).toBe(name);
+  });
+
+  it('tabulates every value, formatted: a column per series, a row header per category', () => {
+    const target = render(QUARTERS);
+
+    // Q2 has no Cost value; its bar is drawn as zero, and the table says so.
+    expect(dataTable(target)).toEqual({
+      hidden: true,
+      caption: 'Bar chart: 2 categories, 2 series',
+      rows: [
+        ['th[col] Category', 'th[col] Revenue', 'th[col] Cost'],
+        ['th[row] Q1', 'td 12k', 'td 8k'],
+        ['th[row] Q2', 'td 19k', 'td 0k']
+      ]
+    });
+  });
+
+  it('heads the table in the active locale, unnamed series included', () => {
+    const target = render({ data: [{ label: 'Q1', values: [1, 2] }] }, registerMarkedLocale());
+
+    expect(dataTable(target).rows[0]).toEqual([
+      'th[col] fr:Category',
+      'th[col] fr:Series 1',
+      'th[col] fr:Series 2'
+    ]);
+  });
+
+  it.each([
+    ['grouped', false],
+    ['stacked', true]
+  ])(
+    'titles each %s bar with its series, its category and its own value, formatted',
+    (_mode, stacked) => {
+      // A stacked segment's title carries its own value, not the running total it reaches.
+      const target = render({ ...QUARTERS, stacked });
+
+      expect(titles(target.querySelectorAll('rect'))).toEqual([
+        'Revenue — Q1: 12k',
+        'Cost — Q1: 8k',
+        'Revenue — Q2: 19k',
+        'Cost — Q2: 0k'
+      ]);
+    }
+  );
 });
 
 describe('BarChart — slot contract', () => {

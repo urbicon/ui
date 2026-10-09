@@ -1,12 +1,19 @@
 // @vitest-environment jsdom
+import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import {
+  dataTable,
   expectedCarriers,
   nonFinite,
   num,
   probeCarriers,
-  probes
+  probes,
+  titles,
+  vertices
 } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import { LINE_CHART_SLOTS, type LineChartSlot } from '#lib/internal/charts/slots.js';
 import type { LineChartProps } from './index';
@@ -43,10 +50,14 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function render(props: LineChartProps): HTMLElement {
+/** Mounts the chart; under `locale`, inside a provider that switches to it. */
+function render(props: LineChartProps, locale?: Locale): HTMLElement {
   const target = document.createElement('div');
   document.body.append(target);
-  const app = mount(LineChart, { target, props: { ...PLOT, ...props } });
+  const merged = { ...PLOT, ...props };
+  const app = locale
+    ? mount(ChartLocaleHost, { target, props: { locale, chart: LineChart, props: merged } })
+    : mount(LineChart, { target, props: merged });
   dispose = () => unmount(app);
   flushSync();
   return target;
@@ -57,20 +68,9 @@ function points(target: Element) {
   return [...target.querySelectorAll('circle')].map((c) => [num(c, 'cx'), num(c, 'cy')]);
 }
 
-const N = String.raw`-?[\d.]+`;
-/** A straight polyline: one move-to, then line-tos — or nothing at all. */
-const POLYLINE = new RegExp(`^(?:M${N},${N}(?:L${N},${N})*)?$`);
-
-/** The vertices `[x, y]` of each series line, read back from its `d`. */
+/** The vertices `[x, y]` of each series line, an open polyline. */
 function lines(target: Element) {
-  return [...target.querySelectorAll('path')].map((path) => {
-    const d = path.getAttribute('d') ?? '';
-    if (!POLYLINE.test(d)) throw new Error(`not a straight polyline: "${d}"`);
-    return [...d.matchAll(new RegExp(`[ML](${N}),(${N})`, 'g'))].map(([, x, y]) => [
-      Number(x),
-      Number(y)
-    ]);
-  });
+  return [...target.querySelectorAll('path')].map((path) => vertices(path.getAttribute('d') ?? ''));
 }
 
 /**
@@ -78,8 +78,8 @@ function lines(target: Element) {
  * `closeTo`: a half-cent (8.375 → "8.38") sits exactly 0.005 away, which
  * `closeTo(value, 2)` rejects.
  */
-function near(vertices: number[][]) {
-  return vertices.map((vertex) => vertex.map((value) => Number(value.toFixed(2))));
+function near(coordinates: number[][]) {
+  return coordinates.map((vertex) => vertex.map((value) => Number(value.toFixed(2))));
 }
 
 /** Value-axis tick labels, bottom tick first. */
@@ -195,6 +195,63 @@ describe('LineChart — degenerate data', () => {
     expect(ys[0]).toBeGreaterThanOrEqual(0);
     expect(ys[0]).toBeLessThanOrEqual(100);
     expect(nonFinite(target)).toEqual([]);
+  });
+});
+
+describe('LineChart — what a screen reader gets', () => {
+  const TEMPERATURES = {
+    series: [{ label: 'Low' }, { label: 'High' }],
+    data: [
+      { label: 'Mon', values: [2, 9] },
+      { label: 'Tue', values: [4] }
+    ],
+    formatValue: (value: number) => `${value}°`
+  } satisfies LineChartProps;
+
+  it.each([
+    ['a generated summary', undefined, 'Line chart: 2 points, 2 series'],
+    ['ariaLabel', 'Temperatures', 'Temperatures']
+  ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
+    const target = render({ ...TEMPERATURES, ariaLabel });
+
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+    expect(dataTable(target).caption).toBe(name);
+  });
+
+  it('tabulates every value, formatted: a column per series, a row header per category', () => {
+    const target = render(TEMPERATURES);
+
+    // Tue has no High value; its point is drawn at zero, and the table says so.
+    expect(dataTable(target)).toEqual({
+      hidden: true,
+      caption: 'Line chart: 2 points, 2 series',
+      rows: [
+        ['th[col] Category', 'th[col] Low', 'th[col] High'],
+        ['th[row] Mon', 'td 2°', 'td 9°'],
+        ['th[row] Tue', 'td 4°', 'td 0°']
+      ]
+    });
+  });
+
+  it('heads the table in the active locale, unnamed series included', () => {
+    const target = render({ data: [{ label: 'Mon', values: [1, 2] }] }, registerMarkedLocale());
+
+    expect(dataTable(target).rows[0]).toEqual([
+      'th[col] fr:Category',
+      'th[col] fr:Series 1',
+      'th[col] fr:Series 2'
+    ]);
+  });
+
+  it('titles each point with its series, its category and the formatted value', () => {
+    const target = render(TEMPERATURES);
+
+    expect(titles(target.querySelectorAll('circle'))).toEqual([
+      'Low — Mon: 2°',
+      'Low — Tue: 4°',
+      'High — Mon: 9°',
+      'High — Tue: 0°'
+    ]);
   });
 });
 

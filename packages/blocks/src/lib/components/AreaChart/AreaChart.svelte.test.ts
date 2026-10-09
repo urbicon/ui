@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
+import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
+import { dataTable, nonFinite, vertices } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import AreaChart from './AreaChart.svelte';
+import type { AreaChartProps } from './index';
 
 /**
  * One series is two paths — the filled band and its top edge — and each carries
@@ -83,5 +89,263 @@ describe('AreaChart slot folding', () => {
     expect(band).toContain('duration-1000');
     expect(outline).toContain(LIBRARY_DURATION);
     expect(outline).not.toContain('duration-1000');
+  });
+});
+
+/**
+ * Every mount below draws into a fixed 200 × 100 plot: `width` is set and the
+ * margins are 0, so plot and frame coordinates coincide. Without `width` the
+ * frame measures its container, which jsdom never lays out.
+ *
+ * Expected geometry is written out by hand from the nice-tick definition, not
+ * recomputed through the chart's own helpers.
+ */
+const PLOT = {
+  width: 200,
+  height: 100,
+  margin: { top: 0, right: 0, bottom: 0, left: 0 },
+  formatValue: String
+} satisfies Partial<AreaChartProps>;
+
+/** Two series over two categories; each category totals 5. */
+const TWO_SERIES = {
+  data: [
+    { label: 'a', values: [2, 3] },
+    { label: 'b', values: [4, 1] }
+  ]
+} satisfies AreaChartProps;
+
+let dispose: (() => void) | undefined;
+
+afterEach(() => {
+  dispose?.();
+  dispose = undefined;
+  document.body.replaceChildren();
+});
+
+/** Mounts the chart; under `locale`, inside a provider that switches to it. */
+function render(props: AreaChartProps, locale?: Locale): HTMLElement {
+  const target = document.createElement('div');
+  document.body.append(target);
+  const merged = { ...PLOT, ...props };
+  const app = locale
+    ? mount(ChartLocaleHost, { target, props: { locale, chart: AreaChart, props: merged } })
+    : mount(AreaChart, { target, props: merged });
+  dispose = () => unmount(app);
+  flushSync();
+  return target;
+}
+
+/** Per series, the filled band (its `stroke` is "none"): a closed polygon. */
+function bandPaths(target: Element) {
+  return [...target.querySelectorAll('path[stroke="none"]')];
+}
+
+function bands(target: Element) {
+  return bandPaths(target).map((path) => vertices(path.getAttribute('d') ?? '', true));
+}
+
+/** Per series, the band's top edge (its `fill` is "none"): an open polyline. */
+function outlines(target: Element) {
+  return [...target.querySelectorAll('path[fill="none"]')].map((path) =>
+    vertices(path.getAttribute('d') ?? '')
+  );
+}
+
+describe('AreaChart — overlaid series', () => {
+  it('closes the band on the zero line, which sits above the floor once a value is negative', () => {
+    const target = render({
+      data: [
+        { label: 'a', values: [3] },
+        { label: 'b', values: [-1] },
+        { label: 'c', values: [1] }
+      ]
+    });
+
+    // Domain [-1, 3], 25 px per unit: zero lies 75 px down.
+    expect(outlines(target)).toEqual([
+      [
+        [0, 0],
+        [100, 100],
+        [200, 50]
+      ]
+    ]);
+    expect(bands(target)).toEqual([
+      [
+        [0, 0],
+        [100, 100],
+        [200, 50],
+        [200, 75],
+        [0, 75]
+      ]
+    ]);
+  });
+
+  it('draws every series from zero, over the others rather than on top of them', () => {
+    // The maximum sits in the second series: the axis has to read every series.
+    const target = render({
+      data: [
+        { label: 'a', values: [2, 3] },
+        { label: 'b', values: [1, 4] }
+      ]
+    });
+
+    // Domain [0, 4], 25 px per unit.
+    expect(bands(target)).toEqual([
+      [
+        [0, 50],
+        [200, 75],
+        [200, 100],
+        [0, 100]
+      ],
+      [
+        [0, 25],
+        [200, 0],
+        [200, 100],
+        [0, 100]
+      ]
+    ]);
+  });
+});
+
+describe('AreaChart — stacked series', () => {
+  it('lays each band on the running total of the series before it', () => {
+    const target = render({ ...TWO_SERIES, stacked: true });
+
+    // Both totals are 5: domain [0, 5], 20 px per unit. Each band runs along
+    // its top edge, then back along the one beneath it.
+    expect(bands(target)).toEqual([
+      [
+        [0, 60],
+        [200, 20],
+        [200, 100],
+        [0, 100]
+      ],
+      [
+        [0, 0],
+        [200, 0],
+        [200, 20],
+        [0, 60]
+      ]
+    ]);
+    expect(outlines(target)).toEqual([
+      [
+        [0, 60],
+        [200, 20]
+      ],
+      [
+        [0, 0],
+        [200, 0]
+      ]
+    ]);
+  });
+});
+
+describe('AreaChart — fill opacity', () => {
+  it.each([
+    ['an overlay at 0.2 by default', { stacked: false }, '0.2'],
+    ['a stack at 0.85 by default', { stacked: true }, '0.85'],
+    ['an overlay at an explicit fillOpacity', { stacked: false, fillOpacity: 0.5 }, '0.5'],
+    ['a stack at an explicit fillOpacity', { stacked: true, fillOpacity: 0.5 }, '0.5']
+  ])('fills %s', (_name, props, opacity) => {
+    const target = render({ ...TWO_SERIES, ...props });
+
+    expect(bandPaths(target).map((path) => path.getAttribute('fill-opacity'))).toEqual([
+      opacity,
+      opacity
+    ]);
+  });
+});
+
+describe('AreaChart — degenerate data', () => {
+  it('draws empty paths for empty data, with no non-finite coordinate', () => {
+    const target = render({ data: [] });
+
+    expect(bands(target)).toEqual([[]]);
+    expect(outlines(target)).toEqual([[]]);
+    expect(nonFinite(target)).toEqual([]);
+  });
+
+  it('centres a single point horizontally, its band a zero-width drop to zero', () => {
+    const target = render({ data: [{ label: 'Only', values: [5] }] });
+    const [band] = bands(target);
+    const ys = band.map(([, y]) => y);
+
+    // Domain [0, 5]: the value at the top, zero on the floor beneath it.
+    expect(outlines(target)).toEqual([[[100, 0]]]);
+    expect(new Set(band.map(([x]) => x))).toEqual(new Set([100]));
+    expect([Math.min(...ys), Math.max(...ys)]).toEqual([0, 100]);
+    expect(nonFinite(target)).toEqual([]);
+  });
+
+  it('lays an all-zero series flat inside the plot, without dividing by a zero range', () => {
+    const target = render({
+      data: [
+        { label: 'a', values: [0] },
+        { label: 'b', values: [0] }
+      ]
+    });
+    const [outline] = outlines(target);
+    const [band] = bands(target);
+    // The line and the band's closing edge both lie on the zero line.
+    const ys = new Set([...outline, ...band].map(([, y]) => y));
+
+    expect(outline.map(([x]) => x)).toEqual([0, 200]);
+    expect(ys.size).toBe(1);
+    const [zeroY] = ys;
+    expect(zeroY).toBeGreaterThanOrEqual(0);
+    expect(zeroY).toBeLessThanOrEqual(100);
+    expect(nonFinite(target)).toEqual([]);
+  });
+});
+
+describe('AreaChart — what a screen reader gets', () => {
+  const VISITORS = {
+    series: [{ label: 'New' }, { label: 'Returning' }],
+    data: [
+      { label: 'Jan', values: [4, 6] },
+      { label: 'Feb', values: [7] }
+    ],
+    formatValue: (value: number) => `${value}k`
+  } satisfies AreaChartProps;
+
+  it.each([
+    ['a generated summary', {}, 'Area chart: 2 points, 2 series'],
+    [
+      'a generated summary that says it stacks',
+      { stacked: true },
+      'Area chart: 2 points, 2 series, stacked'
+    ],
+    ['ariaLabel', { ariaLabel: 'Visitors' }, 'Visitors']
+  ])('names the image and captions the data table with %s', (_name, props, name) => {
+    const target = render({ ...VISITORS, ...props });
+
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+    expect(dataTable(target).caption).toBe(name);
+  });
+
+  it('tabulates every value, formatted: a column per series, a row header per category', () => {
+    const target = render(VISITORS);
+
+    // Feb has no Returning value; its area is drawn at zero, and the table says so.
+    expect(dataTable(target)).toEqual({
+      hidden: true,
+      caption: 'Area chart: 2 points, 2 series',
+      rows: [
+        ['th[col] Category', 'th[col] New', 'th[col] Returning'],
+        ['th[row] Jan', 'td 4k', 'td 6k'],
+        ['th[row] Feb', 'td 7k', 'td 0k']
+      ]
+    });
+  });
+
+  it('heads the table in the active locale, unnamed series included', () => {
+    const target = render({ data: [{ label: 'Jan', values: [1, 2] }] }, registerMarkedLocale());
+
+    expect(dataTable(target).rows[0]).toEqual([
+      'th[col] fr:Category',
+      'th[col] fr:Series 1',
+      'th[col] fr:Series 2'
+    ]);
   });
 });
