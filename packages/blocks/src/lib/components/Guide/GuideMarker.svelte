@@ -3,6 +3,7 @@
   import { InfoCircleIcon } from '#lib/icons/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { guideMarkerVariants, type GuideMarkerVariants } from './guide.variants';
   import type { GuideMarkerProps } from './index';
@@ -20,6 +21,8 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    onclick: onclickProp,
+    'aria-label': ariaLabelProp,
     ...restProps
   }: GuideMarkerProps = $props();
 
@@ -59,7 +62,9 @@
   );
   const topicLabel = $derived(topicId ? guide?.getTopicMeta(topicId)?.label : undefined);
   const ariaLabel = $derived(
-    label ?? (topicLabel ? bt('guide.infoAbout', { label: topicLabel }) : bt('guide.info', {}))
+    label ??
+      ariaLabelProp ??
+      (topicLabel ? bt('guide.infoAbout', { label: topicLabel }) : bt('guide.info', {}))
   );
   // Reflects whether *this* marker's article is the one currently shown.
   const expanded = $derived(
@@ -74,6 +79,7 @@
 
 {#if active}
   <button
+    {...restProps}
     type="button"
     class={unstyled
       ? resolveClassChain(slotClasses?.marker, className)
@@ -82,8 +88,7 @@
     aria-expanded={expanded}
     aria-label={ariaLabel}
     data-guide-marker
-    onclick={activate}
-    {...restProps}
+    onclick={composeHandlers(activate, onclickProp)}
   >
     {#if children}
       {@render children()}

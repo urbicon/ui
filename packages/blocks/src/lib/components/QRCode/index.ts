@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from 'svelte/elements';
 import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
 
 /**
@@ -22,7 +23,15 @@ import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
  * <QRCode value={otpauthUri} errorCorrection="H" size={200} frame="card" />
  * ```
  */
-export interface QRCodeProps extends QRCodeVariants {
+export interface QRCodeProps
+  extends QRCodeVariants,
+    // `class`, `id` and the naming and description ARIA attributes are modelled
+    // below; the rest of a span's attributes reach the root. The ARIA attributes go
+    // to the `role="img"` element instead, the one an assistive technology reads.
+    Omit<
+      HTMLAttributes<HTMLSpanElement>,
+      'class' | 'id' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'children'
+    > {
   /** The data to encode — text, a URL, an `otpauth://` URI, etc. */
   value: string;
   /**
@@ -69,6 +78,10 @@ export interface QRCodeProps extends QRCodeVariants {
    * Avoid echoing sensitive payloads (e.g. a 2FA secret) into this label.
    */
   'aria-label'?: string;
+  /** Id(s) of an element naming the code, set on the `role="img"` element; wins over `aria-label`. */
+  'aria-labelledby'?: string;
+  /** Id(s) of an element describing the code, set on the `role="img"` element beside its label. */
+  'aria-describedby'?: string;
   /** Root id. */
   id?: string;
 }

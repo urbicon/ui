@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import { createRawSnippet, flushSync, mount, type Snippet, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import SearchIcon from '#lib/icons/SearchIcon.svelte';
 import CommandPalette from './CommandPalette.svelte';
 import type { CommandPaletteItem, CommandPaletteProps } from './index';
@@ -497,5 +497,55 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     expect(rowTokens(0)).not.toContain('bg-primary-subtle');
     expect(rowTokens(1)).toContain('bg-white');
     expect(rowTokens(1)).not.toContain('bg-black');
+  });
+});
+
+// COMPONENT-API-CONVENTIONS § Common props. The palette has no single root: the
+// rest travels through the inner Dialog to its `<dialog>`, the element with the
+// dialog role (ConfirmDialog takes the same route), while `class` keeps styling
+// the palette content inside it.
+describe('CommandPalette (restProps)', () => {
+  const ITEMS: CommandPaletteItem[] = [{ id: 'a', label: 'Alpha' }];
+  const dialog = () => document.querySelector('dialog') as HTMLDialogElement;
+  const search = () => screen.getByRole('combobox', { hidden: true });
+
+  it('passes an unmodelled attribute through to the dialog', async () => {
+    render({ items: ITEMS, 'data-testid': 'palette', 'aria-label': 'Command palette' });
+    await tick();
+
+    expect(dialog().getAttribute('data-testid')).toBe('palette');
+    // The palette has no title, so this is the only accessible name its dialog gets.
+    expect(dialog().getAttribute('aria-label')).toBe('Command palette');
+  });
+
+  it('keeps its own dialog state against a contradicting consumer', async () => {
+    render({ items: ITEMS, 'aria-modal': 'false', 'data-state': 'closed' });
+    await tick();
+
+    expect(dialog().getAttribute('aria-modal')).toBe('true');
+    expect(dialog().getAttribute('data-state')).toBe('open');
+  });
+
+  it('keeps `class` on the palette content, not on the dialog', async () => {
+    render({ items: ITEMS, class: 'palette-x' });
+    await tick();
+
+    expect(dialog().classList.contains('palette-x')).toBe(false);
+    expect(dialog().querySelector('.palette-x')?.contains(search())).toBe(true);
+  });
+
+  it('runs a consumer onkeydown and still closes on Escape', async () => {
+    const onkeydown = vi.fn();
+    const onOpenChange = vi.fn();
+    render({ items: ITEMS, onkeydown, onOpenChange });
+    await tick();
+
+    search().dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    );
+    flushSync();
+
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

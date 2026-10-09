@@ -33,25 +33,13 @@ import type { NumberInputSlots } from './numberinput.variants';
  * ```
  */
 export interface NumberInputProps
-  extends Omit<
-    InputProps,
-    // NumberInput owns these internally and does not forward them: the numeric
-    // handlers (input/focus/blur/keydown/wheel), the raw string `value`, the
-    // fixed `type`/`inputmode`, and `children`. `clearable`/`onClear` are omitted
-    // too — Input's clear button would replace the stepper and, worse, write only
-    // Input's internal string value, drifting the numeric model out of sync.
-    | 'value'
-    | 'type'
-    | 'inputmode'
-    | 'oninput'
-    | 'onfocus'
-    | 'onblur'
-    | 'onkeydown'
-    | 'onwheel'
-    | 'clearable'
-    | 'onClear'
-    | 'children'
-  > {
+  // NumberInput owns these and does not forward them: the raw string `value`, the
+  // fixed `type`/`inputmode`, and `children`. `clearable`/`onClear` are omitted too —
+  // Input's clear button would replace the stepper and, worse, write only Input's
+  // internal string value, drifting the numeric model out of sync. The handlers it
+  // attaches itself (input/focus/blur/keydown/wheel) stay in: a consumer's runs after
+  // NumberInput's own.
+  extends Omit<InputProps, 'value' | 'type' | 'inputmode' | 'clearable' | 'onClear' | 'children'> {
   /** Current numeric value. `null` when the field is empty. Supports `bind:value`. */
   value?: number | null;
   /**

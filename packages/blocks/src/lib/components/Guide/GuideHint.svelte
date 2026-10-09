@@ -12,6 +12,7 @@
   } from '#lib/utils/floating.js';
   import { observeTargetResolution } from '#lib/utils/observe-target.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { guideHintVariants, type GuideHintVariants } from './guide.variants';
   import type { GuideHintProps } from './index';
@@ -33,6 +34,7 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    onkeydown: onkeydownProp,
     ...restProps
   }: GuideHintProps = $props();
 
@@ -197,6 +199,7 @@
 
 {#if guide}
   <div
+    {...restProps}
     bind:this={hintEl}
     class={[
       'guide-hint',
@@ -207,8 +210,7 @@
     role="status"
     aria-live="polite"
     aria-atomic="true"
-    onkeydown={handleKeydown}
-    {...restProps}
+    onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
     popover="manual"
     style="position:fixed;margin:0;inset:auto;overflow:visible;"
   >

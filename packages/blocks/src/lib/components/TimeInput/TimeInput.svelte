@@ -39,7 +39,10 @@
     slotClasses: slotClassesProp = {},
     preset,
     id: idProp,
-    'aria-label': ariaLabel
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
+    ...restProps
   }: TimeInputProps = $props();
 
   const tierCtx = getTierContext();
@@ -52,7 +55,13 @@
   const fieldId = $derived(idProp ?? `timeinput-${propsId}`);
   const labelId = $derived(`${fieldId}-label`);
   const messageId = $derived(`${fieldId}-message`);
-  const describedBy = $derived(error || helper ? messageId : undefined);
+  const labelledBy = $derived(
+    [label ? labelId : undefined, ariaLabelledby].filter(Boolean).join(' ') || undefined
+  );
+  const describedBy = $derived(
+    [error || helper ? messageId : undefined, ariaDescribedby].filter(Boolean).join(' ') ||
+      undefined
+  );
 
   const hourMax = $derived(format === '12h' ? 12 : 23);
   const hourMin = $derived(format === '12h' ? 1 : 0);
@@ -372,6 +381,7 @@
 </script>
 
 <div
+  {...restProps}
   class={unstyled
     ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
@@ -392,7 +402,7 @@
 
   <div
     role="group"
-    aria-labelledby={label ? labelId : undefined}
+    aria-labelledby={labelledBy}
     aria-label={label ? undefined : ariaLabel}
     aria-disabled={disabled ? 'true' : undefined}
     class={unstyled ? (slotClasses?.field ?? '') : styles.field({ class: slotClasses?.field })}
@@ -515,6 +525,9 @@
         aria-valuetext={meridiem}
         aria-disabled={disabled ? 'true' : undefined}
         aria-readonly={readonly ? 'true' : undefined}
+        aria-invalid={error ? 'true' : undefined}
+        aria-required={required || undefined}
+        aria-describedby={describedBy}
         class={unstyled
           ? (slotClasses?.meridiem ?? '')
           : styles.meridiem({ class: slotClasses?.meridiem })}

@@ -121,3 +121,44 @@ describe.each(HOSTILE)('ThemeSwitcher with %s', (_name, descriptor) => {
     expect(changes).toEqual(['light']);
   });
 });
+
+// COMPONENT-API-CONVENTIONS § restProps ordering: the rest lands on the
+// `<button>`, spread first, so the attributes the component computes win.
+describe('ThemeSwitcher (restProps)', () => {
+  it('passes an unmodelled attribute through to the button', () => {
+    installMemoryStorage();
+    const target = render({ 'data-testid': 'theme', class: 'ml-auto' });
+    const button = target.querySelector('button') as HTMLButtonElement;
+
+    expect(button.getAttribute('data-testid')).toBe('theme');
+    // `class` keeps going through the tv() pipeline: the consumer's class and
+    // the library's both arrive.
+    expect(button.classList.contains('ml-auto')).toBe(true);
+    expect(button.classList.length).toBeGreaterThan(1);
+  });
+
+  it('keeps its own type and state label against a contradicting consumer', () => {
+    installMemoryStorage();
+    // Typed out of the props; an untyped caller can still send them.
+    const target = render({ type: 'submit', 'aria-label': 'Theme', title: 'Theme' });
+    const button = target.querySelector('button') as HTMLButtonElement;
+
+    expect(button.getAttribute('type')).toBe('button');
+    // The label names the current theme — the only place the icon-only button says it.
+    expect(button.getAttribute('aria-label')).toBe('System theme');
+    expect(button.getAttribute('title')).toBe('System theme');
+  });
+
+  it('runs a consumer onclick after the switch', () => {
+    installMemoryStorage();
+    const seen: boolean[] = [];
+    const target = render({
+      onclick: () => seen.push(document.documentElement.classList.contains('light'))
+    });
+
+    click(target);
+
+    // Called once, and the theme had already moved when it ran.
+    expect(seen).toEqual([true]);
+  });
+});

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Input } from '#lib/primitives/Input/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { useI18n } from '@urbicon-ui/i18n';
   import {
     applyEdit,
@@ -22,7 +23,9 @@
     rightIcon: userRightIcon,
     preset,
     slotClasses,
-    ...inputProps
+    oninput: oninputProp,
+    onblur: onblurProp,
+    ...restProps
   }: CurrencyInputProps = $props();
 
   // Handed down rather than resolved here, and not forwarded as `preset`:
@@ -239,12 +242,12 @@
 {/snippet}
 
 <Input
-  {...inputProps}
+  {...restProps}
   type="text"
   inputmode="decimal"
   bind:value={() => displayText, acceptText}
-  oninput={handleInput}
-  onblur={handleBlur}
+  oninput={composeHandlers(handleInput, oninputProp)}
+  onblur={composeHandlers(handleBlur, onblurProp)}
   leftIcon={symbolPosition === 'prefix' && symbol ? currencySymbolSlot : userLeftIcon}
   rightIcon={symbolPosition === 'suffix' && symbol ? currencySymbolSlot : userRightIcon}
 />

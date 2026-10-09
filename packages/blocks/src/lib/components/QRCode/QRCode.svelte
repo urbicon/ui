@@ -24,7 +24,10 @@
     slotClasses: slotClassesProp = {},
     preset,
     id,
-    'aria-label': ariaLabel
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
+    ...restProps
   }: QRCodeProps = $props();
 
   const blocksConfig = getBlocksConfig();
@@ -80,6 +83,7 @@
 </script>
 
 <span
+  {...restProps}
   {id}
   class={unstyled
     ? resolveClassChain(slotClasses?.root, className)
@@ -93,6 +97,8 @@
       shape-rendering="crispEdges"
       role="img"
       aria-label={label}
+      aria-labelledby={ariaLabelledby}
+      aria-describedby={ariaDescribedby}
       class={unstyled ? (slotClasses?.svg ?? '') : styles.svg({ class: slotClasses?.svg })}
     >
       {#if background !== 'transparent' && background !== 'none'}
@@ -104,6 +110,8 @@
     <span
       role="img"
       aria-label={label}
+      aria-labelledby={ariaLabelledby}
+      aria-describedby={ariaDescribedby}
       style="width: {size}px; height: {size}px;"
       class={unstyled
         ? (slotClasses?.fallback ?? '')

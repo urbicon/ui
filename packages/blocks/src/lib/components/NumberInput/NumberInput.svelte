@@ -2,6 +2,7 @@
   import { Input } from '#lib/primitives/Input/index.js';
   import { getBlocksConfig } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
   import { numberInputVariants, type NumberInputSlots } from './numberinput.variants';
@@ -29,7 +30,14 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
-    ...inputProps
+    // Out of the bag too, so the handlers below run them after their own
+    // instead of replacing them.
+    oninput: oninputProp,
+    onfocus: onfocusProp,
+    onblur: onblurProp,
+    onkeydown: onkeydownProp,
+    onwheel: onwheelProp,
+    ...restProps
   }: NumberInputProps = $props();
 
   const blocksConfig = getBlocksConfig();
@@ -215,7 +223,7 @@
 {/snippet}
 
 <Input
-  {...inputProps}
+  {...restProps}
   unstyled={unstyledProp}
   {disabled}
   {readonly}
@@ -226,11 +234,11 @@
   aria-valuemin={min}
   aria-valuemax={max}
   value={display}
-  oninput={handleInput}
-  onfocus={handleFocus}
-  onblur={handleBlur}
-  onkeydown={handleKeydown}
-  onwheel={handleWheel}
+  oninput={composeHandlers(handleInput, oninputProp)}
+  onfocus={composeHandlers(handleFocus, onfocusProp)}
+  onblur={composeHandlers(handleBlur, onblurProp)}
+  onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
+  onwheel={composeHandlers(handleWheel, onwheelProp)}
   rightIcon={userRightIcon ?? (hideStepper ? undefined : stepper)}
 />
 

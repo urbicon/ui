@@ -154,3 +154,94 @@ describe('NumberInput', () => {
     expect(onValueChange).toHaveBeenLastCalledWith(1e-7);
   });
 });
+
+// COMPONENT-API-CONVENTIONS § Common props. The rest travels through Input to
+// its `<input>`, the house route for a single-control field; NumberInput's own
+// attributes go after it, and the handlers it attaches compose with a
+// consumer's (internal first) instead of replacing them.
+describe('NumberInput (restProps)', () => {
+  it('passes an unmodelled attribute through to the input', () => {
+    render({ 'data-testid': 'qty', autocomplete: 'off' });
+    expect(spin().getAttribute('data-testid')).toBe('qty');
+    expect(spin().getAttribute('autocomplete')).toBe('off');
+  });
+
+  it('keeps its own spinbutton state against a contradicting consumer', () => {
+    render({
+      value: 5,
+      error: 'Too many',
+      role: 'textbox',
+      'aria-valuenow': 99,
+      'aria-invalid': 'false'
+    });
+    const field = screen.getByRole('spinbutton') as HTMLInputElement;
+    expect(field.getAttribute('aria-valuenow')).toBe('5');
+    expect(field.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('keeps `class` on the field wrapper, not on the input', () => {
+    render({ class: 'w-24' });
+    expect(spin().classList.contains('w-24')).toBe(false);
+    expect(spin().closest('.w-24')).not.toBeNull();
+  });
+
+  it('runs a consumer onkeydown after its own Arrow stepping', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const seen: boolean[] = [];
+    render({
+      value: 5,
+      onValueChange,
+      onkeydown: (event) => seen.push(event.defaultPrevented)
+    });
+
+    spin().focus();
+    await user.keyboard('{ArrowUp}');
+
+    expect(onValueChange).toHaveBeenLastCalledWith(6);
+    // The step had already claimed the key when the consumer's handler ran.
+    expect(seen).toEqual([true]);
+  });
+
+  it('runs a consumer oninput and still parses the typed value', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const oninput = vi.fn();
+    render({ onValueChange, oninput });
+
+    await user.type(spin(), '7');
+
+    expect(oninput).toHaveBeenCalledOnce();
+    expect(onValueChange).toHaveBeenLastCalledWith(7);
+  });
+
+  it('runs consumer onfocus/onblur and still clamps on blur', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const onfocus = vi.fn();
+    const onblur = vi.fn();
+    render({ max: 10, onValueChange, onfocus, onblur });
+
+    await user.type(spin(), '42');
+    await user.tab();
+
+    expect(onfocus).toHaveBeenCalledOnce();
+    expect(onblur).toHaveBeenCalledOnce();
+    expect(onValueChange).toHaveBeenLastCalledWith(10);
+  });
+
+  it('runs a consumer onwheel and still steps a focused field', () => {
+    const onValueChange = vi.fn();
+    const onwheel = vi.fn();
+    render({ value: 5, onValueChange, onwheel });
+
+    // Focus first: the wheel steers only a focused field, and that state is set
+    // by NumberInput's own onfocus — composing must not lose it.
+    spin().focus();
+    spin().dispatchEvent(new WheelEvent('wheel', { deltaY: -1, bubbles: true, cancelable: true }));
+    flushSync();
+
+    expect(onwheel).toHaveBeenCalledOnce();
+    expect(onValueChange).toHaveBeenLastCalledWith(6);
+  });
+});

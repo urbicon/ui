@@ -5,6 +5,7 @@
   import { Button } from '#lib/primitives/Button/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import {
     computePosition,
     autoUpdate,
@@ -28,7 +29,9 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset
+    preset,
+    onkeydown: onkeydownProp,
+    ...restProps
   }: GuideProps = $props();
 
   const guide = getGuideContext();
@@ -354,7 +357,12 @@
 
   function onBubbleKeydown(e: KeyboardEvent) {
     if (e.defaultPrevented) return;
-    if (e.key === 'ArrowRight') {
+    // Escape is claimed here as well as on the window: a consumer `onkeydown` on the bubble
+    // runs before the window listener, and its `preventDefault` must not cancel the skip.
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      guide?.skip();
+    } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       // An advance:'action' step only moves via controller.next() — the user performs
       // the real action and the app advances imperatively (mirrors the gated footer).
@@ -486,6 +494,7 @@
       </svg>
 
       <div
+        {...restProps}
         bind:this={bubbleEl}
         class={[
           'guide-tour-bubble',
@@ -498,7 +507,7 @@
         aria-modal={view.interactive ? undefined : 'true'}
         tabindex="-1"
         style={bubbleStyle}
-        onkeydown={onBubbleKeydown}
+        onkeydown={composeHandlers(onBubbleKeydown, onkeydownProp)}
       >
         <!-- Stable dialog name via `aria-label`; the changing step content is announced by the
              always-present live region (a sibling of this popover, so it isn't display:none-gated
