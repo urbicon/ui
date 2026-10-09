@@ -134,7 +134,7 @@ describe('BarChart — bars', () => {
       ]
     });
 
-    // Two 100 px bands, each bar 67.5 px wide and centred in its band.
+    // Two 100 px steps, each band 75 px; the bar 67.5 px, centred in it.
     expect(bars(target)).toEqual([
       [16.25, 0, 67.5, 60],
       [116.25, 60, 67.5, 30]

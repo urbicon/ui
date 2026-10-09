@@ -33,7 +33,9 @@ function render(props: DonutChartProps): HTMLElement {
   document.body.append(target);
   const app = mount(DonutChart, {
     target,
-    props: { size: SIZE, formatValue: String, ...props }
+    // `formatValue` does not reach the share column's percent formatter;
+    // `locale` does, and `nonFinite` reads its NaN in English.
+    props: { size: SIZE, formatValue: String, locale: 'en-US', ...props }
   });
   dispose = () => unmount(app);
   flushSync();

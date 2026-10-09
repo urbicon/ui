@@ -57,9 +57,25 @@ function points(target: Element) {
   return [...target.querySelectorAll('circle')].map((c) => [num(c, 'cx'), num(c, 'cy')]);
 }
 
-/** The `d` of each series line. */
+const N = String.raw`-?[\d.]+`;
+/** A straight polyline: one move-to, then line-tos — or nothing at all. */
+const POLYLINE = new RegExp(`^(?:M${N},${N}(?:L${N},${N})*)?$`);
+
+/** The vertices `[x, y]` of each series line, read back from its `d`. */
 function lines(target: Element) {
-  return [...target.querySelectorAll('path')].map((path) => path.getAttribute('d'));
+  return [...target.querySelectorAll('path')].map((path) => {
+    const d = path.getAttribute('d') ?? '';
+    if (!POLYLINE.test(d)) throw new Error(`not a straight polyline: "${d}"`);
+    return [...d.matchAll(new RegExp(`[ML](${N}),(${N})`, 'g'))].map(([, x, y]) => [
+      Number(x),
+      Number(y)
+    ]);
+  });
+}
+
+/** Vertices matched to the 2 decimals a path's `d` carries. */
+function near(vertices: number[][]) {
+  return vertices.map((vertex) => vertex.map((value) => expect.closeTo(value, 2)));
 }
 
 /** Value-axis tick labels, bottom tick first. */
@@ -105,7 +121,8 @@ describe('LineChart — series geometry', () => {
   it('draws the line through its points', () => {
     const target = render({ data: WEEK });
 
-    expect(lines(target)).toEqual(['M0,100L100,0L200,50']);
+    expect(points(target)).toHaveLength(3);
+    expect(lines(target)).toEqual([near(points(target))]);
   });
 
   it('draws one point per series and datum, and a missing value as zero', () => {
@@ -118,7 +135,16 @@ describe('LineChart — series geometry', () => {
     });
 
     // B has no value at `b`, so the domain is [0, 4] and B ends on the floor.
-    expect(lines(target)).toEqual(['M0,50L200,0', 'M0,0L200,100']);
+    expect(lines(target)).toEqual([
+      [
+        [0, 50],
+        [200, 0]
+      ],
+      [
+        [0, 0],
+        [200, 100]
+      ]
+    ]);
     expect(points(target)).toEqual([
       [0, 50],
       [200, 0],
@@ -136,8 +162,8 @@ describe('LineChart — degenerate data', () => {
     expect(cx).toBe(100);
     expect(cy).toBeGreaterThanOrEqual(0);
     expect(cy).toBeLessThanOrEqual(100);
-    // A lone move-to: nothing to connect, nothing drawn off the point.
-    expect(lines(target)).toEqual([expect.stringMatching(/^M100,[\d.]+$/)]);
+    // A lone move-to on the point: nothing to connect, nothing drawn off it.
+    expect(lines(target)).toEqual([near([[cx, cy]])]);
     expect(nonFinite(target)).toEqual([]);
   });
 
@@ -145,7 +171,7 @@ describe('LineChart — degenerate data', () => {
     const target = render({ data: [] });
 
     expect(points(target)).toEqual([]);
-    expect(lines(target)).toEqual(['']);
+    expect(lines(target)).toEqual([[]]);
     expect(tickLabels(target).length).toBeGreaterThan(1);
     expect(nonFinite(target)).toEqual([]);
     expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe('Line chart: 0 points');

@@ -5,9 +5,10 @@ import ChartFramePlotProbe from './__fixtures__/ChartFramePlotProbe.svelte';
 /**
  * The server has no container to measure, so the frame it sends is drawn at
  * the pre-measure width — 320 px unless `width` is set — and a visitor sees
- * that drawing, scaled into the column, until hydration and the first
- * observation replace it. A fixed `width` is what makes the server output
- * final, which is the reason the prop exists.
+ * that drawing 320 px wide, centred in a wider column (scaled down in a
+ * narrower one), until hydration and the first observation replace it. A
+ * fixed `width` is what makes the server output final, which is the reason
+ * the prop exists.
  */
 
 /** The attributes of the one mark the probe draws over the plot box. */

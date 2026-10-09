@@ -53,20 +53,23 @@ export function expectedCarriers<Slot extends string>(
 }
 
 /**
- * A numeric attribute rounded to 6 decimals, so a test can compare it with a
- * literal: a scale step like 90 / 30 lands a hair off the integer. `NaN` when
- * absent, so a missing attribute fails the match. `+ 0` folds `-0` into `0`,
- * which `toEqual` tells apart.
+ * A numeric attribute; `NaN` when absent, so a missing attribute fails the
+ * match. `+ 0` folds `-0` into `0`, which `toEqual` tells apart.
  */
 export function num(el: Element, name: string): number {
   const value = el.getAttribute(name);
-  return value === null ? Number.NaN : Math.round(Number(value) * 1e6) / 1e6 + 0;
+  return value === null ? Number.NaN : Number(value) + 0;
 }
 
 /**
  * Every attribute value and text node under `root` that spells a non-finite
  * number — `NaN`, `Infinity`, or the `∞` `Intl.NumberFormat` prints for it.
  * A zero-width domain or a zero total that reaches a division shows up here.
+ *
+ * Formatted text spells NaN in the formatter's locale (`не число` under
+ * ru-RU), and Node takes its default locale from `LANG`, so every formatter a
+ * mount reaches has to spell it in English — `formatValue: String`, or an
+ * English `locale` — or this reads past it.
  */
 export function nonFinite(root: Element): string[] {
   const bad = /NaN|Infinity|∞/;
