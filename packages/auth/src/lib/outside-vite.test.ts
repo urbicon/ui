@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { conformanceChecks } from './server/adapters/conformance-core.js';
 
 /**
  * The `@urbicon-ui/auth/server…` entries in processes without Vite — `bun test`,
@@ -186,8 +187,11 @@ describe('the server entries outside Vite', () => {
   it('run under bun test with the documented preload, conformance kit included', () => {
     const { status, output } = run('bun', ['test', './probe.test.ts'], consumer);
     expect(status, output).toBe(0);
-    expect(output).toMatch(/\b0 fail\b/);
-    expect(output).toMatch(/\b[1-9]\d* pass\b/);
+    expect(output).toMatch(/^\s*0 fail$/m);
+    // The hash test plus every conformance check: the probe declares all
+    // capabilities, so none of them may be missing or skipped.
+    const passed = Number(output.match(/^\s*(\d+) pass$/m)?.[1]);
+    expect(passed, output).toBe(conformanceChecks.length + 1);
   }, 120_000);
 
   it('run as a Bun script with the documented preload', () => {

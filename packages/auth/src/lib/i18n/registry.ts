@@ -43,9 +43,12 @@ const subscribe = createSubscriber((update) => {
 
 /**
  * Put `bundle` under `locale` and re-render whatever read the registry.
- * Unchecked — `registerAuthLocale` is the write-strict public entry, and this
- * module cannot hold it: its checks come from `@urbicon-ui/i18n`'s root, which
- * ships Svelte components. Internal: not a package export.
+ * Unchecked — `registerAuthLocale` is the write-strict public entry, and it
+ * stays out of this module because its checks come from `@urbicon-ui/i18n`:
+ * the root entry ships Svelte components Node cannot load, and the subpath
+ * that re-exports the checks without them, `/audit`, is documented as dev-only,
+ * which a server runtime dependency on it would contradict. Internal: not a
+ * package export.
  */
 export function storeAuthLocale(locale: Locale, bundle: AuthLocale): void {
   registry[locale] = bundle;

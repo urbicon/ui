@@ -70,8 +70,13 @@ keeps it out of browser code ([Upgrade note — SvelteKit 3](#upgrade-note--svel
 and only SvelteKit's Vite plugin resolves that specifier. A process without
 it — `bun test`, a seed script, the key-generation script of
 [Setup — IdP side](#setup--idp-side) — resolves it to an empty module itself;
-the package imports nothing from it. Nothing else is needed: no module behind
-the server entries is a Svelte component or a runes module.
+the package imports nothing from it. The server entries need nothing else: no
+module behind them is a Svelte component or a runes module. A script that
+sends the default mails in a locale other than `en` also needs
+`registerAuthLocale`, which only the root entry exports, beside the
+components. Bun loads that entry; Node refuses its `.svelte` files
+(`Unknown file extension ".svelte"`), so a Node script's mails go out in English,
+with the one warning per locale that [Locales](#locales) describes.
 
 Bun, one preload for `bun test` and for scripts:
 
@@ -93,7 +98,9 @@ plugin({
 preload = ['./app-server-stub.ts']
 ```
 
-Node ≥ 22.17, a resolve hook:
+Node ≥ 22.17, a resolve hook through `module.registerHooks` — experimental
+(Stability 1.1) on Node 22 and up to 24.13.0 / 25.3.0, a release candidate
+(1.2) from 24.13.1 / 25.4.0:
 
 ```js
 // app-server-stub.mjs
@@ -144,7 +151,7 @@ package of its own, outside this one
 | `@urbicon-ui/auth/server`                      | Server only         | Handlers, auth core, adapters                               |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server only         | Prisma adapter factory (`createPrismaRepos`)                |
 | `@urbicon-ui/auth/server/adapters/in-memory`   | Server only         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test |
-| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` (bun:test as-is with the [`$app/server` preload](#outside-vite); jest needs `expect: (a) => expect(a)`) |
+| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` (bun:test's as they are, jest's `expect` wrapped as `(a) => expect(a)`). Outside Vitest with `sveltekit()`, any runner needs `$app/server` mapped to an empty module ([Outside Vite](#outside-vite)) |
 | `@urbicon-ui/auth/server/adapters/conformance` | Server only (tests) | Adapter conformance suite (`describeRepositoryConformance`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server only         | Lettermint email transport                                  |
 | `@urbicon-ui/auth/server/email/console`        | Server only         | Console email transport (dev)                               |
@@ -1313,7 +1320,7 @@ The `mapX` seams (`mapUser`, `mapPasskey`, `mapRefreshToken`, `mapInvitation`, `
 
 ### Validate it: the conformance suite
 
-Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. The entry below registers vitest for you; under any other runner import `…/adapters/conformance-core` instead and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own, and under `bun test` it loads behind the [`$app/server` preload](#outside-vite) like every server module:
+Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. Under any runner but vitest, import `…/adapters/conformance-core` rather than the entry below and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own. Like every server module it imports `$app/server`, which any runner but Vitest with `sveltekit()` has to map to an empty module ([Outside Vite](#outside-vite) has the preload for `bun test`). The entry below registers vitest for you:
 
 <!-- typecheck -->
 ```ts
