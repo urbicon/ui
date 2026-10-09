@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.27.0](https://github.com/urbicon/ui/compare/v8.26.1...v8.27.0) - 2026-10-09
+
+### Breaking Changes
+- Move the platform to SvelteKit 3, sv 1 and Vitest 5 ([#505](https://github.com/urbicon/ui/issues/505))
+> **BREAKING:** requires SvelteKit 3, Node 22.17, Svelte 5.57.1 (AUTH.md, Upgrade note SvelteKit 3) * feat(auth)!: the server entries import $app/server, so SvelteKit refuses them in browser code For a package in node_modules the import is the only server-only signal SvelteKit reads; the directory name counts for the app's own files alone. With it, a client import of @urbicon-ui/auth/server fails the consumer's build with server_only_import and the import chain, instead of shipping the signing code to the browser (measured on a fresh sv app with the packed tarball; server-side use builds and serves as before) …
+> **BREAKING:** tests importing @urbicon-ui/auth/server need the sveltekit() plugin in Vitest * build: run the test suites on Vitest 5 Nothing in the migration guide's list reaches this repo: no benchmarks, no .sequential, no removed entry points, no browser mode, expect.poll only in Playwright. clearMocks now defaults to true and breaks no test. Every suite reports the counts it reported on Vitest 4, check is clean, and no deprecation warning is printed. ---------
+
 ## [8.26.0](https://github.com/urbicon/ui/compare/v8.25.0...v8.26.0) - 2026-09-24
 
 ### Breaking Changes
