@@ -2,8 +2,9 @@
 import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerBlocksLocale } from '#lib/i18n/index.js';
-import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import {
   dataTable,
   expectedCarriers,
@@ -15,7 +16,6 @@ import {
   vertices
 } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import { LINE_CHART_SLOTS, type LineChartSlot } from '#lib/internal/charts/slots.js';
-import deTranslations from '#lib/translations/de.js';
 import type { LineChartProps } from './index';
 import LineChart from './LineChart.svelte';
 
@@ -234,13 +234,12 @@ describe('LineChart — what a screen reader gets', () => {
   });
 
   it('heads the table in the active locale, unnamed series included', () => {
-    registerBlocksLocale('de', deTranslations);
-    const target = render({ data: [{ label: 'Mon', values: [1, 2] }] }, 'de');
+    const target = render({ data: [{ label: 'Mon', values: [1, 2] }] }, registerMarkedLocale());
 
     expect(dataTable(target).rows[0]).toEqual([
-      'th[col] Kategorie',
-      'th[col] Datenreihe 1',
-      'th[col] Datenreihe 2'
+      'th[col] fr:Category',
+      'th[col] fr:Series 1',
+      'th[col] fr:Series 2'
     ]);
   });
 

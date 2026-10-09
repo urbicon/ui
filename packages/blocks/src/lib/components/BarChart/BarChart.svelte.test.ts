@@ -2,8 +2,9 @@
 import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerBlocksLocale } from '#lib/i18n/index.js';
-import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import {
   dataTable,
   expectedCarriers,
@@ -14,7 +15,6 @@ import {
   titles
 } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import { BAR_CHART_SLOTS, type BarChartSlot } from '#lib/internal/charts/slots.js';
-import deTranslations from '#lib/translations/de.js';
 import BarChart from './BarChart.svelte';
 import type { BarChartProps } from './index';
 
@@ -270,26 +270,32 @@ describe('BarChart — what a screen reader gets', () => {
   });
 
   it('heads the table in the active locale, unnamed series included', () => {
-    registerBlocksLocale('de', deTranslations);
-    const target = render({ data: [{ label: 'Q1', values: [1, 2] }] }, 'de');
+    const target = render({ data: [{ label: 'Q1', values: [1, 2] }] }, registerMarkedLocale());
 
     expect(dataTable(target).rows[0]).toEqual([
-      'th[col] Kategorie',
-      'th[col] Datenreihe 1',
-      'th[col] Datenreihe 2'
+      'th[col] fr:Category',
+      'th[col] fr:Series 1',
+      'th[col] fr:Series 2'
     ]);
   });
 
-  it('titles each bar with its series, its category and the formatted value', () => {
-    const target = render(QUARTERS);
+  it.each([
+    ['grouped', false],
+    ['stacked', true]
+  ])(
+    'titles each %s bar with its series, its category and its own value, formatted',
+    (_mode, stacked) => {
+      // A stacked segment's title carries its own value, not the running total it reaches.
+      const target = render({ ...QUARTERS, stacked });
 
-    expect(titles(target.querySelectorAll('rect'))).toEqual([
-      'Revenue — Q1: 12k',
-      'Cost — Q1: 8k',
-      'Revenue — Q2: 19k',
-      'Cost — Q2: 0k'
-    ]);
-  });
+      expect(titles(target.querySelectorAll('rect'))).toEqual([
+        'Revenue — Q1: 12k',
+        'Cost — Q1: 8k',
+        'Revenue — Q2: 19k',
+        'Cost — Q2: 0k'
+      ]);
+    }
+  );
 });
 
 describe('BarChart — slot contract', () => {

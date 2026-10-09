@@ -49,7 +49,10 @@ export interface ChartPlot {
 
 /** A data series shared across the cartesian charts. */
 export interface ChartSeries {
-  /** Legend + tooltip label. */
+  /**
+   * Series name: legend entry and data-table column header; BarChart and
+   * LineChart also put it in each mark's `<title>`.
+   */
   label: string;
   /** Explicit color; defaults to the cycled categorical palette. */
   color?: string;

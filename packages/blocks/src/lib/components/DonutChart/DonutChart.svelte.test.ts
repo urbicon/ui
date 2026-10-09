@@ -2,8 +2,9 @@
 import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerBlocksLocale } from '#lib/i18n/index.js';
-import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import {
   dataTable,
   expectedCarriers,
@@ -13,7 +14,6 @@ import {
   titles
 } from '#lib/internal/charts/__fixtures__/chart-dom.js';
 import { DONUT_CHART_SLOTS, type DonutChartSlot } from '#lib/internal/charts/slots.js';
-import deTranslations from '#lib/translations/de.js';
 import DonutChart from './DonutChart.svelte';
 import type { DonutChartProps } from './index';
 
@@ -331,14 +331,24 @@ describe('DonutChart — what a screen reader gets', () => {
     });
   });
 
+  it('formats the share column in the locale it is given', () => {
+    // Intl's de-DE percent sets the sign apart with a no-break space. Spelled
+    // by code point: the formatter turns a `\u00a0` escape into the bare,
+    // invisible character.
+    const nbsp = String.fromCharCode(0xa0);
+    const target = render({ ...CHANNELS, formatValue: undefined, locale: 'de-DE' });
+    const shares = dataTable(target).rows.map((row) => row[2]);
+
+    expect(shares.slice(1)).toEqual([`td 25${nbsp}%`, `td 75${nbsp}%`, `td 0${nbsp}%`]);
+  });
+
   it('heads the table in the active locale', () => {
-    registerBlocksLocale('de', deTranslations);
-    const target = render(CHANNELS, 'de');
+    const target = render(CHANNELS, registerMarkedLocale());
 
     expect(dataTable(target).rows[0]).toEqual([
-      'th[col] Segment',
-      'th[col] Wert',
-      'th[col] Anteil'
+      'th[col] fr:Segment',
+      'th[col] fr:Value',
+      'th[col] fr:Share'
     ]);
   });
 

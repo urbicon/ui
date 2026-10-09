@@ -2,10 +2,10 @@
 import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerBlocksLocale } from '#lib/i18n/index.js';
-import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
+import ChartLocaleHost, {
+  registerMarkedLocale
+} from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import { dataTable, nonFinite, vertices } from '#lib/internal/charts/__fixtures__/chart-dom.js';
-import deTranslations from '#lib/translations/de.js';
 import AreaChart from './AreaChart.svelte';
 import type { AreaChartProps } from './index';
 
@@ -182,19 +182,25 @@ describe('AreaChart — overlaid series', () => {
   });
 
   it('draws every series from zero, over the others rather than on top of them', () => {
-    const target = render(TWO_SERIES);
+    // The maximum sits in the second series: the axis has to read every series.
+    const target = render({
+      data: [
+        { label: 'a', values: [2, 3] },
+        { label: 'b', values: [1, 4] }
+      ]
+    });
 
     // Domain [0, 4], 25 px per unit.
     expect(bands(target)).toEqual([
       [
         [0, 50],
-        [200, 0],
+        [200, 75],
         [200, 100],
         [0, 100]
       ],
       [
         [0, 25],
-        [200, 75],
+        [200, 0],
         [200, 100],
         [0, 100]
       ]
@@ -260,43 +266,35 @@ describe('AreaChart — degenerate data', () => {
     expect(nonFinite(target)).toEqual([]);
   });
 
-  it('centres a single point horizontally, with no non-finite coordinate', () => {
+  it('centres a single point horizontally, its band a zero-width drop to zero', () => {
     const target = render({ data: [{ label: 'Only', values: [5] }] });
+    const [band] = bands(target);
+    const ys = band.map(([, y]) => y);
 
     // Domain [0, 5]: the value at the top, zero on the floor beneath it.
     expect(outlines(target)).toEqual([[[100, 0]]]);
-    expect(bands(target)).toEqual([
-      [
-        [100, 0],
-        [100, 100],
-        [100, 100]
-      ]
-    ]);
+    expect(new Set(band.map(([x]) => x))).toEqual(new Set([100]));
+    expect([Math.min(...ys), Math.max(...ys)]).toEqual([0, 100]);
     expect(nonFinite(target)).toEqual([]);
   });
 
-  it('opens a unit window for an all-zero series and lays it flat on the floor', () => {
+  it('lays an all-zero series flat inside the plot, without dividing by a zero range', () => {
     const target = render({
       data: [
         { label: 'a', values: [0] },
         { label: 'b', values: [0] }
       ]
     });
+    const [outline] = outlines(target);
+    const [band] = bands(target);
+    // The line and the band's closing edge both lie on the zero line.
+    const ys = new Set([...outline, ...band].map(([, y]) => y));
 
-    expect(outlines(target)).toEqual([
-      [
-        [0, 100],
-        [200, 100]
-      ]
-    ]);
-    expect(bands(target)).toEqual([
-      [
-        [0, 100],
-        [200, 100],
-        [200, 100],
-        [0, 100]
-      ]
-    ]);
+    expect(outline.map(([x]) => x)).toEqual([0, 200]);
+    expect(ys.size).toBe(1);
+    const [zeroY] = ys;
+    expect(zeroY).toBeGreaterThanOrEqual(0);
+    expect(zeroY).toBeLessThanOrEqual(100);
     expect(nonFinite(target)).toEqual([]);
   });
 });
@@ -342,13 +340,12 @@ describe('AreaChart — what a screen reader gets', () => {
   });
 
   it('heads the table in the active locale, unnamed series included', () => {
-    registerBlocksLocale('de', deTranslations);
-    const target = render({ data: [{ label: 'Jan', values: [1, 2] }] }, 'de');
+    const target = render({ data: [{ label: 'Jan', values: [1, 2] }] }, registerMarkedLocale());
 
     expect(dataTable(target).rows[0]).toEqual([
-      'th[col] Kategorie',
-      'th[col] Datenreihe 1',
-      'th[col] Datenreihe 2'
+      'th[col] fr:Category',
+      'th[col] fr:Series 1',
+      'th[col] fr:Series 2'
     ]);
   });
 });

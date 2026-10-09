@@ -1,10 +1,31 @@
+<script lang="ts" module>
+  import type { Locale } from '@urbicon-ui/i18n';
+  import { registerBlocksLocale } from '#lib/i18n/index.js';
+  import en from '#lib/translations/en.js';
+
+  /**
+   * Registers `fr` with every `chart` string set to its English one behind a
+   * `fr:` marker, and returns it. Derived from `en`, so each key differs from
+   * English — a real catalog may legitimately match it ("Segment" in `de`) —
+   * and a header that reads `fr:…` can only have come through the active
+   * locale. `fr` ships no blocks bundle, so nothing real is overridden.
+   */
+  export function registerMarkedLocale(): Locale {
+    const chart = Object.fromEntries(
+      Object.entries(en.chart).map(([key, text]) => [key, `fr:${text}`])
+    );
+    registerBlocksLocale('fr', { chart });
+    return 'fr';
+  }
+</script>
+
 <script lang="ts">
   // A chart mounted under a request-scoped i18n state, so a test reads the
   // strings a chart translates itself — the data-table headers, the names of
-  // unnamed series — in a locale other than the base one. The caller
-  // eager-registers the bundle (`registerBlocksLocale`), so resolution is
-  // synchronous instead of waiting for the lazy chunk.
-  import { type Locale, provideI18n } from '@urbicon-ui/i18n';
+  // unnamed series — in a locale other than the base one. The bundle is
+  // registered eagerly, so resolution is synchronous instead of waiting for a
+  // lazy chunk.
+  import { provideI18n } from '@urbicon-ui/i18n';
   import type { Component } from 'svelte';
 
   let {

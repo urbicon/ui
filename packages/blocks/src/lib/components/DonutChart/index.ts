@@ -5,7 +5,11 @@ import type { DonutChartSlotClasses } from '#lib/internal/charts/types.js';
 export interface DonutDatum {
   /** Slice label (legend + data table). */
   label: string;
-  /** Numeric value; the slice angle is its share of the total. */
+  /**
+   * Numeric value; the slice angle is its share of the total. A value at or
+   * below zero draws no slice, adds nothing to the total and reads as 0 in the
+   * data table.
+   */
   value: number;
   /** Explicit color; defaults to the cycled categorical palette. */
   color?: string;
