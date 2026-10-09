@@ -1,8 +1,8 @@
 <!-- urbicon-ignore raw-tailwind-color — the Customization demo paints the trigger with
      `slotClasses.button`: it keeps the button's shape and behaviour, and only the
-     violet→fuchsia gradient, its hover shift and the white icon are raw — a two-hue brand
-     gradient the intent palette has no equivalent for. Every other section on this page stays
-     under the rule. -->
+     violet→fuchsia gradient, its hover shift and the violet glow under it are raw — a two-hue
+     brand gradient the intent palette has no equivalent for. Every other section on this page
+     stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Kbd, ThemeSwitcher, Toggle } from '@urbicon-ui/blocks';
@@ -63,7 +63,7 @@
     <ThemeSwitcher
       slotClasses={{
         button:
-          'bg-linear-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600 shadow-md shadow-violet-500/20',
+          'bg-linear-to-r from-violet-500 to-fuchsia-500 text-neutral-0 hover:from-violet-600 hover:to-fuchsia-600 shadow-md shadow-violet-500/20',
         icon: 'h-5 w-5'
       }}
     />

@@ -58,6 +58,9 @@ const RAW_PALETTE_STEPLESS = 'white|black';
 const COLOR_PREFIXES = [
   'scrollbar-thumb',
   'scrollbar-track',
+  'inset-shadow',
+  'drop-shadow',
+  'text-shadow',
   'ring-offset',
   'inset-ring',
   'border-bs',
@@ -73,6 +76,7 @@ const COLOR_PREFIXES = [
   'bg',
   'text',
   'border',
+  'shadow',
   'ring',
   'divide',
   'outline',

@@ -30,9 +30,6 @@ function tailwindColourKeys(): string[] {
  * Each is a decision, not an oversight; an entry that matches no root fails as stale.
  */
 const UNFLAGGED_COLOUR_ROOTS: Record<string, RegExp> = {
-  // The system has no shadow-colour token — its shadows come whole from `--blocks-shadow-*`
-  // — so a flagged `shadow-black/10` would have nothing to switch to.
-  shadow: /^(?:inset-|drop-|text-)?shadow$/,
   // A mask stop never paints: only its alpha (or luminance) decides what shows through.
   'mask stop': /^mask-[a-z]+-(?:from|to)$/
 };
@@ -74,9 +71,20 @@ describe('raw-tailwind-color', () => {
       'stroke-black',
       'accent-white',
       'caret-black',
-      'placeholder-white'
+      'placeholder-white',
+      'shadow-black/10',
+      'inset-shadow-white/20',
+      'drop-shadow-black/50',
+      'text-shadow-black'
     ];
     expect(rawMatches(`<div class="hover:${classes.join(' !')}">`)).toEqual(classes);
+  });
+  it('leaves a token-coloured shadow and the shadow scale alone', () => {
+    const { counts } = lintDesign(
+      '<div class="shadow-sm shadow-neutral-950/10 shadow-primary/20 shadow-[var(--blocks-shadow-lg)] text-shadow-lg">',
+      { skipHeuristics: true }
+    );
+    expect(counts.error).toBe(0);
   });
   it('flags a raw colour wherever a class can sit', () => {
     const cases: [code: string, match: string][] = [

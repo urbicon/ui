@@ -559,10 +559,16 @@ Create custom themes with a `@theme` block:
 a `preset="…"` prop. They are the **preferred alternative** to ad-hoc `class="bg-…!"`
 overrides at call sites.
 
-Register once at the app root:
+Register once at the app root, from a wrapper component of its own — a raw brand colour has
+no token, and its exemption should cover the presets map, never the whole root layout:
 ```svelte
-<script>
+<!-- src/lib/AppPresets.svelte -->
+<!-- urbicon-ignore arbitrary-color — preset registry: the brand hex has no token -->
+<script lang="ts">
   import { BlocksProvider } from '@urbicon-ui/blocks';
+  import type { Snippet } from 'svelte';
+
+  let { children }: { children: Snippet } = $props();
 </script>
 
 <BlocksProvider
@@ -575,7 +581,7 @@ Register once at the app root:
       },
       brand: {
         slotClasses: {
-          base: 'bg-[#FF5A1F] hover:bg-[#E04C15] active:bg-[#C53F0D] text-neutral-0 border-transparent'
+          base: 'bg-[#C53F0D] hover:bg-[#A8360B] active:bg-[#8F2E09] text-neutral-0 border-transparent'
         }
       }
     },
@@ -588,9 +594,24 @@ Register once at the app root:
     }
   }}
 >
-  <slot />
+  {@render children()}
 </BlocksProvider>
 ```
+
+```svelte
+<!-- src/routes/+layout.svelte -->
+<script lang="ts">
+  import AppPresets from '$lib/AppPresets.svelte';
+
+  let { children } = $props();
+</script>
+
+<AppPresets>{@render children()}</AppPresets>
+```
+
+The pragma names the rule the colour trips: `arbitrary-color` for a hex like `brand`,
+`raw-tailwind-color` for a palette class such as `bg-orange-700`. `overlay` and `glass` need
+neither — `neutral-0` and `neutral-950` are tokens.
 
 Then use across the project:
 ```svelte
@@ -635,7 +656,7 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
     Input: { slotClasses: { base: 'rounded-full' } }
   }}
 >
-  <slot />
+  {@render children()}
 </BlocksProvider>
 ```
 
@@ -648,7 +669,7 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
 ```svelte
 <!-- Only outlined badges get a 1px border; the conflict resolver strips the variant's border-2. -->
 <BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
-  <slot />
+  {@render children()}
 </BlocksProvider>
 ```
 
@@ -667,7 +688,7 @@ Strip all default styles from every component, then apply your own:
 <BlocksProvider unstyled defaults={{
   Button: { slotClasses: { base: 'inline-flex items-center border-2 px-6 py-3 font-mono' } }
 }}>
-  <slot />
+  {@render children()}
 </BlocksProvider>
 ```
 
