@@ -17,7 +17,7 @@ and ships in the `@urbicon-ui/table` tarball.
 
 `SegmentGroup`, `FileUpload`, `LocaleSwitcher` and `DatePicker` spread the props they do not model
 after their own attributes, so an attribute you passed replaced one they compute. They now spread
-it first, as every other component does, and the component's value wins where it has one:
+it first, and the component's value wins where it has one:
 
 - **`SegmentGroup`** ignores a `role`, `aria-orientation` or `data-collapsed` you pass, and its
   `aria-disabled` is `"true"` while `disabled` even against your `"false"`. An `onkeydown` of yours
@@ -32,7 +32,7 @@ it first, as every other component does, and the component's value wins where it
 Nothing reports the change. The hits to read:
 
 ```sh
-rg -nU "<(SegmentGroup|FileUpload|LocaleSwitcher|DatePicker)\b[^>]*\b(role|onkeydown|placeholder|aria-orientation|aria-disabled|data-collapsed|aria-label)=" src
+rg -nU '<(SegmentGroup|FileUpload|LocaleSwitcher|DatePicker)\b(?:=>|[^>])*?(\b(role|onkeydown|placeholder|aria-orientation|aria-disabled|data-collapsed|aria-label)=|\{(role|onkeydown|placeholder)\}|\{\.\.\.)' src
 ```
 
 ## 8.26.0

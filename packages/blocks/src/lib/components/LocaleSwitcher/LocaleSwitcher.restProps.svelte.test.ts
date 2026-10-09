@@ -38,7 +38,6 @@ const trigger = () => screen.getByRole('combobox');
 const loading = () => trigger().hasAttribute('disabled');
 
 describe('LocaleSwitcher (restProps)', () => {
-  // First in the file on purpose: see the header.
   it('shows the loading text over a consumer placeholder while a locale loads', () => {
     render({ locales: ['en'], initialLocale: 'de', placeholder: 'Pick one' });
 

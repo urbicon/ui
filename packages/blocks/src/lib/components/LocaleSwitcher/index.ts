@@ -9,8 +9,9 @@ import type { SelectSingleProps } from '#lib';
  * Single-select only — locale is always exactly one value. Options, value,
  * form integration, multi-select, and null-option are all owned internally
  * and intentionally not forwarded to the underlying Select. A `placeholder` or
- * `aria-label` you pass replaces the localized default, except that the
- * placeholder shows the localized loading text while a locale loads.
+ * `aria-label` you pass replaces the localized default. The placeholder shows
+ * only while the active locale is not among `locales`, and while a locale
+ * loads it is the localized loading text.
  *
  * @tag form
  * @related Select
