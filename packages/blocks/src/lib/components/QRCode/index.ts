@@ -25,9 +25,9 @@ import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
  */
 export interface QRCodeProps
   extends QRCodeVariants,
-    // `class`, `id` and the three naming ARIA attributes are modelled below; the
-    // rest of a span's attributes reach the root. The ARIA attributes go to the
-    // `role="img"` element instead, the one an assistive technology reads.
+    // `class`, `id` and the naming and description ARIA attributes are modelled
+    // below; the rest of a span's attributes reach the root. The ARIA attributes go
+    // to the `role="img"` element instead, the one an assistive technology reads.
     Omit<
       HTMLAttributes<HTMLSpanElement>,
       'class' | 'id' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'children'

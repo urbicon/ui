@@ -5,7 +5,6 @@
   import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '#lib/icons/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
   import { filterArticles, groupArticles, hasNamedGroups } from './guide-panel.articles';
@@ -183,6 +182,18 @@
     if (fromInside && returnTo) returnTo.focus?.();
   }
 
+  // Events whose `defaultPrevented` only the consumer's `onkeydown` set. That handler runs at
+  // the element, before `document`, where a manual-mode Popover inside the panel dismisses;
+  // the panel's own Escape runs on the window, after it, and treats a prevent from the
+  // consumer as unclaimed. A prevent from anything else still claims the key.
+  const consumerPrevented = new WeakSet<Event>();
+
+  function handleAsideKeydown(e: KeyboardEvent & { currentTarget: EventTarget & HTMLElement }) {
+    const before = e.defaultPrevented;
+    onkeydownProp?.(e);
+    if (!before && e.defaultPrevented) consumerPrevented.add(e);
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     // Non-modal: only claim Escape when focus is actually inside the panel, so an open
     // Dialog/Combobox in the foreground keeps priority over the help panel.
@@ -190,7 +201,7 @@
       e.key === 'Escape' &&
       closeOnEscape &&
       open &&
-      !e.defaultPrevented &&
+      (!e.defaultPrevented || consumerPrevented.has(e)) &&
       panelEl?.contains(document.activeElement)
     ) {
       e.preventDefault();
@@ -198,6 +209,8 @@
     }
   }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 {#if guide}
   <aside
@@ -212,7 +225,7 @@
     data-placement={placement}
     inert={!open || undefined}
     aria-labelledby={`${panelId}-title`}
-    onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
+    onkeydown={handleAsideKeydown}
   >
     <header
       class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}
