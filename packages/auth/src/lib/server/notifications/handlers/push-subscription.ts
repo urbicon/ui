@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { AuthLogger, RateLimitConfig } from '../../../types.js';
 import type {
   PushSubscriptionRepository,
@@ -175,7 +174,7 @@ export function createPushSubscriptionHandler(
         );
       }
 
-      return json({ success: true }, { status: 201 });
+      return Response.json({ success: true }, { status: 201 });
     },
 
     DELETE: async ({ request, locals }) => {
@@ -190,7 +189,7 @@ export function createPushSubscriptionHandler(
       }
 
       await repo.delete(userId, endpoint);
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

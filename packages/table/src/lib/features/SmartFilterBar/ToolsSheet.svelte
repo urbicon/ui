@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { useTableI18n } from '$lib';
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { resolveColumnLabelById } from '$lib/utils';
+  import { useTableI18n } from '#lib';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { resolveColumnLabelById } from '#lib/utils/index.js';
   import { Accordion, AccordionItem, Badge, Button, Drawer } from '@urbicon-ui/blocks';
   import { SvelteSet } from 'svelte/reactivity';
-  import { toolsSheetVariants } from '$lib/variants';
+  import { toolsSheetVariants } from '#lib/variants/index.js';
   import ColumnVisibilityPanel from './ColumnVisibilityPanel.svelte';
   import FilterPanel from './FilterPanel.svelte';
   import GroupingPanel from './GroupingPanel.svelte';

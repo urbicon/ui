@@ -1,4 +1,4 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 import type { DateGridContext } from './date-grid.types';
 
 // Optional helper so the getter below can throw a descriptive error instead of

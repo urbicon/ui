@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import type { FileUploadProps, FileUploadFile, FileUploadSlotName } from './index';
   import { fileUploadVariants, type FileUploadVariants } from './fileUpload.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import UploadCloudIconDefault from '$lib/icons/UploadCloudIcon.svelte';
-  import FileIconDefault from '$lib/icons/FileIcon.svelte';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import CheckCircleIconDefault from '$lib/icons/CheckCircleIcon.svelte';
-  import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import { mintAttachment } from '$lib';
-  import { Progress } from '$lib/primitives/Progress';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import UploadCloudIconDefault from '#lib/icons/UploadCloudIcon.svelte';
+  import FileIconDefault from '#lib/icons/FileIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import CheckCircleIconDefault from '#lib/icons/CheckCircleIcon.svelte';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import { mintAttachment } from '#lib';
+  import { Progress } from '#lib/primitives/Progress/index.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
+  import CoreSpinner from '#lib/internal/core/CoreSpinner.svelte';
   import { fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { onDestroy } from 'svelte';
@@ -24,8 +24,8 @@
     revokeIntakePreviews,
     type FileIntakeConstraints,
     type FileIntakeMessages
-  } from '$lib/utils/file-intake';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/utils/file-intake.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
 
   const bt = useBlocksI18n();
 

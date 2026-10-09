@@ -1,6 +1,6 @@
 <script lang="ts" generics="TValues extends Record<string, unknown>">
-  import { InlineCode } from '$lib';
-  import { useDocsI18n } from '$lib/i18n';
+  import { InlineCode } from '#lib';
+  import { useDocsI18n } from '#lib/i18n/index.js';
   import {
     Input,
     resolveClassChain,
@@ -38,7 +38,7 @@
   } from './code-gen.js';
   import { extractChildMarkup } from './extract-markup.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
-  import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
+  import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
 
   const dt = useDocsI18n();
 

@@ -13,24 +13,24 @@
  * NOT server-importable. Keep the Svelte-free spec in `a2ui-catalog.ts`.
  */
 
-import { type IconComponent, resolveIcon } from '$lib/icons';
-import ArrowLeftIconDefault from '$lib/icons/ArrowLeftIcon.svelte';
-import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-import EditIconDefault from '$lib/icons/EditIcon.svelte';
-import HelpCircleIconDefault from '$lib/icons/HelpCircleIcon.svelte';
-import HomeIconDefault from '$lib/icons/HomeIcon.svelte';
-import InfoCircleIconDefault from '$lib/icons/InfoCircleIcon.svelte';
-import MailIconDefault from '$lib/icons/MailIcon.svelte';
-import MenuIconDefault from '$lib/icons/MenuIcon.svelte';
-import PlusIconDefault from '$lib/icons/PlusIcon.svelte';
-import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
-import SendIconDefault from '$lib/icons/SendIcon.svelte';
-import SettingsIconDefault from '$lib/icons/SettingsIcon.svelte';
-import StarIconDefault from '$lib/icons/StarIcon.svelte';
-import TrashIconDefault from '$lib/icons/TrashIcon.svelte';
-import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
+import ArrowLeftIconDefault from '#lib/icons/ArrowLeftIcon.svelte';
+import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+import EditIconDefault from '#lib/icons/EditIcon.svelte';
+import HelpCircleIconDefault from '#lib/icons/HelpCircleIcon.svelte';
+import HomeIconDefault from '#lib/icons/HomeIcon.svelte';
+import InfoCircleIconDefault from '#lib/icons/InfoCircleIcon.svelte';
+import { type IconComponent, resolveIcon } from '#lib/icons/index.js';
+import MailIconDefault from '#lib/icons/MailIcon.svelte';
+import MenuIconDefault from '#lib/icons/MenuIcon.svelte';
+import PlusIconDefault from '#lib/icons/PlusIcon.svelte';
+import SearchIconDefault from '#lib/icons/SearchIcon.svelte';
+import SendIconDefault from '#lib/icons/SendIcon.svelte';
+import SettingsIconDefault from '#lib/icons/SettingsIcon.svelte';
+import StarIconDefault from '#lib/icons/StarIcon.svelte';
+import TrashIconDefault from '#lib/icons/TrashIcon.svelte';
+import WarningTriangleIconDefault from '#lib/icons/WarningTriangleIcon.svelte';
 import A2UINode from './A2UINode.svelte';
 import { type A2uiCatalog, basicA2uiCatalogSpec } from './a2ui-catalog';
 import { lookupTable } from './a2ui-registry';

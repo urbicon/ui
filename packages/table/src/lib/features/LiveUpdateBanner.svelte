@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from '@urbicon-ui/blocks';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
-  import { useTableI18n } from '$lib/i18n';
+  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { useTableI18n } from '#lib/i18n/index.js';
 
   const tt = useTableI18n();
 

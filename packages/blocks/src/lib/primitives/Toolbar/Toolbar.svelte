@@ -1,9 +1,9 @@
 <script lang="ts">
   import { toolbarVariants, type ToolbarVariants } from './toolbar.variants';
   import type { ToolbarProps } from './index';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { setTierContext } from '$lib/utils/tier-context';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { setTierContext } from '#lib/utils/tier-context.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
 
   let {
     children,

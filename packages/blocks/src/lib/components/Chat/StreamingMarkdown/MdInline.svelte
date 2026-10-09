@@ -7,8 +7,8 @@
   exact-textContent test in StreamingMarkdown.svelte.test.ts.
 -->
 <script lang="ts">
-  import { resolveIcon } from '$lib/icons';
-  import ImageIconDefault from '$lib/icons/ImageIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ImageIconDefault from '#lib/icons/ImageIcon.svelte';
   import CitationChip from '../CitationChip/CitationChip.svelte';
   import type { CitationSource } from '../CitationChip';
   import type { InlineNode } from '../markdown/types';

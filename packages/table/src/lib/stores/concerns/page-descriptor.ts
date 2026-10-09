@@ -1,4 +1,4 @@
-import type { ProcessingMode } from '$lib/view/source';
+import type { ProcessingMode } from '#lib/view/source.js';
 
 /**
  * Everything the page resolution needs, read once from store state and view.

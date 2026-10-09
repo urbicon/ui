@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { collapsibleVariants, type CollapsibleVariants } from './collapsible.variants';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
-  import { useDisclosure } from '$lib/utils/use-disclosure.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import { useDisclosure } from '#lib/utils/use-disclosure.svelte.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CollapsibleProps } from './index';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);

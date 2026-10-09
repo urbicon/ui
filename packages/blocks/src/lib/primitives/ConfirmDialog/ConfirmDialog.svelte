@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
+  import { useBlocksI18n } from '#lib';
+  import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import Button from '../Button/Button.svelte';
   import Dialog from '../Dialog/Dialog.svelte';
   import type { ConfirmDialogProps } from './index';

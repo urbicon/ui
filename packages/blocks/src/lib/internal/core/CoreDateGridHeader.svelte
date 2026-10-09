@@ -26,11 +26,11 @@
   INTERNAL — never exported from the package barrel, no docs/MCP entry.
 -->
 <script lang="ts">
-  import { resolveIcon } from '$lib/icons';
-  import CalendarDaysIconDefault from '$lib/icons/CalendarDaysIcon.svelte';
-  import ChevronLeftIconDefault from '$lib/icons/ChevronLeftIcon.svelte';
-  import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
-  import { Tooltip } from '$lib/primitives/Tooltip';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CalendarDaysIconDefault from '#lib/icons/CalendarDaysIcon.svelte';
+  import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
+  import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
+  import { Tooltip } from '#lib/primitives/Tooltip/index.js';
   import CoreIconButton from './CoreIconButton.svelte';
 
   /** The four slots this bar styles. Both callers name them identically, so the

@@ -9,7 +9,7 @@
  * pair, defined in `internal/date-grid/date-grid.types.ts`. Until 2026-08-12
  * this module declared a shape-identical `PlannerRange` of its own (#191).
  */
-import type { DateRange } from '$lib/internal/date-grid';
+import type { DateRange } from '#lib/internal/date-grid/index.js';
 import type { PlannerSlots } from './planner.variants';
 
 export type { DateRange };

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { consumeWrapperCascade } from '$lib/provider/wrapper-cascade';
-  import { resolveIcon } from '$lib/icons';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import { onDestroy, tick } from 'svelte';
   import { fade, scale } from 'svelte/transition';
-  import { trapFocus, showDialogModal, closeDialogModal } from '$lib/utils/overlay';
-  import { composeHandlers } from '$lib/utils/compose-handlers';
-  import { overlayStack, getOverlayMotion } from '$lib/utils';
+  import { trapFocus, showDialogModal, closeDialogModal } from '#lib/utils/overlay.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { overlayStack, getOverlayMotion } from '#lib/utils/index.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { DialogProps } from './index';
   import { dialogVariants, type DialogVariants } from './dialog.variants';
 

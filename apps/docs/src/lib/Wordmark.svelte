@@ -2,13 +2,13 @@
   Die Wortmarke der Doku-Chrome — dieselbe Signatur wie auf der Landing:
   „urbicon" voll, „ui" als Gattung zurückgenommen, dahinter die fünf
   Kanal-Striche in Kachel-Reihenfolge. Text und Farben kommen aus denselben
-  Registern wie Namens-Kachel, Kopfleiste und Social-Bild ($lib/landing/wordmark,
+  Registern wie Namens-Kachel, Kopfleiste und Social-Bild (#lib/landing/wordmark,
   TILE_CHANNEL), damit die Marke nicht in einer zweiten Schreibweise driftet.
   Schriftgrad und Farbe erbt sie vom Ort, an dem sie steht.
 -->
 <script lang="ts">
-  import { CHANNELS, TILE_CHANNEL } from '$lib/landing/channels';
-  import { BRAND, BRAND_SUFFIX } from '$lib/landing/wordmark';
+  import { CHANNELS, TILE_CHANNEL } from '#lib/landing/channels.js';
+  import { BRAND, BRAND_SUFFIX } from '#lib/landing/wordmark.js';
 
   const TICKS = Object.values(TILE_CHANNEL).map((name) => CHANNELS[name].solid);
 </script>

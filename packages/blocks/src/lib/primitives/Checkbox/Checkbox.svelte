@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { getTierContext, useFormField } from '$lib/utils';
-  import { checkboxVariants, type CheckboxVariants } from '$lib/primitives';
-  import { resolveIcon } from '$lib/icons';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import MinusIconDefault from '$lib/icons/MinusIcon.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { mintAttachment } from '#lib';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getTierContext, useFormField } from '#lib/utils/index.js';
+  import { checkboxVariants, type CheckboxVariants } from '#lib/primitives/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import MinusIconDefault from '#lib/icons/MinusIcon.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CheckboxProps } from './index';
 
   const CheckMarkIcon = resolveIcon('check', CheckIconDefault);

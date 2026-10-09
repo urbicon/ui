@@ -8,7 +8,7 @@ Reusable documentation UI components — the pieces the [Urbicon UI docs site](h
 bun add @urbicon-ui/docs @urbicon-ui/blocks @urbicon-ui/table @urbicon-ui/i18n @urbicon-ui/shared-types shiki @shikijs/langs
 ```
 
-All of these (plus `svelte` ^5.57.0) are **peer dependencies** — the package bundles none of them:
+All of these (plus `svelte` ^5.57.1) are **peer dependencies** — the package bundles none of them:
 
 - **`shiki`** (^4.4.3) + **`@shikijs/langs`** — syntax highlighting. `CodePanel` / `CodeExample` highlight through a shared, **synchronous** highlighter (`highlighterService`) with the package's editorial light/dark themes: Shiki's `Sync` core, its JavaScript regex engine, and ten statically imported grammars. Synchronous is the point — an awaited highlighter can only be driven from an effect, effects do not run during SSR, and the prerendered page then carries a spinner where the code should be. It also costs less over the wire: measured on this project's built bundles, ~333 → 121 KB gz for a page with code, because Vite inlines Shiki's oniguruma WASM as a 225 KB gz JavaScript chunk that the JS engine makes unnecessary. The eager half grows in exchange (44 → 121 KB gz); the full measurement is at the top of `utils/highlighter.ts`. Both are peers so your app controls the version and the grammars are not double-bundled next to an app-level install.
 - **`@urbicon-ui/blocks`** — the components compose blocks primitives (Card, Badge, Button, …) and the semantic token layer.
@@ -61,7 +61,7 @@ The `./vite` export ships `codeExamplePlugin`: for every `<CodeExample isolate>`
 import { codeExamplePlugin } from '@urbicon-ui/docs/vite';
 
 export default defineConfig({
-  plugins: [codeExamplePlugin(), tailwindcss(), sveltekit()]
+  plugins: [codeExamplePlugin(), tailwindcss(), sveltekit({ adapter: adapter() })]
 });
 ```
 

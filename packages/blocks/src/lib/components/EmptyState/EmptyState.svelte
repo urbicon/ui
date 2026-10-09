@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { EmptyStateProps } from './index';
   import { emptyStateVariants, type EmptyStateVariants } from './emptyState.variants';
 

@@ -2,7 +2,7 @@
  * Reading custom properties out of a stylesheet, and following what they read:
  * one parser plus one dependency walk, shared by every docs module that treats
  * the shipped CSS as data — the Token Reference tables
- * ($lib/interaction-tokens.ts) and the theme previews ($lib/theme-preview.ts).
+ * (#lib/interaction-tokens.ts) and the theme previews (#lib/theme-preview.ts).
  *
  * They had a parser each, with the same shape and different bugs: one scanned
  * to EOF when a declaration was missing its `;` and swallowed the rest of the

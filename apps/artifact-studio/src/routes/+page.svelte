@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { Alert, Button, Card, Textarea } from '@urbicon-ui/blocks';
-  import type { SessionState } from '$lib/events';
+  import type { SessionState } from '#lib/events.js';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -40,7 +40,7 @@
     <h1 class="text-2xl font-semibold">Artifact Studio</h1>
     <p class="text-text-secondary">
       Beschreiben, sehen, weiterreden. Der Agent baut mit dem echten
-      <code class="rounded bg-surface-quiet px-1 py-0.5 font-mono text-sm">urbicon</code>-Wissen,
+      <code class="bg-surface-quiet rounded px-1 py-0.5 font-mono text-sm">urbicon</code>-Wissen,
       validiert sich selbst und liefert in eine Sandbox auf eigener Origin.
     </p>
   </header>
@@ -62,7 +62,7 @@
       <Button type="submit" intent="primary" loading={starting} disabled={!title.trim()}>
         {starting ? 'Sitzung wird vorbereitet …' : 'Anfangen'}
       </Button>
-      <span class="text-sm text-text-tertiary">
+      <span class="text-text-tertiary text-sm">
         Der Primer wird einmal geladen — danach läuft jeder Wunsch gecacht.
       </span>
     </div>
@@ -70,14 +70,14 @@
 
   {#if data.sessions.length}
     <section class="flex flex-col gap-3">
-      <h2 class="text-sm font-medium text-text-secondary">Frühere Sitzungen</h2>
+      <h2 class="text-text-secondary text-sm font-medium">Frühere Sitzungen</h2>
       <ul class="flex flex-col gap-2">
         {#each data.sessions as session (session.id)}
           <li>
             <Card href="/s/{session.id}" variant="outlined" padding="sm">
               <div class="flex items-baseline justify-between gap-4">
                 <span class="truncate">{session.title}</span>
-                <span class="shrink-0 font-mono text-xs text-text-tertiary">
+                <span class="text-text-tertiary shrink-0 font-mono text-xs">
                   {session.versions} Version{session.versions === 1 ? '' : 'en'} ·
                   {session.createdAt.slice(0, 16).replace('T', ' ')}
                 </span>

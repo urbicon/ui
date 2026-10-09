@@ -21,9 +21,9 @@
   Kopfkommentar von src/routes/+page.svelte.
 -->
 <script lang="ts">
-  import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
-  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import HeroSpecimen from '#lib/landing/HeroSpecimen.svelte';
+  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '#lib/landing/hero.js';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Input } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';

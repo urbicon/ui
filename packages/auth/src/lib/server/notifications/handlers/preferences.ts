@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { RateLimitConfig } from '../../../types.js';
 import type { NotificationPreferenceRepository } from '../../adapters/types.js';
 import { privateEndpoints } from '../../handlers/_shared.js';
@@ -64,7 +63,7 @@ export function createPreferencesHandler(
       }
 
       const prefs = await repo.findByUser(userId);
-      return json({ preferences: prefs });
+      return Response.json({ preferences: prefs });
     },
 
     PUT: async ({ request, locals }) => {
@@ -111,7 +110,7 @@ export function createPreferencesHandler(
         ...(pushFlag !== undefined && { push: pushFlag }),
         ...(emailFlag !== undefined && { email: emailFlag })
       });
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

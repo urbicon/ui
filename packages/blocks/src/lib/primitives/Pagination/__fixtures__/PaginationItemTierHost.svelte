@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { setTierContext } from '$lib/utils/tier-context';
-  import type { InteractiveTier } from '$lib/utils/tier-context';
+  import { setTierContext } from '#lib/utils/tier-context.js';
+  import type { InteractiveTier } from '#lib/utils/tier-context.js';
   import PaginationItem from '../PaginationItem.svelte';
   import type { PaginationItemProps } from '..';
 

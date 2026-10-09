@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { DonutChartSlotClasses } from '$lib/internal/charts/types';
+import type { DonutChartSlotClasses } from '#lib/internal/charts/types.js';
 
 /** A single slice of a donut / pie chart. */
 export interface DonutDatum {

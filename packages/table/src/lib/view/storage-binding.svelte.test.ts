@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Filter } from '$lib/types/tableTypes';
+import type { Filter } from '#lib/types/tableTypes.js';
 import { createMemoryStorage } from '../../../../../scripts/vitest-storage';
 import { bindViewToStorage, STORAGE_DEFAULT_AXES } from './storage-binding.svelte';
 import { createTableView, type TableView, VIEW_AXES } from './view.svelte';

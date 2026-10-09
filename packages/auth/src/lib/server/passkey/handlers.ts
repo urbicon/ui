@@ -1,5 +1,4 @@
 import type { Cookies, RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
 import { isSecureDeployment } from '../cookie-policy.js';
@@ -176,7 +175,7 @@ function registrationOptionsHandler<R extends string>(
         existingIds
       );
 
-      return json({ options });
+      return Response.json({ options });
     }
   };
 }
@@ -248,7 +247,7 @@ function registrationVerifyHandler<R extends string>(
           name: label
         });
 
-        return json(
+        return Response.json(
           {
             passkey: {
               credentialId: passkey.credentialId,
@@ -333,7 +332,7 @@ function authenticationOptionsHandler<R extends string>(
         maxAge: resolveChallengeTimeoutSeconds(webauthn)
       });
 
-      return json({ options });
+      return Response.json({ options });
     }
   };
 }
@@ -496,7 +495,7 @@ function authenticationVerifyHandler<R extends string>(
         // The wrapper also keeps a hook that throws a WebAuthnError out of the
         // catch below, which would file a completed login as a failed assertion.
         await notifyHook(deps, { site: 'passkey', subject: user.id }, 'onLoginSuccess', safeUser);
-        return json({ user: safeUser });
+        return Response.json({ user: safeUser });
       } catch (err) {
         if (err instanceof WebAuthnError) {
           // The assertion itself was rejected (bad signature, challenge
@@ -549,7 +548,7 @@ function listHandler<R extends string>(
       }
 
       const passkeys = await passkeyRepo.findByUserId(user.id);
-      return json({ passkeys: passkeys.map(toPasskeyView) });
+      return Response.json({ passkeys: passkeys.map(toPasskeyView) });
     }
   };
 }
@@ -621,7 +620,7 @@ function renameHandler<R extends string>(
       // breaking change to every adapter written against this contract, so it
       // is not taken here. The window is one await wide and the panel's next
       // load corrects it.
-      return json({ passkey: toPasskeyView({ ...stored, name }) });
+      return Response.json({ passkey: toPasskeyView({ ...stored, name }) });
     }
   };
 }
@@ -649,7 +648,7 @@ function deleteHandler<R extends string>(
       }
 
       await passkeyRepo.delete(user.id, credentialId);
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   };
 }

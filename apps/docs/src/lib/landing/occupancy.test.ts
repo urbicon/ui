@@ -11,7 +11,7 @@
  *      ein anderer einen anderen (sonst zeigte „›" dasselbe Bild).
  */
 import { describe, expect, it } from 'vitest';
-import { HOUSES, ROOM_TYPES } from '$lib/hotel-tools';
+import { HOUSES, ROOM_TYPES } from '#lib/hotel-tools.js';
 import { buildOccupancy, measuredLoad, type OccupancyHouse } from './occupancy';
 
 /** Die Auslastung der Landing-Fiktion — dieselben Zahlen wie `OPS` in +page.svelte. */

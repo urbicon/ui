@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Card, Input, Separator } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { classCaveat, precedenceChain } from '$lib/customization-data';
+  import { classCaveat, precedenceChain } from '#lib/customization-data.js';
 
   const navigation = [
     { id: 'ladder', title: 'Which tool do I use?' },

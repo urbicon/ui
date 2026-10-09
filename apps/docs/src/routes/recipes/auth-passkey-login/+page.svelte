@@ -9,21 +9,22 @@
 import { createAuthDeps, createPasskeyHandlers } from '@urbicon-ui/auth/server';
 import type { WebAuthnConfig } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
-import { env } from '$env/dynamic/private';
+// Both declared in src/env.ts (defineEnvVars from '@sveltejs/kit/env').
+import { APP_URL, JWT_SECRET } from '$app/env/private';
 import { prisma } from './prisma';
 
 // No email transport: nothing mounted here sends mail. Add one when you also
 // mount register / forgot-password / change-email — those three throw at wiring
 // time without it.
 export const authDeps = createAuthDeps({
-  config: { jwt: { secret: env.JWT_SECRET }, appUrl: env.PUBLIC_APP_URL },
+  config: { jwt: { secret: JWT_SECRET }, appUrl: APP_URL },
   repos: createPrismaRepos(prisma)
 });
 
 const webauthn: WebAuthnConfig = {
   rpId: 'example.com',        // your registrable domain (no scheme/port)
   rpName: 'My App',
-  origin: env.PUBLIC_APP_URL  // e.g. https://app.example.com
+  origin: APP_URL  // e.g. https://app.example.com
   // challengeStore defaults to in-memory; pass a ChallengeStore for >1 instance
 };
 
@@ -31,11 +32,11 @@ const webauthn: WebAuthnConfig = {
 export const passkey = createPasskeyHandlers(authDeps, webauthn);
 
 // 2. src/routes/api/auth/passkey/authentication-options/+server.ts
-import { passkey } from '$lib/server/auth-setup';
+import { passkey } from '#lib/server/auth-setup.js';
 export const POST = passkey.authenticationOptions.POST;
 
 // 3. src/routes/api/auth/passkey/authentication-verify/+server.ts
-import { passkey } from '$lib/server/auth-setup';
+import { passkey } from '#lib/server/auth-setup.js';
 export const POST = passkey.authenticationVerify.POST;
 // passkey.registrationOptions / passkey.registrationVerify (and passkey.list /
 // passkey.item for the PasskeyManager) wire up identically on sibling routes.

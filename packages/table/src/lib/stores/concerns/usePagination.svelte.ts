@@ -1,5 +1,5 @@
-import type { TableItem } from '$lib/types/tableTypes';
-import type { TableView } from '$lib/view/view.svelte';
+import type { TableItem } from '#lib/types/tableTypes.js';
+import type { TableView } from '#lib/view/view.svelte.js';
 import { resolvePageDescriptor } from './page-descriptor';
 import type { TableState } from './types';
 

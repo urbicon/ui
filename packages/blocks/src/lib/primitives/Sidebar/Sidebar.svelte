@@ -4,10 +4,10 @@
   import { fade } from 'svelte/transition';
   import type { SidebarProps } from './index';
   import { sidebarVariants, type SidebarVariants } from './sidebar.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { lockBodyScroll } from '$lib/utils/overlay';
-  import { overlayStack } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { lockBodyScroll } from '#lib/utils/overlay.js';
+  import { overlayStack } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
 
   let {
     open = $bindable(false),

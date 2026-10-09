@@ -6,7 +6,7 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Badge, Button, CloseIcon, Kbd, Separator, Sidebar } from '@urbicon-ui/blocks';
-  import { r } from '$lib/route';
+  import { r } from '#lib/route.js';
 
   let detailOpen = $state(false);
   let navOpen = $state(false);

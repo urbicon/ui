@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Studio from '$lib/Studio.svelte';
+  import Studio from '#lib/Studio.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

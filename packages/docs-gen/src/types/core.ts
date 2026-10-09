@@ -287,7 +287,7 @@ export interface TypeDefinition {
    * lets a renderer show a reference instead of a second full body.
    *
    * Omitted when no documented component declares the type — library
-   * plumbing out of `$lib/utils`, `$lib/mint`, `$lib/internal`. Those have
+   * plumbing out of `#lib/utils`, `#lib/mint`, `#lib/internal`. Those have
    * no home to point at; 352 of them are exported package API, so an absent
    * `owner` is *not* a licence to drop the entry.
    */

@@ -25,7 +25,7 @@ Full measurement spec, corner-radius scale, canonical motifs, reference icon per
 
 ## Resolving icons inside components (tree-shaking)
 
-Call `resolveIcon('name', NameIconDefault)` with a **direct** icon import — `import NameIconDefault from '$lib/icons/NameIcon.svelte'` (within blocks) or `import { NameIcon as NameIconDefault } from '@urbicon-ui/blocks'` (from another package, e.g. table). The `IconProvider`/`setIcons` override still wins; the direct import is only the fallback.
+Call `resolveIcon('name', NameIconDefault)` with a **direct** icon import — `import NameIconDefault from '#lib/icons/NameIcon.svelte'` (within blocks) or `import { NameIcon as NameIconDefault } from '@urbicon-ui/blocks'` (from another package, e.g. table). The `IconProvider`/`setIcons` override still wins; the direct import is only the fallback.
 
 **Never `getIcon('name')` in a component** — it indexes the full `DEFAULT_ICONS` registry (dynamic key → not tree-shakeable) and drags the entire icon set into the consumer bundle. `getIcon`/`DEFAULT_ICONS` (both in `icon-registry.ts` since the module split) are reserved for the dynamic `<Icon name="…" />` component (the lone exception).
 

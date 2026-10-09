@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
-import type { Column } from '$lib/types/tableTypes';
+import type { SummaryConfig } from '#lib/stores/TableStore.svelte.js';
+import type { Column } from '#lib/types/tableTypes.js';
 import {
   dropInvalidSummaryConfigs,
   findColumnById,

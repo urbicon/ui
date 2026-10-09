@@ -13,10 +13,10 @@
     TabItem,
     TabPanel,
     Textarea
-  } from '$lib/primitives';
-  import { resolveIcon } from '$lib/icons';
-  import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import { fromDateInputValue, toDateInputValue } from '$lib/utils/date';
+  } from '#lib/primitives/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import { fromDateInputValue, toDateInputValue } from '#lib/utils/date.js';
   import type { Snippet } from 'svelte';
   import DatePicker from '../../DatePicker/DatePicker.svelte';
   import TimeInput from '../../TimeInput/TimeInput.svelte';

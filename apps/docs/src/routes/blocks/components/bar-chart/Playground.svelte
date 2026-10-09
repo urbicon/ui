@@ -1,14 +1,14 @@
 <!--
   BarChart-Playground — herausgelöst aus `+page.svelte`, damit ihn zwei Seiten
   zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 
   Die Control-Werte kommen aus der generierten API (`deriveControls`); von Hand
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import { SET_FAMILIES } from '$lib/landing/set-facts';
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import { SET_FAMILIES } from '#lib/landing/set-facts.js';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { BarChart, type BarChartDatum, type ChartSeries } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

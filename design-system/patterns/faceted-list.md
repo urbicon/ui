@@ -34,8 +34,8 @@ Every facet value, the search text, the sort and the page live in `?query`. Noth
 
 - **Read down, once.** A facet's value is read from the address where the query is built — tolerantly, by `readFacet` — and handed to the control. The bar does not read the address a second time: a control fed straight from `page.url.searchParams.get(param)` shows the library's own "Select…" placeholder for a value the facet no longer knows, while the list beside it is unfiltered. Read in one place and the trigger cannot disagree with the rows.
 - **Write up.** A handle whose value is known in advance is a `Link` carrying the address `withSearchParams` builds — sort, reset, the axis. A listbox has no address to give an anchor, so a `Select` or `Combobox` writes through `goto` on `onValueChange`, and that is a push: choosing a facet is somewhere you went, and Back is how you leave it.
-- **Every navigation keeps the focus where the reader put it.** SvelteKit resets focus to `<body>` when a navigation settles unless it is told not to, so a facet pick writes `goto(href, { keepFocus: true })` and every handle that is still on screen afterwards carries `data-sveltekit-keepfocus`. Without it each pick drops a keyboard reader at the top of the document, and narrowing a list by three facets means three trips back through the bar.
-- **The first write of a typing run pushes; the rest replace.** `replaceState` adds no history entry — it overwrites the one the reader arrived on — so a field that always replaces makes Back leave the page instead of returning to the unfiltered list. Pushing once, when the query goes from empty to non-empty, and replacing on every later keystroke costs the whole run one entry and keeps Back pointing at the list they started from.
+- **Every navigation keeps the focus where the reader put it.** SvelteKit resets focus to `<body>` and scrolls to the top when a navigation settles unless it is told not to, so a facet pick writes `goto(href, { reset: false })` and every handle that is still on screen afterwards carries `data-sveltekit-reset="false"`. Without it each pick drops a keyboard reader at the top of the document, and narrowing a list by three facets means three trips back through the bar.
+- **The first write of a typing run pushes; the rest replace.** `goto`'s `replace` adds no history entry — it overwrites the one the reader arrived on — so a field that always replaces makes Back leave the page instead of returning to the unfiltered list. Pushing once, when the query goes from empty to non-empty, and replacing on every later keystroke costs the whole run one entry and keeps Back pointing at the list they started from.
 - **Every write resets the page.** A reader on page 4 of one selection is on no page at all of the next.
 - **Tolerant reading.** A value the page does not know is dropped, not rejected: an address from an older deploy, a typo in a shared link and a bookmark from before a facet was renamed all still open the list.
 
@@ -248,12 +248,13 @@ The axis strip, the search field, "Reset" and the facets. The bar knows the addr
     }));
 
   /**
-   * Choosing is a place you went: a push, so Back leaves it. `keepFocus` is not
-   * optional — SvelteKit resets focus to `<body>` when the navigation settles,
-   * and without it every pick drops a keyboard reader at the top of the page.
+   * Choosing is a place you went: a push, so Back leaves it. `reset: false` is
+   * not optional — SvelteKit resets focus to `<body>` when the navigation
+   * settles, and without it every pick drops a keyboard reader at the top of
+   * the page.
    */
   function apply(patch: Record<string, string | null>) {
-    goto(withSearchParams(page.url, { ...patch, page: null }), { keepFocus: true });
+    goto(withSearchParams(page.url, { ...patch, page: null }), { reset: false });
   }
 
   /** One handler shape for both control kinds — `null` is the facet's empty value. */
@@ -268,9 +269,8 @@ The axis strip, the search field, "Reset" and the facets. The bar knows the addr
         // every later one replaces, so a word costs one entry rather than one
         // per letter. Always replacing would overwrite the entry the reader
         // arrived on, and Back would leave the page.
-        replaceState: (page.url.searchParams.get('q') ?? '') !== '',
-        keepFocus: true,
-        noScroll: true
+        replace: (page.url.searchParams.get('q') ?? '') !== '',
+        reset: false
       });
     }, SEARCH_DEBOUNCE_MS);
   }
@@ -289,7 +289,7 @@ The axis strip, the search field, "Reset" and the facets. The bar knows the addr
           page: null
         })}
         active={currentFormat === format.value}
-        data-sveltekit-keepfocus
+        data-sveltekit-reset="false"
         class="font-medium"
       >
         {format.label}
@@ -311,7 +311,7 @@ The axis strip, the search field, "Reset" and the facets. The bar knows the addr
            hold the way out of it too. Only while something is set — a control
            that does nothing most of the time teaches the reader to skip it. -->
       {#if isFiltered}
-        <Link variant="standalone" href={resetHref} data-sveltekit-keepfocus>Reset</Link>
+        <Link variant="standalone" href={resetHref} data-sveltekit-reset="false">Reset</Link>
       {/if}
       <!-- A disclosure, not an address: pressing it changes nothing about what
            the list shows, so it reports `aria-expanded` and Back never undoes
@@ -424,7 +424,7 @@ It reports what the query answered, so it belongs to the page and not to the bar
         variant="standalone"
         href={sort.href}
         active={sort.current}
-        data-sveltekit-keepfocus
+        data-sveltekit-reset="false"
         class="font-medium"
       >
         {sort.label}
@@ -439,7 +439,7 @@ It reports what the query answered, so it belongs to the page and not to the bar
 | UI Need                            | Component                                   | Configuration                                                                                                                |
 | ---------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | The bar around the controls        | native `<search>`                           | `role="search"` for free — one landmark instead of a tab run through the row                                                 |
-| Free-text narrowing                | `Input` `type="search"` `size="sm"`         | Debounced; the run's first write pushes, the rest replace; `keepFocus` throughout                                            |
+| Free-text narrowing                | `Input` `type="search"` `size="sm"`         | Debounced; the run's first write pushes, the rest replace; `reset: false` throughout                                         |
 | A facet that fits an open listbox  | `Select` `size="sm"`                        | `nullOption` is the empty value and names the axis; no `clearable` beside it                                                 |
 | A facet you would scroll to read   | `Combobox` `size="sm"` `clearable`          | 7+ values or needs search (`principles.md`); `clearable` is its empty value, `noResultsText` says what was not found         |
 | The count beside a value           | `SelectOption.hint` / `ComboboxOption.hint` | A string — `String(count)` or an `Intl.NumberFormat` result. Part of the row's accessible name, so "Noir 24" is what is read |
@@ -456,7 +456,7 @@ It reports what the query answered, so it belongs to the page and not to the bar
 ## Behavioral Rules
 
 - **Choosing pushes; a typing run pushes once and then replaces.** A facet, a sort and the axis are places the reader went. Typing is one thought, so the first write that turns an empty query into a non-empty one pushes and every later keystroke replaces — the run costs one history entry and Back returns to the unfiltered list. A field that only ever replaces overwrites the entry the reader arrived on, and Back leaves the page.
-- **Every write keeps the focus.** `goto(href, { keepFocus: true })` for the listbox facets and the search field, `data-sveltekit-keepfocus` on the handles that are still on screen after the navigation. SvelteKit resets focus to `<body>` when a navigation settles otherwise, and a bar that loses focus on every pick makes narrowing by three facets three trips back through the tab order.
+- **Every write keeps the focus.** `goto(href, { reset: false })` for the listbox facets and the search field, `data-sveltekit-reset="false"` on the handles that are still on screen after the navigation. SvelteKit resets focus to `<body>` when a navigation settles otherwise, and a bar that loses focus on every pick makes narrowing by three facets three trips back through the tab order.
 - **The field is seeded from the address, not driven by it — and the comparison is normalized on both sides.** The debounce writes the trimmed term, so comparing the address against the raw field makes the field's own write look like a disagreement and rewrites the trimmed value under the caret. Compare what was written to what would be written.
 - **The value the control shows is the value the query used.** Read the facet once, tolerantly, where the query is built; hand the result to the control. A control fed from the address directly shows its own placeholder for a value the facet no longer knows, beside rows that were never filtered by it.
 - **Counts are taken over the corpus, not the filter.** Numbers that move at every click cannot be read as "how much is there"; they can only be read as "what did I just do". Where a combination can come back empty, the `EmptyState` carries the reset address.

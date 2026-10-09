@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
@@ -114,7 +113,7 @@ function setupHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandl
         ...resolveTotpOptions(config.twoFactor)
       });
 
-      return json({ secret, otpauthUri });
+      return Response.json({ secret, otpauthUri });
     }
   };
 }
@@ -168,7 +167,7 @@ function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       await repos.backupCode.createMany(user.id, hashes);
       await repos.user.enableTotp(user.id);
 
-      return json({ backupCodes: plain });
+      return Response.json({ backupCodes: plain });
     }
   };
 }
@@ -210,7 +209,7 @@ function disableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHan
         );
       }
 
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   };
 }
@@ -305,7 +304,7 @@ function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHand
       // cookie is spent — there is no second attempt to fall back to.
       await notifyHook(deps, { site: 'two-factor', subject: user.id }, 'onLoginSuccess', safeUser);
 
-      return json({ user: safeUser });
+      return Response.json({ user: safeUser });
     }
   };
 }

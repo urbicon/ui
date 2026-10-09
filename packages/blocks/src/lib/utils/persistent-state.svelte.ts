@@ -1,4 +1,4 @@
-import { getStorage } from '$lib/internal/storage';
+import { getStorage } from '#lib/internal/storage.js';
 
 /**
  * Configuration for persistent state

@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "scripts": {
     "build": "svelte-kit sync && vite build && bun scripts/assert-native-light-dark.ts && bun scripts/build-search-index.ts",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

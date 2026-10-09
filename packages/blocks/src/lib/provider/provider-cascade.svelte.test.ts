@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import { effectiveVariants, resolveClassChain } from '$lib/utils/variants';
+import { effectiveVariants, resolveClassChain } from '#lib/utils/variants.js';
 import CascadeCompoundHost from './__fixtures__/CascadeCompoundHost.svelte';
 import CascadeHost from './__fixtures__/CascadeHost.svelte';
 import { MOUNT_FIXTURES, type MountFixture } from './__fixtures__/cascade-mount-props';
@@ -383,8 +383,8 @@ const recorder = vi.hoisted(() => ({
 // The condition object never leaves the component otherwise: it is built in a
 // `$derived` and handed straight to the resolver. Wrapping the resolver is the
 // only way to read its keys *and* the values a given mount carries.
-vi.mock('$lib/provider', async (importOriginal) => {
-  const original = await importOriginal<typeof import('$lib/provider')>();
+vi.mock('#lib/provider/index.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('#lib/provider/index.js')>();
   return {
     ...original,
     resolveSlotClasses: (

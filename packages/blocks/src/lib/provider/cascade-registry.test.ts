@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { numberInputVariants } from '$lib/components/NumberInput/numberinput.variants';
+import { numberInputVariants } from '#lib/components/NumberInput/numberinput.variants.js';
 import { exportedComponents, namedConsumers } from './__fixtures__/cascade-registry';
 
 /**
@@ -31,7 +31,7 @@ const CONSUMERS = ['Input', 'Select', 'Dialog'];
 const source = (script: string, markup = '<span></span>') =>
   `<script lang="ts">\n${script}\n</script>\n\n${markup}\n`;
 
-const IMPORT_INPUT = "import { Input } from '$lib/primitives/Input';";
+const IMPORT_INPUT = "import { Input } from '#lib/primitives/Input/index.js';";
 
 describe('a wrapper names the component it wraps', () => {
   it('in a named import, aliased or not', () => {
@@ -40,7 +40,10 @@ describe('a wrapper names the component it wraps', () => {
     // tv() facts are held under, and the import clause still carries it.
     expect(
       namedConsumers(
-        source("import { Input as BaseInput } from '$lib/primitives/Input';", '<BaseInput />'),
+        source(
+          "import { Input as BaseInput } from '#lib/primitives/Input/index.js';",
+          '<BaseInput />'
+        ),
         CONSUMERS
       )
     ).toEqual(['Input']);

@@ -1,7 +1,7 @@
 <script lang="ts" generics="Item">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { dateCellVariants, type DateCellVariantProps } from '$lib/variants';
-  import { getNestedValue } from '$lib/utils';
+  import { dateCellVariants, type DateCellVariantProps } from '#lib/variants/index.js';
+  import { getNestedValue } from '#lib/utils/index.js';
 
   export type DateCellProps<Item> = {
     item: Item;

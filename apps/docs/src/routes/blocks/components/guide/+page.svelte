@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -22,7 +22,7 @@
   import { componentData as refData } from '../guide-ref/api';
   import { componentData as hintData } from '../guide-hint/api';
   import { componentData as beaconData } from '../guide-beacon/api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
 
   // The generated @related list is the sibling Guide surfaces — self-referential on this
@@ -345,7 +345,7 @@ import type { GuideTour, GuideStep, GuideStepEvent, GuideEndEvent } from '@urbic
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/blocks/components/guide/llm.txt')}
+      href={asset('blocks/components/guide/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

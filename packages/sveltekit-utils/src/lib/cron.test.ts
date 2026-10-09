@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type CronRunnerConfig, createCronRunner } from './cron';
 
@@ -91,7 +94,8 @@ describe('createCronRunner', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith('http://localhost:5000/api/job-a', {
       method: 'POST',
-      headers: { 'x-cron-secret': 'my-secret' }
+      headers: { 'x-cron-secret': 'my-secret', 'content-type': 'application/json' },
+      body: '{}'
     });
 
     // At 20s: job-a fires again + job-b fires for the first time
@@ -118,6 +122,46 @@ describe('createCronRunner', () => {
     runner.stop();
   });
 
+  // The oracle is Kit's own CSRF predicate, read from the installed package: a
+  // copy of its condition here would keep passing after Kit tightened it.
+  it("fires a POST that SvelteKit's CSRF check lets through", async () => {
+    const kitRoot = dirname(createRequire(import.meta.url).resolve('@sveltejs/kit/package.json'));
+    const { is_csrf_forbidden } = (await import(
+      pathToFileURL(join(kitRoot, 'src/runtime/server/csrf.js')).href
+    )) as {
+      is_csrf_forbidden: (input: {
+        request: Request;
+        request_origin: string | null;
+        self_origin: string;
+        trusted_origins: string[];
+      }) => boolean;
+    };
+    const forbidden = (request: Request) =>
+      is_csrf_forbidden({
+        request,
+        request_origin: request.headers.get('origin'),
+        self_origin: new URL(request.url).origin,
+        trusted_origins: []
+      });
+
+    const runner = createCronRunner({
+      secret: 's',
+      baseUrl: 'http://localhost:5000',
+      jobs: [{ path: '/api/cron/digest', intervalSeconds: 5 }],
+      onError
+    });
+    runner.start();
+    await vi.advanceTimersByTimeAsync(5_000);
+    runner.stop();
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(forbidden(new Request(url, init))).toBe(false);
+    // Positive control: the same request without its content type is refused.
+    const bare = new Headers(init.headers);
+    bare.delete('content-type');
+    expect(forbidden(new Request(url, { method: init.method, headers: bare }))).toBe(true);
+  });
+
   it('should use custom secretHeader', async () => {
     const runner = createCronRunner({
       secret: 'abc',
@@ -130,7 +174,8 @@ describe('createCronRunner', () => {
     await vi.advanceTimersByTimeAsync(5_000);
     expect(fetch).toHaveBeenCalledWith(expect.any(String), {
       method: 'POST',
-      headers: { 'x-internal-key': 'abc' }
+      headers: { 'x-internal-key': 'abc', 'content-type': 'application/json' },
+      body: '{}'
     });
     runner.stop();
   });

@@ -12,7 +12,7 @@
  * throwaway directory inside the package and handed to `svelte-check`. The
  * snippets are fragments, so the harness fills in what a fragment legitimately
  * leaves out:
- *   - PascalCase tags are imported from `$lib` (a tag the library does not
+ *   - PascalCase tags are imported from `#lib` (a tag the library does not
  *     export is either a typo — a finding — or a consumer placeholder, see
  *     PLACEHOLDERS below),
  *   - free identifiers (`activeTab`, `messages`, handlers) get a `$state<any>()`
@@ -82,7 +82,7 @@ const PATTERNS_DIR = process.env.EXAMPLES_LINT_PATTERNS_DIR ?? join(REPO, 'desig
  * a pattern imports resolve there without a stub: `@sveltejs/kit` is a
  * devDependency, so `$app/state` / `$app/navigation` are ambient after
  * `svelte-kit sync`, and `@urbicon-ui/blocks` reaches the built `dist/`
- * through the workspace link — the consumer's view, not `$lib`.
+ * through the workspace link — the consumer's view, not `#lib`.
  *
  * The constraint that follows: the host must resolve every package a pattern
  * imports, which is why `blocks` carries `@urbicon-ui/sveltekit-utils` as a
@@ -235,7 +235,7 @@ function generate(pkg: string, extraDecls: Record<string, string[]>): Example[] 
           pkg === 'blocks' ? [] : [...used].filter((u) => BLOCKS_EXPORTS.has(u)).sort();
         const fromOwn = [...used].filter((u) => !fromBlocks.includes(u)).sort();
         const importLine =
-          (fromOwn.length ? `\timport { ${fromOwn.join(', ')} } from '$lib/index.js';\n` : '') +
+          (fromOwn.length ? `\timport { ${fromOwn.join(', ')} } from '#lib';\n` : '') +
           (fromBlocks.length
             ? `\timport { ${fromBlocks.join(', ')} } from '@urbicon-ui/blocks';\n`
             : '');

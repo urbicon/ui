@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Select from '$lib/primitives/Select/Select.svelte';
-  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
+  import Select from '#lib/primitives/Select/Select.svelte';
+  import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import type { LocaleSwitcherProps } from './index';
-  import { useBlocksI18n, getBlocksLocales } from '$lib';
+  import { useBlocksI18n, getBlocksLocales } from '#lib';
   import { useI18n } from '@urbicon-ui/i18n';
   import type { Locale } from '@urbicon-ui/i18n';
 

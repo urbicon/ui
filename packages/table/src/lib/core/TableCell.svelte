@@ -1,9 +1,9 @@
 <script lang="ts">
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
-  import { customCellVariants } from '$lib/variants';
-  import { getCellLocale, getTableContext } from '$lib/stores/TableStore.svelte';
-  import SearchHighlight from '$lib/features/SearchHighlight.svelte';
-  import type { Column, TableItem } from '$lib/types/tableTypes';
+  import { customCellVariants } from '#lib/variants/index.js';
+  import { getCellLocale, getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import SearchHighlight from '#lib/features/SearchHighlight.svelte';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import type { Snippet } from 'svelte';
 
   const { state: tableState, view: tableView } = getTableContext();

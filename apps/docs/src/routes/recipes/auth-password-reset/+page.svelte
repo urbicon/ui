@@ -7,7 +7,7 @@
 
   const recipeCode = `// 1. src/routes/api/auth/forgot-password/+server.ts — request a reset link
 import { createForgotPasswordHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
+import { authDeps } from '#lib/server/auth-setup.js';
 export const { POST } = createForgotPasswordHandler(authDeps);
 
 // 2. Observe delivery failures. forgot-password is fire-and-forget (so response
@@ -25,7 +25,7 @@ export const { POST } = createForgotPasswordHandler(authDeps);
 
   const resetCode = `// 1. src/routes/api/auth/reset-password/+server.ts — consume the token
 import { createResetPasswordHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
+import { authDeps } from '#lib/server/auth-setup.js';
 export const { POST } = createResetPasswordHandler(authDeps);
 
 // 2. src/routes/auth/reset-password/+page.svelte — the token arrives as ?token=...

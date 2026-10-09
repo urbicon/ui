@@ -1,9 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { type CollapseMark, hostHasRoomAgain } from './overflow';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';

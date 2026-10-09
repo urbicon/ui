@@ -1,5 +1,5 @@
-import { FIELD_REQUIRED_MARK } from '$lib/internal/field-chrome';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { FIELD_REQUIRED_MARK } from '#lib/internal/field-chrome.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 export const radioGroupVariants = tv({
   slots: {

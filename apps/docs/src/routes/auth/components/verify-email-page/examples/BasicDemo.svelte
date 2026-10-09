@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import { VerifyEmailPage } from '@urbicon-ui/auth';
-  import { createVerifyEmailDemoFetcher } from '$lib/demo/auth-demo-fetch';
+  import { createVerifyEmailDemoFetcher } from '#lib/demo/auth-demo-fetch.js';
 
   const demoFetch = createVerifyEmailDemoFetcher();
 </script>

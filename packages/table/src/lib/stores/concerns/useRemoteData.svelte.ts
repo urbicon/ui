@@ -1,5 +1,5 @@
-import type { TableItem } from '$lib/types/tableTypes';
-import { normalizeItems } from '$lib/utils';
+import type { TableItem } from '#lib/types/tableTypes.js';
+import { normalizeItems } from '#lib/utils/index.js';
 import type { TableState } from './types';
 
 /**
@@ -7,7 +7,7 @@ import type { TableState } from './types';
  *
  * This concern does NOT fetch data itself (keeping the store synchronous),
  * and it does not build the query either — the managed fetch lifecycle lives
- * in `createManagedFetch` (`$lib/view/observe.svelte`), driven by
+ * in `createManagedFetch` (`#lib/view/observe.svelte.js`), driven by
  * `TableProvider`, and since #162 there is no projection left to do: the
  * query IS `view.snapshot()`. The setters here are where its results land.
  *

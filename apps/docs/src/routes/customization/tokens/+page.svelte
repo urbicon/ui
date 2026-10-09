@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import {
@@ -8,7 +8,7 @@
     intentUtilities,
     SEMANTIC_TOKENS
   } from '@urbicon-ui/design-engine/reference';
-  import { parseInteractionTokens } from '$lib/interaction-tokens';
+  import { parseInteractionTokens } from '#lib/interaction-tokens.js';
   // The shipped stylesheet itself, so the tables below cannot quote a value
   // the library does not have.
   import interactionCss from '@urbicon-ui/blocks/style/interaction.css?raw';

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTableView } from '$lib/view/view.svelte';
+import { createTableView } from '#lib/view/view.svelte.js';
 import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';

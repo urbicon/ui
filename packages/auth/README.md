@@ -14,12 +14,8 @@ All crypto is implemented with the Web Crypto API — no `bcrypt`, no `jsonwebto
 bun add @urbicon-ui/auth
 ```
 
-Peer dependencies: `svelte` (^5.57.0), `@sveltejs/kit`, `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
+Peer dependencies: `svelte` (^5.57.1), `@sveltejs/kit` (^3.0.0), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 Runtime dependencies: **none**.
-
-The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well;
-the incorrect-peer warning `bun add` prints there is expected and stays until Kit 3 has a
-release candidate, when the range widens.
 
 Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x minor may carry
 breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window));
@@ -42,7 +38,7 @@ this package (the `sm:` layouts of the pages and managers, the link colour of th
 pages) is missing from the compiled CSS. A project that mounted the components before this
 stylesheet existed adds the one line and is done.
 
-**Runtime target: Node.js ≥ 20 or Bun.** All crypto is Web Crypto (`globalThis.crypto`, global since Node 20), but password hashing and the TOTP secret cipher use Node's `Buffer` — which puts the login/register path on a Node/Bun runtime. Edge/Workers/Deno-deploy work only behind a `Buffer` polyfill (e.g. Cloudflare `nodejs_compat`); the Web Crypto paths themselves are edge-clean.
+**Runtime target: Node.js ≥ 22.17 (SvelteKit 3's floor) or Bun.** All crypto is Web Crypto (`globalThis.crypto`, global since Node 20), but password hashing and the TOTP secret cipher use Node's `Buffer` — which puts the login/register path on a Node/Bun runtime. Edge/Workers/Deno-deploy work only behind a `Buffer` polyfill (e.g. Cloudflare `nodejs_compat`); the Web Crypto paths themselves are edge-clean.
 
 ## Feature Matrix
 
@@ -169,7 +165,7 @@ warned about at wiring time ([docs/AUTH.md → Secure deployment](docs/AUTH.md#s
 
 ```typescript
 import { createAuthHandle } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
+import { authDeps } from '#lib/server/auth-setup.js';
 
 export const handle = createAuthHandle({ config: authDeps.config, repos: authDeps.repos });
 ```
@@ -189,7 +185,7 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 
 ```typescript
 import { createLoginHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
+import { authDeps } from '#lib/server/auth-setup.js';
 export const { POST } = createLoginHandler(authDeps);
 ```
 
@@ -232,7 +228,8 @@ stubs are unchanged; you're only growing the config.
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
-import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
+// Declared in src/env.ts with `defineEnvVars` from '@sveltejs/kit/env'.
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$app/env/private';
 import { prisma } from './prisma';
 import { appLogger } from './logging'; // your own AuthLogger { warn, error }
 
@@ -241,7 +238,7 @@ type AppRole = 'ADMIN' | 'USER';
 export const authDeps = createAuthDeps<AppRole>({
   config: {
     jwt: { secret: JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
-    appUrl: APP_URL, // trusted base for email links — never request.url; a private var, so no PUBLIC_ prefix
+    appUrl: APP_URL, // trusted base for email links — never request.url
     email: { from: 'Acme <auth@acme.example>' }, // default sender for all auth emails
     csrf: { doubleSubmit: true }, // token layer on top of the always-on Origin check — only with header-capable clients (see checklist)
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
@@ -283,7 +280,7 @@ Mirrors [AUTH.md → Production-Readiness Checklist](https://ui.urbicon.de/auth/
 - [ ] **CSP** tuned to your app (`securityHeaders.csp`) — the default only blocks framing.
 - [ ] **`appUrl`** set to the real public origin; **`JWT_SECRET`** from a secret store, with a `keyId` + `previousSecrets` rotation runbook ready.
 - [ ] **Monitoring** on auth-handler latency + error rate; wire `hooks.onPasswordResetFailed` to your error tracker so a broken mail transport doesn't silently lock users out of recovery.
-- [ ] **Machine callers declared** (cron, OAuth token, API-key routes) in `csrf: { exempt }` on `createAuthHandle`, each authenticating itself; for the form-encoded ones also `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` (SvelteKit's kernel gate, built apps only) with every cookie-auth mutating route still flowing through the handle. See [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
+- [ ] **Machine callers declared** (cron, OAuth token, API-key routes) in `csrf: { exempt }` on `createAuthHandle`, each authenticating itself; for the form-encoded or `Content-Type`-less ones also `csrf: { trustedOrigins: ['*'] }` on the `sveltekit()` plugin in `vite.config.ts` (SvelteKit's kernel gate, built apps only) with every cookie-auth mutating route still flowing through the handle. See [AUTH.md → Machine callers](https://ui.urbicon.de/auth/guide#machine-callers).
 
 #### CSRF on the client
 
@@ -358,7 +355,7 @@ registry.register({
 ```typescript
 // src/routes/api/auth/account/change-password/+server.ts
 import { createChangePasswordHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
+import { authDeps } from '#lib/server/auth-setup.js';
 export const { POST } = createChangePasswordHandler(authDeps);
 // …and change-email, profile, delete the same way; plus a verify-email-change
 // route (createVerifyEmailChangeHandler) behind the link sent to the new address.

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { SvelteSet } from 'svelte/reactivity';
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { getTierContext } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getTierContext } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { stepperVariants, type StepperVariants } from './stepper.variants';
   import { setStepperContext } from './stepper.context';
   import type { StepperProps, StepperContext } from './index';

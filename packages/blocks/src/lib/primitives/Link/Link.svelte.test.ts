@@ -2,7 +2,7 @@
 import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ComponentDefaults, ComponentPreset } from '$lib/provider/blocks-context';
+import type { ComponentDefaults, ComponentPreset } from '#lib/provider/blocks-context.js';
 import LinkProviderHost from './__fixtures__/LinkProviderHost.svelte';
 import type { LinkProps } from './index';
 import Link from './Link.svelte';

@@ -33,7 +33,7 @@ The props interface extends `ComponentVariants` and relevant HTML attributes. Pr
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { ComponentSlots, ComponentVariants } from './component.variants';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 
 export interface ComponentNameProps
   extends ComponentVariants,
@@ -100,7 +100,7 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
 
 ```svelte
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import type { ComponentNameProps } from './index';
   import { componentVariants, type ComponentVariants } from './component.variants';
 
@@ -192,10 +192,10 @@ The root slot folds `class` and `slotClasses.base` together (so `class` reaches 
 
 ## component.variants.ts
 
-Uses the in-house `tv()` engine (`$lib/utils/variants`, zero-dep) with slots, variants, and semantic design tokens (see [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md)):
+Uses the in-house `tv()` engine (`#lib/utils/variants`, zero-dep) with slots, variants, and semantic design tokens (see [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md)):
 
 ```typescript
-import { tv, type SlotNames, type VariantProps } from '$lib/utils/variants';
+import { tv, type SlotNames, type VariantProps } from '#lib/utils/variants.js';
 
 export const componentVariants = tv({
   slots: {

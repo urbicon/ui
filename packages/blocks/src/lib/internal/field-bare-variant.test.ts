@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { comboboxVariants } from '$lib/primitives/Combobox/combobox.variants';
-import { inputVariants } from '$lib/primitives/Input/input.variants';
-import { selectVariants } from '$lib/primitives/Select/select.variants';
-import { textareaVariants } from '$lib/primitives/Textarea/textarea.variants';
+import { comboboxVariants } from '#lib/primitives/Combobox/combobox.variants.js';
+import { inputVariants } from '#lib/primitives/Input/input.variants.js';
+import { selectVariants } from '#lib/primitives/Select/select.variants.js';
+import { textareaVariants } from '#lib/primitives/Textarea/textarea.variants.js';
 
 /**
  * `bare` on the four fields that carry `underline`.

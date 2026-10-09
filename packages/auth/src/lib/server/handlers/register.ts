@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { generateSecureToken, hashToken, sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { resolveTokenTtlMs } from '../duration.js';
@@ -232,7 +231,7 @@ export function createRegisterHandler<R extends string>(
         resolveSessionMeta(event, deps.config)
       );
 
-      return json({ user: sanitizeUser(fullUser) }, { status: 201 });
+      return Response.json({ user: sanitizeUser(fullUser) }, { status: 201 });
     }
   });
 }

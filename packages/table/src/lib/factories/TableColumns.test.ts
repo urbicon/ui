@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Column } from '$lib/types/tableTypes';
-import { resolveColumnId } from '$lib/utils';
+import type { Column } from '#lib/types/tableTypes.js';
+import { resolveColumnId } from '#lib/utils/index.js';
 import { TableColumns } from './TableColumns';
 
 type TestItem = {

@@ -27,7 +27,7 @@
  * window of the spike review.
  */
 import { untrack } from 'svelte';
-import { browser, building } from '$app/environment';
+import { browser, building } from '$app/env';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import {
@@ -150,9 +150,8 @@ const writer = {
     this.sentPending.add(search);
     this.intendedSearch = search;
     void goto(`${page.url.pathname}${search}${page.url.hash}`, {
-      replaceState,
-      noScroll: true,
-      keepFocus: true
+      replace: replaceState,
+      reset: false
     });
   },
 

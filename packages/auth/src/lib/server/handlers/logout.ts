@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { AuthDeps } from '../deps.js';
 import { revokeRefreshFromCookie } from '../refresh-token.js';
 import { endSession } from '../session.js';
@@ -87,7 +86,7 @@ export function createLogoutHandler<R extends string>(
       } finally {
         endSession(cookies, deps.config);
       }
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

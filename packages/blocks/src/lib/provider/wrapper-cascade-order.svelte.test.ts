@@ -2,13 +2,13 @@
 import type { Component } from 'svelte';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import CurrencyInput from '$lib/components/CurrencyInput/CurrencyInput.svelte';
-import LocaleSwitcher from '$lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
-import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
-import ConfirmDialog from '$lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
-import Dialog from '$lib/primitives/Dialog/Dialog.svelte';
-import Input from '$lib/primitives/Input/Input.svelte';
-import Select from '$lib/primitives/Select/Select.svelte';
+import CurrencyInput from '#lib/components/CurrencyInput/CurrencyInput.svelte';
+import LocaleSwitcher from '#lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
+import NumberInput from '#lib/components/NumberInput/NumberInput.svelte';
+import ConfirmDialog from '#lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
+import Dialog from '#lib/primitives/Dialog/Dialog.svelte';
+import Input from '#lib/primitives/Input/Input.svelte';
+import Select from '#lib/primitives/Select/Select.svelte';
 import WrapperCascadeHost from './__fixtures__/WrapperCascadeHost.svelte';
 import type { ComponentDefaults, PresetMap } from './blocks-context';
 

@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { AccountSettings } from '@urbicon-ui/auth';
-  import { createAccountDemoFetcher, demoAuthUser } from '$lib/demo/auth-demo-fetch';
+  import { createAccountDemoFetcher, demoAuthUser } from '#lib/demo/auth-demo-fetch.js';
 
   const demoFetch = createAccountDemoFetcher();
 </script>

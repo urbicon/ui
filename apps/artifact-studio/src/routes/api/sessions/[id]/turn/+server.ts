@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import type { StudioEvent } from '$lib/events';
-import { getSession } from '$lib/server/registry';
+import type { StudioEvent } from '#lib/events.js';
+import { getSession } from '#lib/server/registry.js';
 import type { RequestHandler } from './$types';
 
 /**

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import {
     Alert,
@@ -18,7 +18,7 @@
     generatePalette,
     previewVars,
     rampDeclarations
-  } from '$lib/theme-preview';
+  } from '#lib/theme-preview.js';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);
@@ -51,7 +51,7 @@
     }
   });
 
-  // Chassis stops from the shared palette model ($lib/theme-preview.ts) —
+  // Chassis stops from the shared palette model (#lib/theme-preview.ts) —
   // the ramp profile mirrors foundation.css and is guarded by its test.
   const chassisPalette = $derived(generateChassis(chassisHue, chassisTint));
 
@@ -150,7 +150,7 @@
   let secondaryPalette = $derived(generatePalette(secondaryHue, secondaryChroma, 0.55));
 
   // The theme being built, as declarations. The preview scope applies these and
-  // derives the rest ($lib/theme-preview.ts); the copy-paste output below
+  // derives the rest (#lib/theme-preview.ts); the copy-paste output below
   // renders the same values with its prose around them.
   const themeDeclarations = $derived.by(() => {
     const out: [string, string][] = [
@@ -252,7 +252,7 @@
 
   // Ramps + every role that reads them, re-declared for the preview scope in
   // both modes via light-dark() — shared with /customization/themes
-  // ($lib/theme-preview.ts). Passing `radii` pulls the derived tier tokens in
+  // (#lib/theme-preview.ts). Passing `radii` pulls the derived tier tokens in
   // too, without which the picker moved nothing in the preview:
   // `--radius-modify: var(--radius-sm)` substitutes at :root, so overriding the
   // base scale in this inline scope left every component on its original

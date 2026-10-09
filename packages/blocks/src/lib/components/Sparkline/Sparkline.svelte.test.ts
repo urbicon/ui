@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ComponentDefaults, PresetMap } from '$lib/provider/blocks-context';
+import type { ComponentDefaults, PresetMap } from '#lib/provider/blocks-context.js';
 import SparklineProviderHost from './__fixtures__/SparklineProviderHost.svelte';
 import type { SparklineProps } from './index';
 import Sparkline from './Sparkline.svelte';

@@ -7,7 +7,7 @@
  * when it crosses the visible window.
  */
 
-import { endOfWeek, startOfWeek } from '$lib/date';
+import { endOfWeek, startOfWeek } from '#lib/date/index.js';
 import type { DateGridContext } from './date-grid.types';
 
 /** The slice of the date-grid surface the keyboard handler drives. Both the

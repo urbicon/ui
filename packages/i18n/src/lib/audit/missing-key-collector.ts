@@ -16,7 +16,7 @@
  * ones a static scan cannot see.
  */
 
-import type { I18nMissingKey, Locale } from '$lib/i18n/types';
+import type { I18nMissingKey, Locale } from '#lib/i18n/types.js';
 
 export interface MissingKeyRecord {
   /** The unresolved key. */

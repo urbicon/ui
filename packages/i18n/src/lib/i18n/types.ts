@@ -1,4 +1,4 @@
-import type { DeepKeys } from '$lib/utils/deep-keys';
+import type { DeepKeys } from '#lib/utils/deep-keys.js';
 
 /**
  * Single source of truth for the locales the library declares support for.

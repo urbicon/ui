@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import type { SparklineProps } from './index';
   import {
     sparklineVariants,
     type SparklineSlots,
     type SparklineVariants
   } from './sparkline.variants';
-  import { linearScale, linePath, areaPath, extent } from '$lib/internal/charts/utils';
-  import type { ChartPoint } from '$lib/internal/charts/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { linearScale, linePath, areaPath, extent } from '#lib/internal/charts/utils.js';
+  import type { ChartPoint } from '#lib/internal/charts/utils.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
 
   let {
     data,

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { useTableI18n } from '$lib';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
-  import type { FilterOperator } from '$lib/types/tableTypes';
-  import { findColumnById, resolveValueById } from '$lib/utils';
-  import { filterPanelVariants } from '$lib/variants';
+  import { useTableI18n } from '#lib';
+  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import type { FilterOperator } from '#lib/types/tableTypes.js';
+  import { findColumnById, resolveValueById } from '#lib/utils/index.js';
+  import { filterPanelVariants } from '#lib/variants/index.js';
   import ToolEmptyNote from './ToolEmptyNote.svelte';
   import { buildFilterEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
   import {

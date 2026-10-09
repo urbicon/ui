@@ -10,12 +10,12 @@
  *
  * What counts as an edge (and what does not):
  *   - direct relative imports (`../Button/Button.svelte`, `{ Collapsible } from
- *     '../Collapsible'`) and barrel imports (`{ Button } from '$lib'` /
- *     '$lib/primitives' / '..' / '../..') whose imported names are public
+ *     '../Collapsible'`) and barrel imports (`{ Button } from '#lib'` /
+ *     '#lib/primitives/index.js' / '..' / '../..') whose imported names are public
  *     PascalCase components — variants functions, contexts and other
  *     lowercase exports never count.
  *   - NOT an edge: imports within the same component directory (Menu →
- *     MenuItem), icon imports ($lib/icons/*, names ending in `Icon`),
+ *     MenuItem), icon imports (#lib/icons/*, names ending in `Icon`),
  *     type-only imports, `__fixtures__/` + `*.test.*` files, and anything
  *     under src/lib/internal/** (extraction target — always allowed).
  *
@@ -310,8 +310,8 @@ for (const [dirId, files] of dirFiles) {
 
       // Resolve the specifier to a path under src/lib (or skip externals).
       let target: string;
-      if (spec === '$lib') target = LIB;
-      else if (spec.startsWith('$lib/')) target = join(LIB, spec.slice('$lib/'.length));
+      if (spec === '#lib') target = LIB;
+      else if (spec.startsWith('#lib/')) target = join(LIB, spec.slice('#lib/'.length));
       else if (spec.startsWith('.')) target = resolve(dirname(file), spec);
       else continue; // bare module specifier — external
       const rel = relative(LIB, target).replaceAll('\\', '/');
@@ -322,8 +322,8 @@ for (const [dirId, files] of dirFiles) {
       if (rel === 'icons' || rel.startsWith('icons/')) continue;
 
       const componentPath = rel.match(/^(primitives|components)\/([^/]+)(?:\/(.*))?$/);
-      const isGlobalBarrel = rel === '' || rel === 'index' || rel === 'index.ts';
-      const isGroupBarrel = /^(primitives|components)(\/index(\.ts)?)?$/.test(rel);
+      const isGlobalBarrel = rel === '' || /^index(\.(ts|js))?$/.test(rel);
+      const isGroupBarrel = /^(primitives|components)(\/index(\.(ts|js))?)?$/.test(rel);
 
       if (componentPath && !isGroupBarrel) {
         const [, group, dirName, sub] = componentPath;

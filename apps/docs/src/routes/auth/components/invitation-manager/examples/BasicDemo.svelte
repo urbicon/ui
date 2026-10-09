@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import { InvitationManager } from '@urbicon-ui/auth';
-  import { createInvitationDemoFetcher } from '$lib/demo/auth-demo-fetch';
+  import { createInvitationDemoFetcher } from '#lib/demo/auth-demo-fetch.js';
 
   const roles = [
     { value: 'ADMIN', label: 'Admin' },

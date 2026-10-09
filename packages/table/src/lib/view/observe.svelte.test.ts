@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Filter, TablePage } from '$lib/types/tableTypes';
+import type { Filter, TablePage } from '#lib/types/tableTypes.js';
 import { createManagedFetch, observeView } from './observe.svelte';
 import type { TableSource } from './source';
 import { createTableView, type TableView, type TableViewSnapshot } from './view.svelte';

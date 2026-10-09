@@ -1,13 +1,13 @@
 <!--
   Guide playground — lifted out of the doc page's live example so two pages can
-  show it: the doc page and the landing hero. See `$lib/playground-host.ts`.
+  show it: the doc page and the landing hero. See `#lib/playground-host.ts`.
 
   The controls come from `guide-panel/api.ts`, not this file's own: the Guide
   family has nine surfaces, but only one is steerable in the example — the panel.
   The rest (Marker, Mention, Provider) is wiring, not a knob.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import {
     GuideArticle,
     GuideController,

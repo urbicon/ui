@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // CopyButton is-a Button (it forwards variant/intent/size/tier to the public
 // Button). These variants only size the embedded icon and carry the tiny

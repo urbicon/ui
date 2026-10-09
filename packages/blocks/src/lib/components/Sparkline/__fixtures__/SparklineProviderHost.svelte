@@ -4,8 +4,8 @@
   // three (`defaults.slotClasses`, `presets[…].slotClasses`,
   // `defaults.overrides[].class`) are `Record<string, string>`, so a stale slot
   // key reaches no type check at all and only the warning reports it.
-  import BlocksProvider from '$lib/provider/BlocksProvider.svelte';
-  import type { ComponentDefaults, PresetMap } from '$lib/provider/blocks-context';
+  import BlocksProvider from '#lib/provider/BlocksProvider.svelte';
+  import type { ComponentDefaults, PresetMap } from '#lib/provider/blocks-context.js';
   import type { SparklineProps } from '../index';
   import Sparkline from '../Sparkline.svelte';
 

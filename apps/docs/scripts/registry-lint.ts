@@ -178,7 +178,7 @@ collectPages(ROUTES, '', pages);
 
 // ── The three hand-written registries ────────────────────────────────────────
 // Parsed as text, not imported: both modules import `$app/paths` (and
-// navigation.ts `$lib/i18n`), which only resolve inside Vite — a lint that
+// navigation.ts `#lib/i18n/index.js`), which only resolve inside Vite — a lint that
 // needed `svelte-kit sync` to run would be a lint nobody runs.
 const linksSrc = readFileSync(join(APP, 'src/lib/component-links.ts'), 'utf8');
 /**

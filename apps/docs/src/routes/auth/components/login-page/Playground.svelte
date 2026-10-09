@@ -5,12 +5,12 @@
   das statische `examples/Basic.svelte` das geteilte Beispiel.
 
   Zwei Konsumenten: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { LoginPage } from '@urbicon-ui/auth';
   import {
     defaultValuesOf,

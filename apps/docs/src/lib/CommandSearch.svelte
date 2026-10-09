@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ChevronRightIcon, CommandPalette, FileTextIcon } from '@urbicon-ui/blocks';
   import type { CommandPaletteItem } from '@urbicon-ui/blocks';
-  import { nav } from '$lib/route';
-  import { useAppI18n } from '$lib/i18n';
+  import { nav } from '#lib/route.js';
+  import { useAppI18n } from '#lib/i18n/index.js';
   import { navigationItems, useNavLabel, type NavItem } from './navigation';
   import { searchRecords, type SearchRecord } from './search';
 

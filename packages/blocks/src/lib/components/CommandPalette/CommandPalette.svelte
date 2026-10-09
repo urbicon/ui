@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { resolveIcon } from '$lib/icons';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
-  import { Dialog, Separator } from '$lib/primitives';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import SearchIconDefault from '#lib/icons/SearchIcon.svelte';
+  import { Dialog, Separator } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
   import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 

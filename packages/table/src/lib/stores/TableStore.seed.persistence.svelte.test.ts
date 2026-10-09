@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Column, Filter } from '$lib/types/tableTypes';
-import { bindViewToStorage } from '$lib/view/storage-binding.svelte';
-import { createTableView, type TableView, type TableViewDefaults } from '$lib/view/view.svelte';
+import type { Column, Filter } from '#lib/types/tableTypes.js';
+import { bindViewToStorage } from '#lib/view/storage-binding.svelte.js';
+import { createTableView, type TableView, type TableViewDefaults } from '#lib/view/view.svelte.js';
 import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 

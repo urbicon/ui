@@ -36,8 +36,8 @@ describe('authError', () => {
   });
 
   it('forwards Retry-After beside the directive it sets', () => {
-    // The two must coexist: the directive is written onto the response `json()`
-    // already built, so a header the caller passed cannot be lost to it.
+    // The two must coexist: the directive is written onto the response
+    // `Response.json()` already built, so a header the caller passed cannot be lost to it.
     const res = authError('rate_limited', { headers: { 'Retry-After': '30' } });
     expect(res.headers.get('Retry-After')).toBe('30');
     expect(res.headers.get('Cache-Control')).toBe('no-store');

@@ -5,7 +5,7 @@
   // elements. `mentions`/`targets` are arrays (mirrors StepperHarness's `steps`) so a single
   // harness covers the single-mention cases and the two-mention topic-guard case. Under
   // __fixtures__/ so it is excluded from the published package and never collected as a test.
-  import type { GuideController, GuideDirection } from '$lib/utils';
+  import type { GuideController, GuideDirection } from '#lib/utils/index.js';
   import GuideMention from '../GuideMention.svelte';
   import GuideProvider from '../GuideProvider.svelte';
 

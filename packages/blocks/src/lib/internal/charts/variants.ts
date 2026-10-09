@@ -1,4 +1,4 @@
-import { resolveClassChain, tv, type VariantProps } from '$lib/utils/variants';
+import { resolveClassChain, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * Shared tv() slots for the charts/ family. SVG presentation (fill/stroke) is

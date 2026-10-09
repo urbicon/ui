@@ -1,5 +1,5 @@
+import { type AppTranslationKey, useAppI18n } from '#lib/i18n/index.js';
 import { resolve } from '$app/paths';
-import { type AppTranslationKey, useAppI18n } from '$lib/i18n';
 
 /**
  * Route id accepted by SvelteKit's `resolve()` — typing `href` against it

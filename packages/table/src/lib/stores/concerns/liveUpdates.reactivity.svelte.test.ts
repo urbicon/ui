@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Column } from '$lib/types/tableTypes';
+import type { Column } from '#lib/types/tableTypes.js';
 import type { TableState } from './types';
 import { useColumnVisibility } from './useColumnVisibility.svelte.js';
 import { useLiveUpdates } from './useLiveUpdates.svelte.js';

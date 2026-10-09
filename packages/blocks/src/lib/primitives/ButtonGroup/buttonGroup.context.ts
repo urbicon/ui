@@ -1,4 +1,4 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 import type { ButtonGroupContext } from './index';
 
 // Button reads this optionally — it works both inside and outside a ButtonGroup.

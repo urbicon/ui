@@ -1,6 +1,10 @@
 <script lang="ts">
   import { useTableI18n } from '../i18n';
-  import { emptyStateVariants, tableRowVariants, type EmptyStateVariantProps } from '$lib/variants';
+  import {
+    emptyStateVariants,
+    tableRowVariants,
+    type EmptyStateVariantProps
+  } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import {
     resolveIcon,

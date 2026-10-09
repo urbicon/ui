@@ -1,4 +1,4 @@
-import type { TableItem } from '$lib/types/tableTypes';
+import type { TableItem } from '#lib/types/tableTypes.js';
 import type { TableState } from './types';
 
 function resolveRowId(item: TableItem): string | number | undefined {

@@ -14,7 +14,7 @@ The locale lives in **context**, not a module-global singleton — so concurrent
 bun add @urbicon-ui/i18n
 ```
 
-Peer dependencies: `svelte` (^5.57.0 — uses runes + `createContext`-era context). No SvelteKit needed: the package imports neither `$app/*` nor `@sveltejs/kit`, so it works in any Svelte 5 project — the request-scoped locale below is what keeps it SSR-correct wherever you render.
+Peer dependencies: `svelte` (^5.57.1 — uses runes + `createContext`-era context). No SvelteKit needed: the package imports neither `$app/*` nor `@sveltejs/kit`, so it works in any Svelte 5 project — the request-scoped locale below is what keeps it SSR-correct wherever you render.
 
 ## Quick Start
 
@@ -126,7 +126,7 @@ export const useBlocksI18n = blocksI18n.useTranslate;
 ```svelte
 <!-- In a blocks component -->
 <script>
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib/i18n/index.js';
   const bt = useBlocksI18n(); // call during component init
 </script>
 
@@ -260,7 +260,7 @@ If your app uses Paraglide (or any other i18n) for its **own** strings, you don'
 <!-- +layout.svelte -->
 <script>
   import { I18nProvider } from '@urbicon-ui/i18n';
-  import { getLocale } from '$lib/paraglide/runtime'; // Paraglide's reactive locale
+  import { getLocale } from '#lib/paraglide/runtime.js'; // Paraglide's reactive locale
   let { children } = $props();
 </script>
 
@@ -289,8 +289,8 @@ configureI18n({ onError: (e) => reportToSentry(e) });
 
 ```ts
 import { validatePackageTranslations } from '@urbicon-ui/i18n';
-import en from '$lib/translations/en';
-import de from '$lib/translations/de'; // import lazy bundles directly for the check
+import en from '#lib/translations/en.js';
+import de from '#lib/translations/de.js'; // import lazy bundles directly for the check
 
 it('en/de key parity', () => {
   expect(validatePackageTranslations('blocks', { en, de }).errors).toEqual([]);
@@ -358,7 +358,7 @@ Three layers catch i18n problems — untranslated strings, unused keys, and copy
 
 ```ts
 import { auditTranslations } from '@urbicon-ui/i18n';
-import { appTranslations } from '$lib/i18n';
+import { appTranslations } from '#lib/i18n.js';
 
 it('translations are in parity', () => {
   expect(auditTranslations('app', appTranslations).ok).toBe(true);

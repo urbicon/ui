@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -10,7 +10,7 @@
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);
@@ -87,7 +87,7 @@
 
   <div class="mt-6 text-right">
     <a
-      href={asset('/blocks/components/chat/llm.txt')}
+      href={asset('blocks/components/chat/llm.txt')}
       target="_blank"
       rel="noopener"
       class="text-text-tertiary hover:text-primary text-xs transition-colors"

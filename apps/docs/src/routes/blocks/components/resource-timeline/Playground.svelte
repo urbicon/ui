@@ -1,14 +1,14 @@
 <!--
   ResourceTimeline-Playground — eigene Datei wie bei Planner/Calendar, damit die
   Doku-Seite und ein möglicher Hero-Host denselben Stand zeigen. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 
   Die Knopfwerte kommen aus der generierten API (`deriveControls`); von Hand
   steht hier nur, was sich nicht ableiten lässt — die `days`-Bedingung und die
   Demodaten.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { ResourceTimeline } from '@urbicon-ui/blocks';
   import { addDays, isoToDate } from '@urbicon-ui/blocks/date';
   import {

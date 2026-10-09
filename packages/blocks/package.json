@@ -47,6 +47,10 @@
   "svelte": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "exports": {

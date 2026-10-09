@@ -1,7 +1,7 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { r } from '$lib/route';
+  import { r } from '#lib/route.js';
   import { ArrowRightIcon, Badge, Button, buttonVariants, Card } from '@urbicon-ui/blocks';
   import RecipePreview from './RecipePreview.svelte';
   import { RECIPE_ORDER, type RecipeMeta } from './recipe-meta';

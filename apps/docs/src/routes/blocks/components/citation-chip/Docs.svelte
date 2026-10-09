@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { asset } from '$app/paths';
+  import { resolve } from '$app/paths';
   import { SourceFooter, CitationStyles, FromStreamingMarkdown } from './examples';
 
   import sourceFooterCode from './examples/SourceFooter.svelte?raw';
@@ -71,7 +71,7 @@
   <div class="text-text-secondary space-y-3 text-sm leading-relaxed">
     <p>
       For the streaming flow that produces these chips automatically, see
-      <a href={asset('/blocks/components/streaming-markdown')}>StreamingMarkdown</a>. Its
+      <a href={resolve('/blocks/components/streaming-markdown')}>StreamingMarkdown</a>. Its
       <code>sources</code> prop resolves the markers and applies the same
       <code>urlPolicy</code> to every chip.
     </p>

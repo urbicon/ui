@@ -1,8 +1,8 @@
 <script lang="ts">
   import { tooltipVariants } from './tooltip.variants';
-  import type { VariantProps } from '$lib/utils/variants';
+  import type { VariantProps } from '#lib/utils/variants.js';
   import type { TooltipProps } from './index';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import {
     computePosition,
     autoUpdate,
@@ -10,9 +10,9 @@
     shift,
     offset,
     arrow as floatingArrow
-  } from '$lib/utils/floating';
-  import { isAnchoredInModalDialog } from '$lib/utils/overlay';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/utils/floating.js';
+  import { isAnchoredInModalDialog } from '#lib/utils/overlay.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
 
   let {
     children,

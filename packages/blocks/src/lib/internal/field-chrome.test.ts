@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { pinInputVariants } from '$lib/components/PinInput/pin-input.variants';
-import { timeInputVariants } from '$lib/components/TimeInput/time-input.variants';
-import { comboboxVariants } from '$lib/primitives/Combobox/combobox.variants';
-import { inputVariants } from '$lib/primitives/Input/input.variants';
-import { selectVariants } from '$lib/primitives/Select/select.variants';
-import { textareaVariants } from '$lib/primitives/Textarea/textarea.variants';
+import { pinInputVariants } from '#lib/components/PinInput/pin-input.variants.js';
+import { timeInputVariants } from '#lib/components/TimeInput/time-input.variants.js';
+import { comboboxVariants } from '#lib/primitives/Combobox/combobox.variants.js';
+import { inputVariants } from '#lib/primitives/Input/input.variants.js';
+import { selectVariants } from '#lib/primitives/Select/select.variants.js';
+import { textareaVariants } from '#lib/primitives/Textarea/textarea.variants.js';
 import { FIELD_MESSAGE_TONES, fieldErrorFrame } from './field-chrome';
 
 /**

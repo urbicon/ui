@@ -12,7 +12,7 @@
  * (#191).
  */
 
-import type { DateCategory, DateRange } from '$lib/internal/date-grid';
+import type { DateCategory, DateRange } from '#lib/internal/date-grid/index.js';
 import type { ResourceTimelineSlots } from './resource-timeline.variants';
 
 export type { DateCategory, DateRange };

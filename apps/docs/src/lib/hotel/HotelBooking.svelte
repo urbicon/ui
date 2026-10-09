@@ -14,8 +14,8 @@
   } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
-  import { BOOKING_SCHEMA } from '$lib/booking-schema';
-  import { replayTurn, TURN_BY_ACTION, TURNS } from '$lib/replay/player';
+  import { BOOKING_SCHEMA } from '#lib/booking-schema.js';
+  import { replayTurn, TURN_BY_ACTION, TURNS } from '#lib/replay/player.js';
 
   /**
    * The booking assistant, embedded in the hotel page.

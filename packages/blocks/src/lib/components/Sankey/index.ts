@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { SankeyLaidOutLink, SankeyLaidOutNode } from '$lib/internal/sankey/layout';
+import type { SankeyLaidOutLink, SankeyLaidOutNode } from '#lib/internal/sankey/layout.js';
 import type { SankeySlots, SankeyVariants } from './sankey.variants';
 
 export type SankeyIntent = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';

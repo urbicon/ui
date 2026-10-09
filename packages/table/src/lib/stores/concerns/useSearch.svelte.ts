@@ -1,4 +1,4 @@
-import type { TableView } from '$lib/view/view.svelte';
+import type { TableView } from '#lib/view/view.svelte.js';
 
 /**
  * Search concern: manages the search term (the page-1-reset side effect), and

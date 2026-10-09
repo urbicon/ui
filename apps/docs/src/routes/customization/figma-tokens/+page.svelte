@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Badge, Button, Card, DownloadIcon, Separator } from '@urbicon-ui/blocks';
   import { generateFigmaTokens, generateFigmaTokensJSON } from '@urbicon-ui/blocks';

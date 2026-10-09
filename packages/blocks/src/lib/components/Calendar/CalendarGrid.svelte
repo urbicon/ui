@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getWeekNumber, toIso } from '$lib/date';
-  import { handleDateGridKeydown } from '$lib/internal/date-grid';
+  import { getWeekNumber, toIso } from '#lib/date/index.js';
+  import { handleDateGridKeydown } from '#lib/internal/date-grid/index.js';
   import { getMultiDayEventLayout } from './calendar.engine';
-  import { swipeable } from '$lib/utils/swipeable';
+  import { swipeable } from '#lib/utils/swipeable.js';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarWeekdayHeader from './CalendarWeekdayHeader.svelte';
   import CalendarDay from './CalendarDay.svelte';

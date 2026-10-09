@@ -1,4 +1,4 @@
-import { createOptionalContext, type GuideController } from '$lib/utils';
+import { createOptionalContext, type GuideController } from '#lib/utils/index.js';
 
 /**
  * Optional context for the Guide system. Surfaces read the controller via

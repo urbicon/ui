@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createTableView } from '$lib/view/view.svelte';
+import { createTableView } from '#lib/view/view.svelte.js';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 
 /**

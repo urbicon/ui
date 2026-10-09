@@ -1,11 +1,11 @@
 <script lang="ts">
   import PaginationItem from './PaginationItem.svelte';
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { paginationVariants } from '$lib/primitives';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { paginationVariants } from '#lib/primitives/index.js';
   import type { PaginationVariants } from './pagination.variants';
   import { MediaQuery } from 'svelte/reactivity';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { computeEllipsisState, computeVisiblePageNumbers } from './pagination.engine';
   import type { PaginationProps } from '.';
 

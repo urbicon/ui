@@ -1,11 +1,11 @@
 <!--
   Sankey-Playground — herausgelöst aus `+page.svelte`, damit ihn zwei Seiten
   zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 -->
 <script lang="ts">
-  import { SET_FAMILIES, SET_FAMILY_MATURITY, SET_PACKAGE_FAMILY } from '$lib/landing/set-facts';
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import { SET_FAMILIES, SET_FAMILY_MATURITY, SET_PACKAGE_FAMILY } from '#lib/landing/set-facts.js';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Sankey, type SankeyLink, type SankeyNode } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

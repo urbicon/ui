@@ -3,8 +3,8 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { TableContext } from '$lib/core/table/index.js';
-import type { Column } from '$lib/types/tableTypes';
+import type { TableContext } from '#lib/core/table/index.js';
+import type { Column } from '#lib/types/tableTypes.js';
 import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import TableHarness from '../core/__fixtures__/TableHarness.svelte';
 

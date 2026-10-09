@@ -15,10 +15,10 @@
   Beispielpaar weiterhin über ihr `CodeExample`. Beide greifen auf dieselben
   zwei Dateien zu, es gibt also nichts, was auseinanderlaufen könnte — die
   Seite auf diesen Playground umzustellen wäre eine Konsolidierung, keine
-  Korrektur. Signatur: `$lib/playground-host.ts`.
+  Korrektur. Signatur: `#lib/playground-host.ts`.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { PlaygroundConfigurator } from '@urbicon-ui/docs';
   import BasicDemo from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';

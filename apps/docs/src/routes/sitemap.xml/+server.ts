@@ -1,4 +1,4 @@
-import { SITE_URL } from '$lib/seo';
+import { SITE_URL } from '#lib/seo.js';
 
 export const prerender = true;
 

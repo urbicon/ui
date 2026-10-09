@@ -23,8 +23,8 @@
  * instead of going green for the wrong reason.
  */
 
-import type * as Store from '$lib/stores/TableStore.svelte';
-import type { InternalTableContext } from '$lib/stores/TableStore.svelte';
+import type * as Store from '#lib/stores/TableStore.svelte.js';
+import type { InternalTableContext } from '#lib/stores/TableStore.svelte.js';
 import type { TableContext } from './index.js';
 
 declare const wide: InternalTableContext;

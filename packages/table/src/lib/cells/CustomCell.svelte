@@ -1,7 +1,7 @@
 <script lang="ts" generics="Item">
   import type { Component, Snippet } from 'svelte';
-  import { useTableI18n } from '$lib/i18n';
-  import { customCellVariants, type CustomCellVariantProps } from '$lib/variants';
+  import { useTableI18n } from '#lib/i18n/index.js';
+  import { customCellVariants, type CustomCellVariantProps } from '#lib/variants/index.js';
 
   const tt = useTableI18n();
 

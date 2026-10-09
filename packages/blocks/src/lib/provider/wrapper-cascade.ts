@@ -1,4 +1,4 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 
 /**
  * What a wrapper hands down to the one component it wraps, so that component

@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { privateEndpoints } from '../../handlers/_shared.js';
 import { authError } from '../../handlers/errors.js';
 import type { NotificationService } from '../service.js';
@@ -59,7 +58,7 @@ export function createNotificationsHandlers(service: NotificationService): {
           limit: Number.isInteger(limitParsed) && limitParsed > 0 ? limitParsed : undefined,
           unreadOnly: url.searchParams.get('unreadOnly') === 'true'
         });
-        return json({ notifications });
+        return Response.json({ notifications });
       }
     },
 
@@ -71,7 +70,7 @@ export function createNotificationsHandlers(service: NotificationService): {
         }
 
         await service.markAllAsRead(userId);
-        return json({ success: true });
+        return Response.json({ success: true });
       }
     },
 
@@ -88,7 +87,7 @@ export function createNotificationsHandlers(service: NotificationService): {
         }
 
         await service.markAsRead(userId, id);
-        return json({ success: true });
+        return Response.json({ success: true });
       }
     },
 
@@ -105,7 +104,7 @@ export function createNotificationsHandlers(service: NotificationService): {
         }
 
         await service.deleteNotification(userId, id);
-        return json({ success: true });
+        return Response.json({ success: true });
       }
     }
   });

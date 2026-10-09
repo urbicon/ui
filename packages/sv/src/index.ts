@@ -12,7 +12,7 @@
  * and re-runnable on upgrades, which a one-shot scaffolder cannot be — so the
  * add-on hands over via next steps instead of duplicating it.
  *
- * Status: beta — sv community add-ons are experimental per the Svelte docs; this
+ * Status: beta — built on the community add-on API sv 1 made official; this
  * package tracks the add-on API of its `sv` peer range.
  */
 

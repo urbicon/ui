@@ -26,7 +26,7 @@
  * Fenster-Anfang einen anderen, sonst zeigte „›" dasselbe Bild.
  */
 import type { DateCategory, TimelineGroup, TimelineResource } from '@urbicon-ui/blocks';
-import { ROOM_TYPES } from '$lib/hotel-tools';
+import { ROOM_TYPES } from '#lib/hotel-tools.js';
 
 /**
  * Die Legende der Rooms-Ansicht: die vier Zimmertypen der Gruppe — dieselben
@@ -219,7 +219,7 @@ export interface OccupancyHouse {
   id: string;
   name: string;
   place: string;
-  /** Zimmer je Typ — die Summe ist die Hausgröße. Aus `$lib/hotel-tools`. */
+  /** Zimmer je Typ — die Summe ist die Hausgröße. Aus `#lib/hotel-tools.js`. */
   stock: Record<string, number>;
   /** Anteil der belegten Zimmernächte in Prozent — die Zahl der Progress-Zeile. */
   load: number;

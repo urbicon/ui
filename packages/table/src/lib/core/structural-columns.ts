@@ -1,4 +1,4 @@
-import { TABLE_DIMENSIONS, widthClassToRem } from '$lib/variants/table.system';
+import { TABLE_DIMENSIONS, widthClassToRem } from '#lib/variants/table.system.js';
 
 /** The structural columns there are. */
 export type StructuralColumnKey = 'group' | 'selection' | 'expand';

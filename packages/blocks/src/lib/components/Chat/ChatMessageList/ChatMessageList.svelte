@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import ArrowDownIconDefault from '$lib/icons/ArrowDownIcon.svelte';
-  import MessageSquareIconDefault from '$lib/icons/MessageSquareIcon.svelte';
-  import { Badge } from '$lib/primitives/Badge';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ArrowDownIconDefault from '#lib/icons/ArrowDownIcon.svelte';
+  import MessageSquareIconDefault from '#lib/icons/MessageSquareIcon.svelte';
+  import { Badge } from '#lib/primitives/Badge/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { EmptyState } from '../../EmptyState';
   import type { ChatMessageData, ChatMessageStatus } from '../chat.types';
   import ChatMessage from '../ChatMessage/ChatMessage.svelte';

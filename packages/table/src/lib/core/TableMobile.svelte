@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { useTableI18n } from '$lib/i18n';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { useTableI18n } from '#lib/i18n/index.js';
   import MobileCard from './MobileCard.svelte';
-  import { resolveColumnLabelById, resolveRowItemId } from '$lib/utils';
-  import { mobileListVariants } from '$lib/variants';
+  import { resolveColumnLabelById, resolveRowItemId } from '#lib/utils/index.js';
+  import { mobileListVariants } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { groupCountText } from './group-count';
-  import type { Column, TableItem } from '$lib/types/tableTypes';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import type { Snippet } from 'svelte';
 
   const tt = useTableI18n();

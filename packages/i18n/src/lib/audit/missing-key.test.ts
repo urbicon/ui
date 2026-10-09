@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { configureI18n } from '$lib/i18n/context.svelte';
-import { createPackageI18n } from '$lib/i18n/package-integration';
-import { getRegistry } from '$lib/i18n/registry.svelte';
+import { configureI18n } from '#lib/i18n/context.svelte.js';
+import { createPackageI18n } from '#lib/i18n/package-integration.js';
+import { getRegistry } from '#lib/i18n/registry.svelte.js';
 import { createMissingKeyCollector } from './missing-key-collector';
 
 // Registered once; the registry is module-global but vitest isolates per file.

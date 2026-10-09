@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Alert } from '$lib/primitives';
+  import { Alert } from '#lib/primitives/index.js';
   import { untrack } from 'svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';

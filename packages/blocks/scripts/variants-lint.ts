@@ -158,14 +158,14 @@ const fileErrors: string[] = [];
 for (const file of files) {
   const src = await Bun.file(file).text();
   let rewritten = src
-    .replaceAll("'$lib/utils/variants'", `'${ENGINE}'`)
+    .replaceAll("'#lib/utils/variants.js'", `'${ENGINE}'`)
     .replaceAll("'@urbicon-ui/blocks'", `'${ENGINE}'`);
-  // A blocks config may pull shared style fragments from other $lib modules
+  // A blocks config may pull shared style fragments from other #lib modules
   // (e.g. internal/field-chrome). The engine alias above is already resolved;
-  // point any remaining $lib import at the real blocks lib dir so the temp
-  // file resolves. Scoped to blocks files — table/docs $lib means their own lib.
+  // point any remaining #lib import at the real blocks lib dir so the temp
+  // file resolves. Scoped to blocks files — table/docs #lib means their own lib.
   if (file.includes('/packages/blocks/')) {
-    rewritten = rewritten.replaceAll("'$lib/", `'${BLOCKS_LIB}/`);
+    rewritten = rewritten.replaceAll("'#lib/", `'${BLOCKS_LIB}/`);
   }
   const tmp = file.replace(/\.ts$/, '.__variants_lint_tmp.ts');
   await Bun.write(tmp, rewritten);

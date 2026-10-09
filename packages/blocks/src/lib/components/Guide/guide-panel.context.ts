@@ -1,4 +1,4 @@
-import { createOptionalContext } from '$lib/utils';
+import { createOptionalContext } from '#lib/utils/index.js';
 
 /**
  * Context published by `GuidePanel` so child `GuideArticle`s can register

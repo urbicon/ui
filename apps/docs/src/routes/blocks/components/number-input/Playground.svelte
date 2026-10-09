@@ -2,13 +2,13 @@
   NumberInput-Playground — neu. `NumberInput` steht im Katalog, hatte aber
   bislang keine Doku-Seite (nur eine e2e-Fixture), also auch kein Beispiel, das
   sich teilen ließe. Zwei Konsumenten: die Doku-Seite und der Landing-Hero.
-  Siehe `$lib/playground-host.ts`.
+  Siehe `#lib/playground-host.ts`.
 
   Die Control-Werte kommen aus der generierten API (`deriveControls`); von Hand
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { NumberInput } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

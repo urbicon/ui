@@ -208,7 +208,7 @@
 
       <CodeExample
         title="use-unsaved-guard.svelte.ts"
-        description="The other file: `PropertyForm.svelte` imports it as a sibling — move it to `$lib` once more forms need it."
+        description="The other file: `PropertyForm.svelte` imports it as a sibling — move it to `#lib` once more forms need it."
         code={guardCode}
         preview={false}
         language="typescript"

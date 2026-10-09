@@ -1,4 +1,4 @@
-import type { Column } from '$lib/types/tableTypes';
+import type { Column } from '#lib/types/tableTypes.js';
 
 /**
  * How a mobile card splits its columns and who owns which gesture.

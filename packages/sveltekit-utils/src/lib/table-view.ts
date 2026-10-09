@@ -15,6 +15,8 @@
  * shipped read side already tolerated it).
  */
 
+import type { ReadableSearchParams } from './search-params';
+
 /**
  * Filter operators supported by the table. Mirrors `FilterOperator` from
  * `@urbicon-ui/table`. Used as the runtime whitelist when parsing `filter`
@@ -139,7 +141,7 @@ function parseFilterParam(raw: string): TableViewFilter | null {
 }
 
 /** The axes a URL names — presence only for params it actually carries. */
-export function viewAxesNamedBy(sp: URLSearchParams, prefix = ''): TableViewAxis[] {
+export function viewAxesNamedBy(sp: ReadableSearchParams, prefix = ''): TableViewAxis[] {
   const axes: TableViewAxis[] = [];
   if (sp.get(`${prefix}q`) !== null) axes.push('search');
   if (sp.get(`${prefix}sort`) !== null) axes.push('sort');
@@ -158,7 +160,7 @@ export function viewAxesNamedBy(sp: URLSearchParams, prefix = ''): TableViewAxis
  * malformed filter entries are skipped individually.
  */
 export function searchParamsToViewPartial(
-  sp: URLSearchParams,
+  sp: ReadableSearchParams,
   defaults: Pick<TableViewSnapshot, 'page' | 'pageSize'>,
   prefix = ''
 ): Partial<TableViewSnapshot> {
@@ -234,7 +236,7 @@ export function searchParamsToViewPartial(
  * ```
  */
 export function searchParamsToViewSnapshot(
-  sp: URLSearchParams,
+  sp: ReadableSearchParams,
   defaults: Partial<TableViewSnapshot> = {},
   prefix = ''
 ): TableViewSnapshot {
@@ -400,7 +402,7 @@ export function assertValidViewSnapshot(snapshot: TableViewSnapshot): void {
  * @throws TypeError when the snapshot is structurally invalid (write strict).
  */
 export function applyViewToSearchParams(
-  existing: URLSearchParams,
+  existing: ReadableSearchParams,
   snapshot: TableViewSnapshot,
   defaults: TableViewSnapshot,
   axes: readonly TableViewAxis[] = TABLE_VIEW_AXES,
@@ -408,7 +410,7 @@ export function applyViewToSearchParams(
 ): URLSearchParams {
   assertValidViewSnapshot(snapshot);
   const serialized = viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);
-  const next = new URLSearchParams(existing);
+  const next = new URLSearchParams(existing.toString());
   for (const key of viewAxisKeys(axes, prefix)) {
     next.delete(key);
   }

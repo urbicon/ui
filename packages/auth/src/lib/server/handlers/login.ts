@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { LockoutConfig } from '../../types.js';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
@@ -224,7 +223,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       if (user.totpEnabled) {
         const pendingToken = await createPending2faToken(user.id, deps.config);
         setPending2faCookie(cookies, pendingToken, deps.config);
-        return json({ twoFactorRequired: true });
+        return Response.json({ twoFactorRequired: true });
       }
 
       // Access token (short-lived when refreshToken config is set) +
@@ -242,7 +241,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       // Post-commit: the session cookie is set and the failure counter reset.
       await notifyHook(deps, { site: 'login', subject: user.id }, 'onLoginSuccess', safeUser);
 
-      return json({ user: safeUser });
+      return Response.json({ user: safeUser });
     }
   });
 }

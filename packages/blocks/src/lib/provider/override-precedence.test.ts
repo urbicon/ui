@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tv } from '$lib/utils/variants';
+import { tv } from '#lib/utils/variants.js';
 import { type BlocksConfig, resolveSlotClasses } from './blocks-context';
 
 /**

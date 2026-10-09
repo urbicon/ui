@@ -25,7 +25,7 @@ bun add @urbicon-ui/blocks
 
 That one import carries the design tokens **and** the Tailwind `@source` directives that make the components' classes reachable — no consumer-side `@source` needed. Import `style/index.css`, never the `foundation`/`semantic`/`interaction` subfiles: they omit those directives, which is the usual cause of responsive utilities going missing in production.
 
-Peer dependencies: `svelte` (^5.57.0), `@urbicon-ui/i18n`. Load the stylesheet wherever your app loads CSS — `+layout.svelte` in SvelteKit, `main.js` in a plain Vite + Svelte app.
+Peer dependencies: `svelte` (^5.57.1), `@urbicon-ui/i18n`. Load the stylesheet wherever your app loads CSS — `+layout.svelte` in SvelteKit, `main.js` in a plain Vite + Svelte app.
 
 Pin with `~`, not `^`: until the launch of ui.urbicon.de is announced, an 8.x minor may carry breaking changes ([VERSIONING.md § The pre-launch window](https://github.com/urbicon/ui/blob/main/docs/VERSIONING.md#the-pre-launch-window)); each one is listed under **Breaking Changes** in the changelog and, where nothing reports it, in [docs/MIGRATION.md](./docs/MIGRATION.md), which ships in this package.
 

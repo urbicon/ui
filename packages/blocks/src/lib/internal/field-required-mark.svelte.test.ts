@@ -2,16 +2,16 @@
 import { getAllByLabelText } from '@testing-library/dom';
 import { type Component, createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import PinInput from '$lib/components/PinInput/PinInput.svelte';
-import TimeInput from '$lib/components/TimeInput/TimeInput.svelte';
-import Checkbox from '$lib/primitives/Checkbox/Checkbox.svelte';
-import Combobox from '$lib/primitives/Combobox/Combobox.svelte';
-import FormField from '$lib/primitives/FormField/FormField.svelte';
-import Input from '$lib/primitives/Input/Input.svelte';
-import RadioGroup from '$lib/primitives/RadioGroup/RadioGroup.svelte';
-import Select from '$lib/primitives/Select/Select.svelte';
-import Textarea from '$lib/primitives/Textarea/Textarea.svelte';
-import CascadeHost from '$lib/provider/__fixtures__/CascadeHost.svelte';
+import PinInput from '#lib/components/PinInput/PinInput.svelte';
+import TimeInput from '#lib/components/TimeInput/TimeInput.svelte';
+import Checkbox from '#lib/primitives/Checkbox/Checkbox.svelte';
+import Combobox from '#lib/primitives/Combobox/Combobox.svelte';
+import FormField from '#lib/primitives/FormField/FormField.svelte';
+import Input from '#lib/primitives/Input/Input.svelte';
+import RadioGroup from '#lib/primitives/RadioGroup/RadioGroup.svelte';
+import Select from '#lib/primitives/Select/Select.svelte';
+import Textarea from '#lib/primitives/Textarea/Textarea.svelte';
+import CascadeHost from '#lib/provider/__fixtures__/CascadeHost.svelte';
 
 /**
  * One build of the required marker, asked of every field that has a label.

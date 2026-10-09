@@ -1,8 +1,8 @@
 <script lang="ts">
-  import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
-  import ConfirmDialog from '$lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
-  import Input from '$lib/primitives/Input/Input.svelte';
-  import Select from '$lib/primitives/Select/Select.svelte';
+  import NumberInput from '#lib/components/NumberInput/NumberInput.svelte';
+  import ConfirmDialog from '#lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
+  import Input from '#lib/primitives/Input/Input.svelte';
+  import Select from '#lib/primitives/Select/Select.svelte';
   import type { ComponentDefaults } from '../blocks-context';
   import BlocksProvider from '../BlocksProvider.svelte';
 

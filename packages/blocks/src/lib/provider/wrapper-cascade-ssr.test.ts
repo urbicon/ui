@@ -1,6 +1,6 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
+import NumberInput from '#lib/components/NumberInput/NumberInput.svelte';
 import WrapperCascadeHost from './__fixtures__/WrapperCascadeHost.svelte';
 import type { ComponentDefaults, PresetMap } from './blocks-context';
 

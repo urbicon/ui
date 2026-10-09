@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { InfoCard, InlineCode } from '$lib';
-  import { useDocsI18n } from '$lib/i18n';
-  import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
+  import { InfoCard, InlineCode } from '#lib';
+  import { useDocsI18n } from '#lib/i18n/index.js';
+  import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
   import { resolveClassChain } from '@urbicon-ui/blocks';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import { type CodeExampleSlots, codeExampleVariants } from './codeexample.variants';

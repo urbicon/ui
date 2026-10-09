@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -13,7 +13,7 @@
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);
@@ -171,7 +171,7 @@
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/docs/components/info-card/llm.txt')}
+      href={asset('docs/components/info-card/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

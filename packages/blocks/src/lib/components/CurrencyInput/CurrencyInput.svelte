@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Input } from '$lib/primitives/Input';
-  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
+  import { Input } from '#lib/primitives/Input/index.js';
+  import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { useI18n } from '@urbicon-ui/i18n';
   import {
     applyEdit,

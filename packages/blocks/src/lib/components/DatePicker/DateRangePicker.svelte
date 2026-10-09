@@ -2,19 +2,19 @@
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   // ⚠ Mirror non-trivial changes to DatePicker.svelte (or vice versa)
   // — these two pickers share ~90% of state-machine logic.
-  import { Input } from '$lib/primitives/Input';
-  import { Popover } from '$lib/primitives/Popover';
-  import { Calendar } from '$lib/components/Calendar';
-  import type { CalendarSelection, DateRange } from '$lib/components/Calendar';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { Input } from '#lib/primitives/Input/index.js';
+  import { Popover } from '#lib/primitives/Popover/index.js';
+  import { Calendar } from '#lib/components/Calendar/index.js';
+  import type { CalendarSelection, DateRange } from '#lib/components/Calendar/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
-  import { resolveIcon } from '$lib/icons';
-  import CalendarIconDefault from '$lib/icons/CalendarIcon.svelte';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import { useBlocksI18n } from '$lib';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { useBlocksI18n } from '#lib';
   import { formatDateRangeInput, parseDateRangeInput, isDateAllowed } from './datepicker.engine';
-  import { toDateInputValue } from '$lib/utils/date';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { toDateInputValue } from '#lib/utils/date.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { DateRangePickerProps } from '.';
 
   const bt = useBlocksI18n();

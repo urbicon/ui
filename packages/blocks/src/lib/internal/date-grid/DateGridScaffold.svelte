@@ -13,8 +13,8 @@
   Covers the cell-based views only (month 6×7, week, range).
 -->
 <script lang="ts">
-  import { toIso } from '$lib/date';
-  import { swipeable } from '$lib/utils/swipeable';
+  import { toIso } from '#lib/date/index.js';
+  import { swipeable } from '#lib/utils/swipeable.js';
   import type { Snippet } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import { fly } from 'svelte/transition';

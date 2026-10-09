@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { AuthLocale } from '../../i18n/keys.js';
 import type { AuthUser } from '../../types.js';
 import { generateSecureToken, hashToken, sanitizeUser } from '../auth.js';
@@ -132,7 +131,7 @@ export function createInvitationHandlers<R extends string>(
       if (auth instanceof Response) return auth;
 
       const invitations = await deps.repos.invitation.list();
-      return json({ invitations });
+      return Response.json({ invitations });
     },
 
     POST: async ({ request, cookies }) => {
@@ -265,7 +264,7 @@ export function createInvitationHandlers<R extends string>(
       // reason — an admin could redeem it as the invitee, and with
       // `autoVerifyInvited` land a pre-verified account. It is never in
       // `list()`: the hash is all the database holds.
-      return json(
+      return Response.json(
         {
           invitation: { ...invitation, emailedAt },
           emailSent,
@@ -285,7 +284,7 @@ export function createInvitationHandlers<R extends string>(
       }
 
       await deps.repos.invitation.delete(id);
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

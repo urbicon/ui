@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import type { Snippet } from 'svelte';
-  import { Button } from '$lib/primitives/Button';
+  import { Button } from '#lib/primitives/Button/index.js';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { formatDate } from '$lib/date';
+  import { formatDate } from '#lib/date/index.js';
   import type { CalendarEvent, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
 

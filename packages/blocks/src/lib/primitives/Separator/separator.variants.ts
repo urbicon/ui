@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { tv, type VariantProps } from '#lib/utils/variants.js';
 
 // Separator is a purely visual primitive. Spacing belongs to the surrounding
 // layout (flex/grid gap, `space-y-*`, `space-x-*`) — not to the separator

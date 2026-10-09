@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
-import type { InteractiveTier } from '$lib/utils/tier-context';
+import type { MintProp } from '#lib/mint/index.js';
+import type { InteractiveTier } from '#lib/utils/tier-context.js';
 import type { PaginationSlots, PaginationVariants } from './pagination.variants';
 
 export interface PaginationPageItem {

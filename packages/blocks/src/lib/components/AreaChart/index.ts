@@ -4,7 +4,7 @@ import type {
   CartesianDatum,
   ChartMargin,
   ChartSeries
-} from '$lib/internal/charts/types';
+} from '#lib/internal/charts/types.js';
 
 /**
  * @summary A trend chart with the area under each line filled, for volume that adds up.

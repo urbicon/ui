@@ -6,7 +6,7 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Drawer, Input, Kbd, Separator, Toggle } from '@urbicon-ui/blocks';
-  import { r } from '$lib/route';
+  import { r } from '#lib/route.js';
 
   let settingsOpen = $state(false);
   let navOpen = $state(false);

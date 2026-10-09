@@ -2,8 +2,8 @@
 import { screen } from '@testing-library/dom';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { observeView } from '$lib/view/observe.svelte';
-import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
+import { observeView } from '#lib/view/observe.svelte.js';
+import { createTableView, type TableViewSnapshot } from '#lib/view/view.svelte.js';
 import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';

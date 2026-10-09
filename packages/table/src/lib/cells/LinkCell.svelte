@@ -1,7 +1,7 @@
 <script lang="ts" generics="Item">
   import { useTableI18n } from '../i18n';
-  import { linkCellVariants, type LinkCellVariantProps } from '$lib/variants';
-  import { getNestedValue } from '$lib/utils';
+  import { linkCellVariants, type LinkCellVariantProps } from '#lib/variants/index.js';
+  import { getNestedValue } from '#lib/utils/index.js';
   import { resolveIcon, ExternalLinkIcon as ExternalLinkIconDefault } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();

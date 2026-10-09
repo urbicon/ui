@@ -1,5 +1,5 @@
 /**
- * Test double for the `$app/state` / `$app/navigation` / `$app/environment`
+ * Test double for the `$app/state` / `$app/navigation` / `$app/env`
  * trio, wired up via `test.alias` in vitest.config.ts. Models the one
  * property that makes URL ownership racy in real SvelteKit: `goto` applies
  * **asynchronously** (a microtask by default; `setNavigationLatency` stretches
@@ -38,7 +38,8 @@ export const navigationLog = {
   }
 };
 
-import { __setBuilding } from './app-environment';
+import type { GotoOptions } from '$app/navigation';
+import { __setBuilding } from './app-env';
 
 export function setNavigationLatency(ms: number): void {
   latencyMs = ms;
@@ -54,12 +55,11 @@ export function resetMockApp(initial = ''): void {
   page._set(new URL(href));
 }
 
-export function goto(path: string, opts: { replaceState?: boolean } = {}): Promise<void> {
+export function goto(path: string, opts: GotoOptions = {}): Promise<void> {
   navigationLog.targets.push(path);
   const href = new URL(path, page.url).href;
-  const replaceState = opts.replaceState ?? false;
   const apply = () => {
-    if (replaceState) {
+    if (opts.replace) {
       history[history.length - 1] = href;
     } else {
       history.push(href);

@@ -4,8 +4,8 @@
     Checkbox,
     ChevronDownIcon as ChevronDownIconDefault
   } from '@urbicon-ui/blocks';
-  import { getCellLocale, getInternalTableContext } from '$lib/stores/TableStore.svelte.js';
-  import { useTableI18n } from '$lib/i18n';
+  import { getCellLocale, getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { useTableI18n } from '#lib/i18n/index.js';
 
   // See TableCell: the default `Date` branch must not reach `Intl` with
   // `undefined`, which follows the runtime and diverges across SSR.
@@ -14,8 +14,8 @@
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import { formatCellValue, resolveColumnId, resolveColumnValue, resolveRowItemId } from '../utils';
   import { resolveMobileCardShape } from './mobile-card-shape';
-  import type { Column, TableItem } from '$lib/types/tableTypes';
-  import { mobileCardVariants } from '$lib/variants';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import { mobileCardVariants } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import type { Snippet } from 'svelte';
 

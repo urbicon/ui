@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteMap, MediaQuery } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { calendarVariants, type CalendarVariants } from './calendar.variants';
   import { setCalendarContext, type CalendarContext } from './calendar.context';
   import {
@@ -16,10 +16,10 @@
     clampMonth,
     clampDate,
     daysInMonth
-  } from '$lib/date';
-  import { DateGridController } from '$lib/internal/date-grid';
-  import type { DateGridSelection, DateGridView } from '$lib/internal/date-grid';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/date/index.js';
+  import { DateGridController } from '#lib/internal/date-grid/index.js';
+  import type { DateGridSelection, DateGridView } from '#lib/internal/date-grid/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { compareDayEvents, getEventDayInfo, expandRecurrence } from './calendar.engine';
   import type { CalendarProps } from './index';
   import type {

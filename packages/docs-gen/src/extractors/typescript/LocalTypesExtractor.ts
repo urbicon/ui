@@ -16,7 +16,7 @@ type SupportedTypeDeclaration =
   | ts.EnumDeclaration
   | ts.ClassDeclaration;
 
-/** Hard ceilings for the imported-types pass so a hub file like $lib/utils
+/** Hard ceilings for the imported-types pass so a hub file like #lib/utils
  *  can never flood a component's type reference. */
 const MAX_IMPORTED_TYPE_DEPTH = 2;
 const MAX_TYPES_PER_COMPONENT = 40;
@@ -27,7 +27,7 @@ const MAX_TYPES_PER_COMPONENT = 40;
  *
  * When the extractor is program-backed (configPath set), a second pass
  * resolves the file's *type-only imports* (`import type { GuideTour } from
- * '$lib/utils'`) through the shared ts.Program to their declarations inside
+ * '#lib/utils/index.js'`) through the shared ts.Program to their declarations inside
  * the package sources and includes those too (scope: 'imported'), following
  * type references transitively up to a bounded depth — so e.g. GuideTour
  * pulls in GuideStep and its analytics event payloads. Classes are rendered

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Component } from 'svelte';
-  import { setTierContext, type InteractiveTier } from '$lib/utils/tier-context';
+  import { setTierContext, type InteractiveTier } from '#lib/utils/tier-context.js';
   import type { ComponentDefaults, PresetMap } from '../blocks-context';
   import BlocksProvider from '../BlocksProvider.svelte';
 

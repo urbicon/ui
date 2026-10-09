@@ -1,10 +1,10 @@
-import type { TableItem } from '$lib/types/tableTypes';
+import type { TableItem } from '#lib/types/tableTypes.js';
 import {
   calculateSummary,
   findColumnById,
   normalizeSummaryConfigs,
   resolveValueById
-} from '$lib/utils';
+} from '#lib/utils/index.js';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 

@@ -1,5 +1,5 @@
 import { createContext } from 'svelte';
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 import type { ButtonVariants } from '../Button/button.variants';
 import type { MenuDividerItem, MenuItemType, MenuSectionHeader } from './index';
 import type { MenuSlots, MenuVariants } from './menu.variants';
@@ -45,7 +45,7 @@ export type MenuContext = {
   rootId: string;
   size: MenuVariants['itemSize'];
   intent: ButtonVariants['intent'];
-  mint: import('$lib/mint').MintProp | undefined;
+  mint: import('#lib/mint/index.js').MintProp | undefined;
   disabled: boolean;
   unstyled?: boolean;
   // Keyed by the tv() config's own slot names so a new slot (e.g. `detail`)

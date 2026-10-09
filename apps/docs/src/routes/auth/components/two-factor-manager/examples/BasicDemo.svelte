@@ -8,7 +8,7 @@
 -->
 <script lang="ts">
   import { TwoFactorManager } from '@urbicon-ui/auth';
-  import { createTwoFactorDemoFetcher, demoAuthUser } from '$lib/demo/auth-demo-fetch';
+  import { createTwoFactorDemoFetcher, demoAuthUser } from '#lib/demo/auth-demo-fetch.js';
 
   const demoFetch = createTwoFactorDemoFetcher();
 </script>

@@ -657,7 +657,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     }
 
     // Cross-file: resolve an imported base interface through the shared
-    // program (e.g. `extends AnimationProps` from $lib/utils). Scoped to
+    // program (e.g. `extends AnimationProps` from #lib/utils). Scoped to
     // the package's own sources; no-op in single-file mode.
     const resolvedInterface = this.resolveCrossFileInterface(heritageType.expression);
     if (resolvedInterface) {

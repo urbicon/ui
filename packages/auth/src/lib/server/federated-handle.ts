@@ -10,7 +10,8 @@
 // IdP-internal `role`/`tokenVersion` claims are structurally withheld from the
 // consumer (see {@link FederatedIdentity}).
 
-import { type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
+import { type RequestEvent, redirect } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import type { AuthLogger } from '../types.js';
 import { parseDurationSeconds } from './duration.js';
 import { base64UrlDecodeString } from './encoding.js';
@@ -526,7 +527,9 @@ export function createFederatedAuthHandle<TUser>(
           return authError('not_authenticated');
         }
         // Verbatim, no redirectTo — see FederatedAuthHandleOptions.loginUrl.
-        throw redirect(302, loginUrl);
+        // Kit refuses a cross-origin target unless opted in, and the IdP's
+        // login page is one by construction.
+        throw redirect(302, loginUrl, { external: true });
       }
     }
 

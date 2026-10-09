@@ -1,11 +1,11 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { BlocksProvider } from '@urbicon-ui/blocks';
-  import { DEFAULT_LIVERY, LIVERIES, liveryById } from '$lib/livery';
+  import { DEFAULT_LIVERY, LIVERIES, liveryById } from '#lib/livery/index.js';
   // Livery-Tokens + Container-Shim reisen mit der Kachel — nur Routen, die eine
   // Livery zeigen, laden das CSS (in chat-demo lag es global in app.css).
-  import '$lib/livery/liveries.css';
-  import '$lib/livery/livery-shim.gen.css';
+  import '#lib/livery/liveries.css';
+  import '#lib/livery/livery-shim.gen.css';
   import HotelBooking from './HotelBooking.svelte';
 
   /**

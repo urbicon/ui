@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
@@ -56,7 +55,7 @@ export function createDeleteAccountHandler<R extends string>(
       // whose user is gone), so no explicit family revoke is needed here.
       endSession(cookies, deps.config);
 
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path';
  * Post-`svelte-package` pass — make the emitted ESM fully specified.
  *
  * `svelte-package` copies the source's import/export specifiers verbatim (only
- * rewriting the `$lib` alias to a relative path). With `moduleResolution:
+ * rewriting the `#lib` alias to a relative path). With `moduleResolution:
  * "bundler"` the source omits extensions, so the build emits bare specifiers
  * like `export { I18nProvider } from './components'` (a *directory*) and
  * `from './types'` (no extension). Node's strict ESM resolver — which Vite uses

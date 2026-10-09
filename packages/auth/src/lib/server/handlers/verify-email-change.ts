@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
@@ -52,7 +51,7 @@ export function createVerifyEmailChangeHandler<R extends string>(
         user.email
       );
 
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

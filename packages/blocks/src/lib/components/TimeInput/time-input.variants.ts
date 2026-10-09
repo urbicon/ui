@@ -12,8 +12,8 @@ import {
   fieldFocusRing,
   fieldGhostSurface,
   fieldIntentFrames
-} from '$lib/internal/field-chrome';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+} from '#lib/internal/field-chrome.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // Borderless segments live inside a bordered container, so the ring lights the
 // whole field via focus-within rather than focus-visible on one element.

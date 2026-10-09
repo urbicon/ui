@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { resolveIcon } from '$lib/icons';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
-  import { mintAttachment } from '$lib';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
+  import { mintAttachment } from '#lib';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getMenuContext, setMenuParentId } from './menu.context';
   import { groupMenuItems, menuEntryKey, type MenuGroupEntry } from './menu.grouping';
   import { menuIconVariants } from './menu.variants';

@@ -1,4 +1,5 @@
-import type { Handle, RequestEvent, RequestHandler } from '@sveltejs/kit';
+import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AuthLogger, JwtConfig } from '../types.js';
 import { base64UrlEncodeString } from './encoding.js';

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useBlocksI18n } from '$lib';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { useBlocksI18n } from '#lib';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ProgressProps } from './index';
   import { progressVariants, type ProgressVariants } from './progress.variants';
 

@@ -5,7 +5,7 @@
   // interaction test therefore mounts a real GuideProvider › GuidePanel ›
   // GuideArticle composition. Under __fixtures__/ so it is excluded from the
   // published package and never collected as a test file. Not exported from the barrel.
-  import type { GuideController } from '$lib/utils';
+  import type { GuideController } from '#lib/utils/index.js';
   import GuideArticle from '../GuideArticle.svelte';
   import GuidePanel from '../GuidePanel.svelte';
   import GuideProvider from '../GuideProvider.svelte';

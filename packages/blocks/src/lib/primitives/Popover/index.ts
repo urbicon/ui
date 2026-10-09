@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { Placement } from '$lib/utils/floating';
+import type { Placement } from '#lib/utils/floating.js';
 import type { PopoverVariants } from './popover.variants';
 
 /**

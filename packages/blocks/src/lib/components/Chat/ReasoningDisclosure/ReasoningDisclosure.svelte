@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Collapsible } from '$lib/primitives';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { Collapsible } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import { reasoningDisclosureVariants } from './reasoning-disclosure.variants';
   import type { ReasoningDisclosureProps } from './index';

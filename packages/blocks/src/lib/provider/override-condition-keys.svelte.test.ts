@@ -2,17 +2,17 @@
 import type { Component } from 'svelte';
 import { createRawSnippet, flushSync, mount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ReasoningDisclosure from '$lib/components/Chat/ReasoningDisclosure/ReasoningDisclosure.svelte';
-import CopyButton from '$lib/components/CopyButton/CopyButton.svelte';
-import { copyButtonVariants } from '$lib/components/CopyButton/copy-button.variants';
-import DatePicker from '$lib/components/DatePicker/DatePicker.svelte';
-import { datePickerVariants } from '$lib/components/DatePicker/datepicker.variants';
-import Card from '$lib/primitives/Card/Card.svelte';
-import { cardVariants } from '$lib/primitives/Card/card.variants';
-import Input from '$lib/primitives/Input/Input.svelte';
-import { inputVariants } from '$lib/primitives/Input/input.variants';
-import Stepper from '$lib/primitives/Stepper/Stepper.svelte';
-import { stepperVariants } from '$lib/primitives/Stepper/stepper.variants';
+import ReasoningDisclosure from '#lib/components/Chat/ReasoningDisclosure/ReasoningDisclosure.svelte';
+import CopyButton from '#lib/components/CopyButton/CopyButton.svelte';
+import { copyButtonVariants } from '#lib/components/CopyButton/copy-button.variants.js';
+import DatePicker from '#lib/components/DatePicker/DatePicker.svelte';
+import { datePickerVariants } from '#lib/components/DatePicker/datepicker.variants.js';
+import Card from '#lib/primitives/Card/Card.svelte';
+import { cardVariants } from '#lib/primitives/Card/card.variants.js';
+import Input from '#lib/primitives/Input/Input.svelte';
+import { inputVariants } from '#lib/primitives/Input/input.variants.js';
+import Stepper from '#lib/primitives/Stepper/Stepper.svelte';
+import { stepperVariants } from '#lib/primitives/Stepper/stepper.variants.js';
 import OverrideKeyHost from './__fixtures__/OverrideKeyHost.svelte';
 import type { ComponentDefaults, PresetMap } from './blocks-context';
 

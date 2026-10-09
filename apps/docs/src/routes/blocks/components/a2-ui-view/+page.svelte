@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -8,11 +8,11 @@
     TypesReference
   } from '@urbicon-ui/docs';
   import { A2UIView } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
+  import PrevNextNav from '#lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
   const relatedLinks = buildRelatedLinks(componentData);
@@ -79,7 +79,7 @@ import type { A2uiActionEvent, A2uiValidationIssue } from '@urbicon-ui/blocks';`
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/blocks/components/a2-ui-view/llm.txt')}
+      href={asset('blocks/components/a2-ui-view/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

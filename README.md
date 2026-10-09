@@ -157,7 +157,7 @@ OS. See [customization](https://ui.urbicon.de/customization).
 
 ## Developing this repo
 
-Bun 1.1+ workspace; Node 18+ for tooling.
+Bun 1.1+ workspace; Node 22.17+ for tooling.
 
 ```bash
 bun install

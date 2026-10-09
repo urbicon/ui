@@ -134,7 +134,7 @@ describe('APIDataGenerator — canonical type owner', () => {
   });
 
   it('leaves library plumbing unowned rather than inventing a home', async () => {
-    // `$lib/utils` and `$lib/mint` back no doc page. 390 of 967 real entries
+    // `#lib/utils` and `#lib/mint` back no doc page. 390 of 967 real entries
     // land here, 352 of them exported package API — an absent owner means
     // "no page to link to", never "safe to drop".
     const owners = await ownersFor([

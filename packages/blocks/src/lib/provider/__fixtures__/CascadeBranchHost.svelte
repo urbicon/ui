@@ -4,21 +4,21 @@
   // or an instance prop it never passes. Each `case` is named by the sibling
   // test that reads it — see provider-cascade-branches.svelte.test.ts for what
   // each one is asked.
-  import Calendar from '$lib/components/Calendar/Calendar.svelte';
-  import CalendarHeader from '$lib/components/Calendar/CalendarHeader.svelte';
-  import DatePicker from '$lib/components/DatePicker/DatePicker.svelte';
-  import DateRangePicker from '$lib/components/DatePicker/DateRangePicker.svelte';
-  import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
-  import Button from '$lib/primitives/Button/Button.svelte';
-  import Card from '$lib/primitives/Card/Card.svelte';
-  import Menu from '$lib/primitives/Menu/Menu.svelte';
-  import MenuItem from '$lib/primitives/Menu/MenuItem.svelte';
-  import MenuSection from '$lib/primitives/Menu/MenuSection.svelte';
-  import Stepper from '$lib/primitives/Stepper/Stepper.svelte';
-  import StepperStep from '$lib/primitives/Stepper/StepperStep.svelte';
-  import Tab from '$lib/primitives/Tab/Tab.svelte';
-  import TabItem from '$lib/primitives/Tab/TabItem.svelte';
-  import TabPanel from '$lib/primitives/Tab/TabPanel.svelte';
+  import Calendar from '#lib/components/Calendar/Calendar.svelte';
+  import CalendarHeader from '#lib/components/Calendar/CalendarHeader.svelte';
+  import DatePicker from '#lib/components/DatePicker/DatePicker.svelte';
+  import DateRangePicker from '#lib/components/DatePicker/DateRangePicker.svelte';
+  import NumberInput from '#lib/components/NumberInput/NumberInput.svelte';
+  import Button from '#lib/primitives/Button/Button.svelte';
+  import Card from '#lib/primitives/Card/Card.svelte';
+  import Menu from '#lib/primitives/Menu/Menu.svelte';
+  import MenuItem from '#lib/primitives/Menu/MenuItem.svelte';
+  import MenuSection from '#lib/primitives/Menu/MenuSection.svelte';
+  import Stepper from '#lib/primitives/Stepper/Stepper.svelte';
+  import StepperStep from '#lib/primitives/Stepper/StepperStep.svelte';
+  import Tab from '#lib/primitives/Tab/Tab.svelte';
+  import TabItem from '#lib/primitives/Tab/TabItem.svelte';
+  import TabPanel from '#lib/primitives/Tab/TabPanel.svelte';
   import BlocksProvider from '../BlocksProvider.svelte';
   import type { ComponentDefaults } from '../blocks-context';
 

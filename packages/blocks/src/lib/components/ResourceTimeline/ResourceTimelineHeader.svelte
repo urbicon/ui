@@ -8,9 +8,9 @@
   snippet; this is the fallback.
 -->
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreDateGridHeader from '$lib/internal/core/CoreDateGridHeader.svelte';
+  import CoreDateGridHeader from '#lib/internal/core/CoreDateGridHeader.svelte';
   import { getResourceTimelineContext } from './resource-timeline.context';
 
   const bt = useBlocksI18n();

@@ -1,5 +1,5 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
-import { resolveClassChain } from '$lib/utils/variants';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
+import { resolveClassChain } from '#lib/utils/variants.js';
 import type {
   CalendarEvent,
   CalendarViewMode,

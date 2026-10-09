@@ -13,7 +13,7 @@ bun install
 bun run dev        # all packages in watch mode
 ```
 
-Requires [Bun](https://bun.sh) v1.1+ and Node.js 18+.
+Requires [Bun](https://bun.sh) v1.1+ and Node.js 22.17+.
 
 ## Before You Submit
 

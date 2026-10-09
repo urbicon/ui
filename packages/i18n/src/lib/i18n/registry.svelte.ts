@@ -1,5 +1,5 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import { getDeepValue } from '$lib/utils/deep-keys';
+import { getDeepValue } from '#lib/utils/deep-keys.js';
 import type {
   I18nError,
   I18nMissingKey,

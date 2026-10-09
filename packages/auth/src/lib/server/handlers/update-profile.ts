@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { validateUpdateProfileInput } from '../validation.js';
@@ -27,7 +26,7 @@ export function createUpdateProfileHandler<R extends string>(
 
       // Return the updated identity so the client store can refresh in place
       // without a follow-up round-trip to `me`.
-      return json({ user: sanitizeUser({ ...user, name }) });
+      return Response.json({ user: sanitizeUser({ ...user, name }) });
     }
   });
 }

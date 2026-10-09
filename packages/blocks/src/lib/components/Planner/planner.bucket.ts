@@ -7,7 +7,7 @@
  * one place the date→key normalisation lives.
  */
 
-import { toIso } from '$lib/date';
+import { toIso } from '#lib/date/index.js';
 
 /** Maps an item to its calendar day — a `Date` or a local ISO date string. */
 export type GetItemDate<T> = (item: T) => Date | string;

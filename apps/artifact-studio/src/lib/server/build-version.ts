@@ -121,10 +121,11 @@ export async function buildVersion(sessionId: string, version: number): Promise<
   await build({
     root: APP_ROOT,
     logLevel: 'error',
-    // `configFile: false` auf beiden Ebenen: die App hat eine `svelte.config.js`
-    // mit einem `kit`-Block und eine `vite.config.ts` mit dem SvelteKit-Plugin.
-    // Beides würde dieser Build mitladen und daran scheitern — er baut eine
-    // nackte Svelte-Komponente, keine SvelteKit-App.
+    // `configFile: false` auf beiden Ebenen: die `vite.config.ts` der App trägt
+    // das SvelteKit-Plugin samt Kit-Konfiguration, und eine `svelte.config.js`
+    // würde vite-plugin-svelte von sich aus laden. Beides würde dieser Build
+    // mitladen und daran scheitern — er baut eine nackte Svelte-Komponente,
+    // keine SvelteKit-App.
     configFile: false,
     plugins: [svelte({ configFile: false, compilerOptions: { runes: true } })],
     build: {

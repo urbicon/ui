@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * CSS-native enter/exit motion for the floating panel, keyed on

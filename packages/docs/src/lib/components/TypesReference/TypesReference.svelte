@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Checkbox } from '@urbicon-ui/blocks';
   import { Table, type Column } from '@urbicon-ui/table';
-  import { InlineCode, Section } from '$lib';
-  import { useDocsI18n } from '$lib/i18n';
-  import { revealTableRow } from '$lib/utils/cross-reference.js';
+  import { InlineCode, Section } from '#lib';
+  import { useDocsI18n } from '#lib/i18n/index.js';
+  import { revealTableRow } from '#lib/utils/cross-reference.js';
   import { typesReferenceVariants } from './types-reference.variants';
   import { extractLiteralValues } from './index.js';
   import type { TypesReferenceProps } from './index.js';

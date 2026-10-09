@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { accordionVariants, type AccordionVariants } from './accordion.variants';
   import { setAccordionContext } from './accordion.context';
   import type { AccordionProps, AccordionContext } from './index';

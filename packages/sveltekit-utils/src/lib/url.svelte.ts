@@ -1,7 +1,11 @@
-import { building } from '$app/environment';
+import { building } from '$app/env';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
-import { type SearchParamsPatch, withSearchParams } from './search-params';
+import {
+  type ReadableSearchParams,
+  type SearchParamsPatch,
+  withSearchParams
+} from './search-params';
 
 // The pure core of the two writers below, re-exported so this import path
 // carries it next to them. Its own module — and its own `./search-params`
@@ -32,7 +36,7 @@ export type UrlParamOptions<T> = {
    * Read the value out of the current search params. Return `null`/`undefined`
    * to signal "absent" — the getter then yields {@link initial}.
    */
-  parse: (sp: URLSearchParams) => T | null | undefined;
+  parse: (sp: ReadableSearchParams) => T | null | undefined;
   /**
    * Encode the value into `URLSearchParams`. The keys it produces are the ones
    * the setter manages: on write they are cleared from the current URL and
@@ -77,9 +81,8 @@ export type UrlParamOptions<T> = {
 // free to call it at their composition point.
 export function updateUrlSearchParams(next: SearchParamsPatch, opts?: { replaceState?: boolean }) {
   goto(withSearchParams(page.url, next), {
-    replaceState: opts?.replaceState ?? true,
-    noScroll: true,
-    keepFocus: true
+    replace: opts?.replaceState ?? true,
+    reset: false
   });
 }
 
@@ -92,7 +95,7 @@ export function updateUrlSearchParams(next: SearchParamsPatch, opts?: { replaceS
  *
  * `set` rewrites only the keys that `options.serialize` produces (clear +
  * re-append) and preserves the rest, then navigates with `goto` to the address
- * {@link withSearchParams} builds (`replaceState`, `noScroll`, `keepFocus`).
+ * {@link withSearchParams} builds (`replace` per `replaceState`, `reset: false`).
  *
  * @param _key - Ignored — `options.parse`/`options.serialize` already close
  *   over the key (see {@link useUrlArrayParam}); kept only for signature parity
@@ -104,12 +107,11 @@ export function updateUrlSearchParams(next: SearchParamsPatch, opts?: { replaceS
 // `key` is unused here — `options.parse`/`options.serialize` already close over
 // it (see useUrlArrayParam) — but kept for signature parity with useUrlParam.
 export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
-  const get = (sp: URLSearchParams) => options.parse(sp) ?? options.initial;
+  const get = (sp: ReadableSearchParams) => options.parse(sp) ?? options.initial;
   function setValue(next: T) {
     goto(withSearchParams(page.url, options.serialize(next)), {
-      replaceState: options.replaceState ?? true,
-      noScroll: true,
-      keepFocus: true
+      replace: options.replaceState ?? true,
+      reset: false
     });
   }
   return { get, set: setValue } as const;
@@ -188,7 +190,7 @@ export function useUrlArrayParam(
   const strategy = opts.strategy ?? 'repeat';
   const delimiter = opts.delimiter ?? ',';
 
-  const parse = (sp: URLSearchParams): string[] => {
+  const parse = (sp: ReadableSearchParams): string[] => {
     if (strategy === 'repeat') return sp.getAll(key);
     const raw = sp.get(key);
     return raw ? raw.split(delimiter).filter(Boolean) : [];

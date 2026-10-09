@@ -14,7 +14,7 @@
  * how a control block stops controlling anything — measured per line, not
  * asserted.
  */
-import type { TableItem, TablePage } from '$lib/types/tableTypes';
+import type { TableItem, TablePage } from '#lib/types/tableTypes.js';
 import { resolveSource, type TableSource } from './source';
 import type { TableViewSnapshot } from './view.svelte';
 

@@ -7,7 +7,7 @@
 
   const recipeCode = `// 1. src/routes/api/auth/register/+server.ts — the bundled register handler
 import { createRegisterHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
+import { authDeps } from '#lib/server/auth-setup.js';
 export const { POST } = createRegisterHandler(authDeps);
 
 // 2. src/lib/server/invitations.ts — the bundled invitation handlers.
@@ -23,12 +23,12 @@ export const invitations = createInvitationHandlers(authDeps, {
 });
 
 // src/routes/api/invitations/+server.ts — create + list
-import { invitations } from '$lib/server/invitations';
+import { invitations } from '#lib/server/invitations.js';
 export const POST = invitations.POST;
 export const GET = invitations.GET;
 
 // src/routes/api/invitations/[id]/+server.ts — revoke (InvitationManager's delete)
-import { invitations } from '$lib/server/invitations';
+import { invitations } from '#lib/server/invitations.js';
 export const DELETE = invitations.DELETE;
 
 // 3. src/routes/auth/register/+page.svelte

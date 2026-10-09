@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { FileIntakeEntry, FileIntakeRejection } from '$lib/utils/file-intake';
+import type { FileIntakeEntry, FileIntakeRejection } from '#lib/utils/file-intake.js';
 import type { PromptInputSlots, PromptInputVariants } from './prompt-input.variants';
 
 /**
@@ -61,7 +61,7 @@ export interface PromptInputProps
    * Clearing or splicing this array **externally** (e.g. reassigning
    * `bind:attachments`) bypasses that cleanup — such mutations must revoke the
    * dropped entries' previews themselves via `revokeIntakePreviews` (exported
-   * from `$lib/utils/file-intake`) to avoid leaking object-URLs.
+   * from `#lib/utils/file-intake.js`) to avoid leaking object-URLs.
    */
   attachments?: FileIntakeEntry[];
 

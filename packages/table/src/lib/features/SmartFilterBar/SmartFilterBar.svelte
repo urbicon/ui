@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { useTableI18n } from '$lib';
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
+  import { useTableI18n } from '#lib';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import {
     Badge,
     Button,
@@ -23,7 +23,7 @@
     smartFilterBarTriggerVariants,
     smartFilterBarVariants,
     type SmartFilterBarVariantProps
-  } from '$lib/variants';
+  } from '#lib/variants/index.js';
   import ChipsField from './ChipsField.svelte';
   import ColumnVisibilityMenu from './ColumnVisibilityMenu.svelte';
   import FilterMenu from './FilterMenu.svelte';
@@ -31,7 +31,7 @@
   import SortMenu from './SortMenu.svelte';
   import SummaryMenu from './SummaryMenu.svelte';
   import ToolsSheet from './ToolsSheet.svelte';
-  import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
+  import { getTableStyleConfig, resolveSlotClass } from '#lib/core/table-style-context.js';
 
   const tt = useTableI18n();
 

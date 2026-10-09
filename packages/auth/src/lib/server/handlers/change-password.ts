@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { enforceRateLimit, sharedLimiter } from '../rate-limit.js';
@@ -79,7 +78,7 @@ export function createChangePasswordHandler<R extends string>(
         user.id
       );
 
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

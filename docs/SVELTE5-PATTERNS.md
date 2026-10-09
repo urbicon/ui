@@ -123,7 +123,7 @@ import { createContext } from 'svelte';
 export const menuContext = createContext<MenuContextValue>('menu');
 
 // buttonGroup.context.ts — opt-in, undefined without a parent
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 export const [getButtonGroupContext, setButtonGroupContext] =
   createOptionalContext<ButtonGroupContextValue>();
 ```

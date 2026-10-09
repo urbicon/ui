@@ -14,7 +14,7 @@
  * Skript entfallen, weil sie Anspruch, Fußzeile und alle fünf Kanalfarben als
  * Literale trug: eine zweite Kopie der Namens-Kachel, die niemand anfasst,
  * solange das Bild nicht neu gebaut wird. Genau daran ist sie veraltet. Die
- * Fixture liest stattdessen `$lib/landing/wordmark` und `TILE_CHANNEL`.
+ * Fixture liest stattdessen `#lib/landing/wordmark` und `TILE_CHANNEL`.
  *
  *     bun run shots                     # gegen einen laufenden Dev-Server
  *     SHOTS_BASE=http://localhost:4173 bun run shots

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { Card } from '@urbicon-ui/blocks';
-  import { resolveNav, type NavHref } from '$lib/navigation';
-  import { componentLinks } from '$lib/component-links';
+  import { resolveNav, type NavHref } from '#lib/navigation.js';
+  import { componentLinks } from '#lib/component-links.js';
   import docsCatalog from '../../../static/docs/_catalog.json';
 
   type DocComponent = { name: string; href: NavHref; description: string };

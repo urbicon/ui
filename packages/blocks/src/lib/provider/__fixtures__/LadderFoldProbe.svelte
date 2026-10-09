@@ -9,8 +9,8 @@
 </script>
 
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { tv } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { tv } from '#lib/utils/variants.js';
 
   /**
    * A component built to carry the defect route D's co-located pass exists to

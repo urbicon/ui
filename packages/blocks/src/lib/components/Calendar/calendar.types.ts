@@ -1,4 +1,4 @@
-import type { DateCategory, DateRange } from '$lib/internal/date-grid';
+import type { DateCategory, DateRange } from '#lib/internal/date-grid/index.js';
 
 /**
  * Categories and ranges are the date surfaces' SHARED vocabulary, defined once

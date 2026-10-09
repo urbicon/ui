@@ -4,9 +4,8 @@ The [Svelte CLI](https://svelte.dev/docs/cli) community add-on for
 [Urbicon UI](https://ui.urbicon.de) — one command from an empty directory (or an
 existing SvelteKit project) to a working, styled setup.
 
-> **Beta.** sv community add-ons are
-> [experimental](https://svelte.dev/docs/cli/community) — the add-on API may
-> change between sv releases. This package tracks its `sv` peer range.
+> **Beta.** Built on the [community add-on API](https://svelte.dev/docs/cli/community)
+> that sv 1 made official; this package tracks its `sv` peer range.
 
 ## Usage
 

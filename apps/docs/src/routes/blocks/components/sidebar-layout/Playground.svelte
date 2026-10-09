@@ -1,6 +1,6 @@
 <!--
   SidebarLayout-Playground — neu, damit ihn zwei Seiten zeigen können: die
-  Doku-Seite und der Landing-Hero. Siehe `$lib/playground-host.ts`.
+  Doku-Seite und der Landing-Hero. Siehe `#lib/playground-host.ts`.
 
   Die Control-Werte kommen aus der generierten API (`deriveControls`); von Hand
   steht hier nur, was sich nicht ableiten lässt.
@@ -13,7 +13,7 @@
   Komponente, die auch diese Doku-Seite trägt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { MenuIcon, SidebarLayout } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

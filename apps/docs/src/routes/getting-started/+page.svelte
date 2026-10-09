@@ -15,17 +15,17 @@
   yet, and readers already inside a SvelteKit project skip it.
 
   The preview card reuses the landing's .poster-card + .room-accent from
-  $lib/style/rooms.css (imported here too; Vite dedupes): a fixed cream+ink
+  #lib/style/rooms.css (imported here too; Vite dedupes): a fixed cream+ink
   artboard whose primary-derived token family re-resolves from the inline
   --room-accent, so the real library components repaint live.
 -->
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { ArrowRightIcon, Badge, Button, Input, Select } from '@urbicon-ui/blocks';
   import { CodeExample, ScrollSpy } from '@urbicon-ui/docs';
-  import { CHANNELS, FAMILY_CHANNEL } from '$lib/landing/channels';
-  import '$lib/style/rooms.css';
+  import { CHANNELS, FAMILY_CHANNEL } from '#lib/landing/channels.js';
+  import '#lib/style/rooms.css';
 
   // ── The five steps — ids feed the scrollspy, numerals the poster marks ──
   const STEPS = [
@@ -90,13 +90,14 @@
   // dieselbe Datei mit svelte() statt sveltekit() — die Zeile steht im Snippet,
   // damit ein Nicht-Kit-Leser sie nicht falsch abschreibt.
   const viteConfigExample = `// vite.config.js
+import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
-// no SvelteKit? swap it for svelte()
-// from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite';
 
 export default {
-  plugins: [tailwindcss(), sveltekit()]
+  // no SvelteKit? swap sveltekit(…) for svelte()
+  // from '@sveltejs/vite-plugin-svelte'
+  plugins: [tailwindcss(), sveltekit({ adapter: adapter() })]
 };`;
 
   const firstComponentExample =

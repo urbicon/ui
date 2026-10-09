@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Popover } from '$lib/primitives';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import LinkIconDefault from '$lib/icons/LinkIcon.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { Popover } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import LinkIconDefault from '#lib/icons/LinkIcon.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { checkLinkUrl } from '../markdown/url-policy.js';
   import { citationChipVariants } from './citation-chip.variants';
   import type { CitationChipProps } from './index';

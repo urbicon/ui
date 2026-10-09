@@ -21,10 +21,10 @@
 -->
 <script lang="ts">
   import { SearchIcon, ThemeSwitcher } from '@urbicon-ui/blocks';
-  import { getCommandSearchToggle } from '$lib/command-search.context';
-  import { CHANNELS, TILE_CHANNEL } from '$lib/landing/channels';
-  import { BRAND, BRAND_SUFFIX, EYEBROW } from '$lib/landing/wordmark';
-  import { REPO_URL } from '$lib/seo';
+  import { getCommandSearchToggle } from '#lib/command-search.context.js';
+  import { CHANNELS, TILE_CHANNEL } from '#lib/landing/channels.js';
+  import { BRAND, BRAND_SUFFIX, EYEBROW } from '#lib/landing/wordmark.js';
+  import { REPO_URL } from '#lib/seo.js';
 
   interface Props {
     /** Das Element, dessen Verschwinden die Marken-Einblendung schaltet. */

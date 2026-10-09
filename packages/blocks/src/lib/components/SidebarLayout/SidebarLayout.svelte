@@ -1,10 +1,10 @@
 <script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
-  import { Sidebar, type SidebarProps, sidebarVariants } from '$lib/primitives/Sidebar';
-  import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useDisclosure } from '$lib/utils/use-disclosure.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { Sidebar, type SidebarProps, sidebarVariants } from '#lib/primitives/Sidebar/index.js';
+  import type { SidebarSlots } from '#lib/primitives/Sidebar/sidebar.variants.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { useDisclosure } from '#lib/utils/use-disclosure.svelte.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { SidebarForwardKey, SidebarLayoutProps } from './index';
   import {
     SIDEBAR_TOGGLE_GUTTER,

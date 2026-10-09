@@ -12,8 +12,8 @@
   const TrashIcon = resolveIcon('trash', TrashIconDefault);
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
   import { useTableI18n } from '../i18n';
-  import { actionCellVariants, type ActionCellVariantProps } from '$lib/variants';
-  import { getNestedValue } from '$lib/utils';
+  import { actionCellVariants, type ActionCellVariantProps } from '#lib/variants/index.js';
+  import { getNestedValue } from '#lib/utils/index.js';
 
   const tt = useTableI18n();
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '$lib';
-  import { smartFilterBarTriggerVariants } from '$lib/variants';
+  import { getTableContext, useTableI18n } from '#lib';
+  import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import {
     Select,
     resolveIcon,

@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { isMintOff, mintAttachment } from '$lib';
+  import { isMintOff, mintAttachment } from '#lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
+  import CoreSpinner from '#lib/internal/core/CoreSpinner.svelte';
   // Direct import (not the barrel): the resolveIcon tree-shaking pattern.
   // Button's mint default is 'scale', so the scale factory ships statically
   // as the apply() fallback; every other mint name stays demand-loaded.
-  import { scaleMint } from '$lib/mint/engine';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { scaleMint } from '#lib/mint/engine.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
-  import { buttonVariants, type ButtonVariants } from '$lib/primitives';
-  import { getTierContext } from '$lib/utils/tier-context';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { buttonVariants, type ButtonVariants } from '#lib/primitives/index.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ButtonProps } from './index';
 
   let {

@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { privateEndpoints } from '../../handlers/_shared.js';
 
 /**
@@ -29,7 +28,7 @@ const PUSH_KEY_HEADERS = { 'Cache-Control': 'public, max-age=300' } as const;
 export function createPushKeyHandler(vapidPublicKey: string): { GET: RequestHandler } {
   return privateEndpoints({
     GET: async () => {
-      return json({ publicKey: vapidPublicKey }, { headers: PUSH_KEY_HEADERS });
+      return Response.json({ publicKey: vapidPublicKey }, { headers: PUSH_KEY_HEADERS });
     }
   });
 }

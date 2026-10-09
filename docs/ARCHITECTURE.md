@@ -212,7 +212,7 @@ status-chip look for checklists.
 
 **Context propagation.** The tier context is a context, not a component: a wrapping container
 calls `setTierContext()` for all its descendants and a tier-aware primitive reads it with
-`getTierContext()` (both exported from `$lib/utils`, defined in `utils/tier-context.ts`).
+`getTierContext()` (both exported from `#lib/utils`, defined in `utils/tier-context.ts`).
 `Toolbar` and `ButtonGroup` are the two that set it today, and they differ: `ButtonGroup`
 both sets and reads, while **`Toolbar` only sets**. Its own surface is `rounded-contain` and
 its `tier` prop (default `modify`) is a propagation value — it dresses the controls inside

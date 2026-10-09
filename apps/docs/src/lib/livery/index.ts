@@ -20,7 +20,7 @@ import type { ComponentDefaults } from '@urbicon-ui/blocks';
  * form only as far as colour and type carry it.
  *
  * Since the move to the hotel universe (2026-08-10) a livery IS a house of the
- * Fermata group — the sub-brands of `$lib/hotel-tools`, which is the real
+ * Fermata group — the sub-brands of `#lib/hotel-tools.js`, which is the real
  * shape of this pattern in the wild: one booking platform, three identities.
  * The ids here must therefore match `HOUSES[].id`; the full page joins the two
  * registries by that key, and a livery without house data would be a switch

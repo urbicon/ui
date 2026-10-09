@@ -3,20 +3,20 @@
   Zeile 1: Namens-Kachel (Name, Anspruch, zwei Türen: Guide und Komponenten)
   + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
   light-dark()-Paare); die ersten vier Kacheln teilen das Hotel-Universum
-  "Fermata" ($lib/hotel-tools) — drei Häuser als Sub-Brands (Cala/Menorca,
+  "Fermata" (#lib/hotel-tools) — drei Häuser als Sub-Brands (Cala/Menorca,
   Firn/Engadin, Duna/Comporta), damit Dashboard und Grid
   Betriebs-Maßstab zeigen und die Liveries ihre natürlichste Begründung haben.
   Jede Kachel scopet die primary-Familie
   auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
   tragen die Livery ihrer Kachel. Zeile 2: das Hero-Inventar — Build-time-Daten
-  aus $lib/server/landing, dieselben geteilten Playgrounds wie die Doku-Seiten,
+  aus #lib/server/landing, dieselben geteilten Playgrounds wie die Doku-Seiten,
   Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: ein Befehl, ein Satz, ein
   Ergebnis — drei Vollton-Schritte (Ink → Agents-Grün → Magenta), von denen der
   dritte die im zweiten bestellte Farbe trägt und eine echte BookingCard darauf
   zeigt. Über allem eine schmale Ink-Kopfleiste (LandingHeader): die vier
   meistgebrauchten Türen plus Suche, sticky — die Seitenmitte war sonst türlos.
   Fußzeile auf Ink: die vollständige Liste der Türen nach draußen. Alle Farben
-  aus dem generierten Register ($lib/landing/channels).
+  aus dem generierten Register (#lib/landing/channels).
 
   Beschlüsse, die der Code nicht zeigt:
   · Vollton-Palette, eine Farbe pro Kachel — aber durch das eigene Theming:
@@ -24,7 +24,7 @@
     die Livery kein Theming-Beweis mehr.
   · Echtheit: lebende Komponenten in jeder Kachel. Die Agent-Kachel ist eine
     komponierte Szene; nur ihre zwei Gate-Zeilen sind wörtlich aufgezeichnete
-    Ausgabe (Ehrlichkeitsvertrag in $lib/landing/agent-output).
+    Ausgabe (Ehrlichkeitsvertrag in #lib/landing/agent-output).
   · Kein Auto-Advance der Kacheln.
   · Verworfen: ein scroll-getriebenes vertikales Deck für Zeile 1
     (Scroll-Jacking — eine Seite soll scrollen) und der Score als Einstieg in
@@ -51,30 +51,30 @@
      last of both, and the engine reports a pragma that matches nothing — a stale
      exemption is a claim about the file that is no longer true. -->
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import { VALIDATE_OK, VALIDATE_SCORE } from '$lib/landing/agent-output';
-  import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
-  import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
-  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { VALIDATE_OK, VALIDATE_SCORE } from '#lib/landing/agent-output.js';
+  import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '#lib/landing/channels.js';
+  import HeroSpecimen from '#lib/landing/HeroSpecimen.svelte';
+  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '#lib/landing/hero.js';
   import {
     buildOccupancy,
     freeRoomsOn,
     type OccupancyHouse,
     ROOM_CATEGORIES
-  } from '$lib/landing/occupancy';
-  import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '$lib/hotel-tools';
-  import AgentReplay from '$lib/landing/AgentReplay.svelte';
-  import LandingHeader from '$lib/landing/LandingHeader.svelte';
-  import { BRAND, BRAND_SUFFIX, CLAIM, PROOF } from '$lib/landing/wordmark';
+  } from '#lib/landing/occupancy.js';
+  import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '#lib/hotel-tools.js';
+  import AgentReplay from '#lib/landing/AgentReplay.svelte';
+  import LandingHeader from '#lib/landing/LandingHeader.svelte';
+  import { BRAND, BRAND_SUFFIX, CLAIM, PROOF } from '#lib/landing/wordmark.js';
   // Die Schreibmaschine des Anspruchs — self-hosted wie Mono und Grotesk im
   // Root-Layout (keine Drittanfragen, siehe /privacy), aber route-lokal
   // importiert: außer der Namens-Kachel (und dem OG-Fixture) spricht niemand
   // diese Schrift, also lädt sie auch nur hier.
   import '@fontsource/special-elite/400.css';
   import { asset, resolve } from '$app/paths';
-  import { REPO_URL } from '$lib/seo';
-  import BookingCard from '$lib/hotel/BookingCard.svelte';
-  import LiveryTile from '$lib/hotel/LiveryTile.svelte';
+  import { REPO_URL } from '#lib/seo.js';
+  import BookingCard from '#lib/hotel/BookingCard.svelte';
+  import LiveryTile from '#lib/hotel/LiveryTile.svelte';
   import {
     AreaChart,
     type AvatarProps,
@@ -103,7 +103,7 @@
   import type { PageData } from './$types';
   // Nur für `.room-accent` (primary-Familie aus --room-accent/--room-accent-fg
   // abgeleitet) — der Rest der Rooms-Klassen bleibt ungenutzt.
-  import '$lib/style/rooms.css';
+  import '#lib/style/rooms.css';
 
   let { data }: { data: PageData } = $props();
 
@@ -188,7 +188,7 @@
   //    keinen Maßstabs-Schnitt mehr: `get_hotel_info` kennt die GANZE Gruppe
   //    (Häuser, Zimmertypen, Bestand), und Namen, Orte und Teams kommen hier
   //    aus demselben Register wie auf der /hotel-Vollseite und in der
-  //    Aufnahme ($lib/hotel-tools). Nur die Betriebszahlen des Backoffice
+  //    Aufnahme (#lib/hotel-tools). Nur die Betriebszahlen des Backoffice
   //    (Belegung, Gäste, Umsatzmix) sind Landing-Fiktion — das Tool spricht
   //    über Verfügbarkeit, nicht über Umsatz.
 
@@ -216,7 +216,7 @@
   let xray = $state(false);
 
   interface House {
-    /** Der Registerschlüssel aus `$lib/hotel-tools` — NICHT aus dem Namen
+    /** Der Registerschlüssel aus `#lib/hotel-tools.js` — NICHT aus dem Namen
      *  abgeleitet: jeder Seed der Belegung und jede Spur-Id beginnt damit, und
      *  ein aus dem Anzeigenamen gebauter Schlüssel stimmte nur so lange mit dem
      *  des Tests überein, wie beide zufällig gleich hießen (Review-Befund). */
@@ -239,8 +239,8 @@
   }
   // Die Auslastungszeile der Overview zeigt die Belegung je HAUS; die
   // Rooms-Ansicht darunter zeigt dieselbe Zahl je ZIMMER (das Raster wird aus
-  // `load` gebaut, s. $lib/landing/occupancy). Namen, Orte, Teams und
-  // Zimmerbestand kommen aus $lib/hotel-tools (EIN Register mit Vollseite und
+  // `load` gebaut, s. #lib/landing/occupancy). Namen, Orte, Teams und
+  // Zimmerbestand kommen aus #lib/hotel-tools (EIN Register mit Vollseite und
   // Aufnahme); nur die Betriebszahlen sind Landing-Fiktion. Firn ist klein und
   // praktisch voll — dieselbe Enge, die das Tool für Anfang September meldet.
   const OPS: Record<string, Omit<House, 'id' | 'name' | 'city' | 'stock' | 'size' | 'team'>> = {
@@ -298,7 +298,7 @@
     }))
   );
   // Die vier Zimmertypen der Gruppe — dasselbe Vokabular wie die Legende des
-  // Zeitrasters und die letzte Ebene des Sankey, aus $lib/hotel-tools.
+  // Zeitrasters und die letzte Ebene des Sankey, aus #lib/hotel-tools.
   const MIX_LABELS = ROOM_TYPES.map((room) => room.label.replace(' Room', ''));
   const MIX_INTENTS = ['primary', 'success', 'warning', 'neutral'] as const;
   const GROUP_MIX: [number, number, number, number] = [33, 25, 22, 20];
@@ -472,10 +472,10 @@
   const flowHeight = $derived(Math.max(200, flowHostHeight - 30));
 
   // ── Table: die heutigen Ankünfte der GRUPPE, gruppiert nach Haus ──
-  // Häuser und Zimmertypen aus $lib/hotel-tools, Raten = Typpreis × Nächte.
+  // Häuser und Zimmertypen aus #lib/hotel-tools, Raten = Typpreis × Nächte.
   // Die Gäste sind Namen aus der Gästeliste der Rooms-Ansicht, und ihre
   // Haus-Zuordnung folgt DERSELBEN Drittel-Partition (CLIENTS-Index % 3,
-  // $lib/landing/occupancy): wo ein Name im Belegungsraster auftaucht, trägt er
+  // #lib/landing/occupancy): wo ein Name im Belegungsraster auftaucht, trägt er
   // dort dasselbe Haus wie hier. Vorher widersprachen sich Tabelle und Raster
   // für bis zu 10 von 15 Gästen sichtbar (Review-Befund 2026-08-12).
   interface Arrival {
@@ -1122,7 +1122,7 @@
                            Nacht eine Spalte, je Aufenthalt ein Balken. Warum
                            die Prozente hier und in der Progress-Zeile
                            dieselben sind und woher Namen und Nächte kommen,
-                           steht am Kopf von $lib/landing/occupancy (die eine
+                           steht am Kopf von #lib/landing/occupancy (die eine
                            Stelle für diese Erzählung).
 
                            Bis 2026-08-12 stand hier ein Calendar mit
@@ -1613,8 +1613,8 @@
         <!-- Die Seite behauptet AI-native — die maschinenlesbaren Artefakte
              gehören darum als Türen hierher, wie im Sidebar-Chrome. `asset()`
              statt Route: das sind statische Dateien, kein Client-Routing. -->
-        <a href={asset('/llms.txt')}>llms.txt</a>
-        <a href={asset('/llms-full.txt')}>llms-full.txt</a>
+        <a href={asset('llms.txt')}>llms.txt</a>
+        <a href={asset('llms-full.txt')}>llms-full.txt</a>
         <a href={REPO_URL} target="_blank" rel="noopener">GitHub</a>
         <!-- Wer hinter der Bibliothek steht: die Tür zurück zur Firmenseite.
              Extern wie GitHub, darum dieselbe Behandlung. -->

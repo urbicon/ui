@@ -5,7 +5,7 @@
     loadingStateVariants,
     tableRowVariants,
     type LoadingStateVariantProps
-  } from '$lib/variants';
+  } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();

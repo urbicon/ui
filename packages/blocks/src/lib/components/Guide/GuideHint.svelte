@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib/i18n';
-  import { CloseIcon } from '$lib/icons';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { useBlocksI18n } from '#lib/i18n/index.js';
+  import { CloseIcon } from '#lib/icons/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import {
     computePosition,
     autoUpdate,
@@ -9,9 +9,9 @@
     shift,
     offset,
     arrow as floatingArrow
-  } from '$lib/utils/floating';
-  import { observeTargetResolution } from '$lib/utils/observe-target';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/utils/floating.js';
+  import { observeTargetResolution } from '#lib/utils/observe-target.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
   import { guideHintVariants, type GuideHintVariants } from './guide.variants';
   import type { GuideHintProps } from './index';

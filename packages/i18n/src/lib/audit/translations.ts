@@ -14,8 +14,8 @@
  * not-yet-translated strings identical to the base locale.
  */
 
-import { isLocaleSupported, type Locale, SUPPORTED_LOCALES } from '$lib/i18n/types';
-import { collectDeepKeys, getDeepValue } from '$lib/utils/deep-keys';
+import { isLocaleSupported, type Locale, SUPPORTED_LOCALES } from '#lib/i18n/types.js';
+import { collectDeepKeys, getDeepValue } from '#lib/utils/deep-keys.js';
 import { makeGlobMatcher } from './glob';
 
 /** A single audit check. Stable identifiers — safe to switch on in tooling/CI. */

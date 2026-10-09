@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Input } from '$lib/primitives/Input';
-  import { getBlocksConfig } from '$lib/provider';
-  import { setWrapperCascade } from '$lib/provider/wrapper-cascade';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
+  import { Input } from '#lib/primitives/Input/index.js';
+  import { getBlocksConfig } from '#lib/provider/index.js';
+  import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
   import { numberInputVariants, type NumberInputSlots } from './numberinput.variants';
   import type { NumberInputProps } from './index';
 

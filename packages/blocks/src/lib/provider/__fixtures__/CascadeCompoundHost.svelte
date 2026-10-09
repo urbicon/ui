@@ -1,15 +1,15 @@
 <script lang="ts">
   import { untrack, type Component } from 'svelte';
-  import Accordion from '$lib/primitives/Accordion/Accordion.svelte';
-  import RadioGroup from '$lib/primitives/RadioGroup/RadioGroup.svelte';
-  import SegmentGroup from '$lib/primitives/SegmentGroup/SegmentGroup.svelte';
-  import Stepper from '$lib/primitives/Stepper/Stepper.svelte';
-  import Tab from '$lib/primitives/Tab/Tab.svelte';
-  import GuideProvider from '$lib/components/Guide/GuideProvider.svelte';
-  import Calendar from '$lib/components/Calendar/Calendar.svelte';
-  import GuidePanel from '$lib/components/Guide/GuidePanel.svelte';
-  import GuideArticle from '$lib/components/Guide/GuideArticle.svelte';
-  import { GuideController } from '$lib/utils/guide.svelte';
+  import Accordion from '#lib/primitives/Accordion/Accordion.svelte';
+  import RadioGroup from '#lib/primitives/RadioGroup/RadioGroup.svelte';
+  import SegmentGroup from '#lib/primitives/SegmentGroup/SegmentGroup.svelte';
+  import Stepper from '#lib/primitives/Stepper/Stepper.svelte';
+  import Tab from '#lib/primitives/Tab/Tab.svelte';
+  import GuideProvider from '#lib/components/Guide/GuideProvider.svelte';
+  import Calendar from '#lib/components/Calendar/Calendar.svelte';
+  import GuidePanel from '#lib/components/Guide/GuidePanel.svelte';
+  import GuideArticle from '#lib/components/Guide/GuideArticle.svelte';
+  import { GuideController } from '#lib/utils/guide.svelte.js';
   import BlocksProvider from '../BlocksProvider.svelte';
   import type { ComponentDefaults } from '../blocks-context';
   import type { CompoundFamily } from './cascade-mount-props';

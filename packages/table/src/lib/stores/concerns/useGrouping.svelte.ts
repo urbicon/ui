@@ -1,7 +1,7 @@
 import { SvelteSet } from 'svelte/reactivity';
-import type { TableItem } from '$lib/types/tableTypes';
-import { findColumnById, resolveValueById } from '$lib/utils';
-import type { TableView } from '$lib/view/view.svelte';
+import type { TableItem } from '#lib/types/tableTypes.js';
+import { findColumnById, resolveValueById } from '#lib/utils/index.js';
+import type { TableView } from '#lib/view/view.svelte.js';
 import type { TableState } from './types';
 
 /**

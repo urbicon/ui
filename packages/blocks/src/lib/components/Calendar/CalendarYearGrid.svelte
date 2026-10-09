@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getMonthGrid, formatMonthShort, isSameDay } from '$lib/date';
-  import { swipeable } from '$lib/utils/swipeable';
+  import { getMonthGrid, formatMonthShort, isSameDay } from '#lib/date/index.js';
+  import { swipeable } from '#lib/utils/swipeable.js';
 
   const bt = useBlocksI18n();
 

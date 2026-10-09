@@ -1,4 +1,5 @@
-import { type Cookies, type Handle, type RequestEvent, redirect } from '@sveltejs/kit';
+import { type Cookies, type RequestEvent, redirect } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import type { AuthConfig, AuthLogger, AuthUser } from '../types.js';
 import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
@@ -208,6 +209,7 @@ function recordCookieWrites(cookies: Cookies): { cookies: Cookies; setCookie: st
       get: (name, opts) => cookies.get(name, opts),
       getAll: (opts) => cookies.getAll(opts),
       serialize: (name, value, opts) => cookies.serialize(name, value, opts),
+      parse: cookies.parse,
       set,
       // SvelteKit's `delete` is this `set`, so routing it through ours keeps
       // one spelling of the cleared shape rather than two that have to agree.

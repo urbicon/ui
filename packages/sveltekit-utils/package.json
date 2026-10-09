@@ -19,6 +19,10 @@
     "sse"
   ],
   "type": "module",
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  },
   "private": false,
   "sideEffects": false,
   "svelte": "./dist/index.js",

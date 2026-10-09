@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // Keyboard-key hint. Centralizes the ad-hoc `<kbd>` styling scattered across the
 // docs and the CommandPalette `kbd` slot (commandPalette.variants.ts) into one

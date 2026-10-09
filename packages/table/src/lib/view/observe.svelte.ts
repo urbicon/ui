@@ -14,7 +14,7 @@
  * #153-regression-1 class).
  */
 import { untrack } from 'svelte';
-import type { TablePage } from '$lib/types/tableTypes';
+import type { TablePage } from '#lib/types/tableTypes.js';
 import { resolveSource, type TableSource } from './source';
 import type { TableView, TableViewSnapshot } from './view.svelte';
 

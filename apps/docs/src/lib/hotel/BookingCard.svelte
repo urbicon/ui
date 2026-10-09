@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Card, RadioGroup, RadioItem, Select } from '@urbicon-ui/blocks';
-  import { HOUSES, ROOM_TYPES, type HotelHouse } from '$lib/hotel-tools';
+  import { HOUSES, ROOM_TYPES, type HotelHouse } from '#lib/hotel-tools.js';
 
   let room = $state('garden');
   let house = $state<string | null>('cala');

@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // AvatarGroup stacks avatars with a controlled overlap and an optional "+N"
 // overflow chip. It composes the public Avatar for each entry (and the chip),

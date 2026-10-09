@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type InfoCardSlots, infoCardVariants } from './infocard.variants';
   import type { InfoCardProps } from './index.js';
-  import { useDocsI18n } from '$lib/i18n';
+  import { useDocsI18n } from '#lib/i18n/index.js';
   import { resolveClassChain } from '@urbicon-ui/blocks';
 
   const dt = useDocsI18n();

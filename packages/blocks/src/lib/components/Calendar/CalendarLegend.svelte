@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
 
   const bt = useBlocksI18n();

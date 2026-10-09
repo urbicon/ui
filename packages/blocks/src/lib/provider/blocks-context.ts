@@ -1,10 +1,10 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 import {
   effectiveVariants,
   matchesCompound,
   resolveClassChain,
   type TVConfig
-} from '$lib/utils/variants';
+} from '#lib/utils/variants.js';
 import type { SlotOf } from './component-slots';
 
 /**

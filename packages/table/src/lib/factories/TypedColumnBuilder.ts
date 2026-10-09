@@ -8,9 +8,9 @@ import type {
   NumberCellFactoryOptions,
   StatusBadgeFactoryOptions,
   UserAvatarFactoryOptions
-} from '$lib';
-import { TableColumns } from '$lib';
-import type { Column, DataAccessor } from '$lib/types/tableTypes';
+} from '#lib';
+import { TableColumns } from '#lib';
+import type { Column, DataAccessor } from '#lib/types/tableTypes.js';
 
 /**
  * Typed column builder providing a fluent API for defining table columns.

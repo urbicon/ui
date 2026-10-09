@@ -3,8 +3,8 @@ import { screen, waitFor } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { registerBlocksLocale } from '$lib/i18n';
-import deTranslations from '$lib/translations/de';
+import { registerBlocksLocale } from '#lib/i18n/index.js';
+import deTranslations from '#lib/translations/de.js';
 import LocaleSwitcherHarness from './__fixtures__/LocaleSwitcherHarness.svelte';
 
 // Interaction layer for LocaleSwitcher — a thin Select wrapper whose own contract is the i18n

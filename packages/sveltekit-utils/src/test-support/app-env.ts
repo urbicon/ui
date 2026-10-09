@@ -1,7 +1,7 @@
-// `$app/environment` alias target for the **client** vitest project — see
-// vitest.config.ts; the server half lives in app-environment.server.ts.
+// `$app/env` alias target for the **client** vitest project — see
+// vitest.config.ts; the server half lives in app-env.server.ts.
 //
-// One module instance: the production modules resolve `$app/environment`
+// One module instance: the production modules resolve `$app/env`
 // through this same alias, so `__setBuilding(true)` reaches them. (An older
 // NOTE here claimed the opposite — a second module instance per alias — and
 // declared the `building` guard untestable; a re-measurement falsified that.

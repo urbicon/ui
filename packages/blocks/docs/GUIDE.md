@@ -489,6 +489,6 @@ run via Playwright against `apps/docs/src/routes/test-fixtures/guide/`
 `ts.Program` and follows type references transitively, so `GuideController`, `GuideTour`,
 `GuideStep` and the analytics-event payloads **are** expanded into the generated `api.ts` /
 `llms.txt` alongside the local `*Props` / `*Variants` (`LocalTypesExtractor`, `scope: 'imported'`,
-bounded by depth and a per-component ceiling so a hub file like `$lib/utils` cannot flood the
+bounded by depth and a per-component ceiling so a hub file like `#lib/utils` cannot flood the
 table). The hand-authored API tables on the doc page document behaviour the generated shapes do not
 show; they are no longer the only place those types appear.

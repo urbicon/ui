@@ -10,11 +10,9 @@ import viteConfig from './vite.config';
 const appAliases = (environment: 'client' | 'server') => ({
   '$app/state': path.resolve(__dirname, 'src/test-support/app-state.ts'),
   '$app/navigation': path.resolve(__dirname, 'src/test-support/app-navigation.ts'),
-  '$app/environment': path.resolve(
+  '$app/env': path.resolve(
     __dirname,
-    environment === 'client'
-      ? 'src/test-support/app-environment.ts'
-      : 'src/test-support/app-environment.server.ts'
+    environment === 'client' ? 'src/test-support/app-env.ts' : 'src/test-support/app-env.server.ts'
   )
 });
 
@@ -44,7 +42,7 @@ export default defineConfig({
       // The SSR project: deliberately NO browser condition, so Svelte
       // resolves to its server build — `$effect` is a no-op and effect
       // teardowns never run, exactly the SSR situation the B1 leak lived in.
-      // `$app/environment` resolves to the server half (`browser: false`).
+      // `$app/env` resolves to the server half (`browser: false`).
       mergeConfig(
         viteConfig,
         defineConfig({

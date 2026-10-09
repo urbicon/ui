@@ -1,10 +1,10 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { useBlocksI18n } from '$lib';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { getTierContext } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getTierContext } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { PinInputProps } from './index';
   import { pinInputVariants, type PinInputVariants } from './pin-input.variants';
 

@@ -340,7 +340,7 @@ function collectTokens(value: unknown, into: Set<string>): void {
  * Export name → the tv() facts of its module, over every module whose filename
  * carries `variants`. Indexed by export name rather than by import path
  * because a component may pull its resolver through the package barrel
- * (`buttonVariants` from `$lib/primitives`), where the path says nothing.
+ * (`buttonVariants` from `#lib/primitives/index.js`), where the path says nothing.
  */
 async function buildTvIndex(): Promise<Map<string, TvFacts>> {
   const index = new Map<string, TvFacts>();
@@ -511,7 +511,7 @@ let cache: Promise<CascadeComponent[]> | undefined;
  */
 export function exportedComponents(): Promise<CascadeComponent[]> {
   cache ??= (async () => {
-    const [barrel, tvIndex] = await Promise.all([import('$lib'), buildTvIndex()]);
+    const [barrel, tvIndex] = await Promise.all([import('#lib'), buildTvIndex()]);
     const exportNameByModule = new Map<unknown, string>();
     for (const [name, value] of Object.entries(barrel)) {
       if (typeof value === 'function' && /^[A-Z]/.test(name)) exportNameByModule.set(value, name);
@@ -529,15 +529,16 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
       }
       return sources.get(file);
     };
-    // `./index` → index.ts, `../Dialog/index` → that file, `$lib/x` → src/lib/x.
-    // Anything else (a bare module specifier) resolves to nothing, which is what
-    // keeps `svelte/elements` out of the member set.
+    // `./index` → index.ts, `../Dialog/index` → that file, `#lib/x/index.js` →
+    // src/lib/x/index.ts. Anything else (a bare module specifier) resolves to
+    // nothing, which is what keeps `svelte/elements` out of the member set.
     const resolveSpecifier = (specifier: string, from: string): string | undefined => {
       let base: string;
-      if (specifier === '$lib') base = join(LIB, 'index');
-      else if (specifier.startsWith('$lib/')) base = join(LIB, specifier.slice('$lib/'.length));
+      if (specifier === '#lib') base = join(LIB, 'index');
+      else if (specifier.startsWith('#lib/')) base = join(LIB, specifier.slice('#lib/'.length));
       else if (specifier.startsWith('.')) base = resolve(dirname(from), specifier);
       else return undefined;
+      base = base.replace(/\.js$/, '');
       for (const candidate of [base, `${base}.ts`, join(base, 'index.ts')]) {
         if (candidate.endsWith('.ts') && sourceOf(candidate) !== undefined) return candidate;
       }

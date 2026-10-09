@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -10,7 +10,7 @@
     TypesReference
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { componentData } from './api';
   // Die Vorschau zeigt `BasicDemo`, nicht `Basic`: Letzteres mountet den echten
   // Listener, der beim Mount einen SSE-Stream gegen einen Endpunkt öffnet, den
@@ -109,7 +109,7 @@
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/auth/components/notification-listener/llm.txt')}
+      href={asset('auth/components/notification-listener/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

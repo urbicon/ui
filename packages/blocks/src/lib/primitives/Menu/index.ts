@@ -1,10 +1,10 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
-import type { ButtonVariants, MenuVariants } from '$lib/primitives';
-import type { AnimationProps } from '$lib/utils';
-import type { Placement } from '$lib/utils/floating';
-import type { InteractiveTier } from '$lib/utils/tier-context';
+import type { MintProp } from '#lib/mint/index.js';
+import type { ButtonVariants, MenuVariants } from '#lib/primitives/index.js';
+import type { Placement } from '#lib/utils/floating.js';
+import type { AnimationProps } from '#lib/utils/index.js';
+import type { InteractiveTier } from '#lib/utils/tier-context.js';
 import type { MenuSlots } from './menu.variants';
 
 /**

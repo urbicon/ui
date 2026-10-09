@@ -1,13 +1,13 @@
 import type { Snippet } from 'svelte';
-import type { Column, TableItem, TablePrefsConfig } from '$lib';
-import type { PageDescriptor } from '$lib/stores/concerns/page-descriptor';
-import type { TableState } from '$lib/stores/concerns/types.js';
-import type { LiveUpdateCounts } from '$lib/stores/concerns/useLiveUpdates.svelte';
-import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
-import type { Filter, FilterOperator } from '$lib/types/tableTypes';
-import type { CardsBelowStep } from '$lib/variants/table.variants';
-import type { TableSource } from '$lib/view/source';
-import type { TableView, TableViewDefaults, ViewSort } from '$lib/view/view.svelte';
+import type { Column, TableItem, TablePrefsConfig } from '#lib';
+import type { PageDescriptor } from '#lib/stores/concerns/page-descriptor.js';
+import type { TableState } from '#lib/stores/concerns/types.js';
+import type { LiveUpdateCounts } from '#lib/stores/concerns/useLiveUpdates.svelte.js';
+import type { SummaryConfig } from '#lib/stores/TableStore.svelte.js';
+import type { Filter, FilterOperator } from '#lib/types/tableTypes.js';
+import type { CardsBelowStep } from '#lib/variants/table.variants.js';
+import type { TableSource } from '#lib/view/source.js';
+import type { TableView, TableViewDefaults, ViewSort } from '#lib/view/view.svelte.js';
 import type { TableSlotClasses } from '../table-style-context';
 
 /**
