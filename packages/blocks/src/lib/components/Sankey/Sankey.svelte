@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import { useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import {
     computeSankeyLayout,
     sankeyLinkPath,
     type SankeyLaidOutLink,
     type SankeyLaidOutNode
-  } from '$lib/internal/sankey/layout';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/internal/sankey/layout.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type {
     SankeyProps,
     SankeyIntent,

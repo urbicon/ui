@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import AreaChart from '$lib/components/AreaChart/AreaChart.svelte';
-import BarChart from '$lib/components/BarChart/BarChart.svelte';
-import Calendar from '$lib/components/Calendar/Calendar.svelte';
-import { calendarVariants } from '$lib/components/Calendar/calendar.variants';
-import ChartFrame from '$lib/components/ChartFrame/ChartFrame.svelte';
-import DonutChart from '$lib/components/DonutChart/DonutChart.svelte';
-import LineChart from '$lib/components/LineChart/LineChart.svelte';
-import Sparkline from '$lib/components/Sparkline/Sparkline.svelte';
-import { sparklineVariants } from '$lib/components/Sparkline/sparkline.variants';
-import * as chartSlots from '$lib/internal/charts/slots';
-import { chartVariants } from '$lib/internal/charts/variants';
+import AreaChart from '#lib/components/AreaChart/AreaChart.svelte';
+import BarChart from '#lib/components/BarChart/BarChart.svelte';
+import Calendar from '#lib/components/Calendar/Calendar.svelte';
+import { calendarVariants } from '#lib/components/Calendar/calendar.variants.js';
+import ChartFrame from '#lib/components/ChartFrame/ChartFrame.svelte';
+import DonutChart from '#lib/components/DonutChart/DonutChart.svelte';
+import LineChart from '#lib/components/LineChart/LineChart.svelte';
+import Sparkline from '#lib/components/Sparkline/Sparkline.svelte';
+import { sparklineVariants } from '#lib/components/Sparkline/sparkline.variants.js';
+import * as chartSlots from '#lib/internal/charts/slots.js';
+import { chartVariants } from '#lib/internal/charts/variants.js';
 
 /**
  * Does every slot a component's `slotClasses` type offers reach an element of

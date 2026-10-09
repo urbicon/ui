@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
+  import { mintAttachment } from '#lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import { useBlocksI18n } from '$lib';
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { useBlocksI18n } from '#lib';
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
-  import { badgeVariants, type BadgeVariants } from '$lib/primitives';
-  import { getTierContext } from '$lib/utils/tier-context';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { badgeVariants, type BadgeVariants } from '#lib/primitives/index.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { BadgeProps } from './index';
 
   const bt = useBlocksI18n();

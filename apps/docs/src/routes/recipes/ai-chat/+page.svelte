@@ -277,7 +277,8 @@ Scroll up while I type — the list stops following and shows a jump-back pill. 
 </Card>`;
 
   const serverCode = `import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_API_KEY } from '$env/static/private';
+// Declared in src/env.ts (defineEnvVars from '@sveltejs/kit/env').
+import { ANTHROPIC_API_KEY } from '$app/env/private';
 import type { RequestHandler } from './$types';
 
 const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });

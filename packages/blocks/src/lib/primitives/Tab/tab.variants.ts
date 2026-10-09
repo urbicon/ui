@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // Tab represents navigation between panels (switch, don't commit). The
 // default tier is `modify` — soft-rounded rectangles read as tap surfaces.

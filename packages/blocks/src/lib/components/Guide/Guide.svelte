@@ -1,10 +1,10 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
-  import { useBlocksI18n } from '$lib/i18n';
-  import { Button } from '$lib/primitives/Button';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib/i18n/index.js';
+  import { Button } from '#lib/primitives/Button/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import {
     computePosition,
     autoUpdate,
@@ -12,8 +12,8 @@
     shift,
     offset,
     arrow as floatingArrow
-  } from '$lib/utils/floating';
-  import { observeTargetResolution } from '$lib/utils/observe-target';
+  } from '#lib/utils/floating.js';
+  import { observeTargetResolution } from '#lib/utils/observe-target.js';
   import { getGuideContext } from './guide.context';
   import { guideTourVariants, type GuideTourVariants } from './guide.variants';
   import type { GuideProps } from './index';

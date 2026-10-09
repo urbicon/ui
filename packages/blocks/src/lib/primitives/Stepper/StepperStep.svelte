@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useBlocksI18n } from '$lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { useBlocksI18n } from '#lib';
   import { stepperVariants, type StepperVariants } from './stepper.variants';
   import { getStepperContext } from './stepper.context';
-  import { resolveIcon } from '$lib/icons';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import WarningTriangleIconDefault from '#lib/icons/WarningTriangleIcon.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { StepperStepProps } from './index';
 
   const CheckIcon = resolveIcon('check', CheckIconDefault);

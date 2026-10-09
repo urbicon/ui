@@ -89,7 +89,6 @@ export const AGENTS_WORD_BUDGET = 3400;
 /** Exemptions — a genuine false positive per entry, with the reason for it. */
 export const ALLOWLIST: ReadonlyArray<readonly [what: string, why: string]> = [
   ['NOT_DECIDABLE', 'a verdict the architecture-probe skill writes, not a constant in the code'],
-  ['NODE_ENV', 'a platform environment variable, named to explain an upstream build gate'],
   ['src/runtime/server/respond.js', 'a file inside @sveltejs/kit, cited to locate its CSRF gate'],
   [
     'src/routes/.well-known/jwks.json/+server.ts',
@@ -739,6 +738,9 @@ function skippable(t: string): boolean {
     t.includes('://') ||
     t.startsWith('~') ||
     t.startsWith('@') ||
+    // A subpath import (`#lib/…`) names a module through some package's
+    // `imports` map, not a path in this tree.
+    t.startsWith('#') ||
     isAbsolute(t) ||
     // A build artifact is absent by design; the answer must not turn on whether
     // a build ran before the check.

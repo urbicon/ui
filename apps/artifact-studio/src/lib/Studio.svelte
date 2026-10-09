@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { page } from '$app/state';
-  import { replaceState } from '$app/navigation';
+  import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { Alert, Button, SegmentGroup, SegmentItem, Spinner, Textarea } from '@urbicon-ui/blocks';
-  import type { SessionState, StudioEvent, VersionInfo } from '$lib/events';
-  import { runTurn } from '$lib/stream';
+  import type { SessionState, StudioEvent, VersionInfo } from '#lib/events.js';
+  import { runTurn } from '#lib/stream.js';
 
   let { session }: { session: SessionState } = $props();
 
@@ -169,13 +170,13 @@
    *
    * `onMount` und nicht `$effect`: hier soll einmal etwas angestoßen werden, es
    * gibt nichts, worauf zu reagieren wäre. Ein Effekt hätte `page.url` als
-   * Abhängigkeit — und `replaceState` schreibt genau die, würde sich also selbst
+   * Abhängigkeit — und das flache `goto` schreibt genau die, würde sich also selbst
    * neu anstoßen und bräuchte einen Wächter gegen die eigene Schleife.
    */
   onMount(() => {
     const first = page.url.searchParams.get('first');
     if (!first || versions.length) return;
-    replaceState(`/s/${session.id}`, {});
+    void goto(resolve('/s/[id]', { id: session.id }), { shallow: true, replace: true });
     void send(first);
   });
 </script>

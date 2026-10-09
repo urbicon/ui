@@ -1,4 +1,4 @@
-import type { RateLimiter } from './rate-limit.js';
+import type { RateLimiter } from './server/rate-limit.js';
 
 // Process-wide state keyed on the `jwt.secret`, and the door every reader of
 // that secret passes through. Two registries live here because both outlive
@@ -13,7 +13,10 @@ import type { RateLimiter } from './rate-limit.js';
 // `@sveltejs/kit` and the i18n bundle with it, and a test mocking one of those
 // would see the real module. `setup-file-imports.test.ts` is the control: it
 // goes red the day this module or the setup file gains an import.
-// (`import type` is erased.)
+// (`import type` is erased.) That is also why it lives outside `server/`:
+// every module there reaches `$app/server` (see `server/server-only.ts`), and
+// loading that would pin `@sveltejs/kit` the same way. Nothing outside the
+// server modules imports it, and no package export reaches it.
 
 /**
  * The one check every reader of `jwt.secret` runs: `assertJwtConfigValid` at

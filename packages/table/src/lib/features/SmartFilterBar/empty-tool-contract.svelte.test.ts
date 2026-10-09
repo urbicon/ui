@@ -3,10 +3,10 @@ import { screen, within } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import TableHarness from '$lib/core/__fixtures__/TableHarness.svelte';
-import type { TableContext } from '$lib/core/table/index.js';
-import type { InternalTableContext } from '$lib/stores/TableStore.svelte';
-import type { Column } from '$lib/types/tableTypes';
+import TableHarness from '#lib/core/__fixtures__/TableHarness.svelte';
+import type { TableContext } from '#lib/core/table/index.js';
+import type { InternalTableContext } from '#lib/stores/TableStore.svelte.js';
+import type { Column } from '#lib/types/tableTypes.js';
 import ToolSurfacesHarness from './__fixtures__/ToolSurfacesHarness.svelte';
 
 /**

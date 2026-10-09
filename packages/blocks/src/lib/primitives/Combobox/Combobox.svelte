@@ -1,16 +1,21 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
-  import { useBlocksI18n, mintAttachment } from '$lib';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
+  import { useBlocksI18n, mintAttachment } from '#lib';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { tick } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { comboboxVariants, type ComboboxVariants } from './combobox.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import {
+    useFormField,
+    getTierContext,
+    useFloatingPanel,
+    floatingPanelHidden
+  } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ComboboxProps, ComboboxOption } from './index';
 
   const bt = useBlocksI18n();

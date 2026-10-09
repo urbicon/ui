@@ -1,3 +1,5 @@
+import '../../server-only.js';
+
 /**
  * Resolve the authenticated caller's id from `event.locals`, fail-closed.
  *

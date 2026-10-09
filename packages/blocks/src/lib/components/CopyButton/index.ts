@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
-import type { CopyPhase } from '$lib/internal/copy-state.svelte';
-import type { ButtonProps } from '$lib/primitives/Button';
+import type { CopyPhase } from '#lib/internal/copy-state.svelte.js';
+import type { ButtonProps } from '#lib/primitives/Button/index.js';
 import type { CopyButtonSlots } from './copy-button.variants';
 
 /**
@@ -78,6 +78,6 @@ export interface CopyButtonProps
 }
 
 /** Phase handed to the `children` snippet: `idle` | `copied` | `error`. */
-export type { CopyPhase } from '$lib/internal/copy-state.svelte';
+export type { CopyPhase } from '#lib/internal/copy-state.svelte.js';
 export { default as CopyButton } from './CopyButton.svelte';
 export { type CopyButtonVariants, copyButtonVariants } from './copy-button.variants';

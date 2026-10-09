@@ -4,7 +4,7 @@ import type {
   ChartMargin,
   ChartSeries,
   LineChartSlotClasses
-} from '$lib/internal/charts/types';
+} from '#lib/internal/charts/types.js';
 
 /**
  * @summary Lines over an ordered axis, for how something developed.

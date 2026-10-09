@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -18,7 +18,7 @@
 // 'handle'. It maps the visible URL to an internal route, so the locale prefix
 // stays OUT of your route tree (/blocks/button, not /[lang]/blocks/button).
 // reroute must be pure & idempotent — SvelteKit caches it per unique URL.
-import type { Reroute } from '@sveltejs/kit';
+import type { Reroute } from '@sveltejs/kit/hooks';
 import { isLocaleSupported } from '@urbicon-ui/i18n';
 
 export const reroute: Reroute = ({ url }) => {
@@ -52,7 +52,7 @@ export const load: LayoutServerLoad = ({ url, request }) => {
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { I18nProvider, isLocaleSupported } from '@urbicon-ui/i18n';
-  import { localizeHref } from '$lib/i18n-routing';
+  import { localizeHref } from '#lib/i18n-routing.js';
   let { data, children } = $props();
 
   // Drop any locale prefix to get the bare, internal path.
@@ -87,7 +87,7 @@ export function localizeHref(path: string, locale: Locale): string {
   const linkUsageCode =
     `<` +
     `script lang="ts">
-  import { localizeHref } from '$lib/i18n-routing';
+  import { localizeHref } from '#lib/i18n-routing.js';
   let { data } = $props();
 </` +
     `script>

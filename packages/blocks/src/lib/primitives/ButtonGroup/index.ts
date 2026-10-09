@@ -1,7 +1,12 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
-import type { ComponentIntent, ComponentSize, ComponentVariant, InteractiveTier } from '$lib/utils';
+import type { MintProp } from '#lib/mint/index.js';
+import type {
+  ComponentIntent,
+  ComponentSize,
+  ComponentVariant,
+  InteractiveTier
+} from '#lib/utils/index.js';
 import type { ButtonVariants } from '../Button/button.variants';
 import type { ButtonGroupSlots } from './buttongroup.variants';
 

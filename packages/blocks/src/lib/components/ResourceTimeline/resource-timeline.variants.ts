@@ -1,8 +1,8 @@
 import {
   dateGridHeaderSizes,
   dateGridHeaderSlots
-} from '$lib/internal/core/date-grid-header-slots';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+} from '#lib/internal/core/date-grid-header-slots.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * ResourceTimeline styling — a sticky resource column over a horizontally

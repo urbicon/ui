@@ -1,7 +1,12 @@
-import type { Filter, FilterOperator, TableItem } from '$lib/types/tableTypes';
-import { findColumnById, resolveColumnId, resolveColumnValue, resolveValueById } from '$lib/utils';
-import { isColumnSearchable } from '$lib/utils/column-capabilities';
-import type { TableView } from '$lib/view/view.svelte';
+import type { Filter, FilterOperator, TableItem } from '#lib/types/tableTypes.js';
+import { isColumnSearchable } from '#lib/utils/column-capabilities.js';
+import {
+  findColumnById,
+  resolveColumnId,
+  resolveColumnValue,
+  resolveValueById
+} from '#lib/utils/index.js';
+import type { TableView } from '#lib/view/view.svelte.js';
 import type { TableState } from './types';
 
 /**

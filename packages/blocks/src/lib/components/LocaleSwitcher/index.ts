@@ -1,5 +1,5 @@
 import type { Locale } from '@urbicon-ui/i18n';
-import type { SelectSingleProps } from '$lib';
+import type { SelectSingleProps } from '#lib';
 
 /**
  * Props interface for LocaleSwitcher component

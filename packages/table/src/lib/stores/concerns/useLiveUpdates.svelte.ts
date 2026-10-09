@@ -1,6 +1,6 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import type { TableItem } from '$lib/types/tableTypes';
-import { normalizeItems } from '$lib/utils';
+import type { TableItem } from '#lib/types/tableTypes.js';
+import { normalizeItems } from '#lib/utils/index.js';
 import type { TableState } from './types';
 
 function pickRowId(item: TableItem): string | number | undefined {

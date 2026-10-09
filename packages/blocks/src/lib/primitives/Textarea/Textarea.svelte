@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useFormField, getTierContext } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { mintAttachment } from '#lib';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { useFormField, getTierContext } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TextareaProps } from './index';
   import { textareaVariants, type TextareaVariants } from './textarea.variants';
 

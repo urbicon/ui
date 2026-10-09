@@ -1,11 +1,15 @@
 <script lang="ts" generics="T = unknown">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { useBlocksI18n } from '$lib';
-  import { formatDateRange, stripTime, toIso } from '$lib/date';
-  import { getContrastTextColor } from '$lib/internal/contrast';
-  import { DateGridController, type DateRange, type DateGridView } from '$lib/internal/date-grid';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { formatDateRange, stripTime, toIso } from '#lib/date/index.js';
+  import { getContrastTextColor } from '#lib/internal/contrast.js';
+  import {
+    DateGridController,
+    type DateRange,
+    type DateGridView
+  } from '#lib/internal/date-grid/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ResourceTimelineProps } from './index';
   import { setResourceTimelineContext } from './resource-timeline.context';
   import { getTimelineDays, getTimelineWindow, layoutTimeline } from './resource-timeline.engine';

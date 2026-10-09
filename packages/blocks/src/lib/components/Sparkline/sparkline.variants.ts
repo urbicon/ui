@@ -1,5 +1,5 @@
-import type { ChartSlot } from '$lib/internal/charts/variants';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import type { ChartSlot } from '#lib/internal/charts/variants.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * Sparkline carries almost no look of its own — colour and stroke come from

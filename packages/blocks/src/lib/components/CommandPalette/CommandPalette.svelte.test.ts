@@ -2,7 +2,7 @@
 import { screen } from '@testing-library/dom';
 import { createRawSnippet, flushSync, mount, type Snippet, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import SearchIcon from '$lib/icons/SearchIcon.svelte';
+import SearchIcon from '#lib/icons/SearchIcon.svelte';
 import CommandPalette from './CommandPalette.svelte';
 import type { CommandPaletteItem, CommandPaletteProps } from './index';
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   // E2E fixture for the Guide system (Playwright). Exercises every surface in controllable
   // states with stable data-testid hooks: the bidirectional Marker↔Mention link, the panel,
   // a contextual hint, the guided tour (centered + anchored + interactive steps), the beacon,

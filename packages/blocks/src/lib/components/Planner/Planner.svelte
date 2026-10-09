@@ -1,8 +1,8 @@
 <script lang="ts" generics="T = unknown">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { stripTime, toIso } from '$lib/date';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { stripTime, toIso } from '#lib/date/index.js';
   import {
     DateGridController,
     DateGridScaffold,
@@ -12,8 +12,8 @@
     type DateGridView,
     type DayCellInfo,
     type DayHeaderInfo
-  } from '$lib/internal/date-grid';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/internal/date-grid/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
   import {

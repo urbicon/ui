@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
@@ -13,7 +13,7 @@
 
   const parityCode = `// translations.test.ts — pure, deterministic, zero false positives.
 import { auditTranslations } from '@urbicon-ui/i18n';
-import { appTranslations } from '$lib/i18n'; // { en: { … }, de: { … } }
+import { appTranslations } from '#lib/i18n.js'; // { en: { … }, de: { … } }
 
 it('translations stay in parity', () => {
   const report = auditTranslations('app', appTranslations);

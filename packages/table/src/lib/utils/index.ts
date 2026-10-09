@@ -1,6 +1,6 @@
 import { createPersistentState, type PersistenceKeyConfig } from '@urbicon-ui/blocks';
-import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
-import type { Column, TableItem } from '$lib/types/tableTypes';
+import type { SummaryConfig } from '#lib/stores/TableStore.svelte.js';
+import type { Column, TableItem } from '#lib/types/tableTypes.js';
 import { isSummaryType } from './summary-types.js';
 
 /**

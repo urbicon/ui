@@ -36,7 +36,7 @@ import {
   startOfWeek,
   stripTime,
   toIso
-} from '$lib/date';
+} from '#lib/date/index.js';
 import type {
   DateGridSelection,
   DateGridSelectionMode,

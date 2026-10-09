@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useTableI18n } from '$lib';
+  import { useTableI18n } from '#lib';
   import type { ToolEmptyKey } from './tool-columns';
 
   /**

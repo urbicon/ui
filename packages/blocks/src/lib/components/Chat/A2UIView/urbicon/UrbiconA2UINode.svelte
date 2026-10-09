@@ -20,10 +20,10 @@
     StepperStep,
     Textarea,
     Toggle
-  } from '$lib/primitives';
-  import { resolveIcon } from '$lib/icons';
-  import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import { fromDateInputValue, toDateInputValue } from '$lib/utils/date';
+  } from '#lib/primitives/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import { fromDateInputValue, toDateInputValue } from '#lib/utils/date.js';
   import DatePicker from '../../../DatePicker/DatePicker.svelte';
   import EmptyState from '../../../EmptyState/EmptyState.svelte';
   import TimeInput from '../../../TimeInput/TimeInput.svelte';

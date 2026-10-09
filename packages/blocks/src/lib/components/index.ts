@@ -6,7 +6,7 @@ export type {
   ChartFrameSlot,
   DonutChartSlot,
   LineChartSlot
-} from '$lib/internal/charts/slots';
+} from '#lib/internal/charts/slots.js';
 export type {
   AreaChartSlotClasses,
   BarChartSlotClasses,
@@ -17,7 +17,7 @@ export type {
   ChartSeries,
   DonutChartSlotClasses,
   LineChartSlotClasses
-} from '$lib/internal/charts/types';
+} from '#lib/internal/charts/types.js';
 // Shared chart utilities + types (the per-chart Props come via `export *` above).
 export {
   arcPath,
@@ -32,13 +32,13 @@ export {
   niceScale,
   numberFormatter,
   seriesColor
-} from '$lib/internal/charts/utils';
+} from '#lib/internal/charts/utils.js';
 export {
   type ChartSlot,
   type ChartVariants,
   chartSlotResolver,
   chartVariants
-} from '$lib/internal/charts/variants';
+} from '#lib/internal/charts/variants.js';
 // `DateCategory` and `DateRange` — the date surfaces' shared vocabulary
 // (internal/date-grid/date-grid.types.ts) — are deliberately NOT listed here.
 // All three surfaces re-export them and the `export *` lines below carry them:

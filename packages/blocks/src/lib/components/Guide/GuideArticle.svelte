@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
   import { getGuidePanelContext } from './guide-panel.context';
   import { guideArticleVariants, type GuideArticleVariants } from './guide.variants';

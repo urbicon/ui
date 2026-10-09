@@ -4,7 +4,7 @@ import type {
   CartesianDatum,
   ChartMargin,
   ChartSeries
-} from '$lib/internal/charts/types';
+} from '#lib/internal/charts/types.js';
 
 /** One category (x-axis tick) with one value per series. @see CartesianDatum */
 export type BarChartDatum = CartesianDatum;

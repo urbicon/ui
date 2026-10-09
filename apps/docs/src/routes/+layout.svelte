@@ -1,17 +1,17 @@
 <script lang="ts">
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { REPO_URL } from '$lib/seo';
+  import { REPO_URL } from '#lib/seo.js';
   import { afterNavigate } from '$app/navigation';
-  import SidebarNavigation from '$lib/SidebarNavigation.svelte';
-  import CommandSearch from '$lib/CommandSearch.svelte';
-  import { setCommandSearchToggle } from '$lib/command-search.context';
-  import DocsThemeToggle from '$lib/DocsThemeToggle.svelte';
-  import { navigationItems } from '$lib/navigation';
-  import { channelNameForRoute } from '$lib/landing/route-channel.gen';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
-  import Wordmark from '$lib/Wordmark.svelte';
-  import DocsPageNavProvider from '$lib/DocsPageNavProvider.svelte';
+  import SidebarNavigation from '#lib/SidebarNavigation.svelte';
+  import CommandSearch from '#lib/CommandSearch.svelte';
+  import { setCommandSearchToggle } from '#lib/command-search.context.js';
+  import DocsThemeToggle from '#lib/DocsThemeToggle.svelte';
+  import { navigationItems } from '#lib/navigation.js';
+  import { channelNameForRoute } from '#lib/landing/route-channel.gen.js';
+  import PrevNextNav from '#lib/PrevNextNav.svelte';
+  import Wordmark from '#lib/Wordmark.svelte';
+  import DocsPageNavProvider from '#lib/DocsPageNavProvider.svelte';
   import {
     LocaleSwitcher,
     ThemeSwitcher,
@@ -20,8 +20,8 @@
     SearchIcon
   } from '@urbicon-ui/blocks';
   import { provideI18n } from '@urbicon-ui/i18n';
-  import { useAppI18n } from '$lib/i18n';
-  import { readStored, writeStored } from '$lib/storage';
+  import { useAppI18n } from '#lib/i18n/index.js';
+  import { readStored, writeStored } from '#lib/storage.js';
   import { onMount } from 'svelte';
   // JetBrains Mono self-hosted (instead of Google Fonts) — no third-party requests,
   // see the privacy policy (/privacy).
@@ -252,11 +252,11 @@
               >
             </div>
             <div>
-              <a href={asset('/llms.txt')} class="hover:text-text-secondary transition-colors"
+              <a href={asset('llms.txt')} class="hover:text-text-secondary transition-colors"
                 >llms.txt</a
               >
               &middot;
-              <a href={asset('/llms-full.txt')} class="hover:text-text-secondary transition-colors"
+              <a href={asset('llms-full.txt')} class="hover:text-text-secondary transition-colors"
                 >llms-full.txt</a
               >
             </div>

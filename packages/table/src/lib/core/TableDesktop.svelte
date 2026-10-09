@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { useTableI18n } from '$lib/i18n';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { useTableI18n } from '#lib/i18n/index.js';
   import EmptyState from './EmptyState.svelte';
   import ErrorState from './ErrorState.svelte';
   import GroupedRow from './GroupedRow.svelte';
@@ -10,11 +10,11 @@
   import TableRow from './TableRow.svelte';
   import SummaryRow from '../features/SummaryRow.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
-  import { computeVirtualItems, ROW_HEIGHTS } from '$lib/utils/virtualizer';
-  import { resolveColumnId, resolveRowItemId } from '$lib/utils';
+  import { computeVirtualItems, ROW_HEIGHTS } from '#lib/utils/virtualizer.js';
+  import { resolveColumnId, resolveRowItemId } from '#lib/utils/index.js';
   import { getStickyContext } from './sticky-context.svelte';
   import { structuralColumns } from './structural-columns';
-  import type { Column, TableItem } from '$lib/types/tableTypes';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import type { Snippet } from 'svelte';
 
   const tt = useTableI18n();

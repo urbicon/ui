@@ -1,13 +1,13 @@
 <script lang="ts" generics="T = TableItem">
   import type { TableProps } from './index';
-  import type { TableItem, Column } from '$lib/types/tableTypes';
-  import type { TableSource } from '$lib/view/source';
-  import { getTableContext } from '$lib/stores/TableStore.svelte.js';
+  import type { TableItem, Column } from '#lib/types/tableTypes.js';
+  import type { TableSource } from '#lib/view/source.js';
+  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
   import {
     CARDS_BELOW_VALUES,
     tableContainerVariants,
     type TableContainerVariantProps
-  } from '$lib/variants';
+  } from '#lib/variants/index.js';
   import {
     getBlocksConfig,
     Pagination,
@@ -21,7 +21,7 @@
   const ChevronLeftIcon = resolveIcon('chevronLeft', ChevronLeftIconDefault);
   const ChevronRightIcon = resolveIcon('chevronRight', ChevronRightIconDefault);
   import LiveUpdateBanner from '../../features/LiveUpdateBanner.svelte';
-  import { useTableI18n } from '$lib/i18n';
+  import { useTableI18n } from '#lib/i18n/index.js';
   import TableDesktop from '../TableDesktop.svelte';
   import TableMobile from '../TableMobile.svelte';
   import TableProvider from '../TableProvider.svelte';
@@ -35,7 +35,7 @@
     measureToCssVar,
     measureViewportOffsetTop,
     observeStuck
-  } from '$lib/utils/sticky-measure';
+  } from '#lib/utils/sticky-measure.js';
 
   const tt = useTableI18n();
 

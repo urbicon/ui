@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import type { BarChartProps } from './index';
-  import type { ChartSeries } from '$lib/internal/charts/types';
+  import type { ChartSeries } from '#lib/internal/charts/types.js';
   import {
     type ChartVariants,
     chartSlotResolver,
     chartVariants
-  } from '$lib/internal/charts/variants';
+  } from '#lib/internal/charts/variants.js';
   import {
     bandScale,
     linearScale,
@@ -14,9 +14,9 @@
     seriesColor,
     numberFormatter,
     extent
-  } from '$lib/internal/charts/utils';
+  } from '#lib/internal/charts/utils.js';
   import ChartFrame from '../ChartFrame/ChartFrame.svelte';
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
 
   let {
     data,

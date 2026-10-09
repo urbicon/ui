@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { useBlocksI18n, mintAttachment } from '$lib';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { getTierContext, useFormField } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n, mintAttachment } from '#lib';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getTierContext, useFormField } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { toggleVariants, type ToggleVariants } from './toggle.variants';
   import type { ToggleProps } from './index';
 

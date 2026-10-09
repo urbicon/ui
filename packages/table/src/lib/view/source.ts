@@ -39,7 +39,7 @@
  * for rows and a total and therefore composes with any of them. That variant
  * is where capabilities go; this one takes bug fixes.
  */
-import type { TableItem, TablePage } from '$lib/types/tableTypes';
+import type { TableItem, TablePage } from '#lib/types/tableTypes.js';
 import type { TableViewSnapshot } from './view.svelte';
 
 /**
@@ -129,7 +129,7 @@ export interface ServerManagedSource {
  * same internal shape as `{ items }`, so it bought no capability — it only
  * gave "how do I pass rows?" a third correct answer next to `items` and
  * `source={{ items }}`. The split that remains is a rule you can state:
- * {@link import('$lib/core/table').TableProps.items | items} for just rows,
+ * {@link import('#lib/core/table/index.js').TableProps.items | items} for just rows,
  * `source` for rows plus how they arrive and who processes them.
  */
 export type TableSource<T = TableItem> =

@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { SidebarSlots } from '$lib/primitives/Sidebar/sidebar.variants';
-import type { DisclosureTriggerProps } from '$lib/utils/use-disclosure.svelte';
+import type { SidebarSlots } from '#lib/primitives/Sidebar/sidebar.variants.js';
+import type { DisclosureTriggerProps } from '#lib/utils/use-disclosure.svelte.js';
 import type { SidebarLayoutSlots, SidebarLayoutVariants } from './sidebar-layout.variants';
 
 /**

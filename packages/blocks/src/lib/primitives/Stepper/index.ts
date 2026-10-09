@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { InteractiveTier } from '$lib/utils';
+import type { InteractiveTier } from '#lib/utils/index.js';
 import type { StepperSlots, StepperVariants } from './stepper.variants';
 
 /** Context for Stepper ↔ StepperStep communication */

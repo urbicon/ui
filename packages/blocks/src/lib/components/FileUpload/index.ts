@@ -1,12 +1,12 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 import type { FileUploadSlots, FileUploadVariants } from './fileUpload.variants';
 
 // ── Error Codes & File Wrapper ────────────────────────────────────────────────
 //
 // These types are re-exported aliases of the shared file-intake core
-// (`$lib/utils/file-intake`) — the single source of truth for FileUpload and
+// (`#lib/utils/file-intake.js`) — the single source of truth for FileUpload and
 // PromptInput. The public FileUpload names are preserved for API stability.
 
 import type {
@@ -15,7 +15,7 @@ import type {
   FileIntakeErrorCode as FileUploadErrorCode,
   FileIntakeEntry as FileUploadFile,
   FileIntakeStatus as FileUploadStatus
-} from '$lib/utils/file-intake';
+} from '#lib/utils/file-intake.js';
 
 export type {
   FileRejection,

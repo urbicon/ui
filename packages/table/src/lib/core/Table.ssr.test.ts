@@ -1,6 +1,6 @@
 import { render } from 'svelte/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
+import { createTableView, type TableViewSnapshot } from '#lib/view/view.svelte.js';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 
 /**

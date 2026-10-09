@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ChartFrameSlotClasses, ChartMargin, ChartPlot } from '$lib/internal/charts/types';
+import type { ChartFrameSlotClasses, ChartMargin, ChartPlot } from '#lib/internal/charts/types.js';
 
 /**
  * @summary The measured, responsive canvas the other charts draw on — bring your own shapes.

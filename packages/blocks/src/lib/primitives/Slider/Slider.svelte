@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { useBlocksI18n, mintAttachment } from '$lib';
-  import { resolveIcon } from '$lib/icons';
-  import AlertCircleIconDefault from '$lib/icons/AlertCircleIcon.svelte';
-  import CheckCircleIconDefault from '$lib/icons/CheckCircleIcon.svelte';
-  import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useFormField } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n, mintAttachment } from '#lib';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import AlertCircleIconDefault from '#lib/icons/AlertCircleIcon.svelte';
+  import CheckCircleIconDefault from '#lib/icons/CheckCircleIcon.svelte';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { useFormField } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { SliderProps } from './index';
   import { sliderVariants, type SliderVariants } from './slider.variants';
 

@@ -1,4 +1,4 @@
-import { tv } from '$lib/utils/variants';
+import { tv } from '#lib/utils/variants.js';
 
 /**
  * The scaffold's own grid geometry (INTERNAL).

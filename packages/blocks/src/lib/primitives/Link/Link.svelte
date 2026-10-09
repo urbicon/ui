@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { linkVariants, type LinkVariants } from './link.variants';
   import type { LinkProps } from './index';
 

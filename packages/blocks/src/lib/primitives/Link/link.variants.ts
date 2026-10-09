@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * The Navigation family's anchor voice. One slot, because a Link is one box —

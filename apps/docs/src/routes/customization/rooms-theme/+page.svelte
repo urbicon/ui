@@ -4,7 +4,7 @@
      utility. -->
 
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 

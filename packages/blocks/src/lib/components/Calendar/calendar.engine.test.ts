@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getMonthGrid } from '$lib/date';
+import { getMonthGrid } from '#lib/date/index.js';
 import {
   compareDayEvents,
   expandRecurrence,

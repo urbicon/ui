@@ -1,12 +1,12 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
 import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
-import type { Column, TableItem } from '$lib';
-import type { TableContext } from '$lib/core/table/index.js';
-import { normalizeItems, resolveColumnId } from '$lib/utils';
-import type { SummaryType } from '$lib/utils/summary-types.js';
-import { resolveSource, type TableSource } from '$lib/view/source';
-import { createTableView, type TableView } from '$lib/view/view.svelte';
+import type { Column, TableItem } from '#lib';
+import type { TableContext } from '#lib/core/table/index.js';
+import { normalizeItems, resolveColumnId } from '#lib/utils/index.js';
+import type { SummaryType } from '#lib/utils/summary-types.js';
+import { resolveSource, type TableSource } from '#lib/view/source.js';
+import { createTableView, type TableView } from '#lib/view/view.svelte.js';
 import type { TableState } from './concerns/types.js';
 import { useColumnOrder } from './concerns/useColumnOrder.svelte.js';
 import { useColumnVisibility } from './concerns/useColumnVisibility.svelte.js';

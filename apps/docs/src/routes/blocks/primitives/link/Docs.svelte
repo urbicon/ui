@@ -17,7 +17,7 @@
   // href` of the tab-navigation pattern — whose hrefs are absolute — matches
   // nothing here. Resolving against the page first answers for either spelling,
   // which is why this page and the snippet beside the strip differ.
-  const isCurrent = (href: string) => new URL(href, page.url).pathname === page.url.pathname;
+  const isCurrent = (href: string) => new URL(href, page.url.href).pathname === page.url.pathname;
 </script>
 
 <Section marker id="examples" title="Examples">

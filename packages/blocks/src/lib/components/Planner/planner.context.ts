@@ -1,4 +1,4 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 import type { PlannerContext } from './planner.types';
 
 // Optional context so the getter can throw a descriptive error rather than

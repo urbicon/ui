@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Badge, resolveClassChain } from '@urbicon-ui/blocks';
   import { type Column, Table } from '@urbicon-ui/table';
-  import { InfoCard, InlineCode } from '$lib';
-  import { useDocsI18n } from '$lib/i18n';
-  import { revealTableRow } from '$lib/utils/cross-reference.js';
-  import { tokenizeTypeExpression } from '$lib/utils/type-links.js';
+  import { InfoCard, InlineCode } from '#lib';
+  import { useDocsI18n } from '#lib/i18n/index.js';
+  import { revealTableRow } from '#lib/utils/cross-reference.js';
+  import { tokenizeTypeExpression } from '#lib/utils/type-links.js';
   import { type ApiReferenceSlots, apiReferenceVariants } from './apireference.variants';
   import type { ApiReferenceProps, ApiProp } from './index.js';
 

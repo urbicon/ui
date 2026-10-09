@@ -12,7 +12,7 @@
  * never applies again, only writes).
  */
 import { untrack } from 'svelte';
-import type { Filter } from '$lib/types/tableTypes';
+import type { Filter } from '#lib/types/tableTypes.js';
 import type { TableView, TableViewSnapshot, ViewAxis, ViewSort } from './view.svelte';
 
 /**

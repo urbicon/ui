@@ -1,10 +1,10 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
-  import { useBlocksI18n } from '$lib/i18n';
-  import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '$lib/icons';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib/i18n/index.js';
+  import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '#lib/icons/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
   import { filterArticles, groupArticles, hasNamedGroups } from './guide-panel.articles';

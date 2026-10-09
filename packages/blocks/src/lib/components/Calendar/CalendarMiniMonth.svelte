@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import {
     getMonthGrid,
@@ -9,7 +9,7 @@
     formatMonthYear,
     formatDateFull,
     isSameDay
-  } from '$lib/date';
+  } from '#lib/date/index.js';
 
   const bt = useBlocksI18n();
 

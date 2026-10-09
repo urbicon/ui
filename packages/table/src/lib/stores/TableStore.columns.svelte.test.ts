@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { Column, TableItem } from '$lib';
+import type { Column, TableItem } from '#lib';
 import { createTableState } from './TableStore.svelte';
 
 /**

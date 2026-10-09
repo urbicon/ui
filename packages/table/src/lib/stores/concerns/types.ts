@@ -1,5 +1,5 @@
-import type { Column, TableItem } from '$lib/types/tableTypes';
-import type { ProcessingMode } from '$lib/view/source';
+import type { Column, TableItem } from '#lib/types/tableTypes.js';
+import type { ProcessingMode } from '#lib/view/source.js';
 import type { SummaryConfig } from '../TableStore.svelte';
 
 /**

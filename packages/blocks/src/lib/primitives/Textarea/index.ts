@@ -1,5 +1,5 @@
 import type { HTMLTextareaAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 import type { TextareaSlots, TextareaVariants } from './textarea.variants';
 
 /**

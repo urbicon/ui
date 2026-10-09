@@ -8,7 +8,8 @@ export interface CronJob {
    */
   intervalSeconds: number;
   /**
-   * HTTP method for the request.
+   * HTTP method for the request. A `POST` carries an empty JSON object (`{}`)
+   * as its body.
    * @default 'POST'
    */
   method?: 'GET' | 'POST';
@@ -122,6 +123,21 @@ function warnDuplicateJob(path: string): void {
 }
 
 /**
+ * The request a job fires. A server-side `fetch` sends no `Origin`, and
+ * SvelteKit's CSRF check refuses an Origin-less `POST` whose `Content-Type` is
+ * a form type or absent — in a built app, before any hook runs. A JSON body
+ * passes it.
+ */
+function cronRequestInit(job: CronJob, config: CronRunnerConfig): RequestInit {
+  const method = job.method ?? 'POST';
+  const headers: Record<string, string> = {
+    [config.secretHeader ?? 'x-cron-secret']: config.secret
+  };
+  if (method === 'GET') return { method, headers };
+  return { method, headers: { ...headers, 'content-type': 'application/json' }, body: '{}' };
+}
+
+/**
  * Create a background runner that fires HTTP requests at SvelteKit server
  * endpoints on a fixed interval — a minimal in-process cron for scheduled work
  * (digests, cleanup, cache warming).
@@ -141,17 +157,14 @@ function warnDuplicateJob(path: string): void {
  * @throws TypeError if `onError` is not a function.
  * @example
  * ```typescript
- * // src/lib/server/cron.ts
+ * // src/lib/server/cron.ts — both variables declared in src/env.ts, the
+ * // secret with a schema that rejects the empty string (see the README)
  * import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
- * import { env } from '$env/dynamic/private';
- *
- * // runtime env: `secret` is a `string`, so a missing one fails at startup
- * const secret = env.CRON_SECRET;
- * if (!secret) throw new Error('CRON_SECRET is not set');
+ * import { BASE_URL, CRON_SECRET } from '$app/env/private';
  *
  * export const cron = createCronRunner({
- *   secret,
- *   baseUrl: env.BASE_URL,
+ *   secret: CRON_SECRET,
+ *   baseUrl: BASE_URL,
  *   jobs: [
  *     { path: '/api/cron/send-digest', intervalSeconds: 3600 },
  *     { path: '/api/cron/cleanup', intervalSeconds: 900 }
@@ -222,10 +235,7 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
           const base = config.baseUrl ?? 'http://localhost:3000';
           let response: Response;
           try {
-            response = await fetch(`${base}${job.path}`, {
-              method: job.method ?? 'POST',
-              headers: { [config.secretHeader ?? 'x-cron-secret']: config.secret }
-            });
+            response = await fetch(`${base}${job.path}`, cronRequestInit(job, config));
           } catch (err) {
             // Network-level failure (DNS, connection refused, abort): fetch rejected.
             await report(job, err as Error);

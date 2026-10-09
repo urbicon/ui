@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
-  import { resolveIcon } from '$lib/icons';
-  import SendIconDefault from '$lib/icons/SendIcon.svelte';
-  import SquareIconDefault from '$lib/icons/SquareIcon.svelte';
-  import PaperclipIconDefault from '$lib/icons/PaperclipIcon.svelte';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import FileIconDefault from '$lib/icons/FileIcon.svelte';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import SendIconDefault from '#lib/icons/SendIcon.svelte';
+  import SquareIconDefault from '#lib/icons/SquareIcon.svelte';
+  import PaperclipIconDefault from '#lib/icons/PaperclipIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import FileIconDefault from '#lib/icons/FileIcon.svelte';
   import {
     partitionIntake,
     revokeIntakePreviews,
@@ -16,8 +16,8 @@
     type FileIntakeEntry,
     type FileIntakeConstraints,
     type FileIntakeMessages
-  } from '$lib/utils/file-intake';
-  import { resolveClassChain } from '$lib/utils/variants';
+  } from '#lib/utils/file-intake.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { promptInputVariants, type PromptInputVariants } from './prompt-input.variants';
   import type { PromptInputProps } from './index';
 

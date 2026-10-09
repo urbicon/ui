@@ -4,7 +4,7 @@
  * project: deliberately WITHOUT `resolve.conditions: ['browser']`, so Svelte
  * resolves to its server build, where `$effect` is a no-op — exactly the SSR
  * situation, in which the destroy teardown (`releaseAxes` +
- * `writer.unregister`) does not exist. `$app/environment` resolves to the
+ * `writer.unregister`) does not exist. `$app/env` resolves to the
  * server half (`browser: false`); see vitest.config.ts.
  *
  * Red seen (2026-08-06, pre-fix): with `writer.register(owner, managedKeys)`
@@ -15,10 +15,10 @@
  * and the unbounded leak across disjoint routes.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-// The relative import resolves to the same file the `$app/environment`
+// The relative import resolves to the same file the `$app/env`
 // alias serves this project — one module instance, so the flip below
 // reaches the production module.
-import { __setBuilding } from '../test-support/app-environment.server';
+import { __setBuilding } from '../test-support/app-env.server';
 import { page, resetMockApp } from '../test-support/app-harness.svelte';
 import { TestView } from '../test-support/test-view.svelte';
 import {

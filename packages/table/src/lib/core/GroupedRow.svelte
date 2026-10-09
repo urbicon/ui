@@ -1,17 +1,17 @@
 <script lang="ts">
   import { resolveIcon, ChevronDownIcon as ChevronDownIconDefault } from '@urbicon-ui/blocks';
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { useTableI18n } from '$lib/i18n';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { useTableI18n } from '#lib/i18n/index.js';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
-  import { groupHeaderVariants, type GroupHeaderVariantProps } from '$lib/variants';
+  import { groupHeaderVariants, type GroupHeaderVariantProps } from '#lib/variants/index.js';
   import TableRow from './TableRow.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { getStickyContext } from './sticky-context.svelte';
-  import { resolveRowItemId } from '$lib/utils';
+  import { resolveRowItemId } from '#lib/utils/index.js';
   import { groupCountText } from './group-count';
   import { leadingStructuralColumns } from './structural-columns';
-  import type { Column, TableItem } from '$lib/types/tableTypes';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import type { Snippet } from 'svelte';
 
   const tt = useTableI18n();

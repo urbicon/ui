@@ -1,8 +1,8 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import changelogMd from 'virtual:changelog';
   import { Badge, Link } from '@urbicon-ui/blocks';
-  import { parseChangelog, tokenizeInline } from '$lib/changelog';
+  import { parseChangelog, tokenizeInline } from '#lib/changelog.js';
 
   const entries = parseChangelog(changelogMd);
 

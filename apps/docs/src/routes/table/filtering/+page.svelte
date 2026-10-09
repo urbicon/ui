@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table, createTableView, type Column } from '@urbicon-ui/table';
   import { Input, Slider } from '@urbicon-ui/blocks';

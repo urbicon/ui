@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { isMintOff, mintAttachment } from '$lib/mint';
+  import { isMintOff, mintAttachment } from '#lib/mint/index.js';
   // Direct import (not the barrel), as in Button: the scale factory ships
   // statically as the apply() fallback; every other mint name stays demand-loaded.
-  import { scaleMint } from '$lib/mint/engine';
-  import { getBlocksConfig } from '$lib/provider';
-  import { getTierContext } from '$lib/utils/tier-context';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { scaleMint } from '#lib/mint/engine.js';
+  import { getBlocksConfig } from '#lib/provider/index.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import Button from '../Button/Button.svelte';
   import { buttonVariants } from '../Button/button.variants';
   import { paginationLinkVariants } from './pagination.variants';

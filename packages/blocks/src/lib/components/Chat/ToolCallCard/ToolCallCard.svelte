@@ -1,10 +1,10 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { Badge, Collapsible } from '$lib/primitives';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
-  import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
+  import { Badge, Collapsible } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import CoreSpinner from '#lib/internal/core/CoreSpinner.svelte';
   import CodeBlock from '../CodeBlock/CodeBlock.svelte';
   import { toolCallCardVariants, type ToolCallCardVariants } from './tool-call-card.variants';
   import type { ToolCallCardProps } from './index';

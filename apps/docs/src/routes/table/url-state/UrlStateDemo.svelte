@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { building } from '$app/environment';
+  import { building } from '$app/env';
   import { page } from '$app/state';
   import { bindViewToUrl } from '@urbicon-ui/sveltekit-utils/url.svelte';
   import { createTableView, Table } from '@urbicon-ui/table';

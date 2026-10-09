@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * NumberInput paints nothing of its own except the stepper: the field, its

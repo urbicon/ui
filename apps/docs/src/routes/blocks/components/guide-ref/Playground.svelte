@@ -10,7 +10,7 @@
   oder gar keiner.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import GuidePlayground from '../guide/Playground.svelte';
 
   let props: PlaygroundHostProps = $props();

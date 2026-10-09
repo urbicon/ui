@@ -1,7 +1,7 @@
-import type { TableItem } from '$lib/types/tableTypes';
-import { findColumnById, resolveValueById } from '$lib/utils';
-import { firstSortDirectionById } from '$lib/utils/column-capabilities';
-import type { TableView, ViewSort } from '$lib/view/view.svelte';
+import type { TableItem } from '#lib/types/tableTypes.js';
+import { firstSortDirectionById } from '#lib/utils/column-capabilities.js';
+import { findColumnById, resolveValueById } from '#lib/utils/index.js';
+import type { TableView, ViewSort } from '#lib/view/view.svelte.js';
 import type { TableState } from './types';
 
 function compareSortable(a: unknown, b: unknown): number {

@@ -14,11 +14,11 @@ export const repo: RefreshTokenRepository = {
 };
 ```
 
-A `$env/static/private` import of `env` — the module has no such export.
+A `$app/env/private` import of `env` — the module has no such export.
 
 <!-- typecheck -->
 ```ts
-import { env } from '$env/static/private';
+import { env } from '$app/env/private';
 
 export const appUrl = env.PUBLIC_APP_URL;
 ```

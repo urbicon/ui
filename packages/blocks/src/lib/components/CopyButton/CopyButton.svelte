@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { resolveIcon } from '$lib/icons';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import CopyIconDefault from '$lib/icons/CopyIcon.svelte';
-  import { createCopyState } from '$lib/internal/copy-state.svelte';
-  import { Button } from '$lib/primitives/Button';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import CopyIconDefault from '#lib/icons/CopyIcon.svelte';
+  import { createCopyState } from '#lib/internal/copy-state.svelte.js';
+  import { Button } from '#lib/primitives/Button/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { copyButtonVariants } from './copy-button.variants';
   import type { CopyButtonProps } from './index';
 

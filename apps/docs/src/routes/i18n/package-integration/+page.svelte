@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
@@ -61,7 +61,7 @@ export const registerBlocksLocale = (locale, bundle) =>
     `<!-- In a blocks component -->
 <` +
     `script>
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib/i18n/index.js';
   const bt = useBlocksI18n(); // call during component init; alias to keep call sites short
 </` +
     `script>
@@ -94,8 +94,8 @@ export const useShopI18n = shopI18n.useTranslate;`;
 
   const validateCode = `// my-app/src/lib/i18n.test.ts
 import { validatePackageTranslations } from '@urbicon-ui/i18n';
-import en from '$lib/translations/en';
-import de from '$lib/translations/de'; // import lazy bundles directly for the check
+import en from '#lib/translations/en.js';
+import de from '#lib/translations/de.js'; // import lazy bundles directly for the check
 
 it('en/de key parity', () => {
   const { errors } = validatePackageTranslations('blocks', { en, de });

@@ -1,13 +1,13 @@
 <!--
   Progress-Playground — herausgelöst aus `+page.svelte`, damit ihn zwei Seiten
   zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 
   Die Control-Werte kommen aus der generierten API (`deriveControls`); von Hand
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Progress } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

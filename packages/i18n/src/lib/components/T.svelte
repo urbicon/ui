@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useI18n } from '$lib/i18n/context.svelte';
-  import type { TranslationParams, TranslationOptions } from '$lib/i18n/types';
+  import { useI18n } from '#lib/i18n/context.svelte.js';
+  import type { TranslationParams, TranslationOptions } from '#lib/i18n/types.js';
 
   interface TProps {
     key: string;

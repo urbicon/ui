@@ -5,7 +5,7 @@ import {
   createPersistentSummaryConfigs,
   dropInvalidSummaryConfigs,
   normalizeSummaryConfigs
-} from '$lib/utils';
+} from '#lib/utils/index.js';
 import type { TablePrefsConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 
@@ -17,7 +17,7 @@ import type { TableState } from './types';
  * assume their fields exist. Malformed elements are dropped; if that leaves
  * the axis unusable, the whole entry counts as absent so a default applies.
  *
- * The summary-config guard lives in `$lib/utils` (`dropInvalidSummaryConfigs`)
+ * The summary-config guard lives in `#lib/utils/index.js` (`dropInvalidSummaryConfigs`)
  * because it is not storage-specific: the same closed-vocabulary check has to
  * hold at every entrance, and the normalize funnel applies it too (#251).
  */

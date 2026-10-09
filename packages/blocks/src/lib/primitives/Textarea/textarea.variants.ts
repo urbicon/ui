@@ -5,8 +5,8 @@ import {
   fieldBareErrorOutline,
   fieldErrorFrame,
   fieldSurfaceVariants
-} from '$lib/internal/field-chrome';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+} from '#lib/internal/field-chrome.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // The textarea is the focusable element, so the ring lives on it directly.
 const focus = 'focus-visible';

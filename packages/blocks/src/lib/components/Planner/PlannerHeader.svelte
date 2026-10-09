@@ -15,9 +15,9 @@
   planner.variants.ts.
 -->
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreDateGridHeader from '$lib/internal/core/CoreDateGridHeader.svelte';
+  import CoreDateGridHeader from '#lib/internal/core/CoreDateGridHeader.svelte';
   import { getPlannerContext } from './planner.context';
 
   const bt = useBlocksI18n();

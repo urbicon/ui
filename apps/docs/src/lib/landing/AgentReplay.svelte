@@ -4,7 +4,7 @@
 
   The stage is the tile's proof, in two views. RESULT shows the working card;
   SOURCE shows the very file the agent wrote — the same
-  $lib/hotel/BookingCard.svelte the validate lines were recorded against,
+  #lib/hotel/BookingCard.svelte the validate lines were recorded against,
   imported `?raw` at build time and shown VERBATIM, so it can never drift from
   what ships. That second view is what cashes the tile's claim ("readable
   code"): thirty-odd lines, and a visitor can check. Verbatim display is also
@@ -14,7 +14,7 @@
   enters once the transcript prints the file, one entrance, CSS-only.
 
   The two score/✓ lines are REAL recorded output and live in
-  $lib/landing/agent-output (shared with the Getting-started row, which shows
+  #lib/landing/agent-output (shared with the Getting-started row, which shows
   the same gate on the visitor's own build) — the honesty contract for them is
   documented there.
 
@@ -24,9 +24,9 @@
 <script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
   import { CodePanel } from '@urbicon-ui/docs';
-  import { VALIDATE_OK, VALIDATE_SCORE } from '$lib/landing/agent-output';
-  import BookingCard from '$lib/hotel/BookingCard.svelte';
-  import bookingCardSource from '$lib/hotel/BookingCard.svelte?raw';
+  import { VALIDATE_OK, VALIDATE_SCORE } from '#lib/landing/agent-output.js';
+  import BookingCard from '#lib/hotel/BookingCard.svelte';
+  import bookingCardSource from '#lib/hotel/BookingCard.svelte?raw';
 
   interface Frame {
     text: string;

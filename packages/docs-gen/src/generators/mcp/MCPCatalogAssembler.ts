@@ -193,7 +193,7 @@ export class MCPCatalogAssembler {
    * closing `<\/script>` and — since the 2026-08-16 rollout — the OPENING
    * `<\script` too (Vite's dependency scanner extracts script blocks from
    * .svelte files with an HTML lexer, so a raw `<script` inside a string
-   * literal starts a phantom module whose `$lib/…` imports then fail the
+   * literal starts a phantom module whose `#lib/…` imports then fail the
    * whole scan with ENOENT). Shipping the raw source would hand consumers
    * those backslashes verbatim; what `get_recipe` must serve is the cooked
    * string — exactly what the code panel displays.

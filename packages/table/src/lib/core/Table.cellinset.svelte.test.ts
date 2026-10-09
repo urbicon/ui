@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { TableColumns } from '$lib/factories/TableColumns';
+import { TableColumns } from '#lib/factories/TableColumns.js';
 import {
   actionCellVariants,
   copyButtonVariants,
@@ -14,7 +14,7 @@ import {
   summaryRowVariants,
   textCellVariants,
   userCellVariants
-} from '$lib/variants';
+} from '#lib/variants/index.js';
 import { installMemoryStorage, restoreStorage } from '../../../../../scripts/vitest-storage';
 import CellInsetHarness from './__fixtures__/CellInsetHarness.svelte';
 

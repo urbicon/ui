@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useBlocksI18n } from '$lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { useBlocksI18n } from '#lib';
   import type { DonutChartProps } from './index';
   import {
     type ChartVariants,
     chartSlotResolver,
     chartVariants
-  } from '$lib/internal/charts/variants';
-  import { arcPath, seriesColor, numberFormatter } from '$lib/internal/charts/utils';
+  } from '#lib/internal/charts/variants.js';
+  import { arcPath, seriesColor, numberFormatter } from '#lib/internal/charts/utils.js';
 
   let {
     data,

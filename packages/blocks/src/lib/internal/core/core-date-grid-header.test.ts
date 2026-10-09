@@ -16,9 +16,9 @@
 
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import Planner from '$lib/components/Planner/Planner.svelte';
-import ResourceTimeline from '$lib/components/ResourceTimeline/ResourceTimeline.svelte';
-import en from '$lib/translations/en';
+import Planner from '#lib/components/Planner/Planner.svelte';
+import ResourceTimeline from '#lib/components/ResourceTimeline/ResourceTimeline.svelte';
+import en from '#lib/translations/en.js';
 
 /** Mon 15 Jun 2026 — inside the week both surfaces open on below. */
 const ANCHOR = new Date(2026, 5, 15);

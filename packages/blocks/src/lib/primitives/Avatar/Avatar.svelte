@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { avatarVariants, type AvatarVariants } from '$lib/primitives';
-  import { useBlocksI18n } from '$lib';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { mintAttachment } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { avatarVariants, type AvatarVariants } from '#lib/primitives/index.js';
+  import { useBlocksI18n } from '#lib';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { AvatarProps } from './index';
 
   const bt = useBlocksI18n();

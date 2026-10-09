@@ -4,7 +4,7 @@ import type {
   TableViewSnapshot as TableViewSnapshotMirror
 } from '@urbicon-ui/sveltekit-utils';
 import { describe, expect, it } from 'vitest';
-import type { TableView, TableViewSnapshot } from '$lib/view/view.svelte';
+import type { TableView, TableViewSnapshot } from '#lib/view/view.svelte.js';
 import type { Filter } from './tableTypes';
 
 /**

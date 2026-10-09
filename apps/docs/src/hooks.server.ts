@@ -1,7 +1,7 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import { createAuthHandle } from '@urbicon-ui/auth/server';
-import { dev } from '$app/environment';
-import { testAuthDeps } from '$lib/server/test-auth.js';
+import { testAuthDeps } from '#lib/server/test-auth.js';
+import { dev } from '$app/env';
 
 // Auth handle is scoped to the E2E test fixtures only. The rest of the
 // docs site is marketing/reference content that doesn't want session

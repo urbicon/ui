@@ -58,7 +58,7 @@ import { createVerifyEmailChangeHandler } from './verify-email-change.js';
  * lets a cache keep it.
  *
  * A `200` GET with no cache directive is heuristically storable (RFC 9111
- * §4.2.2) — SvelteKit's `json()` sets only `content-type` and `content-length`,
+ * §4.2.2) — `Response.json()` sets only `content-type`,
  * so a shared cache in front of the app, keyed by URL and seeing no
  * `Vary: Cookie`, may hand one account's notification rows, notification
  * preferences or passkey inventory to the next caller.

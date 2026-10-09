@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import { alertVariants, type AlertVariants } from './alert.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveIcon } from '$lib/icons';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { AlertProps } from './index';
 
   const bt = useBlocksI18n();

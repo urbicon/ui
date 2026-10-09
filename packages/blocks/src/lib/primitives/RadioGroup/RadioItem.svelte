@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { mintAttachment } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { RadioItemProps } from './index';
   import { getRadioGroupContext } from './radioGroup.context';
   import { radioItemVariants, type RadioItemVariants } from './radioGroup.variants';

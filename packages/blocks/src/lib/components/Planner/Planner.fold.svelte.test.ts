@@ -17,7 +17,7 @@
 import type { ComponentProps } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { toIso } from '$lib/date';
+import { toIso } from '#lib/date/index.js';
 import type { PlannerProps } from './index';
 import Planner from './Planner.svelte';
 

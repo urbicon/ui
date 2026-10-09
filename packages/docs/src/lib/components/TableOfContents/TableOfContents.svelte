@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { useDocsI18n, getDocsLocales } from '$lib/i18n';
+  import { useDocsI18n, getDocsLocales } from '#lib/i18n/index.js';
   import { useI18n, BASE_LOCALE } from '@urbicon-ui/i18n';
   import { CodeIcon, EyeOffIcon, resolveClassChain } from '@urbicon-ui/blocks';
-  import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
-  import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
+  import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
+  import { ScrollSpy } from '#lib/stores/scroll-spy.svelte.js';
   import { tableOfContentsVariants } from './tableofcontents.variants';
   import type { TableOfContentsProps } from './index.js';
 

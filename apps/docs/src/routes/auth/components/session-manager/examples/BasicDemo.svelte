@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { SessionManager } from '@urbicon-ui/auth';
-  import { createSessionDemoFetcher } from '$lib/demo/auth-demo-fetch';
+  import { createSessionDemoFetcher } from '#lib/demo/auth-demo-fetch.js';
 
   const demoFetch = createSessionDemoFetcher();
 </script>

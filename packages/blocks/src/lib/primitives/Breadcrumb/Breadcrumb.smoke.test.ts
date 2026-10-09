@@ -7,7 +7,7 @@
 
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import HomeIcon from '$lib/icons/HomeIcon.svelte';
+import HomeIcon from '#lib/icons/HomeIcon.svelte';
 import Breadcrumb from './Breadcrumb.svelte';
 import type { BreadcrumbItem } from './index';
 

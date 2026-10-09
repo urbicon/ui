@@ -1,4 +1,4 @@
-import type { Column, DataAccessor } from '$lib/types/tableTypes';
+import type { Column, DataAccessor } from '#lib/types/tableTypes.js';
 import ActionButtons, { type ActionButtonsProps } from '../cells/ActionButtons.svelte';
 import CopyButton, { type CopyButtonProps } from '../cells/CopyButton.svelte';
 import CustomCell, { type CustomCellProps } from '../cells/CustomCell.svelte';

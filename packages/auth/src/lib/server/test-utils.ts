@@ -1,5 +1,7 @@
-import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit';
+import './server-only.js';
+import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import { vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import type {
@@ -209,22 +211,10 @@ type CookieOptions = Parameters<Cookies['set']>[2];
  */
 const COOKIE_DEFAULTS = { httpOnly: true, sameSite: 'lax' } as const;
 
-/**
- * SvelteKit throws on a write without a `path` (`validate_options`), so the
- * double does too — otherwise a helper that forgot one would pass every test
- * and drop the cookie only in a browser, where the path defaults to the
- * request's directory instead of `/`.
- */
-function requirePath(options: CookieOptions): CookieOptions {
-  if (options?.path === undefined) {
-    throw new Error('You must specify a `path` when setting, deleting or serializing cookies');
-  }
-  return options;
-}
-
 function serializeCookie(url: URL, name: string, value: string, options: CookieOptions): string {
   const secure = !(url.hostname === 'localhost' && url.protocol === 'http:');
-  const o = { secure, ...COOKIE_DEFAULTS, ...requirePath(options) };
+  // SvelteKit's default for a write that names no path.
+  const o = { secure, ...COOKIE_DEFAULTS, ...options, path: options?.path ?? '/' };
   const parts = [`${name}=${encodeURIComponent(value)}`];
   if (o.maxAge !== undefined) parts.push(`Max-Age=${o.maxAge}`);
   if (o.domain) parts.push(`Domain=${o.domain}`);
@@ -257,11 +247,10 @@ export function createMockCookies(
   probes: { onDelete?: (name: string) => void; written?: Set<string> } = {}
 ): Cookies {
   const set: Cookies['set'] = (name, value, options) => {
-    requirePath(options);
     probes.written?.add(name);
     // Kit reports a cookie written with `maxAge: 0` as absent — that is how
     // its own `delete` erases one, and the hook's recording view relies on it.
-    if (options.maxAge === 0) {
+    if (options?.maxAge === 0) {
       probes.onDelete?.(name);
       store.delete(name);
     } else {
@@ -273,7 +262,12 @@ export function createMockCookies(
     getAll: () => [...store].map(([name, value]) => ({ name, value })),
     set,
     delete: (name, options) => set(name, '', { ...options, maxAge: 0 }),
-    serialize: (name, value, options) => serializeCookie(url, name, value, options)
+    serialize: (name, value, options) => serializeCookie(url, name, value, options),
+    parse: () => {
+      throw new Error(
+        'createMockCookies: `parse` is not modelled — nothing in auth reads Set-Cookie'
+      );
+    }
   };
 }
 

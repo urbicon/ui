@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { Placement } from '$lib/utils/floating';
+import type { Placement } from '#lib/utils/floating.js';
 import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
 
 /**
@@ -140,6 +140,6 @@ export interface TooltipProps
   class?: string;
 }
 
-export type { Placement as TooltipPlacement } from '$lib/utils/floating';
+export type { Placement as TooltipPlacement } from '#lib/utils/floating.js';
 export { default as Tooltip } from './Tooltip.svelte';
 export { type TooltipVariants, tooltipVariants } from './tooltip.variants';

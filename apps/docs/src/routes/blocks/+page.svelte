@@ -19,8 +19,8 @@
   established for Dialog/Popover/Tooltip.
 -->
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
-  import { BLOCKS_COMPONENT_COUNT, navigationItems } from '$lib/navigation';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { BLOCKS_COMPONENT_COUNT, navigationItems } from '#lib/navigation.js';
   import {
     A2UIView,
     A2UI_CATALOG_ID,

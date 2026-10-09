@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { AvatarProps } from '$lib/primitives/Avatar';
+import type { AvatarProps } from '#lib/primitives/Avatar/index.js';
 import type { AvatarGroupSlots, AvatarGroupVariants } from './avatar-group.variants';
 
 /**

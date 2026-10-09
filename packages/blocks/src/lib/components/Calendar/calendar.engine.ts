@@ -2,14 +2,14 @@
  * Event-layout, recurrence and navigation logic for the Calendar component.
  *
  * Pure date geometry (grids, week numbers, ranges, comparison, formatting)
- * lives in the Svelte-free `$lib/date` layer and is imported from there. This
+ * lives in the Svelte-free `#lib/date/index.js` layer and is imported from there. This
  * module keeps only the Calendar-specific concerns: positioning timed and
  * multi-day events, expanding recurrence rules and time-slot generation.
  * No Svelte dependencies — fully testable in isolation.
  */
 
-import { daysBetween, stripTime, toIso } from '$lib/date';
-import { packSpans } from '$lib/internal/date-grid/pack-spans';
+import { daysBetween, stripTime, toIso } from '#lib/date/index.js';
+import { packSpans } from '#lib/internal/date-grid/pack-spans.js';
 import type { CalendarEvent, PositionedEvent, RecurrenceRule, TimeSlot } from './calendar.types';
 
 /**
@@ -74,13 +74,13 @@ export function compareDayEvents(
 
 /**
  * Foreground colour for a consumer-supplied background. The implementation
- * moved to `$lib/internal/contrast` when ResourceTimeline became its second
+ * moved to `#lib/internal/contrast.js` when ResourceTimeline became its second
  * caller — a timeline bar and a calendar event chip both paint a surface from a
  * `DateCategory.color` the consumer chose, and face the same question.
  * Re-exported here so Calendar's own sub-components keep importing it from the
  * engine.
  */
-export { getContrastTextColor } from '$lib/internal/contrast';
+export { getContrastTextColor } from '#lib/internal/contrast.js';
 
 /**
  * Compute layout segments for multi-day events in the month grid.

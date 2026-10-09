@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 import type { SplitPaneLimit } from './split-pane.utils';
 import type { SplitPaneSlots, SplitPaneVariants } from './split-pane.variants';
 

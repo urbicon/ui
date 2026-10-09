@@ -1,6 +1,6 @@
 <!--
   Table playground — split out of `+page.svelte` so that two pages can show it:
-  the docs page and the landing hero. See `$lib/playground-host.ts`.
+  the docs page and the landing hero. See `#lib/playground-host.ts`.
 
   The control values come from the generated API (`deriveControls`); only what
   cannot be derived is written out by hand here.
@@ -17,7 +17,7 @@
   now.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import {
     defaultValuesOf,
     deriveControls,

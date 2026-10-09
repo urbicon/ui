@@ -1,8 +1,8 @@
 <script lang="ts">
-  import CustomCell from '$lib/cells/CustomCell.svelte';
-  import NumberCell from '$lib/cells/NumberCell.svelte';
-  import { TableColumns } from '$lib/factories/TableColumns';
-  import type { Column } from '$lib/types/tableTypes';
+  import CustomCell from '#lib/cells/CustomCell.svelte';
+  import NumberCell from '#lib/cells/NumberCell.svelte';
+  import { TableColumns } from '#lib/factories/TableColumns.js';
+  import type { Column } from '#lib/types/tableTypes.js';
   import Table from '../table/Table.svelte';
 
   /**

@@ -1,12 +1,12 @@
 <script lang="ts" generics="TItem extends MenuItemType = MenuItemType">
   import { tick, untrack } from 'svelte';
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { Button, menuVariants, type MenuVariants } from '$lib/primitives';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
-  import { getTierContext } from '$lib/utils/tier-context';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { Button, menuVariants, type MenuVariants } from '#lib/primitives/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import { getTierContext } from '#lib/utils/tier-context.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import Popover from '../Popover/Popover.svelte';
   import { popoverMotion } from '../Popover/popover.variants';
@@ -673,7 +673,7 @@
   <Popover
     bind:open
     onOpenChange={(o) => onOpenChange?.(o)}
-    placement={placement as import('$lib/utils/floating').Placement}
+    placement={placement as import('#lib/utils/floating.js').Placement}
     {usePortal}
     autoTrigger={false}
     unstyled

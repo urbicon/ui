@@ -16,7 +16,7 @@ bun add @urbicon-ui/table @urbicon-ui/blocks
 @import '@urbicon-ui/table/style/index.css';
 ```
 
-Peer dependencies: `svelte` (^5.57.0), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No SvelteKit needed — the package imports neither `$app/*` nor `@sveltejs/kit`.
+Peer dependencies: `svelte` (^5.57.1), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No SvelteKit needed — the package imports neither `$app/*` nor `@sveltejs/kit`.
 
 ## Capability Overview
 

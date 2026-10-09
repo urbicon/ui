@@ -1,14 +1,19 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
-  import { useBlocksI18n, mintAttachment } from '$lib';
-  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
-  import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { consumeWrapperCascade } from '$lib/provider/wrapper-cascade';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n, mintAttachment } from '#lib';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import {
+    useFormField,
+    getTierContext,
+    useFloatingPanel,
+    floatingPanelHidden
+  } from '#lib/utils/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { SelectProps, SelectOption } from './index';
   import { selectVariants, type SelectVariants } from './select.variants';
 

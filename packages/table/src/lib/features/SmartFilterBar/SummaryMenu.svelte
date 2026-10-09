@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '$lib';
-  import { SUMMARY_TYPES } from '$lib/utils/summary-types';
-  import { smartFilterBarTriggerVariants } from '$lib/variants';
+  import { getTableContext, useTableI18n } from '#lib';
+  import { SUMMARY_TYPES } from '#lib/utils/summary-types.js';
+  import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import {
     Badge,
     Menu,

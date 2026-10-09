@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import {
     isColumnGroupable,
     isColumnSortable,
     isColumnSummable
-  } from '$lib/utils/column-capabilities';
-  import { headerMenuItemVariants, headerMenuVariants } from '$lib/variants';
+  } from '#lib/utils/column-capabilities.js';
+  import { headerMenuItemVariants, headerMenuVariants } from '#lib/variants/index.js';
   import {
     Button,
     Menu,
@@ -23,14 +23,14 @@
     SortDescIcon as SortDescIconDefault,
     type MenuObjectOption
   } from '@urbicon-ui/blocks';
-  import { useTableI18n } from '$lib/i18n';
-  import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
+  import { useTableI18n } from '#lib/i18n/index.js';
+  import { resolveColumnId, resolveColumnLabel } from '#lib/utils/index.js';
   import {
     SUMMARY_TYPE_LABEL_KEY,
     SUMMARY_TYPES,
     type SummaryType
-  } from '$lib/utils/summary-types';
-  import type { Column } from '$lib/types/tableTypes';
+  } from '#lib/utils/summary-types.js';
+  import type { Column } from '#lib/types/tableTypes.js';
 
   const tt = useTableI18n();
 

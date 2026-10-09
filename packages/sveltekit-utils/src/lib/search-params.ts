@@ -1,4 +1,16 @@
 /**
+ * The read half of `URLSearchParams`. SvelteKit types `page.url.searchParams`
+ * without the mutators, so a reader that asked for `URLSearchParams` would
+ * refuse it; a real `URLSearchParams` is one of these too.
+ */
+export type ReadableSearchParams = Omit<URLSearchParams, 'append' | 'delete' | 'set' | 'sort'>;
+
+/** What {@link withSearchParams} reads off a URL: a `URL`, or SvelteKit's read-only `page.url`. */
+export type ReadableUrl = Pick<URL, 'origin' | 'pathname'> & {
+  readonly searchParams: ReadableSearchParams;
+};
+
+/**
  * What {@link withSearchParams} applies to a URL: a plain record, or a
  * `URLSearchParams` whose repeated keys survive the merge.
  */
@@ -41,8 +53,8 @@ export type SearchParamsPatch =
  * // '/films?sort=year'
  * ```
  */
-export function withSearchParams(url: URL, patch: SearchParamsPatch): string {
-  const next = new URLSearchParams(url.searchParams);
+export function withSearchParams(url: ReadableUrl, patch: SearchParamsPatch): string {
+  const next = new URLSearchParams(url.searchParams.toString());
   if (patch instanceof URLSearchParams) {
     for (const [key] of patch) next.delete(key);
     for (const [key, value] of patch) next.append(key, value);

@@ -15,8 +15,8 @@ import {
   fieldFocusRing,
   fieldIntentFrames,
   fieldSurfaceVariants
-} from '$lib/internal/field-chrome';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+} from '#lib/internal/field-chrome.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // Input and PinInput light the focusable element itself; TimeInput its container.
 const focus = 'focus-visible';

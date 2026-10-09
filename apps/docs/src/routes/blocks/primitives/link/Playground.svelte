@@ -1,7 +1,7 @@
 <!--
   Link-Playground — herausgelöst aus `+page.svelte`, damit ihn zwei Seiten
   zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 
   `href` ist Pflicht-Prop und kein Regler: ein Textfeld für eine Adresse zeigt
   am Ergebnis nichts. Es steht als Konstante im Schnipsel, damit der kopierte
@@ -9,7 +9,7 @@
   `breadcrumb/Playground.svelte`: sonst trüge die Demo den Leser fort.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Link } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

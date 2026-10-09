@@ -1,5 +1,5 @@
 import type { Snippet } from 'svelte';
-import type { InputProps } from '$lib/primitives/Input';
+import type { InputProps } from '#lib/primitives/Input/index.js';
 import type { NumberInputSlots } from './numberinput.variants';
 
 /**

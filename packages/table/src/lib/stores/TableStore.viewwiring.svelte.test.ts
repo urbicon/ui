@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Column, TableItem } from '$lib';
-import { bindViewToStorage } from '$lib/view/storage-binding.svelte';
+import type { Column, TableItem } from '#lib';
+import { bindViewToStorage } from '#lib/view/storage-binding.svelte.js';
 import {
   createTableView,
   type TableView,
   type TableViewSnapshot,
   type ViewAxis
-} from '$lib/view/view.svelte';
+} from '#lib/view/view.svelte.js';
 import { createTableState } from './TableStore.svelte';
 
 /**

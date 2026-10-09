@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { Table } from '@urbicon-ui/table';
   import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';

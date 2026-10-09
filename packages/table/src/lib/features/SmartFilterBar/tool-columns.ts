@@ -1,19 +1,19 @@
 import type { DeepKeys } from '@urbicon-ui/i18n';
-import type { TableState } from '$lib/stores/concerns/types';
-import type enTranslations from '$lib/translations/en';
-import type { Column } from '$lib/types/tableTypes';
-import {
-  findColumnById,
-  resolveColumnId,
-  resolveColumnLabel,
-  resolveColumnLabelById
-} from '$lib/utils';
+import type { TableState } from '#lib/stores/concerns/types.js';
+import type enTranslations from '#lib/translations/en.js';
+import type { Column } from '#lib/types/tableTypes.js';
 import {
   isColumnGroupable,
   isColumnSearchable,
   isColumnSortable,
   isColumnSummable
-} from '$lib/utils/column-capabilities';
+} from '#lib/utils/column-capabilities.js';
+import {
+  findColumnById,
+  resolveColumnId,
+  resolveColumnLabel,
+  resolveColumnLabelById
+} from '#lib/utils/index.js';
 
 /**
  * Which columns each filter-bar tool may act on, as plain functions.

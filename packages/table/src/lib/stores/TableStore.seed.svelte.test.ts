@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Column, Filter } from '$lib/types/tableTypes';
-import { createTableView, type TableViewDefaults } from '$lib/view/view.svelte';
+import type { Column, Filter } from '#lib/types/tableTypes.js';
+import { createTableView, type TableViewDefaults } from '#lib/view/view.svelte.js';
 import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
 /**

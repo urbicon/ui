@@ -2,8 +2,8 @@
 import { screen } from '@testing-library/dom';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerBlocksLocale } from '$lib/i18n';
-import deTranslations from '$lib/translations/de';
+import { registerBlocksLocale } from '#lib/i18n/index.js';
+import deTranslations from '#lib/translations/de.js';
 import CalendarLocaleHarness from './__fixtures__/CalendarLocaleHarness.svelte';
 
 // `de` ships as a lazy chunk, so a provider alone resolves to the English base

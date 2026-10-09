@@ -1,3 +1,5 @@
+import './server-only.js';
+
 /**
  * Byte/string codecs shared across the auth core — JWT (auth.ts), CSRF,
  * WebAuthn, TOTP, Web Push. One canonical copy: this encoding logic is

@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 // Minimal CBOR decoder for WebAuthn attestation objects.
 // Supports: unsigned integers, negative integers, byte strings, text strings,
 // arrays, maps, booleans, null, undefined, simple values, floats.

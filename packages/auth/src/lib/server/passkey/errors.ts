@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 export class WebAuthnError extends Error {
   // Forward ErrorOptions so callers can chain a `cause` — e.g. wrapping a raw
   // DER-parse error while keeping a clean client-facing message. The handler

@@ -1,8 +1,12 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useFloatingPanel, floatingPanelHidden, maxTransitionDurationMs } from '$lib/utils';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import {
+    useFloatingPanel,
+    floatingPanelHidden,
+    maxTransitionDurationMs
+  } from '#lib/utils/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 

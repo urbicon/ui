@@ -321,8 +321,8 @@ export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'd
 ```ts
 // src/routes/invoices/+page.server.ts
 import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
-import { fetchInvoices } from '$lib/server/invoices';
-import { invoiceView } from '$lib/view-defaults';
+import { fetchInvoices } from '#lib/server/invoices.js';
+import { invoiceView } from '#lib/view-defaults.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => ({

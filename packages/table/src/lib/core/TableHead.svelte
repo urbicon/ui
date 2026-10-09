@@ -9,10 +9,10 @@
     ChevronsDownUpIcon as ChevronsDownUpIconDefault,
     ChevronsUpDownIcon as ChevronsUpDownIconDefault
   } from '@urbicon-ui/blocks';
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { resolveColumnId } from '$lib/utils';
-  import { isColumnSortable } from '$lib/utils/column-capabilities';
-  import { SUMMARY_TYPE_GLYPH } from '$lib/utils/summary-types';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { resolveColumnId } from '#lib/utils/index.js';
+  import { isColumnSortable } from '#lib/utils/column-capabilities.js';
+  import { SUMMARY_TYPE_GLYPH } from '#lib/utils/summary-types.js';
   import { headerSelection } from './header-selection';
   import { structuralColumns } from './structural-columns';
 
@@ -22,11 +22,11 @@
   const ChevronsUpDownIcon = resolveIcon('chevronsUpDown', ChevronsUpDownIconDefault);
   import HeaderMenu from '../features/HeaderMenu.svelte';
   import { useTableI18n } from '../i18n';
-  import { tableHeaderVariants, headerIndicatorVariants } from '$lib/variants';
-  import { TABLE_INDICATORS } from '$lib/variants/table.system';
+  import { tableHeaderVariants, headerIndicatorVariants } from '#lib/variants/index.js';
+  import { TABLE_INDICATORS } from '#lib/variants/table.system.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { getStickyContext } from './sticky-context.svelte';
-  import { measureToCssVar } from '$lib/utils/sticky-measure';
+  import { measureToCssVar } from '#lib/utils/sticky-measure.js';
 
   const tt = useTableI18n();
 

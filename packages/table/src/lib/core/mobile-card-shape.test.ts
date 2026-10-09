@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Column } from '$lib/types/tableTypes';
+import type { Column } from '#lib/types/tableTypes.js';
 import { type MobileCardShapeOptions, resolveMobileCardShape } from './mobile-card-shape';
 
 const col = (accessor: string): Column => ({ accessor, title: accessor }) as Column;

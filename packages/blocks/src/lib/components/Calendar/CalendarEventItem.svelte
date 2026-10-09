@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { Badge } from '$lib/primitives/Badge';
+  import { useBlocksI18n } from '#lib';
+  import { Badge } from '#lib/primitives/Badge/index.js';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { draggableEvent } from './calendar.drag';
-  import { formatTimeRange, toIsoDateTime } from '$lib/date';
+  import { formatTimeRange, toIsoDateTime } from '#lib/date/index.js';
   import type { CalendarEvent, DateCategory } from './calendar.types';
 
   const bt = useBlocksI18n();

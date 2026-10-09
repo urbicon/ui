@@ -1,19 +1,19 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { BlocksProvider, Button } from '@urbicon-ui/blocks';
-  import { DEFAULT_LIVERY, LIVERIES, liveryById } from '$lib/livery';
+  import { DEFAULT_LIVERY, LIVERIES, liveryById } from '#lib/livery/index.js';
   // Livery-CSS route-lokal statt global (anders als in chat-demo): Tokens,
   // Container-Shim und die Layout-Schicht der Vollseite.
-  import '$lib/livery/liveries.css';
-  import '$lib/livery/livery-shim.gen.css';
-  import '$lib/livery/layouts.css';
-  import HotelBooking from '$lib/hotel/HotelBooking.svelte';
-  import { GROUP_NAME, HOUSES, houseById, ROOM_TYPES } from '$lib/hotel-tools';
+  import '#lib/livery/liveries.css';
+  import '#lib/livery/livery-shim.gen.css';
+  import '#lib/livery/layouts.css';
+  import HotelBooking from '#lib/hotel/HotelBooking.svelte';
+  import { GROUP_NAME, HOUSES, houseById, ROOM_TYPES } from '#lib/hotel-tools.js';
 
   /**
    * One group, three houses — and here, unlike in the salon era, the switch
    * changes the HOUSE, not just the paint: Cala, Firn and Duna are the
-   * sub-brands of Fermata (`$lib/hotel-tools`), which is the real shape of
+   * sub-brands of Fermata (`#lib/hotel-tools.js`), which is the real shape of
    * the livery pattern in the wild. Kicker, image, facts and hosts follow the
    * switch because livery ids ARE house ids; rooms and rates stay still
    * because the group prices per type, not per house.

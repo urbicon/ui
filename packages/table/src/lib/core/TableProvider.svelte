@@ -2,19 +2,23 @@
   import { untrack, type Snippet } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { findColumnById } from '$lib';
-  import { useTableI18n } from '$lib/i18n';
-  import { ColumnValidation } from '$lib/factories/ColumnValidation';
-  import type { Column, TableItem } from '$lib/types/tableTypes';
+  import { findColumnById } from '#lib';
+  import { useTableI18n } from '#lib/i18n/index.js';
+  import { ColumnValidation } from '#lib/factories/ColumnValidation.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import {
     attachCellLocale,
     attachTableContext,
     createTableState,
     type TablePrefsConfig
-  } from '$lib/stores/TableStore.svelte';
-  import { createManagedFetch } from '$lib/view/observe.svelte';
-  import type { TableSource } from '$lib/view/source';
-  import { resolveViewProp, type TableView, type TableViewDefaults } from '$lib/view/view.svelte';
+  } from '#lib/stores/TableStore.svelte.js';
+  import { createManagedFetch } from '#lib/view/observe.svelte.js';
+  import type { TableSource } from '#lib/view/source.js';
+  import {
+    resolveViewProp,
+    type TableView,
+    type TableViewDefaults
+  } from '#lib/view/view.svelte.js';
   import type { TableContext } from './table/index';
 
   const tt = useTableI18n();

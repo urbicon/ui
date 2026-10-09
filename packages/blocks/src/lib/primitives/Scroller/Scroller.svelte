@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { resolveIcon } from '$lib/icons';
-  import ChevronLeftIconDefault from '$lib/icons/ChevronLeftIcon.svelte';
-  import ChevronRightIconDefault from '$lib/icons/ChevronRightIcon.svelte';
-  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
+  import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ScrollerProps } from './index';
   import {
     activeItemIndex,

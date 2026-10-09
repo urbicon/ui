@@ -9,7 +9,7 @@
   // contract, stays silent mid-selection.
   import DateRangePicker from '../DateRangePicker.svelte';
   import type { DateRange } from '..';
-  import { toDateInputValue } from '$lib/utils/date';
+  import { toDateInputValue } from '#lib/utils/date.js';
   import type { ComponentProps } from 'svelte';
 
   let {

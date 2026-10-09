@@ -15,6 +15,9 @@ export {
 // Open-redirect guard for the handle hook's ?redirectTo=… deep-link param
 // (also exported from the package root for client-side use)
 export { sanitizeRedirect } from '../redirect.js';
+// The process-wide rate-limit registry, for test suites building real handlers
+// from a literal secret (AUTH.md → Testing handlers)
+export { resetRateLimiters } from '../secret-registry.js';
 // Types re-export
 export type {
   AuthConfig,
@@ -239,9 +242,6 @@ export {
   rotateRefreshToken,
   setRefreshCookie
 } from './refresh-token.js';
-// The process-wide rate-limit registry, for test suites building real handlers
-// from a literal secret (AUTH.md → Testing handlers)
-export { resetRateLimiters } from './secret-registry.js';
 export type { SecurityHeadersConfig } from './security-headers.js';
 // Security headers
 export { applySecurityHeaders } from './security-headers.js';

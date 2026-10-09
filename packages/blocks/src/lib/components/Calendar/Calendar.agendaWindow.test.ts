@@ -20,7 +20,7 @@
 
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import en from '$lib/translations/en';
+import en from '#lib/translations/en.js';
 import Calendar from './Calendar.svelte';
 import type { CalendarEvent } from './calendar.types';
 

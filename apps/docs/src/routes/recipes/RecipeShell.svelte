@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import RecipeHeader from './RecipeHeader.svelte';
   import type { RecipeMeta } from './recipe-meta';
 

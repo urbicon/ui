@@ -3,7 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import HomeIcon from '$lib/icons/HomeIcon.svelte';
+import HomeIcon from '#lib/icons/HomeIcon.svelte';
 import Breadcrumb from './Breadcrumb.svelte';
 import type { BreadcrumbItem, BreadcrumbProps } from './index';
 

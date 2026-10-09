@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { TableItem } from '$lib';
-import type { TableSource } from '$lib/view/source';
-import { createTableView } from '$lib/view/view.svelte';
+import type { TableItem } from '#lib';
+import type { TableSource } from '#lib/view/source.js';
+import { createTableView } from '#lib/view/view.svelte.js';
 import type { TableState } from './concerns/types';
 import { createTableState, type TablePropSources } from './TableStore.svelte';
 

@@ -1,6 +1,6 @@
 import { SvelteSet } from 'svelte/reactivity';
-import type { Column } from '$lib/types/tableTypes';
-import { resolveColumnId } from '$lib/utils';
+import type { Column } from '#lib/types/tableTypes.js';
+import { resolveColumnId } from '#lib/utils/index.js';
 
 /**
  * Column visibility concern: manages which columns are shown or hidden.

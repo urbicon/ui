@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import { fly } from 'svelte/transition';
-  import { Badge } from '$lib/primitives/Badge';
+  import { Badge } from '#lib/primitives/Badge/index.js';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { formatDateFull, toIso } from '$lib/date';
-  import { swipeable } from '$lib/utils/swipeable';
+  import { formatDateFull, toIso } from '#lib/date/index.js';
+  import { swipeable } from '#lib/utils/swipeable.js';
   import type { CalendarEvent } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
   import CalendarTimeGrid from './CalendarTimeGrid.svelte';

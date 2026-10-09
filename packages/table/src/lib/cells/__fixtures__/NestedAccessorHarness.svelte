@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TableItem } from '$lib/types/tableTypes';
+  import type { TableItem } from '#lib/types/tableTypes.js';
   import DateCell from '../DateCell.svelte';
   import LinkCell from '../LinkCell.svelte';
   import NumberCell from '../NumberCell.svelte';

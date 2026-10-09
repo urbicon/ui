@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { resolvePasswordPolicy } from '../../password-policy.js';
 import type { AuthDeps } from '../deps.js';
 import { privateEndpoints } from './_shared.js';
@@ -27,7 +26,7 @@ export function createPasswordPolicyHandler<R extends string>(
 ): { GET: RequestHandler } {
   return privateEndpoints({
     GET: async () =>
-      json(
+      Response.json(
         { policy: resolvePasswordPolicy(deps.config.password) },
         // Static per deployment, so caching keeps the extra request off every
         // repeat visit. The cost is bounded and named: for up to 5 minutes

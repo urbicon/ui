@@ -5,7 +5,7 @@ import type {
   GuideStorageAdapter,
   GuideTour,
   Placement
-} from '$lib/utils';
+} from '#lib/utils/index.js';
 import type {
   GuideArticleSlots,
   GuideBeaconSlots,

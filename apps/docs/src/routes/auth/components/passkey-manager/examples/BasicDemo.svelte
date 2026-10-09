@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import { PasskeyManager } from '@urbicon-ui/auth';
-  import { createPasskeyDemoFetcher } from '$lib/demo/auth-demo-fetch';
+  import { createPasskeyDemoFetcher } from '#lib/demo/auth-demo-fetch.js';
 
   const demoFetch = createPasskeyDemoFetcher();
 </script>

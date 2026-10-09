@@ -1,6 +1,6 @@
 import type { Component, Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { IconProps } from '$lib/icons';
+import type { IconProps } from '#lib/icons/index.js';
 import type { EmptyStateSlots } from './emptyState.variants';
 
 /**

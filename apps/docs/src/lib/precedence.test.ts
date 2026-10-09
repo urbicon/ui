@@ -11,7 +11,7 @@ import { classCaveat, precedenceChain } from './customization-data';
  * The measurement lives with the engine —
  * `packages/blocks/src/lib/provider/override-precedence.test.ts` runs the real
  * cascade end to end — because that is a property of blocks, not of the docs,
- * and importing it here would drag another package's `$lib` aliases into this
+ * and importing it here would drag another package's `#lib` aliases into this
  * app's type-check. What is left for this side is the wording: `class` is the
  * top rung and reaches the root slot only, said once, in one place.
  */

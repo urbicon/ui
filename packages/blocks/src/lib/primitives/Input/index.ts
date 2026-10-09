@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLInputAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 import type { InputSlots, InputVariants } from './input.variants';
 
 /**

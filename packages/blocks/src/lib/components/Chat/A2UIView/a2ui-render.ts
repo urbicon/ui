@@ -16,7 +16,7 @@
  */
 
 import type { Component, Snippet } from 'svelte';
-import type { IconComponent } from '$lib/icons';
+import type { IconComponent } from '#lib/icons/index.js';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
 import { getAtPointer } from './a2ui-data';

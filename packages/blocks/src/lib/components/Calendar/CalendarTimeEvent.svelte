@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { Popover } from '$lib/primitives/Popover';
+  import { Popover } from '#lib/primitives/Popover/index.js';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { draggableEvent, resizableEvent } from './calendar.drag';
   import { getContrastTextColor } from './calendar.engine';

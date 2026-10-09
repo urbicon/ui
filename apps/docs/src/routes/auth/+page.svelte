@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, InfoCard, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
@@ -16,9 +16,10 @@
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
-import { prisma } from '$lib/server/db';
-import { appLogger } from '$lib/server/logging';
-import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$env/static/private';
+import { prisma } from '#lib/server/db.js';
+import { appLogger } from '#lib/server/logging.js';
+// The three are declared in src/env.ts (defineEnvVars from '@sveltejs/kit/env').
+import { APP_URL, JWT_SECRET, LETTERMINT_TOKEN } from '$app/env/private';
 
 export const authDeps = createAuthDeps({
   config: {
@@ -38,7 +39,7 @@ export const authDeps = createAuthDeps({
 
   const hookCode = `// src/hooks.server.ts
 import { createAuthHandle, DEFAULT_PUBLIC_ROUTES } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth';
+import { authDeps } from '#lib/server/auth.js';
 
 export const handle = createAuthHandle({
   config: authDeps.config,
@@ -53,17 +54,17 @@ export const handle = createAuthHandle({
   const handlersCode = `// Each auth flow needs a SvelteKit API route:
 // src/routes/api/auth/login/+server.ts
 import { createLoginHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth';
+import { authDeps } from '#lib/server/auth.js';
 export const POST = createLoginHandler(authDeps);
 
 // src/routes/api/auth/register/+server.ts
 import { createRegisterHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth';
+import { authDeps } from '#lib/server/auth.js';
 export const POST = createRegisterHandler(authDeps);
 
 // src/routes/api/auth/forgot-password/+server.ts
 import { createForgotPasswordHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth';
+import { authDeps } from '#lib/server/auth.js';
 export const POST = createForgotPasswordHandler(authDeps);
 
 // Same pattern for: reset-password, verify-email, logout, me`;

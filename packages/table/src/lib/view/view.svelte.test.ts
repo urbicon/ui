@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync, untrack } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { Filter } from '$lib/types/tableTypes';
+import type { Filter } from '#lib/types/tableTypes.js';
 import { createTableView, resolveViewProp, type TableView } from './view.svelte';
 
 /**

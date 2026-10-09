@@ -327,7 +327,7 @@ Per-slot class overrides typed as `Partial<Record<XSlots, string>>`, where the k
 
 ```typescript
 // x.variants.ts
-import { tv, type SlotNames, type VariantProps } from '$lib/utils/variants';
+import { tv, type SlotNames, type VariantProps } from '#lib/utils/variants.js';
 
 export const xVariants = tv({ slots: { wrapper: [...], base: [...], icon: [...], message: [...] }, ... });
 
@@ -338,7 +338,7 @@ export type XSlots = SlotNames<typeof xVariants>; // 'wrapper' | 'base' | 'icon'
 slotClasses?: Partial<Record<XSlots, string>>;
 ```
 
-`SlotNames<T>` (in `$lib/utils/variants`) is the companion to `VariantProps<T>` — it reads `keyof ReturnType<T>` off the slotted `tv()` function, so the one source of truth (the `tv({ slots })` config) drives both the runtime classes and the prop type. Consumers get autocomplete on the real slot names and a type error on typos.
+`SlotNames<T>` (in `#lib/utils/variants`) is the companion to `VariantProps<T>` — it reads `keyof ReturnType<T>` off the slotted `tv()` function, so the one source of truth (the `tv({ slots })` config) drives both the runtime classes and the prop type. Consumers get autocomplete on the real slot names and a type error on typos.
 
 No component lacks a `tv()` config to derive from, and a hand-written slot name survives in three shapes, each for a reason `SlotNames` cannot cover.
 
@@ -458,7 +458,7 @@ The tier model — the three tokens, the two axes that share the name, which com
 - **Per-instance beats context beats the family default**, always resolved the same way:
 
   ```ts
-  import { getTierContext } from '$lib/utils';
+  import { getTierContext } from '#lib/utils/index.js';
 
   const tierCtx = getTierContext();
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // family default

@@ -9,8 +9,8 @@
   const CheckCircleIcon = resolveIcon('checkCircle', CheckCircleIconDefault);
   const CopyIcon = resolveIcon('copy', CopyIconDefault);
   import { useTableI18n } from '../i18n';
-  import { type CopyButtonVariantProps, copyButtonVariants } from '$lib/variants';
-  import { getNestedValue } from '$lib/utils';
+  import { type CopyButtonVariantProps, copyButtonVariants } from '#lib/variants/index.js';
+  import { getNestedValue } from '#lib/utils/index.js';
 
   const tt = useTableI18n();
 

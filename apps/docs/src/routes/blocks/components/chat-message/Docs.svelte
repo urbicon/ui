@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { r } from '$lib/route';
+  import { r } from '#lib/route.js';
   import AgenticMessage from './examples/AgenticMessage.svelte';
   import CustomToolRenderer from './examples/CustomToolRenderer.svelte';
   import ErrorState from './examples/ErrorState.svelte';

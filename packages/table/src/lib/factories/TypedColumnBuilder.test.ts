@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveColumnId } from '$lib/utils';
+import { resolveColumnId } from '#lib/utils/index.js';
 import { TypedColumnBuilder } from './TypedColumnBuilder';
 
 type TestItem = {

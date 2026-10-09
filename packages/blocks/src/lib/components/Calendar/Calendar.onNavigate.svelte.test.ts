@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import en from '$lib/translations/en';
+import en from '#lib/translations/en.js';
 import Calendar from './Calendar.svelte';
 import type { DateRange } from './calendar.types';
 
@@ -23,7 +23,7 @@ import type { DateRange } from './calendar.types';
  * required for that: unlike the rest of this component's suites, none of it is
  * observable in SSR output.
  *
- * Selectors come from `$lib/translations/en` rather than hardcoded strings:
+ * Selectors come from `#lib/translations/en.js` rather than hardcoded strings:
  * with no `<I18nProvider>` mounted, blocks i18n resolves to the base locale
  * (`en`) deterministically, independent of the runtime `LANG` — but importing
  * the bundle keeps the test honest if a label is ever reworded.

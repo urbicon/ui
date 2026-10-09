@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 import type { BadgePlacement, BadgeSlots, BadgeVariants } from './badge.variants';
 
 /**

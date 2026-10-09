@@ -1,5 +1,4 @@
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { RefreshTokenRecord } from '../adapters/types.js';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
@@ -80,7 +79,7 @@ function listSessionsHandler<R extends string>(deps: AuthDeps<R>): { GET: Reques
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
-        return json({ sessions: [], available: false });
+        return Response.json({ sessions: [], available: false });
       }
 
       const current = await currentFamily(event, deps);
@@ -105,7 +104,7 @@ function listSessionsHandler<R extends string>(deps: AuthDeps<R>): { GET: Reques
           current: r.family === current
         }));
 
-      return json({ sessions, available: true });
+      return Response.json({ sessions, available: true });
     }
   };
 }
@@ -131,7 +130,7 @@ function revokeSessionHandler<R extends string>(deps: AuthDeps<R>): { POST: Requ
 
       const revoked = await repo.revokeFamilyForUser(user.id, rawId);
       if (!revoked) return authError('session_not_found');
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   };
 }
@@ -156,7 +155,7 @@ function revokeOtherSessionsHandler<R extends string>(deps: AuthDeps<R>): { POST
       const keep = await currentFamily(event, deps);
       if (keep) await repo.revokeOtherFamiliesForUser(user.id, keep);
       else await repo.revokeAllForUser(user.id);
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   };
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useFormField } from '$lib/utils';
+  import { useFormField } from '#lib/utils/index.js';
   import { formFieldVariants } from './form-field.variants';
   import type { FormFieldProps } from './index';
 

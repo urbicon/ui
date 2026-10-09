@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, type Snippet, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { sidebarVariants } from '$lib/primitives/Sidebar';
+import { sidebarVariants } from '#lib/primitives/Sidebar/index.js';
 import SidebarLayout from './SidebarLayout.svelte';
 
 /**

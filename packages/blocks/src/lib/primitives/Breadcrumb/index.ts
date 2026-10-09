@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { IconComponent } from '$lib/icons';
+import type { IconComponent } from '#lib/icons/index.js';
 import type { BreadcrumbSlots, BreadcrumbVariants } from './breadcrumb.variants';
 
 /** Single breadcrumb item definition */

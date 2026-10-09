@@ -1,6 +1,6 @@
 <script lang="ts">
-  import BlocksProvider from '$lib/provider/BlocksProvider.svelte';
-  import type { ComponentDefaults, ComponentPreset } from '$lib/provider/blocks-context';
+  import BlocksProvider from '#lib/provider/BlocksProvider.svelte';
+  import type { ComponentDefaults, ComponentPreset } from '#lib/provider/blocks-context.js';
   import Link from '../Link.svelte';
   import type { LinkProps } from '../index';
 

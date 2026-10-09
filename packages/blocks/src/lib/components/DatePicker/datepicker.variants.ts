@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * Both pickers are a positioning context around an `Input`, plus the two icon

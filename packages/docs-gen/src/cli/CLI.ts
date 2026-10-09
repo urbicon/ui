@@ -430,11 +430,11 @@ export class DocsGeneratorCLI {
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
 
   const relatedLinks = buildRelatedLinks(componentData);
 
@@ -488,7 +488,7 @@ export class DocsGeneratorCLI {
 
   <div class="mt-6 text-right">
     <a
-      href={asset('/blocks/${group}/${slug}/llm.txt')}
+      href={asset('blocks/${group}/${slug}/llm.txt')}
       target="_blank"
       rel="noopener"
       class="text-text-tertiary hover:text-primary-text text-xs transition-colors"
@@ -511,7 +511,7 @@ export class DocsGeneratorCLI {
     // docs-gen runs. Hand-written control literals are how twelve dropdowns fell
     // behind their components before this was introduced.
     const playgroundSvelte = `<script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { ${name} } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

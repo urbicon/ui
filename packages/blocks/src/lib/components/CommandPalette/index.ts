@@ -1,5 +1,5 @@
 import type { Snippet } from 'svelte';
-import type { IconComponent } from '$lib/icons';
+import type { IconComponent } from '#lib/icons/index.js';
 import type { CommandPaletteSlots, CommandPaletteVariants } from './commandPalette.variants';
 
 /**

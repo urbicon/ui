@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Column } from '$lib/types/tableTypes';
+import type { Column } from '#lib/types/tableTypes.js';
 import {
   buildColumnVisibilityEntries,
   buildFilterEntries,

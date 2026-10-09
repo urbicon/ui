@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
+import type { MintProp } from '#lib/mint/index.js';
 import type { SliderSlots, SliderVariants } from './slider.variants';
 
 /** A labelled tick mark on the slider track. */

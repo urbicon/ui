@@ -21,7 +21,7 @@
  */
 
 import type { Component } from 'svelte';
-import type { IconComponent } from '$lib/icons';
+import type { IconComponent } from '#lib/icons/index.js';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import {
   A2UI_CATALOG_ID,

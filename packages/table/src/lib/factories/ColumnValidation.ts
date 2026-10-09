@@ -1,6 +1,6 @@
-import type { Column } from '$lib/types/tableTypes';
-import { resolveColumnId } from '$lib/utils';
-import { isColumnSearchable, isColumnSortable } from '$lib/utils/column-capabilities';
+import type { Column } from '#lib/types/tableTypes.js';
+import { isColumnSearchable, isColumnSortable } from '#lib/utils/column-capabilities.js';
+import { resolveColumnId } from '#lib/utils/index.js';
 
 /**
  * Validation utilities for column configurations.

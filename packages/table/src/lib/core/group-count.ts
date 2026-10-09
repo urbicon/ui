@@ -1,5 +1,5 @@
-import type { useTableI18n } from '$lib/i18n';
-import type { ProcessingMode } from '$lib/view/source';
+import type { useTableI18n } from '#lib/i18n/index.js';
+import type { ProcessingMode } from '#lib/view/source.js';
 
 /**
  * The `tt` a component gets from `useTableI18n()`. Derived rather than

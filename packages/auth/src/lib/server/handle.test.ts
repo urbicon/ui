@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import type { Handle, RequestEvent } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CSRF_COOKIE_NAME } from '../csrf-constants.js';
 import { sanitizeRedirect } from '../redirect.js';

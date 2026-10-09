@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -10,7 +10,7 @@
     TypesReference
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { componentData } from './api';
   import BasicDemo from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';
@@ -99,7 +99,7 @@
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/auth/components/reset-password-page/llm.txt')}
+      href={asset('auth/components/reset-password-page/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

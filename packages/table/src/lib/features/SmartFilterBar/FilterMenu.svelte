@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { useTableI18n } from '$lib';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
-  import { filterMenuVariants, smartFilterBarTriggerVariants } from '$lib/variants';
+  import { useTableI18n } from '#lib';
+  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { filterMenuVariants, smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import {
     Badge,
     Button,

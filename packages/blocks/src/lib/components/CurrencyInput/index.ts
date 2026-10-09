@@ -1,4 +1,4 @@
-import type { InputProps } from '$lib/primitives/Input';
+import type { InputProps } from '#lib/primitives/Input/index.js';
 
 /**
  * Where the currency symbol appears relative to the input field.

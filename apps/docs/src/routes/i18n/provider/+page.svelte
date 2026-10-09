@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
@@ -158,7 +158,7 @@ configureI18n({
 <` +
     `script>
   import { I18nProvider } from '@urbicon-ui/i18n';
-  import { getLocale } from '$lib/paraglide/runtime'; // app's reactive locale
+  import { getLocale } from '#lib/paraglide/runtime.js'; // app's reactive locale
   let { children } = $props();
 </` +
     `script>

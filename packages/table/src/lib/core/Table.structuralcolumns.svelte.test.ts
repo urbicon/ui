@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { widthClassToRem } from '$lib/variants/table.system';
-import { createTableView } from '$lib/view/view.svelte';
+import { widthClassToRem } from '#lib/variants/table.system.js';
+import { createTableView } from '#lib/view/view.svelte.js';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import {
   type PresentStructuralColumn,

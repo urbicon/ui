@@ -56,18 +56,16 @@
  * What the consumer has and the fence cannot bring along is declared per
  * document, derived from the fences' own imports so that nothing is stubbed
  * that the real module would not provide:
- *   - `$env/static/private` exports exactly the SCREAMING_SNAKE names the
- *     fences import, minus `PUBLIC_*` (SvelteKit keeps those out of the private
- *     module). `import { env } from '$env/static/private'` therefore stays the
- *     `TS2305` it is in a real app — a `declare const env` would have hidden it.
- *   - `$env/dynamic/private` / `$env/dynamic/public` in the shape
- *     `svelte-kit sync` writes (`PUBLIC_*` → `undefined`, the rest
- *     `string | undefined`) — that shape is what makes `secret: env.X` fail
- *     against a `string` parameter, as it does in the app.
+ *   - `$app/env/private` / `$app/env/public` export exactly the SCREAMING_SNAKE
+ *     names the fences import, as `string` — what Kit generates for a variable
+ *     `src/env.ts` declares without a schema. `import { env } from
+ *     '$app/env/private'` therefore stays the `TS2305` it is in a real app — a
+ *     `declare const env` would have hidden it. The deprecated `$env/*` modules
+ *     are not declared, so a fence still using one fails as `TS2307`.
  *   - `./$types` re-exports the aliases Kit generates per route (`PageServerLoad`
  *     → `ServerLoad`, `RequestHandler`, …) from `@sveltejs/kit`, minus the
  *     route-specific params; a name Kit does not generate stays a `TS2305`.
- *   - `$lib`, `$lib/*` and other relative consumer modules (`./prisma`) are
+ *   - `#lib`, `#lib/*` and other relative consumer modules (`./prisma`) are
  *     `any`: the app's own files, out of scope. Relative ones get a `.d.ts`
  *     next to the fence exporting the imported names.
  *
@@ -81,7 +79,7 @@
  * `+page.server.ts` may export `load`, `actions`, `prerender`, … or `_`-prefixed
  * names; anything else is a build error). A fence headed `+page.server.ts` that
  * also exports its defaults object compiles here and fails in the app, so such
- * data belongs in a `$lib` module the fence imports.
+ * data belongs in a `#lib` module the fence imports.
  *
  * Run: `bun run docs:fences:lint` (needs `build:packages`). Options:
  *   --docs <file>…             check these Markdown files instead of the corpus
@@ -311,16 +309,15 @@ function imports(code: string): Map<string, ImportSpec> {
   return out;
 }
 
-const STATIC_PRIVATE = /^(?!PUBLIC_)[A-Z][A-Z0-9_]*$/;
-const STATIC_PUBLIC = /^PUBLIC_[A-Z0-9_]*$/;
+const ENV_NAME = /^[A-Z][A-Z0-9_]*$/;
 
 /** The SvelteKit ambient a real app would have, cut to what these fences import. */
 function ambient(specs: Map<string, ImportSpec>): string {
   const out: string[] = [];
-  const envModule = (mod: string, accept: RegExp) => {
+  const envModule = (mod: string) => {
     const spec = specs.get(mod);
     if (!spec) return;
-    const names = [...spec.named, ...spec.types].filter((n) => accept.test(n)).sort();
+    const names = [...spec.named, ...spec.types].filter((n) => ENV_NAME.test(n)).sort();
     out.push(
       `declare module '${mod}' {`,
       ...names.map((n) => `\texport const ${n}: string;`),
@@ -328,28 +325,15 @@ function ambient(specs: Map<string, ImportSpec>): string {
       ''
     );
   };
-  envModule('$env/static/private', STATIC_PRIVATE);
-  envModule('$env/static/public', STATIC_PUBLIC);
+  envModule('$app/env/private');
+  envModule('$app/env/public');
   out.push(KIT_AMBIENT);
   return out.join('\n');
 }
 
-/** The fixed part: the shapes `svelte-kit sync` writes regardless of the app's env. */
-const KIT_AMBIENT = `declare module '$env/dynamic/private' {
-\texport const env: {
-\t\t[key: \`PUBLIC_\${string}\`]: undefined;
-\t\t[key: \`\${string}\`]: string | undefined;
-\t};
-}
-
-declare module '$env/dynamic/public' {
-\texport const env: {
-\t\t[key: \`PUBLIC_\${string}\`]: string | undefined;
-\t};
-}
-
-declare module '$lib';
-declare module '$lib/*';
+/** The fixed part: the app's own `#lib` modules, which no fence brings along. */
+const KIT_AMBIENT = `declare module '#lib';
+declare module '#lib/*';
 `;
 
 /**

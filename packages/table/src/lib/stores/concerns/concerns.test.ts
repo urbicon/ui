@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
-import type { TableView, TableViewSnapshot } from '$lib/view/view.svelte';
+import type { Column, Filter, TableItem } from '#lib/types/tableTypes.js';
+import type { TableView, TableViewSnapshot } from '#lib/view/view.svelte.js';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 import { useColumnOrder } from './useColumnOrder.svelte.js';

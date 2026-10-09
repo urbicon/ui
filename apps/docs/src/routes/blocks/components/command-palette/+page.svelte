@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -10,7 +10,7 @@
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);

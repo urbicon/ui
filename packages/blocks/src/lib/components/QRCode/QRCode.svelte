@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { QRCodeProps } from './index';
   import { qrCodeVariants, type QRCodeVariants } from './qr-code.variants';
   import { encodeQr } from './qr-encode';

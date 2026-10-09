@@ -1,7 +1,7 @@
 <!--
   Scroller-Playground — herausgelöst aus `+page.svelte`, damit ihn zwei Seiten
   zeigen können: die Doku-Seite und der Landing-Hero. Siehe
-  `$lib/playground-host.ts`.
+  `#lib/playground-host.ts`.
 
   Die Regler stehen hier von Hand: Der Scroller nimmt seine Achsen aus
   Union-Typen, die `deriveControls` nicht auflösen kann (`ScrollerAlign` &
@@ -13,7 +13,7 @@
   keine zweite, driftende Kopie entsteht.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Scroller } from '@urbicon-ui/blocks';
   import { extractPlaygroundDocs, PlaygroundConfigurator } from '@urbicon-ui/docs';
   import { componentData } from './api';

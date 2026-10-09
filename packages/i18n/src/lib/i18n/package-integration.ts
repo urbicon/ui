@@ -1,4 +1,4 @@
-import { collectDeepKeys } from '$lib/utils/deep-keys';
+import { collectDeepKeys } from '#lib/utils/deep-keys.js';
 import { BASE_LOCALE, useI18nState } from './context.svelte';
 import { getRegistry } from './registry.svelte';
 import type {

@@ -1,3 +1,5 @@
+import '../server-only.js';
+
 export interface EmailTransport {
   send(params: SendEmailParams): Promise<void>;
 }

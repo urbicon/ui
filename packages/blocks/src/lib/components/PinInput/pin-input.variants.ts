@@ -14,8 +14,8 @@ import {
   fieldFocusRing,
   fieldGhostSurface,
   fieldIntentFrames
-} from '$lib/internal/field-chrome';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+} from '#lib/internal/field-chrome.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 // Each cell is directly focusable, so the ring lives on the cell itself.
 const focus = 'focus-visible';

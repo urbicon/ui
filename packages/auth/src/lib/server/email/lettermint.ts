@@ -1,3 +1,4 @@
+import '../server-only.js';
 import type { EmailTransport, SendEmailParams } from './types.js';
 
 /** Default request budget; a stalled connection shouldn't hang the caller forever. */

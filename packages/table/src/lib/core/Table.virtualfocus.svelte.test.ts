@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ROW_HEIGHTS } from '$lib/utils/virtualizer';
-import { createTableView } from '$lib/view/view.svelte';
+import { ROW_HEIGHTS } from '#lib/utils/virtualizer.js';
+import { createTableView } from '#lib/view/view.svelte.js';
 import type { InternalTableContext } from '../stores/TableStore.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 import type { TableContext } from './table/index';

@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import '../server-only.js';
 import { en } from '../../i18n/en.js';
 import { AUTH_ERROR_MESSAGE_KEYS, type UnkeyedErrorCode } from '../../i18n/error-keys.js';
 
@@ -256,7 +256,7 @@ interface AuthErrorOptions {
 
 /**
  * Build a handler error response carrying BOTH the human `error` prose and the
- * machine `code`. Drop-in for the old `json({ error }, { status })`:
+ * machine `code`. Drop-in for a bare `Response.json({ error }, { status })`:
  *
  * ```ts
  * return authError('invitation_required');
@@ -272,14 +272,14 @@ interface AuthErrorOptions {
  * site.** Every code here names an account, a credential state or a rate-limit
  * verdict, and none of it may be replayed to a second caller; `session_not_found`
  * answers 404, which is heuristically storable on its own (RFC 9111 §4.2.2),
- * and `json()` emits nothing but `content-type` and `content-length`. Set once
+ * and `Response.json()` emits nothing but `content-type`. Set once
  * here, no call site can forget it and none has to spell it. The header is put
- * on the response `json()` already built rather than merged into a fresh
+ * on the response `Response.json()` already built rather than merged into a fresh
  * `Headers`, so a caller's own header cannot be dropped in the process.
  */
 export function authError(code: AuthErrorCode, opts: AuthErrorOptions = {}): Response {
   const status = AUTH_ERROR_STATUS[code];
-  const response = json(
+  const response = Response.json(
     { error: opts.message ?? defaultMessage(code), code, ...opts.extra },
     opts.headers ? { status, headers: opts.headers } : { status }
   );

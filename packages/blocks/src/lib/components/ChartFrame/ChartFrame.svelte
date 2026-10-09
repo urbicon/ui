@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import type { ChartFrameProps } from './index';
-  import type { ChartMargin } from '$lib/internal/charts/types';
+  import type { ChartMargin } from '#lib/internal/charts/types.js';
   import {
     type ChartVariants,
     chartSlotResolver,
     chartVariants
-  } from '$lib/internal/charts/variants';
+  } from '#lib/internal/charts/variants.js';
 
   let {
     height = 240,

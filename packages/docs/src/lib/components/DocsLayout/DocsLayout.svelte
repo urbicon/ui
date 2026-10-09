@@ -2,10 +2,10 @@
   import {
     CodeVisibilityStore,
     setCodeVisibilityContext
-  } from '$lib/stores/code-visibility.svelte';
-  import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
+  } from '#lib/stores/code-visibility.svelte.js';
+  import { ScrollSpy } from '#lib/stores/scroll-spy.svelte.js';
   import { Breadcrumb, ListIcon, Popover, resolveClassChain } from '@urbicon-ui/blocks';
-  import { useDocsI18n } from '$lib/i18n';
+  import { useDocsI18n } from '#lib/i18n/index.js';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { createSectionNumbering } from '../Section/section-numbering.svelte.js';
   import { docsLayoutVariants } from './docslayout.variants';

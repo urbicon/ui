@@ -10,12 +10,12 @@
  * `auditTranslations` here.
  */
 
-export type { I18nMissingKey, Locale } from '$lib/i18n/types';
-export { isLocaleSupported, SUPPORTED_LOCALES } from '$lib/i18n/types';
+export type { I18nMissingKey, Locale } from '#lib/i18n/types.js';
+export { isLocaleSupported, SUPPORTED_LOCALES } from '#lib/i18n/types.js';
 // Re-exported so the CLI can derive defined keys from a bundle and validate
 // locale tags without importing the main (Svelte-bearing) entry — keeps the node
 // CLI free of Svelte runtime.
-export { collectDeepKeys } from '$lib/utils/deep-keys';
+export { collectDeepKeys } from '#lib/utils/deep-keys.js';
 export { makeGlobMatcher } from './glob';
 export type { MissingKeyCollector, MissingKeyRecord } from './missing-key-collector';
 export { createMissingKeyCollector } from './missing-key-collector';

@@ -6,8 +6,8 @@ import {
   fieldBareErrorOutline,
   fieldBareSurface,
   fieldErrorFrame
-} from '$lib/internal/field-chrome';
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+} from '#lib/internal/field-chrome.js';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 export const comboboxVariants = tv({
   slots: {

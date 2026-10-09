@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getSession } from '$lib/server/registry';
+import { getSession } from '#lib/server/registry.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {

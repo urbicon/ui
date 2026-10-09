@@ -1,9 +1,9 @@
 <script lang="ts" generics="Item">
   import { Badge } from '@urbicon-ui/blocks';
   import type { BadgeProps } from '@urbicon-ui/blocks';
-  import { useTableI18n } from '$lib/i18n';
-  import { customCellVariants, type CustomCellVariantProps } from '$lib/variants';
-  import { getNestedValue } from '$lib/utils';
+  import { useTableI18n } from '#lib/i18n/index.js';
+  import { customCellVariants, type CustomCellVariantProps } from '#lib/variants/index.js';
+  import { getNestedValue } from '#lib/utils/index.js';
 
   const tt = useTableI18n();
 

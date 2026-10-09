@@ -5,7 +5,7 @@
  * pair for this layer: they round-trip a local calendar day with no UTC drift
  * (`new Date('2026-06-16')` would parse as UTC midnight — these never do that).
  * For tolerant, form-value coercion of arbitrary `DateInput` (strings, epoch
- * numbers, null) use `coerceToDate` / `toDateInputValue` from `$lib/utils/date`
+ * numbers, null) use `coerceToDate` / `toDateInputValue` from `#lib/utils/date.js`
  * instead.
  */
 
@@ -87,7 +87,7 @@ export function toIsoDateTime(date: Date): string {
  * Validates both the format and that the day actually exists (rejects
  * `2026-02-30`), throwing a `RangeError` otherwise — a malformed day key is a
  * programming error, not a value to silently coerce. For tolerant parsing that
- * returns `null`, use `fromDateInputValue` from `$lib/utils/date`.
+ * returns `null`, use `fromDateInputValue` from `#lib/utils/date.js`.
  */
 export function isoToDate(iso: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);

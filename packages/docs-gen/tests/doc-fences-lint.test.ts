@@ -45,7 +45,7 @@ describe('doc-fences-lint', () => {
     expect(stderr).toContain(`red.md:${missingMethods} (fence #1, TS2740)`);
     expect(stderr).toMatch(/missing the following properties from type 'RefreshTokenRepository'/);
 
-    const envImport = lineOf('red.md', "import { env } from '$env/static/private'");
+    const envImport = lineOf('red.md', "import { env } from '$app/env/private'");
     expect(stderr).toContain(`red.md:${envImport} (fence #2, TS2305)`);
 
     const wrongKey = lineOf('red.md', 'durationMs');

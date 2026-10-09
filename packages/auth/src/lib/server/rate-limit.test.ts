@@ -1,5 +1,6 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetRateLimiters } from '../secret-registry.js';
 import type { AuthConfig } from '../types.js';
 import { createLoginHandler } from './handlers/login.js';
 import {
@@ -12,7 +13,6 @@ import {
   type RateLimitStore,
   sharedLimiter
 } from './rate-limit.js';
-import { resetRateLimiters } from './secret-registry.js';
 import { createMockAuthDeps, mockPostEvent } from './test-utils.js';
 
 describe('makeRateLimiter', () => {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { TablePage } from '$lib/types/tableTypes';
+import type { TablePage } from '#lib/types/tableTypes.js';
 import { resolveSource, type TableSource } from './source';
 
 /**

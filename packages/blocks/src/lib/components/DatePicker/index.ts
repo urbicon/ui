@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
-import type { MonthIndex, WeekdayIndex } from '$lib/utils/date';
+import type { MintProp } from '#lib/mint/index.js';
+import type { MonthIndex, WeekdayIndex } from '#lib/utils/date.js';
 import type { DateRange } from '../Calendar/calendar.types';
 import type { DateFormatOptions } from './datepicker.engine';
 import type { DatePickerSlots } from './datepicker.variants';

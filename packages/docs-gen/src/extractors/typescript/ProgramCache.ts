@@ -59,7 +59,7 @@ export function parseTsConfig(configPath: string): ts.ParsedCommandLine {
     throw new Error(
       `docs-gen: tsconfig not found at ${resolved}. ` +
         `The extraction config sets typescript.configPath, so cross-file type resolution is expected — ` +
-        `if this is a SvelteKit package, its .svelte-kit/tsconfig.json may be missing (run the package build or \`svelte-kit sync\`).`
+        `if this is a SvelteKit package, the node_modules/$app/tsconfig.json it extends may be missing (run the package build or \`svelte-kit sync\`).`
     );
   }
 
@@ -81,7 +81,10 @@ export function parseTsConfig(configPath: string): ts.ParsedCommandLine {
     const details = parsed.errors
       .map((e) => ts.flattenDiagnosticMessageText(e.messageText, ' '))
       .join('; ');
-    throw new Error(`docs-gen: tsconfig ${resolved} has errors: ${details}`);
+    const hint = details.includes('$app/tsconfig')
+      ? ' — run `svelte-kit sync` in the package, which writes node_modules/$app/tsconfig.json'
+      : '';
+    throw new Error(`docs-gen: tsconfig ${resolved} has errors: ${details}${hint}`);
   }
 
   return parsed;

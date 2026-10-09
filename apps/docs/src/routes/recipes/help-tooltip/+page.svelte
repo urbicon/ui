@@ -18,7 +18,7 @@
 
   const recipeCode = `<\script lang="ts">
   import { InfoCircleIcon, Input, Slider, Tooltip } from '@urbicon-ui/blocks';
-  // Both live beside this page; move them to $lib once more pages need them.
+  // Both live beside this page; move them to #lib once more pages need them.
   import HelpTooltip from './HelpTooltip.svelte';
   import { glossary } from './glossary';
 

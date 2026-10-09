@@ -76,6 +76,7 @@
  * - **Pre-normalized emails**: emails arrive trimmed and lowercased; match and
  *   store them verbatim.
  */
+import '../server-only.js';
 import type { AuthUser } from '../../types.js';
 
 export interface FullAuthUser<R extends string = string> extends AuthUser<R> {

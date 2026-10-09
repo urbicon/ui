@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { asset } from '$app/paths';
   import { Card, buttonVariants } from '@urbicon-ui/blocks';
   import { CodeExample } from '@urbicon-ui/docs';
@@ -153,13 +153,13 @@ urbicon record-decision --title …  # write a decision the next session will se
 
     <div class="mt-6 flex flex-col gap-3 sm:flex-row">
       <a
-        href={asset('/llms-full.txt')}
+        href={asset('llms-full.txt')}
         class={buttonVariants({ variant: 'outlined', intent: 'primary' }).base()}
       >
         View llms-full.txt
       </a>
       <a
-        href={asset('/llms.txt')}
+        href={asset('llms.txt')}
         class={buttonVariants({ variant: 'ghost', intent: 'neutral' }).base()}
       >
         View llms.txt

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Alert, Badge, Button, Card, Checkbox, Separator, Toggle } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { parseTheme, previewVars } from '$lib/theme-preview';
+  import { parseTheme, previewVars } from '#lib/theme-preview.js';
   // The shipped themes themselves, not retyped excerpts — hand-copied palette
   // data drifted twice (a primary-only forest excerpt; Sunset/Rose chroma and
   // Neutral's 600 disagreeing with the package). Swatch dot, palette strip and
@@ -65,7 +65,7 @@
   // The theme file's own declarations — all of them, not a chosen subset —
   // plus every library role that reads one of them, re-declared for the preview
   // scope in both modes via light-dark(). Shared with the Theme Builder:
-  // $lib/theme-preview.ts. "All of them" matters: forest.css re-tunes success
+  // #lib/theme-preview.ts. "All of them" matters: forest.css re-tunes success
   // and warning away from its green primary, and a preview that kept only the
   // accent ramps would exhibit the collision the file exists to avoid.
   const previewStyle = $derived(

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
-  import { provideI18n } from '$lib/i18n/context.svelte';
-  import type { Locale } from '$lib/i18n/types';
+  import { provideI18n } from '#lib/i18n/context.svelte.js';
+  import type { Locale } from '#lib/i18n/types.js';
 
   interface I18nProviderProps {
     /**

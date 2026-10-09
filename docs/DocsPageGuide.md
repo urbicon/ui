@@ -182,7 +182,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
 
 ```svelte
 <script lang="ts">
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
@@ -193,7 +193,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);
@@ -264,7 +264,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/blocks/primitives/component-name/llm.txt')}
+      href={asset('blocks/primitives/component-name/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>
@@ -284,7 +284,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   use `resolve()` for base-path compatibility, and the trailing crumb (the page itself) is added by
   the layout. Passing `breadcrumbs` also switches the layout into its collapsing-hero pattern, so a
   page that hand-rolls a breadcrumb row loses the sticky bar.
-- **`<head>`**: `<SeoMeta title description />` from `$lib/SeoMeta.svelte`, which writes title,
+- **`<head>`**: `<SeoMeta title description />` from `#lib/SeoMeta.svelte`, which writes title,
   description, robots, viewport, canonical and the OG/Twitter pair. A raw `<svelte:head>` is for
   pages outside the docs chrome (`+error.svelte`, test fixtures) — not for component pages.
 - **ApiReference**: directly inside the Section, **no** wrapper div. No `subtitle`, no `showHeader`.
@@ -294,7 +294,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   `componentData` when available.
 - **`stability` / `sourceHref` / `related`**: read from `componentData` and `buildRelatedLinks`,
   not hand-written. They render the stability chip, the "view source" link and the related-component
-  chips. `buildRelatedLinks` silently drops a name that is not in `$lib/component-links` — if a
+  chips. `buildRelatedLinks` silently drops a name that is not in `#lib/component-links` — if a
   chip does not appear, the component is unregistered, and `bun run registry:lint` says so.
 - **Description**: the hero's length and tone rule is [EDITORIAL.md](EDITORIAL.md) § Page shape
   (item 1) — that is the one place it is stated. The technical wiring here: one string, identical in
@@ -480,7 +480,7 @@ versions of one example on purpose — the preview runs against a mocked demo AP
 (`BasicDemo.svelte`), the printed source is the production form (`Basic.svelte`), and
 `codeGenerator` prints it verbatim instead of assembling it from knob values that do not exist. The
 docs page shows the same pair through its own `CodeExample`; both read the same two files, so
-neither can drift. Signature: `$lib/playground-host.ts`.
+neither can drift. Signature: `#lib/playground-host.ts`.
 
 ## Styling Rules
 
@@ -514,6 +514,6 @@ Semantic tokens automatically adapt between light and dark mode.
 - [ ] `Docs.svelte`: Only semantic tokens, no hardcoded colors
 - [ ] `Docs.svelte`: No `dark:` prefixes
 - [ ] Markers are passed bare (`marker`) and number themselves continuously across both files in render order; reach for a string literal only when a page must pin a number by hand
-- [ ] The component is registered in `$lib/component-links` — `bun run registry:lint` is green
+- [ ] The component is registered in `#lib/component-links` — `bun run registry:lint` is green
 - [ ] `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path>` is clean
 - [ ] Page visually verified in dark mode

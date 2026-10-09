@@ -7,11 +7,11 @@
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import SeoMeta from '$lib/SeoMeta.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
   import { componentData } from './api';
-  import { buildRelatedLinks } from '$lib/component-links';
+  import { buildRelatedLinks } from '#lib/component-links.js';
   import { JourneyTimeline, type JourneyNode } from '@urbicon-ui/blocks';
   const relatedLinks = buildRelatedLinks(componentData);
 
@@ -101,7 +101,7 @@
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/blocks/primitives/journey-timeline/llm.txt')}
+      href={asset('blocks/primitives/journey-timeline/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

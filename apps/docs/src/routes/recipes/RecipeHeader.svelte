@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ArrowLeftIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-  import { componentLinks } from '$lib/component-links';
-  import { r } from '$lib/route';
+  import { componentLinks } from '#lib/component-links.js';
+  import { r } from '#lib/route.js';
 
   /**
    * The header every recipe page opens with. It existed 22 times as copied

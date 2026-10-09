@@ -8,8 +8,8 @@
 // Worktree erst `bun run docs:gen:all` laufen lassen.
 
 import { ICON_METADATA } from '@urbicon-ui/blocks';
-import type { HeroRow, HeroStatus } from '$lib/landing/hero';
-import { BLOCKS_COMPONENT_COUNT } from '$lib/navigation';
+import type { HeroRow, HeroStatus } from '#lib/landing/hero.js';
+import { BLOCKS_COMPONENT_COUNT } from '#lib/navigation.js';
 import baseline from '../../../../../bundle-size.baseline.json';
 import authCatalog from '../../../static/auth/_catalog.json';
 import blocksCatalog from '../../../static/blocks/_catalog.json';

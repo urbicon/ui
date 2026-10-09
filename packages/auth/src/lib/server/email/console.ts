@@ -1,3 +1,4 @@
+import '../server-only.js';
 import type { EmailTransport, SendEmailParams } from './types.js';
 
 export function createConsoleEmailTransport(): EmailTransport {

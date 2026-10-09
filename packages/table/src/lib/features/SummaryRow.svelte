@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
-  import { resolveColumnId } from '$lib/utils';
-  import { SUMMARY_TYPE_GLYPH } from '$lib/utils/summary-types';
-  import { summaryRowVariants } from '$lib/variants';
-  import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
-  import { structuralColumns } from '$lib/core/structural-columns';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { resolveColumnId } from '#lib/utils/index.js';
+  import { SUMMARY_TYPE_GLYPH } from '#lib/utils/summary-types.js';
+  import { summaryRowVariants } from '#lib/variants/index.js';
+  import { getTableStyleConfig, resolveSlotClass } from '#lib/core/table-style-context.js';
+  import { structuralColumns } from '#lib/core/structural-columns.js';
 
   let {
     expandable = false,

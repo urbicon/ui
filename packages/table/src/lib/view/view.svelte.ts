@@ -10,7 +10,7 @@
  * binding can tell a reader's change from an applied one.
  */
 import { hasContext, untrack } from 'svelte';
-import type { Filter } from '$lib/types/tableTypes';
+import type { Filter } from '#lib/types/tableTypes.js';
 
 /**
  * Who last wrote an axis — the one question a binding needs answered:

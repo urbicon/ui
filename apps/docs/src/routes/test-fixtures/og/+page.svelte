@@ -2,7 +2,7 @@
   Die Vorlage für `static/og.png` — das Social-Bild in seinen festen 1200 × 630.
 
   Es ist die Namens-Kachel der Landing, quergelegt: dieselben Wörter (aus
-  `$lib/landing/wordmark`), dieselbe Signatur (aus `TILE_CHANNEL`, in der
+  `#lib/landing/wordmark.js`), dieselbe Signatur (aus `TILE_CHANNEL`, in der
   Reihenfolge der Kacheln), dieselbe Ink-Fläche. Eigenes Layout, weil das
   Format ein anderes ist — die Kachel steht hochkant in einem Raster, das Bild
   liegt quer und allein.
@@ -16,9 +16,9 @@
       bun run shots
 -->
 <script lang="ts">
-  import { CHANNELS, TILE_CHANNEL } from '$lib/landing/channels';
-  import { BRAND, BRAND_SUFFIX, CLAIM, EYEBROW, PROOF } from '$lib/landing/wordmark';
-  import { SITE_URL } from '$lib/seo';
+  import { CHANNELS, TILE_CHANNEL } from '#lib/landing/channels.js';
+  import { BRAND, BRAND_SUFFIX, CLAIM, EYEBROW, PROOF } from '#lib/landing/wordmark.js';
+  import { SITE_URL } from '#lib/seo.js';
   // Dieselbe Schreibmaschine wie auf der Namens-Kachel — route-lokal geladen,
   // wie dort begründet (+page.svelte).
   import '@fontsource/special-elite/400.css';

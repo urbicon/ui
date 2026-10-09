@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
+  import { useBlocksI18n } from '#lib';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getWeekdayNames, isSameDay, toIso } from '$lib/date';
+  import { getWeekdayNames, isSameDay, toIso } from '#lib/date/index.js';
   import { getContrastTextColor } from './calendar.engine';
-  import { swipeable } from '$lib/utils/swipeable';
+  import { swipeable } from '#lib/utils/swipeable.js';
   import type { CalendarEvent } from './calendar.types';
   import CalendarTimeGrid from './CalendarTimeGrid.svelte';
 

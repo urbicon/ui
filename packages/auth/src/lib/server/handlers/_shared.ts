@@ -201,11 +201,11 @@ type EndpointHandler = (event: RequestEvent) => Response | Promise<Response>;
  * response names a directive itself.
  *
  * **Being uncacheable is a property of what this package answers, not of each
- * `json()` call.** Everything here is scoped to one account — the `me` payload,
+ * `Response.json()` call.** Everything here is scoped to one account — the `me` payload,
  * freshly minted tokens, session/invitation/notification/passkey lists, 2FA
  * material, WebAuthn challenges, and the per-account outcome a bare
- * `{ success: true }` reports. SvelteKit's `json()` emits nothing but
- * `content-type` and `content-length`, so a response that says nothing is
+ * `{ success: true }` reports. `Response.json()` emits nothing but
+ * `content-type`, so a response that says nothing is
  * heuristically storable (RFC 9111 §4.2.2): a shared cache keyed by URL, seeing
  * no `Vary: Cookie`, may hand one account's answer to the next caller. Wrapping
  * the bundle puts the directive where the class lives; a call site cannot omit

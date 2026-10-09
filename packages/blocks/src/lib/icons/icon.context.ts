@@ -1,4 +1,4 @@
-import { createOptionalContext } from '$lib/utils/optional-context';
+import { createOptionalContext } from '#lib/utils/optional-context.js';
 import type { IconComponent, IconName, IconSet } from './icon-types';
 
 // Re-export the icon type surface so existing `from './icon.context'` imports —

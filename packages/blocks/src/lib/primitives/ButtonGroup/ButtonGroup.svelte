@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { buttonGroupVariants, type ButtonGroupVariants } from '$lib/primitives';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { composeHandlers } from '$lib/utils/compose-handlers';
-  import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
-  import { getTierContext, setTierContext } from '$lib/utils/tier-context';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { buttonGroupVariants, type ButtonGroupVariants } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
+  import { getTierContext, setTierContext } from '#lib/utils/tier-context.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ButtonGroupContext, ButtonGroupProps } from './index';
   import { setButtonGroupContext } from './buttonGroup.context';
 

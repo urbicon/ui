@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getInternalTableContext } from '$lib/stores/TableStore.svelte';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import { Checkbox } from '@urbicon-ui/blocks';
   import ToolEmptyNote from './ToolEmptyNote.svelte';
   import { buildColumnVisibilityEntries, toolEmptyKey } from './tool-columns';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateSummary, getNestedValue } from '$lib/utils';
+import { calculateSummary, getNestedValue } from '#lib/utils/index.js';
 
 const sampleItems = [
   { id: 1, name: 'Alice', age: 30, salary: 50000, department: 'Engineering' },

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { splitSearchSegments } from '$lib/utils';
+  import { splitSearchSegments } from '#lib/utils/index.js';
 
   let {
     text = '',

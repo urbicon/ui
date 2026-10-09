@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { highlighterService } from '$lib';
-  import { useDocsI18n } from '$lib/i18n';
+  import { highlighterService } from '#lib';
+  import { useDocsI18n } from '#lib/i18n/index.js';
   import { ChevronRightIcon, resolveClassChain } from '@urbicon-ui/blocks';
   import { codePanelVariants } from './codepanel.variants';
   import { LINE_NUMBER_AUTO_THRESHOLD, type CodePanelProps } from './index.js';

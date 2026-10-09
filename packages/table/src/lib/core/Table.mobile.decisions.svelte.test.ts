@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { TablePage } from '$lib/types/tableTypes';
-import { createTableView, type TableViewSnapshot } from '$lib/view/view.svelte';
+import type { TablePage } from '#lib/types/tableTypes.js';
+import { createTableView, type TableViewSnapshot } from '#lib/view/view.svelte.js';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 
 /**

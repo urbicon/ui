@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { useBlocksI18n } from '$lib';
-  import { Avatar } from '$lib/primitives/Avatar';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { useBlocksI18n } from '#lib';
+  import { Avatar } from '#lib/primitives/Avatar/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { avatarGroupVariants } from './avatar-group.variants';
   import type { AvatarGroupProps } from './index';
 

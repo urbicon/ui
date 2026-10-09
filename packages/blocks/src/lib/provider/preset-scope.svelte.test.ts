@@ -2,17 +2,17 @@
 import type { Component } from 'svelte';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import CurrencyInput from '$lib/components/CurrencyInput/CurrencyInput.svelte';
-import LocaleSwitcher from '$lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
-import NumberInput from '$lib/components/NumberInput/NumberInput.svelte';
-import ConfirmDialog from '$lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
-import Dialog from '$lib/primitives/Dialog/Dialog.svelte';
-import { dialogVariants } from '$lib/primitives/Dialog/dialog.variants';
-import Input from '$lib/primitives/Input/Input.svelte';
-import { inputVariants } from '$lib/primitives/Input/input.variants';
-import Select from '$lib/primitives/Select/Select.svelte';
-import { selectVariants } from '$lib/primitives/Select/select.variants';
-import type { TVConfig } from '$lib/utils/variants';
+import CurrencyInput from '#lib/components/CurrencyInput/CurrencyInput.svelte';
+import LocaleSwitcher from '#lib/components/LocaleSwitcher/LocaleSwitcher.svelte';
+import NumberInput from '#lib/components/NumberInput/NumberInput.svelte';
+import ConfirmDialog from '#lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
+import Dialog from '#lib/primitives/Dialog/Dialog.svelte';
+import { dialogVariants } from '#lib/primitives/Dialog/dialog.variants.js';
+import Input from '#lib/primitives/Input/Input.svelte';
+import { inputVariants } from '#lib/primitives/Input/input.variants.js';
+import Select from '#lib/primitives/Select/Select.svelte';
+import { selectVariants } from '#lib/primitives/Select/select.variants.js';
+import type { TVConfig } from '#lib/utils/variants.js';
 import PresetScopeHost from './__fixtures__/PresetScopeHost.svelte';
 import type { PresetMap } from './blocks-context';
 

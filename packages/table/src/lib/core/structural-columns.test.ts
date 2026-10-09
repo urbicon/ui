@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { widthClassToRem } from '$lib/variants/table.system';
+import { widthClassToRem } from '#lib/variants/table.system.js';
 import {
   leadingStructuralColumns,
   STRUCTURAL_COLUMNS,

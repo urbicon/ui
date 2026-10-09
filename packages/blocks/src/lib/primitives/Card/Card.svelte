@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { mintAttachment } from '$lib';
-  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { resolveClassChain } from '$lib/utils/variants';
+  import { mintAttachment } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { cardVariants, type CardVariants } from './card.variants';
   import type { CardProps } from './index';
 

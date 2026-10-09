@@ -63,7 +63,7 @@ than `esm-env`, because `esm-env` would become a **runtime dependency in the pub
 `dist/`** and break the zero-dependency maxim. The advisory is a plain string match, so it
 fires even with the optional chain.
 
-**Never resolve it** by adding `esm-env` or `$app/environment`.
+**Never resolve it** by adding `esm-env` or `$app/env`.
 
 ## The tv() engine is narrower than `tailwind-variants`
 

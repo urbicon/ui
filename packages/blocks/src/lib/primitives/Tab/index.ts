@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { MintProp } from '$lib/mint';
-import type { InteractiveTier } from '$lib/utils';
+import type { MintProp } from '#lib/mint/index.js';
+import type { InteractiveTier } from '#lib/utils/index.js';
 import type { TabSlots, TabVariants } from './tab.variants';
 
 /**

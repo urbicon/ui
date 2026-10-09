@@ -22,7 +22,7 @@
  * @example
  * ```svelte
  * <script lang="ts">
- *   import { useFormField } from '$lib/utils';
+ *   import { useFormField } from '#lib/utils/index.js';
  *   let { id: idProp, helper, error, required, disabled, label } = $props();
  *   const propsId = $props.id();
  *   const ff = useFormField(() => ({

@@ -1,4 +1,4 @@
-import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
  * Styling for the non-modal `GuidePanel` (D1). Mirrors the `Drawer` look

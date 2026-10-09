@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import type { FullAuthUser } from '../adapters/types.js';
 import { generateSecureToken, hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
@@ -79,7 +78,7 @@ export function createForgotPasswordHandler<R extends string>(
 
       // Always success — both branches reach this same point, so the response
       // carries no account-existence signal.
-      return json({ success: true });
+      return Response.json({ success: true });
     }
   });
 }

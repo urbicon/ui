@@ -2,13 +2,13 @@
   DateRangePicker-Playground — neu. Die Komponente steht im Katalog, hatte aber
   keine eigene Doku-Seite; ihr Beispiel lag im Beispielordner des DatePickers
   und war damit für den Hero nicht auffindbar. Zwei Konsumenten: die Doku-Seite
-  und der Landing-Hero. Siehe `$lib/playground-host.ts`.
+  und der Landing-Hero. Siehe `#lib/playground-host.ts`.
 
   Die Control-Werte kommen aus der generierten API (`deriveControls`); von Hand
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { DateRangePicker } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,

@@ -15,9 +15,7 @@ Currently shipping:
 bun add @urbicon-ui/sveltekit-utils
 ```
 
-Peer dependencies: `svelte` (^5.57.0), `@sveltejs/kit`.
-
-The declared `@sveltejs/kit` range is 2.x. The package runs under SvelteKit 3 `next` as well; the incorrect-peer warning `bun add` prints there is expected and stays until Kit 3 has a release candidate, when the range widens.
+Peer dependencies: `svelte` (^5.57.1), `@sveltejs/kit` (^3.0.0).
 
 ## URL State (`url.svelte`)
 
@@ -104,7 +102,7 @@ Link or binding: an `href` from `withSearchParams` where the reader picks a dest
 
 **Design notes**
 
-- URL updates use `goto()` with `replaceState: true`, `noScroll: true`, `keepFocus: true` — suited for filter/pagination UIs, not full page transitions.
+- URL updates use `goto()` with `replace: true` and `reset: false` (scroll position and focus stay put) — suited for filter/pagination UIs, not full page transitions.
 - `updateUrlSearchParams` and `createUrlParam`'s setter hand `goto` the pathname-qualified address `withSearchParams` returns, never a bare `?query`. `goto` resolves a relative target against `document.baseURI`, which equals the page's own URL only while the document carries no `<base href>` — with one, `?page=2` keeps the base's path, not the page's.
 - `bindViewToUrl` is a third URL writer and does **not** go through `withSearchParams`: it merges the view axes itself and carries the URL hash across, where `withSearchParams` drops it. Do not read one policy off the other.
 - `useUrlParam` returns getters (not Svelte stores) so consumers can read the value lazily inside `$derived`/`$effect`.
@@ -152,8 +150,8 @@ export const userView = { pageSize: 25, sort: { column: 'joined', direction: 'de
 ```typescript
 // src/routes/users/+page.server.ts
 import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
-import { fetchUsers } from '$lib/server/users';
-import { userView } from '$lib/view-defaults';
+import { fetchUsers } from '#lib/server/users.js';
+import { userView } from '#lib/view-defaults.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => ({
@@ -177,22 +175,39 @@ Fire HTTP requests against SvelteKit server endpoints on an interval. Pair with 
 
 **Import from `@urbicon-ui/sveltekit-utils/cron`**, not from the package root. The runner is wired up in server code — `hooks.server.ts`, or a module it imports — and the root barrel carries `url.svelte` along, whose `$app/navigation` and `$app/state` imports are SvelteKit's client runtime. The subpath reaches no `$app/*` module at all.
 
+The secret and the base URL are environment variables, declared once in `src/env.ts`:
+
+<!-- typecheck -->
+
+```typescript
+// src/env.ts
+import { defineEnvVars } from '@sveltejs/kit/env';
+
+export const variables = defineEnvVars({
+  // Dynamic (Kit's default): a node server reads it at start, not at build.
+  // Rejecting the empty string makes a missing secret a startup failure — not
+  // an unauthenticated cron loop.
+  CRON_SECRET: {
+    schema: (value) => {
+      if (!value) throw new Error('CRON_SECRET is not set');
+      return value;
+    }
+  },
+  // A schema that may return `undefined` makes the variable optional.
+  BASE_URL: { schema: (value) => value }
+});
+```
+
 <!-- typecheck -->
 
 ```typescript
 // src/lib/server/cron.ts
 import { createCronRunner } from '@urbicon-ui/sveltekit-utils/cron';
-import { env } from '$env/dynamic/private';
-
-// Runtime env, not `$env/static/private`: a node server reads its secret at
-// start, not at build. The runner needs a `string`, so a missing one is a
-// startup failure here — not an unauthenticated cron loop.
-const secret = env.CRON_SECRET;
-if (!secret) throw new Error('CRON_SECRET is not set');
+import { BASE_URL, CRON_SECRET } from '$app/env/private';
 
 export const cron = createCronRunner({
-  secret,
-  baseUrl: env.BASE_URL,
+  secret: CRON_SECRET,
+  baseUrl: BASE_URL,
   jobs: [
     { path: '/api/cron/send-digest', intervalSeconds: 3600 },
     { path: '/api/cron/cleanup', intervalSeconds: 900, method: 'POST' }
@@ -214,12 +229,12 @@ Receive the call and verify the secret inside your endpoint:
 
 ```typescript
 // src/routes/api/cron/send-digest/+server.ts
-import { env } from '$env/dynamic/private';
-import { sendDigest } from '$lib/server/digest';
+import { CRON_SECRET } from '$app/env/private';
+import { sendDigest } from '#lib/server/digest.js';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
-  if (!env.CRON_SECRET || request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
+  if (request.headers.get('x-cron-secret') !== CRON_SECRET) {
     return new Response('Forbidden', { status: 403 });
   }
   await sendDigest();
@@ -251,8 +266,8 @@ That holds together when the endpoint is idempotent, which means
 
 ```typescript
 // src/routes/api/cron/daily/+server.ts
-import { env } from '$env/dynamic/private';
-import { upsertDailyRollup } from '$lib/server/rollup';
+import { CRON_SECRET } from '$app/env/private';
+import { upsertDailyRollup } from '#lib/server/rollup.js';
 import type { RequestHandler } from './$types';
 
 // Which midnight: the zone your people live in. `en-CA` formats as YYYY-MM-DD.
@@ -260,7 +275,7 @@ const TIME_ZONE = 'Europe/Berlin';
 const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE });
 
 export const POST: RequestHandler = async ({ request }) => {
-  if (!env.CRON_SECRET || request.headers.get('x-cron-secret') !== env.CRON_SECRET) {
+  if (request.headers.get('x-cron-secret') !== CRON_SECRET) {
     return new Response('Forbidden', { status: 403 });
   }
   // Keyed on the day and written atomically, so the second call of the day —
@@ -276,6 +291,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 - Simple `setInterval`-based scheduler. No drift compensation, no distributed locking, no exponential backoff — intended for single-process SvelteKit deployments. For scale-out scenarios use a real scheduler (e.g. BullMQ) and point it at the same HTTP endpoints.
 - Header name defaults to `x-cron-secret`; override via `secretHeader`.
+- A `POST` job sends `{}` as `application/json`. The request carries no `Origin` header, and SvelteKit's CSRF check refuses an Origin-less `POST` with a form content type or none at all — a JSON body is what lets it reach your endpoint in a built app.
 
 ## SSE Stream Reader (`sse`)
 
@@ -310,7 +326,7 @@ Emit the matching frames from the endpoint:
 
 ```typescript
 // src/routes/api/chat/+server.ts
-import { runModel } from '$lib/server/model';
+import { runModel } from '#lib/server/model.js';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {

@@ -17,8 +17,15 @@
  *    disagreeing about a timezone boundary.
  */
 
-import { addDays, daysBetween, eachDayOfRange, isoToDate, startOfWeek, stripTime } from '$lib/date';
-import { packSpans } from '$lib/internal/date-grid/pack-spans';
+import {
+  addDays,
+  daysBetween,
+  eachDayOfRange,
+  isoToDate,
+  startOfWeek,
+  stripTime
+} from '#lib/date/index.js';
+import { packSpans } from '#lib/internal/date-grid/pack-spans.js';
 import { toDateKey } from '../Planner/planner.bucket';
 import type {
   DateCategory,

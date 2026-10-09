@@ -205,7 +205,7 @@ export class APIDataGenerator {
         td.usedByProps = usedByMap.get(td.name) || [];
         td.usedByCount = td.usedByProps.length;
         // Canonical home: the documented component that declares this type.
-        // Left unset when none does — `$lib/utils` plumbing has no page to
+        // Left unset when none does — `#lib/utils` plumbing has no page to
         // point at, and pretending otherwise would invent a link target.
         const owner = this.resolveTypeOwner(td);
         if (owner) td.owner = owner;
@@ -342,7 +342,7 @@ export class APIDataGenerator {
    * turn into a link, and exactly the ones it missed.
    *
    * Still `undefined` when neither rule fires: a directory backing no
-   * documented component (`$lib/utils`, `$lib/mint`, `internal/charts`) has no
+   * documented component (`#lib/utils`, `#lib/mint`, `internal/charts`) has no
    * page to point at, and inventing one would produce a link to a page that
    * never documents the type.
    */
