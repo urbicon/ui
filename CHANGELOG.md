@@ -8,16 +8,16 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Breaking Changes
 - Move the platform to SvelteKit 3, sv 1 and Vitest 5 ([#505](https://github.com/urbicon/ui/issues/505))
-> **BREAKING:** requires SvelteKit 3, Node 22.17, Svelte 5.57.1 (AUTH.md, Upgrade note SvelteKit 3) * feat(auth)!: the server entries import $app/server, so SvelteKit refuses them in browser code For a package in node_modules the import is the only server-only signal SvelteKit reads; the directory name counts for the app's own files alone. With it, a client import of @urbicon-ui/auth/server fails the consumer's build with server_only_import and the import chain, instead of shipping the signing code to the browser (measured on a fresh sv app with the packed tarball; server-side use builds and serves as before) …
-> **BREAKING:** tests importing @urbicon-ui/auth/server need the sveltekit() plugin in Vitest * build: run the test suites on Vitest 5 Nothing in the migration guide's list reaches this repo: no benchmarks, no .sequential, no removed entry points, no browser mode, expect.poll only in Playwright. clearMocks now defaults to true and breaks no test. Every suite reports the counts it reported on Vitest 4, check is clean, and no deprecation warning is printed. ---------
+> **BREAKING:** requires SvelteKit 3, Node 22.17, Svelte 5.57.1 (AUTH.md, Upgrade note SvelteKit 3)
+> **BREAKING:** tests importing @urbicon-ui/auth/server need the sveltekit() plugin in Vitest
 
 ## [8.26.0](https://github.com/urbicon/ui/compare/v8.25.0...v8.26.0) - 2026-09-24
 
 ### Breaking Changes
 - **blocks**: Icons that read as another icon are drawn anew, and five join the set ([#504](https://github.com/urbicon/ui/issues/504))
-> **BREAKING:** 47 icons redrawn under their names, Slider status is an icon (MIGRATION 8.26.0) * feat(table)!: the header sorts, groups and folds with icons that say so The header menu drew "Sort ascending/descending" with `arrowUp`/`arrowDown` and "Group by column" with `users`, a group of people. The group toggle in the header row drew `chevronUp`/ `chevronDown`, the same glyphs as the sort indicator one cell over. They now draw `sortAsc`/ `sortDesc`, `listTree` and `chevronsDownUp`/`chevronsUpDown`; the SmartFilterBar's grouping select takes `listTree` instead of `layers`, so grouping has one icon across  …
-> **BREAKING:** header menu, group toggle and grouping select resolve new icon names * feat(blocks)!: seven icons take base-first names, and gitBranch and gitMerge read bottom-up The naming rule added with the redraw (base first, no numbers) had seven exceptions left: `circleDot`, `circleHelp`, `circlePercent` and `circleUser` become `dotCircle`, `helpCircle`, `percentCircle` and `userCircle`, matching the eight `*Circle` icons; `filterX` becomes `funnelX`, the variant of `funnel`; `table2`, now a 3×3 grid, becomes `tableGrid`. `pellet` becomes `granules`, because the drawing is any heap of small pieces and " …
-> **BREAKING:** seven icons renamed, gitBranch and gitMerge swapped (MIGRATION.md, 8.26.0) * feat(blocks): granules draws a loose heap of dots Of three drafts on the comparison page (pieces on a ground line, a heap of dots, dots inside a mound outline) the heap of dots reads most as bulk material at 16px. It sits one unit higher than the draft so its centre lands on the box's. ---------
+> **BREAKING:** 47 icons redrawn under their names, Slider status is an icon (MIGRATION 8.26.0)
+> **BREAKING:** header menu, group toggle and grouping select resolve new icon names
+> **BREAKING:** seven icons renamed, gitBranch and gitMerge swapped (MIGRATION.md, 8.26.0)
 
 ### Documentation
 - Retire the internal working docs into the canon, and refuse pointers into unpublished folders ([#503](https://github.com/urbicon/ui/issues/503))
@@ -239,7 +239,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Breaking Changes
 - **table**: The summary row pins in any scroll box the table owns ([#333](https://github.com/urbicon/ui/issues/333))
-> **BREAKING:** the total summary row moved out of the `<tbody>`. It renders as a `<tr>` in the table's `<tfoot>` now, in the page-relative and `fit="viewport"` models — the virtualized branch already moved in 8.10.0. Nothing about its appearance changed. Group summary rows are unaffected and stay in the `<tbody>` with their group. Two things stop reaching the row on their own:  - a descendant or child rule under `slotClasses.tbody`. `divide-y`   compiles to `tbody > * + *`, so it no longer draws the summary's top   edge; where the foot does not pin, the row's own `border-t-2` still   does, and where it pins, …
+> **BREAKING:** the total summary row moved out of the `<tbody>`. It renders as a `<tr>` in the table's `<tfoot>` now, in the page-relative and `fit="viewport"` models — the virtualized branch already moved in 8.10.0. Nothing about its appearance changed. Group summary rows are unaffected and stay in the `<tbody>` with their group.
 
 ## [8.10.0](https://github.com/urbicon/ui/compare/v8.9.0...v8.10.0) - 2026-08-28
 
@@ -379,7 +379,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Block-level Checkbox/Toggle roots, and one owner per calendar gridline ([#222](https://github.com/urbicon/ui/issues/222))
 > **BREAKING:** In normal block flow a Checkbox/Toggle root now fills the line and following content stacks below it. Restore inline placement with class="inline-flex".
 - The ready wave — twelve premise-checked fixes and the first stability promotions ([#223](https://github.com/urbicon/ui/issues/223))
-> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one. * fix(blocks): make RadioGroup's required block an empty submit Same class as Select's required ([#206](https://github.com/urbicon/ui/issues/206)), found in its sibling while fixing it: the group drew an asterisk and set aria-required, and an empty required group submitted straight through. RadioGroup renders real radio inputs sharing one name, so unlike Select it needs no sentinel — the constraint goes on the radios, which is how HTML expresses a required radio group, a …
+> **BREAKING:** A Tab without `value` or `defaultValue` now renders its first enabled tab selected instead of rendering nothing selected. Pass `defaultValue` to choose a different one.
 
 ### Bug Fixes
 - **blocks**: Derive the step index from DOM order, not init order
@@ -461,9 +461,9 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Breaking Changes
 - **auth,table**: Invitation tokens, and a grouped server table that tells the truth ([#181](https://github.com/urbicon/ui/issues/181))
 - AA-clean intent text roles and a single pinned-strip docs layout ([#184](https://github.com/urbicon/ui/issues/184))
-> **BREAKING:** DocsLayout drops the `pageToolbar`, `mobileToc`, `mobileTocButton`, `mobileTocNav` and `mobileTocLink` slots. A consumer styling them via `slotClasses` should move to `stickyToc*`, which the single strip uses for the same control. * fix(docs-app): an overlay opened from a colour field reads the paper ramp A field re-points the text roles at its own foreground so the content ON the fill reads. A `popover` renders in the top layer but stays a DOM descendant of its trigger, and inheritance follows the DOM — so the on-fill ramp travelled out with the panel onto the panel's own cream/near-black sur …
+> **BREAKING:** DocsLayout drops the `pageToolbar`, `mobileToc`, `mobileTocButton`, `mobileTocNav` and `mobileTocLink` slots. A consumer styling them via `slotClasses` should move to `stickyToc*`, which the single strip uses for the same control.
 - **blocks**: One quiet register for tool calls and reasoning, and a hover fill that respects its frame ([#187](https://github.com/urbicon/ui/issues/187))
-> **BREAKING:** ToolCallCard renders unframed by default. Pass `variant="card"` to keep the previous look. * refactor(blocks)!: one register for the parts that report how an answer came about Three adversarial reviews of the previous commit, three findings that stood up to measurement. `quiet` → `plain`. VARIANT-CONTRACT.md gives `quiet` to a TINTED surface (Card, Toolbar) and `ghost` to "no chrome"; the Chat family already calls the unframed pole of a `card` axis `plain` — CodeBlock does, ChatMessage does, and this component renders its payloads with it. The register claim is now true. It read "the same regi …
+> **BREAKING:** ToolCallCard renders unframed by default. Pass `variant="card"` to keep the previous look.
 - **blocks**: Agenda lists from the reference date, not the month's 1st
 - **blocks**: One vocabulary and one toolbar for the date surfaces
 
@@ -495,8 +495,8 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Breaking Changes
 - **table**: Settle the v8 vocabulary, and bring the docs with it ([#168](https://github.com/urbicon/ui/issues/168))
-> **BREAKING:** TypesReference's `root`, `header`, `title` and `description` slots are gone — the section, its heading and its description belong to `<Section>` now. `card` is `expandedPanel`, `toolbarText` is gone, and `size` no longer scales the heading. New props: `id`, `marker`, `meta`. * fix(docs,docs-app): dock the TOC to the reading column, give exhibits their own edge The reading measure was capping `section` while `main` stayed `flex-1 max-w-none`, so `main` swallowed everything the TOC did not take and the difference became a corridor of nothing: 208px at 1440, 568px at 1920. The same line left ever …
-> **BREAKING:** the `desktop-only` / `mobile-only` marker classes are gone. They named no CSS anywhere in the repo; the hook is `data-table-layout` ("desktop" | "mobile"). A mobile record no longer carries a frame of its own — style the list through `slotClasses.scrollArea`, a record through `slotClasses.mobileCard`. Verified in the browser at 360–1600px: exactly one layout at every width, and container- rather than viewport-keyed (a 1280px window with a 608px reading column renders the record list). Reactivity fix along the way: the grouped totals were destructured off the context, so they were captured once …
+> **BREAKING:** TypesReference's `root`, `header`, `title` and `description` slots are gone — the section, its heading and its description belong to `<Section>` now. `card` is `expandedPanel`, `toolbarText` is gone, and `size` no longer scales the heading. New props: `id`, `marker`, `meta`.
+> **BREAKING:** the `desktop-only` / `mobile-only` marker classes are gone. They named no CSS anywhere in the repo; the hook is `data-table-layout` ("desktop" | "mobile"). A mobile record no longer carries a frame of its own — style the list through `slotClasses.scrollArea`, a record through `slotClasses.mobileCard`.
 
 ## [8.0.0](https://github.com/urbicon/ui/compare/v7.0.1...v8.0.0) - 2026-08-06
 
@@ -524,7 +524,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Breaking Changes
 - Derive prop-driven state instead of syncing it in $effect ([#153](https://github.com/urbicon/ui/issues/153))
 - **docs**: Highlight and seed synchronously, so the server renders them too ([#155](https://github.com/urbicon/ui/issues/155))
-> **BREAKING:** `highlighterService.highlightCode()` returns a string instead of a `Promise<string>`, `getHighlighter()` returns `HighlighterCore` instead of `Highlighter`, `CodePanelSlots` no longer carries `loadingContainer` / `loadingText`, and `@shikijs/langs` joins `shiki` as a required peer. * fix(docs): key the highlight cache on a colon, not on a NUL byte The separator was a literal NUL. It parses — a template literal takes any character — so tests, svelte-check, Biome and Prettier all passed it. What it broke is everything that decides text-vs-binary by scanning for a zero byte: `file` reported the s …
+> **BREAKING:** `highlighterService.highlightCode()` returns a string instead of a `Promise<string>`, `getHighlighter()` returns `HighlighterCore` instead of `Highlighter`, `CodePanelSlots` no longer carries `loadingContainer` / `loadingText`, and `@shikijs/langs` joins `shiki` as a required peer.
 - **table**: Let the view state live in the URL, so the server can see it ([#154](https://github.com/urbicon/ui/issues/154))
 
 ### Bug Fixes
@@ -1240,7 +1240,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Breaking Changes
 - **blocks**: Move Tooltip to open/onOpenChange with controlled mode
-> **BREAKING:** TooltipProps.onVisibleChange is now onOpenChange (same boolean payload); the tv() axis 'visible' is renamed 'open' (affects only overrides conditioned on that axis). Also fixes the keyboard focus-open path: the wrapper span listened via focus/blur, which do not bubble — a keyboard focus on the consumer's trigger child never opened the tooltip (WCAG 1.4.13). focusin/focusout bubble and cover any focusable descendant; covered by the new Tooltip.svelte.test.ts.
+> **BREAKING:** TooltipProps.onVisibleChange is now onOpenChange (same boolean payload); the tv() axis 'visible' is renamed 'open' (affects only overrides conditioned on that axis).
 - **blocks**: Rename FormField hint to helper across the form seam
 > **BREAKING:** FormFieldProps.hint is now helper; the FormField slotClasses key 'hint' is now 'helper'; Combobox slotClasses key 'hint' is now 'helper'; useFormField's input field hint and return field hintId are now helper/helperId.
 
@@ -1286,7 +1286,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Breaking Changes
 - **blocks**: Tighten the tv() API surface — type-safe slots, fail-loud config, ClassValue parity
-> **BREAKING:** four narrowings of the tv() call surface (no runtime consumer existed for any of them — verified repo-wide): - the React-era `className` alias is gone everywhere (props, compound  entries, matchesCompound). Svelte has one class prop. - `base` and `slots` are mutually exclusive: the primary slot is declared  as `slots.base`. Historically a top-level base was silently dropped  unless a slot happened to be named 'base'. - the slot-mode resolve call takes no top-level `class` (it had no slot to  attach to and was silently ignored) — class overrides belong to the slot  functions; a DEV warning cove …
+> **BREAKING:** four narrowings of the tv() call surface (no runtime consumer existed for any of them — verified repo-wide):
 
 ### Bug Fixes
 - **blocks**: Redirect GuidePanel focus on article switch, reset search on close

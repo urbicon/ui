@@ -3,13 +3,14 @@ header = """# Changelog\n
 All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).\n
 """
-# The BREAKING note is truncated at 600 characters. git-cliff reads everything
-# after a `BREAKING CHANGE:` token as that footer's value, and a squash-merge
-# body is the concatenation of every commit in the PR — so a 20-commit PR
-# produced a single 4348-character blockquote on one line (v8.1.0, before this).
-# The cap is above every hand-written breaking note in the history bar two, and
-# a note that needs more than 600 characters belongs in the migration docs the
-# entry links to, not in the changelog line.
+# The BREAKING note is the footer's first paragraph, capped at 600 characters.
+# git-cliff reads everything after a `BREAKING CHANGE:` token up to the next
+# footer token as that footer's value: in GitHub's default squash body that is
+# every later commit message of the PR, in a single commit any paragraph written
+# below the footer. A blank line ends the note, so a breaking note whose own
+# continuation follows a blank line (a list) ships its first paragraph only; the
+# cap bounds one paragraph that runs long. A note that needs more belongs in the
+# migration docs the entry links to, not in the changelog line.
 body = """
 {#- The URL is spelled a second time in `postprocessors` below: a postprocessor
     is a plain regex replacement over the rendered text and sees no template
@@ -34,7 +35,7 @@ body = """
 {%- if commit.footers %}
 {%- for footer in commit.footers %}
 {%- if footer.token == "BREAKING CHANGE" or footer.token == "BREAKING-CHANGE" %}
-  > **BREAKING:** {{ footer.value | trim | replace(from="\n", to=" ") | replace(from="  ", to=" ") | truncate(length=600, end=" …") }}
+  > **BREAKING:** {{ footer.value | trim | split(pat="\n\n") | first | replace(from="\n", to=" ") | replace(from="  ", to=" ") | truncate(length=600, end=" …") }}
 {%- endif %}
 {%- endfor %}
 {%- endif %}
