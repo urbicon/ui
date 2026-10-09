@@ -3,7 +3,7 @@ import { screen } from '@testing-library/dom';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { de } from '../../i18n/de.js';
-import { registerAuthLocale } from '../../i18n/index.svelte.js';
+import { registerAuthLocale } from '../../i18n/index.js';
 import LocaleHarness from './__fixtures__/LocaleHarness.svelte';
 import NotificationBadge from './NotificationBadge/NotificationBadge.svelte';
 

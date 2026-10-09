@@ -2,7 +2,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { de } from '../../i18n/de.js';
-import { registerAuthLocale } from '../../i18n/index.svelte.js';
+import { registerAuthLocale } from '../../i18n/index.js';
 import type { AuthConfig } from '../../types.js';
 import type { EmailTransport } from '../email/types.js';
 import {

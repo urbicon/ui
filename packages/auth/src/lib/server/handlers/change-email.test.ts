@@ -1,7 +1,7 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import { de } from '../../i18n/de.js';
-import { registerAuthLocale } from '../../i18n/index.svelte.js';
+import { registerAuthLocale } from '../../i18n/index.js';
 import type { AuthDeps } from '../deps.js';
 import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';

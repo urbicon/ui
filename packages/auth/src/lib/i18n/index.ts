@@ -7,33 +7,7 @@ import {
 } from '@urbicon-ui/i18n';
 import { en } from './en.js';
 import type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
-
-/**
- * The bundles this app has, keyed by locale. **Only `en` is built in** — every
- * other locale enters through {@link registerAuthLocale} plus its own subpath
- * import (`@urbicon-ui/auth/i18n/de`), so an app shipping one language does not
- * carry the others: a static `{ en, de }` object read by a runtime key is
- * something no bundler can narrow, and every auth component would carry both.
- *
- * Module-global, and SSR-safe as such: it holds static, request-identical
- * translation data and no per-request state, so one registration at server start
- * serves every concurrent request. The request-scoped part — *which* locale is
- * active — stays in `<I18nProvider>`'s context, where `useAuthLocale` reads it.
- *
- * Reactive, and **reassigned** rather than mutated: every component reads its
- * bundle inside a `$derived`, and a property written into a plain object is a
- * change no `$derived` can see, so a registration after mount would leave the
- * mounted tree in the old language. `$state.raw` tracks the binding, not the
- * bundle's interior — which is what this holds: whole immutable bundles.
- *
- * `en` is required in the type rather than looked up defensively: it is the
- * fallback every other lookup lands on, so its absence must not be
- * representable. The shipped bundles are `satisfies AuthLocale` (literal
- * structure preserved + parity enforced between en/de).
- */
-type AuthLocaleRegistry = Partial<Record<Locale, AuthLocale>> & { en: AuthLocale };
-
-let registry = $state.raw<AuthLocaleRegistry>({ en });
+import { resolveAuthLocale, storeAuthLocale } from './registry.js';
 
 /**
  * Make an `AuthLocale` bundle available to every auth component and to the
@@ -100,14 +74,7 @@ export function registerAuthLocale(locale: Locale, bundle: AuthLocale): void {
         `mergeAuthLocale(en, overrides) — or pass the overrides as a component's \`t\` prop instead.`
     );
   }
-  // Reassign: a property write into the previous object is invisible to the
-  // `$derived` every component reads its bundle through.
-  registry = { ...registry, [locale]: bundle };
-}
-
-/** Whether `locale` has a bundle — `en` always does. Internal: not a package export. */
-export function hasAuthLocale(locale: Locale): boolean {
-  return registry[locale] !== undefined;
+  storeAuthLocale(locale, bundle);
 }
 
 /**
@@ -131,21 +98,7 @@ export function hasAuthLocale(locale: Locale): boolean {
  */
 export function useAuthLocale(): () => AuthLocale {
   const i18n = useI18n();
-  return () => registry[i18n.locale] ?? registry.en;
-}
-
-/**
- * Resolve the full `AuthLocale` bundle for a locale **without** any Svelte
- * context — the SSR-/server-safe counterpart to {@link useAuthLocale}. Used by
- * the server-side email builders to localize the default transactional mails
- * from `config.email.locale`. Falls back to the English bundle when `locale` is
- * omitted or has no registered bundle, so callers never have to guard; the mail
- * path additionally warns once when a configured locale turns out to have none.
- * See {@link registerAuthLocale} for how a locale gets one.
- */
-export function resolveAuthLocale(locale?: Locale): AuthLocale {
-  if (!locale) return registry.en;
-  return registry[locale] ?? registry.en;
+  return () => resolveAuthLocale(i18n.locale);
 }
 
 /**

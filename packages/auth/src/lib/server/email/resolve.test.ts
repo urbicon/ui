@@ -13,7 +13,7 @@ async function freshResolve() {
   vi.resetModules();
   const [{ resolveEmailSettings }, { registerAuthLocale }, { de }, { en }] = await Promise.all([
     import('./resolve.js'),
-    import('../../i18n/index.svelte.js'),
+    import('../../i18n/index.js'),
     import('../../i18n/de.js'),
     import('../../i18n/en.js')
   ]);

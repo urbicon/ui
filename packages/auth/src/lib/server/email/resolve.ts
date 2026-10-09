@@ -1,6 +1,6 @@
 import type { Locale } from '@urbicon-ui/i18n';
-import { hasAuthLocale, resolveAuthLocale } from '../../i18n/index.svelte.js';
 import type { AuthLocale } from '../../i18n/keys.js';
+import { hasAuthLocale, resolveAuthLocale } from '../../i18n/registry.js';
 import type { AuthConfig, AuthLogger } from '../../types.js';
 import { applyFromName } from './templates.js';
 

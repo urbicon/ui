@@ -55,12 +55,64 @@ globals:
   Deno and edge runtimes.
 - **Node `Buffer`** — password hashing (PBKDF2 hex encoding) and the TOTP secret
   cipher (base64) use `Buffer`. Password hashing is on the login/register path,
-  so in practice this makes the package **Node ≥ 20 or Bun** (both ship `Buffer`
+  so in practice this makes the package **Node or Bun** (both ship `Buffer`
   globally); the Prisma adapter is Node/Bun-only regardless.
 
-**Bottom line: target Node.js ≥ 20 or Bun.** Edge/Workers/Deno-deploy need a
-Node-compatibility layer that polyfills `Buffer` (e.g. Cloudflare's
-`nodejs_compat`); the Web Crypto paths themselves are edge-clean.
+**Bottom line: target Node.js ≥ 22.17 (SvelteKit 3's floor) or Bun.**
+Edge/Workers/Deno-deploy need a Node-compatibility layer that polyfills `Buffer`
+(e.g. Cloudflare's `nodejs_compat`); the Web Crypto paths themselves are
+edge-clean.
+
+#### Outside Vite
+
+Every `@urbicon-ui/auth/server…` module imports `$app/server`, the marker that
+keeps it out of browser code ([Upgrade note — SvelteKit 3](#upgrade-note--sveltekit-3)),
+and only SvelteKit's Vite plugin resolves that specifier. A process without
+it — `bun test`, a seed script, the key-generation script of
+[Setup — IdP side](#setup--idp-side) — resolves it to an empty module itself;
+the package imports nothing from it. Nothing else is needed: no module behind
+the server entries is a Svelte component or a runes module.
+
+Bun, one preload for `bun test` and for scripts:
+
+```ts
+// app-server-stub.ts
+import { plugin } from 'bun';
+
+plugin({
+  name: 'app-server-stub',
+  setup(build) {
+    build.module('$app/server', () => ({ exports: {}, loader: 'object' }));
+  }
+});
+```
+
+```toml
+# bunfig.toml
+[test]
+preload = ['./app-server-stub.ts']
+```
+
+Node ≥ 22.17, a resolve hook:
+
+```js
+// app-server-stub.mjs
+import { registerHooks } from 'node:module';
+
+registerHooks({
+  resolve: (specifier, context, nextResolve) =>
+    specifier === '$app/server'
+      ? { url: 'data:text/javascript,', shortCircuit: true }
+      : nextResolve(specifier, context)
+});
+```
+
+A script loads its stub first:
+
+```sh
+bun --preload ./app-server-stub.ts scripts/seed.ts
+node --import ./app-server-stub.mjs scripts/seed.js
+```
 
 ## Non-goals
 
@@ -92,7 +144,7 @@ package of its own, outside this one
 | `@urbicon-ui/auth/server`                      | Server only         | Handlers, auth core, adapters                               |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server only         | Prisma adapter factory (`createPrismaRepos`)                |
 | `@urbicon-ui/auth/server/adapters/in-memory`   | Server only         | In-memory adapter (`createInMemoryRepos`, per-repository factories on a `createInMemoryStore()`) — dev/test |
-| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
+| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` (bun:test as-is with the [`$app/server` preload](#outside-vite); jest needs `expect: (a) => expect(a)`) |
 | `@urbicon-ui/auth/server/adapters/conformance` | Server only (tests) | Adapter conformance suite (`describeRepositoryConformance`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server only         | Lettermint email transport                                  |
 | `@urbicon-ui/auth/server/email/console`        | Server only         | Console email transport (dev)                               |
@@ -301,6 +353,9 @@ rather than a default — but it still sends, in English: a wiring slip must not
 block a password-reset mail.
 
 ### Breaking in 8.24.0
+
+8.24.0 never reached npm — its release run failed — so an app installing from
+the registry meets this change in 8.25.0.
 
 **A locale other than `en` now has to be registered.** The package used to
 import both shipped bundles and choose between them at runtime, so every auth
@@ -972,7 +1027,8 @@ change when an app upgrades — the first two for the machine callers above:
   import needs SvelteKit's Vite plugin to resolve: a unit test that imports a
   server entry runs under a Vitest config that includes `sveltekit()` — the
   one `sv add vitest` writes does — and fails under a bare one with
-  `Cannot find module '…/$app/server'`.
+  `Cannot find module '…/$app/server'`. `bun test` and a Bun or Node script
+  resolve it themselves: [Outside Vite](#outside-vite) has the stubs.
 
 ### Upgrade note — user verification is enforced by default
 
@@ -1257,7 +1313,7 @@ The `mapX` seams (`mapUser`, `mapPasskey`, `mapRefreshToken`, `mapInvitation`, `
 
 ### Validate it: the conformance suite
 
-Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. The entry below registers vitest for you; under any other runner import `…/adapters/conformance-core` instead and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own:
+Whatever you build, prove it upholds the contract by running the shared suite from a `*.test.ts`. The entry below registers vitest for you; under any other runner import `…/adapters/conformance-core` instead and pass `{ runner: { describe, it, expect } }` — that module imports no runner of its own, and under `bun test` it loads behind the [`$app/server` preload](#outside-vite) like every server module:
 
 <!-- typecheck -->
 ```ts
