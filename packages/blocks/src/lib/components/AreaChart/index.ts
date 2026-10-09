@@ -46,7 +46,7 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   width?: number;
   /** Plot margins; merged over the defaults. */
   margin?: ChartMargin;
-  /** Format values for axis labels, tooltips, and the data table. */
+  /** Format values for axis labels and the data table. */
   formatValue?: (value: number) => string;
   /** BCP-47 locale for the default number formatter. */
   locale?: string;
