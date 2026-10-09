@@ -47,6 +47,8 @@ The linter enforces these, but they're cheaper to follow than to repair:
 - **No hardcoded `z-index`, `cubic-bezier` or durations** — use the token vars.
 - **Off-palette looks** (brand colour, glass, translucency) → register a **preset** on
   `BlocksProvider` and reference it by name; never force colours with inline `!` overrides.
+  The registry is where those raw colours are meant to live — exempt that file, and only it,
+  with `<!-- urbicon-ignore raw-tailwind-color — preset registry -->`.
 - **Svelte 5** — `$props()` not `export let`; `{#snippet}` / `{@render}` not `<slot>`; callback
   props (`onValueChange`) not `createEventDispatcher`; lowercase DOM events (`onclick`).
 

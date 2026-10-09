@@ -130,22 +130,22 @@
       <div class="flex items-center gap-3">
         <Skeleton
           unstyled
-          class="h-12 w-12 shrink-0 animate-pulse rounded-full bg-white/5 ring-1 ring-white/10"
+          class="bg-neutral-0/5 ring-neutral-0/10 h-12 w-12 shrink-0 animate-pulse rounded-full ring-1"
         />
         <div class="flex flex-1 flex-col gap-2">
           <Skeleton
             unstyled
-            class="h-4 w-3/4 animate-pulse rounded-full bg-linear-to-r from-white/10 via-white/5 to-white/10"
+            class="from-neutral-0/10 via-neutral-0/5 to-neutral-0/10 h-4 w-3/4 animate-pulse rounded-full bg-linear-to-r"
           />
           <Skeleton
             unstyled
-            class="h-3 w-1/2 animate-pulse rounded-full bg-linear-to-r from-white/10 via-white/5 to-white/10 [animation-delay:150ms]"
+            class="from-neutral-0/10 via-neutral-0/5 to-neutral-0/10 h-3 w-1/2 animate-pulse rounded-full bg-linear-to-r [animation-delay:150ms]"
           />
         </div>
       </div>
       <Skeleton
         unstyled
-        class="h-32 w-full animate-pulse rounded-xl bg-white/5 ring-1 ring-white/10 [animation-delay:300ms]"
+        class="bg-neutral-0/5 ring-neutral-0/10 h-32 w-full animate-pulse rounded-xl ring-1 [animation-delay:300ms]"
       />
     </CodeExample>
 

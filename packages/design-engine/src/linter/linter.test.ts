@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { maskTeachingCode } from './heuristics.js';
 import { lintDesign, maskComments } from './linter.js';
+import { VALID_TOKEN_CORES } from './tokens.js';
 import type { Finding } from './types.js';
 
 function ids(findings: Finding[]): string[] {
@@ -27,6 +30,58 @@ describe('raw-tailwind-color', () => {
       '<div class="bg-primary-500 bg-neutral-100 bg-surface-base text-success border-border-subtle">'
     );
     expect(has(findings, 'raw-tailwind-color')).toBe(false);
+  });
+  it('flags step-less white/black across the colour prefixes, opacity suffix included', () => {
+    const classes = [
+      'bg-white',
+      'text-white',
+      'bg-black/50',
+      'border-black',
+      'border-t-white/20',
+      'ring-white/20',
+      'ring-offset-white',
+      'from-black',
+      'via-white/5',
+      'to-black',
+      'divide-white/10',
+      'outline-black',
+      'decoration-white',
+      'fill-white',
+      'stroke-black',
+      'accent-white',
+      'caret-black',
+      'placeholder-white'
+    ];
+    const matches = lintDesign(`<div class="hover:${classes.join(' !')}">`)
+      .findings.filter((f) => f.ruleId === 'raw-tailwind-color')
+      .map((f) => f.match);
+    expect(matches).toEqual(classes);
+  });
+  it('points white/black at the ink and ground tokens, not the generic token list', () => {
+    const [finding] = lintDesign('<div class="text-white">').findings;
+    expect(finding?.fix).toContain('text-text-on-fill');
+  });
+  it('does NOT flag the colour keywords or look-alike utilities', () => {
+    const { findings } = lintDesign(
+      '<div class="bg-transparent text-current border-inherit font-black whitespace-nowrap">'
+    );
+    expect(has(findings, 'raw-tailwind-color')).toBe(false);
+  });
+  it('flags every colour of the installed Tailwind theme that is not an Urbicon token', () => {
+    // The palette in rules.ts is a copy — the engine ships without Tailwind. Tailwind's own
+    // theme is the oracle: every `--color-*` key it defines is either one of our tokens
+    // (`neutral-*` is redefined by blocks) or a raw colour this rule must catch.
+    const theme = readFileSync(
+      createRequire(import.meta.url).resolve('tailwindcss/theme.css'),
+      'utf8'
+    );
+    const keys = [...theme.matchAll(/--color-([a-z0-9-]+)\s*:/g)].map((m) => m[1] ?? '');
+    expect(keys.length).toBeGreaterThan(0);
+    const wrong = keys.filter((key) => {
+      const flagged = has(lintDesign(`<div class="bg-${key}">`).findings, 'raw-tailwind-color');
+      return flagged === VALID_TOKEN_CORES.has(key);
+    });
+    expect(wrong, `misjudged Tailwind colours: ${wrong.join(', ')}`).toEqual([]);
   });
 });
 
@@ -236,6 +291,12 @@ describe('extraTokens (per-call whitelist)', () => {
     const code = '<div class="bg-blue-500">';
     expect(
       has(lintDesign(code, { extraTokens: ['blue-500'] }).findings, 'raw-tailwind-color')
+    ).toBe(true);
+    expect(
+      has(
+        lintDesign('<div class="bg-white">', { extraTokens: ['white'] }).findings,
+        'raw-tailwind-color'
+      )
     ).toBe(true);
   });
 

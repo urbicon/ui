@@ -1,4 +1,4 @@
-<!-- urbicon-ignore raw-tailwind-color — the 9 raw colours are the Customization
+<!-- urbicon-ignore raw-tailwind-color — the raw colours are the Customization
      section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
      that the token system deliberately does not: glassmorphism, a terminal look, a neon
      outline. Tokenising them would delete the example. Every other section on this page
