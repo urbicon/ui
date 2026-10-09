@@ -73,9 +73,13 @@ function lines(target: Element) {
   });
 }
 
-/** Vertices matched to the 2 decimals a path's `d` carries. */
+/**
+ * Vertices rounded to the 2 decimals a path's `d` carries. Exact rather than
+ * `closeTo`: a half-cent (8.375 → "8.38") sits exactly 0.005 away, which
+ * `closeTo(value, 2)` rejects.
+ */
 function near(vertices: number[][]) {
-  return vertices.map((vertex) => vertex.map((value) => expect.closeTo(value, 2)));
+  return vertices.map((vertex) => vertex.map((value) => Number(value.toFixed(2))));
 }
 
 /** Value-axis tick labels, bottom tick first. */
