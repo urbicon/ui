@@ -1,8 +1,8 @@
-<!-- urbicon-ignore raw-tailwind-color — the 9 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demos restyle the toolbar with
+     `slotClasses` and `unstyled`: a developer bar with emerald and amber accents over a black
+     shadow, and a frosted-glass bar on a violet→rose gradient. Those accents, the glass and its
+     ground are raw — looks the token palette has no equivalent for. Every other section on this
+     page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {

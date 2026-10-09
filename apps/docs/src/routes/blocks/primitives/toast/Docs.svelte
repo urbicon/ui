@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the 3 raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization sample tints the toast violet with
+     `slotClasses`: the border, its shadow glow, and the title and icon ink are raw — a brand
+     hue the intent palette has no equivalent for. Every other section on this page stays under
+     the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Kbd, toaster } from '@urbicon-ui/blocks';

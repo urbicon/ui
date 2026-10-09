@@ -1,6 +1,7 @@
 <!-- urbicon-ignore raw-tailwind-color — the Customization demo hangs an indigo→violet gradient
-     off the track's checked state, a night-sky fill the token palette has no equivalent for.
-     It is the only raw colour on the page; every other section stays under the rule. -->
+     and an indigo glow off the track's checked state, a night-sky fill the token palette has no
+     equivalent for. They are the only raw colours on the page; every other section stays under
+     the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Kbd, MoonIcon, SunIcon, Toggle } from '@urbicon-ui/blocks';

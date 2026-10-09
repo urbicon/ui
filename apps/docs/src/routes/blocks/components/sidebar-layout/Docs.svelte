@@ -214,7 +214,7 @@
     sidebarPanel: 'bg-neutral-900 border-neutral-800',
     sidebarHeader: 'border-neutral-800',
     sidebarFooter: 'border-neutral-800',
-    mobileHeader: 'bg-neutral-900 text-white border-neutral-800'
+    mobileHeader: 'bg-neutral-900 text-neutral-0 border-neutral-800'
   }}
 >
   <!-- snippets -->
@@ -231,7 +231,7 @@
       brand: {
         slotClasses: {
           sidebarPanel: 'bg-neutral-900 border-neutral-800',
-          mobileHeader: 'bg-neutral-900 text-white'
+          mobileHeader: 'bg-neutral-900 text-neutral-0'
         }
       }
     }

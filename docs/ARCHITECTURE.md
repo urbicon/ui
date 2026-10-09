@@ -346,7 +346,7 @@ strips a provider default. Reaching higher up the list buys reach, never precede
 
 ```svelte
 <BlocksProvider
-  presets={{ Button: { overlay: { slotClasses: { base: 'bg-black/20 text-white' } } } }}
+  presets={{ Button: { overlay: { slotClasses: { base: 'bg-neutral-950/20 text-neutral-0' } } } }}
 >
   <Button preset="overlay">Weiter</Button>
 </BlocksProvider>

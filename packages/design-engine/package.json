@@ -43,6 +43,7 @@
     "test:run": "vitest run"
   },
   "devDependencies": {
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "@types/node": "catalog:",
     "vitest": "catalog:"

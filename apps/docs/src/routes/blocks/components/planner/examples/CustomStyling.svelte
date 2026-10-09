@@ -31,7 +31,7 @@
   slotClasses={{
     header: 'rounded-t-xl bg-surface-inverted px-3',
     headerTitle: 'text-text-inverted',
-    navButton: 'text-text-inverted/70 hover:text-text-inverted hover:bg-white/10',
+    navButton: 'text-text-inverted/70 hover:text-text-inverted hover:bg-text-inverted/10',
     cell: 'rounded-xl border-2 transition-all'
   }}
 >
