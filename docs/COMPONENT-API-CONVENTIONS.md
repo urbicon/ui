@@ -590,6 +590,13 @@ A component is promoted when all five hold:
    on (a role, an accessible name, a live region) is public API too, and the
    2026-09-09 auth a11y pass changed exactly that on five `beta` managers
    without touching a single `index.ts`. Take the later of the two dates.
+
+   Neither date counts a repository-wide mechanical rewrite that changes no
+   declaration and no rendered output — rewritten import specifiers, a
+   formatter sweep — even when it rides a `!` commit whose break lies
+   elsewhere: the SvelteKit 3 move in 8.27.0 broke the peer range and rewrote
+   `$lib` to `#lib` in most component directories. Read past such a commit in
+   `git log --date=short --format='%ad %h %s' -- <path>`.
 4. The conventions in this document hold — in particular the standard props of
    § Common props. `stable` is defined by that sentence, so the criteria have
    to ask it: eleven components in `blocks` take no `restProps`, and one of
