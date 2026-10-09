@@ -48,10 +48,10 @@
 
 {#if isActive}
   <article
+    {...restProps}
     class={unstyled
       ? resolveClassChain(slotClasses?.article, className)
       : styles.article({ class: [slotClasses?.article, className] })}
-    {...restProps}
   >
     {@render children?.()}
   </article>

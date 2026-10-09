@@ -1,3 +1,4 @@
+import type { HTMLButtonAttributes } from 'svelte/elements';
 import type { ThemeSwitcherSlots, ThemeSwitcherVariants } from './themeSwitcher.variants';
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -28,7 +29,12 @@ export type Theme = 'light' | 'dark' | 'system';
  * <ThemeSwitcher size="lg" variant="outlined" strategy="toggle" />
  * ```
  */
-export interface ThemeSwitcherProps {
+export interface ThemeSwitcherProps
+  // The rest of a button's attributes reach the `<button>`. `type`, `aria-label`
+  // and `title` are the component's: the label names the current theme, the
+  // only place an icon-only button can say it. A consumer `onclick` runs after
+  // the switch.
+  extends Omit<HTMLButtonAttributes, 'class' | 'children' | 'disabled'> {
   // ── Behavior ──────────────────────────────────────────
 
   /** Current theme. Supports `bind:theme`. @default 'system' */

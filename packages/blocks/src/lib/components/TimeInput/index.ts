@@ -1,4 +1,5 @@
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
 import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
 
 /**
@@ -29,7 +30,12 @@ import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
  * <TimeInput format="12h" withSeconds min="08:00" max="18:00" bind:value={time} />
  * ```
  */
-export interface TimeInputProps extends Omit<TimeInputVariants, 'error'> {
+export interface TimeInputProps
+  extends Omit<TimeInputVariants, 'error'>,
+    // `class`, `id` and `aria-label` are modelled below; the rest of a div's
+    // attributes reach the root. `aria-describedby` stays in and is merged
+    // rather than spread, so a consumer hint adds to the error/helper chain.
+    Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'id' | 'aria-label'> {
   /**
    * Current time as a canonical 24-hour `HH:MM` / `HH:MM:SS` string; `null` when
    * empty. The stored format never changes with `format`. Supports `bind:value`.

@@ -2,6 +2,7 @@
   import { useBlocksI18n } from '#lib/i18n/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { guideBeaconVariants, type GuideBeaconVariants } from './guide.variants';
   import type { GuideBeaconProps } from './index';
@@ -18,6 +19,8 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    onclick: onclickProp,
+    'aria-label': ariaLabelProp,
     ...restProps
   }: GuideBeaconProps = $props();
 
@@ -59,6 +62,7 @@
 
 {#if guide && !hidden}
   <button
+    {...restProps}
     type="button"
     class={[
       'guide-beacon',
@@ -66,9 +70,8 @@
         ? resolveClassChain(slotClasses?.beacon, className)
         : styles.beacon({ class: [slotClasses?.beacon, className] })
     ]}
-    aria-label={label ?? bt('guide.startTour', {})}
-    onclick={activate}
-    {...restProps}
+    aria-label={label ?? ariaLabelProp ?? bt('guide.startTour', {})}
+    onclick={composeHandlers(activate, onclickProp)}
   >
     <span
       class={[

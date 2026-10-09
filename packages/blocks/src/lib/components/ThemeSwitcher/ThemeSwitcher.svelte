@@ -11,6 +11,7 @@
   import { useBlocksI18n } from '#lib/i18n/index.js';
   import { getStorage } from '#lib/internal/storage.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
 
   const bt = useBlocksI18n();
 
@@ -29,7 +30,9 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
-    disabled = false
+    disabled = false,
+    onclick: onclickProp,
+    ...restProps
   }: ThemeSwitcherProps = $props();
 
   // One handle for the component's lifetime, the way `createPersistentState`
@@ -127,8 +130,9 @@
 </script>
 
 <button
+  {...restProps}
   type="button"
-  onclick={cycle}
+  onclick={composeHandlers(cycle, onclickProp)}
   class={unstyled
     ? resolveClassChain(slotClasses?.button, className)
     : styles.button({ class: [slotClasses?.button, className] })}

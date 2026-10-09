@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { guideMentionVariants, type GuideMentionVariants } from './guide.variants';
   import type { GuideMentionProps } from './index';
@@ -87,24 +88,26 @@
   });
 </script>
 
+<!-- The consumer's handlers are read off restProps rather than destructured, so the span
+     branch still receives them through its own spread. -->
 {#if interactive}
   <button
+    {...restProps}
     type="button"
     class={unstyled
       ? resolveClassChain(slotClasses?.mention, className)
       : styles.mention({ class: [slotClasses?.mention, className] })}
     data-guide-mention
-    onmouseenter={highlight}
-    onmouseleave={clear}
-    onfocus={highlight}
-    onblur={clear}
-    onclick={activate}
-    {...restProps}
+    onmouseenter={composeHandlers(highlight, restProps.onmouseenter)}
+    onmouseleave={composeHandlers(clear, restProps.onmouseleave)}
+    onfocus={composeHandlers(highlight, restProps.onfocus)}
+    onblur={composeHandlers(clear, restProps.onblur)}
+    onclick={composeHandlers(activate, restProps.onclick)}
   >
     {@render children?.()}
   </button>
 {:else}
-  <span class={resolveClassChain(slotClasses?.mention, className) || undefined} {...restProps}>
+  <span {...restProps} class={resolveClassChain(slotClasses?.mention, className) || undefined}>
     {@render children?.()}
   </span>
 {/if}

@@ -201,6 +201,7 @@
 
 {#if guide}
   <aside
+    {...restProps}
     bind:this={panelEl}
     id={panelId}
     class={unstyled
@@ -211,7 +212,6 @@
     data-placement={placement}
     inert={!open || undefined}
     aria-labelledby={`${panelId}-title`}
-    {...restProps}
   >
     <header
       class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}

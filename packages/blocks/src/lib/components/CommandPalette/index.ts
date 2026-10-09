@@ -1,4 +1,5 @@
 import type { Snippet } from 'svelte';
+import type { HTMLDialogAttributes } from 'svelte/elements';
 import type { IconComponent } from '#lib/icons/index.js';
 import type { CommandPaletteSlots, CommandPaletteVariants } from './commandPalette.variants';
 
@@ -83,7 +84,13 @@ export interface CommandPaletteItem {
  * />
  * ```
  */
-export interface CommandPaletteProps {
+export interface CommandPaletteProps
+  // The rest of a dialog's attributes travel through the inner Dialog to its
+  // `<dialog>` element, the one that carries the dialog role and so the one an
+  // `aria-label` names; `class` styles the panel content inside it instead.
+  // `title` and `draggable` are Dialog props that mean something other than the
+  // HTML attribute, so the type leaves them out.
+  extends Omit<HTMLDialogAttributes, 'children' | 'open' | 'title' | 'draggable'> {
   // ── Content ──────────────────────────────────────────────
 
   /** Items to display. Grouped automatically by `category`. */

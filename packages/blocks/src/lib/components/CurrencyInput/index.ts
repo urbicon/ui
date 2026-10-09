@@ -57,18 +57,10 @@ export type CurrencySymbolPosition = 'prefix' | 'suffix' | 'none';
  * ```
  */
 export interface CurrencyInputProps
-  extends Omit<
-    InputProps,
-    | 'type'
-    | 'value'
-    | 'onClear'
-    | 'inputmode'
-    | 'oninput'
-    | 'onchange'
-    | 'onblur'
-    | 'onfocus'
-    | 'name'
-  > {
+  // The rest of InputProps travels on to the inner Input and its `<input>`.
+  // The handlers CurrencyInput attaches itself (`oninput`, `onblur`) stay in: a
+  // consumer's runs after the mask has applied the edit.
+  extends Omit<InputProps, 'type' | 'value' | 'onClear' | 'inputmode' | 'name'> {
   /**
    * Current monetary value in **minor units** (e.g. cents).
    * Use `null` for "no value entered yet"; the input renders empty.

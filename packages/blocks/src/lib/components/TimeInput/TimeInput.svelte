@@ -39,7 +39,9 @@
     slotClasses: slotClassesProp = {},
     preset,
     id: idProp,
-    'aria-label': ariaLabel
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedby,
+    ...restProps
   }: TimeInputProps = $props();
 
   const tierCtx = getTierContext();
@@ -52,7 +54,10 @@
   const fieldId = $derived(idProp ?? `timeinput-${propsId}`);
   const labelId = $derived(`${fieldId}-label`);
   const messageId = $derived(`${fieldId}-message`);
-  const describedBy = $derived(error || helper ? messageId : undefined);
+  const describedBy = $derived(
+    [error || helper ? messageId : undefined, ariaDescribedby].filter(Boolean).join(' ') ||
+      undefined
+  );
 
   const hourMax = $derived(format === '12h' ? 12 : 23);
   const hourMin = $derived(format === '12h' ? 1 : 0);
@@ -372,6 +377,7 @@
 </script>
 
 <div
+  {...restProps}
   class={unstyled
     ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}

@@ -506,7 +506,11 @@ All visible components should support:
 - `class` – for external class overrides (via `let { class: className } = $props()`)
 - `unstyled` – boolean to strip all default styles
 - `disabled` – boolean where applicable
-- `...restProps` – spread remaining props to root element
+- `...restProps` – spread remaining props onto one element: the root, unless
+  the root is not the element a consumer addresses — a single-control field
+  puts them on its control (`Input`'s `<input>`, and `NumberInput`'s through
+  it), an overlay on its dialog surface (`Dialog`'s `<dialog>`, `Guide`'s
+  bubble). The `*Props` interface extends that element's HTML attribute type.
 
 ### `restProps` ordering: the component's own attributes win
 
@@ -599,9 +603,12 @@ A component is promoted when all five hold:
    `git log --date=short --format='%ad %h %s' -- <path>`.
 4. The conventions in this document hold — in particular the standard props of
    § Common props. `stable` is defined by that sentence, so the criteria have
-   to ask it: eleven components in `blocks` take no `restProps`, and one of
-   them (QRCode) was promoted in the first wave without anyone checking. Grep
-   for `...rest` in the component's own root `.svelte`.
+   to ask it rather than assume it. For `restProps` that is two checks, since
+   either alone passes a component that takes nothing: the component's own
+   `.svelte` spreads it (grep for `...rest`), and its `*Props` interface
+   extends the HTML attribute type of the element the spread lands on —
+   directly, or through the props of the component it wraps. A spread whose
+   `*Props` extends no attribute type carries nothing a consumer can type.
 5. Tests cover the core behaviour (interaction and, where applicable, a11y).
 
 The reverse move is not silent: discovering a violated criterion on a stable

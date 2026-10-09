@@ -1,4 +1,5 @@
 import type { Snippet } from 'svelte';
+import type { HTMLAttributes, HTMLButtonAttributes } from 'svelte/elements';
 import type {
   GuideController,
   GuideDirection,
@@ -91,7 +92,11 @@ export interface GuideProviderProps {
  * </GuidePanel>
  * ```
  */
-export interface GuidePanelProps {
+export interface GuidePanelProps
+  // `id` and `title` are modelled below; the rest of an element's attributes reach the
+  // `<aside>`. Its accessible name stays the visible heading (`aria-labelledby`), which
+  // an `aria-label` does not override.
+  extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'children' | 'id' | 'title'> {
   /**
    * Stable DOM id for the panel root. `GuideMarker`s reference it via `aria-controls`.
    * @default auto-generated (`guide-panel-<id>`)
@@ -144,7 +149,10 @@ export interface GuidePanelProps {
  * </GuideArticle>
  * ```
  */
-export interface GuideArticleProps {
+export interface GuideArticleProps
+  // `id` is the article's registry key and `title` its list entry, neither an HTML
+  // attribute; the rest of an element's attributes reach the `<article>`.
+  extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'children' | 'id' | 'title'> {
   /** Unique article id — referenced by `GuideMarker` and `openPanel(id)`. */
   id: string;
   /** Title shown in the panel list and header. */
@@ -189,7 +197,10 @@ export interface GuideArticleProps {
  * <h3>Billing <GuideMarker for="billing" article="billing-help" /></h3>
  * ```
  */
-export interface GuideMarkerProps {
+export interface GuideMarkerProps
+  // The rest of a button's attributes reach the `<button>`; `type`, `aria-controls` and
+  // `aria-expanded` are the component's. A consumer `onclick` runs after the panel opens.
+  extends Omit<HTMLButtonAttributes, 'class' | 'children'> {
   /**
    * `data-guide` topic id this marker explains. Resolves the article (from topic meta) and
    * the link direction. Optional (unlike `GuideMention.for`) because `article` can stand
@@ -204,7 +215,7 @@ export interface GuideMarkerProps {
    */
   direction?: GuideDirection;
   /**
-   * Accessible label for the icon button.
+   * Accessible label for the icon button. An `aria-label` is used when this is unset.
    * @default i18n `guide.infoAbout` (with the topic's label) or `guide.info`
    */
   label?: string;
@@ -241,7 +252,10 @@ export interface GuideMarkerProps {
  * <p>Click the <GuideMention for="save-button">Save button</GuideMention> to persist.</p>
  * ```
  */
-export interface GuideMentionProps {
+export interface GuideMentionProps
+  // The rest of an element's attributes reach the `<button>`, or the `<span>` it degrades
+  // to. A consumer's hover, focus and click handlers run after the highlight's.
+  extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> {
   /**
    * `data-guide` id of the UI element to highlight. Required (unlike `GuideMarker.for`):
    * a mention with no target has nothing to highlight.
@@ -289,7 +303,10 @@ export interface GuideMentionProps {
  * </GuideArticle>
  * ```
  */
-export interface GuideRefProps {
+export interface GuideRefProps
+  // The rest of an element's attributes reach the `<button>`, or the `<span>` it degrades
+  // to. A consumer `onclick` runs after the navigation.
+  extends Omit<HTMLAttributes<HTMLElement>, 'class' | 'children'> {
   /** Id of the `GuideArticle` to navigate to. Inert (plain text) for an unknown id. */
   article: string;
   /** The link text. */
@@ -328,7 +345,11 @@ export interface GuideRefProps {
  * </GuideHint>
  * ```
  */
-export interface GuideHintProps {
+export interface GuideHintProps
+  // `title` is modelled below; the rest of a div's attributes reach the hint. `role`,
+  // `aria-live`, `aria-atomic`, `popover` and `style` are the component's. A consumer
+  // `onkeydown` runs after the Escape dismissal.
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'children' | 'title'> {
   /** `data-guide` id of the element to anchor to. Required — a hint with no anchor has nothing to point at. */
   for: string;
   /**
@@ -414,7 +435,13 @@ export interface GuideHintProps {
  * </GuideProvider>
  * ```
  */
-export interface GuideProps {
+export interface GuideProps
+  // The rest of a div's attributes land on the bubble — the `role="dialog"`
+  // element `class` styles too, rendered only while a step shows. The scrim and
+  // the popover layer around it are positioning machinery, not a surface.
+  // `role`, `aria-label`, `aria-modal`, `tabindex` and `style` are the
+  // component's; a consumer `onkeydown` runs after the bubble's own arrow keys.
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'children'> {
   /**
    * Padding in px between the step target and the spotlight hole edge. Also frames the
    * additive highlight ring the engine paints on the target. @default 8
@@ -465,7 +492,10 @@ export interface GuideProps {
  * </span>
  * ```
  */
-export interface GuideBeaconProps {
+export interface GuideBeaconProps
+  // The rest of a button's attributes reach the `<button>`; `type` is the component's.
+  // A consumer `onclick` runs after the beacon's own activation (`tour`, `onActivate`).
+  extends Omit<HTMLButtonAttributes, 'class' | 'children'> {
   /**
    * The tour to start when the beacon is activated. When set, the beacon also hides itself once
    * the tour has been seen (subject to `once`). Omit to drive everything from `onActivate`.
@@ -481,7 +511,7 @@ export interface GuideBeaconProps {
   /** Visual size of the hotspot. @default 'md' */
   size?: GuideBeaconVariants['size'];
   /**
-   * Accessible label for the button.
+   * Accessible label for the button. An `aria-label` is used when this is unset.
    * @default i18n `guide.startTour`
    */
   label?: string;

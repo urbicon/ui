@@ -395,3 +395,67 @@ describe('CurrencyInput (writes that are not keystrokes)', () => {
     expect(input().value).toBe('50.00');
   });
 });
+
+// COMPONENT-API-CONVENTIONS § Common props. The rest travels through Input to
+// its `<input>`, as on NumberInput; the two handlers CurrencyInput attaches
+// itself compose with a consumer's (internal first) instead of replacing them.
+describe('CurrencyInput (restProps)', () => {
+  it('passes an unmodelled attribute through to the input', () => {
+    renderCurrency({ locale: 'en-US', 'data-testid': 'price', autocomplete: 'off' });
+    expect(input().getAttribute('data-testid')).toBe('price');
+    expect(input().getAttribute('autocomplete')).toBe('off');
+  });
+
+  it('keeps its own state against a contradicting consumer', () => {
+    renderCurrency({
+      locale: 'en-US',
+      error: 'Too much',
+      'aria-invalid': 'false',
+      // Typed out of the props, but an untyped caller can still send it.
+      ...({ inputmode: 'numeric' } as object)
+    });
+    expect(input().getAttribute('aria-invalid')).toBe('true');
+    expect(input().getAttribute('inputmode')).toBe('decimal');
+  });
+
+  it('runs a consumer oninput after the mask has applied the edit', () => {
+    const onValueChange = vi.fn();
+    const seen: string[] = [];
+    renderCurrency({
+      locale: 'en-US',
+      onValueChange,
+      oninput: (event) => seen.push(event.currentTarget.value)
+    });
+
+    type('1234.56');
+
+    expect(onValueChange).toHaveBeenLastCalledWith(123456);
+    // The consumer reads the masked text, not the raw keystroke.
+    expect(seen).toEqual(['1,234.56']);
+  });
+
+  it('runs a consumer onblur and still drops a half-composed sign', async () => {
+    const onblur = vi.fn();
+    renderCurrency({ locale: 'de-DE', onblur });
+
+    place(0);
+    await typeChar('-');
+    input().dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    flushSync();
+
+    expect(onblur).toHaveBeenCalledOnce();
+    expect(input().value).toBe('');
+  });
+
+  it('passes onfocus and onchange through, which it does not handle itself', () => {
+    const onfocus = vi.fn();
+    const onchange = vi.fn();
+    renderCurrency({ locale: 'en-US', onfocus, onchange });
+
+    input().focus();
+    input().dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(onfocus).toHaveBeenCalledOnce();
+    expect(onchange).toHaveBeenCalledOnce();
+  });
+});

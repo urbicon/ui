@@ -74,3 +74,41 @@ describe('QRCode', () => {
     expect(screen.getByRole('img').textContent).toMatch(/too long/i);
   });
 });
+
+// COMPONENT-API-CONVENTIONS § Common props: attributes QRCode does not model
+// land on the root `<span>`, the element `class` targets.
+describe('QRCode (restProps)', () => {
+  const root = () => document.querySelector('[data-testid="pairing-code"]') as HTMLElement;
+
+  it('passes an unmodelled attribute through to the root', () => {
+    render({ 'data-testid': 'pairing-code', title: 'Scan me' });
+    expect(root().tagName).toBe('SPAN');
+    expect(root().contains(svg())).toBe(true);
+    expect(root().getAttribute('title')).toBe('Scan me');
+    expect(svg().hasAttribute('data-testid')).toBe(false);
+  });
+
+  it('keeps `class` in its own pipeline beside the spread', () => {
+    render({ class: 'my-code', 'data-testid': 'pairing-code' });
+    expect(root().classList.contains('my-code')).toBe(true);
+    // The tv() root classes survive next to the consumer's.
+    expect(root().classList.contains('inline-flex')).toBe(true);
+  });
+
+  it('puts aria-describedby on the image, not on the root', () => {
+    render({ 'aria-describedby': 'pairing-help', 'data-testid': 'pairing-code' });
+    expect(screen.getByRole('img').getAttribute('aria-describedby')).toBe('pairing-help');
+    expect(root().hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  it('puts aria-describedby on the fallback image too', () => {
+    render({
+      value: 'x'.repeat(60),
+      errorCorrection: 'H',
+      maxVersion: 1,
+      'aria-describedby': 'pairing-help'
+    });
+    expect(svg()).toBeNull();
+    expect(screen.getByRole('img').getAttribute('aria-describedby')).toBe('pairing-help');
+  });
+});

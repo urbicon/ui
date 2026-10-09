@@ -214,3 +214,53 @@ describe('TimeInput', () => {
     expect(segments.every((s) => s.getAttribute('aria-required') === null)).toBe(true);
   });
 });
+
+// COMPONENT-API-CONVENTIONS § Common props. The rest lands on the root wrapper
+// (the element `class` targets), as on PinInput, the other segmented field.
+describe('TimeInput (restProps)', () => {
+  const root = () => document.querySelector('[data-testid="start"]') as HTMLElement;
+
+  it('passes an unmodelled attribute through to the root', () => {
+    render({ 'data-testid': 'start', class: 'w-40', label: 'Start' });
+    expect(root().contains(screen.getByRole('group'))).toBe(true);
+    expect(root().contains(screen.getByText('Start'))).toBe(true);
+    // `class` keeps going through the tv() pipeline next to the spread.
+    expect(root().classList.contains('w-40')).toBe(true);
+    expect(root().classList.length).toBeGreaterThan(1);
+  });
+
+  it('keeps id and aria-label on the elements they name', () => {
+    render({ 'data-testid': 'start', id: 'start-time', 'aria-label': 'Start time' });
+    expect(hour().id).toBe('start-time');
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Start time');
+    expect(root().hasAttribute('id')).toBe(false);
+    expect(root().hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('appends a consumer aria-describedby after its own message id, on every segment', () => {
+    render({ error: 'Too early', withSeconds: true, 'aria-describedby': 'outside-hint' });
+    for (const segment of screen.getAllByRole('spinbutton')) {
+      const parts = (segment.getAttribute('aria-describedby') ?? '').split(/\s+/);
+      expect(parts).toHaveLength(2);
+      expect(document.getElementById(parts[0])?.textContent).toBe('Too early');
+      expect(parts[1]).toBe('outside-hint');
+    }
+  });
+
+  it('carries a consumer aria-describedby alone when there is no message', () => {
+    render({ 'aria-describedby': 'outside-hint' });
+    expect(hour().getAttribute('aria-describedby')).toBe('outside-hint');
+  });
+
+  it('runs a consumer onfocusout on the root and still clamps on leave', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const onfocusout = vi.fn();
+    render({ min: '09:00', onValueChange, onfocusout });
+    hour().focus();
+    await user.keyboard('0730');
+    await user.tab();
+    expect(onfocusout).toHaveBeenCalled();
+    expect(onValueChange).toHaveBeenLastCalledWith('09:00');
+  });
+});

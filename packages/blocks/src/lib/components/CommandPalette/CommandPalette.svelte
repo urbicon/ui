@@ -32,7 +32,8 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset
+    preset,
+    ...restProps
   }: CommandPaletteProps = $props();
 
   const placeholder = $derived(placeholderProp ?? bt('commandPalette.search', {}));
@@ -205,6 +206,7 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <Dialog
+  {...restProps}
   {unstyled}
   bind:open
   size="md"

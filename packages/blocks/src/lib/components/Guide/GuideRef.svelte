@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
   import { getGuidePanelContext } from './guide-panel.context';
   import { guideRefVariants, type GuideRefVariants } from './guide.variants';
@@ -76,20 +77,22 @@
   }
 </script>
 
+<!-- The consumer's onclick is read off restProps rather than destructured, so the span
+     branch still receives it through its own spread. -->
 {#if interactive}
   <button
+    {...restProps}
     type="button"
     class={unstyled
       ? resolveClassChain(slotClasses?.ref, className)
       : styles.ref({ class: [slotClasses?.ref, className] })}
     data-guide-ref
-    onclick={navigate}
-    {...restProps}
+    onclick={composeHandlers(navigate, restProps.onclick)}
   >
     {@render children?.()}
   </button>
 {:else}
-  <span class={resolveClassChain(slotClasses?.ref, className) || undefined} {...restProps}>
+  <span {...restProps} class={resolveClassChain(slotClasses?.ref, className) || undefined}>
     {@render children?.()}
   </span>
 {/if}
