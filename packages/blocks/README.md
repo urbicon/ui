@@ -94,7 +94,9 @@ answer with the flag on.
 ```svelte
 <BlocksProvider
   presets={{
-    Button: { overlay: { slotClasses: { base: 'bg-black/20 hover:bg-black/30 text-white' } } }
+    Button: {
+      overlay: { slotClasses: { base: 'bg-neutral-950/20 hover:bg-neutral-950/30 text-neutral-0' } }
+    }
   }}
 >
   <Button preset="overlay">Weiter</Button>

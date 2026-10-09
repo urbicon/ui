@@ -570,19 +570,19 @@ Register once at the app root:
     Button: {
       overlay: {
         slotClasses: {
-          base: 'bg-black/20 hover:bg-black/30 active:bg-black/40 text-white border-transparent'
+          base: 'bg-neutral-950/20 hover:bg-neutral-950/30 active:bg-neutral-950/40 text-neutral-0 border-transparent'
         }
       },
       brand: {
         slotClasses: {
-          base: 'bg-[#FF5A1F] hover:bg-[#E04C15] active:bg-[#C53F0D] text-white border-transparent'
+          base: 'bg-[#FF5A1F] hover:bg-[#E04C15] active:bg-[#C53F0D] text-neutral-0 border-transparent'
         }
       }
     },
     Card: {
       glass: {
         slotClasses: {
-          base: 'bg-white/10 backdrop-blur-xl border-white/20'
+          base: 'bg-neutral-0/10 backdrop-blur-xl border-neutral-0/20'
         }
       }
     }
@@ -604,7 +604,10 @@ Then use across the project:
 ```svelte
 <!-- ❌ AVOID: Defeats hover/active cascade, leaks decisions into every call site,
      requires `!` to out-specify tv() defaults, inconsistent across the project. -->
-<Button intent="primary" class="bg-black/20! hover:bg-black/30! active:bg-black/40!">
+<Button
+  intent="primary"
+  class="bg-neutral-950/20! hover:bg-neutral-950/30! active:bg-neutral-950/40!"
+>
   Reinholen
 </Button>
 

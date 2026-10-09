@@ -1,8 +1,7 @@
-<!-- urbicon-ignore raw-tailwind-color — the raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo paints a dark branded shell
+     with `slotClasses`: the panel, borders and ink stay on the neutral scale, and only the
+     indigo accent (the logo tile and the active item) is raw — a brand hue the intent palette
+     has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Badge, Button, CloseIcon, Kbd, Separator, Sidebar } from '@urbicon-ui/blocks';
@@ -196,7 +195,7 @@
   }}
 >
   {#snippet header()}
-    <span class="text-white font-semibold">Brand</span>
+    <span class="text-neutral-0 font-semibold">Brand</span>
   {/snippet}
   <nav class="p-3">
     <button class="text-neutral-400 hover:bg-neutral-800">Overview</button>
@@ -220,16 +219,16 @@
             <div class="flex items-center justify-between py-3">
               <div class="flex items-center gap-2">
                 <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500">
-                  <span class="text-xs font-bold text-white">A</span>
+                  <span class="text-neutral-0 text-xs font-bold">A</span>
                 </div>
-                <span class="font-semibold text-white">Acme Inc</span>
+                <span class="text-neutral-0 font-semibold">Acme Inc</span>
               </div>
               <Button
                 variant="ghost"
                 size="xs"
                 onclick={() => (brandedOpen = false)}
                 aria-label="Close sidebar"
-                slotClasses={{ base: 'text-neutral-400 hover:text-white hover:bg-neutral-800' }}
+                slotClasses={{ base: 'text-neutral-400 hover:text-neutral-0 hover:bg-neutral-800' }}
               >
                 <CloseIcon class="h-4 w-4" />
               </Button>

@@ -36,7 +36,7 @@ import type { ButtonSlots, ButtonVariants } from './button.variants';
  *     Button: {
  *       overlay: {
  *         slotClasses: {
- *           base: 'bg-black/20 hover:bg-black/30 active:bg-black/40 text-white border-transparent'
+ *           base: 'bg-neutral-950/20 hover:bg-neutral-950/30 active:bg-neutral-950/40 text-neutral-0 border-transparent'
  *         }
  *       }
  *     }

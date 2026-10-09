@@ -1,8 +1,8 @@
-<!-- urbicon-ignore raw-tailwind-color — the raw colours are the Customization
-     section's subject. Those demos exist to show what `slotClasses`/`unstyled` reach
-     that the token system deliberately does not: glassmorphism, a terminal look, a neon
-     outline. Tokenising them would delete the example. Every other section on this page
-     stays under the rule. -->
+<!-- urbicon-ignore raw-tailwind-color — the Customization demo paints the trigger with
+     `slotClasses.button`: it keeps the button's shape and behaviour, and only the
+     violet→fuchsia gradient, its hover shift and the white icon are raw — a two-hue brand
+     gradient the intent palette has no equivalent for. Every other section on this page stays
+     under the rule. -->
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Kbd, ThemeSwitcher, Toggle } from '@urbicon-ui/blocks';

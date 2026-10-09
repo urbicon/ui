@@ -49,9 +49,19 @@ const RAW_PALETTE =
   'slate|gray|zinc|stone|mauve|olive|mist|taupe|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';
 const RAW_PALETTE_STEPLESS = 'white|black';
 
-/** Colour-bearing Tailwind prefixes (longest first so `border-l` wins over `border`). */
+/**
+ * Colour-bearing Tailwind prefixes (longest first so `border-l` wins over `border`).
+ * A copy like the palette; `linter.test.ts` reads every root Tailwind's class list
+ * feeds a theme colour into and fails on one missing here that its exception list
+ * does not name.
+ */
 const COLOR_PREFIXES = [
+  'scrollbar-thumb',
+  'scrollbar-track',
   'ring-offset',
+  'inset-ring',
+  'border-bs',
+  'border-be',
   'border-x',
   'border-y',
   'border-t',
@@ -149,9 +159,13 @@ const rawTailwindColor: Rule = {
   description:
     'Raw Tailwind palette colour (e.g. `bg-blue-500`, `bg-white`) instead of a semantic token.',
   check(lines) {
-    // Trailing `(?![a-z0-9-])` (not `\b`) so an optional `/NN` opacity suffix stays in the match.
+    // Leading `(?<![\w./-])` (not `\b`, which also opens after `-`, `.` and `/`): a
+    // utility follows whitespace, a quote, a variant's `:` or the `!` modifier; after
+    // those three it sits inside a kebab-case word, a path or a CSS variable
+    // (`fade-to-black`, `./bg-white.png`, `--text-white`). Trailing
+    // `(?![a-z0-9-])` (not `\b`) so an optional `/NN` opacity suffix stays in the match.
     const re = new RegExp(
-      `\\b(?:${COLOR_PREFIXES.join('|')})-(?:(?:${RAW_PALETTE})-(?:50|100|200|300|400|500|600|700|800|900|950)|(?<stepless>${RAW_PALETTE_STEPLESS}))(?:\\/\\d{1,3})?(?![a-z0-9-])`,
+      `(?<![\\w./-])(?:${COLOR_PREFIXES.join('|')})-(?:(?:${RAW_PALETTE})-(?:50|100|200|300|400|500|600|700|800|900|950)|(?<stepless>${RAW_PALETTE_STEPLESS}))(?:\\/\\d{1,3})?(?![a-z0-9-])`,
       'g'
     );
     const findings: Finding[] = [];
@@ -163,7 +177,7 @@ const rawTailwindColor: Rule = {
           kind: 'deterministic',
           message: `Raw Tailwind colour \`${m[0]}\` bypasses the token system (no dark-mode adaptation, no theming).`,
           fix: m.groups?.stepless
-            ? 'Use a semantic token: `bg-surface-base`/`-elevated` for a white ground, `text-text-on-fill` for ink on a solid intent fill, `text-text-primary` for body ink. Where the colour must not flip with the mode — ink or a scrim over a photo, on a fixed-dark ground — the neutral scale ends are tokens too: `text-neutral-0`, `bg-neutral-950/50`.'
+            ? 'Use a semantic token: `bg-surface-base`/`-elevated` for a white ground, `text-text-on-fill` for ink on a solid intent fill (`text-text-on-warning` on warning), `text-text-primary` for body ink. Where the colour must not flip with the mode — ink or a scrim over a photo, on a fixed-dark ground — the neutral scale ends are tokens too: `text-neutral-0`, `bg-neutral-950/50`.'
             : 'Use a semantic token: `bg-surface-*`, `text-text-*`, `border-border-*`, or an intent (`bg-primary` as a fill, `text-success-text` as text).',
           line: i + 1,
           match: m[0]

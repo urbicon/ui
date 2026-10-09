@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { __unstable__loadDesignSystem } from 'tailwindcss';
 import { describe, expect, it } from 'vitest';
 import { maskTeachingCode } from './heuristics.js';
 import { lintDesign, maskComments } from './linter.js';
@@ -12,6 +13,29 @@ function ids(findings: Finding[]): string[] {
 function has(findings: Finding[], ruleId: string): boolean {
   return findings.some((f) => f.ruleId === ruleId);
 }
+function rawMatches(code: string): (string | undefined)[] {
+  return lintDesign(code)
+    .findings.filter((f) => f.ruleId === 'raw-tailwind-color')
+    .map((f) => f.match);
+}
+function tailwindTheme(): string {
+  return readFileSync(createRequire(import.meta.url).resolve('tailwindcss/theme.css'), 'utf8');
+}
+function tailwindColourKeys(): string[] {
+  return [...tailwindTheme().matchAll(/--color-([a-z0-9-]+)\s*:/g)].map((m) => m[1] ?? '');
+}
+
+/**
+ * Utility roots Tailwind feeds a theme colour into that raw-tailwind-color leaves alone.
+ * Each is a decision, not an oversight; an entry that matches no root fails as stale.
+ */
+const UNFLAGGED_COLOUR_ROOTS: Record<string, RegExp> = {
+  // The system has no shadow-colour token — its shadows come whole from `--blocks-shadow-*`
+  // — so a flagged `shadow-black/10` would have nothing to switch to.
+  shadow: /^(?:inset-|drop-|text-)?shadow$/,
+  // A mask stop never paints: only its alpha (or luminance) decides what shows through.
+  'mask stop': /^mask-[a-z]+-(?:from|to)$/
+};
 
 describe('raw-tailwind-color', () => {
   it('flags numbered chromatic palette utilities', () => {
@@ -52,36 +76,79 @@ describe('raw-tailwind-color', () => {
       'caret-black',
       'placeholder-white'
     ];
-    const matches = lintDesign(`<div class="hover:${classes.join(' !')}">`)
-      .findings.filter((f) => f.ruleId === 'raw-tailwind-color')
-      .map((f) => f.match);
-    expect(matches).toEqual(classes);
+    expect(rawMatches(`<div class="hover:${classes.join(' !')}">`)).toEqual(classes);
+  });
+  it('flags a raw colour wherever a class can sit', () => {
+    const cases: [code: string, match: string][] = [
+      ['<div class="md:dark:bg-black">', 'bg-black'],
+      ['<div class="[&>*]:text-white">', 'text-white'],
+      ['<div class="bg-white!">', 'bg-white'],
+      ["<div class='text-white'>", 'text-white'],
+      ['<div class={`p-2 bg-black/50`}>', 'bg-black/50'],
+      ['<div class:bg-white={on}>', 'bg-white'],
+      ['<style>.x { @apply bg-white; }</style>', 'bg-white'],
+      ['<div class="bg-linear-to-r from-black/80 to-transparent">', 'from-black/80']
+    ];
+    for (const [code, match] of cases) expect(rawMatches(code), code).toEqual([match]);
   });
   it('points white/black at the ink and ground tokens, not the generic token list', () => {
     const [finding] = lintDesign('<div class="text-white">').findings;
     expect(finding?.fix).toContain('text-text-on-fill');
+    // On the warning fill `text-on-fill` fails AA (it is white on the light-mode amber);
+    // `text-on-warning` clears it, so a hint naming only on-fill steers a fix wrong.
+    expect(finding?.fix).toContain('`text-text-on-warning` on warning');
   });
-  it('does NOT flag the colour keywords or look-alike utilities', () => {
-    const { findings } = lintDesign(
-      '<div class="bg-transparent text-current border-inherit font-black whitespace-nowrap">'
-    );
-    expect(has(findings, 'raw-tailwind-color')).toBe(false);
+  it('does NOT flag the colour keywords, look-alike utilities, or white/black inside a word', () => {
+    for (const code of [
+      '<div class="bg-transparent text-current border-inherit font-black whitespace-nowrap">',
+      '<div class="animate-[fade-to-black_1s]">',
+      "<script>const animation = 'fade-to-black';</script>",
+      "<script>import bg from './bg-white.png';</script>",
+      '<div class="text-(--text-white)">',
+      '<div class="[--ring-black:#000]">'
+    ]) {
+      expect(rawMatches(code), code).toEqual([]);
+    }
   });
   it('flags every colour of the installed Tailwind theme that is not an Urbicon token', () => {
     // The palette in rules.ts is a copy — the engine ships without Tailwind. Tailwind's own
     // theme is the oracle: every `--color-*` key it defines is either one of our tokens
     // (`neutral-*` is redefined by blocks) or a raw colour this rule must catch.
-    const theme = readFileSync(
-      createRequire(import.meta.url).resolve('tailwindcss/theme.css'),
-      'utf8'
-    );
-    const keys = [...theme.matchAll(/--color-([a-z0-9-]+)\s*:/g)].map((m) => m[1] ?? '');
+    const keys = tailwindColourKeys();
     expect(keys.length).toBeGreaterThan(0);
-    const wrong = keys.filter((key) => {
-      const flagged = has(lintDesign(`<div class="bg-${key}">`).findings, 'raw-tailwind-color');
-      return flagged === VALID_TOKEN_CORES.has(key);
-    });
+    const wrong = keys.filter(
+      (key) => rawMatches(`<div class="bg-${key}">`).length > 0 === VALID_TOKEN_CORES.has(key)
+    );
     expect(wrong, `misjudged Tailwind colours: ${wrong.join(', ')}`).toEqual([]);
+  });
+  it('covers every utility root Tailwind feeds a colour into, bar the named exceptions', async () => {
+    // COLOR_PREFIXES in rules.ts is a copy too. Tailwind's class list is the oracle: every
+    // `<root>-<colour>` it generates is a root that takes a colour.
+    const sample = tailwindColourKeys().find((k) => /-\d+$/.test(k) && !VALID_TOKEN_CORES.has(k));
+    expect(sample).toBeDefined();
+    const system = await __unstable__loadDesignSystem(tailwindTheme());
+    const roots = [
+      ...new Set(
+        system
+          .getClassList()
+          .map(([name]) => name.match(new RegExp(`^(.+)-${sample}$`))?.[1])
+          .filter((root): root is string => root !== undefined)
+      )
+    ];
+    expect(roots.length).toBeGreaterThan(0);
+    const exempt = (root: string) =>
+      Object.values(UNFLAGGED_COLOUR_ROOTS).some((family) => family.test(root));
+    const wrong = roots.filter((root) => {
+      const flagged = [sample, 'white'].map(
+        (colour) => rawMatches(`<div class="${root}-${colour}">`).length > 0
+      );
+      return exempt(root) ? flagged.some(Boolean) : !flagged.every(Boolean);
+    });
+    expect(wrong, `colour roots misjudged: ${wrong.join(', ')}`).toEqual([]);
+    const stale = Object.entries(UNFLAGGED_COLOUR_ROOTS)
+      .filter(([, family]) => !roots.some((root) => family.test(root)))
+      .map(([name]) => name);
+    expect(stale, `exceptions matching no Tailwind root: ${stale.join(', ')}`).toEqual([]);
   });
 });
 
