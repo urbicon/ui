@@ -1,0 +1,214 @@
+// @vitest-environment jsdom
+import { flushSync, mount, unmount } from 'svelte';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  expectedCarriers,
+  nonFinite,
+  num,
+  probeCarriers,
+  probes
+} from '#lib/internal/charts/__fixtures__/chart-dom.js';
+import { LINE_CHART_SLOTS, type LineChartSlot } from '#lib/internal/charts/slots.js';
+import type { LineChartProps } from './index';
+import LineChart from './LineChart.svelte';
+
+/**
+ * Every mount draws into a fixed 200 × 100 plot: `width` is set and the
+ * margins are 0, so plot and frame coordinates coincide. Without `width` the
+ * frame measures its container, which jsdom never lays out — every coordinate
+ * would derive from the 320 px pre-measure fallback instead. With it the frame
+ * measures nothing, and a browser derives the same numbers.
+ *
+ * Expected geometry is written out by hand from the nice-tick definition, not
+ * recomputed through the chart's own helpers.
+ */
+const PLOT = {
+  width: 200,
+  height: 100,
+  margin: { top: 0, right: 0, bottom: 0, left: 0 },
+  formatValue: String
+} satisfies Partial<LineChartProps>;
+
+const WEEK = [
+  { label: 'Mon', values: [20] },
+  { label: 'Tue', values: [40] },
+  { label: 'Wed', values: [30] }
+];
+
+let dispose: (() => void) | undefined;
+
+afterEach(() => {
+  dispose?.();
+  dispose = undefined;
+  document.body.replaceChildren();
+});
+
+function render(props: LineChartProps): HTMLElement {
+  const target = document.createElement('div');
+  document.body.append(target);
+  const app = mount(LineChart, { target, props: { ...PLOT, ...props } });
+  dispose = () => unmount(app);
+  flushSync();
+  return target;
+}
+
+/** `[cx, cy]` per point marker, in document order. */
+function points(target: Element) {
+  return [...target.querySelectorAll('circle')].map((c) => [num(c, 'cx'), num(c, 'cy')]);
+}
+
+/** The `d` of each series line. */
+function lines(target: Element) {
+  return [...target.querySelectorAll('path')].map((path) => path.getAttribute('d'));
+}
+
+/** Value-axis tick labels, bottom tick first. */
+function tickLabels(target: Element) {
+  return [...target.querySelectorAll('text[text-anchor="end"]')].map((t) => t.textContent?.trim());
+}
+
+describe('LineChart — value axis', () => {
+  it('frames the data range rather than reaching zero by default', () => {
+    const target = render({ data: WEEK });
+
+    expect(tickLabels(target)).toEqual(['20', '25', '30', '35', '40']);
+  });
+
+  it('reaches zero under includeZero, and the points move with the axis', () => {
+    const target = render({ data: WEEK, includeZero: true });
+
+    expect(tickLabels(target)).toEqual(['0', '10', '20', '30', '40']);
+    // 2.5 px per unit now, against 5 when the axis framed [20, 40].
+    expect(points(target)).toEqual([
+      [0, 50],
+      [100, 0],
+      [200, 25]
+    ]);
+  });
+});
+
+describe('LineChart — series geometry', () => {
+  it('spreads the points across the full plot width, first on the left edge and last on the right', () => {
+    const target = render({ data: WEEK });
+
+    expect(points(target)).toEqual([
+      [0, 100],
+      [100, 0],
+      [200, 50]
+    ]);
+    const categoryX = [...target.querySelectorAll('text[text-anchor="middle"]')].map((t) =>
+      num(t, 'x')
+    );
+    expect(categoryX).toEqual([0, 100, 200]);
+  });
+
+  it('draws the line through its points', () => {
+    const target = render({ data: WEEK });
+
+    expect(lines(target)).toEqual(['M0,100L100,0L200,50']);
+  });
+
+  it('draws one point per series and datum, and a missing value as zero', () => {
+    const target = render({
+      series: [{ label: 'A' }, { label: 'B' }],
+      data: [
+        { label: 'a', values: [2, 4] },
+        { label: 'b', values: [4] }
+      ]
+    });
+
+    // B has no value at `b`, so the domain is [0, 4] and B ends on the floor.
+    expect(lines(target)).toEqual(['M0,50L200,0', 'M0,0L200,100']);
+    expect(points(target)).toEqual([
+      [0, 50],
+      [200, 0],
+      [0, 0],
+      [200, 100]
+    ]);
+  });
+});
+
+describe('LineChart — degenerate data', () => {
+  it('centres a single point horizontally and keeps it inside the plot', () => {
+    const target = render({ data: [{ label: 'Only', values: [7] }] });
+
+    const [[cx, cy]] = points(target);
+    expect(cx).toBe(100);
+    expect(cy).toBeGreaterThanOrEqual(0);
+    expect(cy).toBeLessThanOrEqual(100);
+    // A lone move-to: nothing to connect, nothing drawn off the point.
+    expect(lines(target)).toEqual([expect.stringMatching(/^M100,[\d.]+$/)]);
+    expect(nonFinite(target)).toEqual([]);
+  });
+
+  it('draws an empty line and no points for empty data, with no non-finite coordinate', () => {
+    const target = render({ data: [] });
+
+    expect(points(target)).toEqual([]);
+    expect(lines(target)).toEqual(['']);
+    expect(tickLabels(target).length).toBeGreaterThan(1);
+    expect(nonFinite(target)).toEqual([]);
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe('Line chart: 0 points');
+  });
+
+  it('opens a window around a flat series instead of dividing by a zero range', () => {
+    const target = render({
+      data: [
+        { label: 'a', values: [5] },
+        { label: 'b', values: [5] },
+        { label: 'c', values: [5] }
+      ]
+    });
+
+    const ys = points(target).map(([, cy]) => cy);
+    expect(new Set(ys).size).toBe(1);
+    expect(ys[0]).toBeGreaterThanOrEqual(0);
+    expect(ys[0]).toBeLessThanOrEqual(100);
+    expect(nonFinite(target)).toEqual([]);
+  });
+});
+
+describe('LineChart — slot contract', () => {
+  /** Each slot's element, picked by tag and tree position — never by class. */
+  function pick(target: Element): Record<LineChartSlot, () => Element[]> {
+    const figure = target.querySelector(':scope > figure');
+    const svg = figure?.querySelector(':scope > svg');
+    if (!figure || !svg) throw new Error('no <figure> > <svg>');
+    const groups = [...svg.querySelectorAll(':scope > g > g')];
+    const axes = groups.filter((g) => g.querySelector(':scope > text'));
+    return {
+      root: () => [figure],
+      svg: () => [svg],
+      grid: () =>
+        groups.filter(
+          (g) => g.children.length > 0 && [...g.children].every((c) => c.localName === 'line')
+        ),
+      axis: () => axes,
+      axisLabel: () => axes.flatMap((g) => [...g.querySelectorAll(':scope > text')]),
+      mark: () => [...svg.querySelectorAll('path')],
+      point: () => [...svg.querySelectorAll('circle')],
+      legend: () => [...figure.querySelectorAll(':scope > ul')],
+      legendItem: () => [...figure.querySelectorAll(':scope > ul > li')],
+      legendSwatch: () => [...figure.querySelectorAll(':scope > ul > li > span')]
+    };
+  }
+
+  it('puts each slot key on the elements it names, and on no other', () => {
+    const target = render({
+      series: [{ label: 'A' }, { label: 'B' }],
+      data: [
+        { label: 'Jan', values: [1, 2] },
+        { label: 'Feb', values: [3, 4] }
+      ],
+      slotClasses: probes(LINE_CHART_SLOTS)
+    });
+
+    const expected = expectedCarriers(target, LINE_CHART_SLOTS, pick(target));
+    // A slot with nothing to land on in this state would compare empty to empty.
+    expect(LINE_CHART_SLOTS.filter((slot) => expected[slot].length === 0)).toEqual([]);
+    // Two series over two categories: `mark` on 2 paths, `point` on 4 circles.
+    expect(expected.mark).toHaveLength(2);
+    expect(expected.point).toHaveLength(4);
+    expect(probeCarriers(target, LINE_CHART_SLOTS)).toEqual(expected);
+  });
+});

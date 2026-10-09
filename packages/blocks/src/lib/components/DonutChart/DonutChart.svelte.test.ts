@@ -1,0 +1,271 @@
+// @vitest-environment jsdom
+import { flushSync, mount, unmount } from 'svelte';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  expectedCarriers,
+  nonFinite,
+  probeCarriers,
+  probes
+} from '#lib/internal/charts/__fixtures__/chart-dom.js';
+import { DONUT_CHART_SLOTS, type DonutChartSlot } from '#lib/internal/charts/slots.js';
+import DonutChart from './DonutChart.svelte';
+import type { DonutChartProps } from './index';
+
+/**
+ * The donut sizes itself from `size` alone and measures nothing, so jsdom
+ * derives the same arcs a browser does. Each arc is read back from its `d` as
+ * angles — degrees clockwise from 12 o'clock — and radii, so an assertion says
+ * which part of the turn a slice covers rather than which string drew it.
+ */
+const SIZE = 200;
+const CENTRE = SIZE / 2;
+
+let dispose: (() => void) | undefined;
+
+afterEach(() => {
+  dispose?.();
+  dispose = undefined;
+  document.body.replaceChildren();
+});
+
+function render(props: DonutChartProps): HTMLElement {
+  const target = document.createElement('div');
+  document.body.append(target);
+  const app = mount(DonutChart, {
+    target,
+    props: { size: SIZE, formatValue: String, ...props }
+  });
+  dispose = () => unmount(app);
+  flushSync();
+  return target;
+}
+
+/** Degrees clockwise from 12 o'clock of a point on the ring, in [0, 360). */
+function angleOf(x: number, y: number): number {
+  const degrees = (Math.atan2(x - CENTRE, CENTRE - y) * 180) / Math.PI;
+  return (degrees + 360) % 360;
+}
+
+const N = String.raw`(-?[\d.]+)`;
+/** One ring segment: outer arc forward, a line in, inner arc back. */
+const RING = new RegExp(
+  `^M${N},${N}A${N},${N} 0 ([01]) 1 ${N},${N}L${N},${N}A${N},${N} 0 [01] 0 ${N},${N}Z$`
+);
+
+interface Ring {
+  outer: number;
+  inner: number;
+  from: number;
+  to: number;
+  largeArc: boolean;
+}
+
+/** The ring segments a `d` draws; a full ring is drawn as two halves. */
+function rings(d: string): Ring[] {
+  return d
+    .split('Z')
+    .filter(Boolean)
+    .map((part) => {
+      const m = RING.exec(`${part}Z`);
+      if (!m) throw new Error(`not a ring segment: ${part}Z`);
+      const [ox0, oy0, outer, , large, ox1, oy1, ix1, iy1, inner, , ix0, iy0] = m
+        .slice(1)
+        .map(Number);
+      const from = angleOf(ox0, oy0);
+      // The end of a slice that closes the turn reads back as 0°.
+      const to = angleOf(ox1, oy1) || 360;
+      // The inner arc must retrace the same angles, or the segment is skewed.
+      expect([angleOf(ix0, iy0), angleOf(ix1, iy1) || 360]).toEqual([
+        expect.closeTo(from, 1),
+        expect.closeTo(to, 1)
+      ]);
+      return { outer, inner, from, to, largeArc: large === 1 };
+    });
+}
+
+function arcs(target: Element): string[] {
+  return [...target.querySelectorAll('svg path')].map((p) => p.getAttribute('d') ?? '');
+}
+
+/** Rings rounded to 1 decimal: the path's coordinates carry 2. */
+function roundRings(list: Ring[]) {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return list.map((ring) => ({
+    ...ring,
+    outer: r(ring.outer),
+    inner: r(ring.inner),
+    from: r(ring.from),
+    to: r(ring.to)
+  }));
+}
+
+function centreTexts(target: Element): (string | undefined)[] {
+  return [...target.querySelectorAll('svg text')].map((t) => t.textContent?.trim());
+}
+
+describe('DonutChart — slices', () => {
+  it("gives each slice its share of the turn, clockwise from 12 o'clock and edge to edge", () => {
+    const target = render({
+      data: [
+        { label: 'A', value: 1 },
+        { label: 'B', value: 3 }
+      ]
+    });
+
+    // A quarter, then the remaining three quarters — which only render as
+    // three quarters if the large-arc flag is set.
+    expect(roundRings(arcs(target).flatMap(rings))).toEqual([
+      { outer: 100, inner: 60, from: 0, to: 90, largeArc: false },
+      { outer: 100, inner: 60, from: 90, to: 360, largeArc: true }
+    ]);
+  });
+
+  it('leaves a padAngle gap between neighbouring slices', () => {
+    const target = render({
+      padAngle: 10,
+      data: [
+        { label: 'A', value: 1 },
+        { label: 'B', value: 1 }
+      ]
+    });
+
+    expect(roundRings(arcs(target).flatMap(rings)).map(({ from, to }) => [from, to])).toEqual([
+      [5, 175],
+      [185, 355]
+    ]);
+  });
+
+  it('caps the hole at 0.95 of the radius', () => {
+    const target = render({ innerRadiusRatio: 2, data: [{ label: 'A', value: 1 }] });
+
+    expect(new Set(roundRings(rings(arcs(target)[0])).map((ring) => ring.inner))).toEqual(
+      new Set([95])
+    );
+  });
+
+  it('draws a pie slice from the centre at innerRadiusRatio 0, and no centre total', () => {
+    const target = render({
+      innerRadiusRatio: 0,
+      showTotal: true,
+      data: [
+        { label: 'A', value: 1 },
+        { label: 'B', value: 3 }
+      ]
+    });
+
+    const paths = arcs(target);
+    expect(paths).toHaveLength(2);
+    for (const d of paths) expect(d.startsWith(`M${CENTRE},${CENTRE}L`)).toBe(true);
+    expect(centreTexts(target)).toEqual([]);
+  });
+});
+
+describe('DonutChart — centre total', () => {
+  it('sums the positive values and sets the caption under it', () => {
+    const target = render({
+      showTotal: true,
+      totalLabel: 'Total',
+      data: [
+        { label: 'Refund', value: -5 },
+        { label: 'A', value: 10 },
+        { label: 'B', value: 5 }
+      ]
+    });
+
+    expect(centreTexts(target)).toEqual(['15', 'Total']);
+  });
+});
+
+describe('DonutChart — degenerate data', () => {
+  it('draws a lone slice as a full ring rather than collapsing it to a point', () => {
+    const target = render({ data: [{ label: 'All', value: 5 }] });
+
+    const paths = arcs(target);
+    expect(paths).toHaveLength(1);
+    expect(roundRings(rings(paths[0])).map(({ from, to }) => [from, to])).toEqual([
+      [0, 180],
+      [180, 360]
+    ]);
+  });
+
+  it('drops a negative slice from the ring and the rest closes the turn', () => {
+    const target = render({
+      showTotal: true,
+      data: [
+        { label: 'Refund', value: -5 },
+        { label: 'Sale', value: 10 }
+      ]
+    });
+
+    const paths = arcs(target);
+    expect(paths).toHaveLength(1);
+    expect(roundRings(rings(paths[0])).map(({ from, to }) => [from, to])).toEqual([
+      [0, 180],
+      [180, 360]
+    ]);
+    expect(centreTexts(target)).toEqual(['10']);
+  });
+
+  it('draws no arcs and a zero total for empty data, with no non-finite value', () => {
+    const target = render({ showTotal: true, data: [] });
+
+    expect(arcs(target)).toEqual([]);
+    expect(centreTexts(target)).toEqual(['0']);
+    expect(nonFinite(target)).toEqual([]);
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(
+      'Donut chart: 0 segments, total 0'
+    );
+  });
+
+  it('draws no arcs for an all-zero total, without dividing by it', () => {
+    const target = render({
+      showTotal: true,
+      data: [
+        { label: 'A', value: 0 },
+        { label: 'B', value: 0 }
+      ]
+    });
+
+    expect(arcs(target)).toEqual([]);
+    expect(nonFinite(target)).toEqual([]);
+  });
+});
+
+describe('DonutChart — slot contract', () => {
+  /** Each slot's element, picked by tag, tree position and text — never by class. */
+  function pick(target: Element): Record<DonutChartSlot, () => Element[]> {
+    const figure = target.querySelector(':scope > figure');
+    const svg = figure?.querySelector(':scope > svg');
+    if (!figure || !svg) throw new Error('no <figure> > <svg>');
+    const text = (content: string) =>
+      [...svg.querySelectorAll(':scope > text')].filter((t) => t.textContent?.trim() === content);
+    return {
+      root: () => [figure],
+      svg: () => [svg],
+      arc: () => [...svg.querySelectorAll(':scope > path')],
+      centerLabel: () => text('6'),
+      centerSubLabel: () => text('Total'),
+      legend: () => [...figure.querySelectorAll(':scope > ul')],
+      legendItem: () => [...figure.querySelectorAll(':scope > ul > li')],
+      legendSwatch: () => [...figure.querySelectorAll(':scope > ul > li > span')]
+    };
+  }
+
+  it('puts each slot key on the elements it names, and on no other', () => {
+    const target = render({
+      showTotal: true,
+      totalLabel: 'Total',
+      data: [
+        { label: 'A', value: 1 },
+        { label: 'B', value: 2 },
+        { label: 'C', value: 3 }
+      ],
+      slotClasses: probes(DONUT_CHART_SLOTS)
+    });
+
+    const expected = expectedCarriers(target, DONUT_CHART_SLOTS, pick(target));
+    // A slot with nothing to land on in this state would compare empty to empty.
+    expect(DONUT_CHART_SLOTS.filter((slot) => expected[slot].length === 0)).toEqual([]);
+    expect(probeCarriers(target, DONUT_CHART_SLOTS)).toEqual(expected);
+  });
+});
