@@ -42,8 +42,9 @@ calendar button opens the calendar. So `onValueChange` fires, and `bind:value` c
 where both used to stay silent.
 
 Two paths go the other way. Focus moving from the field into the open calendar used to commit the
-draft; it now holds it until focus leaves the picker or the calendar picks a date. And picking the
-date, or completing the range, that the picker already holds no longer fires `onValueChange` again.
+draft; it now holds it until focus leaves the picker or the calendar picks a date. And in
+`DatePicker`, picking the date the picker already holds no longer fires `onValueChange` again;
+`DateRangePicker` reports every completed range, equal or not.
 
 `DateRangePicker` also runs an `onkeydown` you pass, after its own handler, as `DatePicker` does
 since 8.28.0. Before, it was dropped without a word, so a handler that never ran starts running.

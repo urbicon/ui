@@ -181,20 +181,9 @@
     value ? ({ start: value.start, end: value.end } as CalendarSelection) : undefined
   );
 
-  // The range last reported through `onValueChange`, or the value when the
-  // calendar opened. The first click overwrites `value` with an in-progress
-  // `{ start, start }`, so a completed range is compared with this, not `value`.
-  let reportedRange: DateRange | undefined;
-
-  function report(range: DateRange | undefined) {
-    reportedRange = range;
-    onValueChange?.(range);
-  }
-
   function setOpen(newOpen: boolean) {
     if (open === newOpen) return;
     open = newOpen;
-    if (newOpen) reportedRange = value;
     onOpenChange?.(newOpen);
   }
 
@@ -221,7 +210,7 @@
     if (trimmed === '') {
       if (value !== undefined) {
         value = undefined;
-        report(undefined);
+        onValueChange?.(undefined);
       }
       parseError = undefined;
       userDraft = null;
@@ -240,7 +229,7 @@
     parseError = undefined;
     if (!value || !rangesEqual(value, parsed)) {
       value = parsed;
-      report(parsed);
+      onValueChange?.(parsed);
     }
     userDraft = null;
   }
@@ -334,9 +323,10 @@
     const isComplete = !isSameDay(range.start, range.end);
 
     value = range;
-    // A completed range equal to the one last reported — the button may just
-    // have committed it — is no change.
-    if (isComplete && (!reportedRange || !rangesEqual(reportedRange, range))) report(range);
+    // Every completed range is reported, equal or not: the first click already
+    // overwrote the range it replaced, and a hand-kept copy of it drifts from a
+    // consumer that rewrites `value` one-way, which then misses a real change.
+    if (isComplete) onValueChange?.(range);
     parseError = undefined;
     userDraft = null;
 
@@ -348,7 +338,7 @@
 
   function handleClear() {
     value = undefined;
-    report(undefined);
+    onValueChange?.(undefined);
     userDraft = null;
     parseError = undefined;
     setOpen(false);

@@ -444,7 +444,7 @@ describe('DateRangePicker (draft and focus around the calendar)', () => {
     expect(onValueChange).not.toHaveBeenCalled();
   });
 
-  it('does not report the range again when the calendar picks the one the button just committed', async () => {
+  it('reports a completed range even when it equals the one the button just committed', async () => {
     const user = userEvent.setup();
     const { onValueChange } = renderWithOutside();
 
@@ -457,7 +457,9 @@ describe('DateRangePicker (draft and focus around the calendar)', () => {
     await pickDay(user, '2026-03-10');
     await pickDay(user, '2026-03-20');
 
-    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledTimes(2);
+    const again = onValueChange.mock.calls[1][0] as DateRange;
+    expect([iso(again.start), iso(again.end)]).toEqual(['2026-03-10', '2026-03-20']);
     expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
   });
 
