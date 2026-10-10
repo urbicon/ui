@@ -155,12 +155,18 @@ async function main(argv: string[]): Promise<number> {
   }
 }
 
+// `process.exitCode`, never `process.exit()`: Node writes to a piped stdout
+// asynchronously, and `exit()` drops whatever the pipe has not taken yet —
+// output past the pipe buffer (64 KiB) is cut off. `bin.test.ts` in
+// packages/urbicon pipes a guide larger than that.
 main(process.argv.slice(2))
-  .then((code) => process.exit(code))
+  .then((code) => {
+    process.exitCode = code;
+  })
   .catch((err) => {
     // Recognised usage mistakes are handled (exit 2) inside the command bodies;
     // reaching here means an unexpected failure, so exit 1 ("could not complete"),
     // never 2 — a crash is not a usage error.
     printError(err instanceof Error ? err.message : String(err));
-    process.exit(EXIT.FAIL);
+    process.exitCode = EXIT.FAIL;
   });

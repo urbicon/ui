@@ -41,4 +41,22 @@ describe('bin/urbicon.js', () => {
     expect(viaShim.status).toBe(viaBin.status);
     expect(viaShim.stderr).toBe(viaBin.stderr);
   });
+
+  // A pipe takes 64 KiB before Node has to queue the rest; a CLI that exits before
+  // the queue drains ends mid-line. `validate` over stdin needs no content bundle,
+  // and its verdict is the last line it prints — present only if nothing was cut.
+  it('delivers piped output past the pipe buffer in full', () => {
+    const markup = `<div>\n${'  <p class="bg-white">x</p>\n'.repeat(1500)}</div>\n`;
+    for (const bin of [direct, shim]) {
+      const result = spawnSync(process.execPath, [bin, 'validate'], {
+        cwd: here,
+        input: markup,
+        encoding: 'utf8',
+        maxBuffer: 16 * 1024 * 1024
+      });
+      expect(result.stdout.length).toBeGreaterThan(64 * 1024);
+      expect(result.stdout.trimEnd().endsWith('FAIL — fix the errors above.')).toBe(true);
+      expect(result.status).toBe(1);
+    }
+  });
 });
