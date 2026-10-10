@@ -43,7 +43,10 @@ export interface SparklineProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   color?: string;
   /** Stroke width in px. @default 1.5 */
   strokeWidth?: number;
-  /** Accessible label; when omitted the sparkline is aria-hidden. */
+  /**
+   * Accessible label. A plain `aria-label` or `aria-labelledby` names the
+   * sparkline too; with none of the three it is aria-hidden.
+   */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;

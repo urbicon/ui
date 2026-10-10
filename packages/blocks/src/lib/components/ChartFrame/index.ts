@@ -29,13 +29,18 @@ export interface ChartFrameProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   /** Fixed SVG height in px. @default 240 */
   height?: number;
   /**
-   * Fixed width in px. Omit for responsive width measured from the container
-   * (the common case); set it only for SSR-stable, non-responsive output.
+   * Width in px to draw the plot at instead of measuring the container (the
+   * common case). The server output is then final; the svg still spans its
+   * column, centring the drawing in a wider one and scaling it down in a
+   * narrower one.
    */
   width?: number;
   /** Plot margins; merged over the frame defaults. */
   margin?: ChartMargin;
-  /** Accessible label for the chart image (role="img"). */
+  /**
+   * Accessible label for the chart image (role="img"). A plain `aria-label`
+   * names it too; `aria-labelledby` points it at a visible caption.
+   */
   ariaLabel?: string;
   /** Renders the SVG plot content; receives the {@link ChartPlot} geometry. */
   children?: Snippet<[ChartPlot]>;

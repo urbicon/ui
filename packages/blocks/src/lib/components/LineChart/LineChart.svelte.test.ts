@@ -210,6 +210,15 @@ describe('LineChart — what a screen reader gets', () => {
     formatValue: (value: number) => `${value}°`
   } satisfies LineChartProps;
 
+  it('lets a plain aria-label name the image and caption the table, not the figure', () => {
+    const target = render({ ...TEMPERATURES, 'aria-label': 'Temperatures' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-label')).toBe('Temperatures');
+    expect(dataTable(target).caption).toBe('Temperatures');
+    expect(figure?.hasAttribute('aria-label')).toBe(false);
+  });
+
   it.each([
     ['a generated summary', undefined, 'Line chart, points: 2, series: 2'],
     ['ariaLabel', 'Temperatures', 'Temperatures']

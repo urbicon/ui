@@ -34,6 +34,9 @@
     showLegend = true,
     showGrid = true,
     ariaLabel,
+    // A plain aria-label names the chart as `ariaLabel` does. Left in rest it
+    // would reach ChartFrame, which ranks it below the generated summary.
+    'aria-label': restAriaLabel,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -158,6 +161,7 @@
 
   const resolvedAriaLabel = $derived(
     ariaLabel ??
+      restAriaLabel ??
       bt(stacked ? 'chart.stackedAreaSummary' : 'chart.areaSummary', {
         points: data.length,
         series: resolvedSeries.length

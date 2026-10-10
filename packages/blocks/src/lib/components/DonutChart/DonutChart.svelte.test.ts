@@ -300,6 +300,27 @@ describe('DonutChart — what a screen reader gets', () => {
     formatValue: (value: number) => `${value} €`
   } satisfies DonutChartProps;
 
+  it('lets a plain aria-label name the image and caption the table, not the figure', () => {
+    const target = render({ ...CHANNELS, 'aria-label': 'Traffic by channel' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-label')).toBe(
+      'Traffic by channel'
+    );
+    expect(dataTable(target).caption).toBe('Traffic by channel');
+    expect(figure?.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('lets aria-labelledby point the image at a visible caption, not the figure', () => {
+    const target = render({ ...CHANNELS, 'aria-labelledby': 'traffic-caption' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-labelledby')).toBe(
+      'traffic-caption'
+    );
+    expect(figure?.hasAttribute('aria-labelledby')).toBe(false);
+  });
+
   it.each([
     ['a generated summary', undefined, 'Donut chart, segments: 3, total: 4 €'],
     ['ariaLabel', 'Traffic by channel', 'Traffic by channel']
