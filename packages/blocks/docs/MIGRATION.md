@@ -13,6 +13,41 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.29.0
 
+### TimeInput tells an empty field from a half-typed one
+
+`null` meant two things: nobody touched the field, or the user is halfway through a time. The
+value now has three states, read off the segments: `undefined` while every segment is empty,
+`null` while some are filled and some are blank (or, with a `step`, while a mid-entry digit leaves
+the time off the raster), and the canonical `HH:MM` / `HH:MM:SS` string once the time is
+complete. The AM/PM segment always holds a value and does not count.
+
+- **`onValueChange` receives `string | null | undefined`.** A handler typed `(v: string | null)`
+  stops compiling; widen the parameter. Backspacing every segment now ends in `undefined`, so a
+  check for "empty" written as `=== null` misses it: test `=== undefined` for empty, `=== null`
+  for half-typed, `typeof v === 'string'` for a time.
+- **Start from `undefined`.** Leave `value` out, or bind state created with `$state()`. Binding
+  an `undefined` state threw `props_invalid_value` before; it works now. A `null` you pass still
+  renders an empty field and writes nothing back, but it reads as half-typed until the user edits.
+- **No time resets a half-typed field only from outside it.** `undefined`, `null` and `""` set
+  while focus is elsewhere clear a half-typed field, which used to keep its digits; a field
+  showing a complete time clears wherever focus is, as before. Set while focus is inside a
+  half-typed field, they are ignored as the echo of the field's own report and nothing is
+  written back, so a reset fired from there (an Escape handler on the field, a clear button that
+  keeps focus with a `mousedown` `preventDefault`) leaves the digits: move focus out first, or
+  remount the field with `{#key}`. A reset has to change the value: a half-typed bound field
+  already holds `null`, so reset with `undefined`; a `string`-typed consumer that can only write
+  `""` needs the `{#key}` remount.
+- **With `withSeconds`, the clamp emits seconds.** A value clamped to `min="09:00"` arrives as
+  `09:00:00`; it used to arrive as the bound's own `09:00`.
+
+The hidden `name` input submits `""` for both empty and half-typed, as before. The grep lists
+every TimeInput with a handler, a binding or a spread; check the handler's parameter type, the
+state's initial value and any reset written from inside the field:
+
+```sh
+rg -nU '<TimeInput\b(?:"[^"]*"|=>|[^>])*?(\bonValueChange=|\{onValueChange\}|\bbind:value\b|\{\.\.\.)' src
+```
+
 ### `DatePicker` and `DateRangePicker` report the open calendar on the calendar button
 
 The text field carried `aria-expanded`, and while open `aria-controls`. ARIA does not allow

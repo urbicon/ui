@@ -7,9 +7,15 @@ import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
  * @description Segmented time-of-day field — hour / minute (/ second) cells in a
  * single unified control, with per-segment Arrow-key stepping, digit auto-advance,
  * and 12- or 24-hour display. Fills the last form-family gap (Calendar, DatePicker
- * and DateRangePicker cover dates; this covers time). The value is always a
- * canonical 24-hour `HH:MM` (or `HH:MM:SS`) string regardless of display format,
- * and `null` when empty.
+ * and DateRangePicker cover dates; this covers time). The value has three states,
+ * read off the segments alone: `undefined` while every segment is empty, `null`
+ * while the time is half-typed (some segments filled, some blank, or, with a
+ * `step`, a mid-entry digit leaving the time off the raster), and a canonical
+ * 24-hour `HH:MM` (or `HH:MM:SS`) string once it is complete, regardless of display
+ * format. `step` sets a raster in seconds, as on `<input type="time">`. An
+ * `onfocusout` you pass lands on the root and runs after the `min`/`max` clamp, on
+ * every hop between segments too: the field was left when `relatedTarget` is outside
+ * `currentTarget`.
  *
  * @tag form
  * @related DatePicker
@@ -29,6 +35,16 @@ import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
  * ```svelte
  * <TimeInput format="12h" withSeconds min="08:00" max="18:00" bind:value={time} />
  * ```
+ *
+ * @example An optional quarter-hour slot: empty may submit, half-typed may not
+ * ```svelte
+ * <script lang="ts">
+ *   // undefined while empty, null while half-typed, else a time on the raster
+ *   let slot = $state<string | null>();
+ * </script>
+ * <TimeInput label="Slot" step={900} min="08:00" max="18:00" bind:value={slot} />
+ * <button type="submit" disabled={slot === null}>Book</button>
+ * ```
  */
 export interface TimeInputProps
   extends Omit<TimeInputVariants, 'error'>,
@@ -38,22 +54,72 @@ export interface TimeInputProps
     // segment's own, a consumer's label id joins the field group's.
     Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'id' | 'aria-label' | 'children'> {
   /**
-   * Current time as a canonical 24-hour `HH:MM` / `HH:MM:SS` string; `null` when
-   * empty. The stored format never changes with `format`. Supports `bind:value`.
+   * The time as the segments spell it, in one of three states:
+   * - `undefined` while every segment is empty, untouched or cleared back to empty.
+   *   Leave the prop out (or bind `undefined`) for an empty field.
+   * - `null` while the time is half-typed: at least one segment holds a digit and
+   *   at least one is blank, or, with a `step`, a mid-entry digit leaves the time
+   *   off the raster.
+   * - A canonical 24-hour `HH:MM` / `HH:MM:SS` string once the time is complete;
+   *   `format` never changes it.
+   *
+   * An AM/PM segment always holds a value, so it never makes a time half-typed.
+   * `""` reads as no time, like `null` and `undefined`. No time you pass clears a
+   * field that shows a complete time wherever focus is, and a half-typed field
+   * while focus is outside it. On a half-typed field with focus inside, it is taken
+   * as the echo of the field's own report and ignored, so a consumer that stores no
+   * time as one value (`""` or `undefined`) cannot wipe the digits being typed; the
+   * cost is that a reset fired from inside a half-typed field (an Escape handler on
+   * it, or a clear button that keeps focus with a `mousedown` `preventDefault`) is
+   * ignored too, and nothing is written back, so value and segments disagree until
+   * the next edit. A reset has to change the value: a half-typed bound field already
+   * holds `null`, so reset it with `undefined`. Where neither works (a reset from
+   * inside, or a `string`-typed consumer that can only write `""`), remount the
+   * field with `{#key}`. A `null` you pass at mount renders empty and stays `null`
+   * until the user edits. Supports `bind:value`.
    */
-  value?: string | null;
+  value?: string | null | undefined;
   /** Display the hour as 12-hour with an AM/PM segment. The value stays 24-hour. @default '24h' */
   format?: '12h' | '24h';
   /** Add a seconds segment. @default false */
   withSeconds?: boolean;
   /**
+   * Raster in seconds, counted from `min` (or midnight) as on `<input type="time">`:
+   * `900` is a 15-minute grid, `3600` whole hours. Unset, every minute is allowed
+   * (every second with `withSeconds`).
+   *
+   * - From a time on the raster, the Arrow keys move a segment to its next raster
+   *   value and wrap inside it without carrying into the others. From a time off
+   *   it (one you passed in, or a digit mid-entry), Up goes to the first raster
+   *   point above and Down to the first below. `aria-valuemin`/`aria-valuemax`
+   *   name the first and last raster value of each segment for the time shown.
+   * - A typed time off the raster snaps down to the raster point below it as soon
+   *   as its segment is complete. While a digit is still mid-entry and the time it
+   *   spells is off the raster, the value is `null`, so it never carries an
+   *   off-raster time and always matches what the field shows. A time you pass in is shown as given, fixed segments included,
+   *   and lands on the raster with the next edit or on blur.
+   * - The raster counts from `min`: with `min="09:10"` and `900`, a typed `10:00`
+   *   lands on `09:55`.
+   * - A segment the raster pins to one value is shown but not typed: an hourly
+   *   step fixes the minute (and second), a whole-minute step fixes the second.
+   * - Without `withSeconds` only the step's whole-minute points count: `30` allows
+   *   every minute, `90` every third.
+   * - With a step that does not divide an hour (or a minute, with `withSeconds`),
+   *   typing and the blur clamp reach every raster point, but the Arrow keys only
+   *   move along points that keep the other segments; prefer a step that divides
+   *   the hour.
+   *
+   * Must be a positive whole number; anything else is ignored, with a warning in dev.
+   */
+  step?: number;
+  /**
    * Earliest allowed time, canonical 24-hour `HH:MM`(`:SS`). Values below it are
-   * clamped up on blur.
+   * clamped up on blur. It is also where the `step` raster starts.
    */
   min?: string;
   /**
    * Latest allowed time, canonical 24-hour `HH:MM`(`:SS`). Values above it are
-   * clamped down on blur.
+   * clamped down on blur, to the last `step` raster point at or below it.
    */
   max?: string;
 
@@ -87,10 +153,18 @@ export interface TimeInputProps
   /** A custom leading icon; replaces the default clock. */
   icon?: Snippet;
 
-  /** Fires after any change with the canonical 24-hour value (or `null`). */
-  onValueChange?: (value: string | null) => void;
+  /**
+   * Fires whenever the field changes the value (typing, the Arrow keys, Backspace,
+   * the clamp on blur) with the canonical 24-hour string, `null` while half-typed,
+   * or `undefined` once every segment is empty again. Setting `value` yourself does
+   * not fire it.
+   */
+  onValueChange?: (value: string | null | undefined) => void;
 
-  /** Name for a hidden input carrying the canonical value, for native form submission. */
+  /**
+   * Name for a hidden input carrying the canonical value, for native form
+   * submission; it submits `""` while the field is empty or half-typed.
+   */
   name?: string;
 
   /** Extra classes merged onto the root wrapper. */

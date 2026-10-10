@@ -8,6 +8,8 @@
 
   let { block, ctx }: { block: BlockNode; ctx: MdRenderContext } = $props();
 
+  const uid = $props.id();
+
   const headingTag = $derived(
     block.kind === 'heading' ? `h${Math.min(6, block.level - 1 + ctx.headingLevelStart)}` : 'h2'
   );
@@ -40,10 +42,22 @@
     {#each block.items as item, i (i)}
       <li class={item.checked === undefined ? ctx.classes.listItem : ctx.classes.taskItem}>
         {#if item.checked !== undefined}
-          <input type="checkbox" checked={item.checked} disabled class={ctx.classes.taskCheckbox} />
+          <!-- Named by the item's first block only: labelling by the whole item
+               would read a nested sub-list into the parent checkbox's name. -->
+          <input
+            type="checkbox"
+            checked={item.checked}
+            disabled
+            class={ctx.classes.taskCheckbox}
+            aria-labelledby={item.children.length > 0 ? `${uid}-task-${i}` : undefined}
+          />
           <div class="min-w-0 flex-1">
             {#each item.children as child, c (c)}
-              <MdBlockSelf block={child} {ctx} />
+              {#if c === 0}
+                <div id={`${uid}-task-${i}`}><MdBlockSelf block={child} {ctx} /></div>
+              {:else}
+                <MdBlockSelf block={child} {ctx} />
+              {/if}
             {/each}
           </div>
         {:else}
