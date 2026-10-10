@@ -365,7 +365,9 @@
   function onDateChange(picked: Date | undefined): void {
     writeDateTime(picked ? toDateInputValue(picked) : '');
   }
-  function onTimeChange(next: string | null): void {
+  // The model has one "no time" value, so a half-typed time (`null`) writes `""`
+  // like an empty one; TimeInput keeps its typed segments when that comes back.
+  function onTimeChange(next: string | null | undefined): void {
     writeDateTime(next ?? '');
   }
 
@@ -711,7 +713,7 @@
     <TimeInput
       unstyled={context.unstyled}
       label={label || undefined}
-      value={dtParts.time || null}
+      value={dtParts.time || undefined}
       onValueChange={onTimeChange}
       withSeconds={dtParts.time.length > 5}
       min={dtMinParts.time && !dtMinParts.date ? dtMinParts.time : undefined}

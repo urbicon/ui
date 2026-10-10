@@ -11,6 +11,33 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.29.0
+
+### TimeInput tells an empty field from a half-typed one
+
+`null` meant two things: nobody touched the field, or the user is halfway through a time. The
+value now has three states, read off the segments: `undefined` while every segment is empty,
+`null` while some are filled and some are blank, and the canonical `HH:MM` / `HH:MM:SS` string
+once the time is complete. The AM/PM segment always holds a value and does not count.
+
+- **`onValueChange` receives `string | null | undefined`.** A handler typed `(v: string | null)`
+  stops compiling; widen the parameter. Backspacing every segment now ends in `undefined`, so a
+  check for "empty" written as `=== null` misses it: test `=== undefined` for empty, `=== null`
+  for half-typed, `typeof v === 'string'` for a time.
+- **Start from `undefined`.** Leave `value` out, or bind state created with `$state()`. Binding
+  an `undefined` state threw `props_invalid_value` before; it works now. A `null` you pass still
+  renders an empty field and writes nothing back, but it reads as half-typed until the user edits.
+- **With `withSeconds`, the clamp emits seconds.** A value clamped to `min="09:00"` arrives as
+  `09:00:00`; it used to arrive as the bound's own `09:00`.
+
+The hidden `name` input submits `""` for both empty and half-typed, as before. The grep lists
+every TimeInput with a handler or a binding; check the handler's parameter type and the state's
+initial value:
+
+```sh
+rg -nU '<TimeInput\b(?:=>|[^>])*?(\bonValueChange=|\bbind:value\b)' src
+```
+
 ## 8.28.0
 
 ### A chart's `aria-label` and `aria-labelledby` name the chart

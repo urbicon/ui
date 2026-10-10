@@ -14,9 +14,10 @@
   const ClockIcon = resolveIcon('clock', ClockIconDefault);
 
   let {
-    value = $bindable(null),
+    value = $bindable(),
     format = '24h',
     withSeconds = false,
+    step,
     min,
     max,
     tier,
@@ -94,30 +95,105 @@
     return h12 === 12 ? 12 : h12 + 12;
   }
 
-  // Canonical 24-hour value the current segments describe, or null when any
-  // required segment is empty.
-  function canonicalFromSegments(): string | null {
-    const h = num(hourStr);
-    const m = num(minuteStr);
-    const s = withSeconds ? num(secondStr) : 0;
-    if (h === null || m === null || (withSeconds && s === null)) return null;
+  function gcd(a: number, b: number): number {
+    return b === 0 ? a : gcd(b, a % b);
+  }
+
+  // Seconds since midnight of an `HH:MM(:SS)` string.
+  function toSeconds(v: string | undefined): number | null {
+    if (!v) return null;
+    const [hh = '', mm = '', ss = '0'] = v.split(':');
+    const h = num(hh);
+    const m = num(mm);
+    const s = num(ss);
+    return h === null || m === null || s === null ? null : h * 3600 + m * 60 + s;
+  }
+
+  function timeString(t: number): string {
+    const parts = [pad(Math.floor(t / 3600)), pad(Math.floor(t / 60) % 60)];
+    if (withSeconds) parts.push(pad(t % 60));
+    return parts.join(':');
+  }
+
+  // The raster follows <input type="time">: `step` seconds counted from `min`
+  // (or midnight). Unset it is 60, but 1 with `withSeconds`, so a seconds segment
+  // stays freely typed unless a step says otherwise. Without a seconds segment
+  // only whole minutes are representable, so the raster keeps the points that
+  // fall on one: lcm(step, 60).
+  const stepValid = $derived(step === undefined || (Number.isInteger(step) && step > 0));
+  const rasterStep = $derived.by(() => {
+    const s = stepValid && step !== undefined ? step : withSeconds ? 1 : 60;
+    return withSeconds ? s : (s * 60) / gcd(s, 60);
+  });
+  const minSeconds = $derived.by(() => {
+    const b = toSeconds(min);
+    return b === null || withSeconds ? b : b - (b % 60);
+  });
+  const rasterBase = $derived(minSeconds ?? 0);
+  $effect(() => {
+    if (!stepValid && import.meta.env?.DEV) {
+      console.warn(`[TimeInput] step must be a positive whole number of seconds, got ${step}`);
+    }
+  });
+
+  // A segment the raster pins to one value is shown, not typed: an hourly
+  // raster fixes the minute, a whole-minute raster fixes the second.
+  const minuteFixed = $derived(rasterStep % 3600 === 0);
+  const secondFixed = $derived(withSeconds && rasterStep % 60 === 0);
+  const baseMinute = $derived(Math.floor(rasterBase / 60) % 60);
+  const baseSecond = $derived(rasterBase % 60);
+
+  function rasterOffset(t: number): number {
+    return (((t - rasterBase) % rasterStep) + rasterStep) % rasterStep;
+  }
+
+  // The raster point at or below `t`; the first one of the day when none is.
+  function snapDown(t: number): number {
+    const floored = t - rasterOffset(t);
+    return floored < 0 ? floored + rasterStep : floored;
+  }
+
+  // What the segments spell: `undefined` while every typed segment is empty,
+  // `null` while some are and some are not, else seconds since midnight.
+  function segmentsSeconds(): number | null | undefined {
+    const typed = [hourStr];
+    if (!minuteFixed) typed.push(minuteStr);
+    if (withSeconds && !secondFixed) typed.push(secondStr);
+    if (typed.every((str) => str === '')) return undefined;
+    if (typed.includes('')) return null;
+    const h = num(hourStr) as number;
+    const m = minuteFixed ? baseMinute : (num(minuteStr) as number);
+    const s = !withSeconds ? 0 : secondFixed ? baseSecond : (num(secondStr) as number);
     // A provisional "0" in a 12-hour hour maps to 12 (midnight/noon); the clamp
     // to [1,12] is belt-and-suspenders so an out-of-range hour (e.g. a stale "13"
     // left over from a runtime format flip) can never produce a 25:xx value.
     const H = format === '12h' ? to24(Math.min(Math.max(h === 0 ? 12 : h, 1), 12), meridiem) : h;
-    const parts = [pad(H), pad(m)];
-    if (withSeconds) parts.push(pad(s as number));
-    return parts.join(':');
+    return H * 3600 + m * 60 + s;
   }
 
-  function setValue(next: string | null) {
+  // The value the segments describe, snapped down onto the raster.
+  function canonicalFromSegments(): string | null | undefined {
+    const t = segmentsSeconds();
+    return typeof t === 'number' ? timeString(snapDown(t)) : t;
+  }
+
+  function setValue(next: string | null | undefined) {
     if (next !== value) {
       value = next;
       onValueChange?.(next);
     }
   }
 
-  function syncFromValue(v: string | null) {
+  // Report the segments' value. `reseed` re-shows a time the raster moved; a
+  // digit still mid-entry passes false, or its second digit would be lost.
+  function emit(reseed: boolean) {
+    const t = segmentsSeconds();
+    const next = typeof t === 'number' ? timeString(snapDown(t)) : t;
+    setValue(next);
+    if (reseed && typeof t === 'number' && snapDown(t) !== t) syncFromValue(next);
+  }
+
+  function syncFromValue(v: string | null | undefined) {
     if (!v) {
       hourStr = '';
       minuteStr = '';
@@ -145,13 +221,20 @@
   // "25:30"). The `incoming !== current` guard both skips a local edit (which
   // already set `value`) and fires the re-seed on a format switch, because the
   // canonical computed under the new format no longer matches the raw value.
+  //
+  // A nullish value clears the segments only while they hold a complete time. A
+  // one-way consumer that stores "no time" as one value (A2UI's `""`) hands the
+  // field's own `null` back as `undefined`; acting on that would wipe what the
+  // user is halfway through typing.
   $effect(() => {
-    const incoming = value ?? null;
+    const incoming = value;
     void format;
     void withSeconds;
     const current = untrack(() => canonicalFromSegments());
-    if (incoming !== current) {
-      untrack(() => syncFromValue(incoming));
+    if (typeof incoming === 'string') {
+      if (incoming !== current) untrack(() => syncFromValue(incoming));
+    } else if (typeof current === 'string') {
+      untrack(() => syncFromValue(undefined));
     }
   });
 
@@ -186,11 +269,12 @@
       : styles.segment({ class: slotClasses?.segment });
   }
 
+  // Fixed segments are left out: typing, the Arrow keys and Backspace never stop on them.
   const order = $derived(
     [
       hourEl,
-      minuteEl,
-      withSeconds ? secondEl : undefined,
+      minuteFixed ? undefined : minuteEl,
+      withSeconds && !secondFixed ? secondEl : undefined,
       format === '12h' ? meridiemEl : undefined
     ].filter(Boolean) as (HTMLInputElement | HTMLSpanElement)[]
   );
@@ -204,13 +288,74 @@
     }
   }
 
-  function stepBy(str: string, delta: number, segMin: number, segMax: number): string {
-    const cur = num(str);
-    const span = segMax - segMin + 1;
-    if (cur === null) return pad(delta > 0 ? segMin : segMax);
-    const next = ((((cur - segMin + delta) % span) + span) % span) + segMin;
-    return pad(next);
+  type SegName = 'hour' | 'minute' | 'second';
+
+  function strOf(seg: SegName): string {
+    return seg === 'hour' ? hourStr : seg === 'minute' ? minuteStr : secondStr;
   }
+
+  function setStr(seg: SegName, v: string) {
+    if (seg === 'hour') hourStr = v;
+    else if (seg === 'minute') minuteStr = v;
+    else secondStr = v;
+  }
+
+  // The time a segment value gives with every other segment taken from `ref`.
+  function withSegment(seg: SegName, v: number, ref: number): number {
+    let h = Math.floor(ref / 3600);
+    let m = Math.floor(ref / 60) % 60;
+    let s = ref % 60;
+    if (seg === 'hour') h = format === '12h' ? to24(v, meridiem) : v;
+    else if (seg === 'minute') m = v;
+    else s = v;
+    return h * 3600 + m * 60 + s;
+  }
+
+  // The other segments a candidate is checked against: the current time on the
+  // raster, or the raster's own origin while the time is incomplete.
+  function stepReference(): number {
+    const t = segmentsSeconds();
+    return typeof t === 'number' ? snapDown(t) : rasterBase;
+  }
+
+  // The segment values that land on the raster, in ascending order.
+  function segmentValues(seg: SegName): number[] {
+    const lo = seg === 'hour' ? hourMin : 0;
+    const hi = seg === 'hour' ? hourMax : 59;
+    const ref = stepReference();
+    const fits: number[] = [];
+    for (let v = lo; v <= hi; v++) {
+      if (rasterOffset(withSegment(seg, v, ref)) === 0) fits.push(v);
+    }
+    return fits;
+  }
+
+  // The next raster value of one segment, wrapping inside it without carrying
+  // into the others; from an empty segment, the first (up) or last (down) one.
+  function stepSegment(seg: SegName, dir: 1 | -1): number | undefined {
+    const fits = segmentValues(seg);
+    if (fits.length === 0) return undefined;
+    const cur = num(strOf(seg));
+    if (cur === null) return dir > 0 ? fits[0] : fits[fits.length - 1];
+    if (dir > 0) return fits.find((v) => v > cur) ?? fits[0];
+    return [...fits].reverse().find((v) => v < cur) ?? fits[fits.length - 1];
+  }
+
+  const hourBounds = $derived(boundsOf(segmentValues('hour'), hourMin, hourMax));
+  const minuteBounds = $derived(boundsOf(segmentValues('minute'), 0, 59));
+  const secondBounds = $derived(boundsOf(segmentValues('second'), 0, 59));
+
+  function boundsOf(fits: number[], lo: number, hi: number): [number, number] {
+    return fits.length === 0 ? [lo, hi] : [fits[0], fits[fits.length - 1]];
+  }
+
+  // A fixed segment shows its one value once any typed segment holds a digit.
+  const minuteText = $derived(
+    minuteFixed ? (segmentsSeconds() === undefined ? '' : pad(baseMinute)) : minuteStr
+  );
+  const secondText = $derived(
+    secondFixed ? (segmentsSeconds() === undefined ? '' : pad(baseSecond)) : secondStr
+  );
 
   // Digit-entry state machine shared by the three numeric segments. Returns the
   // new display string and whether the segment is complete (→ advance focus).
@@ -233,65 +378,43 @@
     return { next: String(n), complete: false };
   }
 
-  function handleHourInput(e: Event) {
+  function handleSegmentInput(seg: SegName, e: Event) {
     const el = e.currentTarget as HTMLInputElement;
-    const { next, complete } = applyDigit(el, hourMax);
-    hourStr = next;
+    const { next, complete } = applyDigit(el, seg === 'hour' ? hourMax : 59);
+    setStr(seg, next);
     el.value = next;
-    setValue(canonicalFromSegments());
+    emit(complete);
     if (complete) advanceFrom(el);
   }
 
-  function handleMinuteInput(e: Event) {
-    const el = e.currentTarget as HTMLInputElement;
-    const { next, complete } = applyDigit(el, 59);
-    minuteStr = next;
-    el.value = next;
-    setValue(canonicalFromSegments());
-    if (complete) advanceFrom(el);
-  }
-
-  function handleSecondInput(e: Event) {
-    const el = e.currentTarget as HTMLInputElement;
-    const { next, complete } = applyDigit(el, 59);
-    secondStr = next;
-    el.value = next;
-    setValue(canonicalFromSegments());
-    if (complete) advanceFrom(el);
-  }
-
-  function commitSegment(which: 'hour' | 'minute' | 'second') {
+  function commitSegment(which: SegName) {
     // Pad a provisional single digit once the segment loses the caret.
     if (which === 'hour' && hourStr) hourStr = pad(num(hourStr) ?? 0);
     if (which === 'minute' && minuteStr) minuteStr = pad(num(minuteStr) ?? 0);
     if (which === 'second' && secondStr) secondStr = pad(num(secondStr) ?? 0);
   }
 
-  type SegName = 'hour' | 'minute' | 'second';
+  function stepFocused(seg: SegName, dir: 1 | -1) {
+    const v = stepSegment(seg, dir);
+    if (v === undefined) return;
+    const t = segmentsSeconds();
+    // A complete time moves as a whole, so the other segments land on the raster too.
+    if (typeof t === 'number') syncFromValue(timeString(withSegment(seg, v, snapDown(t))));
+    else setStr(seg, pad(v));
+    emit(true);
+  }
 
   function handleSegmentKeydown(seg: SegName, e: KeyboardEvent) {
     if (disabled) return;
     const el = e.currentTarget as HTMLInputElement;
-    const segMin = seg === 'hour' ? hourMin : 0;
-    const segMax = seg === 'hour' ? hourMax : 59;
-    const strOf = seg === 'hour' ? hourStr : seg === 'minute' ? minuteStr : secondStr;
-    const setStr = (v: string) => {
-      if (seg === 'hour') hourStr = v;
-      else if (seg === 'minute') minuteStr = v;
-      else secondStr = v;
-    };
+    const locked =
+      readonly || (seg === 'minute' && minuteFixed) || (seg === 'second' && secondFixed);
     switch (e.key) {
       case 'ArrowUp':
-        e.preventDefault();
-        if (readonly) break;
-        setStr(stepBy(strOf, 1, segMin, segMax));
-        setValue(canonicalFromSegments());
-        break;
       case 'ArrowDown':
         e.preventDefault();
-        if (readonly) break;
-        setStr(stepBy(strOf, -1, segMin, segMax));
-        setValue(canonicalFromSegments());
+        if (locked) break;
+        stepFocused(seg, e.key === 'ArrowUp' ? 1 : -1);
         break;
       case 'ArrowLeft': {
         e.preventDefault();
@@ -304,12 +427,12 @@
         advanceFrom(el);
         break;
       case 'Backspace':
-        if (readonly) break;
+        if (locked) break;
         e.preventDefault();
-        if (strOf) {
-          setStr('');
+        if (strOf(seg)) {
+          setStr(seg, '');
           el.value = '';
-          setValue(canonicalFromSegments());
+          emit(false);
         } else {
           const idx = order.indexOf(el);
           if (idx > 0) order[idx - 1].focus();
@@ -325,7 +448,7 @@
   function toggleMeridiem(next?: 'AM' | 'PM') {
     if (disabled || readonly) return;
     meridiem = next ?? (meridiem === 'AM' ? 'PM' : 'AM');
-    setValue(canonicalFromSegments());
+    emit(true);
   }
 
   function handleMeridiemKeydown(e: KeyboardEvent) {
@@ -360,23 +483,23 @@
     }
   }
 
-  // Clamp to [min, max] once focus leaves the whole field. Canonical HH:MM(:SS)
-  // strings are zero-padded, so lexical comparison is chronological.
+  // Once focus leaves the whole field, clamp to [min, max] without leaving the
+  // raster: `min` is its origin, and `max` rounds down to the last point under it.
   function handleFocusOut(e: FocusEvent) {
     const nextTarget = e.relatedTarget as Node | null;
     if (nextTarget && (e.currentTarget as HTMLElement).contains(nextTarget)) return;
     commitSegment('hour');
     commitSegment('minute');
     commitSegment('second');
-    let canonical = canonicalFromSegments();
-    if (canonical !== null) {
-      if (min && canonical < min) canonical = min;
-      if (max && canonical > max) canonical = max;
-      if (canonical !== value) {
-        setValue(canonical);
-        syncFromValue(canonical);
-      }
-    }
+    const t = segmentsSeconds();
+    if (typeof t !== 'number') return;
+    let next = snapDown(t);
+    const hi = toSeconds(max);
+    if (minSeconds !== null && next < minSeconds) next = minSeconds;
+    if (hi !== null && next > hi) next = snapDown(hi);
+    const canonical = timeString(next);
+    setValue(canonical);
+    if (next !== t) syncFromValue(canonical);
   }
 </script>
 
@@ -433,14 +556,14 @@
       {readonly}
       role="spinbutton"
       aria-label={bt('accessibility.timeHours')}
-      aria-valuemin={hourMin}
-      aria-valuemax={hourMax}
+      aria-valuemin={hourBounds[0]}
+      aria-valuemax={hourBounds[1]}
       aria-valuenow={num(hourStr) ?? undefined}
       aria-invalid={error ? 'true' : undefined}
       aria-required={required || undefined}
       aria-describedby={describedBy}
       class={segmentClass()}
-      oninput={handleHourInput}
+      oninput={(e) => handleSegmentInput('hour', e)}
       onkeydown={(e) => handleSegmentKeydown('hour', e)}
       onfocus={handleSegmentFocus}
     />
@@ -454,24 +577,25 @@
     </span>
     <input
       bind:this={minuteEl}
-      value={minuteStr}
+      value={minuteText}
       type="text"
       inputmode="numeric"
       maxlength="2"
       placeholder="--"
       autocomplete="off"
       {disabled}
-      {readonly}
+      readonly={readonly || minuteFixed}
+      tabindex={minuteFixed ? -1 : undefined}
       role="spinbutton"
       aria-label={bt('accessibility.timeMinutes')}
-      aria-valuemin={0}
-      aria-valuemax={59}
-      aria-valuenow={num(minuteStr) ?? undefined}
+      aria-valuemin={minuteBounds[0]}
+      aria-valuemax={minuteBounds[1]}
+      aria-valuenow={num(minuteText) ?? undefined}
       aria-invalid={error ? 'true' : undefined}
       aria-required={required || undefined}
       aria-describedby={describedBy}
       class={segmentClass()}
-      oninput={handleMinuteInput}
+      oninput={(e) => handleSegmentInput('minute', e)}
       onkeydown={(e) => handleSegmentKeydown('minute', e)}
       onfocus={handleSegmentFocus}
     />
@@ -486,24 +610,25 @@
       </span>
       <input
         bind:this={secondEl}
-        value={secondStr}
+        value={secondText}
         type="text"
         inputmode="numeric"
         maxlength="2"
         placeholder="--"
         autocomplete="off"
         {disabled}
-        {readonly}
+        readonly={readonly || secondFixed}
+        tabindex={secondFixed ? -1 : undefined}
         role="spinbutton"
         aria-label={bt('accessibility.timeSeconds')}
-        aria-valuemin={0}
-        aria-valuemax={59}
-        aria-valuenow={num(secondStr) ?? undefined}
+        aria-valuemin={secondBounds[0]}
+        aria-valuemax={secondBounds[1]}
+        aria-valuenow={num(secondText) ?? undefined}
         aria-invalid={error ? 'true' : undefined}
         aria-required={required || undefined}
         aria-describedby={describedBy}
         class={segmentClass()}
-        oninput={handleSecondInput}
+        oninput={(e) => handleSegmentInput('second', e)}
         onkeydown={(e) => handleSegmentKeydown('second', e)}
         onfocus={handleSegmentFocus}
       />

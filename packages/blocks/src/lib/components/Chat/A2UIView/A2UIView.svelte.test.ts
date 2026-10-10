@@ -735,6 +735,41 @@ describe('A2UIView — DateTimeInput', () => {
     expect(document.body.textContent).toContain('09:30');
   });
 
+  // The model has one "no time" value: a half-typed time writes "" and comes
+  // back as an empty value, which must not wipe the digits typed so far.
+  it('keeps a half-typed time through the model round trip', async () => {
+    const user = userEvent.setup();
+    render({ payload: dtSurface({ label: 'Time', enableTime: true }, { when: '' }) });
+    const [hourSeg, minuteSeg] = screen.getAllByRole('spinbutton') as HTMLInputElement[];
+
+    hourSeg.focus();
+    await user.keyboard('1');
+    flushSync();
+    expect(hourSeg.value).toBe('1');
+    await user.keyboard('0');
+    flushSync();
+    expect([hourSeg.value, minuteSeg.value]).toEqual(['10', '']);
+    await user.keyboard('45');
+    flushSync();
+    expect(document.body.textContent).toContain('10:45');
+  });
+
+  it('keeps the other segments when one segment of a bound time is cleared', async () => {
+    const user = userEvent.setup();
+    render({ payload: dtSurface({ label: 'Time', enableTime: true }, { when: '09:30' }) });
+    const [hourSeg, minuteSeg] = screen.getAllByRole('spinbutton') as HTMLInputElement[];
+
+    minuteSeg.focus();
+    await user.keyboard('{Backspace}');
+    flushSync();
+    // The model now holds "" — the echo is empty — and the hour survives it.
+    expect(document.body.textContent).not.toContain('09:30');
+    expect([hourSeg.value, minuteSeg.value]).toEqual(['09', '']);
+    await user.keyboard('15');
+    flushSync();
+    expect(document.body.textContent).toContain('09:15');
+  });
+
   it('strips a timezone suffix for display instead of shifting the time', () => {
     render({
       payload: dtSurface(

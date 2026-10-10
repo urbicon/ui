@@ -394,7 +394,9 @@
       dtMode === 'datetime' ? dtParts.time : ''
     );
   }
-  function onDtTimeChange(nextTime: string | null): void {
+  // The model has one "no time" value, so a half-typed time (`null`) writes `""`
+  // like an empty one; TimeInput keeps its typed segments when that comes back.
+  function onDtTimeChange(nextTime: string | null | undefined): void {
     writeDateTime(dtMode === 'datetime' ? dtParts.date : '', nextTime ?? '');
   }
 
@@ -758,7 +760,7 @@
       />
       <TimeInput
         unstyled={context.unstyled}
-        value={dtParts.time || null}
+        value={dtParts.time || undefined}
         onValueChange={onDtTimeChange}
         withSeconds={dtParts.time.length > 5}
         min={dtMinTime}
@@ -766,13 +768,15 @@
       />
     </div>
   {:else if dtMode === 'time'}
-    <!-- TimeInput has no style/aria passthrough — weight + accessibility label
-         live on a wrapper (role=group only when it actually carries a name). -->
+    <!-- Weight and accessibility label stay on a wrapper although TimeInput
+         forwards both: its root is w-full, so as a Row child its flex basis
+         would be the whole row, and its group drops aria-label whenever the
+         visible label names it. role=group only when the wrapper has a name. -->
     <div style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
       <TimeInput
         unstyled={context.unstyled}
         label={label || undefined}
-        value={dtParts.time || null}
+        value={dtParts.time || undefined}
         onValueChange={onDtTimeChange}
         withSeconds={dtParts.time.length > 5}
         min={dtMinTime}

@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import TimeInputBindHarness from './__fixtures__/TimeInputBindHarness.svelte';
 import TimeInputFormatHarness from './__fixtures__/TimeInputFormatHarness.svelte';
 import type { TimeInputProps } from './index';
 import TimeInput from './TimeInput.svelte';
@@ -136,6 +137,16 @@ describe('TimeInput', () => {
     expect(onValueChange).toHaveBeenLastCalledWith('09:00');
     expect(hour().value).toBe('09');
     expect(minute().value).toBe('00');
+  });
+
+  it('clamps to a bound in the field’s own shape when the bound omits the seconds', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ withSeconds: true, min: '09:00', onValueChange });
+    hour().focus();
+    await user.keyboard('073000');
+    await user.tab();
+    expect(onValueChange).toHaveBeenLastCalledWith('09:00:00');
   });
 
   it('does not emit while the time is incomplete', async () => {
@@ -290,5 +301,285 @@ describe('TimeInput (restProps)', () => {
     await user.tab();
     expect(onfocusout).toHaveBeenCalled();
     expect(onValueChange).toHaveBeenLastCalledWith('09:00');
+  });
+});
+
+function renderBound(props: Record<string, unknown> = {}) {
+  const instance = mount(TimeInputBindHarness, { target: document.body, props });
+  dispose = () => unmount(instance);
+  flushSync();
+}
+const shown = () => screen.getByTestId('value').textContent;
+
+// The value is derived from the segments alone: `undefined` when every segment
+// is empty, `null` while at least one is typed and one is blank, a canonical
+// string once the time is complete.
+describe('TimeInput (three-state value)', () => {
+  it('walks untouched → incomplete → complete → incomplete → empty', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ onValueChange });
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    hour().focus();
+    await user.keyboard('0');
+    expect(onValueChange).toHaveBeenLastCalledWith(null);
+    await user.keyboard('9');
+    await user.keyboard('30');
+    expect(onValueChange).toHaveBeenLastCalledWith('09:30');
+
+    await user.keyboard('{Backspace}'); // minute cleared, hour still typed
+    expect(onValueChange).toHaveBeenLastCalledWith(null);
+    await user.keyboard('{Backspace}'); // empty minute: walk to the hour
+    await user.keyboard('{Backspace}'); // hour cleared too
+    expect(onValueChange).toHaveBeenLastCalledWith(undefined);
+
+    // The provisional "3" in the minute composes 09:03 before the "0" lands.
+    expect(onValueChange.mock.calls.map(([v]) => v)).toEqual([
+      null,
+      '09:03',
+      '09:30',
+      null,
+      undefined
+    ]);
+  });
+
+  it('returns to undefined when every segment of a seeded 12-hour time is cleared', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ value: '14:30:15', format: '12h', withSeconds: true, onValueChange });
+    (screen.getByLabelText('Seconds') as HTMLInputElement).focus();
+    await user.keyboard('{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}');
+    expect(hour().value).toBe('');
+    // The AM/PM segment always holds a value, so it never keeps the field "incomplete".
+    expect(onValueChange.mock.calls.map(([v]) => v)).toEqual([null, undefined]);
+  });
+
+  it('binds undefined as the untouched value', () => {
+    renderBound();
+    expect(shown()).toBe('undefined');
+    expect(hour().value).toBe('');
+  });
+
+  it('renders a consumer null as empty and writes nothing back', () => {
+    const onValueChange = vi.fn();
+    render({ value: null, onValueChange });
+    expect(hour().value).toBe('');
+    expect(minute().value).toBe('');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('leaves a bound null in place at mount', () => {
+    renderBound({ initial: null });
+    expect(shown()).toBe('null');
+    expect(hour().value).toBe('');
+  });
+
+  it.each(['set-null', 'set-undefined'])(
+    'clears a complete field when the consumer sets a nullish value (%s)',
+    async (button) => {
+      const user = userEvent.setup();
+      renderBound({ initial: '09:30' });
+      await user.click(screen.getByTestId(button));
+      expect(hour().value).toBe('');
+      expect(minute().value).toBe('');
+    }
+  );
+
+  it.each(['set-null', 'set-undefined'])(
+    'keeps a half-typed field when a nullish value comes back from outside (%s)',
+    async (button) => {
+      const user = userEvent.setup();
+      renderBound();
+      hour().focus();
+      await user.keyboard('09');
+      expect(shown()).toBe('null');
+      await user.click(screen.getByTestId(button));
+      expect(hour().value).toBe('09');
+      expect(minute().value).toBe('');
+    }
+  );
+
+  it('re-seeds a half-typed field from a time the consumer sets', async () => {
+    const user = userEvent.setup();
+    renderBound();
+    hour().focus();
+    await user.keyboard('09');
+    await user.click(screen.getByTestId('set-time'));
+    expect(hour().value).toBe('10');
+    expect(minute().value).toBe('45');
+  });
+
+  it('submits an empty string for both nullish states', async () => {
+    const user = userEvent.setup();
+    renderBound();
+    const hidden = () => document.querySelector('input[type="hidden"]') as HTMLInputElement;
+    expect(hidden().value).toBe('');
+    hour().focus();
+    await user.keyboard('09');
+    expect(shown()).toBe('null');
+    expect(hidden().value).toBe('');
+    await user.keyboard('15');
+    expect(hidden().value).toBe('09:15');
+  });
+});
+
+// A consumer `onfocusout` reaches the root through the attribute pass-through.
+// focusout bubbles, so it runs on every hop between segments as well; the
+// field is left only when `relatedTarget` is outside the root.
+describe('TimeInput (onfocusout)', () => {
+  it('fires on every hop, tells a hop from a leave, and runs after the clamp', async () => {
+    const user = userEvent.setup();
+    const onLeave = vi.fn();
+    renderBound({ min: '09:00', onLeave });
+
+    hour().focus();
+    await user.keyboard('07'); // auto-advance hour → minute: a hop
+    expect(onLeave).toHaveBeenCalledTimes(1);
+    expect(onLeave.mock.calls[0][0]).toBe(false);
+    await user.keyboard('30');
+    await user.tab(); // leave the field
+    // The bound value the handler reads is already clamped to min.
+    expect(onLeave).toHaveBeenLastCalledWith(true, '09:00');
+    expect(onLeave).toHaveBeenCalledTimes(2);
+  });
+});
+
+// `step` is a raster in seconds counted from `min` (or midnight), as on
+// <input type="time">. The value never carries a time off it.
+describe('TimeInput (step)', () => {
+  const second = () => screen.getByLabelText('Seconds') as HTMLInputElement;
+  const values = (fn: ReturnType<typeof vi.fn>) => fn.mock.calls.map(([v]) => v);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('steps the minute along the raster and wraps without carrying the hour', async () => {
+    const user = userEvent.setup();
+    render({ value: '09:00', step: 900 });
+    expect(minute().getAttribute('aria-valuemin')).toBe('0');
+    expect(minute().getAttribute('aria-valuemax')).toBe('45');
+    minute().focus();
+    await user.keyboard('{ArrowUp}');
+    expect(minute().value).toBe('15');
+    await user.keyboard('{ArrowUp}{ArrowUp}{ArrowUp}');
+    expect([hour().value, minute().value]).toEqual(['09', '00']);
+    await user.keyboard('{ArrowDown}');
+    expect([hour().value, minute().value]).toEqual(['09', '45']);
+  });
+
+  it('counts the raster from min', async () => {
+    const user = userEvent.setup();
+    render({ min: '09:10', step: 900 });
+    expect(minute().getAttribute('aria-valuemin')).toBe('10');
+    expect(minute().getAttribute('aria-valuemax')).toBe('55');
+    minute().focus();
+    await user.keyboard('{ArrowUp}'); // from empty: the first raster value
+    expect(minute().value).toBe('10');
+    await user.keyboard('{ArrowUp}');
+    expect(minute().value).toBe('25');
+  });
+
+  it('snaps a typed off-raster minute down once it is complete, and never reports it', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ step: 900, onValueChange });
+    hour().focus();
+    await user.keyboard('0907');
+    expect(minute().value).toBe('00');
+    expect(values(onValueChange)).toEqual([null, '09:00']);
+  });
+
+  it('reports a mid-entry digit on the raster and snaps it on blur', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ step: 900, onValueChange });
+    hour().focus();
+    await user.keyboard('094'); // "4" may still become 45
+    expect(minute().value).toBe('4');
+    expect(onValueChange).toHaveBeenLastCalledWith('09:00');
+    await user.tab();
+    expect(minute().value).toBe('00');
+    expect(values(onValueChange)).toEqual([null, '09:00']);
+  });
+
+  it('clamps onto the raster: up to min, down to the last point under max', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ min: '09:10', max: '17:00', step: 900, onValueChange });
+    hour().focus();
+    await user.keyboard('1750');
+    await user.tab();
+    expect(onValueChange).toHaveBeenLastCalledWith('16:55');
+    hour().focus();
+    await user.keyboard('0800');
+    await user.tab();
+    expect(onValueChange).toHaveBeenLastCalledWith('09:10');
+    expect([hour().value, minute().value]).toEqual(['09', '10']);
+  });
+
+  it('fixes the minute under an hourly raster and completes the time from the hour', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ step: 3600, min: '08:30', onValueChange });
+    expect(minute().value).toBe('');
+    expect(minute().readOnly).toBe(true);
+    expect(minute().tabIndex).toBe(-1);
+    expect(minute().getAttribute('aria-valuemin')).toBe('30');
+    expect(minute().getAttribute('aria-valuemax')).toBe('30');
+    hour().focus();
+    await user.keyboard('09');
+    expect(minute().value).toBe('30');
+    expect(onValueChange).toHaveBeenLastCalledWith('09:30');
+    await user.keyboard('{ArrowUp}');
+    expect(onValueChange).toHaveBeenLastCalledWith('10:30');
+    await user.keyboard('{Backspace}');
+    expect(minute().value).toBe('');
+    // The hour is the only typed segment, so its mid-entry "0" is already a time.
+    expect(values(onValueChange)).toEqual(['00:30', '09:30', '10:30', undefined]);
+  });
+
+  it('steps the seconds by a sub-minute raster with withSeconds', async () => {
+    const user = userEvent.setup();
+    render({ value: '09:30:00', withSeconds: true, step: 15 });
+    expect(second().getAttribute('aria-valuemax')).toBe('45');
+    expect(minute().getAttribute('aria-valuemax')).toBe('59');
+    second().focus();
+    await user.keyboard('{ArrowUp}');
+    expect(second().value).toBe('15');
+    minute().focus();
+    await user.keyboard('{ArrowUp}');
+    expect(minute().value).toBe('31');
+  });
+
+  it('fixes the seconds under a whole-minute raster with withSeconds', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ withSeconds: true, step: 60, onValueChange });
+    expect(second().readOnly).toBe(true);
+    hour().focus();
+    await user.keyboard('0930');
+    expect(second().value).toBe('00');
+    expect(onValueChange).toHaveBeenLastCalledWith('09:30:00');
+  });
+
+  it('keeps only the whole-minute points of a step without seconds', async () => {
+    const user = userEvent.setup();
+    render({ value: '09:00', step: 90 });
+    expect(minute().getAttribute('aria-valuemax')).toBe('57');
+    minute().focus();
+    await user.keyboard('{ArrowUp}');
+    expect(minute().value).toBe('03');
+  });
+
+  it('ignores a step that is not a positive whole number, and says so in dev', async () => {
+    const user = userEvent.setup();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render({ value: '09:00', step: 0 });
+    expect(warn).toHaveBeenCalledTimes(1);
+    minute().focus();
+    await user.keyboard('{ArrowUp}');
+    expect(minute().value).toBe('01');
   });
 });
