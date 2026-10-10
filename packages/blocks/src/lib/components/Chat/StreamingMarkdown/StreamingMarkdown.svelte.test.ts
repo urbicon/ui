@@ -106,6 +106,12 @@ describe('StreamingMarkdown (renderer)', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('renders a marker with no text after it as a plain item, as GFM does', () => {
+    render({ content: '- [ ] \n  - child' });
+    expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
+    expect(document.querySelector('li')?.textContent).toContain('[ ]');
+  });
+
   it('shows the streaming cursor only while streaming', () => {
     const props = render({ content: 'Hello', streaming: true });
     expect(document.querySelector('[aria-hidden="true"]')).not.toBeNull();
