@@ -64,15 +64,15 @@ export interface TimeInputProps
    *   `format` never changes it.
    *
    * An AM/PM segment always holds a value, so it never makes a time half-typed.
-   * `""` reads as no time, like `null` and `undefined`. No time you pass clears a
-   * field that shows a complete time wherever focus is, and a half-typed field
-   * while focus is outside it. On a half-typed field with focus inside, it is taken
-   * as the echo of the field's own report and ignored, so a consumer that stores no
-   * time as one value (`""` or `undefined`) cannot wipe the digits being typed; the
-   * cost is that a reset fired from inside a half-typed field (an Escape handler on
-   * it, or a clear button that keeps focus with a `mousedown` `preventDefault`) is
-   * ignored too, and nothing is written back, so value and segments disagree until
-   * the next edit. A reset has to change the value: a half-typed bound field already
+   * `""` reads as no time, like `null` and `undefined`. Passing no time clears the
+   * field: one that shows a complete time clears wherever focus is, a half-typed
+   * one only while focus is outside it. On a half-typed field with focus inside,
+   * no time is taken as the echo of the field's own report and ignored, so a
+   * consumer that stores no time as one value (`""` or `undefined`) cannot wipe
+   * the digits being typed; the cost is that a reset fired from inside a
+   * half-typed field (an Escape handler on it, or a clear button that keeps
+   * focus with a `mousedown` `preventDefault`) is ignored too, and nothing is
+   * written back, so value and segments disagree until the next edit. A reset has to change the value: a half-typed bound field already
    * holds `null`, so reset it with `undefined`. Where neither works (a reset from
    * inside, or a `string`-typed consumer that can only write `""`), remount the
    * field with `{#key}`. A `null` you pass at mount renders empty and stays `null`

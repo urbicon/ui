@@ -170,6 +170,7 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
    * @default 'none'
    */
   mint?: MintProp;
+  /** Extra classes merged onto the positioning wrapper, the `base` slot. */
   class?: string;
   /** Strip the default tv() classes of the wrapper AND of the Input, Popover and Calendar it renders; `slotClasses` and `class` then stand alone. */
   unstyled?: boolean;
@@ -238,11 +239,27 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
   displayFormat?: DateFormatOptions;
 
   // === Validation ===
+  /**
+   * Error message shown below the input. While set, it takes the place of the
+   * picker's own message for a range it cannot parse or that falls outside the
+   * allowed dates.
+   */
   error?: string;
+  /** Helper text shown below the input. */
   helper?: string;
+  /**
+   * Mark input as required: the label gets an asterisk and the text field the
+   * native `required` attribute.
+   * @default false
+   */
   required?: boolean;
 
   // === Behavior ===
+  /**
+   * Allow clearing the selected range: a clear button appears in the field
+   * while it holds a range.
+   * @default true
+   */
   clearable?: boolean;
   /** Close popover after selecting both dates. @default true */
   closeOnSelect?: boolean;
@@ -271,12 +288,23 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
    * @summary Which language the month and weekday names are rendered in.
    */
   locale?: string;
+  /** First day of the week. 0 = Sunday, 1 = Monday. @default 1 */
   weekStartsOn?: WeekdayIndex;
+  /** Show ISO week numbers. @default false */
   showWeekNumbers?: boolean;
+  /** Show days from adjacent months. @default true */
   showOutsideDays?: boolean;
+  /**
+   * Always show 6 week rows, so the overlay keeps its height while paging
+   * months. Unset, the grid shows only the rows the month needs.
+   * @default false
+   */
   fixedWeeks?: boolean;
+  /** Earliest selectable date. */
   minDate?: Date;
+  /** Latest selectable date. */
   maxDate?: Date;
+  /** Specific dates that are disabled. */
   disabledDates?: Date[];
   /**
    * Predicate that disables specific dates. Throws are caught and logged;
@@ -285,29 +313,34 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
   isDateDisabled?: (date: Date) => boolean;
 
   // === Variants ===
+  /** Visual style of the calendar popup. @default 'default' */
   calendarVariant?: 'default' | 'bordered' | 'ghost';
+  /** Input variant. @default 'outlined' */
   inputVariant?: 'outlined' | 'filled' | 'ghost' | 'underline';
+  /** Component size. @default 'md' */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
   // === Callbacks ===
   /**
-   * Fires when the selected range changes. During calendar selection
-   * the user clicks twice — once to set the start, once to set the
-   * end. `onValueChange` only fires when the range is *complete*
-   * (start ≠ end); the intermediate `{ start: d, end: d }` state
-   * does NOT fire this callback. Use `bind:value` if you need the
-   * in-progress state.
+   * Fires when the selected range changes. In the calendar the user clicks
+   * twice, once for the start and once for the end, and it fires on the
+   * second click, once the range is complete (start ≠ end). The intermediate
+   * `{ start: d, end: d }` state after the first click is not reported; use
+   * `bind:value` if you need it.
    */
   onValueChange?: (value: DateRange | undefined) => void;
+  /** Fires when the popover opens or closes. */
   onOpenChange?: (open: boolean) => void;
 
   // === Standard ===
+  /** Disable the entire picker. @default false */
   disabled?: boolean;
   /**
    * Micro-interaction preset forwarded to the inner Input.
    * @default 'none'
    */
   mint?: MintProp;
+  /** Extra classes merged onto the positioning wrapper, the `base` slot. */
   class?: string;
   /** Strip the default tv() classes of the wrapper AND of the Input, Popover and Calendar it renders; `slotClasses` and `class` then stand alone. */
   unstyled?: boolean;
@@ -339,8 +372,15 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
   name?: string;
 
   /**
-   * Format used to serialise both range halves. See
-   * {@link DatePickerProps.valueFormat} for semantics.
+   * Format used to serialise both range halves for the hidden form inputs.
+   * - `'date'` (default): `YYYY-MM-DD` in the local timezone — matches
+   *   the native `<input type="date">` payload and Zod schemas like
+   *   `z.string().regex(/^\d{4}-\d{2}-\d{2}$/).transform((v) => new Date(v))`.
+   * - `'iso'`: full ISO-8601 with `Z` suffix (UTC). Use this when the
+   *   downstream schema expects a parseable timestamp string (e.g. a
+   *   Drizzle `timestamp({ withTimezone: true, mode: 'date' })` column).
+   *
+   * Only relevant when {@link DateRangePickerProps.name} is set.
    * @default 'date'
    */
   valueFormat?: 'date' | 'iso';
