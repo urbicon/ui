@@ -33,8 +33,10 @@ const PRIMITIVES = [
   'time-input'
 ] as const;
 
-const EXCEPTIONS = loadExceptions(new URL('./a11y-dark-baseline.json', import.meta.url));
-const gate = createGate(EXCEPTIONS);
+const EXCEPTIONS = loadExceptions(
+  new URL('./a11y-dark-baseline.json', import.meta.url),
+  PRIMITIVES
+);
 
 test.describe('Primitives — dark-mode WCAG 2.1 AA axe scan (library fixture)', () => {
   test('dark · library', async ({ page }) => {
@@ -49,6 +51,7 @@ test.describe('Primitives — dark-mode WCAG 2.1 AA axe scan (library fixture)',
     await page.evaluate(() => document.documentElement.classList.remove('docs-rooms'));
     await page.waitForTimeout(200); // settle the token re-resolution
 
+    const gate = createGate(EXCEPTIONS);
     const failures: string[] = [];
     for (const name of PRIMITIVES) {
       const results = await scan(page, `[data-testid="vr-${name}"]`);
@@ -60,12 +63,8 @@ test.describe('Primitives — dark-mode WCAG 2.1 AA axe scan (library fixture)',
       }
     }
 
-    const stale = gate.staleIds();
-    if (stale.length > 0 && gate.usedCount() > 0) {
-      console.warn(
-        `\n[a11y-dark-baseline] ${stale.length} exception(s) matched no violation:\n` +
-          stale.map((id) => `  - ${id}`).join('\n')
-      );
+    for (const stale of gate.staleFor(PRIMITIVES)) {
+      failures.push(`  [baseline] ${stale} matched no violation — delete the entry.`);
     }
 
     if (failures.length > 0) {

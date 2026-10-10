@@ -16,16 +16,23 @@ export type Exception = {
   id: string;
   pass: string;
   rule: string;
-  routes: string[] | '*';
+  routes: string[];
   contrast?: { fg: string; bg: string };
   htmlIncludes?: string[];
   reason: string;
   ref: string;
 };
 
-/** Load + validate a baseline. Fails loud so a malformed file can't silently
- *  degrade into "no exceptions" (vacuously red) or "everything allowed". */
-export function loadExceptions(url: URL): Exception[] {
+/**
+ * Load + validate a baseline against the routes its spec scans. Fails loud so
+ * a malformed file can't silently degrade into "no exceptions" (vacuously red)
+ * or "everything allowed".
+ *
+ * `routes` must name scanned routes one by one. A route the spec does not scan
+ * would never be checked for staleness, and a `'*'` cannot be: the specs run
+ * fully parallel, so no single worker sees every route.
+ */
+export function loadExceptions(url: URL, knownRoutes: readonly string[]): Exception[] {
   const raw = JSON.parse(readFileSync(url, 'utf8')) as { exceptions?: Exception[] };
   const list = raw.exceptions ?? [];
 
@@ -33,6 +40,16 @@ export function loadExceptions(url: URL): Exception[] {
     const where = `${url.pathname.split('/').pop()} exceptions[${i}]${e.id ? ` (${e.id})` : ''}`;
     if (!e.id || !e.pass || !e.rule || !e.routes) {
       throw new Error(`${where}: needs id, pass, rule and routes.`);
+    }
+    if (!Array.isArray(e.routes) || e.routes.length === 0) {
+      throw new Error(`${where}: routes must be a non-empty list of the routes it applies to.`);
+    }
+    const unknown = e.routes.filter((r) => !knownRoutes.includes(r));
+    if (unknown.length > 0) {
+      throw new Error(
+        `${where}: routes ${JSON.stringify(unknown)} are not scanned by this spec, so the ` +
+          `entry could never be checked. Use the exact scanned route, or delete the entry.`
+      );
     }
     if (!e.reason || !e.ref) {
       throw new Error(
@@ -52,9 +69,9 @@ export function loadExceptions(url: URL): Exception[] {
 
 const CONTRAST_RE = /foreground color: (#[0-9a-f]{6}), background color: (#[0-9a-f]{6})/i;
 
-function matches(exc: Exception, pass: string, slug: string, rule: string, node: NodeResult) {
+function matches(exc: Exception, pass: string, route: string, rule: string, node: NodeResult) {
   if (exc.pass !== pass || exc.rule !== rule) return false;
-  if (exc.routes !== '*' && !exc.routes.includes(slug)) return false;
+  if (!exc.routes.includes(route)) return false;
 
   if (exc.contrast) {
     const m = CONTRAST_RE.exec(node.failureSummary ?? '');
@@ -68,22 +85,40 @@ function matches(exc: Exception, pass: string, slug: string, rule: string, node:
   return true;
 }
 
-/** A stateful gate over one baseline: tracks which exceptions were used so the
- *  spec can report stale ones after a full run. */
+/**
+ * The gate for ONE test's scans. Create it inside the test: the specs run fully
+ * parallel, so state shared at module level only ever sees one worker's share of
+ * the routes.
+ */
 export function createGate(exceptions: Exception[]) {
   const used = new Set<string>();
+  const key = (id: string, route: string) => `${id}\u0000${route}`;
 
   return {
     /** The nodes of a violation that no exception accounts for. */
-    unmatchedNodes(violation: AxeResult, pass: string, slug: string): NodeResult[] {
+    unmatchedNodes(violation: AxeResult, pass: string, route: string): NodeResult[] {
       return violation.nodes.filter((node) => {
-        const hit = exceptions.find((exc) => matches(exc, pass, slug, violation.id, node));
-        if (hit) used.add(hit.id);
+        const hit = exceptions.find((exc) => matches(exc, pass, route, violation.id, node));
+        if (hit) used.add(key(hit.id, route));
         return !hit;
       });
     },
-    usedCount: () => used.size,
-    staleIds: () => exceptions.filter((e) => !used.has(e.id)).map((e) => e.id)
+    /**
+     * Exceptions that name one of `routes` and matched nothing there in this
+     * gate's scans — fixed (delete the entry) or scoped wider than the finding
+     * (drop the route). Call it after every pass over `routes` has run.
+     */
+    staleFor(routes: readonly string[]): string[] {
+      const stale: string[] = [];
+      for (const exc of exceptions) {
+        for (const route of exc.routes) {
+          if (routes.includes(route) && !used.has(key(exc.id, route))) {
+            stale.push(`${exc.id} (${exc.pass} pass on ${route})`);
+          }
+        }
+      }
+      return stale;
+    }
   };
 }
 
@@ -96,10 +131,66 @@ export function describeViolation(violation: AxeResult, nodes: NodeResult[]): st
   return `  - ${violation.id} (${violation.impact ?? 'n/a'}): ${violation.description}\n${lines.join('\n')}${more}`;
 }
 
+const WCAG_21_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
 /** Run axe (WCAG 2.1 AA) over an include selector, optionally excluding a subtree. */
 export async function scan(page: Page, include: string, exclude?: string) {
-  const builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
+  const builder = new AxeBuilder({ page }).withTags(WCAG_21_AA);
   builder.include(include);
   if (exclude) builder.exclude(exclude);
   return builder.analyze();
+}
+
+/**
+ * Run axe (WCAG 2.1 AA) ONCE over several scopes and split the violations by
+ * scope. Each node belongs to the FIRST scope in `scopes` whose selector
+ * contains it, so a scope nested inside a later one (a preview inside its
+ * example stage) has to come first.
+ *
+ * One run instead of one per scope because an axe run's cost follows the size
+ * of the whole document, not of its include selector: on a large docs page a
+ * run scoped to the code panels takes about as long as one scoped to the
+ * previews.
+ */
+export async function scanScopes(
+  page: Page,
+  scopes: ReadonlyArray<{ name: string; selector: string }>
+): Promise<Map<string, AxeResult[]>> {
+  const byScope = new Map<string, AxeResult[]>(scopes.map((s) => [s.name, []]));
+  if (scopes.length === 0) return byScope;
+
+  const builder = new AxeBuilder({ page }).withTags(WCAG_21_AA);
+  for (const { selector } of scopes) builder.include(selector);
+  const { violations } = await builder.analyze();
+
+  // The results are serialised out of the page, so a node can only be traced
+  // back to its scope through its selector. The first segment is the node
+  // itself, or the iframe / shadow host that contains it.
+  const targets = violations.flatMap((v) => v.nodes.map((n) => n.target));
+  const owners = await page.evaluate(
+    ({ nodeTargets, scopeList }) =>
+      nodeTargets.map((target) => {
+        const first = target[0];
+        const el = document.querySelector(Array.isArray(first) ? first[0] : first);
+        return el ? (scopeList.find((s) => el.closest(s.selector))?.name ?? null) : null;
+      }),
+    { nodeTargets: targets, scopeList: scopes }
+  );
+
+  let i = 0;
+  for (const violation of violations) {
+    const split = new Map<string, NodeResult[]>();
+    for (const node of violation.nodes) {
+      const owner = owners[i++];
+      if (owner === null) {
+        throw new Error(
+          `axe reported ${violation.id} on ${JSON.stringify(node.target)}, which is in none of ` +
+            `the scanned scopes (or left the DOM before it could be attributed): ${node.html.slice(0, 160)}`
+        );
+      }
+      split.set(owner, [...(split.get(owner) ?? []), node]);
+    }
+    for (const [owner, nodes] of split) byScope.get(owner)?.push({ ...violation, nodes });
+  }
+  return byScope;
 }

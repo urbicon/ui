@@ -26,9 +26,9 @@ export default defineConfig({
   outputDir: './e2e/test-results',
   snapshotDir: './e2e/snapshots',
   // Parallel across files AND within them. The dominant cost is `a11y.spec.ts`,
-  // whose 37 route scans live in a single `for` loop — with `fullyParallel:
-  // false` they run one after another no matter how many workers exist, which is
-  // why the suite sat at ~5 min while 15 cores idled.
+  // whose route scans (one per /blocks doc page) live in a single `for` loop —
+  // with `fullyParallel: false` they run one after another no matter how many
+  // workers exist, which is why the suite sat at ~5 min while 15 cores idled.
   //
   // Browser-level state is per worker (own context, own storage/cookies) and the
   // Vite dev server handles concurrent requests fine. The one suite that drives
