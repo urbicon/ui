@@ -89,6 +89,11 @@ for (const [route, pass] of ABSENT_STAGES) {
 const EXCEPTIONS = loadExceptions(new URL('./a11y-baseline.json', import.meta.url), ROUTES);
 
 test.describe('Blocks doc pages — WCAG 2.1 AA axe scan', () => {
+  // One axe run costs what the whole page costs, and on a CI runner the
+  // largest pages (calendar) use most of the default 60 s for it — runner
+  // variance must not turn a slow scan into a timeout.
+  test.describe.configure({ timeout: 120_000 });
+
   for (const route of ROUTES) {
     test(route, async ({ page }) => {
       await page.goto(route, { waitUntil: 'networkidle' });

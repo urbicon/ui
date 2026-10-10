@@ -11,6 +11,15 @@ function subdirectories(dir: string): string[] {
     .sort();
 }
 
+/** Every `+page.svelte` anywhere below `dir`, as a path relative to it. */
+function pagesBelow(dir: string): string[] {
+  return subdirectories(dir).flatMap((name) => {
+    const sub = join(dir, name);
+    const own = existsSync(join(sub, '+page.svelte')) ? [join(name, '+page.svelte')] : [];
+    return [...own, ...pagesBelow(sub).map((p) => join(name, p))];
+  });
+}
+
 /**
  * Every component page under `/blocks/<group>/<slug>`, read from the route tree
  * instead of a hand-kept list — a list beside the routes stops covering the
@@ -22,9 +31,11 @@ function subdirectories(dir: string): string[] {
  *
  * Throws instead of returning a short list: a group that yields no page means
  * the derivation broke (a moved route tree, a renamed page file), and an empty
- * list would make every caller a silent pass. A route group `(x)` or param
- * directory `[x]` contributes no literal URL segment, so it is rejected rather
- * than turned into a URL that 404s — the same contract as `registry:lint`.
+ * list would make every caller a silent pass. A page nested deeper than
+ * `<group>/<slug>` throws too, because it would otherwise go unscanned without
+ * a word. A route group `(x)` or param directory `[x]` contributes no literal
+ * URL segment, so it is rejected rather than turned into a URL that 404s — the
+ * same contract as `registry:lint`.
  */
 export function blocksDocRoutes(): string[] {
   const groups = subdirectories(BLOCKS_ROUTES);
@@ -43,6 +54,16 @@ export function blocksDocRoutes(): string[] {
             `which maps to no literal URL. Teach blocksDocRoutes how to resolve it.`
         );
       }
+    }
+    const nested = slugs.flatMap((slug) =>
+      pagesBelow(join(groupDir, slug)).map((p) => join(group, slug, p))
+    );
+    if (nested.length > 0) {
+      throw new Error(
+        `blocksDocRoutes: ${nested.join(', ')} under ${BLOCKS_ROUTES} sit deeper than ` +
+          `<group>/<slug>/+page.svelte and would not be scanned. Teach blocksDocRoutes their ` +
+          `URLs, or move the pages.`
+      );
     }
     const pages = slugs.filter((slug) => existsSync(join(groupDir, slug, '+page.svelte')));
     if (pages.length === 0) {

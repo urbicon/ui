@@ -19,9 +19,17 @@ export type Exception = {
   routes: string[];
   contrast?: { fg: string; bg: string };
   htmlIncludes?: string[];
+  /**
+   * The node's exact failure summary, whitespace collapsed. `htmlIncludes`
+   * pins WHICH node fails; this pins HOW, so a node that starts failing for a
+   * second reason (another disallowed child) is no longer covered.
+   */
+  summary?: string;
   reason: string;
   ref: string;
 };
+
+const collapse = (s: string) => s.replace(/\s+/g, ' ').trim();
 
 /**
  * Load + validate a baseline against the routes its spec scans. Fails loud so
@@ -62,6 +70,9 @@ export function loadExceptions(url: URL, knownRoutes: readonly string[]): Except
           `Blanket rule suppression is not allowed — keep exceptions node-narrow.`
       );
     }
+    if (e.summary !== undefined && (typeof e.summary !== 'string' || !collapse(e.summary))) {
+      throw new Error(`${where}: summary, when given, must be the non-empty failure summary.`);
+    }
   });
 
   return list;
@@ -81,6 +92,10 @@ function matches(exc: Exception, pass: string, route: string, rule: string, node
   }
 
   if (exc.htmlIncludes && !exc.htmlIncludes.every((s) => node.html.includes(s))) return false;
+
+  if (exc.summary !== undefined && collapse(node.failureSummary ?? '') !== collapse(exc.summary)) {
+    return false;
+  }
 
   return true;
 }

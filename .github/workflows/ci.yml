@@ -269,12 +269,14 @@ jobs:
     # could not buy.
     #
     # `--shard` cuts the suite into contiguous slices of equal test COUNT, in
-    # file order — it balances count, not duration. `a11y-dark.spec.ts` and
-    # `a11y.spec.ts` sort first, and their route scans are the heaviest block of
-    # tests in the suite, so they fill nearly all of shard 1 and make it the
-    # slowest shard. Another shard shrinks every slice and so moves scans out of
-    # shard 1, but the scans stay at the front; no shard count spreads them
-    # evenly.
+    # collection order: by worker configuration, then by file. A spec that sets
+    # a worker option (`channel`, `launchOptions`) in `test.use` lands behind
+    # the rest, even when the value equals the project's. It balances count,
+    # not duration. `a11y-dark.spec.ts` and `a11y.spec.ts` come first, and
+    # their route scans are the heaviest block of tests in the suite, so they
+    # fill nearly all of shard 1 and make it the slowest shard.
+    # Another shard shrinks every slice and so moves scans out of shard 1, but
+    # the scans stay at the front; no shard count spreads them evenly.
     # `bunx playwright test --list --shard=1/4` shows what a slice holds.
     #
     # A bonus that matters here: `auth.spec.ts` drives shared in-memory state on

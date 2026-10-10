@@ -22,7 +22,13 @@
     "                  '/blocks/components/calendar'. Each must be a route the",
     "                  spec scans; there is no wildcard",
     "  contrast      — for color-contrast: the exact fg/bg pair axe computed",
-    "  htmlIncludes  — every string must appear in the node's outerHTML",
+    "  htmlIncludes  — every string must appear in axe's `node.html`: the",
+    "                  outerHTML, but only the opening tag once the element is",
+    "                  long (and a long tag's attribute values are cut too), so",
+    "                  a container's children are usually not in it",
+    "  summary       — optional: the node's exact failure summary, whitespace",
+    "                  collapsed. htmlIncludes pins which node fails; this pins",
+    "                  how, so a second reason to fail is not covered",
     "  reason        — why this is not fixed here",
     "  ref           — where the decision / follow-up lives",
     "",
@@ -37,6 +43,7 @@
       "rule": "aria-required-children",
       "routes": ["/blocks/components/calendar"],
       "htmlIncludes": ["role=\"grid\"", "aria-label=\"Week view\""],
+      "summary": "Fix any of the following: Element has children which are not allowed: button[aria-label], button",
       "reason": "Library structure: CalendarWeekGrid puts its weekday-head and event buttons directly under role=\"grid\", outside any row or gridcell (30 owned buttons on this page). Follow-up A restructures the week view.",
       "ref": "#208"
     },
@@ -46,6 +53,7 @@
       "rule": "aria-required-children",
       "routes": ["/blocks/components/calendar"],
       "htmlIncludes": ["role=\"grid\"", "aria-label=\"Year overview\""],
+      "summary": "Fix any of the following: Element has children which are not allowed: button[aria-label]",
       "reason": "Library structure: CalendarYearGrid's 12 month buttons sit directly under role=\"grid\", which has no rows at all. Follow-up A restructures the year view.",
       "ref": "#208"
     },
@@ -55,7 +63,8 @@
       "rule": "aria-required-children",
       "routes": ["/blocks/components/calendar"],
       "htmlIncludes": ["<div class=\"grid grid-cols-7\" role=\"row\">"],
-      "reason": "CustomDayCell demo: CalendarDay renders the dayCell snippet's output directly inside role=\"row\", so these 6 rows hold no gridcell, and the dayCell contract does not say who owns the cell. Follow-up A states that contract. LIMIT: axe reports a row by its opening tag only, and that tag is the same for every default-variant month row without week numbers, so this entry would also hide such a row elsewhere on this page that lost its cells.",
+      "summary": "Fix any of the following: Required ARIA children role not present: cell, columnheader, gridcell, rowheader",
+      "reason": "CustomDayCell demo: CalendarDay renders the dayCell snippet's output directly inside role=\"row\", so these 6 rows hold no gridcell, and the dayCell contract does not say who owns the cell. Follow-up A states that contract. LIMIT: axe reports a row by its opening tag only, and that tag is the same for every month row without week numbers in a variant that adds no row class (default and ghost), so this entry would also hide such a row elsewhere on this page that lost all its cells.",
       "ref": "#208"
     },
     {
@@ -64,6 +73,7 @@
       "rule": "aria-required-children",
       "routes": ["/blocks/components/calendar"],
       "htmlIncludes": ["role=\"grid\"", "aria-label=\"Calendar\""],
+      "summary": "Fix any of the following: Element has children which are not allowed: button[aria-label]",
       "reason": "Library structure: with onEventClick, CalendarMultiDayBar renders buttons in a container outside the week rows, so the month grid owns them directly (2 on the playground). Follow-up A moves them into the grid's row/cell structure.",
       "ref": "#208"
     },
@@ -73,7 +83,7 @@
       "rule": "color-contrast",
       "routes": ["/blocks/components/calendar"],
       "contrast": { "fg": "#b8b5ad", "bg": "#fbfaf6" },
-      "htmlIncludes": ["text-text-quaternary font-normal"],
+      "htmlIncludes": ["tabular-nums leading-none", "text-text-quaternary font-normal"],
       "reason": "Outside-month day numbers use text-quaternary, 1.96:1. These days are enabled buttons that select on click, so WCAG 1.4.3's exemption for inactive components does not apply. Follow-up C moves them to a darker ink that reaches AA in both modes and stays subdued.",
       "ref": "#208"
     },
@@ -83,7 +93,7 @@
       "rule": "color-contrast",
       "routes": ["/blocks/components/calendar"],
       "contrast": { "fg": "#b8b5ad", "bg": "#f5f7f5" },
-      "htmlIncludes": ["text-text-quaternary font-normal"],
+      "htmlIncludes": ["tabular-nums leading-none", "text-text-quaternary font-normal"],
       "reason": "The same outside-month day numbers on the playground's tinted stage, 1.90:1; enabled buttons, not inactive. Follow-up C.",
       "ref": "#208"
     },
