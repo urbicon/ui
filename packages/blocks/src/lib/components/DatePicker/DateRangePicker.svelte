@@ -181,9 +181,20 @@
     value ? ({ start: value.start, end: value.end } as CalendarSelection) : undefined
   );
 
+  // The range last reported through `onValueChange`, or the value when the
+  // calendar opened. The first click overwrites `value` with an in-progress
+  // `{ start, start }`, so a completed range is compared with this, not `value`.
+  let reportedRange: DateRange | undefined;
+
+  function report(range: DateRange | undefined) {
+    reportedRange = range;
+    onValueChange?.(range);
+  }
+
   function setOpen(newOpen: boolean) {
     if (open === newOpen) return;
     open = newOpen;
+    if (newOpen) reportedRange = value;
     onOpenChange?.(newOpen);
   }
 
@@ -210,7 +221,7 @@
     if (trimmed === '') {
       if (value !== undefined) {
         value = undefined;
-        onValueChange?.(undefined);
+        report(undefined);
       }
       parseError = undefined;
       userDraft = null;
@@ -229,7 +240,7 @@
     parseError = undefined;
     if (!value || !rangesEqual(value, parsed)) {
       value = parsed;
-      onValueChange?.(parsed);
+      report(parsed);
     }
     userDraft = null;
   }
@@ -240,7 +251,8 @@
   }
 
   function handleFocus() {
-    userDraft = formattedValue;
+    // A draft held while focus was in the calendar or on a button survives the way back.
+    userDraft ??= formattedValue;
     focused = true;
   }
 
@@ -257,11 +269,16 @@
     commitDraft();
   }
 
-  // Popover returns focus to `triggerElement`, here the root, which is not
-  // focusable — so after Escape inside the calendar focus would fall to the
-  // body. The calendar button is the control that opened it.
+  // Focus inside the calendar falls to the body when it closes: Popover returns
+  // it to `triggerElement`, here the root, which is not focusable. The calendar
+  // button is the control that opened it. Only from inside the panel — Escape
+  // reaches the Popover wherever focus is.
+  function refocusFromPanel() {
+    if (calendarPanelEl?.contains(document.activeElement)) calendarButtonEl?.focus();
+  }
+
   function handlePopoverEscape() {
-    calendarButtonEl?.focus();
+    refocusFromPanel();
     onEscape?.();
   }
 
@@ -317,18 +334,21 @@
     const isComplete = !isSameDay(range.start, range.end);
 
     value = range;
-    if (isComplete) onValueChange?.(range);
+    // A completed range equal to the one last reported — the button may just
+    // have committed it — is no change.
+    if (isComplete && (!reportedRange || !rangesEqual(reportedRange, range))) report(range);
     parseError = undefined;
     userDraft = null;
 
     if (closeOnSelect && isComplete) {
       setOpen(false);
+      refocusFromPanel();
     }
   }
 
   function handleClear() {
     value = undefined;
-    onValueChange?.(undefined);
+    report(undefined);
     userDraft = null;
     parseError = undefined;
     setOpen(false);

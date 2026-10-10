@@ -412,6 +412,112 @@ describe('DateRangePicker (committing a typed draft)', () => {
   });
 });
 
+describe('DateRangePicker (draft and focus around the calendar)', () => {
+  function renderWithOutside() {
+    const onValueChange = vi.fn();
+    renderPicker({
+      value: { start: new Date(2026, 0, 1), end: new Date(2026, 0, 5) },
+      clearable: false,
+      onValueChange
+    });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+    return { onValueChange, after };
+  }
+
+  it('keeps the typed range through a trip into the calendar and back to the field', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    await user.click(
+      document.querySelector<HTMLElement>('button[aria-label="Previous month"]') as HTMLElement
+    );
+    await user.click(input());
+    flushSync();
+
+    expect(input().value).toBe('10.03.2026 – 20.03.2026');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('does not report the range again when the calendar picks the one the button just committed', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    await user.click(calendarButton());
+    flushSync();
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+
+    await pickDay(user, '2026-03-10');
+    await pickDay(user, '2026-03-20');
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('reports a range picked back to the one the calendar opened on after a commit in between', async () => {
+    const user = userEvent.setup();
+    const { onValueChange, after } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    // Keyboard focus leaving commits the typed range; the calendar stays open on January.
+    after.focus();
+    flushSync();
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+
+    await pickDay(user, '2026-01-01');
+    await pickDay(user, '2026-01-05');
+
+    expect(onValueChange).toHaveBeenCalledTimes(2);
+    const back = onValueChange.mock.calls[1][0] as DateRange;
+    expect([iso(back.start), iso(back.end)]).toEqual(['2026-01-01', '2026-01-05']);
+  });
+
+  it('leaves focus where it is on Escape once it has left the calendar', async () => {
+    const user = userEvent.setup();
+    const { after } = renderWithOutside();
+
+    await user.click(calendarButton());
+    flushSync();
+    after.focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(after);
+  });
+
+  it('returns focus to the calendar button once a range is picked from the keyboard', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-10') as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    flushSync();
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    // The grid re-focuses the picked day one frame after a key; let that land first, or it
+    // pulls focus back from the second day and Enter picks the first one again.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(calendarButton());
+  });
+});
+
 describe('DateRangePicker (focus and keys)', () => {
   it('returns focus to the calendar button on Escape from inside the calendar', async () => {
     const user = userEvent.setup();

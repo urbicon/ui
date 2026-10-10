@@ -431,6 +431,41 @@ describe('DatePicker (committing a typed draft)', () => {
     expect(day('2026-03-20')?.getAttribute('aria-selected')).toBe('true');
   });
 
+  it('keeps the typed date through a trip into the calendar and back to the field', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '20.03.2026' } });
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    await user.click(
+      document.querySelector<HTMLElement>('button[aria-label="Previous month"]') as HTMLElement
+    );
+    await user.click(input());
+    flushSync();
+
+    expect(input().value).toBe('20.03.2026');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('does not report the date again when the calendar picks the one the button just committed', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '20.03.2026' } });
+    await user.click(calendarButton());
+    flushSync();
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+
+    await user.click(day('2026-03-20') as HTMLElement);
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('holds the draft while focus is in the calendar, commits when it leaves for outside', () => {
     const { onValueChange, after } = renderWithOutside();
 
@@ -469,6 +504,38 @@ describe('DatePicker (focus after the calendar closes)', () => {
     expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(calendarButton());
     expect(onEscape).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves focus where it is on Escape once it has left the calendar', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+
+    await user.click(calendarButton());
+    flushSync();
+    // Keyboard focus can leave an open calendar without closing it (no pointerdown).
+    after.focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(after);
+  });
+
+  it('returns focus to the calendar button after a day is picked from the keyboard', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(calendarButton());
   });
 
   it('leaves focus on what an outside click focused', async () => {

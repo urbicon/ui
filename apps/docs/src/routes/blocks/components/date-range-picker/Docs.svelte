@@ -161,9 +161,10 @@
         <Kbd keys="↓" /> opens the calendar from the field. In the field,
         <Kbd keys="Enter" /> closes it while open, and commits what has been typed while it is not; on
         the calendar button, <Kbd keys="Enter" /> or <Kbd keys="Space" /> opens and closes it.
-        <Kbd keys="Esc" /> closes the calendar, and from inside it returns focus to the calendar button;
-        pressed again on a field with an uncommitted draft it discards that draft rather than the selection.
-        Grid navigation inside the calendar follows the
+        <Kbd keys="Esc" /> closes the calendar; pressed again on a field with an uncommitted draft it
+        discards that draft rather than the selection. From inside the calendar, <Kbd keys="Esc" /> or
+        completing a range returns focus to the calendar button. Grid navigation inside the calendar follows
+        the
         <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
           >Calendar</a
         > pattern.

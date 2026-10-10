@@ -227,7 +227,8 @@
   }
 
   function handleFocus() {
-    userDraft = formattedValue;
+    // A draft held while focus was in the calendar or on a button survives the way back.
+    userDraft ??= formattedValue;
     focused = true;
   }
 
@@ -244,11 +245,16 @@
     commitDraft();
   }
 
-  // Popover returns focus to `triggerElement`, here the root, which is not
-  // focusable — so after Escape inside the calendar focus would fall to the
-  // body. The calendar button is the control that opened it.
+  // Focus inside the calendar falls to the body when it closes: Popover returns
+  // it to `triggerElement`, here the root, which is not focusable. The calendar
+  // button is the control that opened it. Only from inside the panel — Escape
+  // reaches the Popover wherever focus is.
+  function refocusFromPanel() {
+    if (calendarPanelEl?.contains(document.activeElement)) calendarButtonEl?.focus();
+  }
+
   function handlePopoverEscape() {
-    calendarButtonEl?.focus();
+    refocusFromPanel();
     onEscape?.();
   }
 
@@ -294,11 +300,17 @@
       );
       return;
     }
-    value = newValue;
-    onValueChange?.(newValue);
+    // Picking the date the field holds — the button may just have committed it — is no change.
+    if (!dateValue || dateValue.getTime() !== newValue.getTime()) {
+      value = newValue;
+      onValueChange?.(newValue);
+    }
     parseError = undefined;
     userDraft = null;
-    if (closeOnSelect) setOpen(false);
+    if (closeOnSelect) {
+      setOpen(false);
+      refocusFromPanel();
+    }
   }
 
   function handleClear() {

@@ -66,9 +66,10 @@
         <Kbd keys="Space" />
         from the calendar button;
         <Kbd keys="Escape" />
-        closes it, and from inside the calendar returns focus to the calendar button. A typed date is
-        committed on <Kbd keys="Enter" />, when the calendar button opens the calendar, and when
-        focus leaves the picker. Inside, the arrow keys move between days and weeks and
+        closes it. From inside the calendar, Escape or picking a date returns focus to the calendar button.
+        A typed date is committed on <Kbd keys="Enter" />, when the calendar button opens the
+        calendar, and when focus leaves the picker. Inside, the arrow keys move between days and
+        weeks and
         <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
         between months. Focus rings use
         <code class="text-text-primary">focus-visible:</code>, so they appear for the keyboard only.
