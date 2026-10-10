@@ -57,7 +57,13 @@ export interface BarChartProps extends Omit<HTMLAttributes<HTMLElement>, 'childr
   showLegend?: boolean;
   /** Render horizontal gridlines. @default true */
   showGrid?: boolean;
-  /** Accessible label; a summary in the active locale is generated when omitted. */
+  /**
+   * Accessible label for the chart image, which also captions the data table.
+   * A plain `aria-label` does the same, and this prop wins over it; with
+   * neither, a summary in the active locale is generated. `aria-labelledby`
+   * outranks both for the image's name, and this prop then only captions the
+   * table.
+   */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;

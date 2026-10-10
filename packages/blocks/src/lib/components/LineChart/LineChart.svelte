@@ -32,6 +32,9 @@
     showGrid = true,
     includeZero = false,
     ariaLabel,
+    // A plain aria-label names the chart as `ariaLabel` does. Left in rest it
+    // would reach ChartFrame, which ranks it below the generated summary.
+    'aria-label': restAriaLabel,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -99,7 +102,9 @@
   }
 
   const resolvedAriaLabel = $derived(
-    ariaLabel ?? bt('chart.lineSummary', { points: data.length, series: resolvedSeries.length })
+    ariaLabel ??
+      restAriaLabel ??
+      bt('chart.lineSummary', { points: data.length, series: resolvedSeries.length })
   );
 </script>
 

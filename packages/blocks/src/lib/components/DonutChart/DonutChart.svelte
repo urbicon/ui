@@ -20,6 +20,11 @@
     totalLabel,
     showLegend = true,
     ariaLabel,
+    // Out of rest and onto the svg, which carries role="img": on the figure
+    // the rest lands on, they would name the figure and leave the image
+    // unnamed.
+    'aria-label': restAriaLabel,
+    'aria-labelledby': ariaLabelledby,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -88,7 +93,9 @@
   });
 
   const resolvedAriaLabel = $derived(
-    ariaLabel ?? bt('chart.donutSummary', { segments: data.length, total: fmt(total) })
+    ariaLabel ??
+      restAriaLabel ??
+      bt('chart.donutSummary', { segments: data.length, total: fmt(total) })
   );
 </script>
 
@@ -98,6 +105,7 @@
     viewBox="0 0 {size} {size}"
     role="img"
     aria-label={resolvedAriaLabel}
+    aria-labelledby={ariaLabelledby}
     style="max-width: {size}px; height: auto;"
   >
     {#each segments as seg, i (seg.label + ' ' + i)}

@@ -54,7 +54,7 @@
 
     <CodeExample
       title="Fixed width (SSR-stable)"
-      description="Omit `width` for responsive measurement (the common case). Set it to opt out: the SVG renders at exactly that width on the server with no layout shift, which suits emails, PDFs, or snapshot tests."
+      description="Omit `width` for responsive measurement (the common case). Set it to opt out: the plot is drawn at that width on the server and in the browser alike, so nothing is redrawn on hydration, which suits emails, PDFs, or snapshot tests. The SVG still spans its column, centring the drawing in a wider one and scaling it down in a narrower one."
       code={`<ChartFrame width={480} height={200} ariaLabel="Static chart">
   {#snippet children({ innerWidth, innerHeight })}
     <!-- drawn at a deterministic 480×200, no ResizeObserver -->
@@ -73,8 +73,8 @@
       <p>
         The SVG carries <code>role="img"</code> with your <code>ariaLabel</code>, so assistive tech
         announces the chart as a single named image rather than reading out every path and number.
-        Always pass one; without it the chart is an unlabelled image, fine only when an adjacent
-        caption already conveys the same information.
+        Always name it: pass <code>ariaLabel</code>, or point <code>aria-labelledby</code> at a visible
+        caption.
       </p>
     </Note>
     <Note title="Supply a fallback for the detail">

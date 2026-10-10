@@ -482,6 +482,15 @@ describe('AreaChart — what a screen reader gets', () => {
     formatValue: (value: number) => `${value}k`
   } satisfies AreaChartProps;
 
+  it('lets a plain aria-label name the image and caption the table, not the figure', () => {
+    const target = render({ ...VISITORS, 'aria-label': 'Visitors' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-label')).toBe('Visitors');
+    expect(dataTable(target).caption).toBe('Visitors');
+    expect(figure?.hasAttribute('aria-label')).toBe(false);
+  });
+
   it.each([
     ['a generated summary', {}, 'Area chart, points: 2, series: 2'],
     [
@@ -489,7 +498,12 @@ describe('AreaChart — what a screen reader gets', () => {
       { stacked: true },
       'Stacked area chart, points: 2, series: 2'
     ],
-    ['ariaLabel', { ariaLabel: 'Visitors' }, 'Visitors']
+    ['ariaLabel', { ariaLabel: 'Visitors' }, 'Visitors'],
+    [
+      'ariaLabel over a plain aria-label',
+      { ariaLabel: 'Visitors', 'aria-label': 'Traffic' },
+      'Visitors'
+    ]
   ])('names the image and captions the data table with %s', (_name, props, name) => {
     const target = render({ ...VISITORS, ...props });
 

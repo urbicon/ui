@@ -13,6 +13,11 @@
     width: widthProp,
     margin: marginProp,
     ariaLabel,
+    // Out of rest and onto the svg, which carries role="img": on the figure
+    // the rest lands on, they would name the figure and leave the image
+    // unnamed.
+    'aria-label': restAriaLabel,
+    'aria-labelledby': ariaLabelledby,
     children,
     legend,
     fallback,
@@ -76,7 +81,8 @@
     width="100%"
     {height}
     role="img"
-    aria-label={ariaLabel}
+    aria-label={ariaLabel ?? restAriaLabel}
+    aria-labelledby={ariaLabelledby}
     preserveAspectRatio="xMidYMid meet"
   >
     <g transform="translate({margin.left}, {margin.top})">

@@ -210,11 +210,25 @@ describe('LineChart — what a screen reader gets', () => {
     formatValue: (value: number) => `${value}°`
   } satisfies LineChartProps;
 
+  it('lets a plain aria-label name the image and caption the table, not the figure', () => {
+    const target = render({ ...TEMPERATURES, 'aria-label': 'Temperatures' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-label')).toBe('Temperatures');
+    expect(dataTable(target).caption).toBe('Temperatures');
+    expect(figure?.hasAttribute('aria-label')).toBe(false);
+  });
+
   it.each([
-    ['a generated summary', undefined, 'Line chart, points: 2, series: 2'],
-    ['ariaLabel', 'Temperatures', 'Temperatures']
-  ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
-    const target = render({ ...TEMPERATURES, ariaLabel });
+    ['a generated summary', {}, 'Line chart, points: 2, series: 2'],
+    ['ariaLabel', { ariaLabel: 'Temperatures' }, 'Temperatures'],
+    [
+      'ariaLabel over a plain aria-label',
+      { ariaLabel: 'Temperatures', 'aria-label': 'Readings' },
+      'Temperatures'
+    ]
+  ])('names the image and captions the data table with %s', (_name, props, name) => {
+    const target = render({ ...TEMPERATURES, ...props });
 
     expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
     expect(dataTable(target).caption).toBe(name);

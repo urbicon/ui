@@ -246,11 +246,37 @@ describe('BarChart — what a screen reader gets', () => {
     formatValue: (value: number) => `${value}k`
   } satisfies BarChartProps;
 
+  it('lets a plain aria-label name the image and caption the table, not the figure', () => {
+    const target = render({ ...QUARTERS, 'aria-label': 'Quarterly result' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-label')).toBe(
+      'Quarterly result'
+    );
+    expect(dataTable(target).caption).toBe('Quarterly result');
+    expect(figure?.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('passes aria-labelledby through to the image, not the figure', () => {
+    const target = render({ ...QUARTERS, 'aria-labelledby': 'quarters-caption' });
+    const figure = target.querySelector(':scope > figure');
+
+    expect(figure?.querySelector(':scope > svg')?.getAttribute('aria-labelledby')).toBe(
+      'quarters-caption'
+    );
+    expect(figure?.hasAttribute('aria-labelledby')).toBe(false);
+  });
+
   it.each([
-    ['a generated summary', undefined, 'Bar chart, categories: 2, series: 2'],
-    ['ariaLabel', 'Quarterly result', 'Quarterly result']
-  ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
-    const target = render({ ...QUARTERS, ariaLabel });
+    ['a generated summary', {}, 'Bar chart, categories: 2, series: 2'],
+    ['ariaLabel', { ariaLabel: 'Quarterly result' }, 'Quarterly result'],
+    [
+      'ariaLabel over a plain aria-label',
+      { ariaLabel: 'Quarterly result', 'aria-label': 'Revenue' },
+      'Quarterly result'
+    ]
+  ])('names the image and captions the data table with %s', (_name, props, name) => {
+    const target = render({ ...QUARTERS, ...props });
 
     expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
     expect(dataTable(target).caption).toBe(name);

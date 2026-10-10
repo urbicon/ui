@@ -248,6 +248,50 @@ describe('ChartFrame — around the plot', () => {
     expect(svg?.getAttribute('role')).toBe('img');
     expect(svg?.getAttribute('aria-label')).toBe('Weekly revenue');
   });
+
+  /** The naming attributes on the figure and on the svg inside it. */
+  function names(target: Element) {
+    const figure = target.querySelector(':scope > figure');
+    const svg = figure?.querySelector(':scope > svg');
+    const read = (el: Element | null | undefined) => ({
+      label: el?.getAttribute('aria-label'),
+      labelledby: el?.getAttribute('aria-labelledby')
+    });
+    return { figure: read(figure), svg: read(svg) };
+  }
+
+  it('puts a plain aria-label on the image it names, not on the figure', () => {
+    const target = render({ width: 500, 'aria-label': 'Weekly revenue' });
+
+    expect(names(target)).toEqual({
+      figure: { label: null, labelledby: null },
+      svg: { label: 'Weekly revenue', labelledby: null }
+    });
+  });
+
+  it('lets aria-labelledby point the image at a visible caption', () => {
+    const target = render({ width: 500, 'aria-labelledby': 'revenue-caption' });
+
+    expect(names(target)).toEqual({
+      figure: { label: null, labelledby: null },
+      svg: { label: null, labelledby: 'revenue-caption' }
+    });
+  });
+
+  it('takes ariaLabel over a plain aria-label', () => {
+    const target = render({ width: 500, ariaLabel: 'Weekly revenue', 'aria-label': 'Revenue' });
+
+    expect(names(target).svg.label).toBe('Weekly revenue');
+  });
+
+  it('spreads the other attributes onto the figure, and none onto the svg', () => {
+    const target = render({ width: 500, id: 'revenue-chart', 'data-x': 'probe' });
+    const figure = target.querySelector(':scope > figure');
+    const svg = figure?.querySelector(':scope > svg');
+
+    expect([figure?.id, figure?.getAttribute('data-x')]).toEqual(['revenue-chart', 'probe']);
+    expect([svg?.hasAttribute('id'), svg?.hasAttribute('data-x')]).toEqual([false, false]);
+  });
 });
 
 describe('ChartFrame — slot contract', () => {

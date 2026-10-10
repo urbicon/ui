@@ -20,6 +20,10 @@
     color = 'var(--color-chart-1)',
     strokeWidth = 1.5,
     ariaLabel,
+    // Read here rather than spread: the root's role and aria-hidden follow
+    // whether anything names it.
+    'aria-label': restAriaLabel,
+    'aria-labelledby': ariaLabelledby,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -59,6 +63,9 @@
     }
   }
 
+  const label = $derived(ariaLabel ?? restAriaLabel);
+  const named = $derived(Boolean(label || ariaLabelledby));
+
   const endPointRadius = $derived(strokeWidth + 0.5);
   // A non-root <svg> clips at its box (`overflow: hidden`). With the end point
   // drawn, the plot is inset by its radius, the furthest a mark reaches past a
@@ -90,9 +97,10 @@
 <span
   {...rest}
   class={slot('root', className)}
-  role={ariaLabel ? 'img' : undefined}
-  aria-label={ariaLabel}
-  aria-hidden={ariaLabel ? undefined : 'true'}
+  role={named ? 'img' : undefined}
+  aria-label={label}
+  aria-labelledby={ariaLabelledby}
+  aria-hidden={named ? undefined : 'true'}
 >
   <svg
     class={slot('svg')}
