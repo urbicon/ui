@@ -6,7 +6,11 @@
   import { Popover } from '#lib/primitives/Popover/index.js';
   import { Calendar } from '#lib/components/Calendar/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
+  import {
+    datePickerIconButtonClass,
+    datePickerVariants,
+    type DatePickerSlots
+  } from './datepicker.variants';
   import { resolveIcon } from '#lib/icons/index.js';
   import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
@@ -65,6 +69,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     onkeydown: onkeydownProp,
+    onfocusout: onfocusoutProp,
     ...restProps
   }: DatePickerProps = $props();
 
@@ -91,6 +96,8 @@
 
   let open = $state(false);
   let triggerEl: HTMLDivElement | undefined = $state();
+  let calendarButtonEl: HTMLButtonElement | undefined = $state();
+  let calendarPanelEl: HTMLDivElement | undefined = $state();
   let userDraft = $state<string | null>(null);
   let focused = $state(false);
   let parseError = $state<string | undefined>();
@@ -142,6 +149,10 @@
 
   const iconSize = $derived(
     size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16
+  );
+
+  const iconButtonClass = $derived(
+    datePickerIconButtonClass(slotClasses?.iconButton, size ?? 'md', unstyled)
   );
 
   const showClearIcon = $derived(clearable && !!dateValue && !disabled);
@@ -216,20 +227,35 @@
   }
 
   function handleFocus() {
-    userDraft = formattedValue;
+    // A draft held while focus was in the calendar or on a button survives the way back.
+    userDraft ??= formattedValue;
     focused = true;
   }
 
-  function handleBlur(e: FocusEvent) {
-    // Don't commit on blur if focus is moving to a control inside the
-    // picker (calendar icon button, popover content) — that's a
-    // "still editing" intent, not "I'm done".
+  // Listens on the root and on the calendar panel, which the Popover renders
+  // outside the root. Focus moving between the field, its two buttons and the
+  // calendar is still editing; focus leaving all of them commits the draft —
+  // the field shows the draft, so the form must not submit the old value.
+  function handleFocusOut(e: FocusEvent) {
     const next = e.relatedTarget;
-    if (next instanceof HTMLElement && triggerEl?.contains(next)) {
+    if (next instanceof Node && (triggerEl?.contains(next) || calendarPanelEl?.contains(next))) {
       return;
     }
     focused = false;
     commitDraft();
+  }
+
+  // Focus inside the calendar falls to the body when it closes: Popover returns
+  // it to `triggerElement`, here the root, which is not focusable. The calendar
+  // button is the control that opened it. Only from inside the panel — Escape
+  // reaches the Popover wherever focus is.
+  function refocusFromPanel() {
+    if (calendarPanelEl?.contains(document.activeElement)) calendarButtonEl?.focus();
+  }
+
+  function handlePopoverEscape() {
+    refocusFromPanel();
+    onEscape?.();
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -240,6 +266,9 @@
         if (!open) setOpen(true);
         break;
       case 'Enter':
+        // Enter on the clear or calendar button is that button's own. `focused`
+        // cannot tell: it stays true while focus sits on either (see handleFocusOut).
+        if (!(e.target instanceof HTMLInputElement)) break;
         if (open) {
           e.preventDefault();
           setOpen(false);
@@ -271,11 +300,17 @@
       );
       return;
     }
-    value = newValue;
-    onValueChange?.(newValue);
+    // Picking the date the field holds — the button may just have committed it — is no change.
+    if (!dateValue || dateValue.getTime() !== newValue.getTime()) {
+      value = newValue;
+      onValueChange?.(newValue);
+    }
     parseError = undefined;
     userDraft = null;
-    if (closeOnSelect) setOpen(false);
+    if (closeOnSelect) {
+      setOpen(false);
+      refocusFromPanel();
+    }
   }
 
   function handleClear() {
@@ -289,9 +324,14 @@
 
   function handleIconClick() {
     if (disabled) return;
-    const wasOpen = open;
-    setOpen(!wasOpen);
-    if (wasOpen) focusInput();
+    if (open) {
+      setOpen(false);
+      focusInput();
+      return;
+    }
+    // The calendar opens on what the field shows.
+    commitDraft();
+    setOpen(true);
   }
 </script>
 
@@ -300,6 +340,7 @@
   bind:this={triggerEl}
   class={slot('base', className)}
   onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
+  onfocusout={composeHandlers(handleFocusOut, onfocusoutProp)}
 >
   <Input
     {unstyled}
@@ -318,44 +359,39 @@
       : undefined}
     oninput={handleInput}
     onfocus={handleFocus}
-    onblur={handleBlur}
-    onRightIconClick={showClearIcon ? undefined : handleIconClick}
-    rightIconAriaLabel={showClearIcon ? undefined : bt('datepicker.openCalendar')}
     aria-haspopup="dialog"
-    aria-expanded={open}
-    aria-controls={open ? popoverId : undefined}
     autocomplete="off"
     spellcheck={false}
   >
     {#snippet rightIcon()}
-      {#if showClearIcon}
-        <!-- Input wraps a single-icon `rightIcon` in a click-through
-             `<span pointer-events-none>`. With two embedded buttons we
-             restore pointer-events on the inner controls so both clear
-             and open work. -->
-        <span class="pointer-events-auto inline-flex items-center gap-0.5">
+      <!-- The calendar button carries the open state — `aria-expanded` is not
+           allowed on the textbox — and sits outside the `{#if}`, so it stays
+           one node while the clear button comes and goes. -->
+      <span class={unstyled ? undefined : 'inline-flex items-center gap-0.5'}>
+        {#if showClearIcon}
           <button
             type="button"
-            class={slot('iconButton')}
+            class={iconButtonClass}
             onclick={handleClear}
             {disabled}
             aria-label={bt('accessibility.clearInput')}
           >
             <CloseIcon size={iconSize} />
           </button>
-          <button
-            type="button"
-            class={slot('iconButton')}
-            onclick={handleIconClick}
-            {disabled}
-            aria-label={bt('datepicker.openCalendar')}
-          >
-            <CalendarIcon size={iconSize} />
-          </button>
-        </span>
-      {:else}
-        <CalendarIcon size={iconSize} />
-      {/if}
+        {/if}
+        <button
+          bind:this={calendarButtonEl}
+          type="button"
+          class={iconButtonClass}
+          onclick={handleIconClick}
+          {disabled}
+          aria-label={bt('datepicker.openCalendar')}
+          aria-expanded={open}
+          aria-controls={open ? popoverId : undefined}
+        >
+          <CalendarIcon size={iconSize} />
+        </button>
+      </span>
     {/snippet}
   </Input>
 
@@ -375,10 +411,10 @@
     offsetDistance={4}
     {closeOnEscape}
     {closeOnClickOutside}
-    {onEscape}
+    onEscape={handlePopoverEscape}
     {onClickOutside}
   >
-    <div class="p-2">
+    <div bind:this={calendarPanelEl} class="p-2" onfocusout={handleFocusOut}>
       <Calendar
         {unstyled}
         value={dateValue}

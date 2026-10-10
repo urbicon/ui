@@ -245,6 +245,31 @@ export const fieldErrorFrame = (f: FieldFocus): string => DANGER_FRAME[f];
 export const FIELD_DISABLED_FRAME =
   'opacity-50 cursor-not-allowed bg-surface-disabled pointer-events-none';
 
+/**
+ * A button inside a field's icon area: Input's own (clear, `onLeftIconClick`,
+ * `onRightIconClick`) and the ones DatePicker and DateRangePicker draw into
+ * Input's `rightIcon` area themselves. One recipe, so a button in that area has
+ * the same box and hit area whichever component draws it. The SVG size is not
+ * part of it: Input sets that per size, on its own buttons and on the
+ * decoration span a `rightIcon` snippet renders in.
+ */
+export const FIELD_ICON_BUTTON = [
+  'pointer-events-auto inline-flex items-center justify-center rounded-modify cursor-pointer',
+  'text-text-tertiary hover:text-text-primary hover:bg-surface-hover',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+  'transition-colors duration-[var(--blocks-duration-fast)]',
+  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent'
+].join(' ');
+
+/** {@link FIELD_ICON_BUTTON}'s padding per field `size`. */
+export const FIELD_ICON_BUTTON_PADDING = {
+  xs: 'p-0.5',
+  sm: 'p-0.5',
+  md: 'p-1',
+  lg: 'p-1',
+  xl: 'p-1.5'
+} as const;
+
 /** The field label base, shared verbatim across all three fields. */
 export const FIELD_LABEL = 'block font-medium text-text-secondary text-sm';
 

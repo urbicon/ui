@@ -53,6 +53,8 @@ function renderPicker(props: Partial<ComponentProps<typeof DateRangePickerHarnes
 }
 
 const input = () => screen.getByRole('textbox') as HTMLInputElement;
+const calendarButton = () =>
+  screen.getByRole('button', { name: 'Open calendar' }) as HTMLButtonElement;
 const day = (isoDate: string) => document.querySelector<HTMLElement>(`[data-date="${isoDate}"]`);
 const rangeState = () => screen.getByTestId('range-state');
 
@@ -89,7 +91,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
@@ -109,7 +111,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '15.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
@@ -125,7 +127,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: 'not a range' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -141,7 +143,7 @@ describe('DateRangePicker (component interaction)', () => {
     // Both halves parse, but start > end → parseDateRangeInput returns null,
     // surfacing the invalid-range error rather than committing a backwards span.
     fireEvent.input(el, { target: { value: '20.03.2026 – 10.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -159,7 +161,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -175,7 +177,7 @@ describe('DateRangePicker (component interaction)', () => {
     // Re-type the identical range; the rangesEqual guard must short-circuit the
     // commit so consumers don't see a no-op change.
     fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -189,7 +191,9 @@ describe('DateRangePicker (component interaction)', () => {
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '11.03.2026 – 21.03.2026' } });
     // Blur into the picker's own open-calendar button → "still editing", not "done".
-    fireEvent.blur(el, { relatedTarget: screen.getByRole('button', { name: 'Open calendar' }) });
+    fireEvent.focusOut(el, {
+      relatedTarget: screen.getByRole('button', { name: 'Open calendar' })
+    });
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -198,10 +202,60 @@ describe('DateRangePicker (component interaction)', () => {
   it('opens the calendar popover on ArrowDown', () => {
     renderPicker({});
 
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
     fireEvent.keyDown(input(), { key: 'ArrowDown' });
     flushSync();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  // APG date-picker-dialog shape, as on DatePicker: `aria-expanded` is not allowed on a textbox.
+  it('keeps the expanded state off the text field and on the calendar button', async () => {
+    const user = userEvent.setup();
+    renderPicker({});
+
+    expect(input().getAttribute('aria-haspopup')).toBe('dialog');
+    await user.click(calendarButton());
+    flushSync();
+
+    expect(input().hasAttribute('aria-expanded')).toBe(false);
+    expect(input().hasAttribute('aria-controls')).toBe(false);
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    const controlled = document.getElementById(
+      calendarButton().getAttribute('aria-controls') ?? ''
+    );
+    expect(controlled?.getAttribute('role')).toBe('dialog');
+    expect(controlled?.querySelector('[data-date]')).not.toBeNull();
+  });
+
+  it('opens from the calendar button on Enter after tabbing there from the field', async () => {
+    const user = userEvent.setup();
+    renderPicker({});
+
+    await user.click(input());
+    await user.tab();
+    expect(document.activeElement).toBe(calendarButton());
+    await user.keyboard('{Enter}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  // The first click leaves the popover open AND gives the field a value, which is what brings
+  // the clear button in beside the calendar button — mid-selection, every time.
+  it('keeps the same calendar button, still expanded, when the first click brings in the clear button', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+
+    const button = calendarButton();
+    await user.click(button);
+    flushSync();
+    expect(screen.queryByRole('button', { name: 'Clear input' })).toBeNull();
+
+    await pickDay(user, '2026-03-10');
+
+    expect(screen.getByRole('button', { name: 'Clear input' })).not.toBeNull();
+    expect(calendarButton()).toBe(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('first calendar click sets an in-progress range (bind:value) without firing onValueChange', async () => {
@@ -221,7 +275,7 @@ describe('DateRangePicker (component interaction)', () => {
     // … but onValueChange is withheld until the range is complete, and the popover
     // stays open for the second click.
     expect(onValueChange).not.toHaveBeenCalled();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
   });
 
   it('second calendar click completes the range, fires onValueChange once, and closes', async () => {
@@ -244,7 +298,7 @@ describe('DateRangePicker (component interaction)', () => {
     expect(iso(range.end)).toBe('2026-03-20');
 
     // closeOnSelect (default) closes once the range is complete.
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
   });
 
   it('keeps the popover open after completing a range when closeOnSelect is false', async () => {
@@ -260,7 +314,7 @@ describe('DateRangePicker (component interaction)', () => {
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
     // The range still completes, but the popover stays open for further picking.
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
   });
 
   it('carries both range halves in paired hidden inputs for form submission', () => {
@@ -312,12 +366,185 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
     expect(onValueChange).toHaveBeenCalledWith(undefined);
     expect(rangeState().getAttribute('data-start')).toBe('');
     expect(rangeState().getAttribute('data-end')).toBe('');
+  });
+});
+
+// As on DatePicker: the typed range is what the field shows, so it must be what the form submits.
+// Moving between the field and the picker's own buttons is still editing; leaving the picker, or
+// opening the calendar from its button, commits.
+describe('DateRangePicker (committing a typed draft)', () => {
+  it.each([
+    ['Tab → Enter → Escape → Tab', ['{Tab}', '{Enter}', '{Escape}', '{Tab}']],
+    ['Tab → Tab', ['{Tab}', '{Tab}']],
+    ['Tab → Space → Escape → Tab', ['{Tab}', ' ', '{Escape}', '{Tab}']]
+  ])('commits once on %s, and the form submits the typed range', async (_, keys) => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderPicker({
+      value: { start: new Date(2026, 0, 1), end: new Date(2026, 0, 5) },
+      name: 'stay',
+      clearable: false,
+      onValueChange
+    });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    for (const key of keys) await user.keyboard(key);
+    flushSync();
+
+    expect(document.activeElement).toBe(after);
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    const range = onValueChange.mock.calls[0][0] as DateRange;
+    expect([iso(range.start), iso(range.end)]).toEqual(['2026-03-10', '2026-03-20']);
+    const submitted = (half: string) =>
+      document.querySelector<HTMLInputElement>(`input[type="hidden"][name="stay_${half}"]`)?.value;
+    expect([submitted('start'), submitted('end')]).toEqual(['2026-03-10', '2026-03-20']);
+  });
+});
+
+describe('DateRangePicker (draft and focus around the calendar)', () => {
+  function renderWithOutside() {
+    const onValueChange = vi.fn();
+    renderPicker({
+      value: { start: new Date(2026, 0, 1), end: new Date(2026, 0, 5) },
+      clearable: false,
+      onValueChange
+    });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+    return { onValueChange, after };
+  }
+
+  it('keeps the typed range through a trip into the calendar and back to the field', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    await user.click(
+      document.querySelector<HTMLElement>('button[aria-label="Previous month"]') as HTMLElement
+    );
+    await user.click(input());
+    flushSync();
+
+    expect(input().value).toBe('10.03.2026 – 20.03.2026');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('reports a completed range even when it equals the one the button just committed', async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    await user.click(calendarButton());
+    flushSync();
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+
+    await pickDay(user, '2026-03-10');
+    await pickDay(user, '2026-03-20');
+
+    expect(onValueChange).toHaveBeenCalledTimes(2);
+    const again = onValueChange.mock.calls[1][0] as DateRange;
+    expect([iso(again.start), iso(again.end)]).toEqual(['2026-03-10', '2026-03-20']);
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('reports a range picked back to the one the calendar opened on after a commit in between', async () => {
+    const user = userEvent.setup();
+    const { onValueChange, after } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    // Keyboard focus leaving commits the typed range; the calendar stays open on January.
+    after.focus();
+    flushSync();
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+
+    await pickDay(user, '2026-01-01');
+    await pickDay(user, '2026-01-05');
+
+    expect(onValueChange).toHaveBeenCalledTimes(2);
+    const back = onValueChange.mock.calls[1][0] as DateRange;
+    expect([iso(back.start), iso(back.end)]).toEqual(['2026-01-01', '2026-01-05']);
+  });
+
+  it('leaves focus where it is on Escape once it has left the calendar', async () => {
+    const user = userEvent.setup();
+    const { after } = renderWithOutside();
+
+    await user.click(calendarButton());
+    flushSync();
+    after.focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(after);
+  });
+
+  it('returns focus to the calendar button once a range is picked from the keyboard', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-10') as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    flushSync();
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    // The grid re-focuses the picked day one frame after a key; let that land first, or it
+    // pulls focus back from the second day and Enter picks the first one again.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(calendarButton());
+  });
+});
+
+describe('DateRangePicker (focus and keys)', () => {
+  it('returns focus to the calendar button on Escape from inside the calendar', async () => {
+    const user = userEvent.setup();
+    const onEscape = vi.fn();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026, onEscape });
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(calendarButton());
+    expect(onEscape).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs a consumer onkeydown once, after ArrowDown has opened the calendar', () => {
+    const seen: boolean[] = [];
+    renderPicker({ onkeydown: (event: KeyboardEvent) => seen.push(event.defaultPrevented) });
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    expect(seen).toEqual([true]);
   });
 });

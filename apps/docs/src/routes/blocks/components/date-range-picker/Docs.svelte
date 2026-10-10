@@ -147,20 +147,24 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="Popup state on the trigger">
+    <Note title="Popup state on the calendar button">
       <p>
-        The text input carries <code class="text-text-primary">aria-haspopup="dialog"</code>,
-        <code class="text-text-primary">aria-expanded</code>, and (while open)
-        <code class="text-text-primary">aria-controls</code> pointing at the calendar, so assistive tech
-        reports both that a calendar exists and whether it is showing.
+        The text input carries <code class="text-text-primary">aria-haspopup="dialog"</code>, so
+        assistive tech reports that a calendar exists. Whether it is showing sits on the calendar
+        button: <code class="text-text-primary">aria-expanded</code>, and (while open)
+        <code class="text-text-primary">aria-controls</code> pointing at the calendar — a textbox
+        may not carry <code class="text-text-primary">aria-expanded</code>.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="↓" /> opens the calendar from the field.
-        <Kbd keys="Enter" /> closes it while open, and commits what has been typed while it is not.
+        <Kbd keys="↓" /> opens the calendar from the field. In the field,
+        <Kbd keys="Enter" /> closes it while open, and commits what has been typed while it is not; on
+        the calendar button, <Kbd keys="Enter" /> or <Kbd keys="Space" /> opens and closes it.
         <Kbd keys="Esc" /> closes the calendar; pressed again on a field with an uncommitted draft it
-        discards that draft rather than the selection. Grid navigation inside the calendar follows the
+        discards that draft rather than the selection. From inside the calendar, <Kbd keys="Esc" /> or
+        completing a range returns focus to the calendar button. Grid navigation inside the calendar follows
+        the
         <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
           >Calendar</a
         > pattern.
@@ -177,8 +181,9 @@
     </Note>
     <Note title="Typing is a first-class path">
       <p>
-        The range can be typed as well as clicked; parsing happens on blur or
-        <Kbd keys="Enter" />, and a parse failure shows as the field's
+        The range can be typed as well as clicked. Parsing happens on <Kbd keys="Enter" />, when the
+        calendar button opens the calendar, and when focus leaves the picker — moving to its own
+        buttons or into the calendar keeps the draft. A parse failure shows as the field's
         <code class="text-text-primary">error</code>.
       </p>
     </Note>

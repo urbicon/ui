@@ -13,6 +13,46 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.29.0
 
+### `DatePicker` and `DateRangePicker` report the open calendar on the calendar button
+
+The text field carried `aria-expanded`, and while open `aria-controls`. ARIA does not allow
+`aria-expanded` on a textbox, and axe reports it as `aria-allowed-attr`. Both attributes now sit on
+the "Open calendar" button beside the field, the shape of the APG date-picker dialog. The field
+keeps `aria-haspopup="dialog"`. A test or selector that read either attribute off the textbox
+finds it on that button now.
+
+That button is now always the picker's own. While the field was empty it used to be `Input`'s
+right-icon button, and the picker drew its own only once a value brought the clear button in.
+So `iconButton` in the picker's `slotClasses` (and under its name on `<BlocksProvider>`) styles it
+in both states, and an `iconButton` entry under `Input` no longer reaches it. Both picker buttons
+take `Input`'s icon-button padding per `size`, so beside a value they are larger than before from
+`md` up: `p-1`, and `p-1.5` at `xl`, where they had `p-0.5`.
+
+```sh
+rg -n 'aria-expanded|toBeExpanded|expanded:|iconButton' src e2e tests
+```
+
+### `DatePicker` and `DateRangePicker` commit a typed date when focus leaves the picker
+
+A typed date was committed when the text field lost focus to something outside the picker. Focus
+that went from the field to the picker's own clear or calendar button and then left never committed
+it: the field kept showing the typed date while the form submitted the old one. The draft now
+commits when focus leaves the field, its buttons and the open calendar altogether, and when the
+calendar button opens the calendar. So `onValueChange` fires, and `bind:value` changes, on paths
+where both used to stay silent.
+
+Two paths go the other way. Focus moving from the field into the open calendar used to commit the
+draft; it now holds it until focus leaves the picker or the calendar picks a date. And in
+`DatePicker`, picking the date the picker already holds no longer fires `onValueChange` again;
+`DateRangePicker` reports every completed range, equal or not.
+
+`DateRangePicker` also runs an `onkeydown` you pass, after its own handler, as `DatePicker` does
+since 8.28.0. Before, it was dropped without a word, so a handler that never ran starts running.
+
+```sh
+rg -nU '<DateRangePicker\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
+```
+
 ### `FileUpload` puts `id` and the field's ARIA on its file input
 
 `FileUpload` spread every attribute you passed onto its root `<div role="region">`, while its
