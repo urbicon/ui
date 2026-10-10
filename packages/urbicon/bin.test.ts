@@ -43,8 +43,8 @@ describe('bin/urbicon.js', () => {
   });
 
   // A pipe takes at least 64 KiB before Node has to queue the rest; a CLI that exits
-  // before the queue drains ends mid-line. How much a reader drains first varies
-  // (up to ~400 KB under spawnSync on Linux), so the report is several MB.
+  // before the queue drains ends mid-line. How much a reader drains before the exit
+  // varies by reader and platform, so the report is several MB.
   // `validate` over stdin needs no content bundle, and its verdict is the last line
   // it prints — present only if nothing was cut.
   it('delivers piped output past the pipe buffer in full', () => {
