@@ -447,30 +447,53 @@ describe('Select (option ids)', () => {
     `${trigger().id.replace('-trigger', '')}-option-${position}`;
   const activeDescendant = () => trigger().getAttribute('aria-activedescendant');
   const activeOption = () => document.getElementById(activeDescendant() ?? '');
+  // Select marks the cursor's row with the highlight class and nothing else.
+  const highlighted = () =>
+    screen
+      .getAllByRole('option', { hidden: true })
+      .filter((o) => o.classList.contains('bg-surface-hover'));
+  const WITH_DISABLED = [
+    { label: 'Germany', value: 'de', disabled: true },
+    { label: 'France', value: 'fr' },
+    { label: 'Spain', value: 'es', disabled: true },
+    { label: 'Italy', value: 'it' }
+  ];
 
   it('numbers every option by its position, disabled ones included', async () => {
     const user = userEvent.setup();
-    renderSelect({
-      options: [
-        { label: 'Germany', value: 'de', disabled: true },
-        { label: 'France', value: 'fr' },
-        { label: 'Spain', value: 'es', disabled: true },
-        { label: 'Italy', value: 'it' }
-      ]
-    });
+    renderSelect({ options: WITH_DISABLED });
 
     await user.click(trigger());
     expect(ids()).toEqual([0, 1, 2, 3].map(optionId));
 
-    // The cursor skips both disabled rows and its descendant names the row it is on.
+    // The cursor skips both disabled rows; its descendant and its highlight
+    // both name the row it is on.
     await user.keyboard('{ArrowDown}');
     expect(activeDescendant()).toBe(optionId(1));
     expect(activeOption()).toBe(option('France'));
+    expect(highlighted()).toEqual([activeOption()]);
     await user.keyboard('{ArrowDown}');
     expect(activeDescendant()).toBe(optionId(3));
     expect(activeOption()).toBe(option('Italy'));
+    expect(highlighted()).toEqual([activeOption()]);
     await user.keyboard('{ArrowDown}');
     expect(activeOption()).toBe(option('France'));
+    expect(highlighted()).toEqual([activeOption()]);
+  });
+
+  it('puts the cursor on the hovered row, so Enter selects what is under the pointer', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderSelect({ options: WITH_DISABLED, onValueChange });
+
+    await user.click(trigger());
+    // Italy sits after two disabled rows: its cursor slot (1) is not its position (3).
+    await user.hover(option('Italy'));
+    expect(activeOption()).toBe(option('Italy'));
+    expect(highlighted()).toEqual([option('Italy')]);
+
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenCalledWith('it');
   });
 
   it('gives one option object listed in two groups an id per row', async () => {
@@ -545,6 +568,67 @@ describe('Select (option ids)', () => {
     expect(activeOption()).toBe(option('Canada'));
     await user.keyboard('{Enter}');
     expect(onValueChange).toHaveBeenCalledWith('ca');
+  });
+});
+
+// ── Active row scrolled into view ─────────────────────────────────────────────
+// jsdom lays nothing out, so these pin the call — which row, which options, and
+// when — not the resulting scroll position.
+describe('Select (scroll into view)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const spyScroll = () => vi.spyOn(Element.prototype, 'scrollIntoView');
+
+  it('scrolls the row a key moves the cursor to, and nothing while closed', async () => {
+    const user = userEvent.setup();
+    const scroll = spyScroll();
+    renderSelect({ options: OPTIONS });
+
+    trigger().focus();
+    await user.keyboard('{End}');
+    expect(expanded()).toBe('false');
+    // Pointer-open with nothing selected places no cursor, so nothing to scroll to.
+    await user.click(trigger());
+    expect(scroll).not.toHaveBeenCalled();
+
+    await user.keyboard('{ArrowDown}');
+    expect(scroll.mock.contexts.at(-1)).toBe(option('Germany'));
+    expect(scroll).toHaveBeenLastCalledWith({ block: 'nearest' });
+
+    await user.keyboard('{End}');
+    expect(scroll.mock.contexts.at(-1)).toBe(option('Spain'));
+    expect(scroll).toHaveBeenLastCalledWith({ block: 'nearest' });
+
+    const calls = scroll.mock.calls.length;
+    await user.keyboard('{Escape}');
+    expect(expanded()).toBe('false');
+    expect(scroll).toHaveBeenCalledTimes(calls);
+  });
+
+  it('scrolls the selected row into view when the listbox opens on it', async () => {
+    const user = userEvent.setup();
+    const scroll = spyScroll();
+    renderSelect({ options: OPTIONS, value: 'es' });
+
+    await user.click(trigger());
+    expect(scroll.mock.contexts.at(-1)).toBe(option('Spain'));
+    expect(scroll).toHaveBeenLastCalledWith({ block: 'nearest' });
+  });
+
+  it('does not scroll for a hover, and scrolls again for the next key', async () => {
+    const user = userEvent.setup();
+    const scroll = spyScroll();
+    renderSelect({ options: OPTIONS });
+
+    await user.click(trigger());
+    await user.hover(option('France'));
+    expect(trigger().getAttribute('aria-activedescendant')).toBe(option('France').id);
+    expect(scroll).not.toHaveBeenCalled();
+
+    await user.keyboard('{ArrowDown}');
+    expect(scroll.mock.contexts.at(-1)).toBe(option('Spain'));
   });
 });
 

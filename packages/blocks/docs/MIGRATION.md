@@ -143,9 +143,10 @@ A disabled option's id was `<id>-option--1`, the same for every disabled option;
 option's number counted the enabled options only; and one option object listed in two groups (a
 "Recent" and an "All" list) gave both rows the first row's id. Now the number is the row's position
 in the rendered list, across groups, disabled rows included. A Select without disabled options or
-repeated objects keeps its ids; in one with them, a row after a disabled or repeated one moves to
-a higher number, and `aria-activedescendant` follows it. A test that addressed an option by its id
-needs the new number, or reach the option by its role and name instead:
+repeated objects keeps its ids. In one with them, a row after a disabled one moves to a higher
+number; a repeated row takes its own position instead of the first row's; and
+`aria-activedescendant` follows both. A test that addressed an option by its id needs the new
+number, or reach the option by its role and name instead:
 
 ```sh
 rg -n -- '-option-' src e2e tests

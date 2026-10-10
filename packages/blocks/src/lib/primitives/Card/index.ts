@@ -77,17 +77,19 @@ export interface CardProps
    */
   clickable?: boolean;
   /**
-   * Draw the card disabled — reduced opacity, a not-allowed cursor, `pointer-events-none` — and
-   * switch off what the element it renders would do:
+   * Draw the card disabled — when styled, reduced opacity, a not-allowed cursor and
+   * `pointer-events-none`, all of which `unstyled` drops — and switch off what the element it
+   * renders would do:
    *
    * - a `<button>` card (`onclick`, `clickable`) gets `aria-disabled="true"`, stays focusable,
    *   and its click is suppressed: `onclick` is not called;
    * - a link card (`href`) gets `aria-disabled="true"` and `tabindex="-1"`, its click cancels
-   *   the navigation, and its `href` stays on the element, readable and copyable;
-   * - a `<div>` card only dims its content and blocks the mouse on it, down to the controls
-   *   inside (`pointer-events` is inherited). It disables nothing for the keyboard or assistive
-   *   technology and carries no `aria-disabled`, whatever `role` you pass; give inner controls
-   *   their own `disabled`, and pass `aria-disabled` yourself where your `role` supports it.
+   *   the navigation, and its `href` stays on the element, readable by assistive technology;
+   * - a `<div>` card, when styled, only dims its content and blocks the mouse on it, down to the
+   *   controls inside (`pointer-events` is inherited). It disables nothing for the keyboard or
+   *   assistive technology and carries no `aria-disabled`, whatever `role` you pass; give inner
+   *   controls their own `disabled`, and pass `aria-disabled` yourself where your `role`
+   *   supports it.
    *
    * While disabled, the `aria-disabled` of the button and link forms and the `tabindex` of the
    * link form win over a value you pass; everywhere else yours is kept.

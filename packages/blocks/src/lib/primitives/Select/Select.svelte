@@ -131,6 +131,10 @@
   // active-option highlight only defaults to the first row for keyboard users.
   // Plain `let`: read in the open effect, intentionally not a reactive dep.
   let openedViaKeyboard = false;
+  // Whether the last cursor move came from a hover. Plain `let`: read in the
+  // scroll effect, which must not re-run when it flips. Any key, and the cursor
+  // an open places, reset it.
+  let cursorFromPointer = false;
   let triggerRef = $state<HTMLElement>();
   let listboxRef = $state<HTMLDivElement>();
 
@@ -298,6 +302,7 @@
     const selectedIdx = multiple ? -1 : enabledOptions.findIndex((o) => o.value === value);
     if (selectedIdx >= 0) next = selectedIdx;
     else if (openedViaKeyboard) next = 0;
+    cursorFromPointer = false;
     activeIndex = next;
   });
 
@@ -396,6 +401,7 @@
   // the "keyboard does nothing / fights the page" report. Consolidated here.)
   function handleTriggerKeydown(event: KeyboardEvent) {
     if (disabled) return;
+    cursorFromPointer = false;
 
     switch (event.key) {
       case 'ArrowDown':
@@ -481,6 +487,16 @@
   const activeDescendant = $derived.by(() => {
     const row = open && activeIndex >= 0 ? enabledRows[activeIndex] : undefined;
     return row ? getOptionId(row.position) : undefined;
+  });
+
+  // Keeps the row the cursor is on visible inside the scrolling listbox — after
+  // a key moves the cursor, and when the listbox opens on a selected row. A
+  // hover puts the cursor on a row the pointer is already over and does not
+  // scroll, as in Combobox.
+  $effect(() => {
+    if (!activeDescendant || cursorFromPointer) return;
+    const root = listboxRef?.getRootNode() as Document | ShadowRoot | undefined;
+    root?.getElementById(activeDescendant)?.scrollIntoView({ block: 'nearest' });
   });
 
   /**
@@ -705,7 +721,9 @@
                       })}
                   onclick={() => selectOption(option)}
                   onmouseenter={() => {
-                    if (!option.disabled) activeIndex = cursor;
+                    if (option.disabled) return;
+                    cursorFromPointer = true;
+                    activeIndex = cursor;
                   }}
                 >
                   {@render optionBody(option, isSel)}
@@ -739,7 +757,9 @@
                   })}
               onclick={() => selectOption(option)}
               onmouseenter={() => {
-                if (!option.disabled) activeIndex = cursor;
+                if (option.disabled) return;
+                cursorFromPointer = true;
+                activeIndex = cursor;
               }}
             >
               {@render optionBody(option, isSel)}
