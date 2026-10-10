@@ -159,9 +159,12 @@ describe('calendarVariants', () => {
     expect(disabled.day()).toContain('cursor-not-allowed');
     expect(disabled.dayNumber()).toContain('text-text-disabled');
 
-    expect(calendarVariants({ dayState: 'outsideMonth' }).dayNumber()).toContain(
-      'text-text-quaternary'
-    );
+    // Outside-month days are clickable, so their ink must clear AA: tertiary,
+    // never the mark-only quaternary — and the week numbers likewise.
+    const outside = calendarVariants({ dayState: 'outsideMonth' }).dayNumber();
+    expect(outside).toContain('text-text-tertiary');
+    expect(outside).not.toContain('text-text-quaternary');
+    expect(calendarVariants().weekNumber()).toContain('text-text-tertiary');
   });
 
   it('bolds days with events and flips the today dot to a light fill for contrast (compound)', () => {

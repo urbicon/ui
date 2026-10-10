@@ -39,8 +39,18 @@
     return map;
   });
 
-  const barHeight = $derived(ctx.size === 'sm' ? 16 : ctx.size === 'lg' ? 24 : 20);
-  const barGap = 2;
+  // A week's multi-day bars, one entry per stacking line. Each line renders as
+  // its own `role="row"` with one gridcell per bar: the grid may own rows only,
+  // and a bar spans several day columns, so it cannot sit inside a day's cell
+  // (that cell is a <button>). Lines whose events are unknown are dropped
+  // rather than rendered as rows without cells.
+  function barLines(weekIdx: number) {
+    const segments = (multiDayLayout[weekIdx]?.segments ?? []).filter((s) =>
+      eventById.has(s.eventId)
+    );
+    const rows = [...new Set(segments.map((s) => s.row))].sort((a, b) => a - b);
+    return rows.map((row) => ({ row, segments: segments.filter((s) => s.row === row) }));
+  }
 
   // Roving-focus keyboard nav runs through the shared date-grid handler (the same
   // one Planner's DateGridScaffold uses) so the ARIA key map — arrows, Home/End,
@@ -96,21 +106,13 @@
           : { duration: 0 }}
       >
         {#each ctx.grid as week, weekIdx (week[0] ? toIso(week[0]) : weekIdx)}
-          {@const weekLayout = multiDayLayout[weekIdx]}
-          {@const maxBarRow =
-            weekLayout?.segments.length > 0
-              ? Math.max(...weekLayout.segments.map((s) => s.row)) + 1
-              : 0}
-          {@const _barAreaHeight = maxBarRow * (barHeight + barGap)}
-
-          {#if weekLayout && weekLayout.segments.length > 0}
+          {#each barLines(weekIdx) as line (line.row)}
             <div
               class={slot('multiDayBarContainer')}
-              style="grid-template-columns: repeat({ctx.showWeekNumbers
-                ? 8
-                : 7}, minmax(0, 1fr)); grid-template-rows: repeat({maxBarRow}, auto);"
+              role="row"
+              style="grid-template-columns: repeat({ctx.showWeekNumbers ? 8 : 7}, minmax(0, 1fr));"
             >
-              {#each weekLayout.segments as seg (seg.eventId + '-' + weekIdx)}
+              {#each line.segments as seg (seg.eventId + '-' + weekIdx)}
                 {@const event = eventById.get(seg.eventId)}
                 {@const colOffset = ctx.showWeekNumbers ? 1 : 0}
                 {#if event}
@@ -120,13 +122,12 @@
                     spanCols={seg.spanCols}
                     isFirstSegment={seg.isFirstSegment}
                     isLastSegment={seg.isLastSegment}
-                    row={seg.row}
                     {onEventClick}
                   />
                 {/if}
               {/each}
             </div>
-          {/if}
+          {/each}
 
           <div class={slot('weekRow')} role="row">
             {#if ctx.showWeekNumbers}

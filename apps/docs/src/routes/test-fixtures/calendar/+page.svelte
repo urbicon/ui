@@ -39,6 +39,22 @@
   let lastEventTitle = $state('');
   let lastMonth = $state('');
 
+  // The accessibility section (#208): every view whose structure axe judges,
+  // with multi-day bars both on a consumer colour and on the library's own fill,
+  // and outside-month days plus week numbers in every variant.
+  const spanCategories = [{ id: 'violet', label: 'Violet', color: '#8b5cf6' }];
+  const spanEvents: CalendarEvent[] = [
+    { id: 's1', title: 'Offsite', start: new Date(2026, 5, 9), end: new Date(2026, 5, 11) },
+    {
+      id: 's2',
+      title: 'Trip',
+      start: new Date(2026, 5, 13),
+      end: new Date(2026, 5, 16),
+      categoryId: 'violet'
+    }
+  ];
+  const variants = ['default', 'bordered', 'ghost'] as const;
+
   // Single-select mode always yields a Date; anything else renders 'none'.
   const iso = (v: CalendarSelection | undefined) =>
     v instanceof Date
@@ -83,5 +99,44 @@
       maxDate={new Date(2026, 5, 30)}
       views={['month']}
     />
+  </section>
+
+  <section data-testid="cal-a11y" class="max-w-3xl space-y-10">
+    {#each variants as variant (variant)}
+      <div data-testid="cal-a11y-month-{variant}">
+        <Calendar
+          defaultDate={anchor}
+          locale="en-US"
+          {variant}
+          views={['month']}
+          showWeekNumbers
+          events={spanEvents}
+          categories={spanCategories}
+          onEventClick={() => {}}
+        />
+      </div>
+    {/each}
+    <div data-testid="cal-a11y-year">
+      <Calendar defaultDate={anchor} locale="en-US" view="year" views={['year']} />
+    </div>
+    <div data-testid="cal-a11y-week">
+      <Calendar
+        defaultDate={anchor}
+        locale="en-US"
+        view="week"
+        views={['week']}
+        showMiniCalendar
+        events={spanEvents}
+        categories={spanCategories}
+        onEventClick={() => {}}
+      />
+    </div>
+    <div data-testid="cal-a11y-daycell">
+      <Calendar defaultDate={anchor} locale="en-US" views={['month']}>
+        {#snippet dayCell(ctx)}
+          <span class="text-text-primary text-sm">{ctx.date.getDate()}</span>
+        {/snippet}
+      </Calendar>
+    </div>
   </section>
 </div>

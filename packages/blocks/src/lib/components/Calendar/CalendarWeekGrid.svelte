@@ -105,10 +105,17 @@
   }
 </script>
 
+<!--
+  A labelled group, not a grid: the only arrow-key movement here is one row of
+  day heads, and the hour grid's slots and events are not cells — a `role="grid"`
+  would promise cell navigation this view does not have. The heads keep their
+  roving tabindex; the keydown handler below is delegated from them, and the
+  group itself takes no focus.
+-->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   class={slot('weekTimeLayout', className)}
-  role="grid"
-  tabindex={0}
+  role="group"
   aria-label={bt('calendar.weekView')}
   onkeydown={handleKeydown}
   style="overflow: hidden;"

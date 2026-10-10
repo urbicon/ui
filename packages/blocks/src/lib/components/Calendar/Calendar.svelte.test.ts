@@ -182,9 +182,10 @@ describe('Calendar view swipes are direction-gated at the bounds', () => {
       onWeekChange
     });
 
-    const grid = document.querySelector('[role="grid"]');
-    swipe(grid, 'left');
-    swipe(grid, 'right');
+    // The week view is a labelled group, not a grid: it has no cell navigation.
+    const layout = document.querySelector('[role="group"][aria-label="Week view"]');
+    swipe(layout, 'left');
+    swipe(layout, 'right');
 
     expect(onWeekChange).not.toHaveBeenCalled();
   });
@@ -193,7 +194,7 @@ describe('Calendar view swipes are direction-gated at the bounds', () => {
     const onWeekChange = vi.fn();
     renderCalendar({ view: 'week', defaultDate: anchor, animated: false, onWeekChange });
 
-    swipe(document.querySelector('[role="grid"]'), 'left');
+    swipe(document.querySelector('[role="group"][aria-label="Week view"]'), 'left');
 
     expect(onWeekChange).toHaveBeenCalledTimes(1);
     expect(iso(onWeekChange.mock.calls[0][0] as Date)).toBe('2026-06-22');

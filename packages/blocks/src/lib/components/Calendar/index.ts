@@ -263,7 +263,19 @@ export interface CalendarProps
   onTimeSlotCreate?: (start: Date, end: Date) => void;
 
   // === Custom rendering ===
-  /** Custom snippet for rendering a day cell. */
+  /**
+   * Renders the content of each day in the month grid, outside-month days
+   * included. Calendar wraps it in the day's `role="gridcell"` and sets
+   * `aria-selected`, `aria-disabled` and `aria-current="date"` there, so the
+   * snippet renders content, not a cell — no `role` of its own, and no layout
+   * that expects to be the week row's grid item. The wrapper takes no clicks
+   * and no focus: a day that should respond to the pointer or the keyboard
+   * renders its own control inside it. For the arrow keys to land on it, that
+   * control must be focusable and carry `data-date` as `YYYY-MM-DD` — the grid
+   * focuses the `[data-date]` of the day the keys reach — and
+   * `tabindex={isFocused ? 0 : -1}` keeps it a single tab stop.
+   * @summary Custom content for each day of the month grid; Calendar owns the gridcell around it.
+   */
   dayCell?: Snippet<[DayCellContext]>;
   /**
    * Custom snippet for rendering an event item in the list-based views (agenda
