@@ -92,6 +92,26 @@ describe('StreamingMarkdown (renderer)', () => {
     expect(boxes[0].disabled).toBe(true);
   });
 
+  it("names each task checkbox by its own item's text, not a nested sub-list's", () => {
+    render({ content: '- [x] done\n- [ ] parent\n  - [ ] child' });
+    const boxes = [...document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
+    expect(boxes).toHaveLength(3);
+    const names = boxes.map((box) => {
+      const ids = box.getAttribute('aria-labelledby');
+      expect(ids).toBeTruthy();
+      return document.getElementById(ids as string)?.textContent?.trim();
+    });
+    expect(names).toEqual(['done', 'parent', 'child']);
+    const ids = boxes.map((box) => box.getAttribute('aria-labelledby'));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('renders a marker with no text after it as a plain item, as GFM does', () => {
+    render({ content: '- [ ] \n  - child' });
+    expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
+    expect(document.querySelector('li')?.textContent).toContain('[ ]');
+  });
+
   it('shows the streaming cursor only while streaming', () => {
     const props = render({ content: 'Hello', streaming: true });
     expect(document.querySelector('[aria-hidden="true"]')).not.toBeNull();

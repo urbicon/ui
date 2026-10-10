@@ -278,7 +278,9 @@ function materialize(raw: RawBlock, ctx: MaterializeContext): BlockNode {
   }
 }
 
-const TASK_MARKER = /^\[([ xX])\]\s+/;
+// GFM: a marker is a task only when text follows it on the same line; `\s+`
+// would match the line end and turn `- [ ] ` into an unnamed task.
+const TASK_MARKER = /^\[([ xX])\][ \t]+(?=\S)/;
 
 function materializeList(
   raw: Extract<RawBlock, { type: 'list' }>,
