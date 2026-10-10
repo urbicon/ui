@@ -36,7 +36,13 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   data: CartesianDatum[];
   /** Series metadata (labels + colors); defaults to one per value column. */
   series?: ChartSeries[];
-  /** Stack series cumulatively instead of overlaying them. @default false */
+  /**
+   * Stack series instead of overlaying them: per category, positive values
+   * build up from zero and negative values down from it. A series that changes
+   * sign crosses the other bands, or parts from them, between categories.
+   * @default false
+   * @summary Stacks the series on each other instead of overlaying them.
+   */
   stacked?: boolean;
   /** Opacity of the area fill (0–1). @default 0.2 (overlay) / 0.85 (stacked) */
   fillOpacity?: number;
@@ -54,7 +60,7 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   showLegend?: boolean;
   /** Render horizontal gridlines. @default true */
   showGrid?: boolean;
-  /** Accessible label; a summary is generated when omitted. */
+  /** Accessible label; a summary in the active locale is generated when omitted. */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;
@@ -63,8 +69,9 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   /**
    * Per-slot class overrides. A series is drawn as two paths and `mark` lands
    * on both of them, so a utility that sets a paint there reaches both: `fill-*`
-   * fills the top edge's open polyline, `stroke-*` outlines the band. Use `area`
-   * for the filled band alone and `areaOutline` for its top edge alone; each is
+   * fills the outer edge's open polyline, `stroke-*` outlines the band. Use `area`
+   * for the filled band alone and `areaOutline` for its outer edge alone (the
+   * edge away from zero: the top of a band above it, the bottom of one below); each is
    * folded against `mark` rather than appended to it, so an entry there wins its
    * Tailwind bucket outright instead of by stylesheet order.
    */

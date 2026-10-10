@@ -59,8 +59,13 @@
     }
   }
 
-  // Inset so the stroke + end-point aren't clipped at the edges.
-  const pad = $derived(Math.max(strokeWidth, 1));
+  const endPointRadius = $derived(strokeWidth + 0.5);
+  // A non-root <svg> clips at its box (`overflow: hidden`). With the end point
+  // drawn, the plot is inset by its radius, the furthest a mark reaches past a
+  // vertex. Without it the inset is the stroke width (at least 1 px), twice
+  // what a centred, round-capped stroke reaches; shrinking it would move every
+  // sparkline drawn without an end point.
+  const pad = $derived(Math.max(showEndPoint ? endPointRadius : strokeWidth, 1));
 
   const geometry = $derived.by(() => {
     const [min, max] = extent(data);
@@ -122,7 +127,7 @@
         class={slot('endPoint')}
         cx={geometry.last[0]}
         cy={geometry.last[1]}
-        r={strokeWidth + 0.5}
+        r={endPointRadius}
         fill={color}
       />
     {/if}

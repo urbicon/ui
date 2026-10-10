@@ -60,7 +60,7 @@ export interface DonutChartProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   totalLabel?: string;
   /** Show the legend. @default true */
   showLegend?: boolean;
-  /** Accessible label; a summary is generated when omitted. */
+  /** Accessible label; a summary in the active locale is generated when omitted. */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;

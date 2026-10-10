@@ -99,9 +99,7 @@
   }
 
   const resolvedAriaLabel = $derived(
-    ariaLabel ??
-      `Line chart: ${data.length} points` +
-        (resolvedSeries.length > 1 ? `, ${resolvedSeries.length} series` : '')
+    ariaLabel ?? bt('chart.lineSummary', { points: data.length, series: resolvedSeries.length })
   );
 </script>
 

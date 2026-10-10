@@ -272,7 +272,7 @@ describe('DonutChart — degenerate data', () => {
     expect(centreTexts(target)).toEqual(['0']);
     expect(nonFinite(target)).toEqual([]);
     expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(
-      'Donut chart: 0 segments, total 0'
+      'Donut chart, segments: 0, total: 0'
     );
   });
 
@@ -301,7 +301,7 @@ describe('DonutChart — what a screen reader gets', () => {
   } satisfies DonutChartProps;
 
   it.each([
-    ['a generated summary', undefined, 'Donut chart: 3 segments, total 4 €'],
+    ['a generated summary', undefined, 'Donut chart, segments: 3, total: 4 €'],
     ['ariaLabel', 'Traffic by channel', 'Traffic by channel']
   ])(
     'presents the svg as one image named by %s, which also captions the table',
@@ -321,7 +321,7 @@ describe('DonutChart — what a screen reader gets', () => {
     // The ring counts a negative slice as none, and so does the table.
     expect(dataTable(target)).toEqual({
       hidden: true,
-      caption: 'Donut chart: 3 segments, total 4 €',
+      caption: 'Donut chart, segments: 3, total: 4 €',
       rows: [
         ['th[col] Segment', 'th[col] Value', 'th[col] Share'],
         ['th[row] Direct', 'td 1 €', 'td 25%'],
@@ -341,9 +341,12 @@ describe('DonutChart — what a screen reader gets', () => {
     expect(shares.slice(1)).toEqual([`td 25${nbsp}%`, `td 75${nbsp}%`, `td 0${nbsp}%`]);
   });
 
-  it('heads the table in the active locale', () => {
+  it('names the image, captions the table and heads it in the active locale', () => {
     const target = render(CHANNELS, registerMarkedLocale());
+    const name = 'fr:Donut chart, segments: 3, total: 4 €';
 
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+    expect(dataTable(target).caption).toBe(name);
     expect(dataTable(target).rows[0]).toEqual([
       'th[col] fr:Segment',
       'th[col] fr:Value',

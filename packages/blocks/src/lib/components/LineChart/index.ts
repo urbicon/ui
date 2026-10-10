@@ -54,7 +54,7 @@ export interface LineChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   showGrid?: boolean;
   /** Start the value axis at zero instead of framing the data range. @default false */
   includeZero?: boolean;
-  /** Accessible label; a summary is generated when omitted. */
+  /** Accessible label; a summary in the active locale is generated when omitted. */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;

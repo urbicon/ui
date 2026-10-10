@@ -57,7 +57,7 @@ export interface BarChartProps extends Omit<HTMLAttributes<HTMLElement>, 'childr
   showLegend?: boolean;
   /** Render horizontal gridlines. @default true */
   showGrid?: boolean;
-  /** Accessible label; a summary is generated when omitted. */
+  /** Accessible label; a summary in the active locale is generated when omitted. */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;
