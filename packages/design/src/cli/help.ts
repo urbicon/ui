@@ -1,13 +1,10 @@
 /**
  * `urbicon --help`.
  *
- * Its own module, not `index.ts`: that file runs `main()` and sets the exit code
- * at import time, so while the help string lived there no test could import it —
- * which is how the `css-reference` section list went stale (the CLI advertised six
- * sections after `typography` became the seventh, and the guard that should have
- * caught it only checked the engine's overview). The section list is derived from
- * CSS_REFERENCE_SECTION_NAMES and the guide list from the bundle's `guides/index.json`
- * at print time — neither is authored, so neither can drift again.
+ * Its own module, not `index.ts`: importing that file runs the CLI (`main()` on
+ * the importer's argv), so nothing a test imports may live there. The section list
+ * is derived from CSS_REFERENCE_SECTION_NAMES and the guide list from the bundle's
+ * `guides/index.json` at print time — neither is authored, so neither can drift.
  */
 
 import { CSS_REFERENCE_SECTION_NAMES } from '@urbicon-ui/design-engine/reference';

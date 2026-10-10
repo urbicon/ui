@@ -155,10 +155,10 @@ async function main(argv: string[]): Promise<number> {
   }
 }
 
-// `process.exitCode`, never `process.exit()`: Node writes to a piped stdout
-// asynchronously, and `exit()` drops whatever the pipe has not taken yet —
-// output past the pipe buffer (64 KiB) is cut off. `bin.test.ts` in
-// packages/urbicon pipes a guide larger than that.
+// `process.exitCode`, never `process.exit()`: Node writes to a piped stdout and
+// stderr asynchronously, and `exit()` drops whatever the pipe has not taken yet —
+// everything past what the reader drained is lost (at least 64 KiB arrives).
+// `bin.test.ts` in packages/urbicon pipes a `validate` report larger than that.
 main(process.argv.slice(2))
   .then((code) => {
     process.exitCode = code;
