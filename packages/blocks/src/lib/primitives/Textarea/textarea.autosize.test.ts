@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { type AutosizeMetrics, autoResizeHeight } from './textarea.autosize';
 
-// The size ladder's own metrics (textarea.variants.ts), as Chromium computes them: line
-// height, vertical padding, a 1px border on each side, border-box sizing.
+// Five sample metric sets — line height, vertical padding, a 1px border on each side,
+// border-box sizing. autoResizeHeight reads whatever it is given, so these need not track
+// the size ladder.
 const metrics = (lineHeight: number, paddingBlock: number, scrollHeight: number) =>
   ({
     lineHeight,

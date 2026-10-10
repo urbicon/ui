@@ -68,6 +68,18 @@ type `MenuSpecificProps` were shadowed and carried a contract that reached no co
 gone. TypeScript reports a `MenuSpecificProps['placement']` or `['syncWidth']`; index
 `MenuVariants` instead. `<Menu>` itself accepts the same props as before.
 
+### `Textarea` counts `minRows` and `maxRows` in real rows
+
+An `autoResize` Textarea measured rows on a fixed 20/24/28 px table and left padding and border
+out, so `maxRows={8}` showed between 5.4 and 11.1 rows depending on size and pointer. A row is now
+the field's computed line height, with padding and border on top: `maxRows` rows show at every
+size (the size's min-height is still the floor), and every capped field changes height. If you
+raised `maxRows` to make up for the old cap, lower it again:
+
+```sh
+rg -n 'maxRows' src
+```
+
 ## 8.26.0
 
 ### Seven icons are renamed
