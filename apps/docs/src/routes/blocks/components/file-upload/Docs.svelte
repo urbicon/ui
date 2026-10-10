@@ -74,30 +74,39 @@
   <NoteList>
     <Note title="ARIA and roles">
       <p>
-        The dropzone is a <code class="text-text-primary">role="button"</code> with
-        <code class="text-text-primary">tabindex="0"</code>. The file list is a
-        <code class="text-text-primary">role="list"</code> with
+        The control is the real <code class="text-text-primary">&lt;input type="file"&gt;</code>,
+        visually hidden but focusable. <code class="text-text-primary">id</code>,
+        <code class="text-text-primary">aria-labelledby</code>,
+        <code class="text-text-primary">aria-describedby</code>,
+        <code class="text-text-primary">aria-invalid</code> and
+        <code class="text-text-primary">aria-required</code> land on it, so inside a
+        <code class="text-text-primary">FormField</code> the label names it and a click on the label
+        opens the file dialog. The dropzone's text describes it; the dropzone itself has no role.
+        The file list is a <code class="text-text-primary">role="list"</code> with
         <code class="text-text-primary">aria-live="polite"</code>, so a screen reader hears every
         change without being asked; each entry is a
-        <code class="text-text-primary">role="listitem"</code>. The real
-        <code class="text-text-primary">&lt;input type="file"&gt;</code> stays in the DOM, visually hidden,
-        so native file selection and form submission keep working.
+        <code class="text-text-primary">role="listitem"</code>.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
+        <Kbd keys="Tab" />
+        stops once on the file input, and
         <Kbd keys="Enter" />
         or
         <Kbd keys="Space" />
-        on the dropzone opens the native file dialog.
-        <Kbd keys="Tab" />
-        moves between the dropzone, the file items and their remove buttons. Focus rings use
-        <code class="text-text-primary">focus-visible:</code>, so they appear for the keyboard only.
+        there opens the native file dialog. The dropzone shows the input's focus ring through
+        <code class="text-text-primary">peer-focus-visible:</code>, so it appears for the keyboard
+        only. After that, <Kbd keys="Tab" /> moves through the remove buttons of the file list. Once
+        <code class="text-text-primary">maxFiles</code> is reached the dropzone goes and the input
+        leaves the tab order. Safari reaches the input as it reaches any native button: with
+        <Kbd keys={['Option', 'Tab']} />, or with “Press Tab to highlight each item” turned on.
       </p>
     </Note>
     <Note title="Drag states">
       <p>
-        The dropzone's <code class="text-text-primary">data-state</code> moves between
+        The dropzone's <code class="text-text-primary">data-blocks-dropzone-state</code> moves
+        between
         <code class="text-text-primary">idle</code>,
         <code class="text-text-primary">accept</code> and
         <code class="text-text-primary">reject</code>, which is enough to style the whole
