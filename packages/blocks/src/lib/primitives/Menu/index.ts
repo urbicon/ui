@@ -2,7 +2,6 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '#lib/mint/index.js';
 import type { ButtonVariants, MenuVariants } from '#lib/primitives/index.js';
-import type { Placement } from '#lib/utils/floating.js';
 import type { AnimationProps } from '#lib/utils/index.js';
 import type { InteractiveTier } from '#lib/utils/tier-context.js';
 import type { MenuSlots } from './menu.variants';
@@ -137,18 +136,6 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   isDivider?: (item: MenuItemType) => boolean;
   /** Section label override. Accepts concrete section header type. */
   getSectionLabel?: (item: MenuSectionHeader) => string;
-
-  /**
-   * Where the menu panel appears relative to the trigger. Uses floating-ui
-   * placement. @default 'bottom-start'
-   */
-  placement?: Placement;
-
-  /**
-   * Syncs the width of the menu panel with the trigger element.
-   * @default true
-   */
-  syncWidth?: boolean;
 
   /**
    * Render menu content in a portal for better positioning.

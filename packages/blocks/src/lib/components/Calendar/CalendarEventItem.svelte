@@ -134,7 +134,7 @@
     type="button"
     class="{slot('item', className)} w-full appearance-none text-left {isDraggable
       ? 'cursor-grab'
-      : ''}"
+      : 'cursor-pointer'}"
     onclick={() => onEventClick?.(event)}
     {@attach draggableEvent({ event, disabled: !isDraggable, onDragEnd: handleDragEnd })}
   >

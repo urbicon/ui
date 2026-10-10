@@ -344,9 +344,9 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="Tab" />
-        moves focus into and out of the toolbar. Individual items inside the toolbar follow their own
-        keyboard semantics (e.g. Buttons activate via
+        Every control inside the toolbar is its own <Kbd keys="Tab" /> stop: there is no roving tabindex
+        and no arrow-key navigation between them. Each control keeps its own keyboard semantics (e.g.
+        Buttons activate via
         <Kbd keys="Enter" />
         /
         <Kbd keys="Space" />).

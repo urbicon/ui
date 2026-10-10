@@ -54,7 +54,10 @@ export interface AlertProps
   title?: string;
   /** Description content (children slot) */
   children?: Snippet;
-  /** Custom icon snippet (replaces default intent icon) */
+  /**
+   * Icon snippet, rendered ahead of the title and text in a box sized by `size` and tinted
+   * by `intent`. An Alert draws no icon of its own: without this snippet there is none.
+   */
   icon?: Snippet;
   /** Action buttons snippet */
   actions?: Snippet;

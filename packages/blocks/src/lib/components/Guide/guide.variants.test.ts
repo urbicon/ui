@@ -91,3 +91,11 @@ describe('guide variants', () => {
     expect(active).toContain('bg-primary');
   });
 });
+
+// Tailwind 4's preflight leaves a <button> on the default arrow cursor.
+describe('guide variants (cursor)', () => {
+  it('shows a pointer on the panel close and hint dismiss buttons', () => {
+    expect(guidePanelVariants().closeButton()).toContain('cursor-pointer');
+    expect(guideHintVariants().dismiss()).toContain('cursor-pointer');
+  });
+});

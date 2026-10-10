@@ -62,6 +62,13 @@ describe('themeSwitcherVariants', () => {
     expect(styles.button()).toContain('opacity-50');
   });
 
+  // Tailwind 4's preflight leaves a <button> on the default arrow. The disabled
+  // state needs no cursor of its own: `pointer-events-none` hands the hover to
+  // whatever lies underneath, so the pointer never shows there.
+  it('shows a pointer cursor', () => {
+    expect(themeSwitcherVariants().button()).toContain('cursor-pointer');
+  });
+
   it('never outputs dark: overrides', () => {
     const variants = ['ghost', 'outlined', 'filled'] as const;
     for (const variant of variants) {

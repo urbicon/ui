@@ -493,3 +493,46 @@ describe('fixedWeeks wiring', () => {
     expect(weekRows()).toBeLessThan(6);
   });
 });
+
+// Tailwind 4's preflight leaves a <button> on the default arrow cursor. An event only
+// becomes a button with `onEventClick`; the passive render keeps the slot's cursor.
+describe('Calendar (clickable events show a pointer)', () => {
+  const events = [
+    { id: 'multi', title: 'Offsite', start: new Date(2026, 5, 9), end: new Date(2026, 5, 11) },
+    {
+      id: 'timed',
+      title: 'Review',
+      start: new Date(2026, 5, 16, 10, 0),
+      end: new Date(2026, 5, 16, 11, 30),
+      allDay: false
+    }
+  ];
+
+  it('the multi-day bar, as a button only', () => {
+    const base = { view: 'month', defaultDate: new Date(2026, 5, 15), animated: false, events };
+    renderCalendar({ ...base, onEventClick: () => {} } as ComponentProps<typeof Calendar>);
+    const bar = document.querySelector('button[title="Offsite"]');
+    expect(bar?.classList.contains('cursor-pointer')).toBe(true);
+
+    dispose?.();
+    document.body.replaceChildren();
+    renderCalendar(base as ComponentProps<typeof Calendar>);
+    const passive = document.querySelector('[title="Offsite"]');
+    expect(passive?.tagName).toBe('DIV');
+    expect(passive?.classList.contains('cursor-pointer')).toBe(false);
+  });
+
+  it('the event row in the agenda', () => {
+    renderCalendar({
+      view: 'agenda',
+      defaultDate: new Date(2026, 5, 15),
+      animated: false,
+      events,
+      onEventClick: () => {}
+    } as ComponentProps<typeof Calendar>);
+    const row = [...document.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('Review')
+    );
+    expect(row?.classList.contains('cursor-pointer')).toBe(true);
+  });
+});

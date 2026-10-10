@@ -13,7 +13,7 @@ export const menuVariants = tv({
       'w-4 h-4 shrink-0 opacity-70 transition-[opacity,rotate,translate] duration-[var(--blocks-duration-fast)] ease-out'
     ],
     // Floating panel surface. Position is owned by the wrapping Popover
-    // (Floating UI sets `top` / `left` on its container); this slot just
+    // (`useFloatingPanel` sets `top` / `left` on its container); this slot just
     // paints the surface and lays out the items inside it. The corner
     // radius AND border colour are driven by the `tier` axis below so the
     // panel harmonises with the trigger — a pill (commit) trigger gets a
@@ -73,11 +73,18 @@ export const menuVariants = tv({
         base: 'blocks-menu--open'
       }
     },
-    // Control menu content width behavior
     syncWidth: {
+      /**
+       * The panel is at least as wide as the trigger, and longer items widen it. A context
+       * menu has no trigger, so its panel is as wide as its items.
+       */
       true: {
         content: 'min-w-0'
       },
+      /**
+       * The panel ignores the trigger and takes a 12rem minimum width instead — in a context
+       * menu as well — so it can end up narrower than a wide trigger.
+       */
       false: {
         content: 'min-w-48'
       }
@@ -97,7 +104,7 @@ export const menuVariants = tv({
         item: 'opacity-50 cursor-not-allowed pointer-events-none'
       }
     },
-    // Placement is the Popover's job (Floating UI). Kept on the variant axis
+    // Placement is the Popover's job (`useFloatingPanel`). Kept on the variant axis
     // so consumers can still pass it for type-checking, but with no class
     // overrides — the inner content sits inside the already-positioned
     // Popover container and does not need its own corner anchoring.

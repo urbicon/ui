@@ -29,7 +29,7 @@ export const guidePanelVariants = tv({
       'focus:outline-none focus-visible:outline-none'
     ],
     closeButton: [
-      'inline-flex items-center justify-center rounded-md p-1',
+      'inline-flex items-center justify-center rounded-md p-1 cursor-pointer',
       'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50'
     ],
@@ -168,7 +168,7 @@ export const guideHintVariants = tv({
     title: ['mb-1 text-sm font-semibold text-text-primary'],
     body: ['leading-relaxed [&_:where(p)]:my-1 [&_:where(p)]:first:mt-0 [&_:where(p)]:last:mb-0'],
     dismiss: [
-      'absolute right-2 top-2 inline-flex items-center justify-center rounded-md p-1',
+      'absolute right-2 top-2 inline-flex items-center justify-center rounded-md p-1 cursor-pointer',
       'text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50'
     ],

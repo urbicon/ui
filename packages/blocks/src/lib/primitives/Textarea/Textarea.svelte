@@ -5,6 +5,7 @@
   import { useFormField, getTierContext } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TextareaProps } from './index';
+  import { autoResizeHeight, readAutosizeMetrics } from './textarea.autosize';
   import { textareaVariants, type TextareaVariants } from './textarea.variants';
 
   let {
@@ -105,23 +106,23 @@
     )
   );
 
-  const lineHeight = $derived(size === 'sm' ? 20 : size === 'lg' ? 28 : 24);
-
+  // Rows are counted in the line height the textarea computes, read at measure
+  // time: the size ladder and the coarse-pointer font floor both change it.
   function adjustHeight() {
     if (!autoResize || !textareaRef) return;
     textareaRef.style.height = 'auto';
 
-    const minHeight = minRows * lineHeight;
-    const maxHeight = maxRows ? maxRows * lineHeight : Infinity;
-    const scrollHeight = textareaRef.scrollHeight;
-
-    textareaRef.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`;
-    textareaRef.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    const sized = autoResizeHeight(readAutosizeMetrics(textareaRef), minRows, maxRows);
+    if (!sized) return;
+    textareaRef.style.height = `${sized.height}px`;
+    textareaRef.style.overflowY = sized.overflow ? 'auto' : 'hidden';
   }
 
   $effect(() => {
     if (autoResize && textareaRef) {
+      // The computed style is not reactive; `size` is what swaps the line height.
       void value;
+      void size;
       adjustHeight();
     }
   });

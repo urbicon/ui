@@ -14,7 +14,7 @@ export const alertVariants = tv({
     actions: 'mt-3 flex items-center gap-2',
     // tier: modify — small dismiss control on a contain surface.
     dismissButton: [
-      'absolute top-3 right-3 shrink-0 rounded-modify p-1',
+      'absolute top-3 right-3 shrink-0 rounded-modify p-1 cursor-pointer',
       'opacity-70 hover:opacity-100 transition-opacity',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50'
     ]

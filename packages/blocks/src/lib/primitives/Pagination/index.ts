@@ -144,7 +144,11 @@ export interface PaginationProps
    */
   renderItem?: Snippet<[PaginationItemContext]>;
 
-  /** Items shown per page. Used by the table layout to compute "Showing X to Y of Z". */
+  /**
+   * Items shown per page. The table layout computes its range text from it — "11–20 of 45"
+   * (i18n key `pagination.rangeInfo`).
+   * @default 10
+   */
   itemsPerPage?: number;
   /** Total number of items across all pages. Used by the table layout info text. */
   totalItems?: number;

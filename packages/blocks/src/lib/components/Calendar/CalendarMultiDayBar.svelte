@@ -44,9 +44,10 @@
 </script>
 
 {#if onEventClick}
+  <!-- The pointer goes on this branch, not the slot: the slot also styles the passive <div>. -->
   <button
     type="button"
-    class="{slot('multiDayBar')} {roundedClasses}"
+    class="{slot('multiDayBar')} {roundedClasses} cursor-pointer"
     style="
       grid-column: {startCol + 1} / span {spanCols};
       grid-row: {row + 1};

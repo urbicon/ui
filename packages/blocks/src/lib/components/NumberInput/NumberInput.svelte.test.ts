@@ -110,6 +110,17 @@ describe('NumberInput', () => {
     expect(steppers()[0].parentElement?.classList.contains('pointer-events-auto')).toBe(true);
   });
 
+  it('shows a pointer on the stepper buttons, and none once one is disabled', () => {
+    // Tailwind 4's preflight leaves a <button> on the default arrow. A disabled
+    // stepper drops pointer events, so the hover — and the cursor — fall
+    // through to the stepper column underneath.
+    render({ value: 10, max: 10 });
+    const [up, down] = steppers();
+    expect(down.classList.contains('cursor-pointer')).toBe(true);
+    expect(up.disabled).toBe(true);
+    expect(up.classList.contains('disabled:pointer-events-none')).toBe(true);
+  });
+
   it('lands on the near bound when stepping from empty', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

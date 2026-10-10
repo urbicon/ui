@@ -45,3 +45,27 @@ describe('Progress (circular)', () => {
     expect(svg?.classList.contains('animate-spin')).toBe(false);
   });
 });
+
+describe('Progress (circular geometry)', () => {
+  const ring = () => screen.getByRole('progressbar').querySelector('svg') as SVGSVGElement;
+  const stroke = () => ring().querySelector('circle')?.getAttribute('stroke-width');
+
+  it('follows size while circularSize and strokeWidth are unset', () => {
+    render({ shape: 'circular', value: 40, size: 'lg' });
+    expect(ring().getAttribute('width')).toBe('112');
+    expect(stroke()).toBe('8');
+  });
+
+  it('honours an explicit circularSize and strokeWidth, the md values included', () => {
+    render({ shape: 'circular', value: 40, size: 'lg', circularSize: 80, strokeWidth: 6 });
+    expect(ring().getAttribute('width')).toBe('80');
+    expect(stroke()).toBe('6');
+  });
+});
+
+describe('Progress (value text)', () => {
+  it('reads an empty range as 0%, as its fill does', () => {
+    render({ value: 5, min: 5, max: 5, showValue: true });
+    expect(screen.getByRole('progressbar').textContent?.trim()).toBe('0%');
+  });
+});

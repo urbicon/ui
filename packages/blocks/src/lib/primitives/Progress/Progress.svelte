@@ -15,8 +15,8 @@
     showValue = false,
     formatValue,
     shape = 'linear',
-    circularSize = 80,
-    strokeWidth = 6,
+    circularSize,
+    strokeWidth,
     intent = 'primary',
     size = 'md',
     indeterminate: indeterminateProp,
@@ -36,9 +36,10 @@
   const clampedValue = $derived(value !== undefined ? Math.min(Math.max(value, min), max) : 0);
   const percentage = $derived(max - min > 0 ? ((clampedValue - min) / (max - min)) * 100 : 0);
 
-  const defaultFormat = (v: number, m: number) => `${Math.round(((v - min) / (m - min)) * 100)}%`;
+  // The text reads off the same `percentage` the fill is drawn from, so an empty range
+  // (`max <= min`) shows the 0% its fill shows.
   const displayValue = $derived(
-    formatValue ? formatValue(clampedValue, max) : defaultFormat(clampedValue, max)
+    formatValue ? formatValue(clampedValue, max) : `${Math.round(percentage)}%`
   );
 
   // Variant props feed both the tv() style computation and the slot-class
@@ -65,21 +66,11 @@
     )
   );
 
-  const circularRadius = $derived((circularSize - strokeWidth) / 2);
-  const circumference = $derived(2 * Math.PI * circularRadius);
-  const circularOffset = $derived(
-    isIndeterminate ? circumference * 0.75 : circumference * (1 - percentage / 100)
-  );
-
   const circularSizeMap = { xs: 48, sm: 64, md: 80, lg: 112 };
   const strokeWidthMap = { xs: 3, sm: 4, md: 6, lg: 8 };
 
-  const effectiveCircularSize = $derived(
-    circularSize === 80 ? circularSizeMap[size ?? 'md'] : circularSize
-  );
-  const effectiveStrokeWidth = $derived(
-    strokeWidth === 6 ? strokeWidthMap[size ?? 'md'] : strokeWidth
-  );
+  const effectiveCircularSize = $derived(circularSize ?? circularSizeMap[size ?? 'md']);
+  const effectiveStrokeWidth = $derived(strokeWidth ?? strokeWidthMap[size ?? 'md']);
   const effectiveRadius = $derived((effectiveCircularSize - effectiveStrokeWidth) / 2);
   const effectiveCircumference = $derived(2 * Math.PI * effectiveRadius);
   const effectiveOffset = $derived(
