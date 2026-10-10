@@ -222,9 +222,11 @@
         <code class="text-text-primary">&lt;button&gt;</code>. When
         <code class="text-text-primary">href</code> is provided, it becomes an
         <code class="text-text-primary">&lt;a&gt;</code>. A disabled button or link card sets
-        <code class="text-text-primary">aria-disabled</code>; a
-        <code class="text-text-primary">&lt;div&gt;</code> card has nothing to disable and carries no
-        ARIA state.
+        <code class="text-text-primary">aria-disabled</code>. A disabled
+        <code class="text-text-primary">&lt;div&gt;</code> card only dims its content and blocks the
+        mouse on it, inner controls included. It disables nothing for the keyboard or a screen
+        reader, so give the controls inside it their own
+        <code class="text-text-primary">disabled</code>.
       </p>
     </Note>
     <Note title="Keyboard">

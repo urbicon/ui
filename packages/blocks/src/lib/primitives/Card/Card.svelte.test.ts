@@ -32,8 +32,8 @@ const root = () => document.body.firstElementChild as HTMLElement;
 
 describe('Card (disabled)', () => {
   it('announces no ARIA state on a passive card, disabled or not', () => {
-    // A role-less <div> supports `aria-disabled` neither as "false" nor as
-    // "true" — there is nothing on it to disable.
+    // ARIA does not support `aria-disabled` on a generic element. A disabled
+    // <div> card is dimmed and mouse-dead, and that is all it is.
     render();
     expect(root().tagName).toBe('DIV');
     expect(root().hasAttribute('aria-disabled')).toBe(false);
@@ -44,6 +44,30 @@ describe('Card (disabled)', () => {
     render({ disabled: true });
     expect(root().tagName).toBe('DIV');
     expect(root().hasAttribute('aria-disabled')).toBe(false);
+    expect(root().className).toContain('pointer-events-none');
+    expect(root().className).toContain('opacity-50');
+  });
+
+  it('does not bring aria-disabled back to a disabled passive card for a role of yours', () => {
+    render({ disabled: true, role: 'group' });
+    expect(root().getAttribute('role')).toBe('group');
+    expect(root().hasAttribute('aria-disabled')).toBe(false);
+  });
+
+  it('keeps a tabindex and aria-disabled of yours on an enabled card and on a passive one', () => {
+    render({ onclick: vi.fn(), tabindex: -1, 'aria-disabled': true });
+    expect(root().tagName).toBe('BUTTON');
+    expect(root().getAttribute('tabindex')).toBe('-1');
+    expect(root().getAttribute('aria-disabled')).toBe('true');
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    // A role that supports `aria-disabled` takes the consumer's own.
+    render({ disabled: true, role: 'group', tabindex: 0, 'aria-disabled': true });
+    expect(root().tagName).toBe('DIV');
+    expect(root().getAttribute('tabindex')).toBe('0');
+    expect(root().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('marks a disabled button card aria-disabled and an enabled one not at all', async () => {
@@ -69,19 +93,19 @@ describe('Card (disabled)', () => {
 
   it('takes a disabled link card out of the tab order while keeping its address', async () => {
     const user = userEvent.setup();
-    render({ href: '/reports/q3', disabled: true });
+    render({ href: '#reports-q3', disabled: true });
 
     expect(root().tagName).toBe('A');
     expect(root().getAttribute('aria-disabled')).toBe('true');
     expect(root().getAttribute('tabindex')).toBe('-1');
-    expect(root().getAttribute('href')).toBe('/reports/q3');
+    expect(root().getAttribute('href')).toBe('#reports-q3');
 
     await user.tab();
     expect(document.activeElement).not.toBe(root());
   });
 
   it('keeps a disabled link card disabled against a tabindex and aria-disabled of yours', () => {
-    render({ href: '/reports/q3', disabled: true, tabindex: 0, 'aria-disabled': false });
+    render({ href: '#reports-q3', disabled: true, tabindex: 0, 'aria-disabled': false });
     expect(root().getAttribute('tabindex')).toBe('-1');
     expect(root().getAttribute('aria-disabled')).toBe('true');
   });
@@ -90,7 +114,7 @@ describe('Card (disabled)', () => {
     // `pointer-events-none` only stops hit testing: assistive-technology
     // activation calls `element.click()` on the anchor whatever CSS says.
     const onclick = vi.fn();
-    render({ href: '/reports/q3', disabled: true, onclick });
+    render({ href: '#reports-q3', disabled: true, onclick });
 
     const event = new MouseEvent('click', { bubbles: true, cancelable: true });
     root().dispatchEvent(event);
@@ -101,7 +125,7 @@ describe('Card (disabled)', () => {
 
   it('cancels a disabled link card activated by Enter from the keyboard', async () => {
     const user = userEvent.setup();
-    render({ href: '/reports/q3', disabled: true });
+    render({ href: '#reports-q3', disabled: true });
 
     // Recorded on the way back up, after the card's own handler has run.
     const clicks: boolean[] = [];
@@ -120,7 +144,7 @@ describe('Card (disabled)', () => {
   it('leaves an enabled link card in the tab order and lets it navigate', async () => {
     const user = userEvent.setup();
     const onclick = vi.fn();
-    render({ href: '/reports/q3', onclick });
+    render({ href: '#reports-q3', onclick });
 
     expect(root().hasAttribute('aria-disabled')).toBe(false);
     expect(root().hasAttribute('tabindex')).toBe(false);

@@ -343,10 +343,10 @@ describe('Select (trigger text alignment)', () => {
 
 // ── Grouped options: cross-boundary keyboard nav + stable {#each} key ──────────
 // groups flatten into one keyboard-navigable list; the virtual cursor crosses
-// group boundaries seamlessly, and each option's flat index is resolved through
-// the precomputed O(1) `enabledIndexByOption` map (previously an O(n) `indexOf`
-// per option per render). Two groups sharing a label must not collide on the
-// {#each} key (was keyed on `group.label` → `each_key_duplicate` dev crash).
+// group boundaries seamlessly, each row reading its cursor slot from the `rows`
+// derived once per option list rather than an `indexOf` per row. Two groups
+// sharing a label must not collide on the {#each} key (was keyed on
+// `group.label` → `each_key_duplicate` dev crash).
 const SELECT_GROUPS = [
   {
     label: 'Europe',
@@ -385,8 +385,8 @@ describe('Select (groups)', () => {
     const el = trigger();
     await user.click(el);
     // -1 → Germany(0) → France(1) → Brazil(2): the cursor crosses from Europe
-    // into Americas. The active-descendant addresses the flat index the O(1) map
-    // resolves — a wrong map (or O(n) drift) would point at the wrong option.
+    // into Americas. The active-descendant names the row the cursor is on, by
+    // its position in the flattened list.
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
     expect(el.getAttribute('aria-activedescendant')).toBe(
       `${el.id.replace('-trigger', '')}-option-2`
@@ -412,10 +412,10 @@ describe('Select (groups)', () => {
 });
 
 // ── Active highlight: no phantom highlight on a disabled option (unset cursor) ─
-// A disabled option is absent from `enabledOptions`, so it resolves optIdx === -1.
-// On pointer-open with no selection the cursor is also unset (activeIndex === -1),
-// so `optIdx === activeIndex` would be true and wrongly paint the disabled row
-// with the active-highlight token. The `optIdx >= 0` guard keeps -1 (unset) from
+// A disabled row has no cursor slot, so its `cursor` is -1. On pointer-open with
+// no selection the cursor is also unset (activeIndex === -1), so
+// `cursor === activeIndex` would be true and wrongly paint the disabled row
+// with the active-highlight token. The `cursor >= 0` guard keeps -1 (unset) from
 // matching -1 (disabled) — nothing is highlighted until the cursor actually lands.
 describe('Select (active highlight)', () => {
   it('does not highlight a disabled option when the cursor is unset (pointer-open, no selection)', async () => {
@@ -437,16 +437,18 @@ describe('Select (active highlight)', () => {
   });
 });
 
-// ── Option ids with disabled rows ────────────────────────────────────────────
-// The keyboard cursor counts enabled options only; the ids it points at must
-// still be one per rendered row, or `aria-activedescendant` and
+// ── Option ids per rendered row ──────────────────────────────────────────────
+// The keyboard cursor counts enabled rows only; the ids it points at must still
+// be one per rendered row, numbered by position, or `aria-activedescendant` and
 // `getElementById` resolve to whichever duplicate comes first.
 describe('Select (option ids)', () => {
   const ids = () => screen.getAllByRole('option', { hidden: true }).map((o) => o.id);
-  const activeOption = () =>
-    document.getElementById(trigger().getAttribute('aria-activedescendant') ?? '');
+  const optionId = (position: number) =>
+    `${trigger().id.replace('-trigger', '')}-option-${position}`;
+  const activeDescendant = () => trigger().getAttribute('aria-activedescendant');
+  const activeOption = () => document.getElementById(activeDescendant() ?? '');
 
-  it('gives every option its own id, disabled ones included', async () => {
+  it('numbers every option by its position, disabled ones included', async () => {
     const user = userEvent.setup();
     renderSelect({
       options: [
@@ -458,16 +460,58 @@ describe('Select (option ids)', () => {
     });
 
     await user.click(trigger());
-    expect(ids()).toHaveLength(4);
-    expect(new Set(ids()).size).toBe(4);
+    expect(ids()).toEqual([0, 1, 2, 3].map(optionId));
 
     // The cursor skips both disabled rows and its descendant names the row it is on.
     await user.keyboard('{ArrowDown}');
+    expect(activeDescendant()).toBe(optionId(1));
     expect(activeOption()).toBe(option('France'));
     await user.keyboard('{ArrowDown}');
+    expect(activeDescendant()).toBe(optionId(3));
     expect(activeOption()).toBe(option('Italy'));
     await user.keyboard('{ArrowDown}');
     expect(activeOption()).toBe(option('France'));
+  });
+
+  it('gives one option object listed in two groups an id per row', async () => {
+    // A "Recent" + "All" layout hands the same object to both groups.
+    const user = userEvent.setup();
+    const france = { label: 'France', value: 'fr' };
+    renderSelect({
+      groups: [
+        { label: 'Recent', options: [france] },
+        { label: 'All', options: [{ label: 'Germany', value: 'de' }, france] }
+      ]
+    });
+
+    await user.click(trigger());
+    expect(ids()).toEqual([0, 1, 2].map(optionId));
+
+    const [recent, all] = screen.getAllByRole('option', { name: 'France', hidden: true });
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+    expect(activeOption()).toBe(all);
+    expect(all.classList.contains('bg-surface-hover')).toBe(true);
+    expect(recent.classList.contains('bg-surface-hover')).toBe(false);
+  });
+
+  it('drops the active descendant when the listbox is closed through open', async () => {
+    const user = userEvent.setup();
+    const props = $state<SelectProps<string | number | boolean>>({
+      options: OPTIONS,
+      open: false
+    });
+    renderSelect(props);
+
+    props.open = true;
+    flushSync();
+    trigger().focus();
+    await user.keyboard('{ArrowDown}');
+    expect(activeDescendant()).toBe(optionId(0));
+
+    props.open = false;
+    flushSync();
+    expect(expanded()).toBe('false');
+    expect(activeDescendant()).toBeNull();
   });
 
   it('keeps grouped option ids unique across groups, disabled ones included', async () => {
@@ -494,9 +538,10 @@ describe('Select (option ids)', () => {
     });
 
     await user.click(trigger());
-    expect(new Set(ids()).size).toBe(4);
+    expect(ids()).toEqual([0, 1, 2, 3].map(optionId));
 
     await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(activeDescendant()).toBe(optionId(3));
     expect(activeOption()).toBe(option('Canada'));
     await user.keyboard('{Enter}');
     expect(onValueChange).toHaveBeenCalledWith('ca');

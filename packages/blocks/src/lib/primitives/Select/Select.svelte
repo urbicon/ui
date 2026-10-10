@@ -161,31 +161,32 @@
     return options;
   });
 
-  const enabledOptions = $derived(allOptions.filter((o) => !o.disabled));
-
-  // Flat index of each enabled option, precomputed so a grouped or flat option
-  // reads its keyboard-cursor index in O(1) rather than an O(n) `indexOf` per
-  // render — which made a large grouped listbox O(n²) per keystroke. Disabled
-  // options are absent from `enabledOptions`, so they resolve to -1 here, exactly
-  // as the previous `enabledOptions.indexOf(option)` did.
-  const enabledIndexByOption = $derived.by(() => {
-    const map = new Map<SelectOption<T>, number>();
-    enabledOptions.forEach((o, i) => {
-      if (!map.has(o)) map.set(o, i);
-    });
-    return map;
+  // One entry per rendered row, in render order. A row, not an option object,
+  // owns an id and a cursor slot, because one object may sit in two groups (a
+  // "Recent" and an "All" list). `position` counts every row, disabled ones
+  // included, and is the id; `cursor` counts enabled rows only and is -1 on a
+  // disabled one.
+  const rows = $derived.by(() => {
+    let cursor = 0;
+    return allOptions.map((option, position) => ({
+      option,
+      position,
+      cursor: option.disabled ? -1 : cursor++
+    }));
   });
 
-  // An option's DOM id counts every row, disabled ones included, so no two rows
-  // share one. The keyboard cursor (`activeIndex`) counts enabled rows only, so
-  // `aria-activedescendant` reaches an id through the option the cursor is on,
-  // never through the cursor's number.
-  const flatIndexByOption = $derived.by(() => {
-    const map = new Map<SelectOption<T>, number>();
-    allOptions.forEach((o, i) => {
-      if (!map.has(o)) map.set(o, i);
+  // What the keyboard cursor (`activeIndex`) indexes.
+  const enabledRows = $derived(rows.filter((row) => row.cursor >= 0));
+  const enabledOptions = $derived(enabledRows.map((row) => row.option));
+
+  // `rows` cut back into the groups they render in.
+  const groupRows = $derived.by(() => {
+    let start = 0;
+    return (groups ?? []).map((group) => {
+      const slice = rows.slice(start, start + group.options.length);
+      start += group.options.length;
+      return slice;
     });
-    return map;
   });
 
   /**
@@ -470,11 +471,17 @@
     }
   }
 
-  function getOptionId(option: SelectOption<T>) {
-    return `${uid}-option-${flatIndexByOption.get(option)}`;
+  function getOptionId(position: number) {
+    return `${uid}-option-${position}`;
   }
 
-  const activeOption = $derived<SelectOption<T> | undefined>(enabledOptions[activeIndex]);
+  // Names the row the cursor is on, never the cursor's own number. Undefined
+  // while closed: the rows only render while open, and a consumer's
+  // `bind:open = false` leaves the cursor where it was.
+  const activeDescendant = $derived.by(() => {
+    const row = open && activeIndex >= 0 ? enabledRows[activeIndex] : undefined;
+    return row ? getOptionId(row.position) : undefined;
+  });
 
   /**
    * Trigger label text for single + multi modes.
@@ -559,7 +566,7 @@
         aria-describedby={describedBy}
         aria-invalid={ff.invalid ? 'true' : undefined}
         aria-required={ff.required ? 'true' : undefined}
-        aria-activedescendant={activeOption ? getOptionId(activeOption) : undefined}
+        aria-activedescendant={activeDescendant}
         onclick={toggle}
         onkeydown={handleTriggerKeydown}
       >
@@ -667,9 +674,8 @@
               >
                 {group.label}
               </div>
-              {#each group.options as option (option.value)}
-                {@const optIdx = enabledIndexByOption.get(option) ?? -1}
-                {@const isActive = optIdx >= 0 && optIdx === activeIndex}
+              {#each groupRows[i] as { option, position, cursor } (option.value)}
+                {@const isActive = cursor >= 0 && cursor === activeIndex}
                 {@const isSel = isOptionSelected(option)}
                 <!--
                   ARIA Listbox pattern: options are explicitly NOT in the
@@ -681,7 +687,7 @@
                 <!-- svelte-ignore a11y_interactive_supports_focus -->
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <div
-                  id={getOptionId(option)}
+                  id={getOptionId(position)}
                   role="option"
                   aria-selected={isSel}
                   aria-disabled={option.disabled || undefined}
@@ -699,7 +705,7 @@
                       })}
                   onclick={() => selectOption(option)}
                   onmouseenter={() => {
-                    if (!option.disabled) activeIndex = optIdx;
+                    if (!option.disabled) activeIndex = cursor;
                   }}
                 >
                   {@render optionBody(option, isSel)}
@@ -708,15 +714,14 @@
             </div>
           {/each}
         {:else}
-          {#each allOptions as option (option.value)}
-            {@const optIdx = enabledIndexByOption.get(option) ?? -1}
-            {@const isActive = optIdx >= 0 && optIdx === activeIndex}
+          {#each rows as { option, position, cursor } (option.value)}
+            {@const isActive = cursor >= 0 && cursor === activeIndex}
             {@const isSel = isOptionSelected(option)}
             <!-- Options stay out of the tab order — see ARIA Listbox note above. -->
             <!-- svelte-ignore a11y_interactive_supports_focus -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
-              id={getOptionId(option)}
+              id={getOptionId(position)}
               role="option"
               aria-selected={isSel}
               aria-disabled={option.disabled || undefined}
@@ -734,7 +739,7 @@
                   })}
               onclick={() => selectOption(option)}
               onmouseenter={() => {
-                if (!option.disabled) activeIndex = optIdx;
+                if (!option.disabled) activeIndex = cursor;
               }}
             >
               {@render optionBody(option, isSel)}
