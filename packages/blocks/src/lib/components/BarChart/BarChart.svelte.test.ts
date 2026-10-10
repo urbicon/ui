@@ -200,7 +200,9 @@ describe('BarChart — degenerate data', () => {
       '1'
     ]);
     expect(nonFinite(target)).toEqual([]);
-    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe('Bar chart: 0 categories');
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(
+      'Bar chart, categories: 0, series: 1'
+    );
   });
 
   it('centres a single category in the plot', () => {
@@ -245,7 +247,7 @@ describe('BarChart — what a screen reader gets', () => {
   } satisfies BarChartProps;
 
   it.each([
-    ['a generated summary', undefined, 'Bar chart: 2 categories, 2 series'],
+    ['a generated summary', undefined, 'Bar chart, categories: 2, series: 2'],
     ['ariaLabel', 'Quarterly result', 'Quarterly result']
   ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
     const target = render({ ...QUARTERS, ariaLabel });
@@ -260,7 +262,7 @@ describe('BarChart — what a screen reader gets', () => {
     // Q2 has no Cost value; its bar is drawn as zero, and the table says so.
     expect(dataTable(target)).toEqual({
       hidden: true,
-      caption: 'Bar chart: 2 categories, 2 series',
+      caption: 'Bar chart, categories: 2, series: 2',
       rows: [
         ['th[col] Category', 'th[col] Revenue', 'th[col] Cost'],
         ['th[row] Q1', 'td 12k', 'td 8k'],
@@ -269,9 +271,13 @@ describe('BarChart — what a screen reader gets', () => {
     });
   });
 
-  it('heads the table in the active locale, unnamed series included', () => {
+  it('names the image, captions the table and heads it in the active locale', () => {
     const target = render({ data: [{ label: 'Q1', values: [1, 2] }] }, registerMarkedLocale());
 
+    const name = 'fr:Bar chart, categories: 1, series: 2';
+
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+    expect(dataTable(target).caption).toBe(name);
     expect(dataTable(target).rows[0]).toEqual([
       'th[col] fr:Category',
       'th[col] fr:Series 1',

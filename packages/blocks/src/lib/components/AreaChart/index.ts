@@ -36,7 +36,10 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   data: CartesianDatum[];
   /** Series metadata (labels + colors); defaults to one per value column. */
   series?: ChartSeries[];
-  /** Stack series cumulatively instead of overlaying them. @default false */
+  /**
+   * Stack series instead of overlaying them: per category, positive values
+   * build up from zero and negative values down from it. @default false
+   */
   stacked?: boolean;
   /** Opacity of the area fill (0–1). @default 0.2 (overlay) / 0.85 (stacked) */
   fillOpacity?: number;
@@ -54,7 +57,7 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   showLegend?: boolean;
   /** Render horizontal gridlines. @default true */
   showGrid?: boolean;
-  /** Accessible label; a summary is generated when omitted. */
+  /** Accessible label; a summary in the active locale is generated when omitted. */
   ariaLabel?: string;
   /** Extra classes merged onto the wrapper. */
   class?: string;

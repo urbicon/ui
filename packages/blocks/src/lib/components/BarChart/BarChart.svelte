@@ -167,9 +167,7 @@
   }
 
   const resolvedAriaLabel = $derived(
-    ariaLabel ??
-      `Bar chart: ${data.length} ${data.length === 1 ? 'category' : 'categories'}` +
-        (resolvedSeries.length > 1 ? `, ${resolvedSeries.length} series` : '')
+    ariaLabel ?? bt('chart.barSummary', { categories: data.length, series: resolvedSeries.length })
   );
 </script>
 

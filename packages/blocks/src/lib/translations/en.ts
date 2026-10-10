@@ -235,7 +235,12 @@ export default {
     series: 'Series {{index}}',
     segment: 'Segment',
     value: 'Value',
-    share: 'Share'
+    share: 'Share',
+    barSummary: 'Bar chart, categories: {{categories}}, series: {{series}}',
+    lineSummary: 'Line chart, points: {{points}}, series: {{series}}',
+    areaSummary: 'Area chart, points: {{points}}, series: {{series}}',
+    stackedAreaSummary: 'Stacked area chart, points: {{points}}, series: {{series}}',
+    donutSummary: 'Donut chart, segments: {{segments}}, total: {{total}}'
   },
   stepper: {
     optional: 'Optional'

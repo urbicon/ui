@@ -88,7 +88,7 @@
   });
 
   const resolvedAriaLabel = $derived(
-    ariaLabel ?? `Donut chart: ${data.length} segments, total ${fmt(total)}`
+    ariaLabel ?? bt('chart.donutSummary', { segments: data.length, total: fmt(total) })
   );
 </script>
 

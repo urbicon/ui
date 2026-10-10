@@ -13,6 +13,32 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.28.0
 
+### The charts' generated names follow the locale
+
+Without `ariaLabel`, `BarChart`, `LineChart`, `AreaChart` and `DonutChart` name their svg and
+caption their data table with a summary. It was English in every locale; it now comes from the
+blocks `chart` keys, like the table headers. The English wording changes with it: each count
+follows a label instead of standing before a noun, so no count needs a plural form, and a
+single-series chart states its series count too.
+
+- `Bar chart: 4 categories, 2 series` → `Bar chart, categories: 4, series: 2`
+- `Line chart: 7 points` → `Line chart, points: 7, series: 1`
+- `Area chart: 7 points, 2 series, stacked` → `Stacked area chart, points: 7, series: 2`
+- `Donut chart: 3 segments, total 120` → `Donut chart, segments: 3, total: 120`
+
+A test that finds a chart by its generated name needs the new text; a chart given `ariaLabel` is
+unaffected.
+
+The `chart` group of the `en` bundle gains `barSummary`, `lineSummary`, `areaSummary`,
+`stackedAreaSummary` and `donutSummary`. `registerBlocksLocale` takes any translations object, so
+a bundle you register still compiles and shows the English summary until it carries the five keys.
+A type you derived from `@urbicon-ui/blocks/i18n/en` that requires every key stops compiling until
+your bundle has them.
+
+```sh
+rg -n "(Bar|Line|Area|Donut) chart: " src
+```
+
 ### Four components let their own attributes win over yours
 
 `SegmentGroup`, `FileUpload`, `LocaleSwitcher` and `DatePicker` spread the props they do not model

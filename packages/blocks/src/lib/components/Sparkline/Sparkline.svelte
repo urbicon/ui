@@ -59,8 +59,11 @@
     }
   }
 
-  // Inset so the stroke + end-point aren't clipped at the edges.
-  const pad = $derived(Math.max(strokeWidth, 1));
+  const endPointRadius = $derived(strokeWidth + 0.5);
+  // A non-root <svg> clips at its box (`overflow: hidden`), so the plot is inset
+  // by how far a mark reaches past a vertex: the end point's radius when it is
+  // drawn, else the stroke width — at least 1 px either way.
+  const pad = $derived(Math.max(showEndPoint ? endPointRadius : strokeWidth, 1));
 
   const geometry = $derived.by(() => {
     const [min, max] = extent(data);
@@ -122,7 +125,7 @@
         class={slot('endPoint')}
         cx={geometry.last[0]}
         cy={geometry.last[1]}
-        r={strokeWidth + 0.5}
+        r={endPointRadius}
         fill={color}
       />
     {/if}

@@ -75,20 +75,27 @@
   const fmt = $derived(formatValue ?? numberFormatter(locale));
   const opacity = $derived(fillOpacity ?? (stacked ? 0.85 : 0.2));
 
+  // Per series and category, the band's `[base, outer]` in data units. A positive
+  // value stacks on the running sum above zero and a negative one on the sum
+  // below it, so no band covers another's value. Pixel-independent; the domain
+  // and the drawn bands both read it.
+  const stack = $derived.by<(readonly [number, number])[][]>(() => {
+    if (!stacked) return [];
+    const above = data.map(() => 0);
+    const below = data.map(() => 0);
+    return resolvedSeries.map((_s, si) =>
+      data.map((d, i) => {
+        const value = d.values[si] ?? 0;
+        const sums = value >= 0 ? above : below;
+        const base = sums[i];
+        sums[i] += value;
+        return [base, sums[i]] as const;
+      })
+    );
+  });
+
   const domain = $derived.by<[number, number]>(() => {
-    if (stacked) {
-      let max = 0;
-      let min = 0;
-      for (const d of data) {
-        let sum = 0;
-        resolvedSeries.forEach((_s, si) => {
-          sum += d.values[si] ?? 0;
-        });
-        if (sum > max) max = sum;
-        if (sum < min) min = sum;
-      }
-      return [Math.min(0, min), max];
-    }
+    if (stacked) return extent(stack.flat(2));
     const all = data.flatMap((d) => resolvedSeries.map((_s, si) => d.values[si] ?? 0));
     const [mn, mx] = extent(all);
     return [Math.min(0, mn), mx];
@@ -110,21 +117,17 @@
     const y = linearScale([nice.min, nice.max], [innerHeight, 0]);
 
     if (stacked) {
-      const cumulative = data.map(() => 0);
       return resolvedSeries.map((s, si) => {
-        const lower: ChartPoint[] = data.map((_d, i) => [xAt(i, innerWidth), y(cumulative[i])]);
-        data.forEach((d, i) => {
-          cumulative[i] += d.values[si] ?? 0;
-        });
-        const upper: ChartPoint[] = data.map((_d, i) => [xAt(i, innerWidth), y(cumulative[i])]);
-        // Closed polygon: top edge forward, lower edge back. linePath() applies
+        const base: ChartPoint[] = stack[si].map(([from], i) => [xAt(i, innerWidth), y(from)]);
+        const outer: ChartPoint[] = stack[si].map(([, to], i) => [xAt(i, innerWidth), y(to)]);
+        // Closed polygon: outer edge forward, base back. linePath() applies
         // the shared coord() rounding so both edges format consistently.
-        const ring: ChartPoint[] = [...upper, ...lower.slice().reverse()];
+        const ring: ChartPoint[] = [...outer, ...base.slice().reverse()];
         return {
           color: seriesColor(si, s.color),
           label: s.label,
           areaD: `${linePath(ring)}Z`,
-          lineD: linePath(upper)
+          lineD: linePath(outer)
         };
       });
     }
@@ -143,9 +146,10 @@
 
   const resolvedAriaLabel = $derived(
     ariaLabel ??
-      `Area chart: ${data.length} points` +
-        (resolvedSeries.length > 1 ? `, ${resolvedSeries.length} series` : '') +
-        (stacked ? ', stacked' : '')
+      bt(stacked ? 'chart.stackedAreaSummary' : 'chart.areaSummary', {
+        points: data.length,
+        series: resolvedSeries.length
+      })
   );
 </script>
 

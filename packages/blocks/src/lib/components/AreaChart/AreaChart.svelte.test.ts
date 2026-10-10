@@ -239,6 +239,79 @@ describe('AreaChart — stacked series', () => {
       ]
     ]);
   });
+
+  /** Positive band: 5 up from zero. Negative band: 3 down from zero. */
+  const UP = [
+    [0, 10],
+    [200, 10],
+    [200, 60],
+    [0, 60]
+  ];
+  const DOWN = [
+    [0, 90],
+    [200, 90],
+    [200, 60],
+    [0, 60]
+  ];
+
+  it.each([
+    ['a negative series on a positive one', [5, -3], [UP, DOWN]],
+    ['a positive series on a negative one', [-3, 5], [DOWN, UP]]
+  ])('stacks %s away from zero on either side, inside the plot', (_name, values, expected) => {
+    const target = render({
+      stacked: true,
+      data: [
+        { label: 'a', values },
+        { label: 'b', values }
+      ]
+    });
+
+    // Domain [-3, 5] widens to [-4, 6], 10 px per unit: zero lies 60 px down.
+    // Each band runs along its outer edge, then back along zero.
+    expect(
+      bands(target)
+        .flat()
+        .filter(([, y]) => y < 0 || y > 100)
+    ).toEqual([]);
+    expect(bands(target)).toEqual(expected);
+  });
+
+  it('stacks each category on its own, so a series that changes sign changes side', () => {
+    const target = render({
+      stacked: true,
+      data: [
+        { label: 'a', values: [3, 2] },
+        { label: 'b', values: [-2, 1] }
+      ]
+    });
+
+    // Domain [-2, 5] widens to [-2, 6], 12.5 px per unit: zero lies 75 px down.
+    // At `b` the first series is negative, so the second starts at zero again.
+    expect(bands(target)).toEqual([
+      [
+        [0, 37.5],
+        [200, 100],
+        [200, 75],
+        [0, 75]
+      ],
+      [
+        [0, 12.5],
+        [200, 62.5],
+        [200, 75],
+        [0, 37.5]
+      ]
+    ]);
+    expect(outlines(target)).toEqual([
+      [
+        [0, 37.5],
+        [200, 100]
+      ],
+      [
+        [0, 12.5],
+        [200, 62.5]
+      ]
+    ]);
+  });
 });
 
 describe('AreaChart — fill opacity', () => {
@@ -310,11 +383,11 @@ describe('AreaChart — what a screen reader gets', () => {
   } satisfies AreaChartProps;
 
   it.each([
-    ['a generated summary', {}, 'Area chart: 2 points, 2 series'],
+    ['a generated summary', {}, 'Area chart, points: 2, series: 2'],
     [
       'a generated summary that says it stacks',
       { stacked: true },
-      'Area chart: 2 points, 2 series, stacked'
+      'Stacked area chart, points: 2, series: 2'
     ],
     ['ariaLabel', { ariaLabel: 'Visitors' }, 'Visitors']
   ])('names the image and captions the data table with %s', (_name, props, name) => {
@@ -330,7 +403,7 @@ describe('AreaChart — what a screen reader gets', () => {
     // Feb has no Returning value; its area is drawn at zero, and the table says so.
     expect(dataTable(target)).toEqual({
       hidden: true,
-      caption: 'Area chart: 2 points, 2 series',
+      caption: 'Area chart, points: 2, series: 2',
       rows: [
         ['th[col] Category', 'th[col] New', 'th[col] Returning'],
         ['th[row] Jan', 'td 4k', 'td 6k'],
@@ -339,13 +412,24 @@ describe('AreaChart — what a screen reader gets', () => {
     });
   });
 
-  it('heads the table in the active locale, unnamed series included', () => {
-    const target = render({ data: [{ label: 'Jan', values: [1, 2] }] }, registerMarkedLocale());
+  it.each([
+    ['overlaid', false, 'fr:Area chart, points: 1, series: 2'],
+    ['stacked', true, 'fr:Stacked area chart, points: 1, series: 2']
+  ])(
+    'names the %s image, captions the table and heads it in the active locale',
+    (_mode, stacked, name) => {
+      const target = render(
+        { stacked, data: [{ label: 'Jan', values: [1, 2] }] },
+        registerMarkedLocale()
+      );
 
-    expect(dataTable(target).rows[0]).toEqual([
-      'th[col] fr:Category',
-      'th[col] fr:Series 1',
-      'th[col] fr:Series 2'
-    ]);
-  });
+      expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+      expect(dataTable(target).caption).toBe(name);
+      expect(dataTable(target).rows[0]).toEqual([
+        'th[col] fr:Category',
+        'th[col] fr:Series 1',
+        'th[col] fr:Series 2'
+      ]);
+    }
+  );
 });
