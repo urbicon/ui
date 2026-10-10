@@ -17,8 +17,9 @@ and ships in the `@urbicon-ui/table` tarball.
 
 `null` meant two things: nobody touched the field, or the user is halfway through a time. The
 value now has three states, read off the segments: `undefined` while every segment is empty,
-`null` while some are filled and some are blank, and the canonical `HH:MM` / `HH:MM:SS` string
-once the time is complete. The AM/PM segment always holds a value and does not count.
+`null` while some are filled and some are blank (or, with a `step`, while a mid-entry digit leaves
+the time off the raster), and the canonical `HH:MM` / `HH:MM:SS` string once the time is
+complete. The AM/PM segment always holds a value and does not count.
 
 - **`onValueChange` receives `string | null | undefined`.** A handler typed `(v: string | null)`
   stops compiling; widen the parameter. Backspacing every segment now ends in `undefined`, so a
@@ -27,12 +28,15 @@ once the time is complete. The AM/PM segment always holds a value and does not c
 - **Start from `undefined`.** Leave `value` out, or bind state created with `$state()`. Binding
   an `undefined` state threw `props_invalid_value` before; it works now. A `null` you pass still
   renders an empty field and writes nothing back, but it reads as half-typed until the user edits.
-- **No time resets the field only from outside it.** `undefined`, `null` and `""` set while focus
-  is elsewhere clear the field, a half-typed one too, which used to keep its digits. Set while
-  focus is inside the field, they are ignored as the echo of the field's own report, so a reset
-  fired from inside it (an Escape handler on the field, say) no longer clears it: move focus out
-  first. A reset has to change the value, and a half-typed bound field already holds `null`, so
-  reset with `undefined`.
+- **No time resets a half-typed field only from outside it.** `undefined`, `null` and `""` set
+  while focus is elsewhere clear a half-typed field, which used to keep its digits; a field
+  showing a complete time clears wherever focus is, as before. Set while focus is inside a
+  half-typed field, they are ignored as the echo of the field's own report and nothing is
+  written back, so a reset fired from there (an Escape handler on the field, a clear button that
+  keeps focus with a `mousedown` `preventDefault`) leaves the digits: move focus out first, or
+  remount the field with `{#key}`. A reset has to change the value: a half-typed bound field
+  already holds `null`, so reset with `undefined`; a `string`-typed consumer that can only write
+  `""` needs the `{#key}` remount.
 - **With `withSeconds`, the clamp emits seconds.** A value clamped to `min="09:00"` arrives as
   `09:00:00`; it used to arrive as the bound's own `09:00`.
 

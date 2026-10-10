@@ -31,10 +31,24 @@
     const next = e.relatedTarget as Node | null;
     onLeave?.(!(next && e.currentTarget.contains(next)), value);
   }
+
+  // A reset fired from inside the field, the way an Escape-to-clear handler is.
+  function clearOnEscape(e: KeyboardEvent) {
+    if (e.key === 'Escape') value = undefined;
+  }
 </script>
 
 {#if mode === 'bind'}
-  <TimeInput label="Time" name="time" {min} {max} {step} bind:value onfocusout={leave} />
+  <TimeInput
+    label="Time"
+    name="time"
+    {min}
+    {max}
+    {step}
+    bind:value
+    onfocusout={leave}
+    onkeydown={clearOnEscape}
+  />
 {:else}
   <TimeInput
     label="Time"
@@ -45,6 +59,7 @@
     {value}
     onValueChange={(v) => (value = mode === 'string' ? (v ?? '') : v)}
     onfocusout={leave}
+    onkeydown={clearOnEscape}
   />
 {/if}
 <span data-testid="value">{show(value)}</span>

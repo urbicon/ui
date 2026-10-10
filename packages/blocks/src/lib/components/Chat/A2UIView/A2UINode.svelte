@@ -395,9 +395,9 @@
     );
   }
   // The model has one "no time" value, so a half-typed time (`null`) writes `""`.
-  // TimeInput ignores no time that arrives while focus is inside it, so this echo
-  // keeps the digits typed so far; the cost is that an agent's `""` landing while
-  // the user is in the field does not clear it either.
+  // TimeInput ignores no time that arrives while focus is inside a half-typed
+  // field, so this echo keeps the digits typed so far; the cost is that an
+  // agent's `""` landing at that moment does not clear it either.
   function onDtTimeChange(nextTime: string | null | undefined): void {
     writeDateTime(dtMode === 'datetime' ? dtParts.date : '', nextTime ?? '');
   }

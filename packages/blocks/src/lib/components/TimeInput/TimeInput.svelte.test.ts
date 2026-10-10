@@ -422,6 +422,21 @@ describe('TimeInput (three-state value)', () => {
     }
   );
 
+  // An echo of a complete time is always a string, so "no time" meeting complete
+  // segments is a reset wherever focus is.
+  it('clears a complete field on a reset fired inside it, and blur keeps it clear', async () => {
+    const user = userEvent.setup();
+    const onLeave = vi.fn();
+    renderBound({ initial: '09:30', onLeave });
+    minute().focus();
+    await user.keyboard('{Escape}');
+    expect([hour().value, minute().value]).toEqual(['', '']);
+    expect(shown()).toBe('undefined');
+    await user.tab();
+    expect(onLeave).toHaveBeenLastCalledWith(true, undefined);
+    expect(shown()).toBe('undefined');
+  });
+
   it('keeps a half-typed field when only withSeconds changes, focus elsewhere', async () => {
     const user = userEvent.setup();
     const instance = mount(TimeInputFormatHarness, { target: document.body });

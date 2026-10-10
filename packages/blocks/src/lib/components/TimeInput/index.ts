@@ -9,7 +9,8 @@ import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
  * and 12- or 24-hour display. Fills the last form-family gap (Calendar, DatePicker
  * and DateRangePicker cover dates; this covers time). The value has three states,
  * read off the segments alone: `undefined` while every segment is empty, `null`
- * while the time is half-typed (some segments filled, some blank), and a canonical
+ * while the time is half-typed (some segments filled, some blank, or, with a
+ * `step`, a mid-entry digit leaving the time off the raster), and a canonical
  * 24-hour `HH:MM` (or `HH:MM:SS`) string once it is complete, regardless of display
  * format. `step` sets a raster in seconds, as on `<input type="time">`. An
  * `onfocusout` you pass lands on the root and runs after the `min`/`max` clamp, on
@@ -57,20 +58,25 @@ export interface TimeInputProps
    * - `undefined` while every segment is empty, untouched or cleared back to empty.
    *   Leave the prop out (or bind `undefined`) for an empty field.
    * - `null` while the time is half-typed: at least one segment holds a digit and
-   *   at least one is blank.
+   *   at least one is blank, or, with a `step`, a mid-entry digit leaves the time
+   *   off the raster.
    * - A canonical 24-hour `HH:MM` / `HH:MM:SS` string once the time is complete;
    *   `format` never changes it.
    *
    * An AM/PM segment always holds a value, so it never makes a time half-typed.
-   * `""` reads as no time, like `null` and `undefined`. No time passed while focus
-   * is outside the field clears it, half-typed or not. While focus is inside, it is
-   * taken as the echo of the field's own report and ignored, so a consumer that
-   * stores no time as one value (`""` or `undefined`) cannot wipe the digits being
-   * typed; the cost is that a reset fired from inside the field (an Escape handler
-   * on it, say) is ignored too. A reset has to change the value: a half-typed bound
-   * field already holds `null`, so reset it with `undefined`. A `null` you pass at
-   * mount renders empty and stays `null` until the user edits. Supports
-   * `bind:value`.
+   * `""` reads as no time, like `null` and `undefined`. No time you pass clears a
+   * field that shows a complete time wherever focus is, and a half-typed field
+   * while focus is outside it. On a half-typed field with focus inside, it is taken
+   * as the echo of the field's own report and ignored, so a consumer that stores no
+   * time as one value (`""` or `undefined`) cannot wipe the digits being typed; the
+   * cost is that a reset fired from inside a half-typed field (an Escape handler on
+   * it, or a clear button that keeps focus with a `mousedown` `preventDefault`) is
+   * ignored too, and nothing is written back, so value and segments disagree until
+   * the next edit. A reset has to change the value: a half-typed bound field already
+   * holds `null`, so reset it with `undefined`. Where neither works (a reset from
+   * inside, or a `string`-typed consumer that can only write `""`), remount the
+   * field with `{#key}`. A `null` you pass at mount renders empty and stays `null`
+   * until the user edits. Supports `bind:value`.
    */
   value?: string | null | undefined;
   /** Display the hour as 12-hour with an AM/PM segment. The value stays 24-hour. @default '24h' */
@@ -88,9 +94,9 @@ export interface TimeInputProps
    *   point above and Down to the first below. `aria-valuemin`/`aria-valuemax`
    *   name the first and last raster value of each segment for the time shown.
    * - A typed time off the raster snaps down to the raster point below it as soon
-   *   as its segment is complete. While a digit is still mid-entry the value is
-   *   `null`, so it never carries an off-raster time and always matches what the
-   *   field shows. A time you pass in is shown as given, fixed segments included,
+   *   as its segment is complete. While a digit is still mid-entry and the time it
+   *   spells is off the raster, the value is `null`, so it never carries an
+   *   off-raster time and always matches what the field shows. A time you pass in is shown as given, fixed segments included,
    *   and lands on the raster with the next edit or on blur.
    * - The raster counts from `min`: with `min="09:10"` and `900`, a typed `10:00`
    *   lands on `09:55`.

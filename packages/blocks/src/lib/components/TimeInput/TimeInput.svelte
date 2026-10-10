@@ -175,7 +175,7 @@
 
   // A single unpadded digit is still being typed: "4" may yet become "45".
   function midEntry(): boolean {
-    return [hourStr, minuteStr, secondStr].some((str) => str.length === 1);
+    return [hourStr, minuteStr, withSeconds ? secondStr : ''].some((str) => str.length === 1);
   }
 
   // The value the segments report, snapped down onto the raster. While a digit
@@ -237,13 +237,14 @@
   // already set `value`) and fires the re-seed on a format switch, because the
   // canonical computed under the new format no longer matches the raw value.
   //
-  // "No time" (`undefined`, `null` or `""`) that arrives while focus is inside the
-  // field is the echo of the field's own report and is ignored, with nothing
-  // written back: a one-way consumer that stores "no time" as one value (A2UI's
-  // `""`) hands a half-typed `null` back as `""` or `undefined`, and acting on it
-  // would wipe the digits being typed. From anywhere else it is a reset and
-  // clears the segments. Only a value that changed counts as arriving; a format
-  // flip re-runs this effect too.
+  // "No time" (`undefined`, `null` or `""`) that arrives while focus is inside a
+  // half-typed field is the echo of the field's own report and is ignored, with
+  // nothing written back: a one-way consumer that stores "no time" as one value
+  // (A2UI's `""`) hands a half-typed `null` back as `""` or `undefined`, and
+  // acting on it would wipe the digits being typed. The echo of a complete time
+  // is always a string, so no time meeting complete segments is a reset wherever
+  // focus is, as is no time arriving while focus is elsewhere. Only a value that
+  // changed counts as arriving; a format flip re-runs this effect too.
   let lastIncoming: unknown = Symbol('unseen');
   $effect(() => {
     const raw = value;
@@ -255,7 +256,10 @@
       const incoming = raw === '' ? undefined : raw;
       if (typeof incoming === 'string') {
         if (incoming !== canonicalFromSegments()) syncFromValue(incoming);
-      } else if (arrived && !fieldEl?.contains(document.activeElement)) {
+      } else if (
+        arrived &&
+        (typeof canonicalFromSegments() === 'string' || !fieldEl?.contains(document.activeElement))
+      ) {
         syncFromValue(undefined);
       }
     });
