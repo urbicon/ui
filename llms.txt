@@ -88,7 +88,7 @@ prop-conditional `overrides` (e.g. style only `variant="outlined"`).
 - [AvatarGroup](https://ui.urbicon.de/blocks/components/avatar-group/llm.txt): An overlapping row of avatars with a +N overflow chip.
 - [BarChart](https://ui.urbicon.de/blocks/components/bar-chart/llm.txt): Bars for comparing categories — single, grouped or stacked. (beta)
 - [Calendar](https://ui.urbicon.de/blocks/components/calendar/llm.txt): Appointments on a real calendar — month, week or day, with multi-day spans and recurrence.
-- [ChartFrame](https://ui.urbicon.de/blocks/components/chart-frame/llm.txt): The measured, responsive canvas the other charts draw on — bring your own shapes. (beta)
+- [ChartFrame](https://ui.urbicon.de/blocks/components/chart-frame/llm.txt): The measured, responsive canvas the other charts draw on — bring your own shapes.
 - [Chat](https://ui.urbicon.de/blocks/components/chat/llm.txt): The full-height shell of a chat: pinned header, scrolling conversation, composer at the bottom. (experimental)
 - [ChatMessage](https://ui.urbicon.de/blocks/components/chat-message/llm.txt): One message in a conversation, with its text, reasoning, tool calls and attachments. (experimental)
 - [ChatMessageList](https://ui.urbicon.de/blocks/components/chat-message-list/llm.txt): A conversation log that follows streaming output — and lets go the moment you scroll up. (experimental)

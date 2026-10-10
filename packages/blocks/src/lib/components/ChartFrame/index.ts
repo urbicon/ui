@@ -13,7 +13,6 @@ import type { ChartFrameSlotClasses, ChartMargin, ChartPlot } from '#lib/interna
  * @tag display
  * @related BarChart
  * @related Sankey
- * @stability beta
  *
  * @example
  * ```svelte
