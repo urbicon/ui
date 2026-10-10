@@ -11,8 +11,8 @@
  * Browser support: Chrome 123+, Firefox 120+, Safari 17.5+ — Baseline
  * Newly Available since 2024-05.
  *
- * ROLE MARKERS. The CSS token reference (`urbicon css-reference`,
- * `get_css_reference`) renders its surface / text / border tables and the
+ * ROLE MARKERS. The CSS token reference (`urbicon css-reference`) renders its
+ * surface / text / border tables and the
  * intent roles from this file — `bun run tokens:reference` regenerates
  * `packages/design-engine/src/reference/semantic-tokens.gen.ts`, and the
  * `:check` variant gates CI. The role sentences come from two comment markers

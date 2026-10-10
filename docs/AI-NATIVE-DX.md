@@ -11,7 +11,7 @@ surface is the one consumers actually install.
 | `llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
 | **`urbicon` CLI** (`packages/design`) | **The consumer surface**: one dev-dependency, version-pinned knowledge |
 
-There is no remote surface: the MCP server that once mirrored the CLI was retired.
+There is no remote tool server: the MCP server that once mirrored the CLI was retired.
 Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-was-retired).
 
 ## The `urbicon` CLI

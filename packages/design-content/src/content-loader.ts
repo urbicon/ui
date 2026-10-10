@@ -59,7 +59,7 @@ export function getIconsPath(): string {
 
 /**
  * Valid component slug: lowercase alphanumeric segments joined by single hyphens.
- * Guards the path join below, since the slug reaches us from tool input.
+ * Guards the path join below, since the slug reaches us from a CLI argument.
  */
 const SAFE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

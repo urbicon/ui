@@ -1,6 +1,6 @@
 # Urbicon UI — Design Principles
 
-Design heuristics for building UIs with Urbicon UI. These principles guide the LLM in making design decisions — from individual component choices to full-page composition. They complement the token reference (`get_css_reference`) and component catalog (`find_components`).
+Design heuristics for building UIs with Urbicon UI. These principles guide the LLM in making design decisions — from individual component choices to full-page composition. They complement the token reference (`urbicon css-reference`) and the component catalog (`urbicon find`).
 
 ## Visual Hierarchy
 
