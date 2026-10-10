@@ -149,41 +149,40 @@
   <NoteList>
     <Note title="Popup state on the calendar button">
       <p>
-        The text input carries <code class="text-text-primary">aria-haspopup="dialog"</code>, so
-        assistive tech reports that a calendar exists. Whether it is showing sits on the calendar
-        button: <code class="text-text-primary">aria-expanded</code>, and (while open)
-        <code class="text-text-primary">aria-controls</code> pointing at the calendar — a textbox
-        may not carry <code class="text-text-primary">aria-expanded</code>.
+        The text field carries <code class="text-text-primary">aria-haspopup="dialog"</code>, so
+        assistive tech reports that a calendar exists. The calendar button beside it carries
+        <code class="text-text-primary">aria-expanded</code> and, while the calendar is open,
+        <code class="text-text-primary">aria-controls</code> pointing at the calendar.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="↓" /> opens the calendar from the field. In the field,
-        <Kbd keys="Enter" /> closes it while open, and commits what has been typed while it is not; on
-        the calendar button, <Kbd keys="Enter" /> or <Kbd keys="Space" /> opens and closes it.
-        <Kbd keys="Esc" /> closes the calendar; pressed again on a field with an uncommitted draft it
-        discards that draft rather than the selection. From inside the calendar, <Kbd keys="Esc" /> or
-        completing a range returns focus to the calendar button. Grid navigation inside the calendar follows
-        the
+        <Kbd keys="↓" /> opens the calendar from the field; on the calendar button,
+        <Kbd keys="Enter" /> or <Kbd keys="Space" /> opens and closes it. Opening leaves focus where it
+        is, and <Kbd keys="Tab" /> from the calendar button moves into the calendar, whose grid navigation
+        follows the
         <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
           >Calendar</a
-        > pattern.
+        >
+        pattern. From inside the calendar, <Kbd keys="Esc" /> or completing a range returns focus to the
+        calendar button. In the field, <Kbd keys="Enter" /> closes an open calendar and otherwise commits
+        what you typed. <Kbd keys="Esc" /> closes the calendar; with the calendar already closed, it discards
+        a typed draft and keeps the selection.
       </p>
     </Note>
     <Note title="Both embedded buttons are named">
       <p>
         When <code class="text-text-primary">clearable</code> is set the field carries two controls,
         and each gets its own localized
-        <code class="text-text-primary">aria-label</code>: "clear input" and "open calendar". Both
-        keep a visible
-        <code class="text-text-primary">focus-visible</code> ring.
+        <code class="text-text-primary">aria-label</code>: "Clear input" and "Open calendar".
       </p>
     </Note>
     <Note title="Typing is a first-class path">
       <p>
-        The range can be typed as well as clicked. Parsing happens on <Kbd keys="Enter" />, when the
-        calendar button opens the calendar, and when focus leaves the picker — moving to its own
-        buttons or into the calendar keeps the draft. A parse failure shows as the field's
+        The range can be typed as well as clicked. What you type is parsed on
+        <Kbd keys="Enter" /> with the calendar closed, when the calendar button opens the calendar, and
+        when focus leaves the picker; moving to its own buttons or into the calendar keeps the draft.
+        A parse failure shows as the field's
         <code class="text-text-primary">error</code>.
       </p>
     </Note>

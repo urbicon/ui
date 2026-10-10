@@ -75,12 +75,14 @@
     <Note title="ARIA and roles">
       <p>
         The control is the real <code class="text-text-primary">&lt;input type="file"&gt;</code>,
-        visually hidden but focusable. <code class="text-text-primary">id</code>,
+        visually hidden but focusable. The <code class="text-text-primary">id</code>,
         <code class="text-text-primary">aria-labelledby</code>,
         <code class="text-text-primary">aria-describedby</code>,
         <code class="text-text-primary">aria-invalid</code> and
-        <code class="text-text-primary">aria-required</code> land on it, so inside a
-        <code class="text-text-primary">FormField</code> the label names it and a click on the label
+        <code class="text-text-primary">aria-required</code> you pass to
+        <code class="text-text-primary">FileUpload</code> land on it, so a
+        <code class="text-text-primary">FormField</code> label or a
+        <code class="text-text-primary">&lt;label for&gt;</code> names it, and a click on that label
         opens the file dialog. The dropzone's text describes it; the dropzone itself has no role.
         The file list is a <code class="text-text-primary">role="list"</code> with
         <code class="text-text-primary">aria-live="polite"</code>, so a screen reader hears every
@@ -95,23 +97,30 @@
         <Kbd keys="Enter" />
         or
         <Kbd keys="Space" />
-        there opens the native file dialog. The dropzone shows the input's focus ring through
-        <code class="text-text-primary">peer-focus-visible:</code>, so it appears for the keyboard
-        only. After that, <Kbd keys="Tab" /> moves through the remove buttons of the file list. Once
-        <code class="text-text-primary">maxFiles</code> is reached the dropzone goes and the input
-        leaves the tab order. Safari reaches the input as it reaches any native button: with
-        <Kbd keys={['Option', 'Tab']} />, or with “Press Tab to highlight each item” turned on.
+        there opens the native file dialog; <Kbd keys="Tab" /> from there moves on to the remove buttons
+        in the file list. Once <code class="text-text-primary">maxFiles</code> is reached the
+        dropzone goes and the input leaves the tab order. The dropzone draws the input's focus ring,
+        for the keyboard only. It never takes focus itself, so a ring of your own in
+        <code class="text-text-primary">slotClasses.dropzone</code> needs
+        <code class="text-text-primary">peer-focus-visible:</code>, not
+        <code class="text-text-primary">focus-visible:</code>. Safari's <Kbd keys="Tab" /> skips the input
+        as it skips every button, unless “Press Tab to highlight each item” is turned on;
+        <Kbd keys={['Option', 'Tab']} /> reaches it either way.
       </p>
     </Note>
     <Note title="Drag states">
       <p>
-        The dropzone's <code class="text-text-primary">data-blocks-dropzone-state</code> moves
-        between
+        Colour, scale and shadow show whether what is being dragged will be taken. The dropzone's
+        <code class="text-text-primary">data-blocks-dropzone-state</code> moves between
         <code class="text-text-primary">idle</code>,
         <code class="text-text-primary">accept</code> and
-        <code class="text-text-primary">reject</code>, which is enough to style the whole
-        interaction in <code class="text-text-primary">unstyled</code> mode from CSS alone. Colour, scale
-        and shadow tell the reader whether what they are dragging will be taken.
+        <code class="text-text-primary">reject</code>, so you can restyle each state, with or
+        without <code class="text-text-primary">unstyled</code>: from CSS, or with a
+        <code class="text-text-primary">data-[blocks-dropzone-state=reject]:</code> variant in
+        <code class="text-text-primary">slotClasses.dropzone</code>. The accept state's border
+        pulses, and a running animation outranks any border colour, so add
+        <code class="text-text-primary">data-[blocks-dropzone-state=accept]:animate-none</code> before
+        you set your own.
       </p>
     </Note>
     <Note title="Document drop prevention">

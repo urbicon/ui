@@ -47,7 +47,7 @@
     // A popover is no place for elastic height: paging March → April → May made
     // the overlay jump between 4, 5 and 6 week rows (319–415px measured), and
     // every jump moves the grid out from under the pointer mid-click. An
-    // embedded <Calendar> may still breathe — this default is the DatePicker's.
+    // embedded <Calendar> may still breathe — this default is the two pickers'.
     fixedWeeks = true,
     minDate,
     maxDate,
@@ -413,6 +413,7 @@
     {closeOnClickOutside}
     onEscape={handlePopoverEscape}
     {onClickOutside}
+    {onOpenChange}
   >
     <div bind:this={calendarPanelEl} class="p-2" onfocusout={handleFocusOut}>
       <Calendar

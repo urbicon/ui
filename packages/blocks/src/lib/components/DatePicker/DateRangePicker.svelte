@@ -45,7 +45,7 @@
     weekStartsOn = 1,
     showWeekNumbers = false,
     showOutsideDays = true,
-    fixedWeeks = false,
+    fixedWeeks = true,
     minDate,
     maxDate,
     disabledDates = [],
@@ -438,6 +438,7 @@
     {closeOnClickOutside}
     onEscape={handlePopoverEscape}
     {onClickOutside}
+    {onOpenChange}
   >
     <div bind:this={calendarPanelEl} class="p-2" onfocusout={handleFocusOut}>
       <Calendar
