@@ -617,3 +617,110 @@ describe('DatePicker (restProps)', () => {
     expect(seen).toEqual([true]);
   });
 });
+
+// A popover that sizes to its month changes height while paging, and the cells move out from
+// under the pointer; the picker keeps 6 week rows by default, as DateRangePicker does.
+describe('DatePicker (fixedWeeks)', () => {
+  // The weekday header is a row too.
+  const weekRows = () => document.querySelectorAll('[role="grid"] [role="row"]').length - 1;
+
+  it.each([
+    ['by default', {}, 6],
+    ['unless fixedWeeks is false', { fixedWeeks: false }, 5]
+  ])('renders the calendar for a 5-row month with its week rows %s', async (_, props, rows) => {
+    const user = userEvent.setup();
+    // February 2026 starts on a Sunday and needs 5 rows with the week starting on Monday.
+    renderPicker({ defaultMonth: 1, defaultYear: 2026, ...props });
+
+    await user.click(calendarButton());
+    flushSync();
+
+    expect(weekRows()).toBe(rows);
+  });
+});
+
+// Popover closes itself on an outside pointerdown and on Escape inside the calendar panel,
+// writing `bind:open` without passing through the picker's own open state; those closes must
+// reach onOpenChange too, and the paths the picker closes itself must not report twice.
+describe('DatePicker (onOpenChange)', () => {
+  function renderWithOutside() {
+    const onOpenChange = vi.fn();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026, onOpenChange });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+    return { onOpenChange, after };
+  }
+
+  it('reports the close by a pointerdown outside the picker', async () => {
+    const user = userEvent.setup();
+    const { onOpenChange, after } = renderWithOutside();
+
+    await user.click(calendarButton());
+    flushSync();
+    await user.click(after);
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('reports the close by Escape inside the calendar', async () => {
+    const user = userEvent.setup();
+    const { onOpenChange } = renderWithOutside();
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('reports every open and close once, whichever path takes it', async () => {
+    const user = userEvent.setup();
+    const { onOpenChange, after } = renderWithOutside();
+
+    // Escape in the field: the picker closes and claims the key, so the popover stays out.
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    fireEvent.keyDown(input(), { key: 'Escape' });
+    flushSync();
+    // The calendar button toggles it.
+    await user.click(calendarButton());
+    flushSync();
+    await user.click(calendarButton());
+    flushSync();
+    // Picking a date closes it.
+    await user.click(calendarButton());
+    flushSync();
+    await user.click(day('2026-03-10') as HTMLElement);
+    flushSync();
+    // The two paths the popover takes on its own.
+    await user.click(calendarButton());
+    flushSync();
+    await user.click(after);
+    flushSync();
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(onOpenChange.mock.calls).toEqual([
+      [true],
+      [false],
+      [true],
+      [false],
+      [true],
+      [false],
+      [true],
+      [false],
+      [true],
+      [false]
+    ]);
+  });
+});

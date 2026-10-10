@@ -545,8 +545,17 @@
 </div>
 
 <style>
-  :global([data-blocks-dropzone-state='accept']) {
-    animation: blocks-dropzone-pulse 1.5s ease-in-out infinite;
+  /* In `@layer base`, below Tailwind's utilities: an unlayered rule outranks every
+     layer, so a consumer's `animate-none` could not stop the pulse. It keys on the
+     attribute, not a tv() class, so it still runs under `unstyled`. While it runs
+     the animation outranks any border colour, so a colour of your own on the
+     accept state needs the pulse stopped first. */
+  @layer base {
+    @media (prefers-reduced-motion: no-preference) {
+      :global([data-blocks-dropzone-state='accept']) {
+        animation: blocks-dropzone-pulse 1.5s ease-in-out infinite;
+      }
+    }
   }
 
   @keyframes -global-blocks-dropzone-pulse {

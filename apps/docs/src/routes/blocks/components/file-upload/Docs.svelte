@@ -117,7 +117,10 @@
         <code class="text-text-primary">reject</code>, so you can restyle each state, with or
         without <code class="text-text-primary">unstyled</code>: from CSS, or with a
         <code class="text-text-primary">data-[blocks-dropzone-state=reject]:</code> variant in
-        <code class="text-text-primary">slotClasses.dropzone</code>.
+        <code class="text-text-primary">slotClasses.dropzone</code>. The accept state's border
+        pulses, and a running animation outranks any border colour, so add
+        <code class="text-text-primary">data-[blocks-dropzone-state=accept]:animate-none</code> before
+        you set your own.
       </p>
     </Note>
     <Note title="Document drop prevention">

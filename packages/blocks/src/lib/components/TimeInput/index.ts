@@ -72,11 +72,12 @@ export interface TimeInputProps
    * the digits being typed; the cost is that a reset fired from inside a
    * half-typed field (an Escape handler on it, or a clear button that keeps
    * focus with a `mousedown` `preventDefault`) is ignored too, and nothing is
-   * written back, so value and segments disagree until the next edit. A reset has to change the value: a half-typed bound field already
-   * holds `null`, so reset it with `undefined`. Where neither works (a reset from
-   * inside, or a `string`-typed consumer that can only write `""`), remount the
-   * field with `{#key}`. A `null` you pass at mount renders empty and stays `null`
-   * until the user edits. Supports `bind:value`.
+   * written back, so value and segments disagree until the next edit. A reset
+   * has to change the value: a half-typed bound field already holds `null`, so
+   * reset it with `undefined`. Where neither works (a reset from inside, or a
+   * `string`-typed consumer that can only write `""`), remount the field with
+   * `{#key}`. A `null` you pass at mount renders empty and stays `null` until
+   * the user edits. Supports `bind:value`.
    */
   value?: string | null | undefined;
   /** Display the hour as 12-hour with an AM/PM segment. The value stays 24-hour. @default '24h' */

@@ -296,8 +296,8 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
   showOutsideDays?: boolean;
   /**
    * Always show 6 week rows, so the overlay keeps its height while paging
-   * months. Unset, the grid shows only the rows the month needs.
-   * @default false
+   * months. Set `false` to let it shrink to 4 or 5 rows.
+   * @default true
    */
   fixedWeeks?: boolean;
   /** Earliest selectable date. */
