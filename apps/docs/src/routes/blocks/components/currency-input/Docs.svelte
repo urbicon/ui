@@ -58,6 +58,7 @@
       description={'Currencies like JPY have no minor units. Set precision={0} so the integer value is treated as-is.'}
       previewClass="flex w-full max-w-xs flex-col gap-4"
       code={`<CurrencyInput
+  label="Amount"
   bind:value={yen}
   locale="ja-JP"
   currency="JPY"
@@ -65,7 +66,13 @@
 />`}
       language="svelte"
     >
-      <CurrencyInput bind:value={jpyValue} locale="ja-JP" currency="JPY" precision={0} />
+      <CurrencyInput
+        label="Amount"
+        bind:value={jpyValue}
+        locale="ja-JP"
+        currency="JPY"
+        precision={0}
+      />
     </CodeExample>
   </div>
 </Section>

@@ -42,6 +42,7 @@
           <div class="flex items-center justify-between px-5 py-3">
             <p class="text-text-primary text-sm font-medium">Region</p>
             <Select
+              aria-label="Region"
               options={[
                 { label: 'Europe', value: 'eu' },
                 { label: 'North America', value: 'na' },
@@ -69,7 +70,7 @@
       <LocaleSwitcher
         showFlag
         slotClasses={{
-          trigger: 'bg-primary-subtle border-primary text-primary hover:border-primary',
+          trigger: 'bg-primary-subtle border-primary text-primary-text hover:border-primary',
           chevron: 'text-primary',
           listbox: 'border-primary'
         }}

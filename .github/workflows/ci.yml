@@ -268,12 +268,16 @@ jobs:
     # More runners means more dev servers, which is the parallelism the workers
     # could not buy.
     #
-    # Four rather than three because `--shard` splits by test COUNT, not by
-    # duration: at three the counts came out even (43/37/40) and the times did
-    # not (294s/110s/110s). `a11y.spec.ts` is the reason — its route scans are
-    # the ten slowest tests in the suite (24.7s for `tab` alone, 118s for the
-    # top ten, 28% of 426s total) and they sort together into one slice. A
-    # fourth cut splits that block instead of isolating it.
+    # `--shard` cuts the suite into contiguous slices of equal test COUNT, in
+    # collection order: by worker configuration, then by file. A spec that sets
+    # a worker option (`channel`, `launchOptions`) in `test.use` lands behind
+    # the rest, even when the value equals the project's. It balances count,
+    # not duration. `a11y-dark.spec.ts` and `a11y.spec.ts` come first, and
+    # their route scans are the heaviest block of tests in the suite, so they
+    # fill nearly all of shard 1 and make it the slowest shard.
+    # Another shard shrinks every slice and so moves scans out of shard 1, but
+    # the scans stay at the front; no shard count spreads them evenly.
+    # `bunx playwright test --list --shard=1/4` shows what a slice holds.
     #
     # A bonus that matters here: `auth.spec.ts` drives shared in-memory state on
     # the dev server and pins `mode: 'serial'` for it. Sharding gives each shard
@@ -358,7 +362,7 @@ jobs:
           path: blob-report/
           retention-days: 1
 
-  # Three shards produce three partial reports, which are unreadable separately.
+  # Each shard produces a partial report, unreadable on its own.
   # This stitches them into the single HTML report the suite used to emit.
   e2e-report:
     name: E2E report
