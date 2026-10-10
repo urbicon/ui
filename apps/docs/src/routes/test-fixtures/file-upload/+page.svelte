@@ -1,10 +1,11 @@
 <script lang="ts">
   // E2E fixture for e2e/file-upload.spec.ts: FileUploads inside the scrollers a consumer puts
-  // them in — a plain `overflow-auto` box that is not positioned, the same with `unstyled`, and
-  // a Dialog body — each far enough down that focusing the upload has to scroll. The anchor
-  // before each one is where the spec starts tabbing; the page spacer gives the page room to
-  // jump, so a scroll that lands on the wrong box shows. Focus centres the 1px input at the
-  // dropzone's top edge, so a box must be at least twice the dropzone's height to show all of it.
+  // them in — a plain `overflow-auto` box that is not positioned, the same with `unstyled` and
+  // with a dropzone taller than half the box, and a Dialog body — each far enough down that
+  // focusing the upload has to scroll. The anchor before each one is where the spec starts
+  // tabbing; the page spacer gives the page room to jump, so a scroll that lands on the wrong box
+  // shows. Focus alone centres the 1px input at the dropzone's top edge, which leaves the lower
+  // part of the tall dropzone outside its box.
   import { Button, Dialog, FileUpload, FormField } from '@urbicon-ui/blocks';
 
   let dialogOpen = $state(false);
@@ -14,12 +15,13 @@
   <title>FileUpload Test Fixtures</title>
 </svelte:head>
 
-{#snippet upload(testid: string, unstyled = false)}
+{#snippet upload(testid: string, { unstyled = false, tall = false } = {})}
   <FormField label="Document" helper="PDF only">
     {#snippet children({ id, describedBy, invalid })}
       <FileUpload
         {id}
         {unstyled}
+        slotClasses={tall ? { dropzone: 'min-h-65' } : undefined}
         data-testid={testid}
         aria-describedby={describedBy}
         aria-invalid={invalid || undefined}
@@ -44,7 +46,16 @@
       <button type="button" data-anchor="in-scroller-unstyled">anchor</button>
       <div data-testid="scroller-in-scroller-unstyled" class="h-100 overflow-auto border">
         <div class="h-300"></div>
-        {@render upload('in-scroller-unstyled', true)}
+        {@render upload('in-scroller-unstyled', { unstyled: true })}
+      </div>
+    </section>
+
+    <section>
+      <button type="button" data-anchor="in-scroller-tall">anchor</button>
+      <div data-testid="scroller-in-scroller-tall" class="h-100 overflow-auto border">
+        <div class="h-300"></div>
+        {@render upload('in-scroller-tall', { tall: true })}
+        <div class="h-100"></div>
       </div>
     </section>
 

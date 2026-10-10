@@ -18,6 +18,7 @@ afterEach(() => {
   dispose = undefined;
   document.body.replaceChildren();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 function render(props: ComponentProps<typeof FileUpload> = {}) {
@@ -170,6 +171,23 @@ describe('FileUpload (the file input is the control)', () => {
     expect(root.classList.contains('relative')).toBe(false);
   });
 
+  // Which focus matches :focus-visible is the browser's call, so `matches` is stubbed here;
+  // e2e/file-upload.spec.ts drives a real Tab and a real label click.
+  it('scrolls the whole dropzone into view on visible focus, and not on other focus', () => {
+    render();
+    const control = fileInput();
+    const scrolls = vi.spyOn(dropzone()!, 'scrollIntoView');
+    const matches = vi.spyOn(control, 'matches').mockImplementation((s) => s === ':focus-visible');
+    control.focus();
+    expect(scrolls).toHaveBeenCalledExactlyOnceWith({ block: 'nearest', inline: 'nearest' });
+
+    control.blur();
+    scrolls.mockClear();
+    matches.mockImplementation(() => false);
+    control.focus();
+    expect(scrolls).not.toHaveBeenCalled();
+  });
+
   it('relays its focus ring to the dropzone through `peer`', () => {
     render();
     const control = fileInput();
@@ -249,6 +267,16 @@ describe('FileUpload (the file input is the control)', () => {
       document.querySelector('label')!.click();
       expect(clicks).toHaveLength(1);
       expect(clicks[0].defaultPrevented).toBe(true);
+    });
+
+    it('scrolls nothing when the input takes visible focus', () => {
+      renderFull();
+      const scrolls = vi.spyOn(Element.prototype, 'scrollIntoView');
+      const control = fileInput();
+      vi.spyOn(control, 'matches').mockImplementation((s) => s === ':focus-visible');
+      control.focus();
+      expect(document.activeElement).toBe(control);
+      expect(scrolls).not.toHaveBeenCalled();
     });
 
     it('drops the dropzone from the description instead of pointing at a missing id', () => {

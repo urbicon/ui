@@ -8,8 +8,10 @@ import { expect, type Page, test } from '@playwright/test';
  * unpositioned, that chain skips any unpositioned scroller in between: Tab left the scroller at
  * 0 and jumped the page instead, and inside a Dialog it scrolled the `overflow-hidden` panel
  * until header and body left it. The root's `relative` (kept under `unstyled`, which strips
- * the tv() classes) is what keeps the input inside its scroller. jsdom has no layout, so only
- * a browser can see where focus scrolls.
+ * the tv() classes) is what keeps the input inside its scroller. Focus then centres the 1px
+ * input, so a dropzone taller than half its box needs the keyboard-focus scroll FileUpload adds
+ * on top, which a label click must not trigger. jsdom has no layout, so only a browser can see
+ * where focus scrolls.
  */
 
 const FIXTURE_URL = '/test-fixtures/file-upload';
@@ -85,7 +87,7 @@ function report(page: Page, testid: string) {
 }
 
 test.describe('FileUpload focus scroll', () => {
-  for (const testid of ['in-scroller', 'in-scroller-unstyled']) {
+  for (const testid of ['in-scroller', 'in-scroller-unstyled', 'in-scroller-tall']) {
     test(`Tab into an upload inside an overflow-auto box scrolls that box (${testid})`, async ({
       page
     }) => {
@@ -116,33 +118,41 @@ test.describe('FileUpload focus scroll', () => {
     await page.getByTestId('dialog-trigger').click();
     const dialog = page.locator('dialog[open]');
     await expect(dialog.getByTestId('in-dialog')).toBeAttached();
-    const panelTop = () => dialog.evaluate((el) => Math.round(el.getBoundingClientRect().top));
+    // The title, not the <dialog>: that element is fixed to the viewport and never moves, while
+    // a scrolled panel carries its title out of view.
+    const title = dialog.getByRole('heading', { name: 'Upload' });
+    const titleTop = () => title.evaluate((el) => Math.round(el.getBoundingClientRect().top));
     await dialog.locator('[data-anchor="in-dialog"]').focus();
     await settle(page);
-    const topBefore = await panelTop();
+    const topBefore = await titleTop();
 
     await tabInto(page, 'in-dialog');
     await settle(page);
 
+    expect(await titleTop()).toBe(topBefore);
     const after = await report(page, 'in-dialog');
     expect(after.visible).toBe(after.height);
     expect(after.hiddenScrolled).toEqual([]);
-    expect(await panelTop()).toBe(topBefore);
   });
 
-  test('a label click focuses the input without moving the label', async ({ page }) => {
-    await setupPage(page);
-    const label = page.getByTestId('scroller-in-scroller').locator('label');
-    await label.scrollIntoViewIfNeeded();
-    await settle(page);
-    const labelTop = () => label.evaluate((el) => Math.round(el.getBoundingClientRect().top));
-    const topBefore = await labelTop();
+  // The tall case leaves the dropzone running past the box once the label is centred, so a
+  // dropzone scroll on a pointer focus would move the label.
+  for (const testid of ['in-scroller', 'in-scroller-tall']) {
+    test(`a label click focuses the input without moving the label (${testid})`, async ({
+      page
+    }) => {
+      await setupPage(page);
+      const label = page.getByTestId(`scroller-${testid}`).locator('label');
+      await label.scrollIntoViewIfNeeded();
+      await settle(page);
+      const labelTop = () => label.evaluate((el) => Math.round(el.getBoundingClientRect().top));
+      const topBefore = await labelTop();
 
-    await label.click();
-    await expect(page.getByTestId('in-scroller').locator('input[type="file"]')).toBeFocused();
-    await settle(page);
+      await label.click();
+      await expect(page.getByTestId(testid).locator('input[type="file"]')).toBeFocused();
+      await settle(page);
 
-    expect(await labelTop()).toBe(topBefore);
-    expect((await report(page, 'in-scroller')).hiddenScrolled).toEqual([]);
-  });
+      expect(await labelTop()).toBe(topBefore);
+    });
+  }
 });

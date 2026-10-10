@@ -86,6 +86,7 @@
   // ── State ──────────────────────────────────────────────────────────────────
 
   let inputEl = $state<HTMLInputElement>();
+  let dropzoneEl = $state<HTMLDivElement>();
   let dragging = $state(false);
   let dragInvalid = $state(false);
   let dragCounter = $state(0);
@@ -331,6 +332,16 @@
   function handleInputClick(e: MouseEvent) {
     if (!showDropzone) e.preventDefault();
   }
+
+  // Focus scrolls only the 1px input into view, centred, which leaves a dropzone taller than
+  // half its scroller partly outside it. Keyboard focus, the kind that shows the ring, brings
+  // the whole dropzone in; a label click does not match `:focus-visible` and scrolls nothing
+  // more than before.
+  function handleInputFocus() {
+    if (inputEl?.matches(':focus-visible')) {
+      dropzoneEl?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }
 </script>
 
 <!--
@@ -364,7 +375,8 @@
 
     `title` is the lowest-ranked name source: a `<label>` outranks it, so a FormField label still
     names the control, and without one it is what satisfies axe's `label` rule. Chromium itself
-    names an unlabelled file input "Choose File" and ranks that above `title`.
+    names an unlabelled file input by its button text ("Choose File" / "Choose Files") and ranks
+    that above `title`.
   -->
   <input
     bind:this={inputEl}
@@ -376,6 +388,7 @@
     {required}
     {name}
     onclick={handleInputClick}
+    onfocus={handleInputFocus}
     onchange={handleInputChange}
     class="peer sr-only"
     title={regionName}
@@ -396,6 +409,7 @@
     -->
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div
+      bind:this={dropzoneEl}
       id={dropzoneId}
       {@attach mintAttachment(mint, { enabled: !disabled })}
       class={slot('dropzone')}

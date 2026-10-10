@@ -66,10 +66,11 @@ export type FileUploadSlotName = FileUploadSlots;
  * `<label for>` (as FormField renders) names it and a click on the label opens the file dialog;
  * every other attribute, `class` and `aria-label` included, stays on the root. Label it, through
  * FormField or `aria-labelledby`: without a label the browser names the input by its own button
- * text ("Choose File" in Chromium) and the dropzone text is its description. The `title` it
- * carries, the region's name, only satisfies axe's WCAG `label` rule; axe's best-practice
- * `label-title-only` still reports an unlabelled one. While `maxFiles` is reached the dropzone is
- * gone and the input leaves the tab order, but stays the label's target.
+ * text — in Chromium "Choose Files", or "Choose File" once `maxFiles` is 1 and `multiple` is off —
+ * and the dropzone text is its description. The `title` it carries, the region's name, only
+ * satisfies axe's WCAG `label` rule; axe's best-practice `label-title-only` still reports an
+ * unlabelled one. While `maxFiles` is reached the dropzone is gone and the input leaves the tab
+ * order, but stays the label's target.
  * @tag form
  * @related Input
  * @related Button
