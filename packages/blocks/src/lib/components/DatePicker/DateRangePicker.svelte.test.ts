@@ -91,7 +91,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
@@ -111,7 +111,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '15.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
@@ -127,7 +127,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: 'not a range' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -143,7 +143,7 @@ describe('DateRangePicker (component interaction)', () => {
     // Both halves parse, but start > end → parseDateRangeInput returns null,
     // surfacing the invalid-range error rather than committing a backwards span.
     fireEvent.input(el, { target: { value: '20.03.2026 – 10.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -161,7 +161,7 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('DateRangePicker (component interaction)', () => {
     // Re-type the identical range; the rangesEqual guard must short-circuit the
     // commit so consumers don't see a no-op change.
     fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -191,7 +191,9 @@ describe('DateRangePicker (component interaction)', () => {
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '11.03.2026 – 21.03.2026' } });
     // Blur into the picker's own open-calendar button → "still editing", not "done".
-    fireEvent.blur(el, { relatedTarget: screen.getByRole('button', { name: 'Open calendar' }) });
+    fireEvent.focusOut(el, {
+      relatedTarget: screen.getByRole('button', { name: 'Open calendar' })
+    });
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -364,12 +366,77 @@ describe('DateRangePicker (component interaction)', () => {
     const el = input();
     fireEvent.focus(el);
     fireEvent.input(el, { target: { value: '' } });
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
     expect(onValueChange).toHaveBeenCalledWith(undefined);
     expect(rangeState().getAttribute('data-start')).toBe('');
     expect(rangeState().getAttribute('data-end')).toBe('');
+  });
+});
+
+// As on DatePicker: the typed range is what the field shows, so it must be what the form submits.
+// Moving between the field and the picker's own buttons is still editing; leaving the picker, or
+// opening the calendar from its button, commits.
+describe('DateRangePicker (committing a typed draft)', () => {
+  it.each([
+    ['Tab → Enter → Escape → Tab', ['{Tab}', '{Enter}', '{Escape}', '{Tab}']],
+    ['Tab → Tab', ['{Tab}', '{Tab}']],
+    ['Tab → Space → Escape → Tab', ['{Tab}', ' ', '{Escape}', '{Tab}']]
+  ])('commits once on %s, and the form submits the typed range', async (_, keys) => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderPicker({
+      value: { start: new Date(2026, 0, 1), end: new Date(2026, 0, 5) },
+      name: 'stay',
+      clearable: false,
+      onValueChange
+    });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '10.03.2026 – 20.03.2026' } });
+    for (const key of keys) await user.keyboard(key);
+    flushSync();
+
+    expect(document.activeElement).toBe(after);
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    const range = onValueChange.mock.calls[0][0] as DateRange;
+    expect([iso(range.start), iso(range.end)]).toEqual(['2026-03-10', '2026-03-20']);
+    const submitted = (half: string) =>
+      document.querySelector<HTMLInputElement>(`input[type="hidden"][name="stay_${half}"]`)?.value;
+    expect([submitted('start'), submitted('end')]).toEqual(['2026-03-10', '2026-03-20']);
+  });
+});
+
+describe('DateRangePicker (focus and keys)', () => {
+  it('returns focus to the calendar button on Escape from inside the calendar', async () => {
+    const user = userEvent.setup();
+    const onEscape = vi.fn();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026, onEscape });
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(calendarButton());
+    expect(onEscape).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs a consumer onkeydown once, after ArrowDown has opened the calendar', () => {
+    const seen: boolean[] = [];
+    renderPicker({ onkeydown: (event: KeyboardEvent) => seen.push(event.defaultPrevented) });
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    expect(seen).toEqual([true]);
   });
 });

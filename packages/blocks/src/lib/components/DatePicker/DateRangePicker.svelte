@@ -7,8 +7,11 @@
   import { Calendar } from '#lib/components/Calendar/index.js';
   import type { CalendarSelection, DateRange } from '#lib/components/Calendar/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { FIELD_ICON_BUTTON_PADDING } from '#lib/internal/field-chrome.js';
-  import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
+  import {
+    datePickerIconButtonClass,
+    datePickerVariants,
+    type DatePickerSlots
+  } from './datepicker.variants';
   import { resolveIcon } from '#lib/icons/index.js';
   import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
@@ -16,6 +19,7 @@
   import { formatDateRangeInput, parseDateRangeInput, isDateAllowed } from './datepicker.engine';
   import { toDateInputValue } from '#lib/utils/date.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import type { DateRangePickerProps } from '.';
 
   const bt = useBlocksI18n();
@@ -61,6 +65,8 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    onkeydown: onkeydownProp,
+    onfocusout: onfocusoutProp,
     ...restProps
   }: DateRangePickerProps = $props();
 
@@ -87,6 +93,8 @@
 
   let open = $state(false);
   let triggerEl: HTMLDivElement | undefined = $state();
+  let calendarButtonEl: HTMLButtonElement | undefined = $state();
+  let calendarPanelEl: HTMLDivElement | undefined = $state();
   let userDraft = $state<string | null>(null);
   let focused = $state(false);
   let parseError = $state<string | undefined>();
@@ -140,14 +148,8 @@
     size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16
   );
 
-  // See DatePicker.svelte — Input's per-size icon-button padding, ahead of the
-  // consumer's `slotClasses.iconButton`, absent under `unstyled`.
   const iconButtonClass = $derived(
-    styles
-      ? styles.iconButton({
-          class: resolveClassChain(FIELD_ICON_BUTTON_PADDING[size ?? 'md'], slotClasses?.iconButton)
-        })
-      : slot('iconButton')
+    datePickerIconButtonClass(slotClasses?.iconButton, size ?? 'md', unstyled)
   );
 
   const showClearIcon = $derived(clearable && !!value && !disabled);
@@ -242,13 +244,25 @@
     focused = true;
   }
 
-  function handleBlur(e: FocusEvent) {
+  // Listens on the root and on the calendar panel, which the Popover renders
+  // outside the root. Focus moving between the field, its two buttons and the
+  // calendar is still editing; focus leaving all of them commits the draft —
+  // the field shows the draft, so the form must not submit the old value.
+  function handleFocusOut(e: FocusEvent) {
     const next = e.relatedTarget;
-    if (next instanceof HTMLElement && triggerEl?.contains(next)) {
+    if (next instanceof Node && (triggerEl?.contains(next) || calendarPanelEl?.contains(next))) {
       return;
     }
     focused = false;
     commitDraft();
+  }
+
+  // Popover returns focus to `triggerElement`, here the root, which is not
+  // focusable — so after Escape inside the calendar focus would fall to the
+  // body. The calendar button is the control that opened it.
+  function handlePopoverEscape() {
+    calendarButtonEl?.focus();
+    onEscape?.();
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -260,7 +274,7 @@
         break;
       case 'Enter':
         // Enter on the clear or calendar button is that button's own. `focused`
-        // cannot tell: it stays true while focus sits on either (see handleBlur).
+        // cannot tell: it stays true while focus sits on either (see handleFocusOut).
         if (!(e.target instanceof HTMLInputElement)) break;
         if (open) {
           e.preventDefault();
@@ -323,13 +337,24 @@
 
   function handleIconClick() {
     if (disabled) return;
-    const wasOpen = open;
-    setOpen(!wasOpen);
-    if (wasOpen) focusInput();
+    if (open) {
+      setOpen(false);
+      focusInput();
+      return;
+    }
+    // The calendar opens on what the field shows.
+    commitDraft();
+    setOpen(true);
   }
 </script>
 
-<div class={slot('base', className)} {...restProps} bind:this={triggerEl} onkeydown={handleKeydown}>
+<div
+  {...restProps}
+  bind:this={triggerEl}
+  class={slot('base', className)}
+  onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
+  onfocusout={composeHandlers(handleFocusOut, onfocusoutProp)}
+>
   <Input
     {unstyled}
     value={inputValue}
@@ -347,17 +372,16 @@
       : undefined}
     oninput={handleInput}
     onfocus={handleFocus}
-    onblur={handleBlur}
     aria-haspopup="dialog"
     autocomplete="off"
     spellcheck={false}
   >
     {#snippet rightIcon()}
-      <!-- As in DatePicker.svelte: the calendar button carries the open state
-           and stays one node while the clear button comes and goes — here
-           mid-selection, since the first calendar click sets a value with
-           the popover still open. -->
-      <span class="pointer-events-auto inline-flex items-center gap-0.5">
+      <!-- The calendar button carries the open state — `aria-expanded` is not
+           allowed on the textbox — and sits outside the `{#if}`, so it stays
+           one node while the clear button comes in: mid-selection, since the
+           first calendar click sets a value with the calendar still open. -->
+      <span class={unstyled ? undefined : 'inline-flex items-center gap-0.5'}>
         {#if showClearIcon}
           <button
             type="button"
@@ -370,6 +394,7 @@
           </button>
         {/if}
         <button
+          bind:this={calendarButtonEl}
           type="button"
           class={iconButtonClass}
           onclick={handleIconClick}
@@ -401,10 +426,10 @@
     offsetDistance={4}
     {closeOnEscape}
     {closeOnClickOutside}
-    {onEscape}
+    onEscape={handlePopoverEscape}
     {onClickOutside}
   >
-    <div class="p-2">
+    <div bind:this={calendarPanelEl} class="p-2" onfocusout={handleFocusOut}>
       <Calendar
         {unstyled}
         value={calendarValue}

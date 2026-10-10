@@ -29,7 +29,23 @@ take `Input`'s icon-button padding per `size`, so beside a value they are larger
 `md` up: `p-1`, and `p-1.5` at `xl`, where they had `p-0.5`.
 
 ```sh
-rg -n 'aria-expanded|iconButton' src e2e tests
+rg -n 'aria-expanded|toBeExpanded|expanded:|iconButton' src e2e tests
+```
+
+### `DatePicker` and `DateRangePicker` commit a typed date when focus leaves the picker
+
+A typed date was committed when the text field lost focus to something outside the picker. Focus
+that went from the field to the picker's own clear or calendar button and then left never committed
+it: the field kept showing the typed date while the form submitted the old one. The draft now
+commits when focus leaves the field, its buttons and the open calendar altogether, and when the
+calendar button opens the calendar. So `onValueChange` fires, and `bind:value` changes, on paths
+where both used to stay silent.
+
+`DateRangePicker` also runs an `onkeydown` you pass, after its own handler, as `DatePicker` does
+since 8.28.0. Before, it was dropped without a word, so a handler that never ran starts running.
+
+```sh
+rg -nU '<DateRangePicker\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
 ```
 
 ## 8.28.0

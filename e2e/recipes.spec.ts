@@ -391,22 +391,31 @@ test.describe('recipe: a2ui-agent-ui', () => {
     await expect(p.getByLabel('Check-in')).toBeVisible();
     await expect(p.getByRole('radiogroup', { name: 'Free rooms' })).toBeHidden();
 
-    // A value the user set BEFORE the patch — it must survive it. Compare
-    // against what the field actually shows (the DatePicker renders a localized
-    // string), so the assertion holds under any locale.
-    await p.getByLabel('Check-in').fill('2026-09-01');
-    await p.getByLabel('Check-in').press('Tab'); // commit: the field formats on blur
-    const beforePatch = await p.getByLabel('Check-in').inputValue();
-    expect(beforePatch).not.toBe('');
+    // A value the user set BEFORE the patch — it must survive it. The field
+    // renders a committed date in the page's locale, and the data model starts
+    // on 2026-09-03, so the committed 2026-09-01 reads as that string with the
+    // day changed, whatever order the locale puts day and month in.
+    const checkIn = p.getByLabel('Check-in');
+    const initial = await checkIn.inputValue();
+    const committed = initial.replace('03', '01');
+    expect(committed).not.toBe(initial);
+    await checkIn.fill('2026-09-01');
+    // Tab moves to the picker's own clear button: still editing, so the draft
+    // is held. Focus leaving the picker is what commits it.
+    await checkIn.press('Tab');
+    await expect(checkIn).toHaveValue('2026-09-01');
+    const showRooms = p.getByRole('button', { name: 'Show free rooms' });
+    await showRooms.focus();
+    await expect(checkIn).toHaveValue(committed);
 
-    await p.getByRole('button', { name: 'Show free rooms' }).click();
+    await showRooms.click();
 
     // The patch revealed a chooser bound to the fetched rooms…
     const rooms = p.getByRole('radiogroup', { name: 'Free rooms' });
     await expect(rooms).toBeVisible();
     await expect(p.getByRole('radio', { name: 'Corner Room — €360' })).toBeVisible();
     // …the surface was patched, not rebuilt: the entered date is still there.
-    await expect(p.getByLabel('Check-in')).toHaveValue(beforePatch);
+    await expect(checkIn).toHaveValue(committed);
     // …and the action reached the consumer with its declared name.
     await expect(p.getByText('showRooms')).toBeVisible();
   });

@@ -45,12 +45,13 @@ const calendarButton = () =>
 const day = (iso: string) => document.querySelector<HTMLElement>(`[data-date="${iso}"]`);
 
 // Type into the input the way the component expects: focus (seeds the draft), input (updates it),
-// blur (commits). fireEvent keeps it deterministic and off user-event's pointer model.
-function typeAndBlur(text: string) {
+// focusout to nowhere (commits — the picker listens for the bubbling `focusout`, not `blur`).
+// fireEvent keeps it deterministic and off user-event's pointer model.
+function typeAndLeave(text: string) {
   const el = input();
   fireEvent.focus(el);
   fireEvent.input(el, { target: { value: text } });
-  fireEvent.blur(el);
+  fireEvent.focusOut(el);
   flushSync();
 }
 
@@ -64,7 +65,7 @@ describe('DatePicker (component interaction)', () => {
     const onValueChange = vi.fn();
     renderPicker({ onValueChange });
 
-    typeAndBlur('20.03.2026');
+    typeAndLeave('20.03.2026');
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
     const committed = onValueChange.mock.calls[0][0] as Date;
@@ -96,7 +97,9 @@ describe('DatePicker (component interaction)', () => {
     fireEvent.input(el, { target: { value: '20.03.2026' } });
     // Blur into the picker's own open-calendar button (inside triggerEl) → "still editing", not
     // "done": commitDraft must be skipped so a half-interaction doesn't commit prematurely.
-    fireEvent.blur(el, { relatedTarget: screen.getByRole('button', { name: 'Open calendar' }) });
+    fireEvent.focusOut(el, {
+      relatedTarget: screen.getByRole('button', { name: 'Open calendar' })
+    });
     flushSync();
 
     expect(onValueChange).not.toHaveBeenCalled();
@@ -106,7 +109,7 @@ describe('DatePicker (component interaction)', () => {
     const onValueChange = vi.fn();
     renderPicker({ onValueChange });
 
-    typeAndBlur('not a date');
+    typeAndLeave('not a date');
 
     expect(onValueChange).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain('Invalid date');
@@ -116,7 +119,7 @@ describe('DatePicker (component interaction)', () => {
     const onValueChange = vi.fn();
     renderPicker({ onValueChange, maxDate: new Date(2026, 2, 10) });
 
-    typeAndBlur('20.03.2026'); // after maxDate
+    typeAndLeave('20.03.2026'); // after maxDate
 
     expect(onValueChange).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain('outside the allowed range');
@@ -190,7 +193,7 @@ describe('DatePicker (component interaction)', () => {
     // A *valid* draft: without the Escape below, the blur would commit it (onValueChange fires).
     fireEvent.input(el, { target: { value: '20.03.2026' } });
     fireEvent.keyDown(el, { key: 'Escape' }); // discard the draft (userDraft → null)
-    fireEvent.blur(el);
+    fireEvent.focusOut(el);
     flushSync();
 
     // The discarded draft is not committed — the observable proof of the revert (asserting the
@@ -218,7 +221,7 @@ describe('DatePicker (component interaction)', () => {
 
     // An empty draft drives commitDraft's `trimmed === ''` branch — a different path from the
     // Clear button's handleClear (tested above). Both reach onValueChange(undefined).
-    typeAndBlur('');
+    typeAndLeave('');
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
     expect(onValueChange).toHaveBeenCalledWith(undefined);
@@ -372,6 +375,120 @@ describe('DatePicker (popup state)', () => {
   });
 });
 
+// A typed draft is what the field shows, so it must be what the form submits. Moving focus between
+// the field and the picker's own buttons is still editing; leaving the picker, or opening the
+// calendar from its button, commits. Each path ends outside the picker, on `after`.
+describe('DatePicker (committing a typed draft)', () => {
+  function renderWithOutside(props: ComponentProps<typeof DatePicker> = {}) {
+    const onValueChange = vi.fn();
+    renderPicker({
+      value: new Date(2026, 0, 1),
+      name: 'd',
+      clearable: false,
+      onValueChange,
+      ...props
+    });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+    return { onValueChange, after };
+  }
+  const hidden = () => document.querySelector<HTMLInputElement>('input[type="hidden"][name="d"]');
+
+  it.each([
+    ['Tab → Enter → Escape → Tab', ['{Tab}', '{Enter}', '{Escape}', '{Tab}']],
+    ['Tab → Tab', ['{Tab}', '{Tab}']],
+    ['Tab → Space → Escape → Tab', ['{Tab}', ' ', '{Escape}', '{Tab}']]
+  ])('commits once on %s, and the form submits the typed date', async (_, keys) => {
+    const user = userEvent.setup();
+    const { onValueChange, after } = renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '20.03.2026' } });
+    for (const key of keys) await user.keyboard(key);
+    flushSync();
+
+    expect(document.activeElement).toBe(after);
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    const committed = onValueChange.mock.calls[0][0] as Date;
+    expect([committed.getFullYear(), committed.getMonth(), committed.getDate()]).toEqual([
+      2026, 2, 20
+    ]);
+    expect(hidden()?.value).toBe('2026-03-20');
+    expect(input().value).toBe('20.03.2026');
+  });
+
+  it('opens the calendar on the typed date when the button commits it', async () => {
+    const user = userEvent.setup();
+    renderWithOutside();
+
+    await user.click(input());
+    fireEvent.input(input(), { target: { value: '20.03.2026' } });
+    await user.click(calendarButton());
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    expect(day('2026-03-20')?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('holds the draft while focus is in the calendar, commits when it leaves for outside', () => {
+    const { onValueChange, after } = renderWithOutside();
+
+    const el = input();
+    fireEvent.focus(el);
+    fireEvent.input(el, { target: { value: '20.03.2026' } });
+    fireEvent.keyDown(el, { key: 'ArrowDown' });
+    flushSync();
+    const inCalendar = day('2026-01-15') as HTMLElement;
+    fireEvent.focusOut(el, { relatedTarget: inCalendar });
+    flushSync();
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    // The calendar panel is rendered outside the picker's root, so it listens on its own.
+    fireEvent.focusOut(inCalendar, { relatedTarget: after });
+    flushSync();
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(hidden()?.value).toBe('2026-03-20');
+  });
+});
+
+// Escape inside the calendar closes it through the Popover. Focus goes back to the button that
+// opened it; an outside click leaves focus where the click put it.
+describe('DatePicker (focus after the calendar closes)', () => {
+  it('returns focus to the calendar button on Escape from inside the calendar', async () => {
+    const user = userEvent.setup();
+    const onEscape = vi.fn();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026, onEscape });
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.keyboard('{Escape}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(calendarButton());
+    expect(onEscape).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves focus on what an outside click focused', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+    const after = document.createElement('button');
+    after.textContent = 'after';
+    document.body.append(after);
+
+    await user.click(calendarButton());
+    flushSync();
+    (day('2026-03-20') as HTMLElement).focus();
+    await user.click(after);
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(after);
+  });
+});
+
 // The per-size padding is folded in at the call site, not declared as an axis, so its precedence
 // against the consumer's `slotClasses` is decided there and pinned here.
 describe('DatePicker (icon button padding)', () => {
@@ -408,6 +525,17 @@ describe('DatePicker (restProps)', () => {
   it('passes an unmodelled attribute through to the root', () => {
     renderPicker({ 'data-testid': 'due-date' });
     expect(screen.getByTestId('due-date').contains(input())).toBe(true);
+  });
+
+  it('runs a consumer onfocusout as well as its own draft commit', () => {
+    const seen: string[] = [];
+    const onValueChange = vi.fn();
+    renderPicker({ onValueChange, onfocusout: () => seen.push('consumer') });
+
+    typeAndLeave('20.03.2026');
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(seen).toEqual(['consumer']);
   });
 
   it('runs a consumer onkeydown once, after ArrowDown has opened the calendar', () => {

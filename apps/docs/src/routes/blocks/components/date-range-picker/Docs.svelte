@@ -158,10 +158,12 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <Kbd keys="↓" /> opens the calendar from the field.
-        <Kbd keys="Enter" /> closes it while open, and commits what has been typed while it is not.
-        <Kbd keys="Esc" /> closes the calendar; pressed again on a field with an uncommitted draft it
-        discards that draft rather than the selection. Grid navigation inside the calendar follows the
+        <Kbd keys="↓" /> opens the calendar from the field. In the field,
+        <Kbd keys="Enter" /> closes it while open, and commits what has been typed while it is not; on
+        the calendar button, <Kbd keys="Enter" /> or <Kbd keys="Space" /> opens and closes it.
+        <Kbd keys="Esc" /> closes the calendar, and from inside it returns focus to the calendar button;
+        pressed again on a field with an uncommitted draft it discards that draft rather than the selection.
+        Grid navigation inside the calendar follows the
         <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
           >Calendar</a
         > pattern.
@@ -178,8 +180,9 @@
     </Note>
     <Note title="Typing is a first-class path">
       <p>
-        The range can be typed as well as clicked; parsing happens on blur or
-        <Kbd keys="Enter" />, and a parse failure shows as the field's
+        The range can be typed as well as clicked. Parsing happens on <Kbd keys="Enter" />, when the
+        calendar button opens the calendar, and when focus leaves the picker — moving to its own
+        buttons or into the calendar keeps the draft. A parse failure shows as the field's
         <code class="text-text-primary">error</code>.
       </p>
     </Note>
