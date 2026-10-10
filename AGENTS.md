@@ -11,14 +11,13 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo on Bun workspaces.
   - `table`: Data table (sorting, filtering, grouping, selection, keyboard-nav, virtualization, column reorder, remote mode, live updates)
   - `docs`: Reusable documentation UI components
   - `docs-gen`: Documentation generator (TypeScript CLI, extracts props/variants from AST)
-  - `mcp-server`: Model Context Protocol server for LLM-driven development; manifest read/write lives in the `urbicon` CLI (`@urbicon-ui/design`), not the remote server
   - `i18n`: Localization (Svelte 5 runes-based); also ships a data-level translation audit and a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by `urbicon i18n` and `bun run i18n:check` (which scans `blocks`, `table` and `docs` — `auth` keeps its own locale system, and its oracle is `translations.parity.test.ts` plus `satisfies AuthLocale`)
   - `shared-types`: docs-tooling types (playground, docs-config, navigation) — a peer of `@urbicon-ui/docs` and a dependency of `docs-gen`, nothing else; `blocks` and `table` reference its `globals` augmentation only while type-checking their own sources
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
   - `design`: the `urbicon` CLI (`@urbicon-ui/design`) — local design-loop enforcement (validate/hook/context/record-decision/sync-manifest/i18n/verb), ships the design skill + templates
   - `urbicon`: the unscoped bin name — forwards in-process to `@urbicon-ui/design` (`workspace:*`, lockstep) so `bunx urbicon` resolves everywhere; `init` still needs design installed
   - `sv`: Svelte-CLI community add-on (`@urbicon-ui/sv`, beta) — `sv add @urbicon-ui` installs blocks + design, wires the Tailwind stylesheet after Tailwind's own, then hands over to `urbicon init --hook`. **The only SvelteKit-bound consumer path** (`unsupported('Requires SvelteKit')`) — not a library limit but a wiring one, see the comment in `src/index.ts`
-  - `design-content`: versioned design knowledge bundle (`@urbicon-ui/design-content`) consumed by the remote MCP server + the `urbicon` CLI; `content/` is a git-ignored build artifact emitted by docs-gen
+  - `design-content`: versioned design knowledge bundle (`@urbicon-ui/design-content`) consumed by the `urbicon` CLI; `content/` is a git-ignored build artifact emitted by docs-gen
   - `design-engine`: zero-dep design linter / manifest parser / rubric (`@urbicon-ui/design-engine`), subpath exports `./linter` `./manifest` `./rubric`
   - `auth`: Authentication & user management (JWT sessions, refresh-token rotation, passkeys/WebAuthn, notifications, email)
     - Zero runtime dependencies — Web Crypto API for JWT, PBKDF2, WebAuthn (CBOR, ECDSA, RSA), Web Push (RFC 8291/8292)
@@ -55,7 +54,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - `sections:lint` — catches a docs page's TOC links, sections and nav order disagreeing: a link that scrolls nowhere, a section no TOC entry reaches. Reads no generated output, so it runs standalone
 - `typesref:lint` — a component page documents its types in two hand-written halves (`types=` on `<ApiReference>`, a `<TypesReference>` section), each silent without the other; enforces both directions and that both read the **same** `componentData` from the page's own `'./api'`. Exemptions: `NO_PAGE`. Reads the generated api.ts — `docs:gen:all` first. **Not** `types:guard` (that one is declaration emit). Which slips that catches: head of `apps/docs/scripts/typesref-lint.ts`
 - `examples:lint` — type-checks every `@example` block of every `*Props` JSDoc (blocks/table/auth/docs) as a real `.svelte` file through `svelte-check`. Slow and needs the workspace deps built — a pre-merge/pre-bump gate, not a per-commit one. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry in `packages/docs-gen/scripts/examples-lint.ts`; stale entries are errors (same contract as `imports:lint`). The same run compiles every `svelte` fence of `design-system/patterns/*.md` as a whole component, with nothing exempt — `urbicon pattern` serves those verbatim. Positive control: `bun test packages/docs-gen/scripts/examples-lint.test.ts` (own step in the `test` job)
-- `docs:gen:all` — root `bun run docs:gen` already defaults to this; a scoped `docs:gen:<target>` skips the MCP catalog assembly
+- `docs:gen:all` — root `bun run docs:gen` already defaults to this; a scoped `docs:gen:<target>` skips the component catalog assembly
 - `llms:check` — `git diff --exit-code` over `llms.txt` and its `apps/docs/static/` copy: both must equal what the last `docs:gen` wrote. Run `docs:gen` first; the check has no build step of its own, it only asks git
 - `docs:refs:check` — every `bun run` span, path, `<file>.ts:<line>` pointer, `UPPER_SNAKE` identifier and `[…](<doc>.md#<anchor>)` link in AGENTS.md, `docs/*.md` (symlinks resolved) and the skills must exist — asked of `package.json`, the tree (`git check-ignore` excuses ignored paths), a word-boundary grep and the target's heading slugs — plus the AGENTS.md word budget it prints. No tracked file may name a path below a `PRIVATE_DIRS` entry. Existence only; a wrong-but-existing reference is the review's. Exemptions are allowlist entries with a reason, stale ones error. Runs in `lint`, no build; positive controls `bun test scripts/docs-refs-check.test.ts`
 
@@ -64,7 +63,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Lint/format: **Biome** for `.ts`/`.js`/`.json` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`. Biome does not parse `.svelte`.
 - **Four `.svelte` lint rules are unenforced** — Biome cannot parse `.svelte`, so the `{@html}` XSS guard, each-key, `prefer-svelte-reactivity` and `no-navigation-without-resolve` are on you; re-add a `.svelte`-only ESLint pass if they regress ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
-- **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the MCP server, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
+- **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
 - Use semantic design tokens over primitive Tailwind classes
 - **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show *and* what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
@@ -125,15 +124,14 @@ Vitest runs in every package that has a `vitest.config.*` (`bun --filter=<pkg> r
 
 ## AI-Native DX
 
-The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt`, the **`urbicon`
-CLI** (`packages/design`, the consumer surface) and a remote MCP adapter (retiring, #500).
-`urbicon validate` gates the loop by linting generated markup. In this repo it runs only in CI,
-against `packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`); the
+The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt` and the
+**`urbicon` CLI** (`packages/design`, the consumer surface). `urbicon validate` gates the
+loop by linting generated markup. In this repo it runs only in CI, against
+`packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`); the
 `PostToolUse` hook is what `urbicon init --hook` installs for *consumers*, not something this
 repo uses.
 
-Which command serves what, the `init` contract, the MCP adapter's
-retirement: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
+Which command serves what and the `init` contract: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
 
 ## Icons
 

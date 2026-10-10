@@ -72,7 +72,7 @@ export function describeUnshownData(
  * up: beside a three-way switch that is a wall, not a hint.
  *
  * The long form is not wrong, it is for someone else — `@description` is the
- * contract an agent reads out of `llm.txt` and the MCP catalog, and it stays
+ * contract an agent reads out of `llm.txt` and the component catalog, and it stays
  * whatever length the contract needs. `@summary` is the sentence a human reads
  * next to the knob.
  */

@@ -28,7 +28,7 @@ const outputPath = '/repo/llms.txt';
 
 /**
  * Table's entry has no group segment in `llmTxtPath` even though its `group`
- * display field says `'primitives'` — the real shape `MCPCatalogGenerator`
+ * display field says `'primitives'` — the real shape `CatalogGenerator`
  * emits once `llmTxtPath` is derived from the raw, undefaulted `group`
  * (matching where `LLMDocumentationGenerator`'s write loop actually put the
  * file: `apps/docs/static/table/table/llm.txt`, not `.../table/primitives/

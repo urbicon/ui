@@ -17,7 +17,7 @@ import { OVERRIDE_CASCADE, SEMANTIC_TOKENS } from '@urbicon-ui/design-engine/ref
 export interface PackageGuide {
   /** Stable bundle id: `guides/<slug>.md`, `{{GUIDE:<slug>}}`, `urbicon guide <slug>`. */
   slug: string;
-  /** Human title for guide listings (CLI, MCP resource names). */
+  /** Human title for guide listings (`urbicon guide`, `guides/index.json`). */
   title: string;
   /** One-line description for guide listings. */
   description: string;
@@ -39,12 +39,7 @@ export const GUIDE_PLACEHOLDER_PATTERN = /\{\{GUIDE:([a-z0-9-]+)\}\}/;
 /** The template placeholder the engine's override-cascade sentence is substituted into. */
 export const OVERRIDE_CASCADE_PLACEHOLDER = '{{OVERRIDE_CASCADE}}';
 
-/**
- * The template placeholder `llms-full.txt` inlines every component section into.
- * The bundle copy keeps it: the bundle carries the components as the catalog and
- * the `llm.txt` tree, and the MCP guide resources slice sections `## Components`
- * is not among.
- */
+/** The template placeholder `llms-full.txt` inlines every component section into. */
 export const COMPONENTS_PLACEHOLDER = '{{COMPONENTS}}';
 
 /**
@@ -120,17 +115,11 @@ export function injectSemanticTokens(text: string, what: string): string {
 
 /**
  * After every substitution: a placeholder-shaped token still standing would ship
- * literally. `kept` names the placeholders this output leaves in by design.
+ * literally.
  */
-export function assertNoPlaceholderLeft(
-  text: string,
-  what: string,
-  kept: readonly string[] = []
-): void {
-  const pattern = new RegExp(TEMPLATE_PLACEHOLDER_PATTERN.source, 'g');
-  for (const [token] of text.matchAll(pattern)) {
-    if (!kept.includes(token)) throw new Error(`${what} still carries the placeholder ${token}`);
-  }
+export function assertNoPlaceholderLeft(text: string, what: string): void {
+  const token = new RegExp(TEMPLATE_PLACEHOLDER_PATTERN.source).exec(text)?.[0];
+  if (token) throw new Error(`${what} still carries the placeholder ${token}`);
 }
 
 /**

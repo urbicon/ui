@@ -15,7 +15,6 @@ const config = createConfig({
     'docs',
     'docs-gen',
     'i18n',
-    'mcp-server',
     'shared-types',
     'sv',
     'sveltekit-utils',

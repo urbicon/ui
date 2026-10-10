@@ -9,7 +9,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['Card'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'Tile anatomy: label over a tabular-nums value plus a description line; a trending tile names its baseline there ("vs. last month").',

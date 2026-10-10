@@ -23,7 +23,7 @@ export const recipeMeta: RecipeMeta = {
   ],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'Per-step gating: one canNext $derived switches on step. Next is disabled until the current step passes and becomes Submit on the last one, gated on a terms Checkbox.',

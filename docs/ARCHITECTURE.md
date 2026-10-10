@@ -25,10 +25,9 @@ documentation tooling and an AI-native developer surface, all under one version 
 Every arrow is a `peerDependency`, not a runtime dependency — every package that can reach a
 consumer's bundle has a `dependencies` field that is literally `{}`. Consumers install what
 they use; the workspace wires the same edges as `workspace:*` devDependencies for local
-development. Three dev-time tools sit outside the rule, because nothing about them ships into
-an app: `docs-gen` (`glob`, plus `design-engine` and `shared-types`), `mcp-server` (the MCP
-SDK, `zod`, plus `design-engine` and `design-content`) and the `urbicon` CLI in `design`
-(`design-engine`, `design-content`, `i18n`).
+development. Two dev-time tools sit outside the rule, because nothing about them ships into
+an app: `docs-gen` (`glob`, plus `design-engine` and `shared-types`) and the `urbicon` CLI in
+`design` (`design-engine`, `design-content`, `i18n`).
 
 ```mermaid
 graph TD
@@ -43,7 +42,6 @@ graph TD
     DE[design-engine<br/><i>linter, manifest, rubric</i>]
     DC[design-content<br/><i>knowledge bundle</i>]
     DES[design<br/><i>urbicon CLI</i>]
-    MCP[mcp-server<br/><i>remote adapter</i>]
 
     I18N --> BL
     BL --> TB
@@ -56,15 +54,13 @@ graph TD
     DE --> DG
     DE --> DES
     DC --> DES
-    DE --> MCP
-    DC --> MCP
 
     classDef found fill:#e8f0fe,stroke:#5b7fb9,color:#1a3a5c
     classDef lib fill:#fff3e0,stroke:#c9884a,color:#5c3a10
     classDef tool fill:#f0f0f0,stroke:#999,color:#333
     class ST,I18N found
     class BL,TB,AU,SKU,DOCS lib
-    class DG,DE,DC,DES,MCP tool
+    class DG,DE,DC,DES tool
 ```
 
 ### What lives where
@@ -81,8 +77,7 @@ graph TD
 | `docs-gen` | AST-based documentation generator (CLI) | `src/cli/index.ts` |
 | `design-engine` | Zero-dep design linter, manifest parser, rubric | `src/linter/index.ts` |
 | `design-content` | Versioned design-knowledge bundle (`content/` is a build artifact) | `src/content-loader.ts` |
-| `design` | The `urbicon` CLI — the primary consumer-facing surface | `src/cli/index.ts` |
-| `mcp-server` | Thin remote adapter over engine + content | `src/index.ts` |
+| `design` | The `urbicon` CLI — the consumer-facing surface | `src/cli/index.ts` |
 
 Applications live in `apps/`: [`apps/docs`](../apps/docs/README.md) is the documentation
 site. End-to-end suites live in `e2e/`.
@@ -866,15 +861,14 @@ See §5.
 
 ### `design`, `design-content`, `design-engine`
 
-The `urbicon` CLI is the **primary consumer-facing surface** — one dev-dependency with
+The `urbicon` CLI is the **consumer-facing surface** — one dev-dependency with
 version-pinned knowledge. Knowledge commands: `primer` (run first), `find`, `get-component`,
 `icons`, `recipe`, `guide`, `pattern`, `principles`, `css-reference`. Judgment: `validate`
 (+ `hook`/CI). Memory: `context`, `record-decision`, `sync-manifest`. Process: `verbs` and
 the `urbicon-design` skill. Onboarding: `init`.
 
 `design-engine` is the zero-dep linter, manifest parser and rubric; `design-content` is the
-versioned knowledge bundle both the CLI and the MCP server read. `mcp-server` is a thin
-remote adapter over the same two — [deployed but not advertised, and being retired](DECISIONS.md#the-mcp-server-is-deployed-not-advertised-and-being-retired).
+versioned knowledge bundle the CLI reads.
 
 ---
 
@@ -894,7 +888,7 @@ graph LR
     ENR --> GEN[Generation]
     GEN --> A["api.ts<br/>per component"]
     GEN --> B["llm.txt tree<br/>llms-full.txt"]
-    GEN --> C["MCP catalog<br/>design-content"]
+    GEN --> C["component catalog<br/>design-content"]
     GEN --> D["docs site pages"]
 ```
 
@@ -906,7 +900,7 @@ aborts the run (fail-loud; run `svelte-kit sync` first in a fresh tree); an unse
 documented single-file fallback for tests.
 
 **The `:all` trap.** Run `bun run docs:gen:all`, **not** a per-target `docs:gen:<target>` —
-only the `:all` run performs the final assembly that rebuilds `llms-full.txt` and the MCP
+only the `:all` run performs the final assembly that rebuilds `llms-full.txt` and the
 component catalog. A per-target run writes only that scope's outputs.
 
 Generated outputs (`**/api.ts`, `llms-full.txt`, `static/**/_catalog.json`, `apps/docs/static/mcp/`)
@@ -967,15 +961,15 @@ at build time) and the full changelog at `/changelog` (via the `virtual:changelo
 | --- | --- |
 | `/llms.txt` | Brief library overview (llms.txt standard) — generated from the catalog, tracked, `llms:check`-gated |
 | `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
-| `urbicon` CLI | The primary surface — see §4 |
-| `design-system/` | Design principles and composition patterns, served by CLI and MCP |
+| `urbicon` CLI | The consumer surface — see §4 |
+| `design-system/` | Design principles and composition patterns, served by the CLI |
 
 ---
 
 ## 6 · Conscious trade-offs
 
 Decisions that look like oversights and are not — Biome's lack of type-awareness, the
-pre-commit scope, `mcp-server` shipping without a build, the `import.meta.env` advisory, the
-narrow `tv()` engine, the unadvertised MCP server, and where publishing actually happens:
+pre-commit scope, the `import.meta.env` advisory, the narrow `tv()` engine, the retired MCP
+server, and where publishing actually happens:
 
 → **[DECISIONS.md](DECISIONS.md)**

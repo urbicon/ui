@@ -1,9 +1,9 @@
 /**
  * Slice a named section out of a component's `llm.txt` — the `### …` blocks that
  * `docs-gen` emits (Examples, Variants, API, Slots), plus a synthetic `overview`
- * (everything before the first `###`). Pure string logic so `get_component` (remote)
- * and `urbicon get-component` (CLI) extract identically; each consumer owns the I/O
- * (locating and reading the file). Returns `null` when the section is absent.
+ * (everything before the first `###`), behind `urbicon get-component --section`.
+ * Pure string logic; the consumer owns the I/O (locating and reading the file).
+ * Returns `null` when the section is absent.
  */
 
 export type LlmTxtSection = 'overview' | 'examples' | 'variants' | 'api' | 'slots';

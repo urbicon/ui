@@ -10,25 +10,24 @@ Do not skip steps. The value is in the loop, not any one generation.
    paradigm, theme, density, the Product Intent (design *toward* its voice and
    references, *away* from its anti-references), and the recorded ADRs. Then
    `urbicon pattern` (no name) to see which composition patterns exist, and
-   `urbicon pattern <name>` for the one that fits the brief (MCP: `get_pattern`) —
-   follow its layout, component-selection, and behavioural rules.
+   `urbicon pattern <name>` for the one that fits the brief — follow its layout,
+   component-selection, and behavioural rules.
 2. **Ground rules.** `urbicon principles` for the heuristics, `urbicon principles
    --topic theming` for the paradigm's token profile, and `urbicon css-reference`
-   for the exact token names (MCP: `get_design_principles` / `get_css_reference`).
-   `urbicon find` / `get-component` to pick the right primitives rather than
-   reinventing them (MCP: `find_components` / `suggest_implementation`).
+   for the exact token names. `urbicon find` / `get-component` to pick the right
+   primitives rather than reinventing them.
 3. **Generate variants.** Produce a few genuinely different implementations (2–5;
    default 3), each a distinct compositional approach *within* the paradigm — vary
    density, hierarchy emphasis, and the one signature moment. Do not let them
    converge. Use only real semantic tokens (no `bg-status-*`, no `*-foreground`, no
    invented names); if the project defines its own, they're in `## Token Overrides`.
-4. **Validate.** Run `urbicon validate` (or the `validate_design` MCP tool) on every
-   variant. Fix each error and warning. A variant that can't reach a clean
-   correctness score is disqualified. Note each one's craft score — the lower it is,
-   the more the variant reads as generic defaults.
-5. **Judge.** `urbicon principles --rubric` (MCP: `get_design_principles(as="rubric")`)
-   and score each survivor /40. Prefer a panel: judge correctness, hierarchy,
-   paradigm-fidelity, and distinctiveness as separate lenses, not one gut number.
+4. **Validate.** Run `urbicon validate` on every variant. Fix each error and
+   warning. A variant that can't reach a clean correctness score is disqualified.
+   Note each one's craft score — the lower it is, the more the variant reads as
+   generic defaults.
+5. **Judge.** `urbicon principles --rubric` and score each survivor /40. Prefer a
+   panel: judge correctness, hierarchy, paradigm-fidelity, and distinctiveness as
+   separate lenses, not one gut number.
 6. **Synthesise.** Pick the winner, then graft the best ideas from the runners-up.
    Run `urbicon validate` once more on the merged result — it must come back clean.
 7. **Record.** If the page follows a pattern, add `data-design-pattern="<name>"` to

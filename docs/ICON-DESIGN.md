@@ -23,7 +23,7 @@ calls the linter surfaces as warnings and a reviewer (or you) decides on.
 
 This set is **not** a general-purpose icon library and should not grow into one. Every icon is
 hand-drawn against the contract below, so each one is permanent maintenance — a name in the
-`IconName` union that a consumer may pin, a keyword entry `find_icons` searches, a drawing that
+`IconName` union that a consumer may pin, a keyword entry `urbicon icons` searches, a drawing that
 has to be re-checked whenever the design language moves. Coverage is therefore chosen, not
 accumulated — for **family symmetry** (a `bell` comes with `bellOff`, a `user` with
 `userPlus`/`userX`/`userCheck`) and for **depth in the domains the consuming apps serve**: real
@@ -52,7 +52,7 @@ as Lucide does not offer.
   geometry, so they cannot satisfy the pure-stroke contract without being wrong twice over.
 - **An existing icon already carries the meaning.** Prefer adding keywords to `ICON_METADATA` over
   adding a glyph — a synonym costs one line and makes the existing drawing findable, and
-  `find_icons` searches keywords, not names. Two icons for one idea are only allowed as declared
+  `urbicon icons` searches keywords, not names. Two icons for one idea are only allowed as declared
   semantic aliases — the registry keys `checkCircle` and `success` are the pair — never as
   near-duplicates.
 
@@ -245,14 +245,14 @@ When drawing a new icon, find its class and start from that file's geometry:
 ## 8 · Adding a new icon — touch ALL of these
 
 Missing any of steps 2–5 means the icon draws but is unreachable through the registry, the icon
-picker, or `find_icons`. `icons:lint` checks every link in this chain.
+picker, or `urbicon icons`. `icons:lint` checks every link in this chain.
 
 1. Create `svg/<name>.svg` (the drawing) **and** `<Name>Icon.svelte` (copy an existing wrapper;
    it just imports `./svg/<name>.svg?raw`).
 2. Add `'<name>'` to the `IconName` union in `icon-types.ts`.
 3. Register the component in `DEFAULT_ICONS` (`icon-registry.ts`).
 4. Add an `ICON_METADATA` entry (`label`, `categories`, `keywords`) in `icon-registry.ts` — this
-   feeds the MCP `find_icons` tool and the docs icon browser.
+   feeds `urbicon icons` and the docs icon browser.
 5. Add a named export in `index.ts`.
 
 Semantic aliases are allowed: a `DEFAULT_ICONS` key may map to a differently-named component

@@ -3,10 +3,10 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  CatalogGenerator,
   type ComponentCatalogEntry,
-  INTERNAL_PACKAGE,
-  MCPCatalogGenerator
-} from '../src/generators/mcp/MCPCatalogGenerator';
+  INTERNAL_PACKAGE
+} from '../src/generators/catalog/CatalogGenerator';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo, PropInfo } from '../src/types';
 
 // ---------------------------------------------------------------------------
@@ -94,11 +94,11 @@ function apiFor(props: PropInfo[], variants: ComponentAPIData['variants']): APID
   };
 }
 
-describe('MCPCatalogGenerator — what the entry carries for discovery', () => {
+describe('CatalogGenerator — what the entry carries for discovery', () => {
   let tmp: string;
 
   beforeEach(async () => {
-    tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'mcp-catalog-'));
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'catalog-'));
   });
 
   afterEach(async () => {
@@ -109,7 +109,7 @@ describe('MCPCatalogGenerator — what the entry carries for discovery', () => {
     apiData: APIData,
     packageName = '@urbicon-ui/blocks'
   ): Promise<ComponentCatalogEntry> {
-    const generator = new MCPCatalogGenerator(packageName, tmp);
+    const generator = new CatalogGenerator(packageName, tmp);
     await generator.generate([component], apiData);
     const raw = await fs.readFile(path.join(tmp, '_catalog.json'), 'utf-8');
     const [entry] = JSON.parse(raw) as ComponentCatalogEntry[];

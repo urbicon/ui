@@ -16,11 +16,10 @@ export const ICON_METADATA = {
 `;
 
 const config = {
+  catalogPath: '/repo/apps/docs/static/mcp/component-catalog.json',
   staticDir: '/repo/apps/docs/static',
   designSystemDir: '/repo/design-system',
-  templatePath: '/repo/packages/docs-gen/templates/llms-full-template.md',
   iconRegistryPath: '/repo/packages/blocks/src/lib/icons/icon-registry.ts',
-  verbsDir: '/repo/packages/design/skill/verbs',
   outputDir: '/repo/packages/design-content/content',
   packageGuides: []
 };
@@ -41,7 +40,6 @@ function mockFs(files: Record<string, string>): Map<string, string> {
   });
   vi.mocked(fs.readdir).mockImplementation(async (dir) => {
     const d = dir.toString();
-    if (d.endsWith('verbs')) return ['compose.md'] as never;
     if (d.endsWith('patterns')) return ['zoned-list.md'] as never;
     return [] as never;
   });
@@ -63,12 +61,9 @@ function mockFs(files: Record<string, string>): Map<string, string> {
 
 function sources(pattern: string, generated = '2026-01-01T00:00:00.000Z') {
   return {
-    '/repo/apps/docs/static/mcp/component-catalog.json': `{"generated":"${generated}","components":[]}`,
-    [config.templatePath]:
-      '# Reference\n\n## Components\n\n{{COMPONENTS}}\n\n## Tokens\n\n{{SEMANTIC_TOKENS}}\n\n## Customization\n\n{{OVERRIDE_CASCADE}}\n',
+    [config.catalogPath]: `{"generated":"${generated}","components":[]}`,
     '/repo/design-system/principles.md': '# Principles',
     '/repo/design-system/patterns/zoned-list.md': pattern,
-    '/repo/packages/design/skill/verbs/compose.md': '# compose',
     [config.iconRegistryPath]: ICON_REGISTRY,
     '/repo/packages/design-content/package.json': '{"version":"8.20.0"}'
   };

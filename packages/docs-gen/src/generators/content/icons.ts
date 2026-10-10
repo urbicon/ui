@@ -3,12 +3,12 @@
  * the content bundle's `icons.json`. The registry imports `.svelte` components, so
  * it cannot be module-imported in a Node build — we extract the two data blocks
  * (`DEFAULT_ICONS`, `ICON_METADATA`) from source text. This runs at bundle time, so
- * the MCP server reads a ready `icons.json` instead of re-parsing TS at runtime.
+ * the CLI reads a ready `icons.json` instead of re-parsing TS at runtime.
  */
 
 /**
  * One icon's metadata as it lands in the bundle's `icons.json` — the search
- * surface behind `urbicon icons` and the remote `find_icons` tool.
+ * surface behind `urbicon icons`.
  */
 export interface IconBundleEntry {
   /** Registry key, camelCase (e.g. `arrowRight`) — what `<Icon name="…">` accepts. */

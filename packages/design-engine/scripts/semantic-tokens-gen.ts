@@ -4,8 +4,8 @@
  * border tables and the intent roles that the CSS token reference renders —
  * from `packages/blocks/src/lib/style/semantic.css`.
  *
- * The reference ships standalone (the `urbicon` CLI and the remote MCP server
- * carry no blocks CSS at runtime), so the tables have to be a committed
+ * The reference ships standalone (the `urbicon` CLI carries no blocks CSS at
+ * runtime), so the tables have to be a committed
  * module — and a committed copy of a stop drifts silently unless something
  * compares it to the source on every change (#402). Output is deterministic
  * (source order, no timestamp), so `--check` is a stable CI gate that fails

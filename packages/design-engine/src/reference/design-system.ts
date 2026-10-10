@@ -1,9 +1,8 @@
 /**
  * Pure parsing helpers for the design-system knowledge files the content bundle
- * ships (`design-system/principles.md` + `design-system/patterns/*.md`). Shared by
- * the `urbicon` CLI (`principles` / `pattern`) and the remote MCP server
- * (`get_design_principles` / `get_pattern`) so both slice the same files
- * identically. Pure and dependency-free; consumers own the file I/O.
+ * ships (`design-system/principles.md` + `design-system/patterns/*.md`), behind
+ * the `urbicon` CLI's `principles` / `pattern`. Pure and dependency-free;
+ * consumers own the file I/O.
  */
 
 export interface PatternEntry {

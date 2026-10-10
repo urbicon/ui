@@ -594,7 +594,7 @@ export function formatContext(
     for (const k of keys) md += `- **${k}:** ${fm[k]}\n`;
     md += '\n';
     if (fm.paradigm) {
-      md += `> Stay within the **${fm.paradigm}** paradigm. Call \`get_design_principles(topic="theming")\` for its token profile.\n\n`;
+      md += `> Stay within the **${fm.paradigm}** paradigm. Run \`urbicon principles --topic theming\` for its token profile.\n\n`;
     }
   }
 

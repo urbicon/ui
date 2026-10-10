@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { ComponentCatalogEntry } from '../mcp/MCPCatalogGenerator';
+import type { ComponentCatalogEntry } from '../catalog/CatalogGenerator';
 import { assertNoPlaceholderLeft, COMPONENTS_PLACEHOLDER } from './guide-injection';
 
 /** The template placeholder the "Resources" link list is rendered into. */
@@ -28,7 +28,7 @@ export interface LlmsAssemblerPackage extends LlmsAssemblerScope {
 
 export interface LlmsAssemblerConfig {
   templatePath: string;
-  /** Path to the assembled `component-catalog.json` (an `MCPCatalogAssembler` output). */
+  /** Path to the assembled `component-catalog.json` (an `CatalogAssembler` output). */
   catalogPath: string;
   /** Absolute site origin, e.g. `'https://ui.urbicon.de'` — every link is absolute. */
   siteUrl: string;
@@ -55,7 +55,7 @@ function byName(a: ComponentCatalogEntry, b: ComponentCatalogEntry): number {
  * component of `blocks`/`table`/`auth`, taken from the same
  * `component-catalog.json` `summary` field (`@summary`) and `llmTxtPath`
  * (joined onto the package's `urlSegment`) that feed the docs site and the
- * MCP server. Mirrors {@link LlmsFullAssembler}'s template-plus-placeholder
+ * `urbicon` CLI. Mirrors {@link LlmsFullAssembler}'s template-plus-placeholder
  * shape. `render()` is kept separate from `assemble()` so tests (and any
  * future in-memory consumer) can get the content without touching disk.
  */

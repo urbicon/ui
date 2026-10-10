@@ -9,9 +9,8 @@ A diagnosis-first loop — resist the urge to rebuild from scratch.
 1. **Context.** `urbicon context` (or read `./design.manifest.md`) to recover the
    paradigm, theme, Product Intent, and prior decisions. Read the current
    implementation of the page in question.
-2. **Diagnose.** Run `urbicon validate` (or the `validate_design` MCP tool) on the
-   current code, then `urbicon principles --rubric` (MCP:
-   `get_design_principles(as="rubric")`) and score the page /40. Your revision
+2. **Diagnose.** Run `urbicon validate` on the current code, then
+   `urbicon principles --rubric` and score the page /40. Your revision
    targets are **every linter finding** (correctness *and* craft) plus the
    **two lowest-scoring rubric criteria** — nothing else. Write the targets down.
 3. **Generate variants.** Produce a few options (2–5; default 3) that fix exactly

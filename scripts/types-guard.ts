@@ -90,7 +90,7 @@ const stripDot = (p: string): string => p.replace(/^\.\//, '');
  * the `types` paths it promises (`./dist/index.d.ts` → `dist`). A package whose
  * `types` point at `.ts` sources (design-engine, design-content) ships no build
  * output and is not this gate's business; nor is one with no `types` at all
- * (design's bundled CLI, mcp-server).
+ * (design's bundled CLI).
  */
 const declarationRoots = (pkg: Record<string, unknown>): string[] => {
   const decls = collectTypesPaths(pkg).filter((t) => t.endsWith('.d.ts'));

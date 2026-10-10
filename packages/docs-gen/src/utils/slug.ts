@@ -3,7 +3,7 @@
  *
  * Every artifact the pipeline writes is keyed by this slug — the doc route
  * directory, the per-component `api.ts`, the `_catalog.json` entry, the
- * `llm.txt` asset path and the MCP catalog entry. They used to be four
+ * `llm.txt` asset path and the component catalog entry. They used to be four
  * independent copies of the same regex, which is exactly how they drifted;
  * import this instead of re-deriving it.
  */

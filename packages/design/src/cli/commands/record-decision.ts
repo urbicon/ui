@@ -1,8 +1,7 @@
 /**
  * `urbicon record-decision` — append an ADR to design.manifest.md so a deliberate
- * deviation survives future sessions. The CLI replacement for the
- * remote-incompatible `record_design_decision` MCP tool (it writes the
- * consumer's filesystem). Creates the manifest if missing.
+ * deviation survives future sessions. It writes the consumer's filesystem.
+ * Creates the manifest if missing.
  */
 
 import {

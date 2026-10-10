@@ -1,7 +1,6 @@
 /**
  * The icon-metadata schema (`icons.json`, emitted by docs-gen from the blocks icon
- * registry) and its discovery matcher — shared by `urbicon icons` (CLI) and
- * `find_icons` (remote MCP) so local and remote icon knowledge agree. Pure and
+ * registry) and its discovery matcher — behind `urbicon icons`. Pure and
  * dependency-free; consumers own the file I/O.
  */
 
@@ -13,7 +12,7 @@ export interface IconEntry {
   keywords: string[];
 }
 
-/** Category presentation order for grouped icon listings (CLI `icons` and MCP `find_icons`). */
+/** Category presentation order for grouped icon listings (`urbicon icons`). */
 export const ICON_CATEGORY_ORDER = [
   'navigation',
   'action',

@@ -11,7 +11,7 @@
  * quadratic on input that opens a region it never closes: the engine scans to the
  * end of the file, fails, and starts over at the next opener — so N unclosed
  * `<!--` cost N passes over the tail. This linter reads model-generated markup
- * (`urbicon validate`, and the same engine behind `validate_design`), where a
+ * (`urbicon validate`), where a
  * stray `<!--` is an ordinary accident rather than an attack, so the slow input
  * is one that actually turns up.
  *

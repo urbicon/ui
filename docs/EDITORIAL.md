@@ -180,8 +180,8 @@ Sentence items (1–8), then page items (9–13).
 ## Where facts live
 
 Every fact has one home. A rule about a single prop belongs in its JSDoc, which is
-generated onward into the API table, `llm.txt` and MCP. How props relate and when to reach
-for which belongs on the page. Why a lint rule exists belongs in that script's header.
+generated onward into the API table, `llm.txt` and the component catalog. How props relate
+and when to reach for which belongs on the page. Why a lint rule exists belongs in that script's header.
 Exhaustive is the system; the page stays minimal.
 
 ## Changing this file

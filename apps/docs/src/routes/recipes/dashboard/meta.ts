@@ -19,7 +19,7 @@ export const recipeMeta: RecipeMeta = {
   ],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'SidebarLayout is the shell: a permanent 14rem rail at 1024px and up, a slide-in overlay below, opened from the mobileHeader snippet via bind:open.',

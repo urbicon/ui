@@ -1,11 +1,7 @@
 /**
  * `urbicon get-component <slug> [--section …]` — a component's API (`llm.txt`) from
- * the version-pinned bundle, the local, version-correct mirror of the remote
- * `get_component`. Default prints the full `llm.txt`; `--section` slices one part
- * via the shared `@urbicon-ui/design-engine/search` parser (so local and remote
- * extract identically). Unlike the remote tool (which defaults to a token-compact
- * summary for an LLM), the CLI defaults to full text — the local consumer reads it
- * directly and token budget is not a constraint here.
+ * the version-pinned bundle. Default prints the full `llm.txt`; `--section` slices
+ * one part via the `@urbicon-ui/design-engine/search` parser.
  */
 
 import { extractSection, type LlmTxtSection } from '@urbicon-ui/design-engine/search';

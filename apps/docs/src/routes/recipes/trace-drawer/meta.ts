@@ -9,7 +9,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['Drawer', 'Card', 'Button', 'Badge'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'TraceNode is self-similar ({ label, value, formula?, reference?, children? }): aggregates carry a formula and children, leaves a reference. One top-level snippet renders itself via {@render} for arbitrary depth.',

@@ -138,7 +138,7 @@ for await (const rel of new Glob('{blocks,table,auth}/**/Playground.svelte').sca
       `${rel}\n    The "${key}" knob shows ${hint.length} characters of hint, the budget is ` +
         `${HINT_BUDGET}. Add \`@summary\` to ${component}'s \`${key}\` prop in its \`index.ts\` — ` +
         `one sentence saying what the knob does. \`@description\` stays as it is; it is the ` +
-        `contract for \`llm.txt\` and the MCP catalog, and only the panel needs the short form.`
+        `contract for \`llm.txt\` and the component catalog, and only the panel needs the short form.`
     );
   }
 

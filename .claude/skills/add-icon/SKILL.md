@@ -9,7 +9,7 @@ Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`,
 
 **Contract:** 24×24 viewBox, `strokeWidth=2`, round caps/joins, pure stroke (no `fill`), 0.5px grid, `rx ∈ {0, 0.5, 1.5, 2.5}` or capsule (`short/2`), original geometry only (never copy Lucide/Heroicons paths).
 
-**First ask whether it belongs at all.** This is not a general-purpose set: an icon earns a place by completing a series the set already promised, by a component in this repo needing it, by being standard application-UI vocabulary, or by carrying a domain meaning no generic glyph does. Breadth for its own sake, brand logos, and near-duplicates of an existing drawing are out — for the last one, add **keywords** to `ICON_METADATA` instead, since `find_icons` searches keywords, not names. Full criteria: [docs/ICON-DESIGN.md](../../../docs/ICON-DESIGN.md) → "What belongs in the set".
+**First ask whether it belongs at all.** This is not a general-purpose set: an icon earns a place by completing a series the set already promised, by a component in this repo needing it, by being standard application-UI vocabulary, or by carrying a domain meaning no generic glyph does. Breadth for its own sake, brand logos, and near-duplicates of an existing drawing are out — for the last one, add **keywords** to `ICON_METADATA` instead, since `urbicon icons` searches keywords, not names. Full criteria: [docs/ICON-DESIGN.md](../../../docs/ICON-DESIGN.md) → "What belongs in the set".
 
 **Adding one touches 5 spots across 4 files:**
 

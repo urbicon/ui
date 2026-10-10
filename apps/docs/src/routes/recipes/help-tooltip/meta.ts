@@ -9,7 +9,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['Tooltip', 'Button', 'Slider', 'Input'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'Four trigger contexts fed by one glossary: a slider label row, an input label, a table header, and a dotted term inside running text.',

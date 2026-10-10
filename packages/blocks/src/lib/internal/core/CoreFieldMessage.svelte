@@ -4,7 +4,7 @@
   component: Input, Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup,
   Slider, PinInput, TimeInput.
 
-  INTERNAL — never exported from the package barrel, no docs/MCP entry.
+  INTERNAL — never exported from the package barrel, no docs/catalog entry.
 
   This is part (b) of the field-chrome de-duplication: part (a) moved the shared
   tv() class STRINGS into `internal/field-chrome.ts` (debt-fix-wave-5), and the

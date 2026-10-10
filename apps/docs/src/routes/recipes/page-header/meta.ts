@@ -9,7 +9,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['Button', 'Breadcrumb', 'Tab'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'Three header variants, each a self-contained snippet: list page (eyebrow, title, subtitle, primary action), detail page (Breadcrumb trail plus a ghost/primary action pair), tabbed page (heading row above a line-variant Tab strip).',

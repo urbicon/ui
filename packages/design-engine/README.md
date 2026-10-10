@@ -1,8 +1,7 @@
 # @urbicon-ui/design-engine
 
-The deterministic core of the Urbicon UI **design loop** — extracted from
-`@urbicon-ui/mcp-server` so one engine can back the MCP server, a CLI, and editor
-hooks alike.
+The deterministic core of the Urbicon UI **design loop** — one engine behind the
+`urbicon` CLI, its editor hook and CI.
 
 **Zero runtime dependencies.** Pure TypeScript over Web/Node built-ins; no framework,
 no parser, no third-party packages.
@@ -11,13 +10,13 @@ no parser, no third-party packages.
 
 Each module is independent and also available as a subpath export.
 
-| Import                                | What it does                                                                                                                                                                                                                                 | Question it answers                         |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `@urbicon-ui/design-engine/linter`    | Two-axis design linter: deterministic **correctness** rules (token whitelist, `dark:`/`focus:`, z-index, dynamic classes) + system-agnostic **craft** heuristics (generic fonts, animated dimensions, grey-on-colour, touch targets, …)      | _Is it correct — and does it look generic?_ |
-| `@urbicon-ui/design-engine/manifest`  | Parse/edit `design.manifest.md` (product intent, token overrides, pattern usages, ADRs) + the validation-history ndjson; scan `data-design-pattern` markers                                                                                  | _What has this project decided?_            |
-| `@urbicon-ui/design-engine/reference` | The CSS design-token reference text + design-system file parsers (principles topics, pattern entries) behind the CLI's `css-reference`/`principles`/`pattern` and the MCP server's `get_css_reference`/`get_design_principles`/`get_pattern` | _What does the token/pattern system say?_   |
-| `@urbicon-ui/design-engine/rubric`    | The eight-criterion design-quality rubric                                                                                                                                                                                                    | _Is it good?_ (judged)                      |
-| `@urbicon-ui/design-engine/search`    | Component-catalog + icon schemas, discovery rankers, and the `llm.txt` section parser shared by the CLI's `find`/`get-component`/`icons` and the MCP server's `find_components`/`get_component`/`find_icons`                                 | _Which component/icon fits?_                |
+| Import                                | What it does                                                                                                                                                                                                                            | Question it answers                         |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `@urbicon-ui/design-engine/linter`    | Two-axis design linter: deterministic **correctness** rules (token whitelist, `dark:`/`focus:`, z-index, dynamic classes) + system-agnostic **craft** heuristics (generic fonts, animated dimensions, grey-on-colour, touch targets, …) | _Is it correct — and does it look generic?_ |
+| `@urbicon-ui/design-engine/manifest`  | Parse/edit `design.manifest.md` (product intent, token overrides, pattern usages, ADRs) + the validation-history ndjson; scan `data-design-pattern` markers                                                                             | _What has this project decided?_            |
+| `@urbicon-ui/design-engine/reference` | The CSS design-token reference text + design-system file parsers (principles topics, pattern entries) behind the CLI's `css-reference`/`principles`/`pattern`                                                                           | _What does the token/pattern system say?_   |
+| `@urbicon-ui/design-engine/rubric`    | The eight-criterion design-quality rubric                                                                                                                                                                                               | _Is it good?_ (judged)                      |
+| `@urbicon-ui/design-engine/search`    | Component-catalog + icon schemas, discovery rankers, and the `llm.txt` section parser behind the CLI's `find`/`get-component`/`icons`                                                                                                   | _Which component/icon fits?_                |
 
 The package root (`@urbicon-ui/design-engine`) re-exports all five.
 
@@ -37,5 +36,4 @@ import { RUBRIC_CRITERIA, renderRubric } from '@urbicon-ui/design-engine/rubric'
   test; keep it in sync when foundation/semantic tokens change.
 
 The engine is consumed by [`@urbicon-ui/design`](https://www.npmjs.com/package/@urbicon-ui/design)
-(the `urbicon` CLI) and by the MCP server — both are thin surfaces over it, so every module
-behaves identically whichever way it is reached.
+(the `urbicon` CLI), a thin surface over it.

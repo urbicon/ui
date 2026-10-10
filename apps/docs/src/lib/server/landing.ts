@@ -1,4 +1,4 @@
-// Build-time-Daten der Landing: dieselben Kataloge, aus denen der MCP-Katalog
+// Build-time-Daten der Landing: dieselben Kataloge, aus denen der Komponentenkatalog
 // und die Doku-Seiten gebaut werden, plus die Größen-Baseline. Die Zahlen auf
 // der Seite können damit nicht von der ausgelieferten Menge abweichen — nichts
 // hiervon ist handgepflegt. Zwei Konsumenten, eine Quelle: die Landing (`/`)
@@ -114,7 +114,7 @@ export function loadLandingRows(): { rows: HeroRow[]; foundationGz: number } {
     // Nicht-Driften wirbt.
     status: toStatus(entry.stability),
     // `summary` ist der eine Satz für Menschen, `description` der Kontrakt für
-    // Agenten (llm.txt, MCP). Der Hero zeigt den kurzen; ohne ihn fiele er auf
+    // Agenten (llm.txt, `urbicon`-CLI). Der Hero zeigt den kurzen; ohne ihn fiele er auf
     // den langen zurück und schnitte ihn wieder mitten im Satz ab.
     description: (entry.summary ?? entry.description).replace(/\s+/g, ' ').trim(),
     importLine: entry.import,

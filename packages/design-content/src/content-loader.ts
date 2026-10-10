@@ -2,12 +2,11 @@
  * Package-relative locator for the bundled Urbicon UI design knowledge.
  *
  * The bundle (`../content/`, produced at build/publish time by docs-gen's content
- * emitter) ships INSIDE this package, so every consumer — the remote MCP server,
- * the `urbicon` CLI, a CI hook — resolves it from its own install location
+ * emitter) ships INSIDE this package, so every consumer — the `urbicon` CLI, a CI
+ * hook — resolves it from its own install location
  * (`node_modules/@urbicon-ui/design-content/content/`) with no sibling-path
- * assumptions. This replaces the MCP server's former resolution out to
- * `apps/docs/static/` + `design-system/`, which only worked inside a full monorepo
- * checkout and left a published server empty.
+ * assumptions: a resolution out to `apps/docs/static/` + `design-system/` would
+ * only work inside a full monorepo checkout.
  *
  * `URBICON_CONTENT_DIR` overrides the base — for monorepo dev/tests pointing at a
  * freshly generated bundle, or to serve an alternate content set. The bundle is
@@ -35,16 +34,6 @@ export function getDesignSystemDir(): string {
   return resolve(getContentDir(), 'design-system');
 }
 
-/** The verb-recipe copy: `<verb>.md` per design verb. */
-export function getVerbsDir(): string {
-  return resolve(getContentDir(), 'verbs');
-}
-
-/** The `llms-full` template that backs the template-sliced guide resources. */
-export function getTemplatePath(): string {
-  return resolve(getContentDir(), 'guides', 'llms-full-template.md');
-}
-
 /** The package-guide listing (`guides/index.json`, `{ slug, title, description }[]`). */
 export function getGuideIndexPath(): string {
   return resolve(getContentDir(), 'guides', 'index.json');
@@ -54,7 +43,7 @@ export function getGuideIndexPath(): string {
  * Resolve a bundled package guide (`guides/<slug>.md`) — the canonical,
  * tarball-shipped guide documents (AUTH.md etc.) distributed into the bundle
  * by docs-gen. Rejects unsafe slugs like {@link getComponentLlmPath} — the
- * slug is caller-supplied (CLI argument / MCP resource id).
+ * slug is caller-supplied (a CLI argument).
  */
 export function getGuidePath(slug: string): string {
   if (!SAFE_SLUG.test(slug)) {
@@ -100,7 +89,7 @@ export interface ContentMeta {
   version: string;
   /** ISO-8601 timestamp of the build. */
   builtAt: string;
-  /** Short fingerprint of everything the bundle ships — catalog, llm.txt, design system, verbs, guides, icons. */
+  /** Short fingerprint of everything the bundle ships — catalog, llm.txt, design system, guides, icons. */
   contentHash: string;
 }
 

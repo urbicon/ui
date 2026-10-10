@@ -19,7 +19,7 @@ export const recipeMeta: RecipeMeta = {
   ],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'GuideBeacon is the opt-in entry: a pulsing button that starts the tour and, via once (default true), hides once that tour has been seen. The demo passes once: false everywhere to stay repeatable.',

@@ -139,7 +139,7 @@ export interface ComponentAPIData {
   /**
    * `slotClasses` slot names, lifted from the `slots:` keys of the
    * component's tv() config by VariantsExtractor. Authoritative source for
-   * the slot list on both catalog surfaces (llm.txt + MCP catalog) — the
+   * the slot list on both catalog surfaces (llm.txt + component catalog) — the
    * public `XSlots` type is a `SlotNames<typeof xVariants>` alias the
    * prop-type regex cannot resolve, so this is how real slots reach output.
    * Omitted when the component declares no tv() `slots` block.
@@ -150,7 +150,7 @@ export interface ComponentAPIData {
   /**
    * One human-facing sentence — `@summary` JSDoc on the *Props interface.
    * What the landing page and the component index show under the name.
-   * `description` stays the long form for `llm.txt` and the MCP catalog.
+   * `description` stays the long form for `llm.txt` and the component catalog.
    */
   summary?: string;
   /**

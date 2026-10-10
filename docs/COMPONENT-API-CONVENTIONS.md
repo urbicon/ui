@@ -169,7 +169,7 @@ Rules:
 - **Both arms extend a shared `*BaseProps`** so shared fields stay in one place; only the deciding prop plus the forbidden fields differ.
 - The forbidden fields use `?: never`, not `: never` — they remain *optional* (the consumer doesn't have to write them), but passing a value fails type-check.
 - The deciding prop in the **non-default** arm is **required** (`variant: 'dot'`, `orientation: 'vertical'`) so the discriminant narrows reliably. The default arm makes it optional (`variant?: 'filled' | ...`).
-- The exported `*Props` type is the union (`BadgeDotProps | BadgeStandardProps`). docs-gen and the MCP server pick the discriminated union up automatically — both arms appear in the prop table.
+- The exported `*Props` type is the union (`BadgeDotProps | BadgeStandardProps`). docs-gen picks the discriminated union up automatically — both arms appear in the prop table.
 - The JSDoc on the union type lists the discriminant and the trade-off ("variant='dot' forbids children/...") so the API rule is discoverable from autocomplete, not just from this guide.
 
 **Don't reach for this pattern** when a prop is merely unused in some combination (e.g. `intent` has no visual effect on Spinner — Spinner just ignores it). Save discriminated unions for cases where passing the prop would actively mislead.
@@ -559,7 +559,7 @@ on both arms, so there is no removal case.
 Every `*Props` interface may carry a `@stability` JSDoc tag —
 `experimental | beta | stable | deprecated`, defaulting to `stable` when
 omitted (see the `component-metadata` skill). The tag drives the docs-page
-badge, the MCP catalog with the landing page's status column, and — for every
+badge, the component catalog with the landing page's status column, and — for every
 level but `stable` — a note under the heading of the component's `llm.txt`,
 which is what `llms-full.txt` and `urbicon get-component` print. The levels
 promise:

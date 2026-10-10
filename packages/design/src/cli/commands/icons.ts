@@ -1,7 +1,6 @@
 /**
- * `urbicon icons [query]` — icon discovery over the version-pinned bundle, the
- * local, version-correct mirror of the remote `find_icons`. With a query, ranks via
- * the shared `@urbicon-ui/design-engine/search` matcher; with none, prints the full
+ * `urbicon icons [query]` — icon discovery over the version-pinned bundle. With a
+ * query, ranks via the `@urbicon-ui/design-engine/search` matcher; with none, prints the full
  * reference grouped by category. Like `find`, a query is not a gate: no matches
  * still exits 0 (only an unreadable bundle is a failure).
  */
@@ -64,7 +63,7 @@ export async function runIcons(positionals: string[], flags: Flags): Promise<num
     return EXIT.OK;
   }
 
-  // Full reference, grouped by category (same grouping as the remote `find_icons`).
+  // Full reference, grouped by category (`ICON_CATEGORY_ORDER`).
   const byCategory = new Map<string, IconEntry[]>();
   for (const icon of listed) {
     for (const cat of icon.categories) {

@@ -1,6 +1,6 @@
 # Component Decision Matrices
 
-> Quick-look tables that answer "which component for this use-case?" — written for both human consumers and LLM agents working through the MCP server.
+> Quick-look tables that answer "which component for this use-case?" — written for both human consumers and LLM agents working through the `urbicon` CLI.
 >
 > Each matrix lives next to the relevant component docs; this page is the canonical index.
 
@@ -42,7 +42,7 @@ If you find yourself disabling Drawer's backdrop and Escape-key handling, you pr
 
 ## Date Surfaces — Calendar vs. Planner vs. ResourceTimeline
 
-Three components lay things out on dates, and the MCP used to steer day-content boards toward `Calendar` (a timed-event scheduler). They do not overlap: **Calendar** schedules timed `CalendarEvent`s (clock times, multi-day bars, recurrence, drag-resize, a time grid); **Planner** buckets your own `T[]` onto calendar days and hands each day to a `cell` snippet; **ResourceTimeline** puts one lane per resource against a day axis and draws each item as a bar over the days it occupies.
+Three components lay things out on dates, and the agent-facing knowledge used to steer day-content boards toward `Calendar` (a timed-event scheduler). They do not overlap: **Calendar** schedules timed `CalendarEvent`s (clock times, multi-day bars, recurrence, drag-resize, a time grid); **Planner** buckets your own `T[]` onto calendar days and hands each day to a `cell` snippet; **ResourceTimeline** puts one lane per resource against a day axis and draws each item as a bar over the days it occupies.
 
 The axis count is the fastest way to tell them apart: Calendar and Planner lay out **dates**, ResourceTimeline lays out **resource × date**.
 
@@ -79,7 +79,7 @@ The reverse direction does cost a map: `Calendar.events` takes the fixed `Calend
 - Planner board recipe: [/recipes/meal-planner](../apps/docs/src/routes/recipes/meal-planner/+page.svelte) — weekly plan with bucketed cards and an add affordance.
 - Planner doc page: `apps/docs/src/routes/blocks/components/planner/Docs.svelte` — week, month, slotClasses, server-safe weeks.
 - ResourceTimeline doc page: `apps/docs/src/routes/blocks/components/resource-timeline/Docs.svelte` — occupancy with house groups, the free-cell add hook, custom bars.
-- Pattern: `get_pattern("planning-board")` — composition rules for date-indexed boards.
+- Pattern: `urbicon pattern planning-board` — composition rules for date-indexed boards.
 
 ---
 

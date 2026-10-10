@@ -396,7 +396,7 @@ export class APIDataGenerator {
     // short of the bar. For a name in the table above the substitute is not
     // merely empty but wrong: `GuideHint.size` says "Icon size." and came out
     // as "Size variant that controls dimensions and spacing of the Guide".
-    // These strings ship in llm.txt, llms-full.txt and the MCP catalog.
+    // These strings ship in llm.txt, llms-full.txt and the component catalog.
     if (!processedProp.description) {
       processedProp.description = this.enhancePropertyDescription(prop, component);
     }

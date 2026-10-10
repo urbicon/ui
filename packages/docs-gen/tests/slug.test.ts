@@ -4,7 +4,7 @@ import { toSlug } from '../src/utils/slug';
 /**
  * `toSlug` keys every artifact of a component: the doc-route directory, the
  * per-component `api.ts`, the `_catalog.json` entry, the `llm.txt` asset path
- * and the MCP catalog entry. A change here reslugs URLs, so these cases are
+ * and the component catalog entry. A change here reslugs URLs, so these cases are
  * the contract, not incidental coverage.
  */
 describe('toSlug', () => {

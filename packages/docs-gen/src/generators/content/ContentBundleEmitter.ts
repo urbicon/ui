@@ -2,41 +2,29 @@ import { createHash } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { glob } from 'glob';
-import {
-  assertGuideSlug,
-  assertNoPlaceholderLeft,
-  COMPONENTS_PLACEHOLDER,
-  GUIDE_PLACEHOLDER_PATTERN,
-  guidePlaceholder,
-  injectOverrideCascade,
-  injectSemanticTokens,
-  type PackageGuide,
-  stripTypecheckMarkers
-} from '../llm/guide-injection';
+import { assertGuideSlug, type PackageGuide, stripTypecheckMarkers } from '../llm/guide-injection';
 import { parseIconRegistry } from './icons';
 
 /**
  * Collects the generated + authored design knowledge into the version-pinned
  * `@urbicon-ui/design-content` bundle (`packages/design-content/content/`). Runs
- * last in `docs:gen:all`, after the MCP catalog + per-component llm.txt have been
- * produced. The bundle is what the remote MCP server and the urbicon CLI read at
- * runtime — so it must be self-contained (no monorepo sibling paths).
+ * last in `docs:gen:all`, after the component catalog + per-component llm.txt
+ * have been produced. The bundle is what the urbicon CLI reads at runtime — so it
+ * must be self-contained (no monorepo sibling paths).
  */
 export interface ContentBundleEmitterConfig {
-  /** `apps/docs/static` — the assembled catalog (`mcp/`) + per-component `llm.txt` tree. */
+  /** The assembled `component-catalog.json` (a `CatalogAssembler` output). */
+  catalogPath: string;
+  /** `apps/docs/static` — the per-component `llm.txt` tree. */
   staticDir: string;
   /** Repo-root `design-system/` — `principles.md` + `patterns/*.md`. */
   designSystemDir: string;
-  /** `docs-gen/templates/llms-full-template.md` — backs the seven guide resources. */
-  templatePath: string;
   /** `blocks/src/lib/icons/icon-registry.ts` — parsed into `icons.json`. */
   iconRegistryPath: string;
-  /** `packages/design/skill/verbs` — the single-source verb recipes. */
-  verbsDir: string;
   /**
    * Canonical package guides copied to `guides/<slug>.md` + indexed in
    * `guides/index.json` — the version-matched channel behind `urbicon guide`
-   * and the MCP guide resources (docs/DOCS-SURFACES.md).
+   * (docs/DOCS-SURFACES.md).
    */
   packageGuides: PackageGuide[];
   /** `packages/design-content/content` — the bundle output (cleaned + rewritten each run). */
@@ -54,8 +42,6 @@ export interface ContentBundleResult {
   llmTxtCount: number;
   /** Composition patterns (`design-system/patterns/*.md`) copied. */
   patternCount: number;
-  /** Design-verb recipes copied (fail-loud when zero — every MCP prompt serves one). */
-  verbCount: number;
   /** Package guides copied to `guides/<slug>.md` (fail-loud on a missing source). */
   guideCount: number;
   /** Icons parsed out of the blocks icon registry into `icons.json`. */
@@ -64,8 +50,8 @@ export interface ContentBundleResult {
   version: string;
   /**
    * First 12 hex chars of a SHA-256 over every file the bundle ships, keyed by
-   * relative path — catalog, llm.txt tree, principles, patterns, verbs, guides
-   * and icons alike. Reproducible: the catalog's `generated` wall-clock stamp is
+   * relative path — catalog, llm.txt tree, principles, patterns, guides and
+   * icons alike. Reproducible: the catalog's `generated` wall-clock stamp is
    * parsed out before hashing, so two runs over an unchanged tree agree.
    */
   contentHash: string;
@@ -85,31 +71,23 @@ export class ContentBundleEmitter {
 
   /**
    * Rebuild the bundle from scratch: component catalog (required),
-   * per-component llm.txt tree, design-system principles + patterns, verb
-   * recipes, the llms-full guide template, parsed icon metadata, and a
-   * `meta.json` stamp (package version + content hash). Every required input
-   * fails loud with a message naming the missing piece — never a silently
-   * thinner bundle.
+   * per-component llm.txt tree, design-system principles + patterns, the
+   * package guides, parsed icon metadata, and a `meta.json` stamp (package
+   * version + content hash). Every required input fails loud with a message
+   * naming the missing piece — never a silently thinner bundle.
    */
   async emit(): Promise<ContentBundleResult> {
-    const {
-      staticDir,
-      designSystemDir,
-      templatePath,
-      iconRegistryPath,
-      verbsDir,
-      packageGuides,
-      outputDir
-    } = this.config;
+    const { catalogPath, staticDir, designSystemDir, iconRegistryPath, packageGuides, outputDir } =
+      this.config;
 
     // Rebuild from scratch so a removed/renamed component leaves no stale llm.txt.
     await fs.rm(outputDir, { recursive: true, force: true });
     await fs.mkdir(outputDir, { recursive: true });
 
-    // 1. Component catalog — required (the emitter runs after the MCP catalog assembler).
+    // 1. Component catalog — required (the emitter runs after the catalog assembler).
     //    Dropped to the bundle root (the locator expects `content/component-catalog.json`).
     const catalogRaw = await this.readRequired(
-      path.join(staticDir, 'mcp', 'component-catalog.json'),
+      catalogPath,
       'component catalog (run docs:gen:all first)'
     );
     await fs.writeFile(path.join(outputDir, 'component-catalog.json'), catalogRaw, 'utf-8');
@@ -130,47 +108,17 @@ export class ContentBundleEmitter {
       path.join(outputDir, 'design-system')
     );
 
-    // 4. Verb recipes — the single-source design verbs, copied so
-    //    the remote MCP prompts read the same text the local skill ships.
-    const verbCount = await this.copyVerbs(verbsDir, path.join(outputDir, 'verbs'));
-
-    // 5. Guide template. `{{GUIDE:<slug>}}` placeholders become pointers to the
-    //    bundled guide file — the bundle carries each guide exactly once (5b),
-    //    and the template's sections stay sliceable for the MCP guide resources.
-    //    `{{OVERRIDE_CASCADE}}` and `{{SEMANTIC_TOKENS}}` are substituted here
-    //    as in llms-full.txt, so the bundle copy the MCP guide resources slice
-    //    carries the sentence and the token list, not the placeholders.
-    //    `{{COMPONENTS}}` is the one placeholder that stays (see
-    //    COMPONENTS_PLACEHOLDER).
-    const template = await this.readRequired(templatePath, 'llms-full template');
-    const bundledTemplate = injectSemanticTokens(
-      injectOverrideCascade(
-        this.pointGuidePlaceholders(template, packageGuides),
-        'llms-full template'
-      ),
-      'llms-full template'
-    );
-    assertNoPlaceholderLeft(bundledTemplate, 'the bundled llms-full template', [
-      COMPONENTS_PLACEHOLDER
-    ]);
-    await fs.mkdir(path.join(outputDir, 'guides'), { recursive: true });
-    await fs.writeFile(
-      path.join(outputDir, 'guides', 'llms-full-template.md'),
-      bundledTemplate,
-      'utf-8'
-    );
-
-    // 5b. Package guides — the canonical, tarball-shipped guide documents
-    //     (docs/DOCS-SURFACES.md), copied verbatim + indexed for listings.
+    // 4. Package guides — the canonical, tarball-shipped guide documents
+    //    (docs/DOCS-SURFACES.md), copied verbatim + indexed for listings.
     const guideCount = await this.copyPackageGuides(packageGuides, path.join(outputDir, 'guides'));
 
-    // 6. Icons — parsed from the registry source into JSON (the registry imports
+    // 5. Icons — parsed from the registry source into JSON (the registry imports
     //    `.svelte`, so it can't be module-imported here; we parse the data blocks).
     const registry = await this.readRequired(iconRegistryPath, 'icon registry');
     const icons = parseIconRegistry(registry);
     await fs.writeFile(path.join(outputDir, 'icons.json'), JSON.stringify(icons, null, 2), 'utf-8');
 
-    // 7. Meta — version stamp + a fingerprint of the bundle.
+    // 6. Meta — version stamp + a fingerprint of the bundle.
     const version = await this.readVersion(outputDir);
     const contentHash = await this.fingerprint(outputDir, catalogRaw);
     const meta = { version, builtAt: new Date().toISOString(), contentHash };
@@ -180,7 +128,6 @@ export class ContentBundleEmitter {
       outputDir,
       llmTxtCount: llmFiles.length,
       patternCount,
-      verbCount,
       guideCount,
       iconCount: icons.length,
       version,
@@ -190,7 +137,7 @@ export class ContentBundleEmitter {
 
   /**
    * SHA-256 over every file the bundle ships, keyed by relative path: a changed
-   * pattern, guide, verb, icon set or llm.txt moves the fingerprint, not only a
+   * pattern, guide, icon set or llm.txt moves the fingerprint, not only a
    * changed catalog. Scoping it to the catalog left 212 lines of new pattern
    * text with the hash they had before, which is the one thing a fingerprint
    * must not do.
@@ -220,9 +167,9 @@ export class ContentBundleEmitter {
   /**
    * Copy every configured package guide to `guides/<slug>.md` and write the
    * `guides/index.json` listing (`{ slug, title, description }[]`) that the
-   * `urbicon guide` command and the MCP guide resources enumerate. A missing
-   * source is a build error — a silently thinner bundle would strand the
-   * version-matched channel on stale knowledge.
+   * `urbicon guide` command enumerates. A missing source is a build error — a
+   * silently thinner bundle would strand the version-matched channel on stale
+   * knowledge.
    */
   private async copyPackageGuides(guides: PackageGuide[], destDir: string): Promise<number> {
     await fs.mkdir(destDir, { recursive: true });
@@ -242,46 +189,6 @@ export class ContentBundleEmitter {
     const index = guides.map(({ slug, title, description }) => ({ slug, title, description }));
     await fs.writeFile(path.join(destDir, 'index.json'), JSON.stringify(index, null, 2), 'utf-8');
     return guides.length;
-  }
-
-  /**
-   * Replace each `{{GUIDE:<slug>}}` in the bundled template copy with a
-   * one-line pointer to the guide's own bundle file. A placeholder without a
-   * configured guide is the template/config drift case — fail loud.
-   */
-  private pointGuidePlaceholders(template: string, guides: PackageGuide[]): string {
-    for (const guide of guides) {
-      const pointer = `> Bundled separately as \`guides/${guide.slug}.md\` — ${guide.description}`;
-      template = template.replace(guidePlaceholder(guide.slug), () => pointer);
-    }
-    const leftover = GUIDE_PLACEHOLDER_PATTERN.exec(template);
-    if (leftover) {
-      throw new Error(`Content bundle: template references unconfigured guide "${leftover[1]}"`);
-    }
-    return template;
-  }
-
-  /**
-   * Copy every `verbs/<name>.md` recipe into the bundle. Returns the verb count.
-   * Fail-loud like `principles.md`: the verbs are load-bearing (every MCP prompt
-   * serves one), so a missing or empty source dir is a build error, never a silent
-   * zero-verb bundle.
-   */
-  private async copyVerbs(srcDir: string, destDir: string): Promise<number> {
-    let verbFiles: string[];
-    try {
-      verbFiles = (await fs.readdir(srcDir)).filter((f) => f.endsWith('.md'));
-    } catch {
-      throw new Error(`Content bundle: missing required verb-recipes dir at ${srcDir}`);
-    }
-    if (verbFiles.length === 0) {
-      throw new Error(`Content bundle: no verb recipes (*.md) found in ${srcDir}`);
-    }
-    await fs.mkdir(destDir, { recursive: true });
-    for (const file of verbFiles) {
-      await fs.copyFile(path.join(srcDir, file), path.join(destDir, file));
-    }
-    return verbFiles.length;
   }
 
   /** Copy `principles.md` (required) + every `patterns/*.md`. Returns the pattern count. */

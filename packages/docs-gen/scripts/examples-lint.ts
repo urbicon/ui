@@ -2,7 +2,7 @@
 /**
  * examples-lint — type-checks the `@example` blocks of every *Props JSDoc.
  *
- * Why: `*Props` JSDoc is the single source for the MCP catalogue, `llm.txt`
+ * Why: `*Props` JSDoc is the single source for the component catalogue, `llm.txt`
  * and the docs site, so a wrong example is served to every consumer and every
  * agent at once. Nothing checked that those snippets compile — `TabProps`
  * documented `tabs={[{value, label}]}` for a prop typed `Snippet`, and a
@@ -32,8 +32,8 @@
  * component names — the classes that actually drifted.
  *
  * Second corpus: the ```svelte fences of `design-system/patterns/*.md`. They are
- * copied verbatim into the content bundle and served by `urbicon pattern` /
- * `get_pattern`, and nothing else compiles them: `docs:fences:lint`'s corpus is
+ * copied verbatim into the content bundle and served by `urbicon pattern`, and
+ * nothing else compiles them: `docs:fences:lint`'s corpus is
  * every `packages/<pkg>/README.md` and `packages/<pkg>/docs/*.md`, so it never
  * looks at `design-system/` under any info string.
  *

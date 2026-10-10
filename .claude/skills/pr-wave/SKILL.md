@@ -157,9 +157,9 @@ reading of the whole conversation per PR.
   the unchanged branch.
 - **The bump's `bun run test` runs every package suite concurrently**
   (`bun --bun --filter='*' run test`); the docs-gen suite rewrites the
-  design-content bundle that the mcp-server suite reads, and the bump can
-  fail on `design-prompts.test.ts` with an empty verb body. Re-run once; CI
-  runs the suites sequentially and does not race.
+  design-content bundle (its CLI test runs the real `all` assembly) that
+  design-engine's `catalog.test.ts` reads, so the two can race. Re-run once;
+  CI runs the suites sequentially and does not race.
 
 ## Cleanup — a named final step, per merged PR
 

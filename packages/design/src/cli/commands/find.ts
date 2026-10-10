@@ -1,8 +1,7 @@
 /**
  * `urbicon find [query]` — fuzzy component discovery over the version-pinned
- * catalog, the local, version-correct mirror of the remote `find_components`. Ranks
- * with the shared `@urbicon-ui/design-engine/search` ranker (so local and remote
- * discovery agree) and prints a compact list; `--json` for machine consumption.
+ * catalog. Ranks with the `@urbicon-ui/design-engine/search` ranker and prints a
+ * compact list; `--json` for machine consumption.
  * With no query, lists the whole catalog (optionally `--tag`-filtered).
  *
  * `find` is a query, not a gate: it exits 0 even on no matches (only an unreadable

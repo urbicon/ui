@@ -29,17 +29,17 @@ graph TB
     GenerationCoord[GenerationCoordinator]
     APIFileGen[APIFileGenerator]
     LLMDocGen[LLMDocumentationGenerator]
-    MCPCatalogGen[MCPCatalogGenerator]
+    CatalogGen[CatalogGenerator]
     SvelteDocsParser["SvelteDocsParser<br/>(reads docs.svelte docsConfig)"]
 %% Post-run assembly, driven by the CLI across all packages
     LlmsFull[LlmsFullAssembler]
-    MCPAssembler[MCPCatalogAssembler]
+    CatalogAssembler[CatalogAssembler]
     ContentBundle[ContentBundleEmitter]
 %% CLI wiring
     CLI --> ConfigFactory
     CLI --> Pipeline
     CLI --> LlmsFull
-    CLI --> MCPAssembler
+    CLI --> CatalogAssembler
     CLI --> ContentBundle
 %% Pipeline phases, in order
     Pipeline --> ErrorHandler
@@ -61,17 +61,17 @@ graph TB
 %% Generation
     GenerationCoord --> APIFileGen
     GenerationCoord --> LLMDocGen
-    GenerationCoord --> MCPCatalogGen
+    GenerationCoord --> CatalogGen
     LLMDocGen --> SvelteDocsParser
 %% API-First
     APIFileGen -.->|api.ts FIRST| LLMDocGen
-    APIFileGen -.->|api.ts FIRST| MCPCatalogGen
+    APIFileGen -.->|api.ts FIRST| CatalogGen
 %% Key Architecture Decision Box
     subgraph "API-First"
         direction TB
         Note1["1. APIFileGenerator runs FIRST"]
         Note2["2. Writes api.ts with the complete component data"]
-        Note3["3. LLM + MCP output are derived from that same data"]
+        Note3["3. LLM + catalog output are derived from that same data"]
         Note4["4. docs.svelte docsConfig filters what reaches llm.txt"]
         Note1 --> Note2
         Note2 --> Note3
@@ -94,6 +94,6 @@ class Pipeline,ErrorHandler pipeline
 class ComponentFinder discovery
 class ExtractionCoord,ExtractorFactory,ProgramCache,PropsExtractor,InheritanceExtractor,VariantsExtractor,LocalTypesExtractor,ExamplesExtractor extraction
 class APIDataGen enrichment
-class GenerationCoord,APIFileGen,LLMDocGen,MCPCatalogGen,SvelteDocsParser generation
-class LlmsFull,MCPAssembler,ContentBundle support
+class GenerationCoord,APIFileGen,LLMDocGen,CatalogGen,SvelteDocsParser generation
+class LlmsFull,CatalogAssembler,ContentBundle support
 class APIFileGen apifirst

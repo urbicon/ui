@@ -2,7 +2,7 @@
 
 > A taxonomy of the Urbicon UI primitives. Every component belongs to exactly one family, and the family determines its ARIA role, its border-token source, its tier-system membership, and the question a consumer should ask before reaching for it.
 >
-> This page is the canonical reference. Doc-page JSDoc `@tag` annotations follow the same taxonomy so that the MCP server, `llms.txt`, and the documentation site all agree.
+> This page is the canonical reference. Doc-page JSDoc `@tag` annotations follow the same taxonomy so that the `urbicon` CLI, `llms.txt`, and the documentation site all agree.
 >
 > **How to read it.** A rule without a marker describes behaviour that ships today; a rule ahead of its implementation carries a `> **Decided <date>, pending #N**` blockquote, and the prose around it keeps describing the current behaviour as current. The convention is set out in [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md).
 
@@ -32,7 +32,7 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 | [Identity](#identity) | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`) | none (avatar is its own surface) |
 | [Conversation](#conversation) | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `textbox`, `region` | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | **Surface**, and only on the OUTERMOST frame |
 
-The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and MCP filtering, the family decides architecture.
+The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and catalog filtering, the family decides architecture.
 
 ---
 
@@ -255,7 +255,7 @@ Four surfaces render option/item rows inside a floating panel: `Select` and `Com
 
 ## How JSDoc tags map to families
 
-The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/primitives/*/index.ts` drive doc-generation and MCP filtering. They are *finer-grained* than families:
+The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/primitives/*/index.ts` drive doc-generation and catalog filtering. They are *finer-grained* than families:
 
 | JSDoc tag | Family | Notes |
 |---|---|---|
@@ -267,7 +267,7 @@ The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/pr
 | `feedback` | Feedback / Ambient | Alert, Badge, Progress, Skeleton, Spinner, Toast |
 | `display` | Identity (Avatar) / Container (Tooltip) | Tooltip is display-tagged but lives in Container by behaviour — see canonical family. |
 
-When the tag and the family disagree (Toggle, Tooltip), the family rules — JSDoc tags exist for fine-grained MCP filtering ("show me all form-tagged components"), not as the architectural source of truth.
+When the tag and the family disagree (Toggle, Tooltip), the family rules — JSDoc tags exist for fine-grained catalog filtering (`urbicon find --tag form`), not as the architectural source of truth.
 
 ---
 

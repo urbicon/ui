@@ -1,7 +1,7 @@
 /**
  * A link that looks like a button: the rule and the recipe, authored once so the
  * primer and a component's entry — the `llm.txt` that `urbicon get-component`
- * and the MCP `get_component` both serve — state one answer. The contract is
+ * serves — state one answer. The contract is
  * docs/COMPONENT-API-CONVENTIONS.md § Polymorphic Elements: a component takes
  * `href` only where it owns structure an `<a>` could not rebuild from the
  * exported variants function alone.

@@ -164,7 +164,7 @@ export class LLMDocumentationGenerator {
       // `--target all` only) is its sole writer, from the full component
       // catalog rather than one package's slice of it. A single-target run
       // (`docs:gen:blocks`) therefore leaves it untouched — same contract
-      // `llms-full.txt` and the MCP catalog already have.
+      // `llms-full.txt` and the component catalog already have.
 
       const totalSize = await this.calculateTotalSize(writtenFiles);
       return {
@@ -695,7 +695,7 @@ export class LLMDocumentationGenerator {
 
   private extractSlotInfo(componentApiData: APIData['components'][string]): string | null {
     // Shared resolver: tv() `slots:` keys first (authoritative), legacy regex
-    // fallbacks second — identical to the MCP catalog so the two never diverge.
+    // fallbacks second — identical to the component catalog so the two never diverge.
     const slotNames = resolveSlotNames(componentApiData);
     if (slotNames.length === 0) return null;
     return slotNames.map((s) => `\`${s}\``).join(', ');

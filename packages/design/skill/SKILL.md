@@ -9,8 +9,7 @@ A use-case verb is a **recipe**, not a single tool call: it strings the Urbicon 
 the deterministic judgment (`urbicon validate`, the rubric), and the per-project memory
 (`design.manifest.md`) into one loop so generation does not regress to a generic template.
 
-Print a recipe with `urbicon verb <name>`; `urbicon verbs` lists them. Every verb also ships
-as an MCP prompt with identical body text — pick whichever your harness exposes.
+Print a recipe with `urbicon verb <name>`; `urbicon verbs` lists them.
 
 ## Two invariants, every verb
 
@@ -45,25 +44,20 @@ problem is bigger than its remit.
 
 ## Where the recipes get their inputs
 
-Three planes, each with a local and a remote form. Run `urbicon` with no arguments for the
-command list with flags; the MCP server exposes the same surface as tools.
+Three planes, all served by the `urbicon` CLI. Run `urbicon` with no arguments for the
+command list with flags.
 
 - **Knowledge** — component discovery and APIs, icons, recipes, patterns, the token
   reference, the design principles (`--rubric` for the 8-criterion scorer, `--topic theming`
   for a paradigm's token profile).
-- **Judgment** — `urbicon validate` / remote `validate_design`: two axes either way,
-  correctness (the blocking gate) + craft (advisory). It reads the project's
-  `## Token Overrides` itself, so project tokens are not flagged as hallucinated. Also runs
-  as the PostToolUse hook and the CI gate.
+- **Judgment** — `urbicon validate`: two axes, correctness (the blocking gate) + craft
+  (advisory). It reads the project's `## Token Overrides` itself, so project tokens are not
+  flagged as hallucinated. Also runs as the PostToolUse hook and the CI gate.
 - **Memory** — `urbicon context` / `record-decision` / `sync-manifest`, or your own file tools
-  on `./design.manifest.md` and its `*.history.ndjson` sidecar. **Local only** — the stateless
-  remote server never touches project files.
+  on `./design.manifest.md` and its `*.history.ndjson` sidecar.
 
-**Use the local CLI when the project has `@urbicon-ui/design` installed**, even if the
-`urbicon-ui` MCP server is also connected: the CLI is version-matched to the installed
-library, the remote serves *latest*, and on any disagreement the CLI is right for this
-project. Reach for the MCP tools only where there is no local install (e.g. evaluating the
-library before adopting it).
+The CLI is version-matched to the library the project installed: on any disagreement with the
+hosted docs, which serve *latest*, the CLI is right for this project.
 
 Use only real semantic tokens — never invent `bg-status-*`, `text-*-foreground`, `bg-card`.
 When in doubt, `urbicon css-reference`.

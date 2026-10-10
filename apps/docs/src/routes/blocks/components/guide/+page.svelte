@@ -13,7 +13,7 @@
   import { componentData } from './api';
   // Every Guide surface is a `@standalone` catalog component with its own generated
   // api.ts (sibling route dirs without a +page — this system page stays the single
-  // docs surface; MCP/llm.txt consumers see them as eight components).
+  // docs surface; catalog/llm.txt consumers see them as eight components).
   import { componentData as providerData } from '../guide-provider/api';
   import { componentData as panelData } from '../guide-panel/api';
   import { componentData as articleData } from '../guide-article/api';
@@ -33,7 +33,7 @@
   });
 
   // Per-surface API tables, fed from each surface's generated api.ts (same JSDoc
-  // source the MCP catalog and llm.txt are built from).
+  // source the component catalog and llm.txt are built from).
   //
   // Every `<ApiReference>` below gets the SAME `types` list — `guide/api.ts`'s,
   // which is what the page's one `<TypesReference>` renders. `ApiReference`

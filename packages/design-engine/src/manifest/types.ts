@@ -7,8 +7,7 @@
  *  2. Product Intent — the target identity (audience, voice, references,
  *     anti-references): the difference between "consistent" and merely "generic".
  *  3. Token Overrides — project-specific semantic token cores, fed to
- *     `urbicon validate` so they are not flagged as hallucinated (the local,
- *     manifest-sourced counterpart to the remote `validate_design(extraTokens)`).
+ *     `urbicon validate` so they are not flagged as hallucinated.
  *  4. Pattern Usages — an auto-generated index of `data-design-pattern` markers
  *     found in the source (so "which pages follow pattern X" is a grep, not a
  *     guess).

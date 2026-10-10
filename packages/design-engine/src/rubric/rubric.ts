@@ -1,15 +1,13 @@
 /**
  * The design-quality scoring rubric — the qualitative half of the design loop.
- * Where `validate_design` answers "is it correct?" deterministically, the rubric
+ * Where `urbicon validate` answers "is it correct?" deterministically, the rubric
  * answers "is it good?" through a judge.
  *
  * The eight criteria have been validated empirically against design-quality
  * comparisons, scoring each 1–5 and summing to /40. Keeping the same instrument
  * means new evaluations are directly comparable to that baseline. This is the
- * SINGLE SOURCE for the criteria: the
- * `get_design_principles(as="rubric")` tool renders it to Markdown, and the
- * eval-suite (`mcp-server/src/eval`) imports the same constants to score
- * programmatically.
+ * SINGLE SOURCE for the criteria: `urbicon principles --rubric` renders it to
+ * Markdown, and the exported constants serve anyone scoring programmatically.
  *
  * REVISED 2026-08-02 (`radius`, `ux`, plus the linter reference). Scores taken
  * before and after that date are NOT comparable on those two axes — any delta
@@ -123,21 +121,21 @@ export const RUBRIC_CRITERIA: readonly RubricCriterion[] = [
     anchors: {
       1: 'Hallucinated tokens, broken dynamic classes, or wrong component APIs — would not render as intended.',
       3: 'Largely correct with a few token or API slips.',
-      5: 'Valid semantic tokens, correct Svelte 5 and component APIs, no broken classes. Anchor this with the design linter (`urbicon validate`, or the `validate_design` tool) — a passing linter (0 errors/warnings) puts this at 4–5.'
+      5: 'Valid semantic tokens, correct Svelte 5 and component APIs, no broken classes. Anchor this with the design linter (`urbicon validate`) — a passing linter (0 errors/warnings) puts this at 4–5.'
     }
   }
 ];
 
 export const MAX_RUBRIC_SCORE = RUBRIC_CRITERIA.length * 5;
 
-/** Render the rubric as Markdown for a judge (served by `get_design_principles(as="rubric")`). */
+/** Render the rubric as Markdown for a judge (served by `urbicon principles --rubric`). */
 export function renderRubric(): string {
   let md = '# Design-Quality Rubric\n\n';
   md += `Score a generated UI on each of the ${RUBRIC_CRITERIA.length} criteria from **1 to 5**, then sum to **/${MAX_RUBRIC_SCORE}**. `;
   md +=
     'For every score, cite specific evidence from the code (a class, a component, a layout choice) — a number without a reason is not a judgement.\n\n';
   md +=
-    '**Before scoring, run the design linter on the code** (`urbicon validate`, or the `validate_design` tool). It deterministically catches the ';
+    '**Before scoring, run the design linter on the code** (`urbicon validate`). It deterministically catches the ';
   md +=
     'correctness failures (hallucinated tokens, broken dynamic classes) that a judge tends to miss, and it anchors the *Technical Correctness* criterion.\n\n';
 

@@ -23,7 +23,7 @@ export const recipeMeta: RecipeMeta = {
   ],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'Profile, Notifications and Security as three panels of one line-variant Tab; the Cancel/Save footer sits below the Tab and covers all three.',

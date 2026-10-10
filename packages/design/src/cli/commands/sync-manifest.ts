@@ -1,7 +1,6 @@
 /**
  * `urbicon sync-manifest` — scan the source tree for `data-design-pattern="…"`
- * markers and regenerate the Pattern Usages index in design.manifest.md. The CLI
- * replacement for the remote-incompatible `sync_design_manifest` MCP tool. This
+ * markers and regenerate the Pattern Usages index in design.manifest.md. This
  * is what makes a pattern change tractable: grep the markers, migrate every
  * listed file. Creates the manifest if missing.
  */

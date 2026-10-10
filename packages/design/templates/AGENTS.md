@@ -13,8 +13,8 @@ The `urbicon` CLI (a devDependency) is the way in. Run **`bunx urbicon`** with n
 for the full command list with flags — it covers component discovery and APIs, icons,
 recipes, design principles and patterns, the token reference, the design linter, and this
 project's design memory. Its knowledge is **version-matched to the library this project
-installed**, so it is true of the code you actually have. If the hosted docs or an
-`urbicon-ui` MCP server disagree with the CLI, the CLI is right — they serve *latest*.
+installed**, so it is true of the code you actually have. If the hosted docs disagree with
+the CLI, the CLI is right — they serve *latest*.
 
 ### How to work — the design loop
 

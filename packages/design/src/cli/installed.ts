@@ -6,9 +6,8 @@
  * helpers read the consumer's declared dependencies so the commands can mark an
  * entry's origin package and whether it is actually importable here.
  *
- * Only the CLI can do this: it runs inside the project. The remote MCP server is
- * stateless and never sees the consumer's `package.json`, so it can show the
- * origin package but not its install state.
+ * This works because the CLI runs inside the project, beside the consumer's
+ * `package.json`.
  */
 
 import { readFileSync } from 'node:fs';
