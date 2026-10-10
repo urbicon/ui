@@ -221,8 +221,12 @@
         <code class="text-text-primary">onclick</code> is set, the card renders as a
         <code class="text-text-primary">&lt;button&gt;</code>. When
         <code class="text-text-primary">href</code> is provided, it becomes an
-        <code class="text-text-primary">&lt;a&gt;</code>. Disabled cards set
-        <code class="text-text-primary">aria-disabled</code>.
+        <code class="text-text-primary">&lt;a&gt;</code>. A disabled button or link card sets
+        <code class="text-text-primary">aria-disabled</code>. A disabled
+        <code class="text-text-primary">&lt;div&gt;</code> card only dims its content and blocks the
+        mouse on it, inner controls included. It disables nothing for the keyboard or a screen
+        reader, so give the controls inside it their own
+        <code class="text-text-primary">disabled</code>.
       </p>
     </Note>
     <Note title="Keyboard">
@@ -235,7 +239,8 @@
         <code class="text-text-primary">clickable</code> or
         <code class="text-text-primary">onclick</code>) activates on
         <Kbd keys="Enter" /> or <Kbd keys="Space" />. Non-interactive cards are skipped in the tab
-        order.
+        order. A disabled link card is skipped too and does not navigate, though its address stays
+        readable; a disabled button card stays focusable and does nothing when activated.
       </p>
     </Note>
     <Note title="Structure">

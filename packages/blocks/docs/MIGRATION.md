@@ -103,6 +103,55 @@ raised `maxRows` to make up for the old cap, lower it again:
 rg -n 'maxRows' src
 ```
 
+### `Card` sets `aria-disabled` only on a disabled button or link
+
+Every enabled Card rendered `aria-disabled="false"`, and a disabled `<div>` card
+`aria-disabled="true"`, on an element ARIA does not support it on. It now ships only on a disabled
+card that renders a `<button>` or an `<a>`, as `"true"`; a `<div>` card carries none, disabled or
+not, whatever `role` you pass.
+
+A disabled `<div>` card still dims its content and blocks the mouse on it, inner controls
+included, but it disables nothing for the keyboard or a screen reader. That is what a screen-reader
+user notices: the card's `aria-disabled="true"` reached its inner controls in the accessibility
+tree (measured in Chromium), so a link or button inside read as disabled. Inner controls no longer
+inherit it and read as enabled. Give them their own `disabled`, or pass `aria-disabled` yourself
+where the `role` you give the card supports it.
+
+A selector or test that matched `aria-disabled="false"` on an enabled card, or found a disabled
+`<div>` card or a control inside it by `aria-disabled`, finds nothing:
+
+```sh
+rg -n 'aria-disabled' src e2e tests
+```
+
+### A disabled `<Card href>` leaves the tab order and does not navigate
+
+`disabled` stopped only the pointer on a link card: Tab still reached it, and Enter or a screen
+reader's activation followed the link. It now takes `tabindex="-1"` and cancels the click, as a
+disabled `Link` does, and keeps its `href`, so the address stays readable. A `tabindex` you pass
+no longer puts it back in the tab order. A test that tabbed to a disabled link card, or expected
+it to navigate, fails. Nothing reports the change; the hits to read are every Card with
+`disabled`, which also lists the `<div>` cards whose inner controls need their own:
+
+```sh
+rg -nU '<Card\b(?:=>|[^>])*?\bdisabled\b' src e2e tests
+```
+
+### `Select` gives every option row an id of its own
+
+A disabled option's id was `<id>-option--1`, the same for every disabled option; an enabled
+option's number counted the enabled options only; and one option object listed in two groups (a
+"Recent" and an "All" list) gave both rows the first row's id. Now the number is the row's position
+in the rendered list, across groups, disabled rows included. A Select without disabled options or
+repeated objects keeps its ids. In one with them, a row after a disabled one moves to a higher
+number; a repeated row takes its own position instead of the first row's; and
+`aria-activedescendant` follows both. A test that addressed an option by its id needs the new
+number, or reach the option by its role and name instead:
+
+```sh
+rg -n -- '-option-' src e2e tests
+```
+
 ## 8.26.0
 
 ### Seven icons are renamed

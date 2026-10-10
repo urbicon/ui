@@ -71,12 +71,27 @@
     return props;
   });
 
+  // `pointer-events-none` suppresses hit testing and nothing else: Enter on a
+  // focused link and an assistive-technology `element.click()` both reach this
+  // handler, so a disabled link card cancels its navigation here.
   function handleClick(event: MouseEvent) {
-    if (disabled) return;
+    if (disabled) {
+      if (href) event.preventDefault();
+      return;
+    }
     onclick?.(event);
   }
 </script>
 
+<!--
+  `aria-disabled` goes on the `<button>` and `<a>` forms only. A disabled `<div>`
+  card is dimmed and, since `pointer-events: none` is inherited, mouse-dead down
+  to its inner controls, yet it disables nothing for the keyboard or assistive
+  technology: ARIA does not support the attribute on a generic element, so the
+  div carries none whatever `role` rest props give it, and keeps a consumer's.
+  Both attributes follow the spread so the disabled state wins over a consumer's
+  value, and fall back to it otherwise.
+-->
 <svelte:element
   this={elementType}
   {@attach mintAttachment(mint, { enabled: isInteractive && !disabled })}
@@ -86,8 +101,9 @@
   onmouseenter={() => onHover?.(true)}
   onmouseleave={() => onHover?.(false)}
   onclick={handleClick}
-  aria-disabled={disabled}
   {...elementProps}
+  tabindex={disabled && href ? -1 : restProps.tabindex}
+  aria-disabled={disabled && isInteractive ? true : restProps['aria-disabled']}
 >
   {#if header}
     <div
