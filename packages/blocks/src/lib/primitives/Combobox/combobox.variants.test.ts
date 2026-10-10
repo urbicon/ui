@@ -253,3 +253,14 @@ describe('comboboxVariants', () => {
     expect(invalid.helper()).not.toContain('text-danger');
   });
 });
+
+// Tailwind 4's preflight leaves a <button> on the default arrow cursor. A disabled
+// Combobox needs no cursor rule here: its base drops pointer events for the subtree.
+describe('comboboxVariants (cursor)', () => {
+  it('shows a pointer on the clear and tag-remove buttons', () => {
+    const styles = comboboxVariants();
+    expect(styles.clear()).toContain('cursor-pointer');
+    expect(styles.tagRemove()).toContain('cursor-pointer');
+    expect(comboboxVariants({ disabled: true }).base()).toContain('pointer-events-none');
+  });
+});

@@ -35,6 +35,13 @@ Nothing reports the change. The hits to read:
 rg -nU '<(SegmentGroup|FileUpload|LocaleSwitcher|DatePicker)\b(?:=>|[^>])*?(\b(role|onkeydown|placeholder|aria-orientation|aria-disabled|data-collapsed|aria-label)=|\{(role|onkeydown|placeholder)\}|\{\.\.\.)' src
 ```
 
+### `MenuSpecificProps` no longer declares `placement` and `syncWidth`
+
+`<Menu>` always took both props from its variant axes (`MenuVariants`); the copies on the helper
+type `MenuSpecificProps` were shadowed and carried a contract that reached no consumer. They are
+gone. TypeScript reports a `MenuSpecificProps['placement']` or `['syncWidth']`; index
+`MenuVariants` instead. `<Menu>` itself accepts the same props as before.
+
 ## 8.26.0
 
 ### Seven icons are renamed

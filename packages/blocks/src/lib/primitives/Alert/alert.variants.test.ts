@@ -80,3 +80,10 @@ describe('alertVariants', () => {
     }
   });
 });
+
+// Tailwind 4's preflight leaves a <button> on the default arrow cursor.
+describe('alertVariants (cursor)', () => {
+  it('shows a pointer on the dismiss button', () => {
+    expect(alertVariants().dismissButton()).toContain('cursor-pointer');
+  });
+});

@@ -83,7 +83,7 @@ export const comboboxVariants = tv({
     // status rows read alike; separate slot so consumers can style them apart.
     loading: 'px-3 py-4 text-center text-sm text-text-tertiary',
     clear: [
-      'absolute right-2 top-1/2 -translate-y-1/2 rounded-modify p-1.5',
+      'absolute right-2 top-1/2 -translate-y-1/2 rounded-modify p-1.5 cursor-pointer',
       'text-text-tertiary hover:text-text-primary',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
@@ -127,7 +127,7 @@ export const comboboxVariants = tv({
     ],
     tagLabel: 'truncate',
     tagRemove: [
-      'inline-flex shrink-0 items-center justify-center rounded-full',
+      'inline-flex shrink-0 items-center justify-center rounded-full cursor-pointer',
       'text-text-tertiary hover:text-text-primary',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',

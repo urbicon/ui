@@ -27,18 +27,18 @@ export const toastVariants = tv({
     actions: 'flex items-center gap-2 mt-2.5',
     // tier: modify — small interactive sub-elements on a contain surface.
     actionButton: [
-      'rounded-modify px-2.5 py-1 text-xs font-medium',
+      'rounded-modify px-2.5 py-1 text-xs font-medium cursor-pointer',
       'bg-text-primary/10 hover:bg-text-primary/20 text-text-primary',
       'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/40'
     ],
     cancelButton: [
-      'rounded-modify px-2.5 py-1 text-xs font-medium',
+      'rounded-modify px-2.5 py-1 text-xs font-medium cursor-pointer',
       'text-text-secondary hover:text-text-primary',
       'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/40'
     ],
     // tier: modify — small interactive sub-element on a contain surface.
     dismissButton: [
-      'shrink-0 rounded-modify p-1',
+      'shrink-0 rounded-modify p-1 cursor-pointer',
       'opacity-60 hover:opacity-100 transition-opacity',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50'
     ],

@@ -49,8 +49,9 @@ export interface ProgressProps
 
   /**
    * Format function for the displayed value. Receives the clamped value and `max`, not `min`
-   * — a formatter for a range that does not start at 0 has to know `min` itself.
-   * @default (v, max) => `${Math.round(((v - min) / (max - min)) * 100)}%`
+   * — a formatter for a range that does not start at 0 has to know `min` itself. Without
+   * one, the value shows as the rounded percentage of the `min`–`max` range the fill draws,
+   * 0% for an empty range.
    */
   formatValue?: (value: number, max: number) => string;
 
@@ -58,16 +59,14 @@ export interface ProgressProps
   shape?: 'linear' | 'circular';
 
   /**
-   * Diameter of the circular indicator in pixels. At 80 the ring follows `size` instead —
-   * 48, 64, 80 or 112 px for `xs` to `lg` — so only a value other than 80 fixes the diameter.
-   * @default 80
+   * Diameter of the circular indicator in pixels. Unset, the ring follows `size`: 48, 64,
+   * 80 or 112 px for `xs` to `lg`.
    */
   circularSize?: number;
 
   /**
-   * Stroke width of the circular indicator in pixels. At 6 the stroke follows `size`
-   * instead — 3, 4, 6 or 8 px for `xs` to `lg` — so only a value other than 6 fixes it.
-   * @default 6
+   * Stroke width of the circular indicator in pixels. Unset, the stroke follows `size`:
+   * 3, 4, 6 or 8 px for `xs` to `lg`.
    */
   strokeWidth?: number;
 

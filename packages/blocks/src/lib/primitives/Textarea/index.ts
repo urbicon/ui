@@ -68,10 +68,8 @@ export interface TextareaProps
   minRows?: number;
 
   /**
-   * With `autoResize`, caps the grown height at `maxRows` × the line height and scrolls
-   * beyond it. Padding and border count against that cap, so roughly one row fewer than
-   * `maxRows` is visible, and the size's min-height (see `minRows`) still sets the floor.
-   * No effect without `autoResize`.
+   * Grows with its content and scrolls after `maxRows` rows (`autoResize` only). The size's
+   * min-height (see `minRows`) still sets the floor, so a cap below it shows the floor.
    */
   maxRows?: number;
 

@@ -2,7 +2,6 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '#lib/mint/index.js';
 import type { ButtonVariants, MenuVariants } from '#lib/primitives/index.js';
-import type { Placement } from '#lib/utils/floating.js';
 import type { AnimationProps } from '#lib/utils/index.js';
 import type { InteractiveTier } from '#lib/utils/tier-context.js';
 import type { MenuSlots } from './menu.variants';
@@ -137,22 +136,6 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   isDivider?: (item: MenuItemType) => boolean;
   /** Section label override. Accepts concrete section header type. */
   getSectionLabel?: (item: MenuSectionHeader) => string;
-
-  /**
-   * Where the menu panel opens relative to the trigger. A panel that would overflow that
-   * side flips to the opposite one when there is more room there, and it shifts sideways
-   * to stay inside the viewport. The positioning is the library's own — there is no
-   * Floating UI to configure.
-   * @default 'bottom-start'
-   */
-  placement?: Placement;
-
-  /**
-   * Makes the menu panel at least as wide as the trigger; longer items still widen it.
-   * Ignored for a context menu (`contextTrigger`).
-   * @default true
-   */
-  syncWidth?: boolean;
 
   /**
    * Render menu content in a portal for better positioning.

@@ -33,6 +33,10 @@ function renderTextarea(props: Partial<TextareaProps> = {}) {
 
 const textarea = () => screen.getByRole('textbox') as HTMLTextAreaElement;
 
+// jsdom computes no line height from the Tailwind classes, and autoResize counts rows in
+// the computed one — so these tests declare it inline: a 24px line, no padding or border.
+const lineBox = 'line-height: 24px';
+
 const mockScrollHeight = (el: HTMLTextAreaElement, value: number) => {
   Object.defineProperty(el, 'scrollHeight', { configurable: true, get: () => value });
 };
@@ -74,8 +78,8 @@ describe('Textarea (counter)', () => {
 
 describe('Textarea (autoResize)', () => {
   it('clamps the height to minRows on mount and locks rows to minRows', () => {
-    // size=md → 24px line height; jsdom scrollHeight is 0 → min clamp wins.
-    renderTextarea({ autoResize: true, minRows: 3 });
+    // 24px line height; jsdom scrollHeight is 0 → min clamp wins.
+    renderTextarea({ autoResize: true, minRows: 3, style: lineBox });
 
     const el = textarea();
     expect(el.rows).toBe(3);
@@ -85,7 +89,7 @@ describe('Textarea (autoResize)', () => {
 
   it('grows with the content height on input', async () => {
     const user = userEvent.setup();
-    renderTextarea({ autoResize: true, minRows: 3 });
+    renderTextarea({ autoResize: true, minRows: 3, style: lineBox });
 
     const el = textarea();
     mockScrollHeight(el, 200);
@@ -98,7 +102,7 @@ describe('Textarea (autoResize)', () => {
   it('caps the height at maxRows and enables scrolling beyond it', async () => {
     const user = userEvent.setup();
     // maxRows=5 × 24px = 120px cap; mocked content wants 200px.
-    renderTextarea({ autoResize: true, minRows: 3, maxRows: 5 });
+    renderTextarea({ autoResize: true, minRows: 3, maxRows: 5, style: lineBox });
 
     const el = textarea();
     mockScrollHeight(el, 200);
@@ -106,6 +110,29 @@ describe('Textarea (autoResize)', () => {
 
     expect(el.style.height).toBe('120px');
     expect(el.style.overflowY).toBe('auto');
+  });
+
+  it('counts maxRows in the computed line height, with padding and border on top', async () => {
+    const user = userEvent.setup();
+    // xs metrics: a 16px line, 6px padding each side, a 1px border, border-box.
+    renderTextarea({
+      autoResize: true,
+      minRows: 1,
+      maxRows: 4,
+      style: 'line-height: 16px; padding: 6px 8px; border: 1px solid; box-sizing: border-box'
+    });
+
+    const el = textarea();
+    mockScrollHeight(el, 500);
+    await user.type(el, 'a');
+
+    expect(el.style.height).toBe(`${4 * 16 + 12 + 2}px`);
+    expect(el.style.overflowY).toBe('auto');
+  });
+
+  it('counts a line-height: normal row as 1.2 × the font size', () => {
+    renderTextarea({ autoResize: true, minRows: 3, style: 'line-height: normal; font-size: 20px' });
+    expect(textarea().style.height).toBe('72px');
   });
 
   it('honours a consumer rows attribute only without autoResize', () => {
@@ -134,7 +161,7 @@ describe('Textarea (consumer handler passthrough)', () => {
   it('forwards oninput to the consumer handler alongside the autoResize adjustment', async () => {
     const user = userEvent.setup();
     const oninput = vi.fn();
-    renderTextarea({ oninput, autoResize: true, minRows: 3 });
+    renderTextarea({ oninput, autoResize: true, minRows: 3, style: lineBox });
 
     const el = textarea();
     mockScrollHeight(el, 200);

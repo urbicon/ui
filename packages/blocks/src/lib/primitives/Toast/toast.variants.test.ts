@@ -75,3 +75,13 @@ describe('toastVariants', () => {
     }
   });
 });
+
+// Tailwind 4's preflight leaves a <button> on the default arrow cursor.
+describe('toastVariants (cursor)', () => {
+  it('shows a pointer on the action, cancel and dismiss buttons', () => {
+    const styles = toastVariants();
+    expect(styles.actionButton()).toContain('cursor-pointer');
+    expect(styles.cancelButton()).toContain('cursor-pointer');
+    expect(styles.dismissButton()).toContain('cursor-pointer');
+  });
+});

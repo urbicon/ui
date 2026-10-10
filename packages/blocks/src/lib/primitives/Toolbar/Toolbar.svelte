@@ -21,7 +21,7 @@
   }: ToolbarProps = $props();
 
   // Propagate tier to tier-aware descendants (Button, Badge, Input, …).
-  // The Toolbar's own surface is `r-structure` (set by toolbarVariants) —
+  // The Toolbar's own surface stays `rounded-contain` (set by toolbarVariants) —
   // the propagated tier only affects interactive children.
   setTierContext({
     get tier() {
