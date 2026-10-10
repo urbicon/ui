@@ -312,6 +312,106 @@ describe('AreaChart — stacked series', () => {
       ]
     ]);
   });
+
+  // The second series has no value at `b`, which counts as zero.
+  it.each([
+    [
+      'a negative stack',
+      [-2, -1],
+      // Domain [-3, 0], 33.33 px per unit: -2 lies 66.67 px down, -3 on the floor.
+      [
+        [
+          [0, 66.67],
+          [100, 66.67],
+          [200, 66.67],
+          [200, 0],
+          [100, 0],
+          [0, 0]
+        ],
+        [
+          [0, 100],
+          [100, 66.67],
+          [200, 100],
+          [200, 66.67],
+          [100, 66.67],
+          [0, 66.67]
+        ]
+      ]
+    ],
+    [
+      'a positive stack',
+      [2, 1],
+      // Domain [0, 3], 33.33 px per unit: 2 lies 33.33 px down, 3 at the top.
+      [
+        [
+          [0, 33.33],
+          [100, 33.33],
+          [200, 33.33],
+          [200, 100],
+          [100, 100],
+          [0, 100]
+        ],
+        [
+          [0, 0],
+          [100, 33.33],
+          [200, 0],
+          [200, 33.33],
+          [100, 33.33],
+          [0, 33.33]
+        ]
+      ]
+    ]
+  ])('notches a gap in %s down to the series beneath it', (_name, values, expected) => {
+    const target = render({
+      stacked: true,
+      data: [
+        { label: 'a', values },
+        { label: 'b', values: values.slice(0, 1) },
+        { label: 'c', values }
+      ]
+    });
+
+    expect(bands(target)).toEqual(expected);
+  });
+
+  it('notches a negative series that reaches zero to the zero line, below the positive bands', () => {
+    const target = render({
+      stacked: true,
+      data: [
+        { label: 'a', values: [3, -1, 2] },
+        { label: 'b', values: [3, 0, 2] },
+        { label: 'c', values: [3, -1, 2] }
+      ]
+    });
+
+    // Domain [-1, 5] widens to [-2, 6], 12.5 px per unit: zero lies 75 px down.
+    expect(outlines(target)[1]).toEqual([
+      [0, 87.5],
+      [100, 75],
+      [200, 87.5]
+    ]);
+  });
+
+  it('keeps a zero inside a series’ negative run on the negative side, though the series has a positive value', () => {
+    const target = render({
+      stacked: true,
+      data: [
+        { label: 'a', values: [3, 2] },
+        { label: 'b', values: [3, -1] },
+        { label: 'c', values: [3, 0] },
+        { label: 'd', values: [3, -1] }
+      ]
+    });
+
+    // Domain [-1, 5] widens to [-2, 6], 12.5 px per unit: zero lies 75 px down.
+    // At `c` the second series sits on the zero line, not on top of the first.
+    expect(outlines(target)[1]).toEqual([
+      [0, 12.5],
+      [66.67, 87.5],
+      [133.33, 75],
+      [200, 87.5]
+    ]);
+  });
 });
 
 describe('AreaChart — fill opacity', () => {

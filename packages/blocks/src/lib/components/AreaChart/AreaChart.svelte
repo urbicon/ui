@@ -75,23 +75,33 @@
   const fmt = $derived(formatValue ?? numberFormatter(locale));
   const opacity = $derived(fillOpacity ?? (stacked ? 0.85 : 0.2));
 
+  // A zero — a missing value included — is a vertex of its band and its
+  // outline, so it has to sit on the side its series is on there, or the
+  // outline leaps to the other stack and back: the side of the nearest non-zero
+  // value before it, else after it. A series of zeros stacks above.
+  function stacksAbove(values: readonly number[], index: number): boolean {
+    for (let i = index; i >= 0; i--) if (values[i] !== 0) return values[i] > 0;
+    for (let i = index + 1; i < values.length; i++) if (values[i] !== 0) return values[i] > 0;
+    return true;
+  }
+
   // Per series and category, the band's `[base, outer]` in data units. A positive
   // value stacks on the running sum above zero and a negative one on the sum
-  // below it, so no band covers another's value. Pixel-independent; the domain
-  // and the drawn bands both read it.
+  // below it, so at each category no band covers another's value.
+  // Pixel-independent; the domain and the drawn bands both read it.
   const stack = $derived.by<(readonly [number, number])[][]>(() => {
     if (!stacked) return [];
     const above = data.map(() => 0);
     const below = data.map(() => 0);
-    return resolvedSeries.map((_s, si) =>
-      data.map((d, i) => {
-        const value = d.values[si] ?? 0;
-        const sums = value >= 0 ? above : below;
+    return resolvedSeries.map((_s, si) => {
+      const values = data.map((d) => d.values[si] ?? 0);
+      return values.map((value, i) => {
+        const sums = stacksAbove(values, i) ? above : below;
         const base = sums[i];
         sums[i] += value;
         return [base, sums[i]] as const;
-      })
-    );
+      });
+    });
   });
 
   const domain = $derived.by<[number, number]>(() => {

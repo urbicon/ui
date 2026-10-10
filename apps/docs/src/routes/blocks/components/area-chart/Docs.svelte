@@ -30,7 +30,8 @@
     <code class="text-text-primary">series[i]</code>. Pass
     <code class="text-text-primary">series</code> to name and colour the bands and to drive the
     legend; a single value per datum needs no <code class="text-text-primary">series</code>. Add
-    <code class="text-text-primary">stacked</code> to sum the bands into a running total.
+    <code class="text-text-primary">stacked</code> to stack the bands: per category, positive values build
+    up from zero and negative values down from it.
   </p>
 
   <div class="space-y-8">
@@ -47,7 +48,7 @@
 
     <CodeExample
       title="Stacked"
-      description="`stacked` sums the series so the top edge is the running total."
+      description="With positive values only, the stack's top edge is each category's total."
       isolate
       previewClass="flex w-full justify-center p-6"
     >
@@ -81,7 +82,7 @@
 
     <CodeExample
       title="Band and edge apart"
-      description="A series is two paths: `slotClasses.area` reaches the filled band, `slotClasses.areaOutline` its top edge. `mark` reaches both, so a paint written there lands on both."
+      description="A series is two paths: `slotClasses.area` reaches the filled band, `slotClasses.areaOutline` its edge away from zero. `mark` reaches both, so a paint written there lands on both."
       isolate
       previewClass="flex w-full justify-center p-6"
     >

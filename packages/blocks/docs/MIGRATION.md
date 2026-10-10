@@ -36,7 +36,7 @@ A type you derived from `@urbicon-ui/blocks/i18n/en` that requires every key sto
 your bundle has them.
 
 ```sh
-rg -n "(Bar|Line|Area|Donut) chart: " src
+rg -n "(Bar|Line|Area|Donut) chart: " src e2e tests
 ```
 
 ### Four components let their own attributes win over yours
