@@ -22,7 +22,7 @@ import type { FormFieldSlots } from './form-field.variants';
  * ```svelte
  * <FormField label="Document" required error={fileError} helper="PDF, JPG, PNG — max 10 MB">
  *   {#snippet children({ id, describedBy, invalid })}
- *     <FileUpload {id} aria-describedby={describedBy} aria-invalid={invalid} bind:files />
+ *     <FileUpload {id} aria-describedby={describedBy} aria-invalid={invalid || undefined} bind:files />
  *   {/snippet}
  * </FormField>
  * ```
@@ -55,7 +55,11 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    */
   required?: boolean;
 
-  /** Disables visual emphasis. Pass through to the slot's control as needed. @default false */
+  /**
+   * Handed to the `children` snippet as `disabled`; FormField renders nothing differently
+   * itself. The wrapped control has to apply it.
+   * @default false
+   */
   disabled?: boolean;
 
   /**
@@ -89,7 +93,10 @@ export interface FormFieldSlotContext {
   id: string;
   /** Space-separated list of message ids; assign to `aria-describedby`. */
   describedBy: string | undefined;
-  /** Whether the field is in an error state. Assign to `aria-invalid`. */
+  /**
+   * Whether the field is in an error state. Assign as `aria-invalid={invalid || undefined}`:
+   * a plain `false` renders `aria-invalid="false"` on every valid control.
+   */
   invalid: boolean;
   /** Mirrors {@link FormFieldProps.required}. */
   required: boolean;

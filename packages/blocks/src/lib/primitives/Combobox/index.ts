@@ -165,7 +165,12 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    * server supplies its label.
    */
   seedOptions?: ComboboxOption<T>[];
-  /** Show a clear button when a value is selected. Click or press Escape to reset. @default false */
+  /**
+   * Show a clear button in place of the chevron while a value is selected. Clicking it
+   * resets the value (`null`, or `[]` in multi mode); Escape only closes the list.
+   * @default false
+   * @summary A clear button that resets the value. Escape does not reset it.
+   */
   clearable?: boolean;
   /** Disable the entire combobox. @default false */
   disabled?: boolean;

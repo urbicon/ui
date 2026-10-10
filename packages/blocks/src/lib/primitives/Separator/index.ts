@@ -27,7 +27,13 @@ export interface SeparatorProps
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   /** Horizontal renders a full-width line; vertical renders a full-height line (e.g. inside flex rows). */
   orientation?: 'horizontal' | 'vertical';
-  /** Controls margin around the line — sm (0.5 rem), md (1 rem), lg (1.5 rem). */
+  /**
+   * Stroke thickness: `sm` and `md` draw a 1 px line, `lg` a 2 px one. The separator
+   * carries no margin — the space around it comes from the surrounding layout (`gap`,
+   * `space-y-*`).
+   * @default 'md'
+   * @summary Line thickness — 1 px for sm and md, 2 px for lg. Spacing comes from the layout.
+   */
   size?: 'sm' | 'md' | 'lg';
   /** When true, the separator is purely visual (role="none"); when false, it uses role="separator" with aria-orientation. */
   decorative?: boolean;

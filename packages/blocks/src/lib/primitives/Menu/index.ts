@@ -139,13 +139,17 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   getSectionLabel?: (item: MenuSectionHeader) => string;
 
   /**
-   * Where the menu panel appears relative to the trigger. Uses floating-ui
-   * placement. @default 'bottom-start'
+   * Where the menu panel opens relative to the trigger. A panel that would overflow that
+   * side flips to the opposite one when there is more room there, and it shifts sideways
+   * to stay inside the viewport. The positioning is the library's own — there is no
+   * Floating UI to configure.
+   * @default 'bottom-start'
    */
   placement?: Placement;
 
   /**
-   * Syncs the width of the menu panel with the trigger element.
+   * Makes the menu panel at least as wide as the trigger; longer items still widen it.
+   * Ignored for a context menu (`contextTrigger`).
    * @default true
    */
   syncWidth?: boolean;

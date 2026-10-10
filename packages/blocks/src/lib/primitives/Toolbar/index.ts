@@ -10,6 +10,10 @@ import type { ToolbarSlots, ToolbarVariants } from './toolbar.variants';
  * @description Container for grouping related controls in a horizontal or vertical bar.
  * Renders with role="toolbar" and auto-sets aria-orientation.
  *
+ * It does not implement the WAI-ARIA toolbar keyboard pattern: there is no roving tabindex
+ * and no arrow-key handling, so every control inside stays its own Tab stop and keeps its
+ * own keyboard behaviour.
+ *
  * @tag action
  * @related Button
  * @related ButtonGroup
@@ -48,8 +52,8 @@ export interface ToolbarProps
 
   /**
    * Semantic radius tier propagated to tier-aware children (Buttons,
-   * Badges, Inputs, …). The Toolbar's own surface stays `r-structure`
-   * regardless of this prop.
+   * Badges, Inputs, …). The Toolbar's own surface stays on the container
+   * tier (`rounded-contain`) regardless of this prop.
    *
    * Default `modify` — toolbars typically hold compact, icon-only actions
    * where pill-shaped buttons read as tags. Set to `commit` for marketing

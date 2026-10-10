@@ -14,7 +14,7 @@ export const numberInputVariants = tv({
     stepper: ['pointer-events-auto -my-1 flex flex-col justify-center'],
     /** One stepper button (increment / decrement). */
     stepperButton: [
-      'text-text-tertiary hover:text-text-primary flex items-center justify-center',
+      'text-text-tertiary hover:text-text-primary flex items-center justify-center cursor-pointer',
       'px-0.5 transition-colors focus-visible:outline-none',
       'disabled:pointer-events-none disabled:opacity-30'
     ]

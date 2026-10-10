@@ -23,7 +23,7 @@ import type { ProgressSlots, ProgressVariants } from './progress.variants';
 export interface ProgressProps
   extends ProgressVariants,
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
-  /** Current progress value (0–100). Omit for indeterminate mode. */
+  /** Current progress on the `min`–`max` scale, clamped into it. Omit for indeterminate mode. */
   value?: number;
 
   /** Minimum value for the progress range. @default 0 */
@@ -32,22 +32,43 @@ export interface ProgressProps
   /** Maximum value for the progress range. @default 100 */
   max?: number;
 
-  /** Text label displayed above or inside the progress indicator. */
+  /**
+   * Accessible name of the progressbar (`aria-label`, falling back to the localized
+   * "Progress"). The linear shape also shows it above the track; the circular shape shows
+   * no text label at all.
+   */
   label?: string;
 
-  /** Show the numeric value (percentage or absolute) next to the label. @default false */
+  /**
+   * Show the formatted value (see `formatValue`) in the row above the linear track, or centred
+   * inside the circular ring. Hidden while indeterminate.
+   * @default false
+   * @summary Shows the formatted value above the bar, or inside the ring.
+   */
   showValue?: boolean;
 
-  /** Format function for the displayed value. @default (v, max) => `${Math.round((v/max) * 100)}%` */
+  /**
+   * Format function for the displayed value. Receives the clamped value and `max`, not `min`
+   * — a formatter for a range that does not start at 0 has to know `min` itself.
+   * @default (v, max) => `${Math.round(((v - min) / (max - min)) * 100)}%`
+   */
   formatValue?: (value: number, max: number) => string;
 
   /** Shape of the progress indicator. @default 'linear' */
   shape?: 'linear' | 'circular';
 
-  /** Diameter of the circular indicator in pixels. @default 80 */
+  /**
+   * Diameter of the circular indicator in pixels. At 80 the ring follows `size` instead —
+   * 48, 64, 80 or 112 px for `xs` to `lg` — so only a value other than 80 fixes the diameter.
+   * @default 80
+   */
   circularSize?: number;
 
-  /** Stroke width of the circular indicator in pixels. @default 6 */
+  /**
+   * Stroke width of the circular indicator in pixels. At 6 the stroke follows `size`
+   * instead — 3, 4, 6 or 8 px for `xs` to `lg` — so only a value other than 6 fixes it.
+   * @default 6
+   */
   strokeWidth?: number;
 
   /** Display striped pattern on the fill. @default false */

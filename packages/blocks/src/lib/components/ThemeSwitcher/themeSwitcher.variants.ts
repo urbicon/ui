@@ -4,7 +4,7 @@ export const themeSwitcherVariants = tv({
   slots: {
     // tier: commit — icon-button action surface (mirrors Button default).
     button: [
-      'inline-flex items-center justify-center rounded-commit',
+      'inline-flex items-center justify-center rounded-commit cursor-pointer',
       'text-text-tertiary transition-colors',
       'hover:bg-surface-hover hover:text-text-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'

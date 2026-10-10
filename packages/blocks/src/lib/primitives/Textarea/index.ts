@@ -58,10 +58,21 @@ export interface TextareaProps
    */
   autoResize?: boolean;
 
-  /** Minimum number of visible text rows. @default 3 */
+  /**
+   * Minimum height in text rows: sets `rows` (without `autoResize`, a `rows` attribute
+   * takes precedence) and, with `autoResize`, the floor the height never shrinks below.
+   * The `size` axis brings its own min-height (`md`: 7rem) and the taller of the two wins,
+   * so at `md` values below 4 change nothing.
+   * @default 3
+   */
   minRows?: number;
 
-  /** Maximum number of visible text rows when autoResize is enabled. */
+  /**
+   * With `autoResize`, caps the grown height at `maxRows` × the line height and scrolls
+   * beyond it. Padding and border count against that cap, so roughly one row fewer than
+   * `maxRows` is visible, and the size's min-height (see `minRows`) still sets the floor.
+   * No effect without `autoResize`.
+   */
   maxRows?: number;
 
   /** @default false */
