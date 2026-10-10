@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.28.1](https://github.com/urbicon/ui/compare/v8.28.0...v8.28.1) - 2026-10-10
+
+### Bug Fixes
+- **design**: Piped CLI output arrives in full instead of stopping at 64 KiB ([#527](https://github.com/urbicon/ui/issues/527))
+
 ## [8.28.0](https://github.com/urbicon/ui/compare/v8.27.0...v8.28.0) - 2026-10-10
 
 ### Breaking Changes
