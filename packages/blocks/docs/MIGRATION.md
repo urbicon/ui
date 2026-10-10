@@ -13,6 +13,51 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.29.0
 
+### `Calendar` keeps its grids to rows and cells, and its labels to AA
+
+Three Calendar views put interactive elements under `role="grid"` outside any row or cell, and
+axe reports that as `aria-required-children`. Each view now has the structure its keyboard
+model matches, and the text it drew below AA moves to inks that clear it.
+
+- **A `dayCell` snippet renders inside a gridcell Calendar owns.** The snippet used to be the
+  week row's grid item and its own cell; now Calendar wraps it in a `<div role="gridcell">`
+  carrying `aria-selected`, `aria-disabled` and `aria-current="date"`. Drop a `role` your
+  snippet set itself, or the cell nests a second gridcell. The wrapper is the grid item now, so
+  grid placement on your snippet's root (`col-start-*`, `self-*`) no longer reaches the row, and
+  a root that filled the row's height by stretching needs `h-full`. The wrapper takes no clicks
+  and no focus; a control of yours that should take the arrow keys carries `data-date`
+  (`YYYY-MM-DD`) and `tabindex={isFocused ? 0 : -1}`.
+- **The week view is a labelled group, not a grid.** Its only arrow keys move between the day
+  headings, and its hour grid has no cells, so `role="grid"` promised navigation it does not
+  have. The layout is `role="group"` with the same label ("Week view") and is no longer a tab
+  stop of its own; the first day heading still is.
+- **The year view's months are gridcells, three to a row.** Each month is still a `<button>`,
+  now with `role="gridcell"` inside a `role="row"`, so it is found by role as a gridcell, not
+  as a button. The arrow keys are unchanged.
+- **Multi-day bars in the month view are gridcells in rows of their own.** Each stacking line of
+  bars above a week is a `role="row"`, and each bar a `role="gridcell"` with `aria-colindex` and
+  `aria-colspan`; a bar you can click is still a `<button>`, found by role as a gridcell. The
+  `multiDayBarContainer` slot styles each line's row instead of one box per week, so a row gap
+  between lines no longer applies; space them with the bars' own margin.
+- **The mini calendar's days sit in one row per week**, and its grid is named by its month. Its
+  outside-month days are `text-tertiary` instead of 30 % opacity, which left them below AA.
+- **A category label picks the ink with the higher WCAG contrast.** The old rule compared
+  brightness at a fixed threshold and chose white for mid tones where black reads better:
+  `#8b5cf6`, `#3b82f6` and `#ef4444` labels turn black. A bar without a category, on the
+  library's primary fill, takes `--color-text-on-primary`, which is dark on the dark-mode
+  primary. Colours the helper cannot read (`var()`, `color-mix()`, named colours, `hsl()`) still
+  get white. This reaches ResourceTimeline's category bars as well. The `ghost` variant no longer
+  draws its multi-day bars at 90 % opacity, which took their labels below AA.
+- **Outside-month days and week numbers are `text-tertiary`**, darker than the `text-quaternary`
+  they used: outside-month days stay clickable, so they are held to AA like any other text.
+
+A test or selector that found a year-view month or a clickable bar as a `button`, or the week
+view as a `grid`, needs the new role:
+
+```sh
+rg -n 'dayCell|multiDayBarContainer|Week view|Year overview|role="grid"' src e2e tests
+```
+
 ### TimeInput tells an empty field from a half-typed one
 
 `null` meant two things: nobody touched the field, or the user is halfway through a time. The

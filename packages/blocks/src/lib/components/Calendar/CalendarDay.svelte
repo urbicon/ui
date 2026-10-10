@@ -149,15 +149,27 @@
 </script>
 
 {#if dayCell}
-  {@render dayCell({
-    date,
-    events,
-    isToday,
-    isSelected,
-    isDisabled,
-    isOutsideMonth,
-    isFocused
-  })}
+  <!-- The library owns the gridcell and its state; the snippet renders what
+       goes inside it, so a custom cell cannot leave its week row without a
+       cell. No aria-label: it would replace whatever the snippet says. No
+       `data-date` either: the grid's arrow keys focus the first `[data-date]`
+       they find, and this wrapper is not focusable. -->
+  <div
+    role="gridcell"
+    aria-selected={isSelected || undefined}
+    aria-disabled={isDisabled || undefined}
+    aria-current={isToday ? 'date' : undefined}
+  >
+    {@render dayCell({
+      date,
+      events,
+      isToday,
+      isSelected,
+      isDisabled,
+      isOutsideMonth,
+      isFocused
+    })}
+  </div>
 {:else if isOutsideMonth && !ctx.showOutsideDays}
   <div class={daySlot('day')} role="gridcell" aria-hidden="true"></div>
 {:else}

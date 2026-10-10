@@ -166,7 +166,14 @@ const categories: CalendarEventCategory[] = [
         <code class="text-text-primary">role="gridcell"</code> for days. Each cell carries
         <code class="text-text-primary">aria-selected</code>,
         <code class="text-text-primary">aria-disabled</code>, and
-        <code class="text-text-primary">aria-current="date"</code> for today.
+        <code class="text-text-primary">aria-current="date"</code> for today. Multi-day events sit
+        in rows of their own above each week, one cell per bar, spanning the days it covers. A
+        <code class="text-text-primary">dayCell</code> snippet renders inside the day's gridcell, which
+        Calendar keeps.
+      </p>
+      <p>
+        The year view is a grid of months, three to a row. The week view is a labelled group: its
+        hour grid has no cells to move between, so it does not claim to be a grid.
       </p>
     </Note>
     <Note title="Keyboard Navigation">
@@ -182,7 +189,13 @@ const categories: CalendarEventCategory[] = [
         <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
         navigate between months.
         <Kbd keys="Enter" />/<Kbd keys="Space" />
-        select the focused day. Focus rings use
+        select the focused day. In the year view the arrows move between months,
+        <Kbd keys="↑" />
+        <Kbd keys="↓" />
+        by a row of three. In the week view
+        <Kbd keys="←" />
+        <Kbd keys="→" />
+        move between the day headings. Focus rings use
         <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
       </p>
     </Note>
