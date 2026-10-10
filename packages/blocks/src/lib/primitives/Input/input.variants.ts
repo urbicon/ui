@@ -2,6 +2,8 @@ import {
   FIELD_BARE_MEASURE,
   FIELD_BARE_NATIVE_FILL,
   FIELD_DISABLED_FRAME,
+  FIELD_ICON_BUTTON,
+  FIELD_ICON_BUTTON_PADDING,
   FIELD_LABEL,
   FIELD_LABEL_DISABLED,
   FIELD_MESSAGE_TONES,
@@ -42,13 +44,7 @@ export const inputVariants = tv({
     iconContainer: [
       'absolute top-0 bottom-0 flex items-center justify-center z-10 pointer-events-none'
     ],
-    iconButton: [
-      'pointer-events-auto inline-flex items-center justify-center rounded-modify cursor-pointer',
-      'text-text-tertiary hover:text-text-primary hover:bg-surface-hover',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-      'transition-colors duration-[var(--blocks-duration-fast)]',
-      'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent'
-    ],
+    iconButton: [FIELD_ICON_BUTTON],
     iconDecoration: [
       'pointer-events-none inline-flex items-center justify-center text-text-tertiary'
     ]
@@ -87,32 +83,32 @@ export const inputVariants = tv({
         // focus and never restores the zoom. Desktop keeps the designed 12px.
         base: 'h-7 px-2 text-xs pointer-coarse:text-base',
         iconContainer: 'w-7',
-        iconButton: 'p-0.5 [&_svg]:w-3 [&_svg]:h-3',
+        iconButton: `${FIELD_ICON_BUTTON_PADDING.xs} [&_svg]:w-3 [&_svg]:h-3`,
         iconDecoration: '[&_svg]:w-3 [&_svg]:h-3'
       },
       sm: {
         // See `xs` — floor to 16px on touch to avoid iOS Safari focus-zoom.
         base: 'h-8 px-3 text-sm pointer-coarse:text-base',
         iconContainer: 'w-8',
-        iconButton: 'p-0.5 [&_svg]:w-3.5 [&_svg]:h-3.5',
+        iconButton: `${FIELD_ICON_BUTTON_PADDING.sm} [&_svg]:w-3.5 [&_svg]:h-3.5`,
         iconDecoration: '[&_svg]:w-3.5 [&_svg]:h-3.5'
       },
       md: {
         base: 'h-10 px-4 text-base',
         iconContainer: 'w-10',
-        iconButton: 'p-1 [&_svg]:w-4 [&_svg]:h-4',
+        iconButton: `${FIELD_ICON_BUTTON_PADDING.md} [&_svg]:w-4 [&_svg]:h-4`,
         iconDecoration: '[&_svg]:w-4 [&_svg]:h-4'
       },
       lg: {
         base: 'h-12 px-6 text-lg',
         iconContainer: 'w-12',
-        iconButton: 'p-1 [&_svg]:w-5 [&_svg]:h-5',
+        iconButton: `${FIELD_ICON_BUTTON_PADDING.lg} [&_svg]:w-5 [&_svg]:h-5`,
         iconDecoration: '[&_svg]:w-5 [&_svg]:h-5'
       },
       xl: {
         base: 'h-14 px-8 text-xl',
         iconContainer: 'w-14',
-        iconButton: 'p-1.5 [&_svg]:w-6 [&_svg]:h-6',
+        iconButton: `${FIELD_ICON_BUTTON_PADDING.xl} [&_svg]:w-6 [&_svg]:h-6`,
         iconDecoration: '[&_svg]:w-6 [&_svg]:h-6'
       }
     },

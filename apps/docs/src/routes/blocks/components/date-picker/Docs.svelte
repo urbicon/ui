@@ -45,10 +45,13 @@
   <NoteList>
     <Note title="ARIA Roles">
       <p>
-        The trigger input carries <code class="text-text-primary">aria-haspopup="dialog"</code> and
-        <code class="text-text-primary">aria-expanded</code>, so the popover's state is announced.
-        The embedded calendar is a <code class="text-text-primary">role="grid"</code> of day cells,
-        with the same keyboard model as
+        The text field carries <code class="text-text-primary">aria-haspopup="dialog"</code>; the
+        calendar button beside it carries <code class="text-text-primary">aria-expanded</code> and,
+        while the calendar is open, <code class="text-text-primary">aria-controls</code> pointing at
+        it. A textbox may not carry <code class="text-text-primary">aria-expanded</code>, so the
+        state sits on the button, as in the APG date-picker dialog. The embedded calendar is a
+        <code class="text-text-primary">role="grid"</code> of day cells, with the same keyboard
+        model as
         <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
           >Calendar</a
         >.
@@ -56,13 +59,17 @@
     </Note>
     <Note title="Keyboard Navigation">
       <p>
-        <Kbd keys="Enter" />,
-        <Kbd keys="Space" />
-        or
         <Kbd keys="ArrowDown" />
-        open the calendar,
+        opens the calendar from the field,
+        <Kbd keys="Enter" />
+        or
+        <Kbd keys="Space" />
+        from the calendar button;
         <Kbd keys="Escape" />
-        closes it. Inside, the arrow keys move between days and weeks and
+        closes it. From inside the calendar, Escape or picking a date returns focus to the calendar button.
+        A typed date is committed on <Kbd keys="Enter" />, when the calendar button opens the
+        calendar, and when focus leaves the picker. Inside, the arrow keys move between days and
+        weeks and
         <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
         between months. Focus rings use
         <code class="text-text-primary">focus-visible:</code>, so they appear for the keyboard only.

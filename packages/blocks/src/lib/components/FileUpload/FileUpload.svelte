@@ -66,8 +66,17 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp,
     preset,
+    // These address the control, so they go to the file input; the rest stays on the region.
+    id: idProp,
+    'aria-describedby': ariaDescribedby,
+    'aria-labelledby': ariaLabelledby,
+    'aria-invalid': ariaInvalid,
+    'aria-required': ariaRequired,
     ...restProps
   }: FileUploadProps = $props();
+
+  const propsId = $props.id();
+  const dropzoneId = `file-upload-${propsId}-dropzone`;
 
   // ── Provider ───────────────────────────────────────────────────────────────
 
@@ -77,6 +86,7 @@
   // ── State ──────────────────────────────────────────────────────────────────
 
   let inputEl = $state<HTMLInputElement>();
+  let dropzoneEl = $state<HTMLDivElement>();
   let dragging = $state(false);
   let dragInvalid = $state(false);
   let dragCounter = $state(0);
@@ -84,8 +94,16 @@
   // ── Derived ────────────────────────────────────────────────────────────────
 
   const maxFilesReached = $derived(files.length >= maxFiles);
+  const showDropzone = $derived(!maxFilesReached || files.length === 0);
   const effectiveMultiple = $derived(multiple || maxFiles > 1);
   const acceptString = $derived(Array.isArray(accept) ? accept.join(',') : (accept ?? ''));
+
+  const regionName = $derived(restProps['aria-label'] ?? bt('accessibility.fileUpload'));
+  // Internal id first, the consumer's last (COMPONENT-API-CONVENTIONS § restProps ordering);
+  // only while the dropzone is mounted, so the reference never dangles.
+  const describedBy = $derived(
+    [showDropzone ? dropzoneId : undefined, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   // Variant props feed both the tv() style computation and the slot-class
   // cascade — extracted into one derived so `resolveSlotClasses` can match
@@ -310,10 +328,18 @@
     if (!disabled && inputEl) inputEl.click();
   }
 
-  function handleDropzoneKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openFilePicker();
+  // A full list takes the dropzone away, but a `<label for>` click still reaches the input.
+  function handleInputClick(e: MouseEvent) {
+    if (!showDropzone) e.preventDefault();
+  }
+
+  // Focus scrolls only the 1px input into view, centred, which leaves a dropzone taller than
+  // half its scroller partly outside it. Keyboard focus, the kind that shows the ring, brings
+  // the whole dropzone in; a label click does not match `:focus-visible` and scrolls nothing
+  // more than before.
+  function handleInputFocus() {
+    if (inputEl?.matches(':focus-visible')) {
+      dropzoneEl?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   }
 </script>
@@ -322,37 +348,71 @@
   Spread first, so the region landmark survives a consumer `role`. Its name is the consumer's
   `aria-label` when given: two uploads on one page need two landmark names, and the i18n
   default is the same for every instance.
+
+  `relative` makes the root the containing block of the `sr-only` input below, and holds under
+  `unstyled` too. Focus scrolls that block's chain into view: from an unpositioned root it skips
+  any unpositioned scroller the upload sits in, so the scroller stays put while the page or an
+  `overflow-hidden` ancestor scrolls. A position class of the consumer's still replaces it.
 -->
 <div
   {...restProps}
-  class={unstyled
-    ? resolveClassChain(slotClasses?.root, className)
-    : styles.root({ class: [slotClasses?.root, className] })}
+  class={resolveClassChain(
+    'relative',
+    unstyled
+      ? resolveClassChain(slotClasses?.root, className)
+      : styles.root({ class: [slotClasses?.root, className] })
+  )}
   role="region"
-  aria-label={restProps['aria-label'] ?? bt('accessibility.fileUpload')}
+  aria-label={regionName}
 >
-  <!-- Hidden native input -->
+  <!--
+    The control. `<label for>` reaches only labelable elements, so this visually hidden input —
+    not the region, not the dropzone — takes `id` and the field's ARIA, and Enter/Space and a
+    label click open the picker natively. It must precede the dropzone: that sibling shows its
+    focus ring through `peer`. It stays mounted while a full list hides the dropzone, as the
+    label's target and the carrier of `files` into FormData, but leaves the tab order then —
+    no ring host is left on screen — and cancels the picker a label click would open.
+
+    `title` is the lowest-ranked name source: a `<label>` outranks it, so a FormField label still
+    names the control, and without one it is what satisfies axe's `label` rule. Chromium itself
+    names an unlabelled file input by its button text ("Choose File" / "Choose Files") and ranks
+    that above `title`.
+  -->
   <input
     bind:this={inputEl}
+    id={idProp}
     type="file"
     accept={acceptString || undefined}
     multiple={effectiveMultiple}
     {disabled}
     {required}
     {name}
+    onclick={handleInputClick}
+    onfocus={handleInputFocus}
     onchange={handleInputChange}
-    class="sr-only"
-    tabindex={-1}
-    aria-hidden="true"
+    class="peer sr-only"
+    title={regionName}
+    tabindex={showDropzone ? undefined : -1}
+    aria-labelledby={ariaLabelledby}
+    aria-describedby={describedBy}
+    aria-invalid={ariaInvalid}
+    aria-required={ariaRequired}
+    aria-disabled={showDropzone ? undefined : 'true'}
   />
 
-  <!-- Dropzone -->
-  {#if !maxFilesReached || files.length === 0}
+  {#if showDropzone}
+    <!--
+      Pointer and drop surface only: the keyboard path to the picker is the input above, so the
+      dropzone takes no focus and needs no key handler. Its content describes the input.
+      `aria-disabled` marks its dimmed text as part of an inactive component, which WCAG 1.4.3
+      exempts from contrast; without it axe's `color-contrast` reports a disabled dropzone.
+    -->
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div
+      bind:this={dropzoneEl}
+      id={dropzoneId}
       {@attach mintAttachment(mint, { enabled: !disabled })}
       class={slot('dropzone')}
-      role="button"
-      tabindex={disabled ? -1 : 0}
       aria-disabled={disabled || undefined}
       data-blocks-dropzone-state={dragging ? (dragInvalid ? 'reject' : 'accept') : 'idle'}
       ondragenter={allowDrop ? handleDragEnter : undefined}
@@ -360,7 +420,6 @@
       ondragleave={allowDrop ? handleDragLeave : undefined}
       ondrop={allowDrop ? handleDrop : undefined}
       onclick={openFilePicker}
-      onkeydown={handleDropzoneKeydown}
     >
       {#if children}
         {@render children()}

@@ -38,6 +38,86 @@ initial value:
 rg -nU '<TimeInput\b(?:=>|[^>])*?(\bonValueChange=|\bbind:value\b)' src
 ```
 
+### `DatePicker` and `DateRangePicker` report the open calendar on the calendar button
+
+The text field carried `aria-expanded`, and while open `aria-controls`. ARIA does not allow
+`aria-expanded` on a textbox, and axe reports it as `aria-allowed-attr`. Both attributes now sit on
+the "Open calendar" button beside the field, the shape of the APG date-picker dialog. The field
+keeps `aria-haspopup="dialog"`. A test or selector that read either attribute off the textbox
+finds it on that button now.
+
+That button is now always the picker's own. While the field was empty it used to be `Input`'s
+right-icon button, and the picker drew its own only once a value brought the clear button in.
+So `iconButton` in the picker's `slotClasses` (and under its name on `<BlocksProvider>`) styles it
+in both states, and an `iconButton` entry under `Input` no longer reaches it. Both picker buttons
+take `Input`'s icon-button padding per `size`, so beside a value they are larger than before from
+`md` up: `p-1`, and `p-1.5` at `xl`, where they had `p-0.5`.
+
+```sh
+rg -n 'aria-expanded|toBeExpanded|expanded:|iconButton' src e2e tests
+```
+
+### `DatePicker` and `DateRangePicker` commit a typed date when focus leaves the picker
+
+A typed date was committed when the text field lost focus to something outside the picker. Focus
+that went from the field to the picker's own clear or calendar button and then left never committed
+it: the field kept showing the typed date while the form submitted the old one. The draft now
+commits when focus leaves the field, its buttons and the open calendar altogether, and when the
+calendar button opens the calendar. So `onValueChange` fires, and `bind:value` changes, on paths
+where both used to stay silent.
+
+Two paths go the other way. Focus moving from the field into the open calendar used to commit the
+draft; it now holds it until focus leaves the picker or the calendar picks a date. And in
+`DatePicker`, picking the date the picker already holds no longer fires `onValueChange` again;
+`DateRangePicker` reports every completed range, equal or not.
+
+`DateRangePicker` also runs an `onkeydown` you pass, after its own handler, as `DatePicker` does
+since 8.28.0. Before, it was dropped without a word, so a handler that never ran starts running.
+
+```sh
+rg -nU '<DateRangePicker\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
+```
+
+### `FileUpload` puts `id` and the field's ARIA on its file input
+
+`FileUpload` spread every attribute you passed onto its root `<div role="region">`, while its
+`<input type="file">` was `aria-hidden` and its dropzone a `<div role="button">`. A `<label for>`
+reaches neither `<div>`, so the FormField example — `<FileUpload {id} aria-describedby={describedBy}
+aria-invalid={invalid || undefined}>` — rendered a label that named nothing and opened nothing, and
+the description and invalid state landed on the region.
+
+The file input is now the control: visually hidden, focusable, named by your label.
+
+- `id`, `aria-labelledby`, `aria-describedby`, `aria-invalid` and `aria-required` land on the
+  `<input type="file">`. Everything else stays on the root: `class`, `style`, `data-*`, and
+  `aria-label`, which still names the region. An `aria-labelledby` named the region before; now it
+  names the input, and the region falls back to "File upload", so two uploads named that way share
+  one landmark name. Give each region its name with `aria-label`.
+- The dropzone is no longer a `role="button"` and takes no focus. Tab stops on the input, and
+  Enter, Space or a click on its label opens the file dialog. Safari reaches it as it reaches any
+  native button: with Option+Tab, or with "Press Tab to highlight each item" turned on.
+- The dropzone's focus ring is `peer-focus-visible:`, relayed from the input. A `slotClasses`
+  entry or an `unstyled` stylesheet that styled the dropzone on `focus-visible:` no longer
+  matches, and a `mint` with `trigger: 'focus'` no longer fires.
+- With `maxFiles` reached the dropzone still goes away. The input stays as the label's target, but
+  leaves the tab order, reads as unavailable and opens no dialog.
+- The root is `relative`, under `unstyled` too, so focusing the input scrolls the scroller the
+  upload sits in, not the page or a Dialog's panel. Styled, the dropzone and the file rows were
+  `relative` already, so nothing inside moves. Under `unstyled`, an `absolute` element in your
+  `children` or `fileItem` content with no positioned element of yours around it now places itself
+  against the FileUpload root instead of an ancestor further out; wrap it in the positioned element
+  you meant.
+
+Neither TypeScript nor axe's WCAG rules report the change. axe's best-practice
+`label-title-only` does report every FileUpload without a label, since only the input's `title`
+names it for axe; label it through FormField or `aria-labelledby`. A selector or test that read
+`id` or one of those attributes off the root finds it on the input; one that found the dropzone as
+a `button` finds the input by its label, or the dropzone by `[data-blocks-dropzone-state]`:
+
+```sh
+rg -nU '<FileUpload\b(?:=>|[^>])*?(\b(id|aria-(labelledby|describedby|invalid|required))=|\{id\}|\{\.\.\.)' src e2e tests
+```
+
 ## 8.28.0
 
 ### A chart's `aria-label` and `aria-labelledby` name the chart
