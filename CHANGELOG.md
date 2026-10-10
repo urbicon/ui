@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.28.0](https://github.com/urbicon/ui/compare/v8.27.0...v8.28.0) - 2026-10-10
+
+### Breaking Changes
+- **blocks**: Four components spread restProps first, so their own attributes win ([#516](https://github.com/urbicon/ui/issues/516))
+> **BREAKING:** four components spread restProps first, own attributes win (MIGRATION.md, 8.28.0)
+- **design-engine**: Raw-tailwind-color flags white, black and the missing palette families ([#520](https://github.com/urbicon/ui/issues/520))
+> **BREAKING:** validate now errors on white, black, mauve, olive, mist, taupe and shadow colours
+- **blocks**: Chart summaries translate, stacked areas and sparkline dots stay inside ([#521](https://github.com/urbicon/ui/issues/521))
+> **BREAKING:** the charts' generated names change in every locale (MIGRATION.md, 8.28.0)
+- **blocks**: Buttons show a pointer, Textarea and Progress honour their size props ([#522](https://github.com/urbicon/ui/issues/522))
+> **BREAKING:** MenuSpecificProps drops placement and syncWidth; index MenuVariants (MIGRATION.md)
+- **blocks**: A chart's aria-label and aria-labelledby name the chart, not its figure ([#524](https://github.com/urbicon/ui/issues/524))
+> **BREAKING:** a chart's aria-label and aria-labelledby now name its image (MIGRATION.md, 8.28.0)
+- Retire the MCP server, the urbicon CLI is the only consumer surface ([#525](https://github.com/urbicon/ui/issues/525))
+> **BREAKING:** @urbicon-ui/mcp-server is retired; design-content drops getVerbsDir/getTemplatePath
+- **blocks**: Disabled link cards leave the tab order, Select rows get ids of their own ([#526](https://github.com/urbicon/ui/issues/526))
+> **BREAKING:** Card aria-disabled and disabled-link tabindex, Select option ids (MIGRATION.md)
+
+### Bug Fixes
+- **blocks**: A lone DonutChart slice closes its ring under padAngle ([#515](https://github.com/urbicon/ui/issues/515))
+- **auth**: The server entries load in a plain bun or node process ([#514](https://github.com/urbicon/ui/issues/514))
+- **blocks**: An icon's geometry is in the server HTML, not added after hydration ([#517](https://github.com/urbicon/ui/issues/517))
+
+### Features
+- **blocks**: The components without usable restProps take them ([#512](https://github.com/urbicon/ui/issues/512))
+
+### Testing
+- **blocks**: Cover BarChart, LineChart, DonutChart and ChartFrame ([#510](https://github.com/urbicon/ui/issues/510))
+- **blocks**: Cover the charts' a11y output and AreaChart's and Sparkline's geometry ([#519](https://github.com/urbicon/ui/issues/519))
+
 ## [8.27.0](https://github.com/urbicon/ui/compare/v8.26.1...v8.27.0) - 2026-10-09
 
 ### Breaking Changes
