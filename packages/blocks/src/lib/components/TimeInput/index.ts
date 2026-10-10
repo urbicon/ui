@@ -62,12 +62,15 @@ export interface TimeInputProps
    *   `format` never changes it.
    *
    * An AM/PM segment always holds a value, so it never makes a time half-typed.
-   * Passing `null` or `undefined` clears a field that shows a complete time, but
-   * never one the user is halfway through: a consumer that stores "no time" as one
-   * value hands the field's own `null` back, and that must not wipe the digits
-   * typed so far; remount the field (`{#key}`) to reset a half-typed one. A `null`
-   * you pass at mount renders empty and stays `null` until the user edits.
-   * Supports `bind:value`.
+   * `""` reads as no time, like `null` and `undefined`. No time passed while focus
+   * is outside the field clears it, half-typed or not. While focus is inside, it is
+   * taken as the echo of the field's own report and ignored, so a consumer that
+   * stores no time as one value (`""` or `undefined`) cannot wipe the digits being
+   * typed; the cost is that a reset fired from inside the field (an Escape handler
+   * on it, say) is ignored too. A reset has to change the value: a half-typed bound
+   * field already holds `null`, so reset it with `undefined`. A `null` you pass at
+   * mount renders empty and stays `null` until the user edits. Supports
+   * `bind:value`.
    */
   value?: string | null | undefined;
   /** Display the hour as 12-hour with an AM/PM segment. The value stays 24-hour. @default '24h' */
@@ -79,17 +82,26 @@ export interface TimeInputProps
    * `900` is a 15-minute grid, `3600` whole hours. Unset, every minute is allowed
    * (every second with `withSeconds`).
    *
-   * - The Arrow keys move a segment to its next raster value and wrap inside it
-   *   without carrying into the others; `aria-valuemin`/`aria-valuemax` name the
-   *   first and last raster value of each segment.
+   * - From a time on the raster, the Arrow keys move a segment to its next raster
+   *   value and wrap inside it without carrying into the others. From a time off
+   *   it (one you passed in, or a digit mid-entry), Up goes to the first raster
+   *   point above and Down to the first below. `aria-valuemin`/`aria-valuemax`
+   *   name the first and last raster value of each segment for the time shown.
    * - A typed time off the raster snaps down to the raster point below it as soon
-   *   as its segment is complete, and the value never carries the off-raster time,
-   *   not even while a digit is mid-entry. A time you pass in is shown as given and
-   *   lands on the raster with the next edit or on blur.
+   *   as its segment is complete. While a digit is still mid-entry the value is
+   *   `null`, so it never carries an off-raster time and always matches what the
+   *   field shows. A time you pass in is shown as given, fixed segments included,
+   *   and lands on the raster with the next edit or on blur.
+   * - The raster counts from `min`: with `min="09:10"` and `900`, a typed `10:00`
+   *   lands on `09:55`.
    * - A segment the raster pins to one value is shown but not typed: an hourly
    *   step fixes the minute (and second), a whole-minute step fixes the second.
    * - Without `withSeconds` only the step's whole-minute points count: `30` allows
    *   every minute, `90` every third.
+   * - With a step that does not divide an hour (or a minute, with `withSeconds`),
+   *   typing and the blur clamp reach every raster point, but the Arrow keys only
+   *   move along points that keep the other segments; prefer a step that divides
+   *   the hour.
    *
    * Must be a positive whole number; anything else is ignored, with a warning in dev.
    */

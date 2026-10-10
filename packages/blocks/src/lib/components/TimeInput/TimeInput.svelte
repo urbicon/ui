@@ -75,6 +75,7 @@
   let secondStr = $state('');
   let meridiem = $state<'AM' | 'PM'>('AM');
 
+  let fieldEl = $state<HTMLDivElement>();
   let hourEl = $state<HTMLInputElement>();
   let minuteEl = $state<HTMLInputElement>();
   let secondEl = $state<HTMLInputElement>();
@@ -154,7 +155,8 @@
   }
 
   // What the segments spell: `undefined` while every typed segment is empty,
-  // `null` while some are and some are not, else seconds since midnight.
+  // `null` while some are and some are not, else seconds since midnight. A fixed
+  // segment counts with the value it was given, if any, until it is snapped.
   function segmentsSeconds(): number | null | undefined {
     const typed = [hourStr];
     if (!minuteFixed) typed.push(minuteStr);
@@ -162,8 +164,8 @@
     if (typed.every((str) => str === '')) return undefined;
     if (typed.includes('')) return null;
     const h = num(hourStr) as number;
-    const m = minuteFixed ? baseMinute : (num(minuteStr) as number);
-    const s = !withSeconds ? 0 : secondFixed ? baseSecond : (num(secondStr) as number);
+    const m = num(minuteStr) ?? baseMinute;
+    const s = withSeconds ? (num(secondStr) ?? baseSecond) : 0;
     // A provisional "0" in a 12-hour hour maps to 12 (midnight/noon); the clamp
     // to [1,12] is belt-and-suspenders so an out-of-range hour (e.g. a stale "13"
     // left over from a runtime format flip) can never produce a 25:xx value.
@@ -171,10 +173,19 @@
     return H * 3600 + m * 60 + s;
   }
 
-  // The value the segments describe, snapped down onto the raster.
+  // A single unpadded digit is still being typed: "4" may yet become "45".
+  function midEntry(): boolean {
+    return [hourStr, minuteStr, secondStr].some((str) => str.length === 1);
+  }
+
+  // The value the segments report, snapped down onto the raster. While a digit
+  // mid-entry leaves the time off the raster it is `null`: the field shows no
+  // valid time yet, and a snapped one would differ from what it shows.
   function canonicalFromSegments(): string | null | undefined {
     const t = segmentsSeconds();
-    return typeof t === 'number' ? timeString(snapDown(t)) : t;
+    if (typeof t !== 'number') return t;
+    if (rasterOffset(t) !== 0 && midEntry()) return null;
+    return timeString(snapDown(t));
   }
 
   function setValue(next: string | null | undefined) {
@@ -185,12 +196,16 @@
   }
 
   // Report the segments' value. `reseed` re-shows a time the raster moved; a
-  // digit still mid-entry passes false, or its second digit would be lost.
+  // digit still mid-entry passes false, or its second digit would be lost. An
+  // empty field forgets what its fixed segments were given.
   function emit(reseed: boolean) {
     const t = segmentsSeconds();
-    const next = typeof t === 'number' ? timeString(snapDown(t)) : t;
+    const next = canonicalFromSegments();
     setValue(next);
-    if (reseed && typeof t === 'number' && snapDown(t) !== t) syncFromValue(next);
+    if (t === undefined) syncFromValue(undefined);
+    else if (reseed && typeof t === 'number' && next !== null && snapDown(t) !== t) {
+      syncFromValue(next);
+    }
   }
 
   function syncFromValue(v: string | null | undefined) {
@@ -222,20 +237,28 @@
   // already set `value`) and fires the re-seed on a format switch, because the
   // canonical computed under the new format no longer matches the raw value.
   //
-  // A nullish value clears the segments only while they hold a complete time. A
-  // one-way consumer that stores "no time" as one value (A2UI's `""`) hands the
-  // field's own `null` back as `undefined`; acting on that would wipe what the
-  // user is halfway through typing.
+  // "No time" (`undefined`, `null` or `""`) that arrives while focus is inside the
+  // field is the echo of the field's own report and is ignored, with nothing
+  // written back: a one-way consumer that stores "no time" as one value (A2UI's
+  // `""`) hands a half-typed `null` back as `""` or `undefined`, and acting on it
+  // would wipe the digits being typed. From anywhere else it is a reset and
+  // clears the segments. Only a value that changed counts as arriving; a format
+  // flip re-runs this effect too.
+  let lastIncoming: unknown = Symbol('unseen');
   $effect(() => {
-    const incoming = value;
+    const raw = value;
     void format;
     void withSeconds;
-    const current = untrack(() => canonicalFromSegments());
-    if (typeof incoming === 'string') {
-      if (incoming !== current) untrack(() => syncFromValue(incoming));
-    } else if (typeof current === 'string') {
-      untrack(() => syncFromValue(undefined));
-    }
+    untrack(() => {
+      const arrived = raw !== lastIncoming;
+      lastIncoming = raw;
+      const incoming = raw === '' ? undefined : raw;
+      if (typeof incoming === 'string') {
+        if (incoming !== canonicalFromSegments()) syncFromValue(incoming);
+      } else if (arrived && !fieldEl?.contains(document.activeElement)) {
+        syncFromValue(undefined);
+      }
+    });
   });
 
   const variantProps: TimeInputVariants = $derived({
@@ -269,22 +292,26 @@
       : styles.segment({ class: slotClasses?.segment });
   }
 
-  // Fixed segments are left out: typing, the Arrow keys and Backspace never stop on them.
-  const order = $derived(
+  // Every segment in DOM order. Typing, the Arrow keys and Backspace never move
+  // onto a fixed one, but a pointer can focus it, so it stays in the list to be
+  // left from.
+  const segments = $derived(
     [
       hourEl,
-      minuteFixed ? undefined : minuteEl,
-      withSeconds && !secondFixed ? secondEl : undefined,
+      minuteEl,
+      withSeconds ? secondEl : undefined,
       format === '12h' ? meridiemEl : undefined
-    ].filter(Boolean) as (HTMLInputElement | HTMLSpanElement)[]
+    ].filter(Boolean) as HTMLElement[]
   );
 
-  function advanceFrom(el: HTMLElement) {
-    const idx = order.indexOf(el as HTMLInputElement);
-    const next = order[idx + 1];
-    if (next) {
+  // Focus the nearest segment before (-1) or after (1) `el` that is not fixed.
+  function moveFocus(el: HTMLElement, dir: 1 | -1) {
+    for (let i = segments.indexOf(el) + dir; i >= 0 && i < segments.length; i += dir) {
+      const next = segments[i];
+      if ((next === minuteEl && minuteFixed) || (next === secondEl && secondFixed)) continue;
       next.focus();
       if (next instanceof HTMLInputElement) next.select();
+      return;
     }
   }
 
@@ -311,11 +338,20 @@
     return h * 3600 + m * 60 + s;
   }
 
-  // The other segments a candidate is checked against: the current time on the
-  // raster, or the raster's own origin while the time is incomplete.
+  // The other segments a candidate is checked against: the time the field shows,
+  // or the raster's own origin while the time is incomplete.
   function stepReference(): number {
     const t = segmentsSeconds();
-    return typeof t === 'number' ? snapDown(t) : rasterBase;
+    return typeof t === 'number' ? t : rasterBase;
+  }
+
+  // The nearest raster point after (1) or before (-1) an off-raster `t`, wrapping
+  // around the day.
+  function rasterPointFrom(t: number, dir: 1 | -1): number {
+    const below = snapDown(t);
+    if (dir < 0) return below < t ? below : snapDown(86_399);
+    const above = below > t ? below : below + rasterStep;
+    return above < 86_400 ? above : snapDown(0);
   }
 
   // The segment values that land on the raster, in ascending order.
@@ -349,12 +385,13 @@
     return fits.length === 0 ? [lo, hi] : [fits[0], fits[fits.length - 1]];
   }
 
-  // A fixed segment shows its one value once any typed segment holds a digit.
+  // A fixed segment shows once any typed segment holds a digit: the value it was
+  // given until an edit or blur snaps it, else its one raster value.
   const minuteText = $derived(
-    minuteFixed ? (segmentsSeconds() === undefined ? '' : pad(baseMinute)) : minuteStr
+    minuteFixed ? (segmentsSeconds() === undefined ? '' : minuteStr || pad(baseMinute)) : minuteStr
   );
   const secondText = $derived(
-    secondFixed ? (segmentsSeconds() === undefined ? '' : pad(baseSecond)) : secondStr
+    secondFixed ? (segmentsSeconds() === undefined ? '' : secondStr || pad(baseSecond)) : secondStr
   );
 
   // Digit-entry state machine shared by the three numeric segments. Returns the
@@ -384,7 +421,7 @@
     setStr(seg, next);
     el.value = next;
     emit(complete);
-    if (complete) advanceFrom(el);
+    if (complete) moveFocus(el, 1);
   }
 
   function commitSegment(which: SegName) {
@@ -395,12 +432,17 @@
   }
 
   function stepFocused(seg: SegName, dir: 1 | -1) {
-    const v = stepSegment(seg, dir);
-    if (v === undefined) return;
     const t = segmentsSeconds();
-    // A complete time moves as a whole, so the other segments land on the raster too.
-    if (typeof t === 'number') syncFromValue(timeString(withSegment(seg, v, snapDown(t))));
-    else setStr(seg, pad(v));
+    if (typeof t === 'number' && rasterOffset(t) !== 0) {
+      // Off the raster no segment value is "next"; the time moves to the raster
+      // point that way, whichever segments that changes.
+      syncFromValue(timeString(rasterPointFrom(t, dir)));
+    } else {
+      const v = stepSegment(seg, dir);
+      if (v === undefined) return;
+      if (typeof t === 'number') syncFromValue(timeString(withSegment(seg, v, t)));
+      else setStr(seg, pad(v));
+    }
     emit(true);
   }
 
@@ -416,15 +458,13 @@
         if (locked) break;
         stepFocused(seg, e.key === 'ArrowUp' ? 1 : -1);
         break;
-      case 'ArrowLeft': {
+      case 'ArrowLeft':
         e.preventDefault();
-        const idx = order.indexOf(el);
-        if (idx > 0) order[idx - 1].focus();
+        moveFocus(el, -1);
         break;
-      }
       case 'ArrowRight':
         e.preventDefault();
-        advanceFrom(el);
+        moveFocus(el, 1);
         break;
       case 'Backspace':
         if (locked) break;
@@ -434,8 +474,7 @@
           el.value = '';
           emit(false);
         } else {
-          const idx = order.indexOf(el);
-          if (idx > 0) order[idx - 1].focus();
+          moveFocus(el, -1);
         }
         break;
     }
@@ -474,12 +513,10 @@
         toggleMeridiem('PM');
         break;
       case 'ArrowLeft':
-      case 'Backspace': {
+      case 'Backspace':
         e.preventDefault();
-        const idx = order.indexOf(e.currentTarget as HTMLSpanElement);
-        if (idx > 0) order[idx - 1].focus();
+        moveFocus(e.currentTarget as HTMLSpanElement, -1);
         break;
-      }
     }
   }
 
@@ -524,6 +561,7 @@
   {/if}
 
   <div
+    bind:this={fieldEl}
     role="group"
     aria-labelledby={labelledBy}
     aria-label={label ? undefined : ariaLabel}

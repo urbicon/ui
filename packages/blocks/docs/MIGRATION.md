@@ -27,15 +27,21 @@ once the time is complete. The AM/PM segment always holds a value and does not c
 - **Start from `undefined`.** Leave `value` out, or bind state created with `$state()`. Binding
   an `undefined` state threw `props_invalid_value` before; it works now. A `null` you pass still
   renders an empty field and writes nothing back, but it reads as half-typed until the user edits.
+- **No time resets the field only from outside it.** `undefined`, `null` and `""` set while focus
+  is elsewhere clear the field, a half-typed one too, which used to keep its digits. Set while
+  focus is inside the field, they are ignored as the echo of the field's own report, so a reset
+  fired from inside it (an Escape handler on the field, say) no longer clears it: move focus out
+  first. A reset has to change the value, and a half-typed bound field already holds `null`, so
+  reset with `undefined`.
 - **With `withSeconds`, the clamp emits seconds.** A value clamped to `min="09:00"` arrives as
   `09:00:00`; it used to arrive as the bound's own `09:00`.
 
 The hidden `name` input submits `""` for both empty and half-typed, as before. The grep lists
-every TimeInput with a handler or a binding; check the handler's parameter type and the state's
-initial value:
+every TimeInput with a handler, a binding or a spread; check the handler's parameter type, the
+state's initial value and any reset written from inside the field:
 
 ```sh
-rg -nU '<TimeInput\b(?:=>|[^>])*?(\bonValueChange=|\bbind:value\b)' src
+rg -nU '<TimeInput\b(?:"[^"]*"|=>|[^>])*?(\bonValueChange=|\{onValueChange\}|\bbind:value\b|\{\.\.\.)' src
 ```
 
 ### `DatePicker` and `DateRangePicker` report the open calendar on the calendar button
