@@ -71,12 +71,24 @@
     return props;
   });
 
+  // `pointer-events-none` suppresses hit testing and nothing else: Enter on a
+  // focused link and an assistive-technology `element.click()` both reach this
+  // handler, so a disabled link card cancels its navigation here.
   function handleClick(event: MouseEvent) {
-    if (disabled) return;
+    if (disabled) {
+      if (href) event.preventDefault();
+      return;
+    }
     onclick?.(event);
   }
 </script>
 
+<!--
+  `aria-disabled` is a widget attribute: the `<button>` and `<a>` forms carry it
+  while disabled, the role-less `<div>` has nothing to disable and carries none.
+  Both attributes follow the spread so the disabled state wins over a consumer's
+  value, and fall back to it otherwise.
+-->
 <svelte:element
   this={elementType}
   {@attach mintAttachment(mint, { enabled: isInteractive && !disabled })}
@@ -86,8 +98,9 @@
   onmouseenter={() => onHover?.(true)}
   onmouseleave={() => onHover?.(false)}
   onclick={handleClick}
-  aria-disabled={disabled}
   {...elementProps}
+  tabindex={disabled && href ? -1 : restProps.tabindex}
+  aria-disabled={disabled && isInteractive ? true : restProps['aria-disabled']}
 >
   {#if header}
     <div

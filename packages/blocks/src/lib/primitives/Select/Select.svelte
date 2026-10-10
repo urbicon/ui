@@ -176,6 +176,18 @@
     return map;
   });
 
+  // An option's DOM id counts every row, disabled ones included, so no two rows
+  // share one. The keyboard cursor (`activeIndex`) counts enabled rows only, so
+  // `aria-activedescendant` reaches an id through the option the cursor is on,
+  // never through the cursor's number.
+  const flatIndexByOption = $derived.by(() => {
+    const map = new Map<SelectOption<T>, number>();
+    allOptions.forEach((o, i) => {
+      if (!map.has(o)) map.set(o, i);
+    });
+    return map;
+  });
+
   /**
    * Currently selected option(s), normalized to an array regardless of mode.
    *
@@ -458,9 +470,11 @@
     }
   }
 
-  function getOptionId(index: number) {
-    return `${uid}-option-${index}`;
+  function getOptionId(option: SelectOption<T>) {
+    return `${uid}-option-${flatIndexByOption.get(option)}`;
   }
+
+  const activeOption = $derived<SelectOption<T> | undefined>(enabledOptions[activeIndex]);
 
   /**
    * Trigger label text for single + multi modes.
@@ -545,7 +559,7 @@
         aria-describedby={describedBy}
         aria-invalid={ff.invalid ? 'true' : undefined}
         aria-required={ff.required ? 'true' : undefined}
-        aria-activedescendant={activeIndex >= 0 ? getOptionId(activeIndex) : undefined}
+        aria-activedescendant={activeOption ? getOptionId(activeOption) : undefined}
         onclick={toggle}
         onkeydown={handleTriggerKeydown}
       >
@@ -667,7 +681,7 @@
                 <!-- svelte-ignore a11y_interactive_supports_focus -->
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <div
-                  id={getOptionId(optIdx)}
+                  id={getOptionId(option)}
                   role="option"
                   aria-selected={isSel}
                   aria-disabled={option.disabled || undefined}
@@ -702,7 +716,7 @@
             <!-- svelte-ignore a11y_interactive_supports_focus -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
-              id={getOptionId(optIdx)}
+              id={getOptionId(option)}
               role="option"
               aria-selected={isSel}
               aria-disabled={option.disabled || undefined}

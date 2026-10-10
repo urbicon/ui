@@ -437,6 +437,72 @@ describe('Select (active highlight)', () => {
   });
 });
 
+// ── Option ids with disabled rows ────────────────────────────────────────────
+// The keyboard cursor counts enabled options only; the ids it points at must
+// still be one per rendered row, or `aria-activedescendant` and
+// `getElementById` resolve to whichever duplicate comes first.
+describe('Select (option ids)', () => {
+  const ids = () => screen.getAllByRole('option', { hidden: true }).map((o) => o.id);
+  const activeOption = () =>
+    document.getElementById(trigger().getAttribute('aria-activedescendant') ?? '');
+
+  it('gives every option its own id, disabled ones included', async () => {
+    const user = userEvent.setup();
+    renderSelect({
+      options: [
+        { label: 'Germany', value: 'de', disabled: true },
+        { label: 'France', value: 'fr' },
+        { label: 'Spain', value: 'es', disabled: true },
+        { label: 'Italy', value: 'it' }
+      ]
+    });
+
+    await user.click(trigger());
+    expect(ids()).toHaveLength(4);
+    expect(new Set(ids()).size).toBe(4);
+
+    // The cursor skips both disabled rows and its descendant names the row it is on.
+    await user.keyboard('{ArrowDown}');
+    expect(activeOption()).toBe(option('France'));
+    await user.keyboard('{ArrowDown}');
+    expect(activeOption()).toBe(option('Italy'));
+    await user.keyboard('{ArrowDown}');
+    expect(activeOption()).toBe(option('France'));
+  });
+
+  it('keeps grouped option ids unique across groups, disabled ones included', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderSelect({
+      groups: [
+        {
+          label: 'Europe',
+          options: [
+            { label: 'Germany', value: 'de', disabled: true },
+            { label: 'France', value: 'fr' }
+          ]
+        },
+        {
+          label: 'Americas',
+          options: [
+            { label: 'Brazil', value: 'br', disabled: true },
+            { label: 'Canada', value: 'ca' }
+          ]
+        }
+      ],
+      onValueChange
+    });
+
+    await user.click(trigger());
+    expect(new Set(ids()).size).toBe(4);
+
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(activeOption()).toBe(option('Canada'));
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenCalledWith('ca');
+  });
+});
+
 // Orphan dev-warn dedup — mirrors Combobox. Both warn sites live in the
 // `selectedOptions` $derived.by whose deps include the `options` reference, so
 // a parent re-render passing a fresh `options` array (the common

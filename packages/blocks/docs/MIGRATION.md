@@ -103,6 +103,40 @@ raised `maxRows` to make up for the old cap, lower it again:
 rg -n 'maxRows' src
 ```
 
+### `Card` sets `aria-disabled` only on a disabled button or link
+
+Every enabled Card rendered `aria-disabled="false"`, and a disabled `<div>` card
+`aria-disabled="true"`, on an element without a role, which supports neither. It now ships only on a
+disabled card that renders a `<button>` or an `<a>`, as `"true"`; a `<div>` card carries none,
+disabled or not, and keeps its disabled look. A selector or test that matched
+`[aria-disabled="false"]`, or found a disabled `<div>` card by its `aria-disabled`, finds nothing.
+
+### A disabled `<Card href>` leaves the tab order and does not navigate
+
+`disabled` stopped only the pointer on a link card: Tab still reached it, and Enter or a screen
+reader's activation followed the link. It now takes `tabindex="-1"` and cancels the click, as a
+disabled `Link` does, and keeps its `href`, so the address stays readable. A `tabindex` you pass
+no longer puts it back in the tab order. A test that tabbed to a disabled link card, or expected
+it to navigate, fails. Nothing reports either Card change; the hits to read are every Card with
+`disabled`:
+
+```sh
+rg -nU '<Card\b(?:=>|[^>])*?\bdisabled\b' src e2e tests
+```
+
+### `Select` gives every option an id of its own
+
+A disabled option's id was `<id>-option--1`, the same for every disabled option, and an enabled
+option's number counted the enabled options only. Now the number is the option's position among
+all options, across groups, disabled ones included. A Select without disabled options keeps its
+ids; in one with them, an enabled option after a disabled one moves to a higher number, and
+`aria-activedescendant` follows it. A test that addressed an option by its id needs the new
+number, or reach the option by its role and name instead:
+
+```sh
+rg -n -- '-option-' src e2e tests
+```
+
 ## 8.26.0
 
 ### Seven icons are renamed
