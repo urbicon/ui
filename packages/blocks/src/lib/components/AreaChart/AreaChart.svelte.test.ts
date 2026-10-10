@@ -498,7 +498,12 @@ describe('AreaChart — what a screen reader gets', () => {
       { stacked: true },
       'Stacked area chart, points: 2, series: 2'
     ],
-    ['ariaLabel', { ariaLabel: 'Visitors' }, 'Visitors']
+    ['ariaLabel', { ariaLabel: 'Visitors' }, 'Visitors'],
+    [
+      'ariaLabel over a plain aria-label',
+      { ariaLabel: 'Visitors', 'aria-label': 'Traffic' },
+      'Visitors'
+    ]
   ])('names the image and captions the data table with %s', (_name, props, name) => {
     const target = render({ ...VISITORS, ...props });
 

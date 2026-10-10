@@ -220,10 +220,15 @@ describe('LineChart — what a screen reader gets', () => {
   });
 
   it.each([
-    ['a generated summary', undefined, 'Line chart, points: 2, series: 2'],
-    ['ariaLabel', 'Temperatures', 'Temperatures']
-  ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
-    const target = render({ ...TEMPERATURES, ariaLabel });
+    ['a generated summary', {}, 'Line chart, points: 2, series: 2'],
+    ['ariaLabel', { ariaLabel: 'Temperatures' }, 'Temperatures'],
+    [
+      'ariaLabel over a plain aria-label',
+      { ariaLabel: 'Temperatures', 'aria-label': 'Readings' },
+      'Temperatures'
+    ]
+  ])('names the image and captions the data table with %s', (_name, props, name) => {
+    const target = render({ ...TEMPERATURES, ...props });
 
     expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
     expect(dataTable(target).caption).toBe(name);

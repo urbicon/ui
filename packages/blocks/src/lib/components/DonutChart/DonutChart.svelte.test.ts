@@ -322,12 +322,17 @@ describe('DonutChart — what a screen reader gets', () => {
   });
 
   it.each([
-    ['a generated summary', undefined, 'Donut chart, segments: 3, total: 4 €'],
-    ['ariaLabel', 'Traffic by channel', 'Traffic by channel']
+    ['a generated summary', {}, 'Donut chart, segments: 3, total: 4 €'],
+    ['ariaLabel', { ariaLabel: 'Traffic by channel' }, 'Traffic by channel'],
+    [
+      'ariaLabel over a plain aria-label',
+      { ariaLabel: 'Traffic by channel', 'aria-label': 'Channels' },
+      'Traffic by channel'
+    ]
   ])(
     'presents the svg as one image named by %s, which also captions the table',
-    (_name, ariaLabel, name) => {
-      const target = render({ ...CHANNELS, ariaLabel });
+    (_name, props, name) => {
+      const target = render({ ...CHANNELS, ...props });
       const svg = target.querySelector(':scope > figure > svg');
 
       expect(svg?.getAttribute('role')).toBe('img');

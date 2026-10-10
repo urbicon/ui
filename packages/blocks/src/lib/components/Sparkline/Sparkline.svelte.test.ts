@@ -196,6 +196,12 @@ describe('Sparkline (accessibility)', () => {
     expect(exposed()).toEqual({ ariaHidden: null, role: 'img', ariaLabel: 'Visits, last 7 days' });
   });
 
+  it('takes ariaLabel over a plain aria-label', () => {
+    render({ data: [1, 2, 3], ariaLabel: 'Visits, last 7 days', 'aria-label': 'Visits' });
+
+    expect(exposed().ariaLabel).toBe('Visits, last 7 days');
+  });
+
   it('presents itself as one image named by a plain aria-label', () => {
     render({ data: [1, 2, 3], 'aria-label': 'Visits, last 7 days' });
 

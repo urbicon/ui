@@ -18,18 +18,22 @@ and ships in the `@urbicon-ui/table` tarball.
 `ChartFrame`, `BarChart`, `LineChart`, `AreaChart`, `DonutChart` and `Sparkline` take every HTML
 attribute, so `aria-label` and `aria-labelledby` type-check on them. They landed on the wrapping
 `<figure>` while `role="img"` sits on the `<svg>`: the figure was named and the image stayed
-unnamed, or on the four data charts kept its generated summary. Sparkline dropped both and stayed
-`aria-hidden`. Both now name the image:
+unnamed, or on the four data charts kept its generated summary. Sparkline dropped `aria-label` and
+stayed `aria-hidden` either way. Both now name the image:
 
 - `aria-label` works like `ariaLabel`, which wins when both are set. On `BarChart`, `LineChart`,
   `AreaChart` and `DonutChart` it captions the data table too.
 - `aria-labelledby` lands on the `<svg>`, or on Sparkline's `role="img"` root, so the image can
   be named by a visible caption. A Sparkline with either attribute is no longer `aria-hidden`.
+- `aria-labelledby` outranks `aria-label` and `ariaLabel`, as ARIA has it: with both set, the
+  caption names the image, and on the four data charts `ariaLabel` then only captions the table.
 
-A selector or test that read either attribute off the `<figure>` finds it on the `<svg>` now.
+A selector or test that read either attribute off the `<figure>` finds it on the `<svg>` now; on
+Sparkline both sit on its root `<span>`. The grep also lists every chart that receives a spread,
+which can carry either attribute:
 
 ```sh
-rg -nU '<(ChartFrame|BarChart|LineChart|AreaChart|DonutChart|Sparkline)\b[^>]*\baria-label(ledby)?=' src e2e tests
+rg -nU '<(ChartFrame|BarChart|LineChart|AreaChart|DonutChart|Sparkline)\b(?:=>|[^>])*?(\baria-label(ledby)?=|\{\.\.\.)' src e2e tests
 ```
 
 ### The charts' generated names follow the locale

@@ -39,7 +39,8 @@ export interface ChartFrameProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   margin?: ChartMargin;
   /**
    * Accessible label for the chart image (role="img"). A plain `aria-label`
-   * names it too; `aria-labelledby` points it at a visible caption.
+   * names it too, and this prop wins over it. `aria-labelledby` points the
+   * image at a visible caption and outranks both.
    */
   ariaLabel?: string;
   /** Renders the SVG plot content; receives the {@link ChartPlot} geometry. */
