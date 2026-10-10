@@ -178,7 +178,9 @@ describe('LineChart — degenerate data', () => {
     expect(lines(target)).toEqual([[]]);
     expect(tickLabels(target).length).toBeGreaterThan(1);
     expect(nonFinite(target)).toEqual([]);
-    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe('Line chart: 0 points');
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(
+      'Line chart, points: 0, series: 1'
+    );
   });
 
   it('opens a window around a flat series instead of dividing by a zero range', () => {
@@ -209,7 +211,7 @@ describe('LineChart — what a screen reader gets', () => {
   } satisfies LineChartProps;
 
   it.each([
-    ['a generated summary', undefined, 'Line chart: 2 points, 2 series'],
+    ['a generated summary', undefined, 'Line chart, points: 2, series: 2'],
     ['ariaLabel', 'Temperatures', 'Temperatures']
   ])('names the image and captions the data table with %s', (_name, ariaLabel, name) => {
     const target = render({ ...TEMPERATURES, ariaLabel });
@@ -224,7 +226,7 @@ describe('LineChart — what a screen reader gets', () => {
     // Tue has no High value; its point is drawn at zero, and the table says so.
     expect(dataTable(target)).toEqual({
       hidden: true,
-      caption: 'Line chart: 2 points, 2 series',
+      caption: 'Line chart, points: 2, series: 2',
       rows: [
         ['th[col] Category', 'th[col] Low', 'th[col] High'],
         ['th[row] Mon', 'td 2°', 'td 9°'],
@@ -233,9 +235,13 @@ describe('LineChart — what a screen reader gets', () => {
     });
   });
 
-  it('heads the table in the active locale, unnamed series included', () => {
+  it('names the image, captions the table and heads it in the active locale', () => {
     const target = render({ data: [{ label: 'Mon', values: [1, 2] }] }, registerMarkedLocale());
 
+    const name = 'fr:Line chart, points: 1, series: 2';
+
+    expect(target.querySelector('svg')?.getAttribute('aria-label')).toBe(name);
+    expect(dataTable(target).caption).toBe(name);
     expect(dataTable(target).rows[0]).toEqual([
       'th[col] fr:Category',
       'th[col] fr:Series 1',

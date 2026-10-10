@@ -236,7 +236,13 @@ export default {
     series: 'Datenreihe {{index}}',
     segment: 'Segment',
     value: 'Wert',
-    share: 'Anteil'
+    share: 'Anteil',
+    barSummary: 'Säulendiagramm, Kategorien: {{categories}}, Datenreihen: {{series}}',
+    lineSummary: 'Liniendiagramm, Datenpunkte: {{points}}, Datenreihen: {{series}}',
+    areaSummary: 'Flächendiagramm, Datenpunkte: {{points}}, Datenreihen: {{series}}',
+    stackedAreaSummary:
+      'Gestapeltes Flächendiagramm, Datenpunkte: {{points}}, Datenreihen: {{series}}',
+    donutSummary: 'Ringdiagramm, Segmente: {{segments}}, Summe: {{total}}'
   },
   stepper: {
     optional: 'Optional'

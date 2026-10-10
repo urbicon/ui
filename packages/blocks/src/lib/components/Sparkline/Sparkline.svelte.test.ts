@@ -79,7 +79,7 @@ describe('Sparkline (sizing contract)', () => {
 /**
  * 100 × 20 with a 1 px stroke. The plot is inset by the stroke width (at
  * least 1 px), so x runs from 1 to 99 and y from 19 (the minimum) up to 1
- * (the maximum).
+ * (the maximum). With the end point drawn, the inset is its radius, 1.5.
  */
 const BOX = { width: 100, height: 20, strokeWidth: 1 } satisfies Partial<SparklineProps>;
 
@@ -117,7 +117,26 @@ describe('Sparkline (geometry)', () => {
     const dots = document.querySelectorAll('circle');
 
     expect(dots).toHaveLength(1);
-    expect([num(dots[0], 'cx'), num(dots[0], 'cy')]).toEqual([99, 10]);
+    // x runs from 1.5 to 98.5 and y from 18.5 up to 1.5: 2 sits halfway.
+    expect([num(dots[0], 'cx'), num(dots[0], 'cy')]).toEqual([98.5, 10]);
+  });
+
+  it.each([
+    ['the maximum', [1, 2, 3]],
+    ['the minimum', [3, 2, 1]]
+  ])('keeps the whole end point inside the svg box when it lands on %s', (_name, data) => {
+    render({ ...BOX, data, showEndPoint: true });
+    const dot = document.querySelector('circle');
+    if (!dot) throw new Error('no end point');
+    const [cx, cy, r] = [num(dot, 'cx'), num(dot, 'cy'), num(dot, 'r')];
+
+    // A non-root svg clips at its box, so whatever reaches past it is cut off.
+    expect({
+      left: Math.max(0, r - cx),
+      right: Math.max(0, cx + r - BOX.width),
+      top: Math.max(0, r - cy),
+      bottom: Math.max(0, cy + r - BOX.height)
+    }).toEqual({ left: 0, right: 0, top: 0, bottom: 0 });
   });
 
   it('draws flat data as a level line inside the box, without dividing by a zero range', () => {
