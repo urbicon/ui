@@ -60,6 +60,13 @@ export type FileUploadSlotName = FileUploadSlots;
  * @description Drag-and-drop file upload with validation, image previews, progress tracking, and animated file list.
  * The root is a `region` landmark, named by an `aria-label` you pass or else the localized
  * "File upload" — give each one its own name when a page has two.
+ *
+ * The focusable control is the visually hidden `<input type="file">`, not the dropzone. `id`,
+ * `aria-labelledby`, `aria-describedby`, `aria-invalid` and `aria-required` land on it, so a
+ * `<label for>` (as FormField renders) names it and a click on the label opens the file dialog;
+ * every other attribute, `class` and `aria-label` included, stays on the root. The input's `title`
+ * is the region's name, a fallback any label outranks. While `maxFiles` is reached the dropzone is
+ * gone and the input leaves the tab order, but stays the label's target.
  * @tag form
  * @related Input
  * @related Button
@@ -94,7 +101,10 @@ export interface FileUploadProps
   extends Omit<FileUploadVariants, 'dragging' | 'invalid'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   // ── Content ──
-  /** Default slot for fully custom dropzone content. */
+  /**
+   * Default slot for fully custom dropzone content. Its text becomes the file input's
+   * description, since the dropzone itself takes no focus.
+   */
   children?: Snippet;
   /** Custom file item renderer. Receives file entry and remove callback. */
   fileItem?: Snippet<[FileItemContext]>;
@@ -132,7 +142,7 @@ export interface FileUploadProps
   required?: boolean;
   /**
    * Shared `name` for native form submission. When set, the underlying
-   * hidden `<input type="file">` carries the current file list — including
+   * `<input type="file">` carries the current file list — including
    * files added via drag/drop, paste, or programmatic `bind:files`, not
    * just files picked through the file dialog. Submits as a `File[]` under
    * `{name}` in the FormData payload.

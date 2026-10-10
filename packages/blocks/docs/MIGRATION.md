@@ -11,6 +11,38 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.29.0
+
+### `FileUpload` puts `id` and the field's ARIA on its file input
+
+`FileUpload` spread every attribute you passed onto its root `<div role="region">`, while its
+`<input type="file">` was `aria-hidden` and its dropzone a `<div role="button">`. A `<label for>`
+reaches neither `<div>`, so the FormField example — `<FileUpload {id} aria-describedby={describedBy}
+aria-invalid={invalid || undefined}>` — rendered a label that named nothing and opened nothing, and
+the description and invalid state landed on the region.
+
+The file input is now the control: visually hidden, focusable, named by your label.
+
+- `id`, `aria-labelledby`, `aria-describedby`, `aria-invalid` and `aria-required` land on the
+  `<input type="file">`. Everything else stays on the root: `class`, `style`, `data-*`, and
+  `aria-label`, which still names the region.
+- The dropzone is no longer a `role="button"` and takes no focus. Tab stops on the input, and
+  Enter, Space or a click on its label opens the file dialog. Safari reaches it as it reaches any
+  native button: with Option+Tab, or with "Press Tab to highlight each item" turned on.
+- The dropzone's focus ring is `peer-focus-visible:`, relayed from the input. A `slotClasses`
+  entry or an `unstyled` stylesheet that styled the dropzone on `focus-visible:` no longer
+  matches, and a `mint` with `trigger: 'focus'` no longer fires.
+- With `maxFiles` reached the dropzone still goes away. The input stays as the label's target, but
+  leaves the tab order, reads as unavailable and opens no dialog.
+
+Nothing reports the change. A selector or test that read `id` or one of those attributes off the
+root finds it on the input; one that found the dropzone as a `button` finds the input by its label,
+or the dropzone by `[data-blocks-dropzone-state]`:
+
+```sh
+rg -nU '<FileUpload\b(?:=>|[^>])*?(\b(id|aria-(labelledby|describedby|invalid|required))=|\{id\}|\{\.\.\.)' src e2e tests
+```
+
 ## 8.28.0
 
 ### A chart's `aria-label` and `aria-labelledby` name the chart
