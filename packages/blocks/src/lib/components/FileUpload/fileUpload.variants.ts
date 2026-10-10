@@ -16,7 +16,8 @@ export const fileUploadVariants = tv({
       'transition-[color,background-color,border-color,box-shadow,scale]',
       'duration-[var(--blocks-duration-fast)]',
       'ease-[var(--blocks-ease-gentle)]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
+      // The dropzone takes no focus: the ring belongs to the hidden file input before it.
+      'peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 peer-focus-visible:ring-offset-2'
     ],
 
     dropzoneIcon: [
