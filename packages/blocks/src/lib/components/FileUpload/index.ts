@@ -64,8 +64,11 @@ export type FileUploadSlotName = FileUploadSlots;
  * The focusable control is the visually hidden `<input type="file">`, not the dropzone. `id`,
  * `aria-labelledby`, `aria-describedby`, `aria-invalid` and `aria-required` land on it, so a
  * `<label for>` (as FormField renders) names it and a click on the label opens the file dialog;
- * every other attribute, `class` and `aria-label` included, stays on the root. The input's `title`
- * is the region's name, a fallback any label outranks. While `maxFiles` is reached the dropzone is
+ * every other attribute, `class` and `aria-label` included, stays on the root. Label it, through
+ * FormField or `aria-labelledby`: without a label the browser names the input by its own button
+ * text ("Choose File" in Chromium) and the dropzone text is its description. The `title` it
+ * carries, the region's name, only satisfies axe's WCAG `label` rule; axe's best-practice
+ * `label-title-only` still reports an unlabelled one. While `maxFiles` is reached the dropzone is
  * gone and the input leaves the tab order, but stays the label's target.
  * @tag form
  * @related Input
@@ -186,7 +189,11 @@ export interface FileUploadProps
   // ── Styling ──
   /** Additional CSS class for the root element. */
   class?: string;
-  /** Strip all default styles. */
+  /**
+   * Remove the default variant classes. The control's own classes stay: `sr-only peer` on the
+   * file input hides it and relays its focus ring to the dropzone, and `relative` on the root
+   * keeps the input's focus scroll inside the scroller the upload sits in.
+   */
   unstyled?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: Partial<Record<FileUploadSlots, string>>;

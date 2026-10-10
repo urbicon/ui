@@ -263,6 +263,11 @@ const KNOWN_GAPS: Record<string, Partial<Record<Route, Gap>>> = {
   ResourceTimeline: {
     D: { leaks: ['navButton'], why: 'CoreIconButton plumbing, out of the ladder by design' }
   },
+  // Not a look: the root's `relative` is the containing block of the `sr-only` file input, and
+  // without it focus scrolls past the scroller the upload sits in (e2e/file-upload.spec.ts).
+  FileUpload: {
+    C: { leaks: ['relative'], why: "the sr-only input's containing block, kept by design" }
+  },
   // Styled entirely through `Button`: the button form renders one, and the link
   // form — the branch `MOUNT_FIXTURES` makes the sweep measure — puts
   // `buttonVariants` on its own anchor. Neither resolves a cascade, so there is

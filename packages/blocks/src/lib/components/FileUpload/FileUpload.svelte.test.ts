@@ -156,6 +156,20 @@ describe('FileUpload (the file input is the control)', () => {
     expect(dropzone()!.hasAttribute('role')).toBe(false);
   });
 
+  // Where focus then scrolls is layout, which jsdom lacks: e2e/file-upload.spec.ts measures it.
+  it('makes the root the containing block of the input, under unstyled too', () => {
+    render({ 'data-testid': 'upload' });
+    expect(screen.getByTestId('upload').classList.contains('relative')).toBe(true);
+    dispose?.();
+    render({ 'data-testid': 'upload', unstyled: true });
+    expect(screen.getByTestId('upload').classList.contains('relative')).toBe(true);
+    dispose?.();
+    render({ 'data-testid': 'upload', class: 'sticky top-0' });
+    const root = screen.getByTestId('upload');
+    expect(root.classList.contains('sticky')).toBe(true);
+    expect(root.classList.contains('relative')).toBe(false);
+  });
+
   it('relays its focus ring to the dropzone through `peer`', () => {
     render();
     const control = fileInput();

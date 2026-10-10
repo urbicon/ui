@@ -25,7 +25,9 @@ The file input is now the control: visually hidden, focusable, named by your lab
 
 - `id`, `aria-labelledby`, `aria-describedby`, `aria-invalid` and `aria-required` land on the
   `<input type="file">`. Everything else stays on the root: `class`, `style`, `data-*`, and
-  `aria-label`, which still names the region.
+  `aria-label`, which still names the region. An `aria-labelledby` named the region before; now it
+  names the input, and the region falls back to "File upload", so two uploads named that way share
+  one landmark name. Give each region its name with `aria-label`.
 - The dropzone is no longer a `role="button"` and takes no focus. Tab stops on the input, and
   Enter, Space or a click on its label opens the file dialog. Safari reaches it as it reaches any
   native button: with Option+Tab, or with "Press Tab to highlight each item" turned on.
@@ -34,10 +36,18 @@ The file input is now the control: visually hidden, focusable, named by your lab
   matches, and a `mint` with `trigger: 'focus'` no longer fires.
 - With `maxFiles` reached the dropzone still goes away. The input stays as the label's target, but
   leaves the tab order, reads as unavailable and opens no dialog.
+- The root is `relative`, under `unstyled` too, so focusing the input scrolls the scroller the
+  upload sits in, not the page or a Dialog's panel. Styled, the dropzone and the file rows were
+  `relative` already, so nothing inside moves. Under `unstyled`, an `absolute` element in your
+  `children` or `fileItem` content with no positioned element of yours around it now places itself
+  against the FileUpload root instead of an ancestor further out; wrap it in the positioned element
+  you meant.
 
-Nothing reports the change. A selector or test that read `id` or one of those attributes off the
-root finds it on the input; one that found the dropzone as a `button` finds the input by its label,
-or the dropzone by `[data-blocks-dropzone-state]`:
+Neither TypeScript nor axe's WCAG rules report the change. axe's best-practice
+`label-title-only` does report every FileUpload without a label, since only the input's `title`
+names it for axe; label it through FormField or `aria-labelledby`. A selector or test that read
+`id` or one of those attributes off the root finds it on the input; one that found the dropzone as
+a `button` finds the input by its label, or the dropzone by `[data-blocks-dropzone-state]`:
 
 ```sh
 rg -nU '<FileUpload\b(?:=>|[^>])*?(\b(id|aria-(labelledby|describedby|invalid|required))=|\{id\}|\{\.\.\.)' src e2e tests

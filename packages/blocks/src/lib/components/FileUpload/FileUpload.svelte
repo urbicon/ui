@@ -337,12 +337,20 @@
   Spread first, so the region landmark survives a consumer `role`. Its name is the consumer's
   `aria-label` when given: two uploads on one page need two landmark names, and the i18n
   default is the same for every instance.
+
+  `relative` makes the root the containing block of the `sr-only` input below, and holds under
+  `unstyled` too. Focus scrolls that block's chain into view: from an unpositioned root it skips
+  any unpositioned scroller the upload sits in, so the scroller stays put while the page or an
+  `overflow-hidden` ancestor scrolls. A position class of the consumer's still replaces it.
 -->
 <div
   {...restProps}
-  class={unstyled
-    ? resolveClassChain(slotClasses?.root, className)
-    : styles.root({ class: [slotClasses?.root, className] })}
+  class={resolveClassChain(
+    'relative',
+    unstyled
+      ? resolveClassChain(slotClasses?.root, className)
+      : styles.root({ class: [slotClasses?.root, className] })
+  )}
   role="region"
   aria-label={regionName}
 >
