@@ -3,14 +3,16 @@
 How this library makes itself usable by an agent: what is served, from where, and which
 surface is the one consumers actually install.
 
-## The four surfaces
+## The three surfaces
 
 | Surface | What it is |
 | --- | --- |
 | `llms.txt` | Brief library overview (llms.txt standard) — generated from the component catalog + a small template, tracked, checked by `llms:check` |
 | `llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
-| **`urbicon` CLI** (`packages/design`) | **The primary, consumer-facing surface**: one dev-dependency, version-pinned knowledge |
-| MCP server (`packages/mcp-server`) | A thin remote adapter over the same engine and content — deployed, not advertised, being retired |
+| **`urbicon` CLI** (`packages/design`) | **The consumer surface**: one dev-dependency, version-pinned knowledge |
+
+There is no remote tool server: the MCP server that once mirrored the CLI was retired.
+Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-was-retired).
 
 ## The `urbicon` CLI
 
@@ -44,18 +46,6 @@ One dev-dependency, so the knowledge a project gets is pinned to the version it 
   content-based, so a version bump without a template change stays quiet.
 - Customised hook entries and CI workflows are kept and reported, never overwritten.
 
-## MCP server
-
-Streamable HTTP, 10 read-only tools, 10 verb prompts, 7 guide resources — all over the same
-engine and content the CLI uses.
-
-**Deployed, not advertised, and being retired** (#500): `.github/workflows/deploy.yml` ships
-it to the host, but no page names the endpoint, and next to the CLI it has no use case of its
-own. Until it is removed it stays in the repo and green. No local-install **consumer** path is
-documented anywhere — the stdio entry in the package README runs the server from a repo
-checkout, for working on it. Manifest read and write live in the CLI, never on the stateless
-server. Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-is-deployed-not-advertised-and-being-retired).
-
 ## Design System Intelligence
 
 In the [five-layer model](../design-system/principles.md#the-5-layer-token-hierarchy),
@@ -69,22 +59,20 @@ in the code (`data-design-pattern`) and indexed in the manifest (see the design 
 - `patterns/*.md` — composition patterns, one file per page archetype; `urbicon pattern`
   with no name lists what the bundle ships
 
-Served by `urbicon principles` / `urbicon pattern` out of the `design-content` bundle (and,
-until its removal, by the MCP tools `get_design_principles` / `get_pattern`).
+Served by `urbicon principles` / `urbicon pattern` out of the `design-content` bundle.
 
 ## The design loop
 
 Serving knowledge is only half of it. The loop is generate → validate → judge → synthesise:
 
 - **`urbicon validate`** lints generated markup: deterministic rules, a token whitelist,
-  heuristics (the MCP tool `validate_design` runs the same engine).
+  heuristics.
 - **`data-design-pattern` markers + `design.manifest.md`** persist design intent per
   consumer project, maintained consumer-side through `context` / `record-decision` /
   `sync-manifest`.
 - **`urbicon principles --rubric`** serves the 1–5 judge rubric.
 - **The design verbs** — onboard, adopt, compose, redesign, polish, critique, fix, retheme,
-  audit, migrate — ship as the local skill in `@urbicon-ui/design` (and, from the same text,
-  as MCP prompts until the server is removed).
+  audit, migrate — ship as the local skill in `@urbicon-ui/design`.
 - **Enforcement is local**: a `PostToolUse` hook (`urbicon hook`) and CI (`urbicon validate`)
   turn the loop from advisory into required. Correctness always gates; the craft axis is
   opt-in via `--craft-floor`. Templates ship under `@urbicon-ui/design/templates`.

@@ -1,7 +1,6 @@
 /**
  * `urbicon principles [--topic <t>] [--rubric]` — the design heuristics from the
- * version-pinned bundle, the local, version-correct mirror of the remote
- * `get_design_principles`. `--topic` slices one section via the shared
+ * version-pinned bundle. `--topic` slices one section via the
  * `@urbicon-ui/design-engine/reference` parser; `--rubric` prints the 8-criterion
  * 1–5 scoring rubric from `@urbicon-ui/design-engine/rubric` instead (the judge
  * step of the design loop, ignores `--topic`).

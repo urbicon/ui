@@ -79,7 +79,7 @@ describe('runFind', () => {
     expect(stdout()).toContain('No components match "stat"');
     expect(stdout()).not.toContain('component(s) matching');
     expect(stdout()).toContain('Closest (weak): Badge (badge)');
-    // The same sentence the MCP tool prints — one constant, so they cannot drift.
+    // The engine's sentence, not a paraphrase of it.
     expect(stdout()).toContain(CLOSEST_NOTE);
   });
 

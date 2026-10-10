@@ -99,7 +99,6 @@ jobs:
           bun --filter='@urbicon-ui/docs-gen' run test
           (cd packages/auth && bunx --bun vitest run)
           (cd packages/table && bunx --bun vitest run)
-          (cd packages/mcp-server && bunx --bun vitest run)
           (cd packages/docs && bunx --bun vitest run)
           (cd packages/sveltekit-utils && bunx --bun vitest run)
           (cd packages/sv && bunx --bun vitest run)
@@ -217,24 +216,15 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-      # The deploy artefacts, same pair as in ci.yml. A tag push runs THIS
-      # workflow and not CI, so without them a release would publish to npm and
+      # The deploy artefact, the same one ci.yml uploads. A tag push runs THIS
+      # workflow and not CI, so without it a release would publish to npm and
       # leave the docs site on the previous version. deploy.yml waits for this
       # workflow rather than for CI on tagged commits, precisely so the site
       # never moves ahead of a publish that then fails.
-      - run: bun run build:mcp-dist
-
       - uses: actions/upload-artifact@v7
         with:
           name: site-dist
           path: apps/docs/dist/
-          retention-days: 3
-          if-no-files-found: error
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: mcp-dist
-          path: mcp-dist/
           retention-days: 3
           if-no-files-found: error
 

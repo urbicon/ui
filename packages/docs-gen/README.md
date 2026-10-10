@@ -17,8 +17,8 @@ bun run docs:gen:table
 bun run docs:gen:auth
 ```
 
-> Only `docs:gen:all` (and `build`) additionally runs the `MCPCatalogAssembler`,
-> which globs every per-target `_catalog.json` into the aggregated MCP
+> Only `docs:gen:all` (and `build`) additionally runs the `CatalogAssembler`,
+> which globs every per-target `_catalog.json` into the aggregated
 > `component-catalog.json` and design-content bundle. A per-target run
 > (`docs:gen:blocks`, …) does not — this is why regenerating after a JSDoc edit
 > is a **two-step** operation, not a single per-target run.

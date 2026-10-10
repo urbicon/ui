@@ -164,7 +164,7 @@ export abstract class TypeScriptBaseExtractor<
    * that tag's comment, so free prose written *after* the tag block lands inside
    * the last tag's value — `@related Toast` followed by a paragraph shipped
    * `"Toast\n\nBadge props are a discriminated union…"` as one related component
-   * name into the MCP catalogue, `llm.txt` and the docs site. The value is
+   * name into the component catalogue, `llm.txt` and the docs site. The value is
    * therefore the first line; anything beyond it is prose in the wrong place and
    * says so, rather than being folded in silently.
    */

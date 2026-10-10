@@ -19,9 +19,9 @@ describe('rubric criteria', () => {
     }
   });
 
-  it('anchors technical correctness on validate_design', () => {
+  it('anchors technical correctness on urbicon validate', () => {
     const correctness = RUBRIC_CRITERIA.find((c) => c.id === 'correctness');
-    expect(correctness?.anchors[5]).toContain('validate_design');
+    expect(correctness?.anchors[5]).toContain('urbicon validate');
   });
 });
 
@@ -33,8 +33,8 @@ describe('renderRubric', () => {
     expect(md).toContain(`/${MAX_RUBRIC_SCORE}`);
   });
 
-  it('tells the judge to run validate_design first', () => {
-    expect(md).toContain('validate_design');
+  it('tells the judge to run urbicon validate first', () => {
+    expect(md).toContain('urbicon validate');
   });
 
   it('describes the panel-of-lenses approach for variant selection', () => {

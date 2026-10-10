@@ -10,7 +10,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['A2UIView', 'Chat', 'ChatMessage', 'ChatMessageList', 'PromptInput'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'The system prompt is assembled from a2uiSystemPrompt, a2uiDataSchemaSection and a2uiFencedTransportSection: catalog contract, data contract and wire format come from the same source the validator checks, so the prompt cannot describe UI the renderer rejects.',

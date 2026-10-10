@@ -1,16 +1,14 @@
 /**
  * Filesystem glue for the manifest subcommands. The engine
  * (`@urbicon-ui/design-engine/manifest`) is pure string/scan logic; the CLI owns
- * path resolution and read/write — the consumer-side replacement for the
- * remote-incompatible `process.cwd()` manifest resolution the MCP server used to
- * carry (removed when those tools moved to this CLI).
+ * path resolution and read/write.
  *
  * Paths default relative to the current working directory (the consumer's repo
- * when they run `urbicon` or a hook fires). Unlike the MCP write tools — which
- * containment-check an LLM-supplied path — the CLI trusts its `--manifest`/`--src`
- * flags: the agent running the local CLI is the consumer's own (the trust model
- * of the package-centric architecture). The only guard kept is the `.md`
- * extension check at the call sites, so a typo never clobbers a code file.
+ * when they run `urbicon` or a hook fires). The CLI trusts its `--manifest`/`--src`
+ * flags rather than containment-checking them: the agent running the local CLI is
+ * the consumer's own (the trust model of the package-centric architecture). The
+ * only guard kept is the `.md` extension check at the call sites, so a typo never
+ * clobbers a code file.
  */
 
 import { appendFile, readFile, writeFile } from 'node:fs/promises';
@@ -43,8 +41,7 @@ export function resolveHistoryPath(manifestPath: string): string {
  * The project's declared token overrides, read from the manifest best-effort.
  * Any failure — no manifest, unreadable, malformed — yields `[]`: validation must
  * never break because the manifest is absent or odd (read tolerant). This is the
- * local, manifest-sourced feed for the linter's `extraTokens` — the on-disk
- * counterpart to the remote `validate_design`'s `extraTokens` parameter.
+ * local, manifest-sourced feed for the linter's `extraTokens`.
  */
 export async function readTokenOverrides(manifestPath: string): Promise<string[]> {
   try {

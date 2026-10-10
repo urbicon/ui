@@ -10,7 +10,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['Planner', 'Button', 'Badge'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     "Planner buckets a typed MealEntry[] by calendar day via getDate; a local ISO date string ('2026-06-16') is taken verbatim, never UTC-parsed.",

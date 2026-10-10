@@ -33,22 +33,14 @@ The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.js
 tests are CI's job. The consequence — `svelte-check` errors surface only in CI — is
 acceptable because CI failures reproduce locally in seconds.
 
-## `mcp-server` ships without a build step
-
-`packages/mcp-server` has `main: "./src/index.ts"` and no `dist/`. It is always started via
-Bun (a dev tool, never an npm-consumed runtime), so shipping TypeScript sources directly
-works. The upside is no build pipeline and no sync step for a purely dev-time tool. Its
-README states this explicitly — anyone expecting Node would otherwise trip over the `.ts`
-entrypoint.
-
 ## Stricter TS flags are not raised centrally
 
 `tsconfig.base.json` holds the shared baseline (`strict`, `esModuleInterop`,
-`moduleResolution`, `allowJs`/`checkJs`, …). Of the seven `tsc`-checked packages, six raise
+`moduleResolution`, `allowJs`/`checkJs`, …). Of the six `tsc`-checked packages, five raise
 stronger flags: `noUncheckedIndexedAccess` and `verbatimModuleSyntax` in `design`,
-`design-content`, `design-engine`, `docs-gen`, `mcp-server` and `sv`, plus
-`exactOptionalPropertyTypes` in `docs-gen` alone. The seventh, `shared-types`, is built the
-same way and raises none of them — it declares types and has nothing to index or narrow.
+`design-content`, `design-engine`, `docs-gen` and `sv`, plus `exactOptionalPropertyTypes` in
+`docs-gen` alone. The sixth, `shared-types`, is built the same way and raises none of them —
+it declares types and has nothing to index or narrow.
 
 Raising them centrally would mean migrating the SvelteKit packages, and that effort is not
 yet justified.
@@ -172,17 +164,19 @@ of it and are held back:
 **Revisit only if:** Anchor Positioning is Baseline *widely* available (then replace, do not
 add), or Safari ships `popover="hint"` (then Tooltip migrates).
 
-## The MCP server is deployed, not advertised, and being retired
+## The MCP server was retired
 
-`packages/mcp-server` is a thin remote adapter over the same engine and content the
-`urbicon` CLI uses. `.github/workflows/deploy.yml` ships it to the host behind every green
-pipeline, next to the docs site, but it is **not advertised**: the docs site names no
-endpoint, and no local-install **consumer** path is documented anywhere — the package
-README's stdio entry points at a checkout of this repo, for working on the server.
+`packages/mcp-server` was a thin remote adapter over the same engine
+(`@urbicon-ui/design-engine`) and content (`@urbicon-ui/design-content`) the `urbicon` CLI
+uses. It was deployed next to the docs site but never advertised: no page named the
+endpoint, and no local-install consumer path was documented.
 
-It is being **retired** (#500, decided 2026-09-24): next to the CLI, which is the consumer
-surface, it has no use case of its own. Until it is removed it stays in the repo and stays
-green. Manifest read/write lives in the CLI, never on the stateless server.
+It was **retired** (#500, decided 2026-09-24): next to the CLI, which is the consumer surface,
+it had no use case of its own. The CLI serves the knowledge of the version a project
+installed, where the remote served *latest*, and it does what a stateless remote server
+structurally cannot — read and write the project's `design.manifest.md`, and tell an
+importable component from one whose package is not installed. The engine and the content
+bundle stay, behind the CLI.
 
 ## The publishing job holds a credential and nothing else
 
@@ -322,7 +316,7 @@ an import in `utils/highlighter.ts`, not a config option.
 A two-day spike (local branch `experiment/domain-projection`, tip `9b8afdb6`, never pushed) asked whether an
 AI-driven meta-system that projects a consumer's domain model onto the library, keeping
 changes cheap as that model evolves, is worth building. **Decision: no round-trip/codegen
-tool.** Determinism belongs in verification — drift linters, types, `validate_design` as
+tool.** Determinism belongs in verification — drift linters, types, `urbicon validate` as
 gates — not in generation; the AI sits at the upper seam as the *executor* of changes, never
 as a generator whose output then has to be kept in sync with hand edits.
 

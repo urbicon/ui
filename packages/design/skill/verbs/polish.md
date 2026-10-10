@@ -8,8 +8,8 @@ correctness.
 
 1. **Context.** `urbicon context` for the Product Intent — polish moves the page
    *toward* its voice, not toward your taste.
-2. **Find the craft notes.** Run `urbicon validate` (or the `validate_design` MCP tool) and read the
-   **craft** findings specifically (the advisory notes): generic font, uniform
+2. **Find the craft notes.** Run `urbicon validate` and read the **craft**
+   findings specifically (the advisory notes): generic font, uniform
    spacing/weights, identical cards, grey-on-colour, animated dimensions,
    magic-number sizes, small touch targets, emoji-as-icon, and so on.
 3. **Fix the smallest things that raise the craft score.** One change at a time;

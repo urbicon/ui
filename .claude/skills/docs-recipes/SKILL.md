@@ -5,11 +5,11 @@ description: Structure of recipe pages and component doc pages in apps/docs. Use
 
 # Recipe pages
 
-Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files for metadata (title, description, components, features). The `recipeCode` template literal stays in `+page.svelte` for the live preview — and it is a template literal: an unescaped backtick in the snippet is a syntax error, an escaped one is fine. Backslashes double (`\s` in a shown regex is `\\s` in the literal), `<\/script>` escapes the closer, **`<\script` escapes the opener** (Vite lexes .svelte files as HTML when scanning dependencies; a raw `<script` inside the literal starts a phantom module), and there is no string concatenation — one literal. The catalog extractor cooks all of these escapes on emit, so `get_recipe` serves exactly what the code panel displays.
+Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files for metadata (title, description, components, features). The `recipeCode` template literal stays in `+page.svelte` for the live preview — and it is a template literal: an unescaped backtick in the snippet is a syntax error, an escaped one is fine. Backslashes double (`\s` in a shown regex is `\\s` in the literal), `<\/script>` escapes the closer, **`<\script` escapes the opener** (Vite lexes .svelte files as HTML when scanning dependencies; a raw `<script` inside the literal starts a phantom module), and there is no string concatenation — one literal. The catalog extractor cooks all of these escapes on emit, so `urbicon recipe` serves exactly what the code panel displays.
 
 **A shown import must resolve.** Vite's dependency scanner regex-finds import statements even inside the literal and loads `.svelte`-suffixed local paths for real — an import of a file that does not exist (`#lib/HelpTooltip.svelte` as pure display code) fails the ENTIRE dev-server dependency scan with ENOENT, which surfaces as a wall of on-demand-optimize errors on every cold start (2026-08-16). So a second file the recipe shows is a real sibling of the page: the demo imports it (`./HelpTooltip.svelte`), the code panel renders its source via `?raw`, and the shown import in the literal is the same `./` path. That also makes the file single-source — panel and demo cannot drift.
 
-**The main literal MUST be named `recipeCode`.** `MCPCatalogAssembler` extracts exactly one `const recipeCode` per page; any other name silently drops the recipe's code from `get_recipe` (found on the 2026-08-16 rollout: three pages had drifted out of the catalog this way). Secondary literals (a hook file, a server route, extra variants) take other names and stay catalog-invisible — name their facts in `meta.features` so an agent knows they exist.
+**The main literal MUST be named `recipeCode`.** `CatalogAssembler` extracts exactly one `const recipeCode` per page; any other name silently drops the recipe's code from `urbicon recipe` (found on the 2026-08-16 rollout: three pages had drifted out of the catalog this way). Secondary literals (a hook file, a server route, extra variants) take other names and stay catalog-invisible — name their facts in `meta.features` so an agent knows they exist.
 
 ## Canonical page structure (since 2026-08; `table-detail` is the model)
 
@@ -31,7 +31,7 @@ Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files
   sits directly under the demo — no separate "Code" section at the foot, and no feature card
   retelling what the demo shows (`RecipeFeatures.svelte` was deleted with its last consumer
   on the 2026-08-16 rollout — never reintroduce it; `features` in `meta.ts` stays: its
-  consumer is `get_recipe`, so write it as facts for an agent, not page copy).
+  consumer is `urbicon recipe`, so write it as facts for an agent, not page copy).
 - The components list renders as the header's mono manifest line ("BUILT WITH …") — it comes
   from `meta.ts` via `RecipeShell`, nothing to do per page. Never reintroduce badge chips
   for it.

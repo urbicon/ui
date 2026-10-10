@@ -555,7 +555,7 @@ function suggestForBadCore(core: string, prefix = 'text', validCores = VALID_TOK
   const intent = INTENT_NAMES.find((n) => core.startsWith(`${n}-`));
   if (intent)
     return `Valid \`${intent}\` variants: ${intent}, ${intent}-hover, ${intent}-active, ${intent}-subtle, ${intent}-emphasis, or a scale step ${intent}-50…${intent}-950.`;
-  return 'Check `get_css_reference()` for the exact token name.';
+  return 'Check `urbicon css-reference` for the exact token name.';
 }
 
 /** All deterministic rules, in report order. The line-based regex rules first, then

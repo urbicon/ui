@@ -2,9 +2,8 @@
  * The component-catalog schema — the shape of the version-pinned
  * `component-catalog.json` that `@urbicon-ui/design-content` ships and `docs-gen`
  * assembles. It lives in the engine (not the content package) so the search logic
- * and every consumer — the `urbicon` CLI's `find`/`get-component`, the remote MCP
- * server's `find_components`/`get_component` — share one authoritative type, while
- * `design-content` stays a pure path locator.
+ * and every consumer — the `urbicon` CLI's `find`/`get-component` — share one
+ * authoritative type, while `design-content` stays a pure path locator.
  */
 
 export interface ComponentCatalogVariant {
@@ -64,7 +63,7 @@ export interface RecipeEntry {
   components: string[];
   code: string;
   features: string[];
-  /** Layer-4 composition pattern this recipe is an instance of (e.g. "dashboard"). Cross-links to `get_pattern`. */
+  /** Layer-4 composition pattern this recipe is an instance of (e.g. "dashboard"). Cross-links to `urbicon pattern`. */
   pattern?: string;
 }
 

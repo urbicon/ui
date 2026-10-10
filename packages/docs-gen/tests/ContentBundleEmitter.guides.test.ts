@@ -1,8 +1,6 @@
 import * as fs from 'node:fs/promises';
-import { OVERRIDE_CASCADE, SEMANTIC_TOKENS } from '@urbicon-ui/design-engine/reference';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentBundleEmitter } from '../src/generators/content/ContentBundleEmitter';
-import { TEMPLATE_PLACEHOLDER_PATTERN } from '../src/generators/llm/guide-injection';
 
 vi.mock('fs/promises');
 vi.mock('glob', () => ({
@@ -10,25 +8,6 @@ vi.mock('glob', () => ({
 }));
 
 const { glob } = await import('glob');
-
-const TEMPLATE = `# Reference
-
-## Components
-
-{{COMPONENTS}}
-
-## Auth Reference
-
-{{GUIDE:auth}}
-
-## Design Tokens
-
-{{SEMANTIC_TOKENS}}
-
-## Customization
-
-{{OVERRIDE_CASCADE}}
-`;
 
 const ICON_REGISTRY = `
 export const DEFAULT_ICONS = {
@@ -40,11 +19,10 @@ export const ICON_METADATA = {
 
 describe('ContentBundleEmitter package guides', () => {
   const config = {
+    catalogPath: '/repo/apps/docs/static/mcp/component-catalog.json',
     staticDir: '/repo/apps/docs/static',
     designSystemDir: '/repo/design-system',
-    templatePath: '/repo/packages/docs-gen/templates/llms-full-template.md',
     iconRegistryPath: '/repo/packages/blocks/src/lib/icons/icon-registry.ts',
-    verbsDir: '/repo/packages/design/skill/verbs',
     outputDir: '/repo/packages/design-content/content'
   };
 
@@ -58,8 +36,7 @@ describe('ContentBundleEmitter package guides', () => {
   /** Wire the happy-path fs mocks; individual tests override single paths. */
   function mockFs(overrides: Record<string, string | Error> = {}): void {
     const files: Record<string, string> = {
-      '/repo/apps/docs/static/mcp/component-catalog.json': '{"components":[]}',
-      [config.templatePath]: TEMPLATE,
+      [config.catalogPath]: '{"components":[]}',
       '/repo/design-system/principles.md': '# Principles',
       [config.iconRegistryPath]: ICON_REGISTRY,
       '/repo/packages/auth/docs/AUTH.md':
@@ -74,12 +51,7 @@ describe('ContentBundleEmitter package guides', () => {
       if (files[p] !== undefined) return files[p];
       throw new Error(`ENOENT: ${p}`);
     });
-    vi.mocked(fs.readdir).mockImplementation(async (dir) => {
-      const d = dir.toString();
-      if (d.endsWith('verbs')) return ['compose.md'] as never;
-      if (d.endsWith('patterns')) return [] as never;
-      return [] as never;
-    });
+    vi.mocked(fs.readdir).mockResolvedValue([] as never);
     vi.mocked(fs.rm).mockResolvedValue(undefined);
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.copyFile).mockResolvedValue(undefined);
@@ -118,17 +90,6 @@ describe('ContentBundleEmitter package guides', () => {
     ]);
   });
 
-  it('replaces the template placeholder with a pointer to the bundled guide', async () => {
-    mockFs();
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
-
-    await emitter.emit();
-
-    const template = writtenFile('guides/llms-full-template.md');
-    expect(template).not.toContain('{{GUIDE:auth}}');
-    expect(template).toContain('guides/auth.md');
-  });
-
   it('fails loud when a guide source is missing', async () => {
     mockFs({ '/repo/packages/auth/docs/AUTH.md': new Error('ENOENT') });
     const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
@@ -136,74 +97,8 @@ describe('ContentBundleEmitter package guides', () => {
     await expect(emitter.emit()).rejects.toThrow('package guide "Auth Reference"');
   });
 
-  it('fails loud when the template references an unconfigured guide', async () => {
-    mockFs();
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [] });
-
-    await expect(emitter.emit()).rejects.toThrow('unconfigured guide "auth"');
-  });
-
-  it('substitutes the cascade sentence into the bundled template copy', async () => {
-    mockFs();
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
-
-    await emitter.emit();
-
-    // The MCP guide resources slice this copy, so it has to carry the sentence
-    // itself — the engine's constant, not a paraphrase — and no placeholder shape
-    // but `{{COMPONENTS}}`, which the bundle copy keeps by design.
-    const template = writtenFile('guides/llms-full-template.md') ?? '';
-    expect(template).toContain(OVERRIDE_CASCADE);
-    expect(template).toContain('{{COMPONENTS}}');
-    expect(template.replace('{{COMPONENTS}}', '')).not.toMatch(TEMPLATE_PLACEHOLDER_PATTERN);
-  });
-
-  it('fails on a misspelled placeholder instead of shipping it literally', async () => {
-    mockFs({ [config.templatePath]: `${TEMPLATE}\n{{OVERRIDE_CASCADES}}\n` });
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
-
-    await expect(emitter.emit()).rejects.toThrow('{{OVERRIDE_CASCADES}}');
-  });
-
-  it('fails loud when the template lost the cascade placeholder', async () => {
-    mockFs({ [config.templatePath]: TEMPLATE.replace('{{OVERRIDE_CASCADE}}', '') });
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
-
-    await expect(emitter.emit()).rejects.toThrow('missing the {{OVERRIDE_CASCADE}}');
-  });
-
-  it('renders the token list into the bundled template copy', async () => {
-    mockFs();
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
-
-    await emitter.emit();
-
-    // The `tokens` guide resource is sliced from this copy, so the list has to
-    // be in it — every surface and text token the engine data carries.
-    const template = writtenFile('guides/llms-full-template.md') ?? '';
-    for (const token of SEMANTIC_TOKENS.families.surface) {
-      expect(template).toContain(`bg-${token.name}`);
-    }
-    for (const token of SEMANTIC_TOKENS.families.text) {
-      expect(template).toContain(`text-${token.name}`);
-    }
-    for (const token of SEMANTIC_TOKENS.families.border) {
-      expect(template).toContain(`border-${token.name}`);
-    }
-    expect(template).not.toContain('{{SEMANTIC_TOKENS}}');
-  });
-
-  it('fails loud when the template lost the token placeholder', async () => {
-    mockFs({ [config.templatePath]: TEMPLATE.replace('{{SEMANTIC_TOKENS}}', '') });
-    const emitter = new ContentBundleEmitter({ ...config, packageGuides: [guide] });
-
-    await expect(emitter.emit()).rejects.toThrow('missing the {{SEMANTIC_TOKENS}}');
-  });
-
   it('rejects an invalid guide slug', async () => {
-    // Guide-placeholder-free template so the slug check is what trips, not the
-    // unconfigured-placeholder sweep.
-    mockFs({ [config.templatePath]: '# Reference\n\n{{OVERRIDE_CASCADE}}\n{{SEMANTIC_TOKENS}}\n' });
+    mockFs();
     const emitter = new ContentBundleEmitter({
       ...config,
       packageGuides: [{ ...guide, slug: '../escape' }]

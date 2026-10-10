@@ -3,7 +3,7 @@
   Button, and any internal surface that needs an inline busy indicator) WITHOUT
   pulling in the public Spinner.
 
-  INTERNAL — never exported from the package barrel, no docs/MCP entry. For a
+  INTERNAL — never exported from the package barrel, no docs/catalog entry. For a
   configurable spinner (variants, speed, intent palette, sr-only label, unstyled
   / slotClasses) use the public `Spinner`; this core is deliberately fixed to the
   default variant at 1s.
@@ -38,7 +38,7 @@
 
 <span class={['inline-flex items-center justify-center text-current', sizeClass[size], className]}>
   <svg
-    class="w-full h-full animate-spin [animation-duration:1s] motion-reduce:animate-none"
+    class="h-full w-full animate-spin [animation-duration:1s] motion-reduce:animate-none"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"

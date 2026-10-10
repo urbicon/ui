@@ -402,8 +402,8 @@ export type HeaderIndicatorVariantProps = VariantProps<typeof headerIndicatorVar
  *
  * Spelled out rather than derived from the map (`keyof typeof …`), because this
  * name is what a reader meets: it is the type of `TableProps.cardsBelow`, so
- * docs-gen prints it on the component page, in `llms-full.txt` and in the MCP
- * catalog. Derived, all three showed `keyof typeof CARDS_BELOW_STEPS` pointing
+ * docs-gen prints it on the component page, in `llms-full.txt` and in the
+ * component catalog. Derived, all three showed `keyof typeof CARDS_BELOW_STEPS` pointing
  * at a module-private const — a type resolving to nothing anyone can read, and
  * no way left to discover the seven values.
  */

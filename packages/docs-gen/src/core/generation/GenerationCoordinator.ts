@@ -59,9 +59,9 @@ export class GenerationCoordinator {
           }
         }
 
-        // 4c. Generate MCP catalog AFTER LLM (LLM cleans output dir first)
-        const mcpResult = await this.generateMCPCatalog(enrichedComponents, apiData);
-        if (mcpResult) outputs.push(mcpResult);
+        // 4c. Generate the catalog entries AFTER LLM (LLM cleans output dir first)
+        const catalogResult = await this.generateCatalog(enrichedComponents, apiData);
+        if (catalogResult) outputs.push(catalogResult);
       }
 
       const duration = Date.now() - startTime;
@@ -175,26 +175,26 @@ export class GenerationCoordinator {
   }
 
   /**
-   * Generate MCP catalog (per-package component entries)
+   * Generate the per-package component catalog entries (`_catalog.json`)
    */
-  private async generateMCPCatalog(
+  private async generateCatalog(
     enrichedComponents: EnrichedComponentInfo[],
     apiData: APIData
   ): Promise<GeneratedOutput | null> {
     return withErrorHandling(
       async () => {
-        console.log('  📦 Generating MCP catalog entries...');
+        console.log('  📦 Generating catalog entries...');
 
-        const { MCPCatalogGenerator } = await import('../../generators/mcp/MCPCatalogGenerator');
+        const { CatalogGenerator } = await import('../../generators/catalog/CatalogGenerator');
 
         // Infer package name from the first component's package info
         const firstComp = enrichedComponents[0];
         const packageName = firstComp?.packageName || '@urbicon-ui/blocks';
 
-        const generator = new MCPCatalogGenerator(packageName, this.config.llm.outputPath);
+        const generator = new CatalogGenerator(packageName, this.config.llm.outputPath);
         const result = await generator.generate(enrichedComponents, apiData);
 
-        console.log(`  ✅ MCP catalog generated: ${result.path} (${result.count} entries)`);
+        console.log(`  ✅ Catalog generated: ${result.path} (${result.count} entries)`);
 
         return {
           type: 'api' as const,
@@ -206,7 +206,7 @@ export class GenerationCoordinator {
       this.errorHandler,
       {
         phase: 'generation',
-        operation: 'mcp_catalog_generation',
+        operation: 'catalog_generation',
         filePath: this.config.llm.outputPath
       }
     );

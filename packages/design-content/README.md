@@ -5,10 +5,10 @@ locator for it. This is the **Knowledge plane** of the design tooling (the
 deterministic linter/manifest/rubric **Judgment** engine lives in
 [`@urbicon-ui/design-engine`](https://github.com/urbicon/ui/blob/main/packages/design-engine/README.md)).
 
-Because the content ships _inside_ this package, consumers — the remote MCP server,
-the `urbicon` CLI, a CI hook — resolve it from their own install location with no
-monorepo sibling-path assumptions, and the knowledge is automatically coherent with
-the installed library version.
+Because the content ships _inside_ this package, consumers — the `urbicon` CLI, a
+CI hook — resolve it from their own install location with no monorepo sibling-path
+assumptions, and the knowledge is automatically coherent with the installed library
+version.
 
 ## What's in the bundle
 
@@ -21,7 +21,6 @@ The `content/` directory is a **build artifact** (git-ignored in dev, regenerate
 | `<group>/<slug>/llm.txt`                 | Per-component LLM documentation (overview / examples / variants / api / slots)                             |
 | `design-system/principles.md`            | Design principles, by topic                                                                                |
 | `design-system/patterns/*.md`            | Layer-4 composition patterns (dashboard, form-page, …)                                                     |
-| `guides/llms-full-template.md`           | Source for the template-sliced guide resources                                                             |
 | `guides/<slug>.md` + `guides/index.json` | Canonical package guides behind `urbicon guide`; `guides/index.json` is the list of what this bundle ships |
 | `icons.json`                             | Icon metadata (name → label / categories / keywords / component)                                           |
 | `meta.json`                              | Build provenance `{ version, builtAt, contentHash }`                                                       |
@@ -39,7 +38,6 @@ import {
   getGuideIndexPath,
   getGuidePath,
   getIconsPath,
-  getTemplatePath,
   loadContentMeta
 } from '@urbicon-ui/design-content';
 ```

@@ -47,8 +47,7 @@ a word, recipe chips fall back to `#`. `bun run registry:lint` gates all three.
 
 Each recipe lives in its own folder under `src/routes/recipes/` with `+page.svelte` (live
 preview), `meta.ts` (structured metadata), and a `recipeCode` template literal for the
-side-by-side code view. Recipes are addressable via the MCP `get_recipe` tool and the
-`urbicon recipe` CLI command.
+side-by-side code view. Recipes are addressable via the `urbicon recipe` CLI command.
 
 Categories currently covered: authentication, layout/dashboards, planning, forms and
 wizards, marketing, display, notifications, and trace/diagnostics. The navigation map is

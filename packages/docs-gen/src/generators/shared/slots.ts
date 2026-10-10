@@ -17,8 +17,8 @@ const INLINE_SLOT_RECORD_RE = /Record<['"]([\w\s|']+)['"],/;
  * or an inline `Record<'a' | 'b', …>` on the `slotClasses` prop type.
  *
  * Shared by both catalog surfaces — the per-component `llm.txt`
- * (`LLMDocumentationGenerator`) and the MCP component catalog
- * (`MCPCatalogGenerator`) — so the two can never diverge again.
+ * (`LLMDocumentationGenerator`) and the component catalog
+ * (`CatalogGenerator`) — so the two can never diverge again.
  *
  * Slot names only: tv() `slots:` values are class-name arrays with no per-key
  * documentation, so there is no description source to surface here.

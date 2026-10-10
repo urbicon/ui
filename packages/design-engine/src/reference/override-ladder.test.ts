@@ -42,9 +42,8 @@ describe('override ladder', () => {
 
 /**
  * `design-system/principles.md` carries the sentence by hand because nothing renders
- * it: read raw from the repo by the MCP server's design-system loader as well as
- * copied into the bundle. In-repo only — the engine ships standalone, so the file is
- * absent downstream.
+ * it: copied into the bundle as it stands. In-repo only — the engine ships
+ * standalone, so the file is absent downstream.
  */
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const HAND_COPIES = ['design-system/principles.md'].map((rel) => resolve(REPO_ROOT, rel));

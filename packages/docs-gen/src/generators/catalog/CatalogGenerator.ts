@@ -75,7 +75,7 @@ export interface RecipeEntry {
   components: string[];
   code: string;
   features: string[];
-  /** Layer-4 composition pattern this recipe instantiates (e.g. "dashboard"). Cross-links to `get_pattern`. */
+  /** Layer-4 composition pattern this recipe instantiates (e.g. "dashboard"). Cross-links to `urbicon pattern`. */
   pattern?: string;
 }
 
@@ -89,8 +89,8 @@ export interface ComponentCatalog {
 
 /**
  * The `@urbicon-ui/docs` components: the furniture documentation pages are
- * built FROM, not building blocks for a consumer's UI. `MCPCatalogAssembler`
- * keeps them out of the assembled catalog — `find_components` answers "what do
+ * built FROM, not building blocks for a consumer's UI. `CatalogAssembler`
+ * keeps them out of the assembled catalog — `urbicon find` answers "what do
  * I build this UI from", and a PlaygroundConfigurator is never that answer.
  * Their per-package `_catalog.json` is still written (it is what
  * `summary:lint` and the docs site's own index read), but without the
@@ -109,8 +109,7 @@ export const INTERNAL_PACKAGE = '@urbicon-ui/docs';
 /**
  * Package → origin tag. Components from these packages carry an extra discovery
  * tag (alongside their functional tag) so the whole surface is filterable in one
- * query, e.g. `find_components({ tags: ['auth'] })`. Keep in sync with the
- * `find_components` tool description.
+ * query, e.g. `urbicon find --tag auth`.
  */
 const ORIGIN_TAGS: Record<string, string> = {
   '@urbicon-ui/auth': 'auth'
@@ -126,11 +125,11 @@ const ORIGIN_TAGS: Record<string, string> = {
 const STYLE_OVERRIDE_PROPS = new Set(['class', 'unstyled', 'slotClasses']);
 
 /**
- * Generates per-package catalog entries as JSON for MCP server consumption.
- * The output is a partial catalog that gets assembled into the final
- * component-catalog.json by MCPCatalogAssembler.
+ * Generates per-package catalog entries as JSON. The output is a partial
+ * catalog that gets assembled into the final component-catalog.json by
+ * CatalogAssembler.
  */
-export class MCPCatalogGenerator {
+export class CatalogGenerator {
   private packageName: string;
   private llmOutputPath: string;
 
@@ -176,12 +175,12 @@ export class MCPCatalogGenerator {
     const llmTxtPath = compApi.group ? `${compApi.group}/${slug}/llm.txt` : `${slug}/llm.txt`;
 
     // Origin tag: every `@urbicon-ui/auth` component is discoverable via the
-    // `auth` tag (`find_components({ tags: ['auth'] })`) on top of its functional
+    // `auth` tag (`urbicon find --tag auth`) on top of its functional
     // tag (form/feedback/data). Derived from the package — not duplicated into
     // each component's JSDoc — so future auth components inherit it automatically.
-    // Appended (not prepended) so `tags[0]` stays the functional tag that drives
-    // catalog grouping (format-catalog.ts); the filter checks every tag, not the
-    // first, so position doesn't affect discoverability.
+    // Appended (not prepended) so `tags[0]` stays the functional tag the docs
+    // site's family channels read (`channels-gen.ts`); the filter checks every
+    // tag, not the first, so position doesn't affect discoverability.
     const originTag = ORIGIN_TAGS[this.packageName];
     const jsdocTags = component.tags || [];
     const tags =

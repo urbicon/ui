@@ -23,7 +23,7 @@
   `planner.previousWeek` and `resourceTimeline.previousRange` are different keys
   with different words.
 
-  INTERNAL — never exported from the package barrel, no docs/MCP entry.
+  INTERNAL — never exported from the package barrel, no docs/catalog entry.
 -->
 <script lang="ts">
   import { resolveIcon } from '#lib/icons/index.js';

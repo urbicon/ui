@@ -23,7 +23,7 @@ export interface ComponentInfo {
   filePath: string;
   /** Version */
   version?: string;
-  /** Component description — the long form, for `llm.txt` and the MCP catalog. */
+  /** Component description — the long form, for `llm.txt` and the component catalog. */
   description: string;
   /**
    * One human-facing sentence, from `@summary` JSDoc. What the landing page

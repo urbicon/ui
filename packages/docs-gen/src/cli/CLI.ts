@@ -1,12 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CatalogAssembler } from '../generators/catalog/CatalogAssembler';
 import { ContentBundleEmitter } from '../generators/content/ContentBundleEmitter';
 import type { PackageGuide } from '../generators/llm/guide-injection';
 import type { LlmsAssemblerConfig } from '../generators/llm/LlmsAssembler';
 import { LlmsAssembler } from '../generators/llm/LlmsAssembler';
 import { LlmsFullAssembler } from '../generators/llm/LlmsFullAssembler';
-import { MCPCatalogAssembler } from '../generators/mcp/MCPCatalogAssembler';
 import { ConfigurationFactory } from '../schema/ConfigurationBuilder';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,9 +22,9 @@ function resolveFromDocsGen(...segments: string[]): string {
 /**
  * The canonical, tarball-shipped package guides distributed into the generated
  * channels (docs/DOCS-SURFACES.md): every entry lands in the design-content
- * bundle (`guides/<slug>.md` + index → `urbicon guide <slug>` and the MCP
- * guide resources); entries flagged `embedInLlmsFull` are additionally inlined
- * into `llms-full.txt` via their `{{GUIDE:<slug>}}` template placeholder.
+ * bundle (`guides/<slug>.md` + index → `urbicon guide <slug>`); entries flagged
+ * `embedInLlmsFull` are additionally inlined into `llms-full.txt` via their
+ * `{{GUIDE:<slug>}}` template placeholder.
  */
 const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
   {
@@ -86,6 +86,22 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
   }
 ];
 
+/**
+ * The assembled `component-catalog.json`: written by `CatalogAssembler`, read by
+ * root `llms.txt` and copied into the design-content bundle. Inside `static/`,
+ * so the docs site serves it at `/mcp/component-catalog.json`; moving it moves
+ * that URL.
+ */
+const ASSEMBLED_CATALOG = resolveFromDocsGen(
+  '..',
+  '..',
+  'apps',
+  'docs',
+  'static',
+  'mcp',
+  'component-catalog.json'
+);
+
 /** Every generated per-scope `llms.txt` (blocks/table/auth/docs), listed under root llms.txt's "Resources". */
 const LLMS_SCOPES = [
   { label: 'Blocks', urlSegment: 'blocks' },
@@ -97,7 +113,7 @@ const LLMS_SCOPES = [
 /**
  * The packages whose catalog entries get a `- [Name](url): summary` line in
  * root llms.txt — `docs` is deliberately absent: its components are
- * docs-tooling, not library surface (`MCPCatalogAssembler` already excludes
+ * docs-tooling, not library surface (`CatalogAssembler` already excludes
  * them from `component-catalog.json` via `INTERNAL_PACKAGE`).
  */
 const LLMS_PACKAGES = LLMS_SCOPES.filter((s) => s.label !== 'Docs').map((s) => ({
@@ -112,7 +128,7 @@ const LLMS_PACKAGES = LLMS_SCOPES.filter((s) => s.label !== 'Docs').map((s) => (
  * - `generate` / `build` (default) — run the pipeline for one target
  *   (`--target blocks|docs|table|auth`) or all. The `all` run additionally
  *   assembles the cross-target artifacts: `llms-full.txt`, root `llms.txt`,
- *   the MCP component catalog, and the `@urbicon-ui/design-content` bundle —
+ *   the component catalog, and the `@urbicon-ui/design-content` bundle —
  *   which is why JSDoc edits require `docs:gen:all`, not a single target.
  * - `scaffold <Name> [--group primitives|components]` — create the docs
  *   route skeleton (+page.svelte / Docs.svelte) for a new component.
@@ -233,10 +249,10 @@ export class DocsGeneratorCLI {
 
   /**
    * The cross-target assembly step that only `--target all` runs, in order:
-   * (1) `llms-full.txt` from the per-scope static trees, (2) the MCP
-   * component catalog (stamped with the repo-root version — fail-loud when
-   * that is missing), (3) the `@urbicon-ui/design-content` bundle the MCP
-   * server and `urbicon` CLI consume.
+   * (1) `llms-full.txt` from the per-scope static trees, (2) the component
+   * catalog (stamped with the repo-root version — fail-loud when that is
+   * missing), (3) root `llms.txt`, (4) the `@urbicon-ui/design-content`
+   * bundle the `urbicon` CLI reads.
    */
   private async assembleLlmsFull(): Promise<void> {
     console.log('\n🔗 Assembling llms-full.txt...');
@@ -259,8 +275,7 @@ export class DocsGeneratorCLI {
     const result = await assembler.assemble();
     console.log(`✅ llms-full.txt assembled (${result.componentCount} components)`);
 
-    // Assemble MCP component catalog
-    console.log('\n📦 Assembling MCP component catalog...');
+    console.log('\n📦 Assembling the component catalog...');
 
     // Catalog version tracks the repo root (bump.sh keeps package.json in
     // lockstep with the published packages). Previously hardcoded '0.2.38',
@@ -270,11 +285,11 @@ export class DocsGeneratorCLI {
     const rootVersion: unknown = JSON.parse(rootPkgRaw).version;
     if (typeof rootVersion !== 'string') {
       throw new Error(
-        'MCP catalog: root package.json has no string "version" — cannot stamp the catalog.'
+        'Component catalog: root package.json has no string "version" — cannot stamp the catalog.'
       );
     }
 
-    const catalogAssembler = new MCPCatalogAssembler({
+    const catalogAssembler = new CatalogAssembler({
       staticDirs: [
         resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', 'blocks'),
         resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', 'docs'),
@@ -282,40 +297,32 @@ export class DocsGeneratorCLI {
         resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', 'auth')
       ],
       recipesDir: resolveFromDocsGen('..', '..', 'apps', 'docs', 'src', 'routes', 'recipes'),
-      outputPath: resolveFromDocsGen(
-        '..',
-        '..',
-        'apps',
-        'docs',
-        'static',
-        'mcp',
-        'component-catalog.json'
-      ),
+      outputPath: ASSEMBLED_CATALOG,
       version: rootVersion
     });
 
     const catalogResult = await catalogAssembler.assemble();
     console.log(
-      `✅ MCP catalog assembled (${catalogResult.componentCount} components, ${catalogResult.recipeCount} recipes)`
+      `✅ Component catalog assembled (${catalogResult.componentCount} components, ${catalogResult.recipeCount} recipes)`
     );
 
     // Root llms.txt — reads the component-catalog.json just written above,
-    // so this MUST run after the MCP catalog assembly.
+    // so this MUST run after the catalog assembly.
     console.log('\n📝 Assembling llms.txt...');
 
     const llmsAssembler = new LlmsAssembler(await this.buildLlmsAssemblerConfig());
     const llmsResult = await llmsAssembler.assemble();
     console.log(`✅ llms.txt assembled (${llmsResult.componentCount} components)`);
 
-    // Bundle the generated catalog + llm.txt tree + authored design-system, template
+    // Bundle the generated catalog + llm.txt tree + authored design-system, guides
     // and icon metadata into the version-pinned @urbicon-ui/design-content package, so
-    // the MCP server and the urbicon CLI read self-contained content (no sibling paths).
+    // the urbicon CLI reads self-contained content (no sibling paths).
     console.log('\n🧱 Emitting design-content bundle...');
 
     const bundleEmitter = new ContentBundleEmitter({
+      catalogPath: ASSEMBLED_CATALOG,
       staticDir: resolveFromDocsGen('..', '..', 'apps', 'docs', 'static'),
       designSystemDir: resolveFromDocsGen('..', '..', 'design-system'),
-      templatePath: resolveFromDocsGen('templates', 'llms-full-template.md'),
       iconRegistryPath: resolveFromDocsGen(
         '..',
         'blocks',
@@ -324,14 +331,13 @@ export class DocsGeneratorCLI {
         'icons',
         'icon-registry.ts'
       ),
-      verbsDir: resolveFromDocsGen('..', 'design', 'skill', 'verbs'),
       packageGuides: PACKAGE_GUIDES,
       outputDir: resolveFromDocsGen('..', 'design-content', 'content')
     });
 
     const bundleResult = await bundleEmitter.emit();
     console.log(
-      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.verbCount} verbs, ${bundleResult.guideCount} guides, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
+      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.guideCount} guides, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
     );
   }
 
@@ -347,15 +353,7 @@ export class DocsGeneratorCLI {
 
     return {
       templatePath: resolveFromDocsGen('templates', 'llms-template.md'),
-      catalogPath: resolveFromDocsGen(
-        '..',
-        '..',
-        'apps',
-        'docs',
-        'static',
-        'mcp',
-        'component-catalog.json'
-      ),
+      catalogPath: ASSEMBLED_CATALOG,
       siteUrl,
       outputPaths: [
         resolveFromDocsGen('..', '..', 'llms.txt'),

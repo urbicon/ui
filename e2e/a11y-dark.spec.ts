@@ -6,7 +6,7 @@ import { createGate, describeViolation, loadExceptions, scan } from './axe-harne
  *
  * Scans the LIBRARY fixture (`/test-fixtures/primitives` with the docs Rooms
  * skin REMOVED), NOT the docs site: scanning the site would measure the skin's
- * token overrides, not the library tokens (`get_css_reference`-level truth). The
+ * token overrides, not the library tokens (`urbicon css-reference`-level truth). The
  * worst contrast regression in the system's history — `text-on-primary`, 125
  * dark-mode combinations bottoming out at 1.51:1 — was invisible to the
  * light-only gate by construction. `style/contrast.test.ts` guards the token

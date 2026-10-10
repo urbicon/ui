@@ -2,10 +2,9 @@
 /**
  * `urbicon` — the version-pinned design CLI for projects built with Urbicon UI.
  *
- * One engine (`@urbicon-ui/design-engine`), three entry points: this CLI, the
- * remote MCP adapter, and editor/CI hooks. The CLI is the local, version-correct
- * path (the knowledge is the installed library version) and the home of the
- * filesystem operations a stateless remote server structurally cannot do.
+ * One engine (`@urbicon-ui/design-engine`), reached through this CLI — directly,
+ * from an editor hook, or from CI. The knowledge is the installed library version,
+ * and the filesystem operations (the manifest) run where the project lives.
  * What each command serves: `docs/AI-NATIVE-DX.md` § The `urbicon` CLI.
  *
  * Bundled to `dist/cli.js` (Node-runnable, shebang preserved) so consumers need

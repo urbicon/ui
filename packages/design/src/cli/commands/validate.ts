@@ -1,8 +1,7 @@
 /**
  * `urbicon validate [paths...]` — the deterministic design gate, and the entry
  * point a `PostToolUse` hook or CI step calls. Lints `.svelte` markup with the
- * shared `@urbicon-ui/design-engine` linter (same engine as the remote
- * `validate_design` MCP tool, so local and remote verdicts agree).
+ * `@urbicon-ui/design-engine` linter.
  *
  * Paths may be files, directories (recursively scanned for `.svelte`), or `-`
  * (stdin). Exit: 0 = clean / notes only, 1 = errors (or warnings under

@@ -93,7 +93,7 @@ describe('LLMDocumentationGenerator guides', () => {
   });
 });
 
-// A component's maturity reached only the docs-page badge and the MCP catalog, so
+// A component's maturity reached only the docs-page badge and the component catalog, so
 // every file-based consumer path — the per-component `llm.txt`, `llms-full.txt`
 // assembled from them, and `urbicon get-component`, which prints one verbatim —
 // showed an experimental component exactly like a stable one.

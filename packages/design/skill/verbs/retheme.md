@@ -8,9 +8,8 @@ possible because there's a real token system plus a manifest usage-index to driv
 1. **Context + scope.** `urbicon context` for the current paradigm, theme, and
    `## Token Overrides`. State precisely what's changing and what's staying — a
    retheme that touches everything is a rewrite, not a rebrand.
-2. **Decide at the right layer.** `urbicon principles --topic theming` (MCP:
-   `get_design_principles(topic="theming")`) includes a change-decision tree: a
-   colour shift is usually a **semantic-token** remap, not a per-component edit. Change the foundation/semantic layer (or the project's `## Token Overrides`),
+2. **Decide at the right layer.** `urbicon principles --topic theming` includes a
+   change-decision tree: a colour shift is usually a **semantic-token** remap, not a per-component edit. Change the foundation/semantic layer (or the project's `## Token Overrides`),
    not 200 call-sites — that's the whole point of the token architecture.
 3. **Update the source of truth.** Apply the token changes once at the layer you
    chose, and update `## Token Overrides` in the manifest so `validate` accepts the

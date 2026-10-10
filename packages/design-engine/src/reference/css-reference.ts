@@ -1,13 +1,13 @@
 /**
- * The CSS design-token reference — the Knowledge-plane text behind the local
- * `urbicon css-reference` command and the remote `get_css_reference` MCP tool. It
- * lives in the engine (not the content bundle) because it is authored prose, not a
- * docs-gen artifact — and inlined as TS strings because both consumers ship
- * standalone (no blocks CSS at runtime), the same constraint that keeps the linter's
- * `VALID_TOKEN_CORES` inline. The surface / text / border tables and the intent
- * roles are NOT authored here: they render from `semantic-tokens.gen.ts`, generated
- * out of the blocks `semantic.css` (`bun run tokens:reference`, gated by `:check`),
- * so a stop the reference prints is a stop the CSS has.
+ * The CSS design-token reference — the Knowledge-plane text behind the
+ * `urbicon css-reference` command. It lives in the engine (not the content bundle)
+ * because it is authored prose, not a docs-gen artifact — and inlined as TS strings
+ * because the CLI ships standalone (no blocks CSS at runtime), the same constraint
+ * that keeps the linter's `VALID_TOKEN_CORES` inline. The surface / text / border
+ * tables and the intent roles are NOT authored here: they render from
+ * `semantic-tokens.gen.ts`, generated out of the blocks `semantic.css`
+ * (`bun run tokens:reference`, gated by `:check`), so a stop the reference prints
+ * is a stop the CSS has.
  */
 
 import { OVERRIDE_CASCADE } from './override-ladder.js';
@@ -101,7 +101,7 @@ The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrid
 - \`typography\` — Font families, size scale, weights, leading/tracking, and how to override them
 - \`theming\` — How to create custom themes, available presets
 
-Fetch a section with \`urbicon css-reference <section>\` (local CLI) or \`get_css_reference(section="<section>")\` (MCP).
+Fetch a section with \`urbicon css-reference <section>\`.
 `;
 
 const SURFACES = `# Surface Tokens
@@ -617,7 +617,7 @@ So the only requirement is to import \`index.css\` (your app owns the Tailwind i
 **Do NOT add manual \`@source\` directives, and do NOT import the \`foundation\`/\`semantic\`/\`interaction\` subfiles instead of \`index.css\`** — the subfiles omit the \`@source\` directives (and global classes), which is the usual cause of "responsive layouts break in production".
 `;
 
-/** Section names, in presentation order — reuse for CLI validation and MCP enum schemas. */
+/** Section names, in presentation order — reuse for CLI validation. */
 export const CSS_REFERENCE_SECTION_NAMES = [
   'surfaces',
   'text',
@@ -639,7 +639,7 @@ export type CssReferenceSection = (typeof CSS_REFERENCE_SECTION_NAMES)[number];
  * z-index looks under shadows.
  *
  * Aliases deliberately stay out of CSS_REFERENCE_SECTION_NAMES — that list is the
- * canonical set behind `--help` and the MCP enum, and an alias is a second door to
+ * canonical set behind `--help`, and an alias is a second door to
  * one room, not a room of its own. Everything not listed here still fails loud.
  */
 export const CSS_REFERENCE_SECTION_ALIASES: Readonly<Record<string, CssReferenceSection>> = {

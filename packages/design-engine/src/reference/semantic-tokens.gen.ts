@@ -4,7 +4,7 @@
 // OKLCH lightness of each stop in the default chassis.
 //
 // The surface / text / border tables and the intent roles of the CSS token
-// reference (`urbicon css-reference`, `get_css_reference`) render from this, so
+// reference (`urbicon css-reference`) render from this, so
 // the reference cannot state a stop the CSS does not have. Role sentences are the
 // `@role` / `@absent` markers in semantic.css — edit them there.
 

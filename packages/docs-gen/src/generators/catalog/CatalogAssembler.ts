@@ -6,14 +6,14 @@ import {
   type ComponentCatalogEntry,
   INTERNAL_PACKAGE,
   type RecipeEntry
-} from './MCPCatalogGenerator';
+} from './CatalogGenerator';
 
 /** Head of a `const recipeCode =` declaration — locates the live-preview code in a recipe page. */
 const RECIPE_CODE_START_RE = /const\s+recipeCode\s*=\s*\n?\s*/;
 /** Template-literal concatenation seam (`` ` `` + `` ` ``) inside a recipeCode block. */
 const RECIPE_CODE_CONCAT_RE = /`\s*\+\s*\n?\s*`/;
 
-export interface MCPCatalogAssemblerConfig {
+export interface CatalogAssemblerConfig {
   staticDirs: string[];
   recipesDir: string;
   outputPath: string;
@@ -30,10 +30,10 @@ export interface MCPCatalogAssemblerConfig {
  * Assembles the final component-catalog.json from per-package _catalog.json
  * files and extracted recipe data.
  */
-export class MCPCatalogAssembler {
-  private config: MCPCatalogAssemblerConfig;
+export class CatalogAssembler {
+  private config: CatalogAssemblerConfig;
 
-  constructor(config: MCPCatalogAssemblerConfig) {
+  constructor(config: CatalogAssemblerConfig) {
     this.config = config;
   }
 
@@ -55,7 +55,7 @@ export class MCPCatalogAssembler {
     await fs.writeFile(this.config.outputPath, JSON.stringify(catalog, null, 2), 'utf-8');
 
     console.log(
-      `📦 MCP catalog assembled: ${components.length} components, ${recipes.length} recipes → ${this.config.outputPath}`
+      `📦 Component catalog assembled: ${components.length} components, ${recipes.length} recipes → ${this.config.outputPath}`
     );
 
     return {
@@ -122,10 +122,10 @@ export class MCPCatalogAssembler {
     const metaContent = await fs.readFile(metaPath, 'utf-8');
     const title = this.extractString(metaContent, 'title') || this.slugToTitle(id);
     const description = this.extractString(metaContent, 'description') || '';
-    const components = MCPCatalogAssembler.extractArray(metaContent, 'components');
-    const features = MCPCatalogAssembler.extractArray(metaContent, 'features');
-    // `pattern` cross-links the recipe to its Layer-4 composition pattern (get_pattern).
-    // Carried in the catalog so get_recipe can serve it without re-reading recipe source.
+    const components = CatalogAssembler.extractArray(metaContent, 'components');
+    const features = CatalogAssembler.extractArray(metaContent, 'features');
+    // `pattern` cross-links the recipe to its Layer-4 composition pattern (`urbicon pattern`).
+    // Carried in the catalog so `urbicon recipe` can serve it without re-reading recipe source.
     const pattern = this.extractString(metaContent, 'pattern');
 
     // Read recipeCode from +page.svelte (still embedded for live preview)
@@ -133,14 +133,14 @@ export class MCPCatalogAssembler {
     let code = '';
     try {
       const pageContent = await fs.readFile(pagePath, 'utf-8');
-      code = MCPCatalogAssembler.extractRecipeCode(pageContent);
+      code = CatalogAssembler.extractRecipeCode(pageContent);
     } catch {
       // No page = no code
     }
 
     // A recipe with no extractable `const recipeCode` is metadata-only — it cannot serve
     // as a "production-ready code recipe", so it is intentionally excluded from the catalog
-    // (and thus from get_recipe / suggest_implementation, which both read catalog.recipes).
+    // (and thus from `urbicon recipe`, which reads catalog.recipes).
     if (!code) return null;
 
     return { id, title, description, components, code, features, ...(pattern ? { pattern } : {}) };
@@ -153,7 +153,7 @@ export class MCPCatalogAssembler {
    * A backslash escape is skipped whole. Without that, an escaped backtick
    * inside the literal — the legal way to write one, and the only way a prose
    * comment in the snippet can quote a prop name — closed the scan early, and
-   * `get_recipe` shipped the recipe truncated at that point with nothing
+   * the catalog shipped the recipe truncated at that point with nothing
    * reporting it. (An *un*escaped backtick is a syntax error the Svelte
    * compiler already catches, so this is the half no other gate sees.)
    */
@@ -184,7 +184,7 @@ export class MCPCatalogAssembler {
     const raw = rest.slice(0, endIdx);
     const parts = raw.split(RECIPE_CODE_CONCAT_RE);
     const joined = parts.map((p) => p.replace(/^\s*`|`\s*$/g, '')).join('');
-    return MCPCatalogAssembler.cookTemplateLiteral(joined);
+    return CatalogAssembler.cookTemplateLiteral(joined);
   }
 
   /**
@@ -195,7 +195,7 @@ export class MCPCatalogAssembler {
    * .svelte files with an HTML lexer, so a raw `<script` inside a string
    * literal starts a phantom module whose `#lib/…` imports then fail the
    * whole scan with ENOENT). Shipping the raw source would hand consumers
-   * those backslashes verbatim; what `get_recipe` must serve is the cooked
+   * those backslashes verbatim; what `urbicon recipe` must serve is the cooked
    * string — exactly what the code panel displays.
    */
   static cookTemplateLiteral(source: string): string {
@@ -287,7 +287,7 @@ export class MCPCatalogAssembler {
    * Scans quote by quote rather than splitting on commas: a comma inside a
    * literal is a character, not a separator. Splitting was the rule until
    * 2026-08-14, so every feature line containing one arrived in the catalog as
-   * two or more entries, and `get_recipe` served the fragments to agents as if
+   * two or more entries, and the catalog served the fragments to agents as if
    * each were a feature of its own. Measured on filter-sidebar: its six lines
    * came out as eleven, four of them the pieces of "Mixed filter controls" —
    * "RadioGroup property type", "range Slider for rent", "SegmentGroup

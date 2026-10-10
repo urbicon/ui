@@ -1,6 +1,6 @@
 # Urbicon UI — Design Principles
 
-Design heuristics for building UIs with Urbicon UI. These principles guide the LLM in making design decisions — from individual component choices to full-page composition. They complement the token reference (`get_css_reference`) and component catalog (`find_components`).
+Design heuristics for building UIs with Urbicon UI. These principles guide the LLM in making design decisions — from individual component choices to full-page composition. They complement the token reference (`urbicon css-reference`) and the component catalog (`urbicon find`).
 
 ## Visual Hierarchy
 
@@ -127,7 +127,7 @@ When asked to modify the design, identify the correct layer:
 - Cascade (conflict-resolved per Tailwind bucket, later wins): `defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance slotClasses → instance class`.
 
 **"Change page layout / navigation structure"** → Layer 4 (Composition)
-- Update the composition pattern file (see `get_pattern()`)
+- Update the composition pattern file (see `urbicon pattern`)
 - LLM applies the updated pattern when generating new pages
 - Existing pages need manual migration
 

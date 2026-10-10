@@ -13,12 +13,9 @@
 export const RELEASE_PACKAGES = [
   'packages/shared-types',
   'packages/sveltekit-utils',
-  // design-engine / -content / design MUST precede mcp-server, which depends on
-  // all three — otherwise mcp-server ships with unresolvable npm deps.
   'packages/design-engine',
   'packages/design-content',
   'packages/design',
-  'packages/mcp-server',
   'packages/i18n',
   'packages/docs-gen',
   'packages/blocks',

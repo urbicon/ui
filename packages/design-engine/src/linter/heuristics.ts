@@ -14,8 +14,8 @@
  * holistic verdict about the page, carrying the first occurrence's line plus a
  * count, so a repeated sin costs one flat craft penalty, not N.
  *
- * Thresholds are named constants so the eval-suite (`mcp-server/src/eval`) can
- * tune them with data instead of guesswork.
+ * Thresholds are named constants (`HEURISTIC_THRESHOLDS`) so they can be tuned
+ * with data instead of guesswork.
  */
 
 import type { Finding } from './types.js';
@@ -572,7 +572,7 @@ function checkEmojiAsIcon(lines: string[]): Finding[] {
     'emoji-as-icon',
     hits,
     'Emoji in the markup as iconography. They render inconsistently across platforms and clash with a real icon set.',
-    'Use the `Icon` component / a `*Icon` from the icon set (`find_icons`) — consistent stroke, size, and theming.'
+    'Use the `Icon` component / a `*Icon` from the icon set (`urbicon icons`) — consistent stroke, size, and theming.'
   );
 }
 

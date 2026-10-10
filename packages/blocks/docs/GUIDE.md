@@ -194,9 +194,9 @@ Plus `controller.target(id, meta?)` — the attachment that registers/binds an e
 programmatically.
 
 Every `*Props` interface carries the mandatory JSDoc (`@description`, `@tag`, `@related`,
-`@stability beta`) — the single source for the MCP server, `llms.txt`, and the docs site.
-The eight surfaces additionally carry `@standalone`, which gives each its own MCP-catalog
-entry and `llm.txt` (`find_components("guide")` lists all nine; `get_component("guide-panel")`
+`@stability beta`) — the single source for the `urbicon` CLI, `llms.txt`, and the docs site.
+The eight surfaces additionally carry `@standalone`, which gives each its own catalog
+entry and `llm.txt` (`urbicon find guide` lists all nine; `urbicon get-component guide-panel`
 etc. work) despite the family sharing one `index.ts` and one docs page — unlike compound
 subcomponents (TabItem, MenuItem), which stay folded into their directory component's entry.
 
@@ -478,7 +478,7 @@ Deliberately **out** of the first cut (avoiding over-engineering):
 | i18n keys (`guide.*`) | `blocks/src/lib/translations/{en,de}.ts` |
 | Doc page (live examples) | `apps/docs/src/routes/blocks/components/guide/` |
 | Recipe (Onboarding Flow + live analytics log) | `apps/docs/src/routes/recipes/onboarding-flow/` |
-| MCP pattern | `design-system/patterns/onboarding-guide.md` |
+| Composition pattern (`urbicon pattern onboarding-guide`) | `design-system/patterns/onboarding-guide.md` |
 
 **Tests.** Engine logic is node-unit-tested (`utils/guide.svelte.test.ts`,
 `utils/observe-target.test.ts`). Component behaviour + a11y (axe) + light/dark visual snapshots

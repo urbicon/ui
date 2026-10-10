@@ -1,6 +1,6 @@
 name: Deploy
 
-# Ships the docs site and the MCP server to the host — but only behind a green
+# Ships the docs site to the host — but only behind a green
 # pipeline. Until 2026-08-02 this was a GitHub webhook straight to buny on the
 # host: it fired the moment a push was accepted, built the whole workspace
 # there, and had no idea whether CI passed. A red main deployed exactly like a
@@ -27,7 +27,7 @@ name: Deploy
 # HOW IT SWITCHES. Each deploy lands in its own `releases/<ts>-<sha>` directory
 # and a symlink is moved afterwards, so the cutover is atomic and a rollback is
 # one `ln -sfn` with no rebuild. The verification step does exactly that if the
-# site or the MCP endpoint fails to answer afterwards.
+# site fails to answer afterwards.
 
 on:
   workflow_run:
@@ -135,18 +135,9 @@ jobs:
           run-id: ${{ steps.decide.outputs.run_id }}
           github-token: ${{ github.token }}
 
-      - name: Download MCP artefact
-        if: steps.decide.outputs.proceed == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: mcp-dist
-          path: mcp-dist
-          run-id: ${{ steps.decide.outputs.run_id }}
-          github-token: ${{ github.token }}
-
       # An artefact that unpacked empty would otherwise be rsynced over the live
       # tree as an empty directory — `--delete` would then take the site down.
-      - name: Sanity-check the artefacts
+      - name: Sanity-check the artefact
         if: steps.decide.outputs.proceed == 'true'
         run: |
           set -euo pipefail
@@ -154,10 +145,7 @@ jobs:
           [ "$pages" -ge 100 ] || { echo "::error::site-dist holds only $pages HTML pages"; exit 1; }
           [ -s site-dist/index.html ] || { echo "::error::site-dist/index.html is missing or empty"; exit 1; }
           [ -s site-dist/404.html ] || { echo "::error::site-dist/404.html is missing or empty"; exit 1; }
-          [ -s mcp-dist/server.js ] || { echo "::error::mcp-dist/server.js is missing or empty"; exit 1; }
-          [ -s mcp-dist/bundle.sha256 ] || { echo "::error::mcp-dist/bundle.sha256 is missing"; exit 1; }
-          [ -d mcp-dist/content ] || { echo "::error::mcp-dist/content is missing"; exit 1; }
-          echo "site-dist: $pages HTML pages · mcp-dist: $(du -sh mcp-dist | cut -f1)"
+          echo "site-dist: $pages HTML pages"
 
       - name: Configure SSH
         if: steps.decide.outputs.proceed == 'true'
@@ -201,39 +189,6 @@ jobs:
             ls -1dt */ | tail -n +6 | xargs -r rm -rf
             echo \"site now: \$(readlink $BASE/current)\""
 
-      # Most pushes change neither the server's code nor the catalogue, and a
-      # restart drops every open MCP session. The hash the bundle ships decides.
-      - name: Deploy MCP server
-        if: steps.decide.outputs.proceed == 'true'
-        id: mcp
-        env:
-          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          REL: ${{ steps.decide.outputs.release }}
-        run: |
-          set -euo pipefail
-          SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15"
-          BASE=/var/www/hosts/ui-mcp
-
-          NEW=$(cat mcp-dist/bundle.sha256)
-          OLD=$($SSH "$DEPLOY_USER@$DEPLOY_HOST" "cat $BASE/current/bundle.sha256 2>/dev/null || echo none")
-
-          if [ "$NEW" = "$OLD" ]; then
-            echo "::notice::MCP bundle unchanged (${NEW:0:16}…) — skipping restart, sessions stay up."
-            echo "restarted=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "MCP bundle changed: ${OLD:0:16}… -> ${NEW:0:16}…"
-          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p $BASE/releases/$REL"
-          rsync -a --delete -e "$SSH" mcp-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$BASE/releases/$REL/"
-          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "set -euo pipefail
-            ln -sfn $BASE/releases/$REL $BASE/current
-            sudo -n /usr/bin/systemctl restart bunapp-ui-mcp.service
-            cd $BASE/releases
-            ls -1dt */ | tail -n +6 | xargs -r rm -rf"
-          echo "restarted=true" >> "$GITHUB_OUTPUT"
-
       # The point of the symlink scheme: if production does not answer, put the
       # previous release back rather than leaving a broken site up.
       - name: Verify, and roll back if broken
@@ -241,14 +196,10 @@ jobs:
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          MCP_RESTARTED: ${{ steps.mcp.outputs.restarted }}
         run: |
           set -uo pipefail
           SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15"
           failed=""
-
-          # The service needs a moment to bind after a restart.
-          if [ "$MCP_RESTARTED" = "true" ]; then sleep 5; fi
 
           for path in / /blocks /sitemap.xml; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://ui.urbicon.de$path")
@@ -259,17 +210,6 @@ jobs:
           code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://ui.urbicon.de/does-not-exist)
           echo "  404 handling -> $code"
           [ "$code" = "404" ] || failed="$failed site:404($code)"
-
-          mcp=$(curl -s --max-time 20 -X POST https://mcp.ui.urbicon.de/mcp \
-            -H 'Content-Type: application/json' \
-            -H 'Accept: application/json, text/event-stream' \
-            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"deploy-verify","version":"1"}}}')
-          if printf '%s' "$mcp" | grep -q '"serverInfo"'; then
-            echo "  mcp initialize -> ok"
-          else
-            echo "  mcp initialize -> FAILED"
-            failed="$failed mcp:initialize"
-          fi
 
           if [ -n "$failed" ]; then
             echo "::error::Verification failed:$failed"

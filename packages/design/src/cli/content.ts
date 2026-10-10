@@ -3,9 +3,8 @@
  * Knowledge plane behind `urbicon find` / `get-component` / `pattern` / `principles`
  * / `icons` / `recipe`. It is the thin I/O layer between two shared pieces: the
  * catalog/icon *schemas* + search/parse logic live in `@urbicon-ui/design-engine`
- * (`search` + `reference`, one authoring, shared with the remote MCP server); the
- * bundle *location* comes from `@urbicon-ui/design-content`'s locators.
- * No watcher — the CLI is short-lived, unlike the long-running server.
+ * (`search` + `reference`); the bundle *location* comes from
+ * `@urbicon-ui/design-content`'s locators. No watcher — the CLI is short-lived.
  */
 
 import { readdir, readFile } from 'node:fs/promises';

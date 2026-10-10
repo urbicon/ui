@@ -1,7 +1,7 @@
 /**
  * Public API of the design-quality rubric — the qualitative half of the design loop.
- * Consumed by the `get_design_principles(as="rubric")` MCP tool and by the
- * eval-suite, which import the same constants to score programmatically.
+ * Rendered by `urbicon principles --rubric`; the constants are exported for anyone
+ * scoring programmatically.
  *
  * See ./rubric.ts for the criteria and the rationale behind them.
  */

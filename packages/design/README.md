@@ -3,13 +3,11 @@
 The **`urbicon` CLI** — version-pinned design validation and design-manifest
 tooling for projects built with [Urbicon UI](https://ui.urbicon.de).
 
-It is the local, version-correct half of the Urbicon design loop: the knowledge
-and rules are the ones shipped with the `@urbicon-ui/*` version you installed, and
-the filesystem operations (reading/writing your project's `design.manifest.md`)
-run on your machine — things a public, stateless remote MCP server structurally
-cannot do. Under the hood it wraps the zero-dependency
-[`@urbicon-ui/design-engine`](https://github.com/urbicon/ui/blob/main/packages/design-engine/README.md); the same engine backs the remote
-`validate_design` MCP tool, so local and remote verdicts agree.
+It is the Urbicon design loop, run where your project lives: the knowledge and
+rules are the ones shipped with the `@urbicon-ui/*` version you installed, and the
+filesystem operations (reading/writing your project's `design.manifest.md`) run on
+your machine. Under the hood it wraps the zero-dependency
+[`@urbicon-ui/design-engine`](https://github.com/urbicon/ui/blob/main/packages/design-engine/README.md).
 
 **What the loop buys, measured.** One A/B pair on v8.3.1 (2026-08-18): Haiku 4.5
 built the same three-page auth app twice, with `@urbicon-ui/*` installed either
@@ -99,39 +97,34 @@ the link-as-button recipe — one call),
 
 > The component knowledge is **local and version-pinned**: `@urbicon-ui/design` pulls in the
 > [`@urbicon-ui/design-content`](https://github.com/urbicon/ui/blob/main/packages/design-content/README.md) bundle, so `find` / `get-component` match the
-> library version you installed — no extra install, no skew against the latest-only hosted MCP.
+> library version you installed — no extra install, no skew against the latest-only hosted docs.
 
 ## Commands
 
-| Command                        | What it does                                                                                          | Replaces (remote)           |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------- | --------------------------- |
-| `urbicon init`                 | Wire a project into the design loop (AGENTS.md block, manifest scaffold, `--hook`/`--ci`).            | — (local only)              |
-| `urbicon validate [paths...]`  | Lint `.svelte` markup against the design rules. The CI gate.                                          | mirror of `validate_design` |
-| `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             | — (local only)              |
-| `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                | — (local only)              |
-| `urbicon primer`               | The always-needed bundle in one call: component selection, token core, override ladder, link recipe.  | —                           |
-| `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog; says so when nothing matches.              | `find_components`           |
-| `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    | `get_component`             |
-| `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                | `find_icons`                |
-| `urbicon recipe [id]`          | Complete Svelte 5 code recipes from the catalog.                                                      | `get_recipe`                |
-| `urbicon guide [slug]`         | The bundled package guides: reference, migration and integration docs; a bare `guide` lists them all. | `urbicon://guide/auth`      |
-| `urbicon pattern [name]`       | Composition patterns per page archetype.                                                              | `get_pattern`               |
-| `urbicon principles`           | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric.                                   | `get_design_principles`     |
-| `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns.                                                | `get_css_reference`         |
-| `urbicon context`              | Print the project's `design.manifest.md` summary.                                                     | — (local only)              |
-| `urbicon record-decision …`    | Append an ADR to the manifest.                                                                        | — (local only)              |
-| `urbicon sync-manifest`        | Re-index `data-design-pattern` markers into the manifest.                                             | — (local only)              |
-| `urbicon verbs`                | List the design verbs (recipes over the design loop).                                                 | the MCP prompts             |
-| `urbicon verb <name>`          | Print one verb recipe to stdout.                                                                      | the MCP prompts             |
+| Command                        | What it does                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `urbicon init`                 | Wire a project into the design loop (AGENTS.md block, manifest scaffold, `--hook`/`--ci`).            |
+| `urbicon validate [paths...]`  | Lint `.svelte` markup against the design rules. The CI gate.                                          |
+| `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             |
+| `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                |
+| `urbicon primer`               | The always-needed bundle in one call: component selection, token core, override ladder, link recipe.  |
+| `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog; says so when nothing matches.              |
+| `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    |
+| `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                |
+| `urbicon recipe [id]`          | Complete Svelte 5 code recipes from the catalog.                                                      |
+| `urbicon guide [slug]`         | The bundled package guides: reference, migration and integration docs; a bare `guide` lists them all. |
+| `urbicon pattern [name]`       | Composition patterns per page archetype.                                                              |
+| `urbicon principles`           | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric.                                   |
+| `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns.                                                |
+| `urbicon context`              | Print the project's `design.manifest.md` summary.                                                     |
+| `urbicon record-decision …`    | Append an ADR to the manifest.                                                                        |
+| `urbicon sync-manifest`        | Re-index `data-design-pattern` markers into the manifest.                                             |
+| `urbicon verbs`                | List the design verbs (recipes over the design loop).                                                 |
+| `urbicon verb <name>`          | Print one verb recipe to stdout.                                                                      |
 
 The CLI covers the full knowledge surface locally, so the design loop runs
-offline and version-pinned end to end. When an `urbicon-ui` MCP connection is
-_also_ present, prefer the CLI: the remote serves latest, the CLI serves the
-version this project installed.
-
-The three manifest commands move off the remote server deliberately: a public
-remote server has no access to your repo's filesystem, so manifest upkeep belongs
-on the consumer side (this CLI, or the agent's own write tools).
+offline and version-pinned end to end. Manifest upkeep belongs on the consumer
+side too — this CLI, or the agent's own write tools.
 
 ### validate
 
@@ -146,8 +139,7 @@ urbicon validate src/ --record           # also append a drift entry to the hist
 
 `validate` reads `## Token Overrides` from your `design.manifest.md` (if present)
 and treats those token cores as valid, so a token your project defines on top of
-Urbicon's is not flagged as hallucinated — the local, manifest-sourced counterpart
-to the remote `validate_design(extraTokens)`. Since v6.44 that is a genuine gate
+Urbicon's is not flagged as hallucinated. Since v6.44 that is a genuine gate
 release rather than a warning tweak: `token-hallucination` is an **error**
 (a token that names nothing renders with no styling at all), so a manifest that
 declares your token is what keeps `validate` at exit 0. Nothing else is relaxed —
@@ -281,9 +273,8 @@ ambiguous title fails loud rather than recording a dangling link.
 
 ## Design verbs
 
-Ten recipes that string the knowledge, the linter, and the manifest into one loop —
-the same single source that is served remotely as MCP prompts. They ship
-in this package under `skill/`, so they run offline and version-locked.
+Ten recipes that string the knowledge, the linter, and the manifest into one loop.
+They ship in this package under `skill/`, so they run offline and version-locked.
 
 ```bash
 urbicon verbs            # list them
@@ -302,9 +293,8 @@ manifest and closes by writing the decision back.
 
 ## Enforcement — hook + CI
 
-The gate runs in two places a stateless remote server structurally cannot reach:
-at edit time (a Claude Code hook) and in CI. Ready-to-copy templates ship in
-[`templates/`](./templates/).
+The gate runs in two places: at edit time (a Claude Code hook) and in CI.
+Ready-to-copy templates ship in [`templates/`](./templates/).
 
 **Edit-time hook.** Wire `urbicon hook` as a `PostToolUse` hook so every edited
 `.svelte` file is validated the moment it is written — the loop becomes enforced,
@@ -362,4 +352,4 @@ bunx urbicon validate src/ --json              # correctness gate (blocking)
 ## Related
 
 - [`@urbicon-ui/design-engine`](https://github.com/urbicon/ui/blob/main/packages/design-engine/README.md) — the deterministic engine this CLI wraps
-- [`@urbicon-ui/mcp-server`](https://github.com/urbicon/ui/blob/main/packages/mcp-server/README.md) — the remote MCP adapter over the same engine
+- [`@urbicon-ui/design-content`](https://github.com/urbicon/ui/blob/main/packages/design-content/README.md) — the version-pinned knowledge bundle `find` / `get-component` / `pattern` read

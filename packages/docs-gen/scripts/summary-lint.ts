@@ -7,7 +7,7 @@
  * neither: before the split the median `@description` ran 259 characters over
  * more than one sentence, 59 of 97 carried code voice, and the landing page
  * truncated the result mid-clause. `@description` stays the long form for
- * `llm.txt` and the MCP catalog; this checks that the short form stays short.
+ * `llm.txt` and the component catalog; this checks that the short form stays short.
  *
  * The budget is measured, not taste: the hero's preview column fits roughly 52
  * characters per line and three lines before the stage is pushed down.

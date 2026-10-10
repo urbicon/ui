@@ -25,11 +25,10 @@ export interface ComponentSearch {
 const CLOSEST_LIMIT = 3;
 
 /**
- * The sentence a surface prints under a `closest` list. Lives here because the CLI
- * and the MCP tool must say the same thing about the same list, and the accurate
- * claim is narrow: these entries scored without a *distinctive* word landing —
- * a fragment of a longer word, or only a word too common in the catalog to mean
- * anything. It must not claim they are wrong (for `weekly plan` the first is Planner).
+ * The sentence a surface prints under a `closest` list. The accurate claim is
+ * narrow: these entries scored without a *distinctive* word landing — a fragment
+ * of a longer word, or only a word too common in the catalog to mean anything. It
+ * must not claim they are wrong (for `weekly plan` the first is Planner).
  */
 export const CLOSEST_NOTE =
   'No distinctive query word landed on these — read one before building on it.';
@@ -95,8 +94,8 @@ const UBIQUITY_FLOOR = 8;
 /**
  * Whether a variant axis is a boolean switch (`true`/`false`, or a lone `true`)
  * rather than a named look. The one predicate behind every surface that lists
- * or scores axis values — the CLI's `find` lines, the MCP catalog formatters and
- * the ranker — so the three cannot disagree on what a boolean axis is.
+ * or scores axis values — the CLI's `find` lines and the ranker — so the two
+ * cannot disagree on what a boolean axis is.
  */
 export function isBooleanAxis(values: string[]): boolean {
   return values.length > 0 && values.every((v) => v === 'true' || v === 'false');
@@ -104,8 +103,7 @@ export function isBooleanAxis(values: string[]): boolean {
 
 /**
  * Rank catalog entries against a free-text query — the component-discovery ranker
- * behind both `find_components` (remote MCP) and `urbicon find` (CLI), so local and
- * remote discovery agree. Pure and dependency-free. The query is lower-cased and
+ * behind `urbicon find`. Pure and dependency-free. The query is lower-cased and
  * split on whitespace, commas, hyphens and underscores; words shorter than two
  * characters are dropped. Every remaining word scores each field it hits, each
  * field at most once per word:

@@ -3,8 +3,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { PropInfo } from '@urbicon-ui/shared-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CatalogGenerator } from '../src/generators/catalog/CatalogGenerator';
 import { LLMDocumentationGenerator } from '../src/generators/llm/LLMDocumentationGenerator';
-import { MCPCatalogGenerator } from '../src/generators/mcp/MCPCatalogGenerator';
 import { resolveSlotNames } from '../src/generators/shared/slots';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../src/types';
 
@@ -157,8 +157,8 @@ describe('slot names reach both catalog surfaces', () => {
     }
   });
 
-  it('writes the real slot names into the MCP _catalog.json entry', async () => {
-    const gen = new MCPCatalogGenerator('@urbicon-ui/blocks', root);
+  it('writes the real slot names into the _catalog.json entry', async () => {
+    const gen = new CatalogGenerator('@urbicon-ui/blocks', root);
     await gen.generate([enriched('Card')], apiWithCardSlots());
 
     const catalog = JSON.parse(await fs.readFile(path.join(root, '_catalog.json'), 'utf-8'));

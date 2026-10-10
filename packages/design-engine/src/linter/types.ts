@@ -2,8 +2,7 @@
  * Types for the Urbicon UI design linter.
  *
  * The linter turns the prose Anti-Patterns and Design-Quality guidance (served
- * today by `get_design_principles`, `suggest_implementation`,
- * `get_implementation_checklist`) into executable checks. Deterministic rules
+ * by `urbicon principles`) into executable checks. Deterministic rules
  * produce `error`/`warning` findings; distribution heuristics produce `info`
  * findings. The loop they serve: `docs/AI-NATIVE-DX.md` § The design loop.
  */
@@ -68,7 +67,7 @@ export type RuleScope = 'code' | 'file';
 export interface Rule {
   id: string;
   severity: Severity;
-  /** One-line description of what the rule enforces, shown in `validate_design` rule listings. */
+  /** One-line description of what the rule enforces, shown in rule listings. */
   description: string;
   /** Which view of the source this rule scans. Default: `'file'`. See {@link RuleScope}. */
   scope?: RuleScope;

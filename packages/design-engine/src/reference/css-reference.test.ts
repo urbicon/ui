@@ -125,7 +125,7 @@ describe('renderCssReference', () => {
   });
 
   it('keeps aliases out of the canonical section list', () => {
-    // The list drives `--help` and the MCP enum: an alias listed there would read
+    // The list drives `--help`: an alias listed there would read
     // as a section of its own and promise text that does not exist separately.
     const leaked = Object.keys(CSS_REFERENCE_SECTION_ALIASES).filter((alias) =>
       (CSS_REFERENCE_SECTION_NAMES as readonly string[]).includes(alias)

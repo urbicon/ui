@@ -127,7 +127,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
    *
    * Distinct from `@description`, and deliberately so: the two serve different
    * readers. `@description` is the contract an agent reads out of `llm.txt` or
-   * the MCP catalog — it may name edge cases, version subsets and failure
+   * the component catalog — it may name edge cases, version subsets and failure
    * modes, and it usually should. `@summary` is the single sentence a human
    * sees under a component's name on the landing page and in the index, where
    * roughly 120 characters fit before it wraps past its stage.
@@ -563,7 +563,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
 
       // The prop-level twin of the component's `@summary`, for the same reason
       // and with the same split of readers: `description` is the contract an
-      // agent reads (`llm.txt`, the MCP catalog) and may run to a paragraph;
+      // agent reads (`llm.txt`, the component catalog) and may run to a paragraph;
       // `@summary` is the line a person reads beside a knob in a playground.
       // Measured on `CurrencyInput.locale`, whose description explains SSR
       // hydration, `Intl.NumberFormat` internals and why `currency` is not

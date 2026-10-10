@@ -103,7 +103,7 @@ classDiagram
         -docsParser: SvelteDocsParser
         +generate(components, apiData) Promise~GeneratedOutput~
     }
-    class MCPCatalogGenerator {
+    class CatalogGenerator {
         +generate(components, apiData) Promise~ComponentCatalog~
     }
     class SvelteDocsParser {
@@ -115,7 +115,7 @@ classDiagram
     class LlmsFullAssembler {
         +assemble() Promise~AssembleResult~
     }
-    class MCPCatalogAssembler {
+    class CatalogAssembler {
         +assemble() Promise~AssembleResult~
         +extractRecipeCode(content)$ string
     }
@@ -129,7 +129,7 @@ classDiagram
     DocsGeneratorCLI --> ConfigurationFactory
     DocsGeneratorCLI --> PipelineOrchestrator
     DocsGeneratorCLI --> LlmsFullAssembler
-    DocsGeneratorCLI --> MCPCatalogAssembler
+    DocsGeneratorCLI --> CatalogAssembler
     DocsGeneratorCLI --> ContentBundleEmitter
     ConfigurationFactory ..> DocsConfigurationBuilder
 
@@ -158,12 +158,12 @@ classDiagram
 
     GenerationCoordinator --> APIFileGenerator
     GenerationCoordinator --> LLMDocumentationGenerator
-    GenerationCoordinator --> MCPCatalogGenerator
+    GenerationCoordinator --> CatalogGenerator
     LLMDocumentationGenerator --> SvelteDocsParser
     SvelteDocsParser ..> StaticDocsConfigError
 
     APIFileGenerator ..> LLMDocumentationGenerator : api.ts first
-    APIFileGenerator ..> MCPCatalogGenerator : api.ts first
+    APIFileGenerator ..> CatalogGenerator : api.ts first
 
 %% ---------- Architecture notes ----------
 note for APIFileGenerator "API-FIRST: writes api.ts before the other generators run — they read it, not the raw components"

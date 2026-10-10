@@ -1,9 +1,8 @@
 /**
- * `urbicon css-reference [section]` — the CSS design-token reference, the local,
- * version-correct mirror of the remote `get_css_reference`. The text is the shared
- * `@urbicon-ui/design-engine/reference` content (drift-guarded against the real
- * blocks CSS in-repo), so local and remote answers agree. No section prints the
- * overview with the naming conventions and the dark-mode mechanism.
+ * `urbicon css-reference [section]` — the CSS design-token reference. The text is
+ * the `@urbicon-ui/design-engine/reference` content (drift-guarded against the real
+ * blocks CSS in-repo). No section prints the overview with the naming conventions
+ * and the dark-mode mechanism.
  */
 
 import {

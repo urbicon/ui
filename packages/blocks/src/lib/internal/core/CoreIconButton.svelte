@@ -17,7 +17,7 @@
   override surface. Under `unstyled` the plumbing also stays — stripping
   `disabled:pointer-events-none` & co. would break behaviour, not styling.
 
-  INTERNAL — never exported from the package barrel, no docs/MCP entry. For a full
+  INTERNAL — never exported from the package barrel, no docs/catalog entry. For a full
   themed button use the public `Button`.
 
   restProps-first spread (COMPONENT-API-CONVENTIONS §restProps ordering): the
@@ -56,9 +56,9 @@
   {onclick}
   aria-label={ariaLabel}
   class={[
-    'inline-flex items-center justify-center cursor-pointer select-none',
+    'inline-flex cursor-pointer items-center justify-center select-none',
     'focus-visible:outline-none',
-    'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
+    'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50',
     className
   ]}
 >

@@ -1,18 +1,18 @@
 ---
 name: component-metadata
-description: JSDoc contract for *Props interfaces in index.ts — the single source of truth feeding the MCP server, llm.txt and the docs site. Use when adding or changing a component's props/index.ts, or when catalog/docs output looks stale or wrong.
+description: JSDoc contract for *Props interfaces in index.ts — the single source of truth feeding the urbicon CLI, llm.txt and the docs site. Use when adding or changing a component's props/index.ts, or when catalog/docs output looks stale or wrong.
 ---
 
 # Component metadata via JSDoc
 
-Every `*Props` interface in `index.ts` MUST have JSDoc tags — this is the single source of truth for the MCP server, `llm.txt`, and the documentation site:
+Every `*Props` interface in `index.ts` MUST have JSDoc tags — this is the single source of truth for the `urbicon` CLI, `llm.txt`, and the documentation site:
 
 - `@summary` (required) — **one** sentence, ≤ 120 characters, no backticks/braces/version numbers. What a human reads under the component's name on the landing page and in the index. Gated by `bun run summary:lint`.
-- `@description` (required) — the long form: the contract an agent reads out of `llm.txt` and the MCP catalog. May name edge cases, subsets and failure modes; length is not capped here.
+- `@description` (required) — the long form: the contract an agent reads out of `llm.txt` and the component catalog. May name edge cases, subsets and failure modes; length is not capped here.
 - `@tag` (one or more) — category tags: `form`, `action`, `overlay`, `feedback`, `layout`, `navigation`, `display`, `data`, `documentation` (docs-site building blocks like `InlineCode`, `NoteList`), `ai` (the chat/agent family: conversation surfaces, streaming markdown, agent parts)
 - `@related` (zero or more) — related component names
 - `@stability` (optional, default `stable`) — `experimental | beta | stable | deprecated`; drives the Editorial stability badge in the doc-page header. Level semantics + the beta→stable promotion criteria: `docs/COMPONENT-API-CONVENTIONS.md` § Stability
-- `@standalone` (optional, multi-component `index.ts` only) — opt-in: this export gets its own MCP-catalog entry + `llm.txt` (e.g. the eight Guide surfaces). Without it, additional exports count as compound subcomponents (TabItem, MenuItem) and stay folded into the directory component's entry. Requires a matching `export { default as X } from './X.svelte'` in the same file.
+- `@standalone` (optional, multi-component `index.ts` only) — opt-in: this export gets its own catalog entry + `llm.txt` (e.g. the eight Guide surfaces). Without it, additional exports count as compound subcomponents (TabItem, MenuItem) and stay folded into the directory component's entry. Requires a matching `export { default as X } from './X.svelte'` in the same file.
 
 The two description tags are **not** interchangeable. They were one field until 2026-07-27; the median ran 259 characters over more than one sentence, so the landing page truncated it mid-clause while agents got no more detail for it.
 
@@ -51,7 +51,7 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 
 ## A prop's `@default` is copied, never checked
 
-docs-gen takes a direct prop's default from its `@default` tag alone (`PropsExtractor.ts`), never from the `$props()` destructuring; only a tv() axis reads its default from code (`defaultVariants`). A wrong `@default` travels unchecked into `api.ts`, the component's `llm.txt` and everything serving it (`llms-full.txt`, MCP `get_component`, the `urbicon` CLI) — no gate compares it with the code. Change the tag in the same edit as the destructuring default.
+docs-gen takes a direct prop's default from its `@default` tag alone (`PropsExtractor.ts`), never from the `$props()` destructuring; only a tv() axis reads its default from code (`defaultVariants`). A wrong `@default` travels unchecked into `api.ts`, the component's `llm.txt` and everything serving it (`llms-full.txt`, the `urbicon` CLI) — no gate compares it with the code. Change the tag in the same edit as the destructuring default.
 
 ## A variant value's description lives in `*.variants.ts`
 
@@ -88,7 +88,7 @@ structure, not a single JSDoc block) apply in JSDoc unchanged. What belongs wher
 
 ## Regeneration is two-step — run `docs:gen:all`, not `docs:gen:<target>`
 
-`docs:gen:<target>` only writes `apps/docs/static/<group>/_catalog.json` + per-component `llm.txt`; the `MCPCatalogAssembler` (runs only in `docs:gen:all` / `build`) globs every `_catalog.json` into `apps/docs/static/mcp/component-catalog.json` — the file the MCP server actually loads for `find_components`/`suggest_implementation`. Editing `*Props` JSDoc and running only `docs:gen:<target>` leaves that file **stale**. All three artifacts are git-ignored (CI rebuilds them on `build`).
+`docs:gen:<target>` only writes `apps/docs/static/<group>/_catalog.json` + per-component `llm.txt`; the `CatalogAssembler` (runs only in `docs:gen:all` / `build`) globs every `_catalog.json` into `apps/docs/static/mcp/component-catalog.json` — the file root `llms.txt` and the design-content bundle (`urbicon find` / `get-component` / `recipe`) are built from. Editing `*Props` JSDoc and running only `docs:gen:<target>` leaves that file **stale**. All three artifacts are git-ignored (CI rebuilds them on `build`).
 
 ## Name the real server factory
 
@@ -98,4 +98,4 @@ For a component with a server counterpart (auth handler, SSE/stream endpoint), t
 
 New components also need a bundle-size baseline entry — see `bun run size --update-baseline`.
 
-`@stability` reaches the MCP catalog (and with it the landing page's status column) since 2026-07-27 — before that it was extracted and dropped, and the landing page carried a hand-written list naming four of the thirty-eight non-stable components. Set it truthfully.
+`@stability` reaches the component catalog (and with it the landing page's status column) since 2026-07-27 — before that it was extracted and dropped, and the landing page carried a hand-written list naming four of the thirty-eight non-stable components. Set it truthfully.

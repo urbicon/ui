@@ -24,7 +24,7 @@ export type PlaygroundConfiguratorSlotName =
  *
  * A prop's `summary` wins over its `description` where one exists. The two have
  * different readers: the description is the contract an agent reads out of
- * `llm.txt` or the MCP catalog and may run to a paragraph — beside a knob that
+ * `llm.txt` or the component catalog and may run to a paragraph — beside a knob that
  * paragraph is not help, it is a wall. `CurrencyInput.locale` was the measured
  * case: nine lines on SSR hydration and `Intl.NumberFormat` internals next to a
  * three-way switch. Most props need no summary and get none; the fallback is

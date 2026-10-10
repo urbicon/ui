@@ -1,7 +1,6 @@
 /**
  * `urbicon recipe [id]` — complete Svelte 5 code recipes from the version-pinned
- * catalog, the local, version-correct mirror of the remote `get_recipe`. With no
- * id, lists all recipes; with an id, prints the full recipe (description, pattern,
+ * catalog. With no id, lists all recipes; with an id, prints the full recipe (description, pattern,
  * components, code).
  */
 

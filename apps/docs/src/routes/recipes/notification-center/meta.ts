@@ -9,7 +9,7 @@ export const recipeMeta: RecipeMeta = {
   components: ['Drawer', 'Tab', 'Badge', 'Avatar', 'Button', 'Tooltip'],
   // Nothing on the docs site renders these: the cookbook card shows title,
   // description and components, and this page dropped the feature list in
-  // favour of the demo. Their one consumer is `get_recipe`, so they are written
+  // favour of the demo. Their one consumer is `urbicon recipe`, so they are written
   // for an agent deciding whether this recipe fits — facts, not aphorisms.
   features: [
     'A Button trigger whose soft danger Badge shows the unread count; the count, the tab badge and the footer state all derive from one notifications array.',

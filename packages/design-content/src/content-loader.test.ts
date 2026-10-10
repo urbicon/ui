@@ -6,8 +6,7 @@ import {
   getDesignSystemDir,
   getGuideIndexPath,
   getGuidePath,
-  getIconsPath,
-  getTemplatePath
+  getIconsPath
 } from './content-loader.js';
 
 describe('content-loader paths', () => {
@@ -41,7 +40,6 @@ describe('content-loader paths', () => {
     it('resolves each artifact under the content dir', () => {
       expect(getCatalogPath()).toBe('/bundle/component-catalog.json');
       expect(getDesignSystemDir()).toBe('/bundle/design-system');
-      expect(getTemplatePath()).toBe('/bundle/guides/llms-full-template.md');
       expect(getGuideIndexPath()).toBe('/bundle/guides/index.json');
       expect(getIconsPath()).toBe('/bundle/icons.json');
     });

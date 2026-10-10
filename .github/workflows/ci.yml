@@ -43,7 +43,7 @@ jobs:
       # generated from semantic.css and went stale twice in one week when that
       # file gained tokens. Fails when semantic.css changed without a regen.
       - run: bun run livery:check
-      # The CSS token reference (`urbicon css-reference`, `get_css_reference`)
+      # The CSS token reference (`urbicon css-reference`)
       # renders its surface/text/border tables and the intent roles from a
       # module generated out of semantic.css (#402). Fails when semantic.css
       # or foundation.css changed without a regen.
@@ -149,7 +149,7 @@ jobs:
       - run: bun packages/design/dist/cli.js validate packages/docs/src/lib/components --craft-floor 100
       - run: bun packages/design/dist/cli.js validate apps/docs/src --craft-floor 70
       # Type-checks every @example block in every *Props JSDoc. Those snippets
-      # are served to the MCP catalogue, llm.txt and the docs site at once, so a
+      # are served in llm.txt, llms-full.txt and the docs site at once, so a
       # wrong one is wrong in three places. The same run compiles the svelte
       # fences of design-system/patterns/*.md, which `urbicon pattern` serves
       # verbatim and nothing else compiles.
@@ -210,9 +210,6 @@ jobs:
         run: bunx --bun vitest run
       - name: Test table
         working-directory: packages/table
-        run: bunx --bun vitest run
-      - name: Test mcp-server
-        working-directory: packages/mcp-server
         run: bunx --bun vitest run
       # design + design-engine were missing until 2026-07-31, which is how a
       # severity change in design-engine's linter shipped a red `design` suite
@@ -411,14 +408,9 @@ jobs:
       # `build` just produced; its positive controls run in the `test` job.
       - run: bun run consumer-css:check
 
-      # Bundles the MCP server into a self-contained mcp-dist/ (server.js plus
-      # the content it reads at runtime). Needs the docs:gen output that
-      # `build` produced — the script asserts that rather than assuming it.
-      - run: bun run build:mcp-dist
-
-      # THE DEPLOY ARTEFACTS. deploy.yml pulls these from this run by id
-      # instead of rebuilding, so a push that reaches production is byte-for-byte
-      # the tree CI went green on. Three days is well past any useful re-run.
+      # THE DEPLOY ARTEFACT. deploy.yml pulls it from this run by id instead of
+      # rebuilding, so a push that reaches production is byte-for-byte the tree
+      # CI went green on. Three days is well past any useful re-run.
       - uses: actions/upload-artifact@v7
         with:
           name: site-dist
@@ -426,18 +418,11 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: mcp-dist
-          path: mcp-dist/
-          retention-days: 3
-          if-no-files-found: error
-
   # Advisory only — not in `ci-green`'s `needs` below, so a PR never blocks on
   # it. The blocking check moved to the release bump (`scripts/bump.sh`),
   # which is the point a consumer's install actually reflects the number.
   # Builds its own blocks/table/auth dist via `build:packages` rather than
-  # depending on `build` — the full `bun run build` (docs-app + mcp-dist) is
+  # depending on `build` — the full `bun run build` (docs-app included) is
   # more than this job needs.
   size-report:
     name: Bundle size (report)

@@ -6,7 +6,7 @@ import { APIDataGenerator } from './APIDataGenerator';
  * A prop's own JSDoc used to be replaced whenever it ran under 20 characters —
  * a threshold that conflates "the author wrote nothing" with "the author wrote
  * something short and exact". 71 props across the library sat under it, and the
- * strings reach `llm.txt`, `llms-full.txt` and the MCP catalog, not just the
+ * strings reach `llm.txt`, `llms-full.txt` and the component catalog, not just the
  * page.
  *
  * The `size` case is the sharp one: for a name in the substitution table the

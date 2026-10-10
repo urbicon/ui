@@ -112,8 +112,6 @@ prototypes/
 
 # Packed tarballs from scripts/pack-release.ts — a release artefact, never committed
 release-tarballs/
-# Bundled MCP server from scripts/bundle-mcp.ts — a deploy artefact, never committed
-mcp-dist/
 
 # Playwright shard reports — merged in CI, never committed
 blob-report/

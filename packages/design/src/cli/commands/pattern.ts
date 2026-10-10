@@ -1,8 +1,7 @@
 /**
- * `urbicon pattern [name]` — composition patterns from the version-pinned bundle,
- * the local, version-correct mirror of the remote `get_pattern`. With no name,
- * lists all patterns; with a name, prints the full pattern text. Parsing is shared
- * via `@urbicon-ui/design-engine/reference` so local and remote slice identically.
+ * `urbicon pattern [name]` — composition patterns from the version-pinned bundle.
+ * With no name, lists all patterns; with a name, prints the full pattern text.
+ * Parsing lives in `@urbicon-ui/design-engine/reference`.
  */
 
 import { boolFlag, type Flags } from '../args.js';

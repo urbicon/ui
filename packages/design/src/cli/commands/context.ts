@@ -1,7 +1,6 @@
 /**
  * `urbicon context` — print the project's design.manifest.md (paradigm / theme /
- * density, pattern usages, recorded ADRs). The CLI replacement for the
- * remote-incompatible `get_design_context` MCP tool. Read-only; always exits 0.
+ * density, pattern usages, recorded ADRs). Read-only; always exits 0.
  *
  * Also the staleness check for the `urbicon init` context block: context is step 1
  * of the design loop, so an appended "the block no longer matches the installed
