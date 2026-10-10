@@ -6,11 +6,20 @@
   let meetingTime = $state('14:15');
   let preciseTime = $state('13:45:30');
   let officeTime = $state('09:00');
-  let errorTime = $state<string | null>(null);
+  let slotTime = $state('10:15');
+  let pickupTime = $state<string | null>();
+  let pickupLeft = $state(false);
+  const pickupError = $derived(
+    pickupLeft && pickupTime === null ? 'Finish the time or clear it' : undefined
+  );
 
   let apptDate = $state('2026-08-15');
   let apptTime = $state('14:30');
   let departureTime = $state('06:45');
+
+  function shown(v: string | null | undefined): string {
+    return v === undefined ? 'undefined' : v === null ? 'null' : v;
+  }
 </script>
 
 <Section marker id="examples" title="Examples">
@@ -18,7 +27,7 @@
     <CodeExample
       title="Display format vs. bound value"
       previewClass="flex w-full flex-col"
-      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value stays a 24-hour string: 14:15 displays as 02:15 PM and still binds as 14:15. It is null while any segment is empty — mid-entry as well as for an untouched field."
+      description="format=&quot;12h&quot; adds an AM/PM segment and withSeconds adds a seconds segment, but both change only what the field shows. The bound value stays a 24-hour string: 14:15 displays as 02:15 PM and still binds as 14:15."
       code={`<script>
   import { TimeInput } from '@urbicon-ui/blocks';
   let startTime = $state('09:30');
@@ -49,6 +58,38 @@
     </CodeExample>
 
     <CodeExample
+      title="Empty, half-typed, complete"
+      previewClass="flex w-full flex-col"
+      description="The value is undefined while every segment is empty, null while the time is half-typed, and a string once it is complete, so an untouched optional field can pass while a half-typed one cannot. This field flags null when focus leaves it. onfocusout also fires on every hop between segments, so compare relatedTarget with the field first; it runs after the min/max clamp, so the value it reads is final."
+      code={`<script lang="ts">
+  import { TimeInput } from '@urbicon-ui/blocks';
+  let pickup = $state<string | null>();
+  let left = $state(false);
+  const error = $derived(left && pickup === null ? 'Finish the time or clear it' : undefined);
+<\/script>
+<TimeInput
+  label="Pickup"
+  {error}
+  bind:value={pickup}
+  onfocusout={(e) => {
+    // Also fires when focus moves from the hour to the minutes.
+    left = !e.currentTarget.contains(e.relatedTarget as Node | null);
+  }}
+/>`}
+      language="svelte"
+    >
+      <TimeInput
+        label="Pickup"
+        error={pickupError}
+        bind:value={pickupTime}
+        onfocusout={(e) => {
+          pickupLeft = !e.currentTarget.contains(e.relatedTarget as Node | null);
+        }}
+      />
+      <p class="text-text-secondary mt-2 text-sm">Value: <code>{shown(pickupTime)}</code></p>
+    </CodeExample>
+
+    <CodeExample
       title="Range bounds"
       previewClass="flex w-full flex-col"
       description="Type 06:00 and click away: values below min or above max clamp back into range on blur, and onValueChange fires with the corrected time. There is no out-of-range state — if 19:30 must be rejected rather than moved, validate before you offer the field."
@@ -75,17 +116,17 @@
     </CodeExample>
 
     <CodeExample
-      title="Error state"
+      title="A 15-minute raster"
       previewClass="flex w-full flex-col"
-      description="Pass error to colour the field danger, override the helper, and mark the segments aria-invalid; the message is announced via role=&quot;alert&quot;."
+      description="step takes seconds, as on input type=&quot;time&quot;, and counts from min, or from midnight without one. The Arrow keys move the minutes 00, 15, 30, 45, and a typed 10:07 becomes 10:00 as soon as its minutes are complete, so the value never holds 10:07. An hourly step (3600) fixes the minutes, and the hour alone completes the time."
       code={`<script>
-  let errorTime = $state(null);
+  let slot = $state('10:15');
 <\/script>
-<TimeInput label="Time" error="Please pick a time" bind:value={errorTime} />`}
+<TimeInput label="Slot" step={900} bind:value={slot} />`}
       language="svelte"
     >
-      <TimeInput label="Time" error="Please pick a time" bind:value={errorTime} />
-      <p class="text-text-secondary mt-2 text-sm">Value: <code>{errorTime ?? '—'}</code></p>
+      <TimeInput label="Slot" step={900} bind:value={slotTime} />
+      <p class="text-text-secondary mt-2 text-sm">Value: <code>{shown(slotTime)}</code></p>
     </CodeExample>
   </div>
 </Section>
@@ -196,9 +237,10 @@
     <Note title="Keyboard">
       <p>
         <strong>Arrow Up / Down</strong> moves the focused segment by one and wraps inside it — 59
-        goes to 00 without carrying the hour. <strong>Arrow Left / Right</strong> moves between
-        segments; typing digits auto-advances to the next. <code>min</code> and <code>max</code> do not
-        limit stepping; they apply on blur.
+        goes to 00 without carrying the hour. With <code>step</code> it moves to the segment's next
+        raster value instead, and a segment the raster fixes is read-only and skipped.
+        <strong>Arrow Left / Right</strong> moves between segments; typing digits auto-advances to
+        the next. <code>min</code> and <code>max</code> do not limit stepping; they apply on blur.
       </p>
     </Note>
     <Note title="The AM/PM segment">
@@ -210,6 +252,8 @@
     <Note title="Clamping">
       <p>
         Out-of-range values clamp to <code>min</code> / <code>max</code> when the field loses focus.
+        With a <code>step</code>, a value above <code>max</code> lands on the last raster point under
+        it.
       </p>
     </Note>
     <Note title="Errors are announced">

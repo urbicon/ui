@@ -365,7 +365,11 @@
   function onDateChange(picked: Date | undefined): void {
     writeDateTime(picked ? toDateInputValue(picked) : '');
   }
-  function onTimeChange(next: string | null): void {
+  // The model has one "no time" value, so a half-typed time (`null`) writes `""`.
+  // TimeInput ignores no time that arrives while focus is inside a half-typed
+  // field, so this echo keeps the digits typed so far; the cost is that an
+  // agent's `""` landing at that moment does not clear it either.
+  function onTimeChange(next: string | null | undefined): void {
     writeDateTime(next ?? '');
   }
 
@@ -711,7 +715,7 @@
     <TimeInput
       unstyled={context.unstyled}
       label={label || undefined}
-      value={dtParts.time || null}
+      value={dtParts.time || undefined}
       onValueChange={onTimeChange}
       withSeconds={dtParts.time.length > 5}
       min={dtMinParts.time && !dtMinParts.date ? dtMinParts.time : undefined}
