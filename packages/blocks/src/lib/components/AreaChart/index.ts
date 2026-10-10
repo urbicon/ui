@@ -39,7 +39,7 @@ export interface AreaChartProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   /**
    * Stack series instead of overlaying them: per category, positive values
    * build up from zero and negative values down from it. A series that changes
-   * sign crosses the other bands between categories. @default false
+   * sign crosses the other bands, or parts from them, between categories. @default false
    */
   stacked?: boolean;
   /** Opacity of the area fill (0–1). @default 0.2 (overlay) / 0.85 (stacked) */

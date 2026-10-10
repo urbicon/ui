@@ -78,7 +78,9 @@
   // A zero — a missing value included — is a vertex of its band and its
   // outline, so it has to sit on the side its series is on there, or the
   // outline leaps to the other stack and back: the side of the nearest non-zero
-  // value before it, else after it. A series of zeros stacks above.
+  // value before it, else after it. Looking back first is a choice: it only
+  // decides a zero between opposite signs, and puts that crossing after the zero.
+  // A series of zeros stacks above.
   function stacksAbove(values: readonly number[], index: number): boolean {
     for (let i = index; i >= 0; i--) if (values[i] !== 0) return values[i] > 0;
     for (let i = index + 1; i < values.length; i++) if (values[i] !== 0) return values[i] > 0;
