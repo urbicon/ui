@@ -40,6 +40,8 @@ function renderPicker(props: ComponentProps<typeof DatePicker> = {}) {
 }
 
 const input = () => screen.getByRole('textbox') as HTMLInputElement;
+const calendarButton = () =>
+  screen.getByRole('button', { name: 'Open calendar' }) as HTMLButtonElement;
 const day = (iso: string) => document.querySelector<HTMLElement>(`[data-date="${iso}"]`);
 
 // Type into the input the way the component expects: focus (seeds the draft), input (updates it),
@@ -123,10 +125,10 @@ describe('DatePicker (component interaction)', () => {
   it('opens the calendar popover on ArrowDown', () => {
     renderPicker();
 
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
     fireEvent.keyDown(input(), { key: 'ArrowDown' });
     flushSync();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
   });
 
   it('selecting a calendar day sets the value and closes the popover', async () => {
@@ -137,7 +139,7 @@ describe('DatePicker (component interaction)', () => {
 
     fireEvent.keyDown(input(), { key: 'ArrowDown' });
     flushSync();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
 
     const target = day('2026-03-20');
     expect(target).not.toBeNull();
@@ -149,7 +151,7 @@ describe('DatePicker (component interaction)', () => {
     expect(picked.getDate()).toBe(20);
     expect(picked.getMonth()).toBe(2);
     // closeOnSelect (default) closes the popover.
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
   });
 
   it('keeps the popover open on select when closeOnSelect is false', async () => {
@@ -164,7 +166,7 @@ describe('DatePicker (component interaction)', () => {
 
     expect(onValueChange).toHaveBeenCalled();
     // The value still changes, but the popover stays open for further picking.
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
   });
 
   it('closes the popover on Escape', () => {
@@ -172,11 +174,11 @@ describe('DatePicker (component interaction)', () => {
 
     fireEvent.keyDown(input(), { key: 'ArrowDown' });
     flushSync();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
 
     fireEvent.keyDown(input(), { key: 'Escape' });
     flushSync();
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
   });
 
   it('discards an unsaved draft on Escape so a later blur does not commit it', () => {
@@ -243,6 +245,163 @@ describe('DatePicker (component interaction)', () => {
   });
 });
 
+// APG date-picker-dialog shape: the text field announces that a dialog exists, the calendar
+// button reports whether it is showing. `aria-expanded` is not an allowed attribute on a textbox
+// (axe `aria-allowed-attr`), so the field must never carry it, in any state.
+describe('DatePicker (popup state)', () => {
+  it('the text field announces the dialog but carries no expanded state, open or closed', () => {
+    renderPicker();
+
+    expect(input().getAttribute('aria-haspopup')).toBe('dialog');
+    expect(input().hasAttribute('aria-expanded')).toBe(false);
+    expect(input().hasAttribute('aria-controls')).toBe(false);
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    expect(input().hasAttribute('aria-expanded')).toBe(false);
+    expect(input().hasAttribute('aria-controls')).toBe(false);
+  });
+
+  it('the calendar button names the dialog it controls while open, and toggles it', async () => {
+    const user = userEvent.setup();
+    renderPicker();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().hasAttribute('aria-controls')).toBe(false);
+
+    await user.click(calendarButton());
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    const controlled = document.getElementById(
+      calendarButton().getAttribute('aria-controls') ?? ''
+    );
+    // The id must resolve to the panel that holds the calendar, not merely to some element.
+    expect(controlled?.getAttribute('role')).toBe('dialog');
+    expect(controlled?.querySelector('[data-date]')).not.toBeNull();
+
+    await user.click(calendarButton());
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().hasAttribute('aria-controls')).toBe(false);
+  });
+
+  it.each([
+    ['empty field (calendar button alone)', {}],
+    ['filled field (clear button beside it)', { value: new Date(2026, 2, 15) }]
+  ])('reports the state on the calendar button: %s', (_, props) => {
+    renderPicker(props);
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('keeps the same calendar button, still expanded, when picking makes the clear button appear', async () => {
+    const user = userEvent.setup();
+    renderPicker({ closeOnSelect: false, defaultMonth: 2, defaultYear: 2026 });
+
+    const button = calendarButton();
+    await user.click(button);
+    flushSync();
+    expect(screen.queryByRole('button', { name: 'Clear input' })).toBeNull();
+
+    await user.click(day('2026-03-20') as HTMLElement);
+    flushSync();
+
+    expect(screen.getByRole('button', { name: 'Clear input' })).not.toBeNull();
+    expect(calendarButton()).toBe(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('collapses the button when the popover dismisses itself on an outside pointerdown', () => {
+    renderPicker();
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.pointerDown(document.body);
+    flushSync();
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  // Tabbing from the field into the picker keeps the editing session open (no commit on that
+  // blur), so the field's Enter-commits-the-draft handling must not claim keys pressed on a button.
+  it.each([['{Enter}'], [' ']])(
+    'opens from the calendar button on %j after tabbing there from the field',
+    async (key) => {
+      const user = userEvent.setup();
+      renderPicker();
+
+      await user.click(input());
+      await user.tab();
+      expect(document.activeElement).toBe(calendarButton());
+      await user.keyboard(key);
+      flushSync();
+
+      expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    }
+  );
+
+  it('clears from the clear button on Enter after tabbing there from the field', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderPicker({ value: new Date(2026, 2, 15), onValueChange });
+
+    await user.click(input());
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Clear input' }));
+    await user.keyboard('{Enter}');
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalledWith(undefined);
+  });
+
+  it('renders the calendar button disabled, collapsed and unopenable when the picker is disabled', () => {
+    renderPicker({ disabled: true });
+
+    expect(calendarButton().disabled).toBe(true);
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
+  });
+});
+
+// The per-size padding is folded in at the call site, not declared as an axis, so its precedence
+// against the consumer's `slotClasses` is decided there and pinned here.
+describe('DatePicker (icon button padding)', () => {
+  const tokens = (el: Element) => el.className.split(/\s+/);
+
+  it.each([
+    ['xs', 'p-0.5'],
+    ['md', 'p-1'],
+    ['xl', 'p-1.5']
+  ] as const)('gives both buttons Input’s icon-button padding at size %s', (size, padding) => {
+    renderPicker({ size, value: new Date(2026, 2, 15) });
+
+    expect(tokens(calendarButton())).toContain(padding);
+    expect(tokens(screen.getByRole('button', { name: 'Clear input' }))).toContain(padding);
+  });
+
+  it('lets a consumer padding in slotClasses.iconButton replace it', () => {
+    renderPicker({ slotClasses: { iconButton: 'p-3' } });
+
+    expect(tokens(calendarButton())).toContain('p-3');
+    expect(tokens(calendarButton())).not.toContain('p-1');
+  });
+
+  it('drops it under unstyled, with the rest of the library classes', () => {
+    renderPicker({ unstyled: true, slotClasses: { iconButton: 'probe-ib' } });
+
+    expect(calendarButton().className).toBe('probe-ib');
+  });
+});
+
 // COMPONENT-API-CONVENTIONS § restProps ordering: the root spreads restProps first, and a
 // consumer onkeydown is composed after the picker's own keyboard handling rather than dropped.
 describe('DatePicker (restProps)', () => {
@@ -258,7 +417,7 @@ describe('DatePicker (restProps)', () => {
     fireEvent.keyDown(input(), { key: 'ArrowDown' });
     flushSync();
 
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
     // Once, and after the picker had claimed the key.
     expect(seen).toEqual([true]);
   });

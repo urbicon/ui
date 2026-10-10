@@ -53,6 +53,8 @@ function renderPicker(props: Partial<ComponentProps<typeof DateRangePickerHarnes
 }
 
 const input = () => screen.getByRole('textbox') as HTMLInputElement;
+const calendarButton = () =>
+  screen.getByRole('button', { name: 'Open calendar' }) as HTMLButtonElement;
 const day = (isoDate: string) => document.querySelector<HTMLElement>(`[data-date="${isoDate}"]`);
 const rangeState = () => screen.getByTestId('range-state');
 
@@ -198,10 +200,60 @@ describe('DateRangePicker (component interaction)', () => {
   it('opens the calendar popover on ArrowDown', () => {
     renderPicker({});
 
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
     fireEvent.keyDown(input(), { key: 'ArrowDown' });
     flushSync();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  // APG date-picker-dialog shape, as on DatePicker: `aria-expanded` is not allowed on a textbox.
+  it('keeps the expanded state off the text field and on the calendar button', async () => {
+    const user = userEvent.setup();
+    renderPicker({});
+
+    expect(input().getAttribute('aria-haspopup')).toBe('dialog');
+    await user.click(calendarButton());
+    flushSync();
+
+    expect(input().hasAttribute('aria-expanded')).toBe(false);
+    expect(input().hasAttribute('aria-controls')).toBe(false);
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+    const controlled = document.getElementById(
+      calendarButton().getAttribute('aria-controls') ?? ''
+    );
+    expect(controlled?.getAttribute('role')).toBe('dialog');
+    expect(controlled?.querySelector('[data-date]')).not.toBeNull();
+  });
+
+  it('opens from the calendar button on Enter after tabbing there from the field', async () => {
+    const user = userEvent.setup();
+    renderPicker({});
+
+    await user.click(input());
+    await user.tab();
+    expect(document.activeElement).toBe(calendarButton());
+    await user.keyboard('{Enter}');
+    flushSync();
+
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  // The first click leaves the popover open AND gives the field a value, which is what brings
+  // the clear button in beside the calendar button — mid-selection, every time.
+  it('keeps the same calendar button, still expanded, when the first click brings in the clear button', async () => {
+    const user = userEvent.setup();
+    renderPicker({ defaultMonth: 2, defaultYear: 2026 });
+
+    const button = calendarButton();
+    await user.click(button);
+    flushSync();
+    expect(screen.queryByRole('button', { name: 'Clear input' })).toBeNull();
+
+    await pickDay(user, '2026-03-10');
+
+    expect(screen.getByRole('button', { name: 'Clear input' })).not.toBeNull();
+    expect(calendarButton()).toBe(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('first calendar click sets an in-progress range (bind:value) without firing onValueChange', async () => {
@@ -221,7 +273,7 @@ describe('DateRangePicker (component interaction)', () => {
     // … but onValueChange is withheld until the range is complete, and the popover
     // stays open for the second click.
     expect(onValueChange).not.toHaveBeenCalled();
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
   });
 
   it('second calendar click completes the range, fires onValueChange once, and closes', async () => {
@@ -244,7 +296,7 @@ describe('DateRangePicker (component interaction)', () => {
     expect(iso(range.end)).toBe('2026-03-20');
 
     // closeOnSelect (default) closes once the range is complete.
-    expect(input().getAttribute('aria-expanded')).toBe('false');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('false');
   });
 
   it('keeps the popover open after completing a range when closeOnSelect is false', async () => {
@@ -260,7 +312,7 @@ describe('DateRangePicker (component interaction)', () => {
 
     expect(onValueChange).toHaveBeenCalledTimes(1);
     // The range still completes, but the popover stays open for further picking.
-    expect(input().getAttribute('aria-expanded')).toBe('true');
+    expect(calendarButton().getAttribute('aria-expanded')).toBe('true');
   });
 
   it('carries both range halves in paired hidden inputs for form submission', () => {

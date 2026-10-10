@@ -147,12 +147,13 @@
 
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="Popup state on the trigger">
+    <Note title="Popup state on the calendar button">
       <p>
-        The text input carries <code class="text-text-primary">aria-haspopup="dialog"</code>,
-        <code class="text-text-primary">aria-expanded</code>, and (while open)
-        <code class="text-text-primary">aria-controls</code> pointing at the calendar, so assistive tech
-        reports both that a calendar exists and whether it is showing.
+        The text input carries <code class="text-text-primary">aria-haspopup="dialog"</code>, so
+        assistive tech reports that a calendar exists. Whether it is showing sits on the calendar
+        button: <code class="text-text-primary">aria-expanded</code>, and (while open)
+        <code class="text-text-primary">aria-controls</code> pointing at the calendar — a textbox
+        may not carry <code class="text-text-primary">aria-expanded</code>.
       </p>
     </Note>
     <Note title="Keyboard">

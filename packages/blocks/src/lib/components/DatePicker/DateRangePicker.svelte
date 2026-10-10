@@ -7,6 +7,7 @@
   import { Calendar } from '#lib/components/Calendar/index.js';
   import type { CalendarSelection, DateRange } from '#lib/components/Calendar/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { FIELD_ICON_BUTTON_PADDING } from '#lib/internal/field-chrome.js';
   import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
   import { resolveIcon } from '#lib/icons/index.js';
   import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
@@ -139,6 +140,16 @@
     size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16
   );
 
+  // See DatePicker.svelte — Input's per-size icon-button padding, ahead of the
+  // consumer's `slotClasses.iconButton`, absent under `unstyled`.
+  const iconButtonClass = $derived(
+    styles
+      ? styles.iconButton({
+          class: resolveClassChain(FIELD_ICON_BUTTON_PADDING[size ?? 'md'], slotClasses?.iconButton)
+        })
+      : slot('iconButton')
+  );
+
   const showClearIcon = $derived(clearable && !!value && !disabled);
 
   // See DatePicker.svelte for rationale — Input's default icon area is
@@ -248,6 +259,9 @@
         if (!open) setOpen(true);
         break;
       case 'Enter':
+        // Enter on the clear or calendar button is that button's own. `focused`
+        // cannot tell: it stays true while focus sits on either (see handleBlur).
+        if (!(e.target instanceof HTMLInputElement)) break;
         if (open) {
           e.preventDefault();
           setOpen(false);
@@ -334,43 +348,39 @@
     oninput={handleInput}
     onfocus={handleFocus}
     onblur={handleBlur}
-    onRightIconClick={showClearIcon ? undefined : handleIconClick}
-    rightIconAriaLabel={showClearIcon ? undefined : bt('datepicker.openCalendar')}
     aria-haspopup="dialog"
-    aria-expanded={open}
-    aria-controls={open ? popoverId : undefined}
     autocomplete="off"
     spellcheck={false}
   >
     {#snippet rightIcon()}
-      {#if showClearIcon}
-        <!-- Input wraps a single-icon `rightIcon` in a click-through
-             `<span pointer-events-none>`. With two embedded buttons we
-             restore pointer-events on the inner controls so both clear
-             and open work. -->
-        <span class="pointer-events-auto inline-flex items-center gap-0.5">
+      <!-- As in DatePicker.svelte: the calendar button carries the open state
+           and stays one node while the clear button comes and goes — here
+           mid-selection, since the first calendar click sets a value with
+           the popover still open. -->
+      <span class="pointer-events-auto inline-flex items-center gap-0.5">
+        {#if showClearIcon}
           <button
             type="button"
-            class={slot('iconButton')}
+            class={iconButtonClass}
             onclick={handleClear}
             {disabled}
             aria-label={bt('accessibility.clearInput')}
           >
             <CloseIcon size={iconSize} />
           </button>
-          <button
-            type="button"
-            class={slot('iconButton')}
-            onclick={handleIconClick}
-            {disabled}
-            aria-label={bt('datepicker.openCalendar')}
-          >
-            <CalendarIcon size={iconSize} />
-          </button>
-        </span>
-      {:else}
-        <CalendarIcon size={iconSize} />
-      {/if}
+        {/if}
+        <button
+          type="button"
+          class={iconButtonClass}
+          onclick={handleIconClick}
+          {disabled}
+          aria-label={bt('datepicker.openCalendar')}
+          aria-expanded={open}
+          aria-controls={open ? popoverId : undefined}
+        >
+          <CalendarIcon size={iconSize} />
+        </button>
+      </span>
     {/snippet}
   </Input>
 

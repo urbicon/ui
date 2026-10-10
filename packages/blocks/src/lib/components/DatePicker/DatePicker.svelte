@@ -6,6 +6,7 @@
   import { Popover } from '#lib/primitives/Popover/index.js';
   import { Calendar } from '#lib/components/Calendar/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { FIELD_ICON_BUTTON_PADDING } from '#lib/internal/field-chrome.js';
   import { datePickerVariants, type DatePickerSlots } from './datepicker.variants';
   import { resolveIcon } from '#lib/icons/index.js';
   import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
@@ -144,6 +145,17 @@
     size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16
   );
 
+  // The per-size padding Input gives its own icon buttons. It comes in as the
+  // first `class` source so a consumer's `slotClasses.iconButton` padding strips
+  // it, and stays out under `unstyled` with the rest of the library classes.
+  const iconButtonClass = $derived(
+    styles
+      ? styles.iconButton({
+          class: resolveClassChain(FIELD_ICON_BUTTON_PADDING[size ?? 'md'], slotClasses?.iconButton)
+        })
+      : slot('iconButton')
+  );
+
   const showClearIcon = $derived(clearable && !!dateValue && !disabled);
 
   // Size-aware overrides for the Input's right-icon area when we render
@@ -240,6 +252,9 @@
         if (!open) setOpen(true);
         break;
       case 'Enter':
+        // Enter on the clear or calendar button is that button's own. `focused`
+        // cannot tell: it stays true while focus sits on either (see handleBlur).
+        if (!(e.target instanceof HTMLInputElement)) break;
         if (open) {
           e.preventDefault();
           setOpen(false);
@@ -319,43 +334,41 @@
     oninput={handleInput}
     onfocus={handleFocus}
     onblur={handleBlur}
-    onRightIconClick={showClearIcon ? undefined : handleIconClick}
-    rightIconAriaLabel={showClearIcon ? undefined : bt('datepicker.openCalendar')}
     aria-haspopup="dialog"
-    aria-expanded={open}
-    aria-controls={open ? popoverId : undefined}
     autocomplete="off"
     spellcheck={false}
   >
     {#snippet rightIcon()}
-      {#if showClearIcon}
-        <!-- Input wraps a single-icon `rightIcon` in a click-through
-             `<span pointer-events-none>`. With two embedded buttons we
-             restore pointer-events on the inner controls so both clear
-             and open work. -->
-        <span class="pointer-events-auto inline-flex items-center gap-0.5">
+      <!-- Input renders this snippet inside a click-through
+           `<span pointer-events-none>`; this span turns pointer events back
+           on for the buttons. The calendar button carries the open state —
+           `aria-expanded` is not allowed on the textbox — and sits outside
+           the `{#if}`, so it stays one node while the clear button comes
+           and goes. -->
+      <span class="pointer-events-auto inline-flex items-center gap-0.5">
+        {#if showClearIcon}
           <button
             type="button"
-            class={slot('iconButton')}
+            class={iconButtonClass}
             onclick={handleClear}
             {disabled}
             aria-label={bt('accessibility.clearInput')}
           >
             <CloseIcon size={iconSize} />
           </button>
-          <button
-            type="button"
-            class={slot('iconButton')}
-            onclick={handleIconClick}
-            {disabled}
-            aria-label={bt('datepicker.openCalendar')}
-          >
-            <CalendarIcon size={iconSize} />
-          </button>
-        </span>
-      {:else}
-        <CalendarIcon size={iconSize} />
-      {/if}
+        {/if}
+        <button
+          type="button"
+          class={iconButtonClass}
+          onclick={handleIconClick}
+          {disabled}
+          aria-label={bt('datepicker.openCalendar')}
+          aria-expanded={open}
+          aria-controls={open ? popoverId : undefined}
+        >
+          <CalendarIcon size={iconSize} />
+        </button>
+      </span>
     {/snippet}
   </Input>
 

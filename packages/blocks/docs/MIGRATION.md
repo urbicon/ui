@@ -11,6 +11,27 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.29.0
+
+### `DatePicker` and `DateRangePicker` report the open calendar on the calendar button
+
+The text field carried `aria-expanded`, and while open `aria-controls`. ARIA does not allow
+`aria-expanded` on a textbox, and axe reports it as `aria-allowed-attr`. Both attributes now sit on
+the "Open calendar" button beside the field, the shape of the APG date-picker dialog. The field
+keeps `aria-haspopup="dialog"`. A test or selector that read either attribute off the textbox
+finds it on that button now.
+
+That button is now always the picker's own. While the field was empty it used to be `Input`'s
+right-icon button, and the picker drew its own only once a value brought the clear button in.
+So `iconButton` in the picker's `slotClasses` (and under its name on `<BlocksProvider>`) styles it
+in both states, and an `iconButton` entry under `Input` no longer reaches it. Both picker buttons
+take `Input`'s icon-button padding per `size`, so beside a value they are larger than before from
+`md` up: `p-1`, and `p-1.5` at `xl`, where they had `p-0.5`.
+
+```sh
+rg -n 'aria-expanded|iconButton' src e2e tests
+```
+
 ## 8.28.0
 
 ### A chart's `aria-label` and `aria-labelledby` name the chart

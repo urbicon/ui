@@ -1,3 +1,4 @@
+import { FIELD_ICON_BUTTON } from '#lib/internal/field-chrome.js';
 import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
 
 /**
@@ -8,19 +9,16 @@ import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
  *
  * `iconButton` exists because a class string written straight onto the
  * `<button>` cannot be stripped by anything — not `unstyled`, not a colliding
- * consumer class. A slot is what puts those elements on the ladder.
+ * consumer class. A slot is what puts those elements on the ladder. It is
+ * Input's own icon-button recipe; the per-size padding that goes with it is
+ * folded in at the call site, because this config declares no axes.
  */
 export const datePickerVariants = tv({
   slots: {
     /** Positioning context around the field; the popover anchors to it. */
     base: ['relative w-full'],
     /** Clear + open-calendar buttons inside the field's right-icon area. */
-    iconButton: [
-      'text-text-tertiary hover:text-text-primary hover:bg-surface-hover',
-      'focus-visible:ring-primary/50 rounded-modify inline-flex cursor-pointer',
-      'items-center justify-center p-0.5 transition-colors',
-      'duration-[var(--blocks-duration-fast)] focus-visible:ring-2 focus-visible:outline-none'
-    ]
+    iconButton: [FIELD_ICON_BUTTON]
   }
 });
 
