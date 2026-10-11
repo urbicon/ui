@@ -177,6 +177,26 @@ describe('Popover (manual-mode dismiss matrix)', () => {
     });
   }
 
+  it('a consumer onkeydown that calls preventDefault does not veto the manual-mode Escape', async () => {
+    const user = userEvent.setup();
+    const onEscape = vi.fn();
+    const onkeydown = vi.fn((e: KeyboardEvent) => {
+      if (e.key === 'Escape') e.preventDefault();
+    });
+    renderPopover({ closeOnClickOutside: false, onEscape, onkeydown });
+
+    await user.click(trigger());
+    screen.getByTestId('inner-btn').focus();
+    await user.keyboard('{Escape}');
+
+    // Deliberate: the consumer's handler on the panel runs after the Popover's
+    // own, so its preventDefault is not a veto — `closeOnEscape={false}` is
+    // (see utils/compose-handlers.ts).
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(isOpen()).toBe(false);
+    expect(onEscape).toHaveBeenCalledOnce();
+  });
+
   it('leaves Escape on its panel to the browser in auto mode', async () => {
     const user = userEvent.setup();
     const onEscape = vi.fn();
