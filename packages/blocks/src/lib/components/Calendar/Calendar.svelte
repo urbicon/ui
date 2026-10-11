@@ -66,7 +66,6 @@
     // Navigation constraints
     minDate,
     maxDate,
-    disabledDates = [],
     isDateDisabled: isDateDisabledProp,
     // Variants
     variant = theme.variant ?? 'default',
@@ -214,11 +213,10 @@
   );
 
   // --- Extra disable predicate (min/max handled by the controller) ---
-  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
+  // Reads the prop at call time: handing the controller `isDateDisabledProp`
+  // itself would keep the predicate of the first render.
   function checkExtraDisabled(date: Date): boolean {
-    if (isDateDisabledProp?.(date)) return true;
-    if (disabledDatesSet.has(toIso(date))) return true;
-    return false;
+    return isDateDisabledProp?.(date) ?? false;
   }
 
   // --- Headless date-grid controller: the shared mechanics engine ---

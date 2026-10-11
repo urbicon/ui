@@ -92,6 +92,23 @@ import type { ResourceTimelineSlots, ResourceTimelineVariants } from './resource
  *   {/snippet}
  * </ResourceTimeline>
  * ```
+ *
+ * @example Closed days — a list becomes a `Set` of `toIso` keys
+ * ```svelte
+ * <script lang="ts">
+ *   import { toIso } from '@urbicon-ui/blocks/date';
+ *
+ *   const closed = new Set([new Date(2026, 11, 25), new Date(2026, 11, 26)].map(toIso));
+ * </script>
+ *
+ * <ResourceTimeline
+ *   resources={rooms}
+ *   items={bookings}
+ *   getResourceId={(b) => b.roomId}
+ *   getRange={(b) => ({ start: b.checkIn, end: b.checkOut })}
+ *   isDateDisabled={(d) => closed.has(toIso(d))}
+ * />
+ * ```
  */
 export interface ResourceTimelineProps<T = unknown>
   extends ResourceTimelineVariants,
@@ -152,7 +169,15 @@ export interface ResourceTimelineProps<T = unknown>
   minDate?: Date;
   /** Latest navigable date. The window clamps span-preserving, so it never collapses at the bound. */
   maxDate?: Date;
-  /** Predicate for days that cannot be activated, on top of `minDate`/`maxDate`. */
+  /**
+   * Disables every day it returns `true` for, on top of `minDate`/`maxDate`: that day's
+   * cells report `aria-disabled` in every lane and do not activate. The one way to disable
+   * single days, whether a rule (weekends) or a list (holidays). It receives each day as a
+   * `Date` at local midnight and runs again when `$state` it reads changes. Compare
+   * calendar days, not `Date` objects (`list.includes(d)` matches nothing): keep a list as
+   * a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
+   * `(d) => blocked.has(toIso(d))`. It must not throw; the grid does not catch it.
+   */
   isDateDisabled?: (date: Date) => boolean;
 
   // ── Variants ─────────────────────────────────────────

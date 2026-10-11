@@ -54,7 +54,6 @@
     fixedWeeks = true,
     minDate,
     maxDate,
-    disabledDates = [],
     isDateDisabled,
     calendarVariant = theme.calendarVariant ?? 'default',
     inputVariant = theme.inputVariant ?? 'outlined',
@@ -211,7 +210,7 @@
       parseError = bt('datepicker.invalidDate');
       return;
     }
-    if (!isDateAllowed(parsed, { minDate, maxDate, disabledDates, isDateDisabled })) {
+    if (!isDateAllowed(parsed, { minDate, maxDate, isDateDisabled })) {
       parseError = bt('datepicker.outOfRange');
       return;
     }
@@ -437,7 +436,6 @@
         {fixedWeeks}
         {minDate}
         {maxDate}
-        {disabledDates}
         {isDateDisabled}
         {defaultMonth}
         {defaultYear}

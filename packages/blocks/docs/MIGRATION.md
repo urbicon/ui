@@ -32,6 +32,37 @@ Popover open: that is the browser's close watcher, not something the library gua
 rg -nU '<Popover\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
 ```
 
+### `disabledDates` is removed; `isDateDisabled` disables single days
+
+`Calendar`, `DatePicker`, `DateRangePicker` and `Planner` no longer take `disabledDates`.
+`isDateDisabled`, which all four and `ResourceTimeline` already took, is the one way to disable a
+single day. A list of dates becomes a `Set` of `toIso` keys from `@urbicon-ui/blocks/date`, built
+once:
+
+```svelte
+<script lang="ts">
+  import { toIso } from '@urbicon-ui/blocks/date';
+
+  const blocked = new Set(holidays.map(toIso));
+</script>
+
+<Calendar isDateDisabled={(d) => blocked.has(toIso(d))} />
+```
+
+The removed prop compared local calendar days, and so does `toIso`. A plain `includes` does not:
+the component calls the predicate with `Date` objects of its own, at local midnight, so
+`holidays.includes(d)` disables no day at all, and comparing `getTime()` misses every entry with a
+time of day. If you passed both props, join them in one predicate:
+`(d) => blocked.has(toIso(d)) || isWeekend(d)`.
+
+Written as an attribute, `disabledDates` is now a type error. Passed through a spread, it
+type-checks, lands on the root element as a `disableddates` attribute and disables nothing, so
+grep for it:
+
+```sh
+rg -n 'disabledDates' src
+```
+
 ## 8.29.0
 
 ### `Calendar` keeps its grids to rows and cells, and its labels to AA

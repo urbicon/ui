@@ -23,14 +23,6 @@ function isValid(date: Date): boolean {
   return !Number.isNaN(date.getTime());
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
 /**
  * Format a Date as a locale-aware string. Guards Invalid Date and Intl
  * errors with logging instead of silent fallback.
@@ -265,7 +257,6 @@ export function parseDateRangeInput(
 export interface DateConstraints {
   minDate?: Date;
   maxDate?: Date;
-  disabledDates?: Date[];
   isDateDisabled?: (date: Date) => boolean;
 }
 
@@ -278,23 +269,22 @@ function endOfDay(d: Date): Date {
 }
 
 /**
- * Centralised predicate that respects min/max/disabledDates/isDateDisabled.
- * Used by both calendar clicks and typed input so they validate identically.
+ * Whether a typed date passes min/max/isDateDisabled. Only the pickers' text
+ * input runs through here; a calendar click is checked by the date grid's own
+ * `isDisabled`.
  *
  * Defensive against bad inputs:
  * - Invalid `minDate` / `maxDate` are ignored with a warning instead of
  *   silently disabling the constraint.
- * - Invalid entries in `disabledDates` are skipped with a warning.
  * - Throws from `isDateDisabled` are caught and logged; the date is
- *   then treated as allowed so a faulty predicate can't take the picker
- *   down.
+ *   then treated as allowed. The date grid does not catch them.
  *
  * Note: if `minDate > maxDate` after stripping time, every date is
  * out-of-range. We warn once on that configuration to surface the bug.
  */
 export function isDateAllowed(date: Date, constraints: DateConstraints): boolean {
   if (!isValid(date)) return false;
-  const { minDate, maxDate, disabledDates, isDateDisabled } = constraints;
+  const { minDate, maxDate, isDateDisabled } = constraints;
 
   let minBound: number | undefined;
   if (minDate) {
@@ -323,18 +313,6 @@ export function isDateAllowed(date: Date, constraints: DateConstraints): boolean
 
   if (minBound !== undefined && date.getTime() < minBound) return false;
   if (maxBound !== undefined && date.getTime() > maxBound) return false;
-
-  if (disabledDates) {
-    for (const d of disabledDates) {
-      if (!isValid(d)) {
-        console.warn('[DatePicker] disabledDates contains Invalid Date — skipping entry', {
-          entry: d
-        });
-        continue;
-      }
-      if (isSameDay(d, date)) return false;
-    }
-  }
 
   if (isDateDisabled) {
     try {
