@@ -80,6 +80,33 @@
   }
 }
 
+/* === FILEUPLOAD ACCEPT PULSE ===
+   `@layer base` for the same reason as the reset above: a consumer's
+   `animate-none` on the dropzone is a utility and has to win, which no
+   unlayered rule allows. It lives here, not in FileUpload.svelte: a component
+   stylesheet that names a layer fixes the page's layer order whenever it loads
+   before Tailwind's, and this file is compiled after `@import 'tailwindcss'`.
+   It keys on the attribute, so it also runs under `unstyled`. While it runs the
+   animation outranks any border colour, so a colour of your own on the accept
+   state needs the pulse stopped first. */
+@layer base {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-blocks-dropzone-state='accept'] {
+      animation: blocks-dropzone-pulse 1.5s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes blocks-dropzone-pulse {
+  0%,
+  100% {
+    border-color: var(--color-primary);
+  }
+  50% {
+    border-color: var(--color-primary-hover);
+  }
+}
+
 /* === GLOBAL DESIGN SYSTEM CLASSES === */
 
 /* Screen reader only content */
