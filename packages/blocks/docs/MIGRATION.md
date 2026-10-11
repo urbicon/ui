@@ -32,6 +32,44 @@ Popover open: that is the browser's close watcher, not something the library gua
 rg -nU '<Popover\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
 ```
 
+### A `Popover` open in a modal dialog joins the overlay stack
+
+An open `Popover` whose trigger sits in a modal dialog — a `Dialog`, a `Drawer` or your own
+`<dialog>` opened with `showModal()` — registers in `overlayStack` above that dialog, and so does
+every component that opens one, `Menu`, `DatePicker`, `DateRangePicker` and Calendar's popovers
+among them. Escape closes it first wherever focus sits in the dialog; with focus on another control
+of the dialog, Escape used to close the dialog and leave the Popover open.
+
+- **A `closeOnEscape={false}` Popover holds Escape.** Neither it nor the dialog closes until the
+  Popover is closed some other way. On 8.29, Escape closed the dialog under it:
+
+  ```svelte
+  <Drawer bind:open>
+    <Popover open={showHelp} autoTrigger={false} closeOnEscape={false} closeOnClickOutside={false}>
+      …
+    </Popover>
+  </Drawer>
+  ```
+
+  Escape now does nothing here while `showHelp` is `true`. If Escape should take the user out,
+  leave `closeOnEscape` on: the first Escape closes the Popover, the next one the dialog.
+
+- **The stack counts it.** While it is open, `overlayStack.depth` is one higher, `topId` is the
+  Popover's, `closeTop()` closes the Popover instead of the dialog, and `closeAll()` closes it
+  before the dialog. A check like `overlayStack.depth > 1` that meant "two modals are stacked" is
+  now also true for one `Dialog` with an open `Menu`. A `GuideController` counts it the same way:
+  `overlayDepth` includes it, and a tour started while a dialog is open is `paused`, its bubble
+  hidden, while a Popover in that dialog is open.
+
+Writing `open = true` back inside a `Dialog`'s or `Drawer`'s `onClose` now keeps the surface
+exactly as it was, without moving it to the top of the stack or recentring a dragged `Dialog`; after
+a close the browser has already performed (`<form method="dialog">`, `dialog.close()`) the
+write-back is undone instead, and DEV warns.
+
+```sh
+rg -n 'overlayStack\.(depth|topId|isTop|closeTop|closeAll)|\.(paused|overlayDepth)\b|closeOnEscape=\{false\}' src e2e tests
+```
+
 ## 8.29.0
 
 ### `Calendar` keeps its grids to rows and cells, and its labels to AA

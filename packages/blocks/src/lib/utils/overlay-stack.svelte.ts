@@ -16,17 +16,25 @@ import { untrack } from 'svelte';
  *    registered overlay regardless of which component owns it.
  *
  * Each overlay registers itself on open with a `close` callback and
- * deregisters on close. Registration is keyed by an opaque ID — typically
- * generated via `crypto.randomUUID()` so multiple instances of the same
- * component type can coexist in the stack.
+ * deregisters on close. Registration is keyed by an opaque ID, one per
+ * instance, so multiple instances of the same component type can coexist in
+ * the stack.
  *
  * @example
  * ```ts
- * // Inside a Drawer / Dialog / Sidebar component:
+ * // Inside an overlay component with a bindable `open`. `$props.id()` is the
+ * // same on server and client, and is only valid as a top-level initializer.
+ * // The `$derived` settles on its old value when `open` goes false and back
+ * // to true before a flush (a close vetoed in a callback), so the entry is not
+ * // re-registered on top of the stack.
+ * const uid = $props.id();
+ * const overlayId = `my-overlay-${uid}`;
+ * const registered = $derived(open);
  * $effect(() => {
- *   if (!open) return;
- *   const id = crypto.randomUUID();
- *   return overlayStack.register(id, () => { open = false; });
+ *   if (!registered) return;
+ *   return overlayStack.register(overlayId, () => {
+ *     open = false;
+ *   });
  * });
  * ```
  *

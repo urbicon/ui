@@ -8,6 +8,7 @@ import Dialog from '../primitives/Dialog/Dialog.svelte';
 import type { DialogProps } from '../primitives/Dialog/index';
 import Drawer from '../primitives/Drawer/Drawer.svelte';
 import type { DrawerProps } from '../primitives/Drawer/index';
+import { GuideController } from '../utils/guide.svelte';
 import { lockBodyScroll } from '../utils/overlay';
 import { overlayStack } from '../utils/overlay-stack.svelte';
 import ModalFieldHarness from './__fixtures__/ModalFieldHarness.svelte';
@@ -952,6 +953,158 @@ describe.each(SURFACES)('$name (modal surface contract)', ({ name, component, no
     });
   });
 
+  // A layer above the surface that never takes Escape: a GuideController
+  // without its UI here, and a Sidebar with `closeOnEscape={false}` or a stack
+  // entry of the consumer's own the same way. The surface yields the key to the
+  // top of the stack, so it has to take it back when nobody claims it, or the
+  // browser's close watcher closes the `<dialog>`. jsdom has no close watcher,
+  // so the keydown's defaultPrevented flag is the oracle for that part.
+  describe('Escape under a layer that does not take it', () => {
+    function startHeadlessTour() {
+      const guide = new GuideController({
+        dev: false,
+        storage: { load: () => [], save: () => {} }
+      });
+      guide.startTour({ id: 'tour', once: false, steps: [{ title: 'Welcome' }] });
+      disposers.push(() => guide.stopTour());
+      expect(overlayStack.topId).not.toMatch(new RegExp(`^${name.toLowerCase()}-`));
+      return guide;
+    }
+
+    const inside = () => screen.getByRole('button', { name: 'Inside', hidden: true });
+
+    function pressEscape(target: Element) {
+      const key = escapeKeydown();
+      target.dispatchEvent(key);
+      flushSync();
+      return key;
+    }
+
+    /** Stops the next keydown at the document, before it reaches the window. */
+    function stopNextKeydownAtDocument() {
+      const stop = (event: Event) => {
+        event.stopPropagation();
+        document.removeEventListener('keydown', stop);
+      };
+      document.addEventListener('keydown', stop);
+    }
+
+    it('holds the key with closeOnEscape off', async () => {
+      const onClose = vi.fn();
+      const harness = renderHarness({ closeOnEscape: false, onClose, transitionDuration: 0 });
+      await settleFocus();
+      startHeadlessTour();
+
+      const key = pressEscape(inside());
+
+      expect(key.defaultPrevented).toBe(true);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(harness.getOpen()).toBe(true);
+      expect(surface().getAttribute('data-state')).toBe('open');
+    });
+
+    it('lets onClose veto the close', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const onClose = vi.fn();
+      const onClosed = vi.fn();
+      const harness = renderHarness({ vetoClose: true, onClose, onClosed, transitionDuration: 0 });
+      await settleFocus();
+      startHeadlessTour();
+
+      const key = pressEscape(inside());
+      await tick();
+
+      expect(key.defaultPrevented).toBe(true);
+      expect(onClose.mock.calls).toEqual([[false]]);
+      expect(harness.getOpen()).toBe(true);
+      expect(surface().open).toBe(true);
+      expect(onClosed).not.toHaveBeenCalled();
+      expect(warn.mock.calls.some((call) => String(call[0]).includes('had already closed'))).toBe(
+        false
+      );
+    });
+
+    it('closes the surface with closeOnEscape on, and leaves the layer above running', async () => {
+      const onClose = vi.fn();
+      const onClosed = vi.fn();
+      const harness = renderHarness({ onClose, onClosed, transitionDuration: 0 });
+      await settleFocus();
+      const guide = startHeadlessTour();
+
+      const key = pressEscape(inside());
+      await tick();
+
+      expect(key.defaultPrevented).toBe(true);
+      expect(onClose).toHaveBeenCalledOnce();
+      expect(harness.getOpen()).toBe(false);
+      expect(onClosed).toHaveBeenCalledOnce();
+      expect(guide.isTourActive).toBe(true);
+    });
+
+    it('leaves the key to a layer above that takes it at the window', async () => {
+      const onClose = vi.fn();
+      const harness = renderHarness({ onClose, transitionDuration: 0 });
+      await settleFocus();
+      const closeLayer = vi.fn();
+      disposers.push(overlayStack.register('layer-of-your-own', closeLayer));
+      const takeEscape = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        event.preventDefault();
+        overlayStack.closeTop();
+      };
+      window.addEventListener('keydown', takeEscape);
+      disposers.push(() => window.removeEventListener('keydown', takeEscape));
+
+      pressEscape(inside());
+
+      expect(closeLayer).toHaveBeenCalledOnce();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(harness.getOpen()).toBe(true);
+    });
+
+    it('acts only on the Escape it yielded, not on the next keydown', async () => {
+      const onClose = vi.fn();
+      const harness = renderHarness({ onClose, transitionDuration: 0 });
+      await settleFocus();
+      startHeadlessTour();
+      stopNextKeydownAtDocument();
+
+      // Never reaches the window, so whatever the surface left there for it
+      // is still in place when the next Escape arrives, from outside.
+      pressEscape(inside());
+      const next = pressEscape(document.body);
+
+      expect(next.defaultPrevented).toBe(false);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(harness.getOpen()).toBe(true);
+    });
+
+    for (const ending of ['it ran', 'the dispatch never reached it', 'the surface was destroyed']) {
+      it(`removes the window listener it added once ${ending}`, async () => {
+        const instance = mount(SurfaceHarness, { target: document.body, props: { surface: name } });
+        let mounted = true;
+        disposers.push(() => mounted && unmount(instance));
+        flushSync();
+        await settleFocus();
+        startHeadlessTour();
+        if (ending !== 'it ran') stopNextKeydownAtDocument();
+        const add = vi.spyOn(window, 'addEventListener');
+        const remove = vi.spyOn(window, 'removeEventListener');
+
+        pressEscape(inside());
+        if (ending === 'the dispatch never reached it') await new Promise((r) => setTimeout(r));
+        if (ending === 'the surface was destroyed') {
+          unmount(instance);
+          mounted = false;
+        }
+
+        const added = add.mock.calls.filter(([type]) => type === 'keydown').map(([, fn]) => fn);
+        expect(added).toHaveLength(1);
+        expect(remove.mock.calls).toContainEqual(['keydown', added[0]]);
+      });
+    }
+  });
+
   describe('DEV warning', () => {
     it('names the component when every close path is disabled', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -1356,5 +1509,58 @@ describe('Popover inside a plain modal <dialog>', () => {
     flushSync();
 
     expect(overlayStack.depth).toBe(base);
+  });
+
+  // `:modal` is read once per open of the Popover, so after the `<dialog>`
+  // closes and reopens under it, the Popover still counts as anchored in a
+  // modal dialog but has no entry in the stack any more.
+  async function reopenDialogUnderOpenPopover(fieldCloseOnEscape: boolean) {
+    const instance = mount(ModalFieldHarness, {
+      target: document.body,
+      props: { surface: 'native', field: 'Popover', fieldCloseOnEscape }
+    });
+    disposers.push(() => unmount(instance));
+    flushSync();
+    const dialog = screen.getByRole('dialog', {
+      name: 'Filters',
+      hidden: true
+    }) as HTMLDialogElement;
+    const trigger = screen.getByRole('button', { name: 'Operator', hidden: true });
+    await userEvent.setup().click(trigger);
+    expect(screen.getByTestId('field-open').textContent).toBe('true');
+
+    dialog.close();
+    flushSync();
+    dialog.showModal();
+    flushSync();
+    trigger.focus();
+    return trigger;
+  }
+
+  it('takes Escape on its trigger after the <dialog> closed and reopened under it', async () => {
+    const trigger = await reopenDialogUnderOpenPopover(true);
+
+    const key = escapeKeydown();
+    trigger.dispatchEvent(key);
+    flushSync();
+
+    // Claimed, so the reopened dialog's close watcher never sees it.
+    expect(key.defaultPrevented).toBe(true);
+    expect(screen.getByTestId('field-open').textContent).toBe('false');
+  });
+
+  it('with closeOnEscape off, leaves the reopened <dialog> its Escape', async () => {
+    await reopenDialogUnderOpenPopover(false);
+    const elsewhere = screen.getByRole('button', { name: 'Elsewhere', hidden: true });
+    elsewhere.focus();
+
+    const key = escapeKeydown();
+    elsewhere.dispatchEvent(key);
+    flushSync();
+
+    // Out of the stack it is no layer that holds the key: the dialog's own
+    // close watcher gets it, as for a Popover outside any modal dialog.
+    expect(key.defaultPrevented).toBe(false);
+    expect(screen.getByTestId('field-open').textContent).toBe('true');
   });
 });

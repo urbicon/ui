@@ -10,6 +10,7 @@
   let {
     surface,
     vetoClose = false,
+    closeOnEscape = true,
     onClose,
     onClosed,
     title = 'Settings',
@@ -20,6 +21,7 @@
     surface: 'Dialog' | 'Drawer';
     /** Write `open = true` back inside `onClose`. */
     vetoClose?: boolean;
+    closeOnEscape?: boolean;
     /** Receives `open` as `onClose` reads it. */
     onClose?: (openInside: boolean) => void;
     onClosed?: () => void;
@@ -58,6 +60,7 @@
     {title}
     {transitionDuration}
     {draggable}
+    {closeOnEscape}
     onClose={handleClose}
     {onClosed}
     children={children ?? fallbackBody}
@@ -67,6 +70,7 @@
     bind:open
     {title}
     {transitionDuration}
+    {closeOnEscape}
     onClose={handleClose}
     {onClosed}
     children={children ?? fallbackBody}

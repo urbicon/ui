@@ -220,10 +220,14 @@
     </Note>
     <Note title="Close every overlay at once">
       <p>
-        Drawer, Dialog, the mobile Sidebar, and a Popover open inside one of them register with a
-        shared <code class="text-text-primary">overlayStack</code> singleton on open. Reach for it when
-        app-level cleanup spans an unknown overlay depth: logout, a route change, or an expired session.
-        Desktop Sidebars stay out of the stack, since they are persistent layout rather than modal overlays.
+        Drawer, Dialog, the mobile Sidebar and a running Guide tour register with a shared
+        <code class="text-text-primary">overlayStack</code> singleton on open, and so does a Popover
+        open inside a modal dialog: a Drawer, a Dialog, or a
+        <code class="text-text-primary">&lt;dialog&gt;</code>
+        of your own opened with <code class="text-text-primary">showModal()</code>. Reach for it
+        when app-level cleanup spans an unknown overlay depth: logout, a route change, or an expired
+        session. Desktop Sidebars stay out of the stack, since they are persistent layout rather
+        than modal overlays.
       </p>
     </Note>
   </NoteList>

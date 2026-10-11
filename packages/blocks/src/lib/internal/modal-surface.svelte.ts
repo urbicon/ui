@@ -116,7 +116,12 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
       // another control of the surface, claiming here would close the surface
       // in the Popover's place. A closing surface is already unregistered and
       // still claims below, so an Escape during its outro reaches nothing else.
-      if (options.open() && !overlayStack.isTop(overlayId)) return;
+      // A layer that leaves the key unclaimed hands it back: see
+      // `armEscapeFallback`.
+      if (options.open() && !overlayStack.isTop(overlayId)) {
+        armEscapeFallback(event);
+        return;
+      }
       // Claimed whether or not it closes: a surface rendered inside another
       // one's content has the outer `<dialog>` as an ancestor, which must not
       // act on the same Escape.
@@ -125,6 +130,38 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
       return;
     }
     if (event.key === 'Tab') trapFocus(event, options.panel());
+  }
+
+  // The other half of the yield in `handleKeydown`. Not every layer above the
+  // surface takes Escape: a GuideController without its UI, a Sidebar with
+  // `closeOnEscape={false}`, an entry of your own. An Escape nobody claims
+  // reaches the browser's close watcher, which closes this `<dialog>` past
+  // `closeOnEscape` and past an `onClose` veto. A `window` listener added
+  // while the event is still on its way there runs in the same dispatch,
+  // after the window listeners that were already registered, so it sees
+  // whether any layer claimed the key; if none did, the surface applies its
+  // own Escape policy, as if it had never yielded. A `stopPropagation()` on
+  // the way keeps it from running at all: the timer removes it once that
+  // dispatch is over, a destroy before then, and it acts only on the event it
+  // was armed for in case another keydown reaches it first.
+  let disarmEscapeFallback: (() => void) | undefined;
+
+  function armEscapeFallback(armedFor: KeyboardEvent) {
+    disarmEscapeFallback?.();
+    const fallback = (event: KeyboardEvent) => {
+      disarm();
+      if (event !== armedFor || event.defaultPrevented) return;
+      event.preventDefault();
+      if (options.closeOnEscape()) requestClose();
+    };
+    const timer = setTimeout(disarm);
+    function disarm() {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', fallback);
+      if (disarmEscapeFallback === disarm) disarmEscapeFallback = undefined;
+    }
+    window.addEventListener('keydown', fallback);
+    disarmEscapeFallback = disarm;
   }
 
   // Native <dialog> only routes ESC to its `onkeydown` when focus is inside
@@ -152,15 +189,15 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
   // The close watcher's anti-abuse rule makes the third request without an
   // intervening activation uncancelable and closes anyway (measured, both
   // engines); that close then arrives as `close` and is routed through
-  // `onClose` like any other. Keyboard ESC never gets here: the keydown above
-  // is claimed first.
+  // `onClose` like any other. A keyboard Escape gets here only when no keydown
+  // listener claimed it.
   function handleNativeCancel(event: Event) {
     if (!options.closeOnEscape()) event.preventDefault();
   }
 
   // Native `close` event: the browser has closed the `<dialog>` already —
-  // form[method=dialog], `.close()`, or a close request that was not an Escape
-  // key press and that `handleNativeCancel` did not, or could not, refuse. It is
+  // form[method=dialog], `.close()`, or a close request that no keydown
+  // listener claimed and `handleNativeCancel` did not, or could not, refuse. It is
   // routed through `onClose` like any other dismissal, but `onClose` cannot
   // veto it: keeping it open would take a second `showModal()`, against a
   // close the anti-abuse rule may just have forced through — trapping a user
@@ -179,7 +216,7 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
     options.setOpen(false);
     if (import.meta.env?.DEV) {
       console.warn(
-        `[${name}] onClose wrote open back to true, but the browser had already closed the ${name.toLowerCase()} (a form with method="dialog", dialog.close(), or a close request that was not an Escape key press), so it stays closed. closeOnEscape={false} holds such close requests off for as long as the browser lets a page refuse them.`
+        `[${name}] onClose wrote open back to true, but the browser had already closed the ${name.toLowerCase()} (a form with method="dialog", dialog.close(), or a close request it did not intercept, such as a back gesture), so it stays closed. closeOnEscape={false} holds such close requests off for as long as the browser lets a page refuse them.`
       );
     }
   }
@@ -246,6 +283,7 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
     // (already released in handleOutroEnd) or a never-opened instance make
     // this a no-op — it can never free another overlay's lock.
     releaseScrollLock?.();
+    disarmEscapeFallback?.();
   });
 
   return {

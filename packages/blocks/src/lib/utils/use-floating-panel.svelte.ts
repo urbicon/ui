@@ -90,9 +90,12 @@ export interface FloatingPanelState {
  */
 export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState & {
   /**
-   * `true` while the panel is open and its anchor sits inside an open modal
-   * `<dialog>` — the case that keeps it out of the top layer whatever
-   * `portal` says. `false` while closed.
+   * `true` while the panel is open and its anchor sat inside an open modal
+   * `<dialog>` when it was last checked — the case that keeps it out of the
+   * top layer whatever `portal` says. `false` while closed. Checked again only
+   * when `open` or the anchor changes, never on a change of the dialog's
+   * `:modal` state: a dialog that closes, or reopens, while the panel stays
+   * open leaves the value as it was.
    */
   readonly inModalDialog: boolean;
 } {

@@ -66,30 +66,32 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   accentEdge?: DrawerVariants['accentEdge'];
 
   /**
-   * Fires when the user asks to close the drawer — Escape, a backdrop click,
-   * the close button — before the exit animation, while focus is still
-   * inside. `open` is already `false` when it runs, and writing `open = true`
-   * back synchronously inside it vetoes the close: the drawer stays open,
-   * plays no exit, keeps focus and never reaches `onClosed`. A close the
-   * browser performs itself also arrives here, after the `<dialog>` has
-   * closed, and cannot be vetoed — a `<form method="dialog">`, a call to
-   * `close()`, or a close request that is not an Escape key press (a back
-   * gesture, assistive technology); the drawer stays closed and DEV warns.
-   * `closeOnEscape={false}` holds such requests off for as long as the
-   * browser lets a page refuse them. Not fired when you set `open = false`
-   * yourself.
+   * Fires when a close of the drawer is requested — Escape, a backdrop click,
+   * the close button, `overlayStack.closeAll()` or `closeTop()` — before the
+   * exit animation, while focus is still inside. `open` is already `false`
+   * when it runs, and writing `open = true` back synchronously inside it
+   * vetoes the close: the drawer stays open, plays no exit, keeps focus and
+   * never reaches `onClosed`. A close the browser performs itself also arrives
+   * here, after the `<dialog>` has closed, and cannot be vetoed — a
+   * `<form method="dialog">`, a call to `close()`, or a close request the
+   * drawer did not intercept (a back gesture, assistive technology); the
+   * drawer stays closed and DEV warns. `closeOnEscape={false}` holds such
+   * requests off for as long as the browser lets a page refuse them. Not
+   * fired when you set `open = false` yourself.
    */
   onClose?: () => void;
 
   /**
    * Fires once a close has finished: the exit animation has ended, the
    * `<dialog>` is closed, the scroll lock is released and focus is back on the
-   * element that had it before the drawer opened. Fires once for every close
-   * that finishes, including one you started with `open = false`. Not for a
-   * close vetoed in `onClose`, nor for one interrupted by reopening before the
-   * animation ends, nor when the drawer is destroyed while open or mid-close
-   * (focus is not returned then either). The place to move focus elsewhere,
-   * reset a form without a visible flash, or open a follow-up surface.
+   * element that had it before the drawer opened — unless another modal
+   * surface above it is still closing, which leaves focus on the page body.
+   * Fires once for every close that finishes, including one you started with
+   * `open = false`. Not for a close vetoed in `onClose`, nor for one
+   * interrupted by reopening before the animation ends, nor when the drawer
+   * is destroyed while open or mid-close (focus is not returned then either).
+   * The place to move focus elsewhere, reset a form without a visible flash,
+   * or open a follow-up surface.
    */
   onClosed?: () => void;
 

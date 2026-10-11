@@ -65,6 +65,7 @@
 
   const propsId = $props.id();
   const overlayId = `popover-${propsId}`;
+  let stacked = $state(false);
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -319,7 +320,7 @@
     if (!open) return;
     // Registered in the overlay stack (below), only the top layer acts: a
     // Popover or a surface opened from inside this one takes the key first.
-    if (panel.inModalDialog && !overlayStack.isTop(overlayId)) return;
+    if (stacked && !overlayStack.isTop(overlayId)) return;
     e.preventDefault();
     // With `closeOnEscape` off this is reached only from the document
     // listener, which runs for such a Popover only while it is a layer in the
@@ -339,7 +340,7 @@
   }
 
   $effect(() => {
-    if (!open || popoverMode !== 'manual' || !(closeOnEscape || panel.inModalDialog)) return;
+    if (!open || popoverMode !== 'manual' || !(closeOnEscape || stacked)) return;
     // Bubble phase intentionally — inner widgets (e.g. an editable input
     // inside the popover) get the first chance to handle Escape via
     // `e.preventDefault()` or `e.stopPropagation()`. Capture phase would
@@ -358,14 +359,22 @@
   // stack, and a Popover open anywhere else must not pause it. `:modal` is
   // read once per open, so the dialog's own `close` ends the registration
   // too — a consumer's `<dialog>` can close and leave this Popover mounted.
+  // `inModalDialog` stays true after that close, and through a `showModal()`
+  // that reopens the dialog, so the Escape paths ask `stacked`: whether the
+  // entry is in the stack now.
   $effect(() => {
     if (!panel.inModalDialog) return;
     const dialog = untrack(() => effectiveTriggerElement)?.closest('dialog');
-    const unregister = overlayStack.register(overlayId, () => {
+    const removeEntry = overlayStack.register(overlayId, () => {
       if (!open) return;
       open = false;
       onOpenChange?.(false);
     });
+    stacked = true;
+    const unregister = () => {
+      stacked = false;
+      removeEntry();
+    };
     dialog?.addEventListener('close', unregister);
     return () => {
       dialog?.removeEventListener('close', unregister);
