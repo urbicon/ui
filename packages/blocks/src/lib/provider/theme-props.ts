@@ -5,9 +5,11 @@ import type { ComponentSlotMap, ThemePropsOf } from './component-slots';
  * The prop names a theme may default — `defaults.<Name>.props` and a preset's
  * `props` — library-wide. Style belongs in the theme, behaviour stays at the
  * call site: a name is on this list when, on every component that carries it,
- * it changes how the component looks and nothing else — not what it renders,
- * not how it behaves or is announced, not where it sits in the surrounding
- * layout, and not a state the user or the data drives.
+ * it changes how the component looks — not what it renders, not how it behaves,
+ * not where it sits in the surrounding layout, and not a state the user or the
+ * data drives. Where a component also derives what it announces from the same
+ * prop, that part follows the instance value alone: Alert paints a theme's
+ * `intent` and takes `role="alert"` only from its own.
  *
  * The classification behind the list, with the names it leaves out and why, is
  * COMPONENT-API-CONVENTIONS.md § Theme props. A name joins the list only when

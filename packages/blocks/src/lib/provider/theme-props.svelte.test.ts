@@ -276,6 +276,15 @@ describe('a theme sets the look, never what is announced or rendered', () => {
     expect(
       roleAround(render(Alert as AnyComponent, { title: 'Saved', intent: 'danger' }), 'Saved')
     ).toBe('alert');
+    // A preset is named at the call site, but its props rank as theme: an
+    // `error` preset colours the alert and does not make it interrupt.
+    const preset: Config = { presets: { Alert: { error: { props: { intent: 'danger' } } } } };
+    expect(
+      roleAround(
+        render(Alert as AnyComponent, { title: 'Saved', preset: 'error' }, preset),
+        'Saved'
+      )
+    ).toBe('status');
   });
 
   it('keeps an agent Alert without an intent polite under a theme intent', () => {

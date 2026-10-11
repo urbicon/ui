@@ -6,7 +6,11 @@ import { MOUNT_FIXTURES } from './__fixtures__/cascade-mount-props';
 import { type CascadeComponent, exportedComponents } from './__fixtures__/cascade-registry';
 import ThemeHost from './__fixtures__/ThemeHost.svelte';
 import ThemeParentHost, { type ThemeChildren } from './__fixtures__/ThemeParentHost.svelte';
-import { CALL_SITE_ATTRIBUTES, withoutAttribute } from './__fixtures__/theme-call-site';
+import {
+  CALL_SITE_ATTRIBUTES,
+  firstAttribute,
+  withoutAttribute
+} from './__fixtures__/theme-call-site';
 import { themeVocabularies, type Vocabulary } from './__fixtures__/theme-vocabulary';
 import type { ComponentDefaults, PresetMap } from './blocks-context';
 
@@ -202,6 +206,14 @@ describe('theme props reach every component that admits them', () => {
           expect(look(fromTheme), `${prop}=${String(value)} from the theme`).toBe(
             look(written.get(value))
           );
+          if (callSite) {
+            // The exception's other half: the theme leaves the attribute where
+            // a mount with no value at all has it.
+            expect(
+              firstAttribute(fromTheme, callSite.attribute),
+              `${prop}=${String(value)} from the theme sets ${callSite.attribute}`
+            ).toBe(firstAttribute(plain, callSite.attribute));
+          }
           if (fromTheme !== written.get(value)) callSiteDiffers = true;
         }
         if (callSite) {

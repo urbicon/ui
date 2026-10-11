@@ -354,8 +354,9 @@ carry a `props` key beside their classes, and it sets the component's style prop
 instance sets none: instance prop → the active preset's `props` → `defaults.<Name>.props` → the
 component's own default. Everything already ranked above that own default stays above the theme —
 a `TierContext` from a Toolbar or ButtonGroup, a ButtonGroup's variant on its Buttons, Badge's
-neutral `tag` intent — and a theme never decides what is announced: Alert paints a theme's `intent`
-but takes `role="alert"` from the instance `intent` alone. Which props a theme may set at all — style yes, behaviour and state no — and
+neutral `tag` intent — and a theme never decides what is announced: Alert paints a theme's `intent`,
+from `defaults` or from a preset alike (a `preset="error"` written at the call site included), but
+takes `role="alert"` from the instance `intent` alone. Which props a theme may set at all — style yes, behaviour and state no — and
 the classification behind it are
 [COMPONENT-API-CONVENTIONS.md § Theme props](COMPONENT-API-CONVENTIONS.md#theme-props-style-in-the-theme-behaviour-at-the-call-site).
 
@@ -390,7 +391,10 @@ the component *reads* a key it declares is not a type question; `provider/theme-
 every component of the cascade registry with every value the checker says `ThemePropsOf` admits, and
 requires the theme mount to render what the call-site mount renders, plus the preset rung and the
 instance-beats-theme order. Its population comes from the type, so a style prop a component
-declares and does not read fails it. `provider/theme-props-ssr.test.ts` repeats the first route on
+declares and does not read fails it. A style prop that also sets an attribute only the call site
+may decide — Alert's `intent` and its `role` — fails it too until it is an entry in
+`CALL_SITE_ATTRIBUTES` (`provider/__fixtures__/theme-call-site.ts`); the sweep then compares the rest
+of the markup and requires the theme mount to carry that attribute as a mount with no value does. `provider/theme-props-ssr.test.ts` repeats the first route on
 the server, where a style prop destructured ahead of `preset` throws. A value that paints only
 behind another prop, a real child or an opened panel is mounted with it (the sweep's `PROBES`, each
 stale once the prop shows without it). What neither reaches: a name outside the package barrel —
