@@ -7,6 +7,7 @@
     maxTransitionDurationMs
   } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
@@ -52,6 +53,9 @@
     role = 'dialog',
     'aria-modal': ariaModal,
     id,
+    // Pulled out of restProps so the panel's own Escape handler composes with
+    // it instead of replacing it (see docs/COMPONENT-API-CONVENTIONS.md).
+    onkeydown: onkeydownProp,
 
     ...restProps
   }: PopoverProps = $props();
@@ -290,6 +294,35 @@
   // gated by both `open` and the relevant `closeOn*` prop so the right
   // set of behaviors stays active when only one of the two is disabled.
 
+  // Escape is taken in two places. The panel and the trigger wrapper claim it
+  // at element level (`handleEscapeKeydown`, wired in the markup): inside a
+  // modal Dialog or Drawer — one of the cases that put the Popover in manual
+  // mode — the surface acts on Escape from its own `<dialog>` element, an
+  // ancestor of both, and has to find it consumed or it closes in the
+  // Popover's place. The document listener below takes an Escape that starts
+  // anywhere else. It runs after the element-level handlers in the bubble
+  // phase, so once one of them has closed the Popover it finds
+  // `defaultPrevented` set and `open` false.
+  function dismissOnEscape(e: KeyboardEvent) {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    // Re-check `open` (like the auto-mode toggle handler does): the
+    // listener teardown is deferred to the next effect flush, so a
+    // consumer handler earlier in this same dispatch may already have
+    // closed via `bind:open` — without this guard we'd report a second,
+    // transition-less onOpenChange(false) + onEscape and steal focus.
+    if (!open) return;
+    e.preventDefault();
+    open = false;
+    onOpenChange?.(false);
+    onEscapeProp?.();
+    focusTrigger();
+  }
+
+  function handleEscapeKeydown(e: KeyboardEvent) {
+    if (popoverMode !== 'manual' || !closeOnEscape) return;
+    dismissOnEscape(e);
+  }
+
   $effect(() => {
     if (!open || popoverMode !== 'manual' || !closeOnEscape) return;
     // Bubble phase intentionally — inner widgets (e.g. an editable input
@@ -298,22 +331,8 @@
     // close the popover before the inner widget could react. The
     // `defaultPrevented` guard then honors inner widgets that
     // intentionally consume Escape.
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
-      // Re-check `open` (like the auto-mode toggle handler does): the
-      // listener teardown is deferred to the next effect flush, so a
-      // consumer handler earlier in this same dispatch may already have
-      // closed via `bind:open` — without this guard we'd report a second,
-      // transition-less onOpenChange(false) + onEscape and steal focus.
-      if (!open) return;
-      e.preventDefault();
-      open = false;
-      onOpenChange?.(false);
-      onEscapeProp?.();
-      focusTrigger();
-    }
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', dismissOnEscape);
+    return () => document.removeEventListener('keydown', dismissOnEscape);
   });
 
   $effect(() => {
@@ -328,7 +347,7 @@
       if (!target) return;
       if (popoverElement?.contains(target)) return;
       if (effectiveTriggerElement?.contains(target)) return;
-      // Same deferred-teardown re-check as handleEscape above: a consumer
+      // Same deferred-teardown re-check as dismissOnEscape above: a consumer
       // capture-phase pointerdown handler may have closed via `bind:open`
       // within this dispatch — don't report a second close.
       if (!open) return;
@@ -432,6 +451,8 @@
   }
 
   function handleTriggerKeydown(e: KeyboardEvent) {
+    handleEscapeKeydown(e);
+    if (!autoTrigger) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       e.stopPropagation();
@@ -454,7 +475,7 @@
     bind:this={internalTriggerElement}
     class="inline-flex"
     onclick={autoTrigger ? handleTriggerClick : undefined}
-    onkeydown={autoTrigger ? handleTriggerKeydown : undefined}
+    onkeydown={handleTriggerKeydown}
     onpointerdown={autoTrigger ? handleTriggerPointerDown : undefined}
   >
     {@render trigger()}
@@ -507,6 +528,7 @@
     bind:this={popoverElement}
     class={popoverClasses}
     {...restProps}
+    onkeydown={composeHandlers(handleEscapeKeydown, onkeydownProp)}
     popover={panel.topLayer ? popoverMode : null}
     style={style || null}
     style:position={panel.strategy}

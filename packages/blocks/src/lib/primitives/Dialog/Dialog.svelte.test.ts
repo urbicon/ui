@@ -4,26 +4,21 @@ import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { lockBodyScroll } from '../../utils/overlay';
 import Dialog from './Dialog.svelte';
 import type { DialogProps } from './index';
 
-// Interaction layer for Dialog — the dismiss matrix (Escape / backdrop / close
-// button, each gated by a `closeOn*` prop) and the `onClose` contract. Dialog is
-// the native-`<dialog>` case: it opens via `showModal()` (scheduled a microtask
-// out) and the panel plays an outro transition on close, so it needs a mounted
-// DOM to drive at all.
+// Interaction layer for what only Dialog has: the backdrop click on the
+// <dialog> element itself, the drag handle, the composed `onclick`, the
+// labelling, the intent markers and the dead-end guard. The modal lifecycle and
+// dismiss policy it shares with Drawer — Escape on both paths, native
+// cancel/close, the backdrop layer, focus in and out, the scroll lock — is
+// asserted once for both in `internal/modal-surface.svelte.test.ts`.
 //
 // Same stack + rationale as the Combobox pilot: Svelte's own `mount`/`unmount`,
 // @testing-library/dom + user-event, native vitest matchers (no jest-dom). The
 // `children` snippet — which JSX-free component tests otherwise can't supply — is
 // built with `createRawSnippet`. `showModal()` runs after a `tick()`, so tests
 // `await tick()` once after mount before interacting.
-//
-// These tests assert dismiss *logic* (does `onClose` fire, is it suppressed when
-// the matching `closeOn*` is false), not the exit animation or focus-trap visuals
-// — that is Playwright's job. `onClose` fires synchronously inside `requestClose`,
-// so it is the stable signal; the panel's async teardown is not asserted here.
 
 const body = (text = 'Dialog body'): Snippet =>
   createRawSnippet(() => ({ render: () => `<p>${text}</p>` }));
@@ -47,173 +42,7 @@ function renderDialog(props: Partial<DialogProps> = {}) {
 
 const dialog = () => screen.getByRole('dialog', { hidden: true });
 
-describe('Dialog (component interaction)', () => {
-  it('renders an open structured dialog with title, body, and aria-modal', async () => {
-    renderDialog({
-      open: true,
-      title: 'Confirm deletion',
-      children: body('This cannot be undone.')
-    });
-    await tick();
-
-    const el = dialog();
-    expect(el.getAttribute('aria-modal')).toBe('true');
-    expect(el.getAttribute('data-state')).toBe('open');
-    expect(screen.getByRole('heading', { name: 'Confirm deletion', hidden: true })).toBeTruthy();
-    expect(screen.getByText('This cannot be undone.')).toBeTruthy();
-    // Regression guard: the opener effect must defer showModal() until dialogEl is
-    // bound (it captures the ref by value). `dialog.open` reflects that showModal()
-    // actually ran — with the old same-tick call it stayed false (never modal).
-    expect((el as HTMLDialogElement).open).toBe(true);
-  });
-
-  it('does not leak a body scroll lock when unmounted before the deferred showModal', async () => {
-    renderDialog({ open: true });
-    // Tear down before the opener effect's tick().then callback has run: the
-    // unmount nulls dialogEl and onDestroy has already unlocked, so an
-    // unguarded callback would lockBodyScroll() with nothing ever unlocking —
-    // the whole page stays overflow:hidden (module-global refcount).
-    dispose?.();
-    dispose = undefined;
-    await tick();
-
-    expect(document.body.style.overflow).not.toBe('hidden');
-  });
-
-  it('unmounting a closed dialog leaves a foreign scroll lock intact', async () => {
-    // Another overlay (here: a manual acquisition of the same module-global
-    // lock) is holding the body scroll. Destroying a dialog that never locked
-    // must not decrement that holder's share — the old unconditional
-    // onDestroy unlock did exactly that.
-    const releaseForeign = lockBodyScroll();
-    try {
-      renderDialog({ open: false });
-      dispose?.();
-      dispose = undefined;
-      await tick();
-
-      expect(document.body.style.overflow).toBe('hidden');
-    } finally {
-      releaseForeign();
-    }
-  });
-
-  it('fires onClose on Escape (closeOnEscape defaults to true)', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    renderDialog({ open: true, onClose });
-    await tick();
-
-    await user.keyboard('{Escape}');
-
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('does not fire onClose on Escape when closeOnEscape is false', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    renderDialog({ open: true, closeOnEscape: false, onClose });
-    await tick();
-
-    await user.keyboard('{Escape}');
-
-    expect(onClose).not.toHaveBeenCalled();
-    expect(dialog().getAttribute('data-state')).toBe('open');
-  });
-
-  it('claims Escape at the window level when closeOnEscape is false and focus is outside', async () => {
-    // Focus outside the <dialog> (never clicked in, or dropped to <body> when a
-    // focused button became disabled) means the element-level handler never
-    // sees the key. An unclaimed Escape reaches the UA's close watcher, which
-    // closes a modal dialog regardless of closeOnEscape — the window listener
-    // has to preventDefault, not just decline to close. jsdom has no close
-    // watcher, so the oracle is the keydown's defaultPrevented flag; that the
-    // flag holds in browsers (five Escapes, dialog stays open) was measured.
-    const onClose = vi.fn();
-    renderDialog({ open: true, closeOnEscape: false, onClose });
-    await tick();
-    await tick();
-    (document.activeElement as HTMLElement | null)?.blur();
-    expect(document.activeElement).toBe(document.body);
-
-    const escapeKey = new KeyboardEvent('keydown', {
-      key: 'Escape',
-      bubbles: true,
-      cancelable: true
-    });
-    document.body.dispatchEvent(escapeKey);
-
-    expect(escapeKey.defaultPrevented).toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
-    expect(dialog().getAttribute('data-state')).toBe('open');
-  });
-
-  it('vetoes the native cancel request when closeOnEscape is false', async () => {
-    // Close requests that are not a keydown (back gesture, assistive tech)
-    // arrive as a cancelable `cancel` event on the <dialog>. jsdom never fires
-    // it, so it is dispatched directly and the veto read off defaultPrevented.
-    const onClose = vi.fn();
-    renderDialog({ open: true, closeOnEscape: false, onClose });
-    await tick();
-
-    const cancel = new Event('cancel', { cancelable: true });
-    dialog().dispatchEvent(cancel);
-
-    expect(cancel.defaultPrevented).toBe(true);
-    expect(onClose).not.toHaveBeenCalled();
-    expect(dialog().getAttribute('data-state')).toBe('open');
-  });
-
-  it('lets the native cancel request through when closeOnEscape is true', async () => {
-    renderDialog({ open: true });
-    await tick();
-
-    const cancel = new Event('cancel', { cancelable: true });
-    dialog().dispatchEvent(cancel);
-
-    expect(cancel.defaultPrevented).toBe(false);
-  });
-
-  it('stays open when an inner widget already consumed the Escape', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    renderDialog({
-      open: true,
-      onClose,
-      children: createRawSnippet(() => ({
-        render: () => `<button type="button" data-testid="inner">Operator</button>`
-      }))
-    });
-    await tick();
-
-    // Exactly what Select, Combobox and Popover do when Escape dismisses THEM:
-    // handle it and mark it consumed. The dialog's own handler ignored that and
-    // closed anyway, so dismissing an open dropdown tore down the dialog it sat
-    // in — the case Codeberg #23 put a Select into in the first place.
-    const inner = screen.getByTestId('inner');
-    inner.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') event.preventDefault();
-    });
-    inner.focus();
-
-    await user.keyboard('{Escape}');
-
-    expect(onClose).not.toHaveBeenCalled();
-    expect(dialog().getAttribute('data-state')).toBe('open');
-  });
-
-  it('fires onClose when the close button is clicked', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    // A titled dialog without a footer renders exactly one button — the close control.
-    renderDialog({ open: true, title: 'Settings', onClose });
-    await tick();
-
-    await user.click(screen.getByRole('button', { hidden: true }));
-
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
+describe('Dialog (<dialog>-level backdrop click)', () => {
   it('fires onClose on backdrop click (closeOnBackdropClick defaults to true)', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -225,22 +54,6 @@ describe('Dialog (component interaction)', () => {
     await user.click(dialog());
 
     expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('does not fire onClose when the click originates inside the panel', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    renderDialog({ open: true, onClose, children: body('Panel content') });
-    await tick();
-
-    // A click on content bubbles up to the <dialog>, but handleBackdropClick's
-    // `target === currentTarget` guard must ignore it — only a click on the
-    // backdrop itself dismisses. This is the discriminator the positive test
-    // (which clicks the dialog element directly) cannot exercise.
-    await user.click(screen.getByText('Panel content'));
-
-    expect(onClose).not.toHaveBeenCalled();
-    expect(dialog().getAttribute('data-state')).toBe('open');
   });
 
   it('does not fire onClose on backdrop click when closeOnBackdropClick is false', async () => {
@@ -336,7 +149,9 @@ describe('Dialog (draggable)', () => {
 // way. So the three behavioural handlers are destructured out and composed:
 // internal first (unconditional), consumer second. These tests pin both halves
 // — the consumer's handler runs AND the internal dismiss/focus/close path
-// survives — because a regression in either direction is silent.
+// survives — because a regression in either direction is silent. The keydown,
+// close and cancel compositions are shared with Drawer and pinned in
+// `internal/modal-surface.svelte.test.ts`; the `onclick` one is Dialog's alone.
 describe('Dialog (restProps composition)', () => {
   it('runs a consumer onclick and still dismisses on backdrop click', async () => {
     const user = userEvent.setup();
@@ -351,64 +166,6 @@ describe('Dialog (restProps composition)', () => {
     // The pre-fix ordering (restProps last) made the consumer handler replace
     // handleBackdropClick outright, so this assertion is the regression guard.
     expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('runs a consumer onkeydown and still closes on Escape', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    const onkeydown = vi.fn();
-    // Titled: the opener focuses the close button, so the key event starts
-    // inside the dialog and reaches the element-level handler under test. (The
-    // untitled case goes through the panel-focus fallback instead — asserted
-    // in the initial-focus suite below.)
-    renderDialog({ open: true, title: 'Settings', onClose, onkeydown });
-    await tick();
-
-    await user.keyboard('{Escape}');
-
-    expect(onkeydown).toHaveBeenCalledOnce();
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('runs a consumer onclose and still routes the native close through onClose', async () => {
-    const onClose = vi.fn();
-    const onclose = vi.fn();
-    renderDialog({ open: true, onClose, onclose });
-    await tick();
-
-    // The UA fires `close` for its own ESC handling / form[method=dialog] /
-    // .close(). jsdom does not, so dispatch it directly.
-    dialog().dispatchEvent(new Event('close'));
-
-    expect(onclose).toHaveBeenCalledOnce();
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('runs a consumer oncancel and still vetoes the request when closeOnEscape is false', async () => {
-    const oncancel = vi.fn();
-    renderDialog({ open: true, closeOnEscape: false, oncancel });
-    await tick();
-
-    const cancel = new Event('cancel', { cancelable: true });
-    dialog().dispatchEvent(cancel);
-
-    expect(oncancel).toHaveBeenCalledOnce();
-    expect(cancel.defaultPrevented).toBe(true);
-  });
-
-  it('keeps the focus trap intact with a consumer onkeydown present', async () => {
-    const onkeydown = vi.fn();
-    renderDialog({ open: true, title: 'Trapped', onkeydown });
-    await tick();
-
-    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
-    const notPrevented = dialog().dispatchEvent(event);
-
-    // trapFocus preventDefaults when it wraps focus — dispatchEvent returning
-    // false is the signal that the trap engaged rather than the browser being
-    // left to Tab out of the modal.
-    expect(notPrevented).toBe(false);
-    expect(onkeydown).toHaveBeenCalledOnce();
   });
 
   it('does not let a consumer preventDefault veto the backdrop dismiss', async () => {
@@ -468,79 +225,6 @@ describe('Dialog (restProps composition)', () => {
     // dialog's own body description instead of replacing it.
     expect(document.getElementById(ids[0])?.textContent).toContain('Dialog body');
     expect(ids[1]).toBe('external-hint');
-  });
-});
-
-// Initial focus — the WCAG 2.1.2 contract. showDialogModal → focusFirstElement
-// moves focus into the panel a tick after showModal(): to the first focusable
-// child when one exists, otherwise — an untitled dialog with static children
-// renders no header, hence no close button — to the panel itself, which carries
-// tabindex="-1" for exactly this fallback. Without it, focus stayed on <body>:
-// the <dialog>'s element-level keydown never fired, ESC only worked through the
-// svelte:window fallback, and the Tab trap was inert until the user clicked in.
-// jsdom's showModal polyfill performs no native dialog focusing steps (see
-// vitest-setup.ts), so everything asserted here is our own focus management.
-// Real Tab traversal across several focusables, top-layer inertness, and
-// focus restore on close need a browser — that remains Playwright's job.
-describe('Dialog (initial focus + no-focusable fallback)', () => {
-  const panel = () => screen.getByRole('document', { hidden: true });
-
-  // focusFirstElement defers by one more tick after the opener effect's own
-  // deferred showDialogModal, so focus assertions settle after two awaits.
-  const settleFocus = async () => {
-    await tick();
-    await tick();
-  };
-
-  it('focuses the first focusable child when one exists (titled: the close button)', async () => {
-    renderDialog({ open: true, title: 'Settings' });
-    await settleFocus();
-
-    // Guard in both directions: a real focusable wins, the panel fallback
-    // must not steal focus from it.
-    expect(document.activeElement).toBe(screen.getByRole('button', { hidden: true }));
-  });
-
-  it('falls back to focusing the panel when children contain nothing focusable', async () => {
-    renderDialog({ open: true });
-    await settleFocus();
-
-    expect(document.activeElement).toBe(panel());
-    // Programmatically focusable only — the fallback target never joins the
-    // Tab order (getFocusableElements excludes tabindex="-1").
-    expect((panel() as HTMLElement).tabIndex).toBe(-1);
-  });
-
-  it('closes on Escape through the element-level handler in the fallback state', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    const onkeydown = vi.fn();
-    renderDialog({ open: true, onClose, onkeydown });
-    await settleFocus();
-
-    await user.keyboard('{Escape}');
-
-    // The consumer onkeydown is composed on the <dialog> element itself, so
-    // its firing proves the key event originated inside the dialog (panel
-    // focus). Pre-fallback, focus stayed on <body> and only the window-level
-    // listener closed — the element handler never ran.
-    expect(onkeydown).toHaveBeenCalledOnce();
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('traps Tab on the panel when nothing inside is focusable', async () => {
-    renderDialog({ open: true });
-    await settleFocus();
-
-    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
-    const notPrevented = panel().dispatchEvent(event);
-
-    // With zero focusables, trapFocus parks focus on the panel instead of
-    // letting Tab walk out of the modal — defaultPrevented is the signal that
-    // the trap engaged. (Cycling across several focusables is asserted via the
-    // titled trap test in the restProps suite + Playwright.)
-    expect(notPrevented).toBe(false);
-    expect(document.activeElement).toBe(panel());
   });
 });
 

@@ -4,11 +4,10 @@
   import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
-  import { onDestroy, tick } from 'svelte';
   import { fade, scale } from 'svelte/transition';
-  import { trapFocus, showDialogModal, closeDialogModal } from '#lib/utils/overlay.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
-  import { overlayStack, getOverlayMotion } from '#lib/utils/index.js';
+  import { getOverlayMotion } from '#lib/utils/index.js';
+  import { createModalSurface } from '#lib/internal/modal-surface.svelte.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -53,28 +52,16 @@
     ...restProps
   }: DialogProps = $props();
 
-  // One-shot DEV sanity check on the initial close-path configuration.
-  // svelte-ignore state_referenced_locally
-  if (
-    import.meta.env?.DEV &&
-    hideCloseButton &&
-    closeOnEscape === false &&
-    closeOnBackdropClick === false
-  ) {
-    console.warn(
-      '[Dialog] All close paths are disabled (hideCloseButton + closeOnEscape=false + closeOnBackdropClick=false). The dialog is only closable programmatically — make sure your UI exposes an action that calls onClose or sets open=false.'
-    );
-  }
-
   /** Warned once per instance: a dead end is a mistake, not a stream of them. */
   let warnedDeadEnd = false;
 
   /**
-   * The second half of the check above, and the one that can actually tell a
-   * deliberate forced choice from a trap: with every close path disabled, the
-   * only way out is something the consumer put *inside* the dialog. Whether
-   * they did is not knowable from the props — `footer` and `children` are
-   * snippets — so this looks at the rendered panel once it exists.
+   * The second half of the all-close-paths warning `createModalSurface` raises
+   * at init, and the one that can actually tell a deliberate forced choice from
+   * a trap: with every close path disabled, the only way out is something the
+   * consumer put *inside* the dialog. Whether they did is not knowable from the
+   * props — `footer` and `children` are snippets — so this looks at the
+   * rendered panel once it exists.
    *
    * A dialog with no interactive element and no way out leaves the reader stuck
    * with a page they cannot use; that is worth a loud line in the console, in
@@ -109,11 +96,6 @@
 
   let dialogEl = $state<HTMLDialogElement>();
   let panelEl = $state<HTMLElement>();
-  let isVisible = $state(false);
-  let previouslyFocused: HTMLElement | null = null;
-  // Release for the body-scroll lock this instance holds while modal — set by
-  // showDialogModal, idempotent, so both teardown paths below may call it.
-  let releaseScrollLock: (() => void) | undefined;
 
   const structured = $derived(!!title);
 
@@ -185,7 +167,6 @@
   const uid = $props.id();
   const titleId = $derived(title ? `dialog-title-${uid}` : undefined);
   const bodyId = `dialog-body-${uid}`;
-  const overlayId = `dialog-${uid}`;
 
   // A rendered `title` owns the labelling; without one, a consumer-supplied
   // `aria-labelledby` (e.g. a heading inside `children`) is the fallback, so
@@ -224,136 +205,45 @@
     )
   );
 
-  function requestClose() {
-    if (!isVisible || !open) return;
-    open = false;
-    onClose?.();
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      // Honour an inner widget that already consumed this Escape — the same
-      // rule `handleWindowKeydown` below applies, and it has to hold here too
-      // or the two paths disagree about who owns the key. Select, Combobox and
-      // Popover all `preventDefault()` when Escape dismisses THEM; without this
-      // guard the event went on to close the whole dialog, so dismissing an
-      // open dropdown tore down the surface it was sitting on — and a Select
-      // inside a modal dialog is the case Codeberg #23 was all about.
-      if (event.defaultPrevented) return;
-      event.preventDefault();
-      if (closeOnEscape) requestClose();
-      return;
-    }
-    if (event.key === 'Tab') trapFocus(event, panelEl);
-  }
-
-  // Native <dialog> only routes ESC to its `onkeydown` when focus is inside
-  // the dialog. With focus outside — never clicked in, or dropped to <body>
-  // when the focused button became disabled — ESC misses that handler, and an
-  // unclaimed ESC reaches the UA's close watcher, which closes a modal dialog
-  // regardless of `closeOnEscape`. So the window listener claims ESC whenever
-  // this dialog is the top overlay and only then decides whether to close —
-  // the same rule as `handleKeydown`, or the two paths disagree about who
-  // owns the key. The `preventDefault()` is what holds the dialog: it stops
-  // the close watcher before it runs (measured, Chromium 151 / WebKit 26.5:
-  // five consecutive ESC, dialog stays open). The `isTop` guard makes sure
-  // stacked overlays close one-at-a-time.
-  function handleWindowKeydown(event: KeyboardEvent) {
-    if (event.key !== 'Escape') return;
-    if (!open || event.defaultPrevented) return;
-    if (!overlayStack.isTop(overlayId)) return;
-    event.preventDefault();
-    if (closeOnEscape) requestClose();
-  }
-
-  // Second line, for close requests that are not a keydown (back gesture,
-  // assistive tech): the UA fires a cancelable `cancel` first, and vetoing it
-  // keeps the dialog open — but only while the window holds user activation.
-  // The close watcher's anti-abuse rule makes the third request without an
-  // intervening activation uncancelable and closes anyway (measured, both
-  // engines); that close then arrives as `close` and is routed through
-  // `onClose` like any other. Keyboard ESC never gets here: the keydown above
-  // is claimed first.
-  function handleNativeCancel(event: Event) {
-    if (!closeOnEscape) event.preventDefault();
-  }
-
-  function handleBackdropClick(event: MouseEvent) {
-    if (closeOnBackdropClick && event.target === event.currentTarget) requestClose();
-  }
-
-  function handleBackdropDirectClick() {
-    if (closeOnBackdropClick) requestClose();
-  }
-
-  // Native `close` event (ESC handled by the UA, form[method=dialog], .close()).
-  // Named rather than inline so it can be composed with a consumer `onclose`.
-  function handleNativeClose() {
-    if (open) requestClose();
-  }
-
-  function handleOutroEnd() {
-    closeDialogModal(dialogEl, previouslyFocused, releaseScrollLock);
-    releaseScrollLock = undefined;
-    isVisible = false;
-    previouslyFocused = null;
-  }
+  const modal = createModalSurface({
+    name: 'Dialog',
+    uid,
+    open: () => open,
+    setOpen: (value) => (open = value),
+    onClose: () => onClose,
+    closeOnEscape: () => closeOnEscape,
+    closeOnBackdropClick: () => closeOnBackdropClick,
+    hideCloseButton: () => hideCloseButton,
+    dialog: () => dialogEl,
+    panel: () => panelEl,
+    afterShow: warnOnDeadEnd
+  });
 
   // Reset the drag offset whenever the dialog opens so a reopened dialog always
-  // starts centred — keyed on `open`, not the `open && !isVisible` transition.
-  // Reopening *during* the close outro (isVisible still true) must still recentre;
-  // the old transition-guarded reset silently skipped that case, restoring the
-  // stale drag position. `open` is constant during a drag, so this never fights
-  // the pointer handlers.
+  // starts centred — keyed on `open`, not on the `open && !modal.visible`
+  // transition: reopening *during* the close outro (`modal.visible` still true)
+  // must recentre too, and a reset guarded on that transition would skip it and
+  // restore the stale drag position. `open` is constant during a drag, so this
+  // never fights the pointer handlers.
   $effect(() => {
     if (open) {
       dragX = 0;
       dragY = 0;
     }
   });
-
-  $effect(() => {
-    if (open && !isVisible) {
-      isVisible = true;
-      previouslyFocused = document.activeElement as HTMLElement;
-      // Defer until the `{#if isVisible}` block has rendered so `bind:this` has
-      // assigned dialogEl/panelEl — showDialogModal captures the refs by value,
-      // so promoting before the bind would silently no-op (never actually modal).
-      // The guard covers same-flush teardown: if the component unmounts before
-      // the tick resolves, bind:this has nulled dialogEl and onDestroy has
-      // already run — a lock taken now could never be released.
-      tick().then(() => {
-        if (dialogEl) releaseScrollLock = showDialogModal(dialogEl, panelEl);
-        warnOnDeadEnd();
-      });
-    }
-  });
-
-  $effect(() => {
-    if (!open) return;
-    return overlayStack.register(overlayId, requestClose);
-  });
-
-  onDestroy(() => {
-    // Safety net for destroy-while-open, where no outro runs. Releasing is
-    // idempotent and scoped to this instance's own lock, so a regular close
-    // (already released in handleOutroEnd) or a never-opened instance make
-    // this a no-op — it can never free another overlay's lock.
-    releaseScrollLock?.();
-  });
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} />
+<svelte:window onkeydown={modal.handleWindowKeydown} />
 
-{#if isVisible}
+{#if modal.visible}
   <dialog
     {...restProps}
     bind:this={dialogEl}
     class={unstyled ? (slotClasses?.dialog ?? '') : styles.dialog({ class: slotClasses?.dialog })}
-    onclick={composeHandlers(handleBackdropClick, onclickProp)}
-    onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
-    onclose={composeHandlers(handleNativeClose, oncloseProp)}
-    oncancel={composeHandlers(handleNativeCancel, oncancelProp)}
+    onclick={composeHandlers(modal.handleBackdropClick, onclickProp)}
+    onkeydown={composeHandlers(modal.handleKeydown, onkeydownProp)}
+    onclose={composeHandlers(modal.handleNativeClose, oncloseProp)}
+    oncancel={composeHandlers(modal.handleNativeCancel, oncancelProp)}
     aria-labelledby={labelledBy}
     aria-describedby={describedBy}
     aria-modal="true"
@@ -364,7 +254,7 @@
         class={unstyled
           ? (slotClasses?.backdrop ?? '')
           : styles.backdrop({ class: slotClasses?.backdrop })}
-        onclick={handleBackdropDirectClick}
+        onclick={modal.handleBackdropDirectClick}
         aria-hidden="true"
         role="presentation"
         transition:fade={{
@@ -391,7 +281,7 @@
           start: motion.panelScaleStart,
           opacity: 0
         }}
-        onoutroend={handleOutroEnd}
+        onoutroend={modal.handleOutroEnd}
       >
         {#if structured}
           <header
@@ -429,7 +319,7 @@
                 class={unstyled
                   ? (slotClasses?.closeButton ?? '')
                   : styles.closeButton({ class: slotClasses?.closeButton })}
-                onclick={requestClose}
+                onclick={modal.requestClose}
                 aria-label={bt('accessibility.closeDialog')}
               >
                 <CloseIcon class="h-4 w-4" />

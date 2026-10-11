@@ -11,6 +11,27 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.30.0
+
+### `Popover` runs your `onkeydown` after its own Escape handling
+
+In manual mode the Popover now handles an Escape on its panel or its trigger right there: it
+closes, calls `onEscape` and reports `false` to `onOpenChange`. An `onkeydown` you pass reaches the
+panel after that, so a `preventDefault()` in it no longer keeps the Popover open. To keep Escape
+from closing it, pass `closeOnEscape={false}`.
+
+Manual mode applies when `closeOnEscape` or `closeOnClickOutside` is `false`, with
+`autoTrigger={false}` or `usePortal={false}`, and inside an open modal dialog — a `Dialog`, a
+`Drawer` or your own `<dialog>` opened with `showModal()`. That last case is why the Popover
+handles Escape where it happens now: an Escape on a Popover in a Dialog or Drawer used to close
+the surface and leave the Popover open; it now closes the Popover alone. With none of these, the
+browser handles Escape itself, and in Chromium and WebKit a cancelled keydown still keeps the
+Popover open: that is the browser's close watcher, not something the library guarantees.
+
+```sh
+rg -nU '<Popover\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
+```
+
 ## 8.29.0
 
 ### `Calendar` keeps its grids to rows and cells, and its labels to AA
