@@ -227,6 +227,7 @@ test.describe('Calendar accessibility (#208)', () => {
     await event.hover();
     await page.mouse.move(0, 0);
     await expect(day(page, '2026-06-24')).toBeFocused();
+    await expect(event).toHaveCount(0);
   });
 
   test('day popover: an outside click closes it without pulling focus to the day', async ({

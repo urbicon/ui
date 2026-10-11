@@ -53,7 +53,8 @@ model matches, and the text it drew below AA moves to inks that clear it.
   primary. A translucent colour is judged painted over white and over black, and gets the ink
   whose worse ratio of the two is higher. A colour the helper cannot read still gets white: a
   `var()` or `color-mix()` — including one that wraps a colour it could read — a named colour or
-  `hsl()`. This reaches ResourceTimeline's category bars as well. The `ghost` variant no longer draws its multi-day bars at 90 % opacity,
+  `hsl()`. This reaches ResourceTimeline's category bars as well.
+  The `ghost` variant no longer draws its multi-day bars at 90 % opacity,
   which took their labels below AA.
 - **Outside-month days and week numbers are `text-tertiary`**, darker than the `text-quaternary`
   they used: outside-month days stay clickable, so they are held to AA like any other text. The

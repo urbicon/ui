@@ -146,9 +146,10 @@
     if (showPopoverEnabled) scheduleClosePopover();
   }
 
-  function handleFocus() {
+  function handleFocus(e: FocusEvent) {
     ctx.setFocusedDate(date);
-    if (showPopoverEnabled) {
+    // Focus handed back from the popover as it closes must not reopen it.
+    if (showPopoverEnabled && !popoverBody?.contains(e.relatedTarget as Node | null)) {
       clearTimeout(closeTimer);
       popoverOpen = true;
     }
