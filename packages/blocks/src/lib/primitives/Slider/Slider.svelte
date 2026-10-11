@@ -5,7 +5,7 @@
   import CheckCircleIconDefault from '#lib/icons/CheckCircleIcon.svelte';
   import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { SliderProps } from './index';
@@ -13,7 +13,10 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Slider', () => preset);
+
   let {
+    preset,
     value = $bindable(50),
     min = 0,
     max = 100,
@@ -25,9 +28,9 @@
     marks,
     error,
     helper,
-    intent = 'primary',
-    size = 'md',
-    variant = 'default',
+    intent = theme.intent ?? 'primary',
+    size = theme.size ?? 'md',
+    variant = theme.variant ?? 'default',
     disabled = false,
     name,
     validRange,
@@ -39,7 +42,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     'aria-describedby': ariaDescribedby,
     'aria-labelledby': ariaLabelledby,
     ...restProps

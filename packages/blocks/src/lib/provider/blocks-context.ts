@@ -5,7 +5,7 @@ import {
   resolveClassChain,
   type TVConfig
 } from '#lib/utils/variants.js';
-import type { SlotOf } from './component-slots';
+import type { SlotOf, ThemePropsOf } from './component-slots';
 
 /**
  * A prop-conditional style rule. Its non-`class` keys are matched against the
@@ -58,15 +58,45 @@ export interface ConditionalOverride<Slot extends string = string> {
   [propCondition: string]: string | string[] | boolean | Partial<Record<Slot, string>> | undefined;
 }
 
-export interface ComponentDefaults<Slot extends string = string> {
+/**
+ * A project's styling for one component type, registered under its name in
+ * `<BlocksProvider defaults>`: which look it takes by default (`props`), and
+ * classes on top of that look (`slotClasses`, `overrides`).
+ *
+ * @example
+ * { props: { variant: 'underline' }, slotClasses: { label: 'house-label' } }
+ */
+export interface ComponentDefaults<
+  Slot extends string = string,
+  Props extends object = Record<string, unknown>
+> {
   slotClasses?: Partial<Record<Slot, string>>;
   /**
    * Prop-conditional style rules, applied after unconditional `slotClasses`
    * (so they win per bucket) but before instance-level `slotClasses` / `class`.
    * Use for surgical per-variant tweaks the unconditional `slotClasses` cannot
    * express, e.g. `overrides: [{ variant: 'outlined', class: { base: 'border' } }]`.
+   * A rule matches the value a prop resolved to, so a `props` default makes the
+   * rules keyed on it fire for every instance that passes no value of its own.
    */
   overrides?: ConditionalOverride<Slot>[];
+  /**
+   * Default values for the component's style props — `variant`, `size`,
+   * `intent`, `tier` and the other looks `STYLE_PROPS` names, never a behaviour
+   * or a state (`disabled`, `open`, `orientation`). Each value is typed as the
+   * component's own prop, so `{ Input: { props: { variant: 'underline' } } }`
+   * gives every Input without a `variant` of its own the shipped `underline`
+   * variant rather than a hand-built copy of it.
+   *
+   * Precedence: the instance prop, then the active preset's `props`, then
+   * these, then the component's own default. Whatever already beats that own
+   * default beats these too — a `TierContext` from a Toolbar, a ButtonGroup's
+   * variant on its Buttons. A component that renders another one sets the props
+   * it forwards, its own default included, so the inner component's entry does
+   * not reach them: a DatePicker's field takes `DatePicker: { props: {
+   * inputVariant } }`, not `Input`'s entry.
+   */
+  props?: Props;
 }
 
 /**
@@ -78,10 +108,21 @@ export interface ComponentDefaults<Slot extends string = string> {
  * outside the semantic intent palette — instead of overriding styles
  * with `class="bg-…!"` at each usage site.
  */
-export interface ComponentPreset<Slot extends string = string> {
+export interface ComponentPreset<
+  Slot extends string = string,
+  Props extends object = Record<string, unknown>
+> {
   slotClasses?: Partial<Record<Slot, string>>;
   /** Prop-conditional rules scoped to this preset (see {@link ConditionalOverride}). */
   overrides?: ConditionalOverride<Slot>[];
+  /**
+   * Style-prop defaults for an instance that names this preset — the keys of
+   * {@link ComponentDefaults.props}, ranked above the provider's and below the
+   * instance's own props: `presets={{ Input: { zeile: { props: { variant:
+   * 'underline' } } } }}` underlines `<Input preset="zeile">` unless it sets a
+   * `variant` itself.
+   */
+  props?: Props;
 }
 
 /** Map of component name → preset name → preset definition. */
@@ -121,10 +162,14 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;
  * `component-slots.types.test.ts` by calling the component, so it reads this
  * declaration rather than a copy of it.
  */
-export type BlocksDefaults<T> = { [K in keyof T]?: ComponentDefaults<SlotOf<K>> };
+export type BlocksDefaults<T> = {
+  [K in keyof T]?: ComponentDefaults<SlotOf<K>, ThemePropsOf<K>>;
+};
 
 /** A provider `presets` object, checked per component key like {@link BlocksDefaults}. */
-export type BlocksPresets<T> = { [K in keyof T]?: Record<string, ComponentPreset<SlotOf<K>>> };
+export type BlocksPresets<T> = {
+  [K in keyof T]?: Record<string, ComponentPreset<SlotOf<K>, ThemePropsOf<K>>>;
+};
 
 export interface BlocksConfig {
   readonly unstyled: boolean;

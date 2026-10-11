@@ -11,7 +11,7 @@
   import GuideArticle from '#lib/components/Guide/GuideArticle.svelte';
   import { GuideController } from '#lib/utils/guide.svelte.js';
   import BlocksProvider from '../BlocksProvider.svelte';
-  import type { ComponentDefaults } from '../blocks-context';
+  import type { ComponentDefaults, PresetMap } from '../blocks-context';
   import type { CompoundFamily } from './cascade-mount-props';
 
   // A compound child reads its parent through context and throws without one,
@@ -30,7 +30,8 @@
     props = {},
     tour = false,
     unstyled = false,
-    defaults = {}
+    defaults = {},
+    presets = {}
   }: {
     family: CompoundFamily;
     component: Component<Record<string, unknown>>;
@@ -38,6 +39,7 @@
     tour?: boolean;
     unstyled?: boolean;
     defaults?: Record<string, ComponentDefaults>;
+    presets?: PresetMap;
   } = $props();
 
   const Child = $derived(component);
@@ -74,7 +76,7 @@
   <span data-cascade-scope style="display: contents"><Child {...props} /></span>
 {/snippet}
 
-<BlocksProvider {unstyled} {defaults}>
+<BlocksProvider {unstyled} {defaults} {presets}>
   {#if family === 'accordion'}
     <!-- Open, matching the child's own `value`. A closed item never renders
          the classes its open state carries (`rotate-180` on the chevron), so

@@ -1,21 +1,23 @@
 <script lang="ts">
   import { toolbarVariants, type ToolbarVariants } from './toolbar.variants';
   import type { ToolbarProps } from './index';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { setTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
 
+  const theme = useThemeProps('Toolbar', () => preset);
+
   let {
+    preset,
     children,
-    variant = 'quiet',
+    variant = theme.variant ?? 'quiet',
     orientation = 'horizontal',
-    gap = 'sm',
-    padding = 'sm',
-    tier = 'modify',
+    gap = theme.gap ?? 'sm',
+    padding = theme.padding ?? 'sm',
+    tier = theme.tier ?? 'modify',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     'aria-label': ariaLabel,
     ...restProps
   }: ToolbarProps = $props();

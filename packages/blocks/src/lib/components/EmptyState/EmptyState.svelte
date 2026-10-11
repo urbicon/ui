@@ -1,20 +1,22 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { EmptyStateProps } from './index';
   import { emptyStateVariants, type EmptyStateVariants } from './emptyState.variants';
 
+  const theme = useThemeProps('EmptyState', () => preset);
+
   let {
+    preset,
     icon: IconComponent,
     title,
     description,
     cta,
     children,
-    density = 'default',
+    density = theme.density ?? 'default',
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...rest
   }: EmptyStateProps = $props();
 

@@ -1,22 +1,25 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { tabVariants, type TabVariants } from './tab.variants';
   import { setTabContext } from './tab.context';
   import type { RegisteredTab, TabContext, TabProps } from './index';
 
+  const theme = useThemeProps('Tab', () => preset);
+
   let {
+    preset,
     tabs,
     panels,
     value = $bindable(),
     defaultValue,
     onValueChange,
-    variant = 'line',
+    variant = theme.variant ?? 'line',
     orientation = 'horizontal',
-    size = 'md',
+    size = theme.size ?? 'md',
     tier,
     fullWidth = false,
     disabled = false,
@@ -29,15 +32,14 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: TabProps = $props();
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar /
-  // ButtonGroup) → 'modify' default. Propagated through TabContext so
+  // ButtonGroup) → the theme → 'modify' default. Propagated through TabContext so
   // every TabItem renders with the same radius family.
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

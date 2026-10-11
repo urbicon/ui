@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
   import { alertVariants, type AlertVariants } from './alert.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -11,10 +11,13 @@
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('Alert', () => preset);
+
   let {
-    intent = 'primary',
-    variant = 'soft',
-    size = 'md',
+    preset,
+    intent = theme.intent ?? 'primary',
+    variant = theme.variant ?? 'soft',
+    size = theme.size ?? 'md',
     title,
     children,
     icon,
@@ -24,7 +27,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: AlertProps = $props();
 

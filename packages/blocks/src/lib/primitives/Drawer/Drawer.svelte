@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import { onDestroy, tick } from 'svelte';
@@ -18,15 +18,18 @@
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('Drawer', () => preset);
+
   let {
+    preset,
     open = $bindable(false),
     children,
     footer,
     title,
     placement = 'right',
-    size = 'md',
-    intent = 'neutral',
-    accentEdge = false,
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'neutral',
+    accentEdge = theme.accentEdge ?? false,
     onClose,
     hideCloseButton = false,
     closeOnBackdropClick = true,
@@ -36,7 +39,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     // Pulled out of restProps so the `{...restProps}`-first spread (internal
     // attributes win — see docs/COMPONENT-API-CONVENTIONS.md) can't clobber
     // them, and so neither side loses: the behavioural handlers below are

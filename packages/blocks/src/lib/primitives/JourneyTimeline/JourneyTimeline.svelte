@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import {
     journeyTimelineVariants,
@@ -11,10 +11,13 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('JourneyTimeline', () => preset);
+
   let {
+    preset,
     items,
     orientation = 'vertical',
-    size = 'md',
+    size = theme.size ?? 'md',
     detail: detailProp,
     focusId = $bindable(),
     defaultFocusId,
@@ -26,7 +29,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: JourneyTimelineProps = $props();
 

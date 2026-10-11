@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
@@ -10,12 +10,15 @@
   import { setSegmentGroupContext } from './segmentGroup.context';
   import type { RegisteredSegment, SegmentGroupContext, SegmentGroupProps } from './index';
 
+  const theme = useThemeProps('SegmentGroup', () => preset);
+
   let {
+    preset,
     children,
     value = $bindable(),
     onValueChange,
-    size = 'md',
-    variant = 'default',
+    size = theme.size ?? 'md',
+    variant = theme.variant ?? 'default',
     tier,
     fullWidth = false,
     disabled = false,
@@ -23,7 +26,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ariaLabel,
     collapseOnOverflow = true,
     onkeydown: onkeydownProp,
@@ -31,10 +33,10 @@
   }: SegmentGroupProps = $props();
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar /
-  // ButtonGroup) → 'commit' default. Propagated through SegmentGroupContext
+  // ButtonGroup) → the theme → 'commit' default. Propagated through SegmentGroupContext
   // so the indicator + every item shares the same radius family.
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
   import { useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
   import { compositionBarVariants, type CompositionBarVariants } from './composition-bar.variants';
@@ -9,14 +9,17 @@
   const bt = useBlocksI18n();
   const i18n = useI18n();
 
+  const theme = useThemeProps('CompositionBar', () => preset);
+
   let {
+    preset,
     items,
     total: totalOverride,
     formatValue,
     formatPercent,
-    intent = 'primary',
+    intent = theme.intent ?? 'primary',
     orientation = 'horizontal',
-    size = 'md',
+    size = theme.size ?? 'md',
     legendPlacement = 'bottom',
     showLegend = true,
     showPercentages = true,
@@ -28,7 +31,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     legendItem: legendItemSnippet,
     tooltip: tooltipSnippet,
     ...restProps

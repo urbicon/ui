@@ -29,6 +29,12 @@
       note: 'Type-safe: autocomplete lists the available slot names for each component.'
     },
     {
+      goal: 'A shipped variant, size or intent as the app-wide default (every field underlined)',
+      tool: 'BlocksProvider defaults props',
+      example: '<BlocksProvider defaults={{ Input: { props: { variant: "underline" } } }}>',
+      note: 'Style props only — variant, size, intent, tier and the other looks; disabled, open or orientation stay at the call site. An instance that sets the prop keeps its own value.'
+    },
+    {
       goal: 'App-wide look for a component type (every Button, every Card)',
       tool: 'preset / BlocksProvider defaults',
       example: '<BlocksProvider defaults={{ Button: { slotClasses: { base: "rounded-full" } } }}>',

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n, mintAttachment, createPersistentState } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext } from '#lib/utils/index.js';
@@ -14,7 +14,10 @@
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('Input', () => preset);
+
   let {
+    preset,
     children,
     label,
     error,
@@ -28,9 +31,9 @@
     clearable = false,
     onClear,
     tier,
-    variant = 'outlined',
-    size = 'md',
-    intent = 'default',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'default',
     mint = 'none',
     disabled = false,
     required = false,
@@ -39,7 +42,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     persistKey,
     persistStorage = 'localStorage',
     persistDebounceMs = 300,
@@ -52,7 +54,7 @@
   }: InputProps = $props();
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

@@ -1,7 +1,7 @@
 <script lang="ts" generics="T = unknown">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { stripTime, toIso } from '#lib/date/index.js';
   import {
     DateGridController,
@@ -32,7 +32,10 @@
   import PlannerHeader from './PlannerHeader.svelte';
   import type { PlannerProps } from './index';
 
+  const theme = useThemeProps('Planner', () => preset);
+
   let {
+    preset,
     // Content / data
     items = [],
     getDate,
@@ -57,8 +60,8 @@
     value = $bindable(undefined),
     selectedDate = $bindable(undefined),
     // Variants
-    variant = 'default',
-    size = 'md',
+    variant = theme.variant ?? 'default',
+    size = theme.size ?? 'md',
     // Behavior
     highlightToday = true,
     highlightWeekend = false,
@@ -77,7 +80,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: PlannerProps<T> = $props();
 

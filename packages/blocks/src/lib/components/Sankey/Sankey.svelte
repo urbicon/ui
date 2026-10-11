@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
   import { useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
     computeSankeyLayout,
     sankeyLinkPath,
@@ -20,12 +20,15 @@
   const bt = useBlocksI18n();
   const i18n = useI18n();
 
+  const theme = useThemeProps('Sankey', () => preset);
+
   let {
+    preset,
     nodes,
     links,
     formatValue,
     formatPercent,
-    intent = 'neutral',
+    intent = theme.intent ?? 'neutral',
     nodeAlign = 'justify',
     nodeWidth = 24,
     nodePadding = 16,
@@ -42,7 +45,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     nodeContent: nodeContentSnippet,
     linkContent: linkContentSnippet,
     tooltip: tooltipSnippet,

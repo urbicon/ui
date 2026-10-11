@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { QRCodeProps } from './index';
   import { qrCodeVariants, type QRCodeVariants } from './qr-code.variants';
@@ -8,7 +8,10 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('QRCode', () => preset);
+
   let {
+    preset,
     value,
     errorCorrection = 'M',
     size = 160,
@@ -17,12 +20,11 @@
     background = 'transparent',
     minVersion,
     maxVersion,
-    frame = 'none',
+    frame = theme.frame ?? 'none',
     onError,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     id,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledby,

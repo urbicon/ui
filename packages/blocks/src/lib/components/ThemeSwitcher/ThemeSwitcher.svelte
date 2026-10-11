@@ -3,7 +3,7 @@
   import { themeSwitcherVariants, type ThemeSwitcherVariants } from './themeSwitcher.variants';
   import { onMount } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import SunIconDefault from '#lib/icons/SunIcon.svelte';
   import MoonIconDefault from '#lib/icons/MoonIcon.svelte';
@@ -19,17 +19,20 @@
   const MoonIcon = resolveIcon('moon', MoonIconDefault);
   const MonitorIcon = resolveIcon('monitor', MonitorIconDefault);
 
+  // Not `theme`: that name is this component's own prop, the colour scheme.
+  const themeProps = useThemeProps('ThemeSwitcher', () => preset);
+
   let {
+    preset,
     theme = $bindable('system'),
     strategy = 'cycle',
     storageKey = 'urbicon-theme',
     onThemeChange,
-    variant = 'ghost',
-    size = 'md',
+    variant = themeProps.variant ?? 'ghost',
+    size = themeProps.size ?? 'md',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     disabled = false,
     onclick: onclickProp,
     ...restProps

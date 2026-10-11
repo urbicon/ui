@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib/i18n/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { createCopyState } from '#lib/internal/copy-state.svelte.js';
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
   import { Alert, Avatar, Button, Skeleton, Tooltip } from '#lib/primitives/index.js';
@@ -26,7 +26,10 @@
 
   type AttachmentPart = Extract<ChatMessagePart, { type: 'attachment' }>;
 
+  const theme = useThemeProps('ChatMessage', () => preset);
+
   let {
+    preset,
     message,
     urlPolicy,
     onRegenerate,
@@ -36,7 +39,7 @@
     metadata,
     partRenderers,
     layout = 'bubble',
-    density = 'comfortable',
+    density = theme.density ?? 'comfortable',
     roleLabels,
     copyLabel,
     copiedLabel,
@@ -48,7 +51,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: ChatMessageProps = $props();
 

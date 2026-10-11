@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ClockIconDefault from '#lib/icons/ClockIcon.svelte';
@@ -13,7 +13,10 @@
   const bt = useBlocksI18n();
   const ClockIcon = resolveIcon('clock', ClockIconDefault);
 
+  const theme = useThemeProps('TimeInput', () => preset);
+
   let {
+    preset,
     value = $bindable(),
     format = '24h',
     withSeconds = false,
@@ -21,9 +24,9 @@
     min,
     max,
     tier,
-    variant = 'outlined',
-    size = 'md',
-    intent = 'default',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'default',
     disabled = false,
     readonly = false,
     required = false,
@@ -38,7 +41,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     id: idProp,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledby,
@@ -47,7 +49,7 @@
   }: TimeInputProps = $props();
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

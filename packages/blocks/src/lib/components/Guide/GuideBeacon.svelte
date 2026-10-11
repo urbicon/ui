@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib/i18n/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getGuideContext } from './guide.context';
@@ -9,16 +9,18 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('GuideBeacon', () => preset);
+
   let {
+    preset,
     tour,
     onActivate,
     once = true,
-    size = 'md',
+    size = theme.size ?? 'md',
     label,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     onclick: onclickProp,
     'aria-label': ariaLabelProp,
     ...restProps

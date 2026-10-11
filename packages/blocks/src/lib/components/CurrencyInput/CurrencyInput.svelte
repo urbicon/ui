@@ -1,7 +1,9 @@
 <script lang="ts">
   import { Input } from '#lib/primitives/Input/index.js';
+  import { useThemeProps } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
   import { useI18n } from '@urbicon-ui/i18n';
   import {
     applyEdit,
@@ -11,7 +13,16 @@
   } from './currency.engine';
   import type { CurrencyInputProps } from './index';
 
+  const theme = useThemeProps('CurrencyInput', () => preset);
+
   let {
+    preset,
+    // Resolved under this name and handed to Input as its own props; where
+    // this name sets nothing they stay `undefined`, and Input resolves its own.
+    variant = theme.variant,
+    size = theme.size,
+    intent = theme.intent,
+    tier,
     value = $bindable(null),
     locale = 'auto',
     currency = 'EUR',
@@ -21,12 +32,16 @@
     onValueChange,
     leftIcon: userLeftIcon,
     rightIcon: userRightIcon,
-    preset,
     slotClasses,
     oninput: oninputProp,
     onblur: onblurProp,
     ...restProps
   }: CurrencyInputProps = $props();
+
+  // Instance, then a Toolbar's TierContext, then this name's theme — the order
+  // Input applies to its own tier; what is left unset Input resolves itself.
+  const tierCtx = getTierContext();
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier);
 
   // Handed down rather than resolved here, and not forwarded as `preset`:
   // inside Input the name would be `Input`, so a preset written for the money
@@ -243,6 +258,10 @@
 
 <Input
   {...restProps}
+  {variant}
+  {size}
+  {intent}
+  tier={effectiveTier}
   type="text"
   inputmode="decimal"
   bind:value={() => displayText, acceptText}

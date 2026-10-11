@@ -1,16 +1,19 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { skeletonVariants, type SkeletonVariants } from './skeleton.variants';
   import type { SkeletonProps } from './index';
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Skeleton', () => preset);
+
   let {
-    variant = 'text',
-    size = 'md',
-    animation = 'pulse',
+    preset,
+    variant = theme.variant ?? 'text',
+    size = theme.size ?? 'md',
+    animation = theme.animation ?? 'pulse',
     width,
     height,
     count = 1,
@@ -18,7 +21,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: SkeletonProps = $props();
 

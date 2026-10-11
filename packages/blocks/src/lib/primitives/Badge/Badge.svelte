@@ -2,7 +2,7 @@
   import { mintAttachment } from '#lib';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import { useBlocksI18n } from '#lib';
@@ -15,12 +15,15 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Badge', () => preset);
+
   let {
+    preset,
     tier,
     intent: intentProp,
     purpose,
-    variant = 'filled',
-    size = 'md',
+    variant = theme.variant ?? 'filled',
+    size = theme.size ?? 'md',
     counter = false,
     pulse = false,
     removable = false,
@@ -33,7 +36,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     onRemove,
     onclick,
     onHover,
@@ -42,7 +44,7 @@
   }: BadgeProps = $props();
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -58,8 +60,11 @@
   // brand-coloured pill — the documented contract ("a neutral inline label")
   // and the behaviour disagreed, and the measured failure it invites is exactly
   // categories painted as statuses. An explicit `intent` still wins, so a
-  // consumer who deliberately tints a tag keeps their colour.
-  const intent = $derived(intentProp ?? (purpose === 'tag' ? 'neutral' : 'primary'));
+  // consumer who deliberately tints a tag keeps their colour; a theme's intent
+  // does not, being a default for badges in general rather than for this one.
+  const intent = $derived(
+    intentProp ?? (purpose === 'tag' ? 'neutral' : (theme.intent ?? 'primary'))
+  );
   const effVariant = $derived(purpose === 'dot' ? 'dot' : variant);
   const effCounter = $derived(purpose === 'counter' || counter);
   const isDot = $derived(effVariant === 'dot');

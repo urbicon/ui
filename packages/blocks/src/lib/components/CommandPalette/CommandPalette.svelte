@@ -4,7 +4,7 @@
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import SearchIconDefault from '#lib/icons/SearchIcon.svelte';
   import { Dialog, Separator } from '#lib/primitives/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
@@ -15,7 +15,10 @@
   const SearchIcon = resolveIcon('search', SearchIconDefault);
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('CommandPalette', () => preset);
+
   let {
+    preset,
     items,
     placeholder: placeholderProp,
     emptyText: emptyTextProp,
@@ -28,11 +31,10 @@
     onOpenChange,
     customItem,
     customEmpty,
-    size = 'md',
+    size = theme.size ?? 'md',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: CommandPaletteProps = $props();
 

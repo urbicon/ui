@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { collapsibleVariants, type CollapsibleVariants } from './collapsible.variants';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
@@ -9,15 +9,18 @@
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
 
+  const theme = useThemeProps('Collapsible', () => preset);
+
   let {
+    preset,
     open = $bindable(),
     defaultOpen = false,
     onOpenChange,
     disabled = false,
     title,
     trigger,
-    variant = 'default',
-    size = 'md',
+    variant = theme.variant ?? 'default',
+    size = theme.size ?? 'md',
     transitionDuration,
     transitionEasing,
     name,
@@ -25,7 +28,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: CollapsibleProps = $props();
 

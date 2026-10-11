@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteMap, MediaQuery } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { calendarVariants, type CalendarVariants } from './calendar.variants';
   import { setCalendarContext, type CalendarContext } from './calendar.context';
   import {
@@ -39,7 +39,10 @@
   import CalendarEventList from './CalendarEventList.svelte';
   import CalendarMiniMonth from './CalendarMiniMonth.svelte';
 
+  const theme = useThemeProps('Calendar', () => preset);
+
   let {
+    preset,
     // Data
     events = [],
     categories = [],
@@ -66,8 +69,8 @@
     disabledDates = [],
     isDateDisabled: isDateDisabledProp,
     // Variants
-    variant = 'default',
-    size = 'md',
+    variant = theme.variant ?? 'default',
+    size = theme.size ?? 'md',
     // Callbacks
     onValueChange,
     onMonthChange,
@@ -114,7 +117,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: CalendarProps = $props();
 

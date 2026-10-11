@@ -1,19 +1,21 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { linkVariants, type LinkVariants } from './link.variants';
   import type { LinkProps } from './index';
 
+  const theme = useThemeProps('Link', () => preset);
+
   let {
+    preset,
     href,
-    variant = 'inline',
+    variant = theme.variant ?? 'inline',
     active = false,
     disabled = false,
     children,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     onclick,
     ...restProps
   }: LinkProps = $props();

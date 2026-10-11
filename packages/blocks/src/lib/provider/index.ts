@@ -13,4 +13,5 @@ export {
   resolvePresetSlotClasses,
   resolveSlotClasses
 } from './blocks-context';
-export type { ComponentSlotMap, SlotOf } from './component-slots';
+export type { ComponentSlotMap, SlotOf, ThemePropsOf } from './component-slots';
+export { STYLE_PROPS, type StyleProp, type StylePropsOf, useThemeProps } from './theme-props';
