@@ -48,8 +48,8 @@
         The text field carries <code class="text-text-primary">aria-haspopup="dialog"</code>; the
         calendar button beside it carries <code class="text-text-primary">aria-expanded</code> and,
         while the calendar is open, <code class="text-text-primary">aria-controls</code> pointing at
-        it. A textbox may not carry <code class="text-text-primary">aria-expanded</code>, so the
-        state sits on the button, as in the APG date-picker dialog. The embedded calendar is a
+        the calendar. The calendar opens in a
+        <code class="text-text-primary">role="dialog"</code> popover and is a
         <code class="text-text-primary">role="grid"</code> of day cells, with the same keyboard
         model as
         <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
@@ -66,19 +66,19 @@
         <Kbd keys="Space" />
         from the calendar button;
         <Kbd keys="Escape" />
-        closes it. From inside the calendar, Escape or picking a date returns focus to the calendar button.
-        A typed date is committed on <Kbd keys="Enter" />, when the calendar button opens the
-        calendar, and when focus leaves the picker. Inside, the arrow keys move between days and
-        weeks and
+        closes it. Opening leaves focus where it is, and <Kbd keys="Tab" /> from the calendar button moves
+        into the calendar. There the arrow keys move between days and weeks and
         <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
-        between months. Focus rings use
-        <code class="text-text-primary">focus-visible:</code>, so they appear for the keyboard only.
+        between months, and <Kbd keys="Escape" /> or picking a date returns focus to the calendar button.
+        In the field, <Kbd keys="Enter" /> closes an open calendar and otherwise commits the date you
+        typed. A typed date also commits when the calendar button opens the calendar and when focus leaves
+        the picker.
       </p>
     </Note>
     <Note title="Screen Reader Labels">
       <p>
-        The label reaches the screen reader through the input. Every day cell carries an
-        <code class="text-text-primary">aria-label</code> with the full date ("Thursday, 12 March
+        <code class="text-text-primary">label</code> names the text field. Every day cell carries an
+        <code class="text-text-primary">aria-label</code> with the full date ("Thursday, March 12,
         2026"), and error and helper text are linked through
         <code class="text-text-primary">aria-describedby</code>.
       </p>

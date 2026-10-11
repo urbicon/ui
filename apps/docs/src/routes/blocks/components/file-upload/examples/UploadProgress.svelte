@@ -35,7 +35,7 @@
           clearInterval(interval);
           entry.status = Math.random() > 0.15 ? 'complete' : 'error';
           if (entry.status === 'error') {
-            entry.errors = [{ code: 'CUSTOM', message: 'Netzwerkfehler beim Upload' }];
+            entry.errors = [{ code: 'CUSTOM', message: 'Network error during upload' }];
           }
           files = [...files];
           idx++;
@@ -54,7 +54,7 @@
     multiple
     maxFiles={4}
     title="Choose files to upload"
-    description="Klicke 'Upload starten' nach der Auswahl"
+    description="Then press Start upload"
   />
 
   {#if files.length > 0}
@@ -66,7 +66,7 @@
         loading={uploading}
         disabled={uploading || files.every((f) => f.status !== 'pending')}
       >
-        Upload starten
+        Start upload
       </Button>
     </div>
   {/if}

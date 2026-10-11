@@ -88,6 +88,29 @@ since 8.28.0. Before, it was dropped without a word, so a handler that never ran
 rg -nU '<DateRangePicker\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
 ```
 
+### `DatePicker` and `DateRangePicker` report every close to `onOpenChange`
+
+A click outside the picker and Escape inside the open calendar closed the calendar without calling
+`onOpenChange`. Only the closes the picker makes itself reported `false`: Escape or Enter in the
+field, the calendar button, the clear button, a picked date or a completed range. The two missing
+paths now report it too, once each, so a handler that tracks the open state no longer stays at
+`true` after them.
+
+```sh
+rg -nU '<Date(Range)?Picker\b(?:=>|[^>])*?(\bonOpenChange=|\{onOpenChange\}|\{\.\.\.)' src
+```
+
+### `DateRangePicker` keeps six week rows by default
+
+`fixedWeeks` now defaults to `true`, as it does on `DatePicker`. The calendar always shows six week
+rows, so the popover keeps its height while you page through the months. It used to size to each
+month, and when it opened above the field, the day cells moved under the pointer with every change
+of height. Pass `fixedWeeks={false}` for the old behaviour.
+
+```sh
+rg -n '<DateRangePicker\b' src
+```
+
 ### `FileUpload` puts `id` and the field's ARIA on its file input
 
 `FileUpload` spread every attribute you passed onto its root `<div role="region">`, while its

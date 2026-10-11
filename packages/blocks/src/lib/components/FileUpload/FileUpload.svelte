@@ -543,19 +543,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  :global([data-blocks-dropzone-state='accept']) {
-    animation: blocks-dropzone-pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes -global-blocks-dropzone-pulse {
-    0%,
-    100% {
-      border-color: var(--color-primary);
-    }
-    50% {
-      border-color: var(--color-primary-hover);
-    }
-  }
-</style>
