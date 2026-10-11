@@ -3,21 +3,24 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import type { Component, Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Dialog from '../primitives/Dialog/Dialog.svelte';
 import type { DialogProps } from '../primitives/Dialog/index';
 import Drawer from '../primitives/Drawer/Drawer.svelte';
 import type { DrawerProps } from '../primitives/Drawer/index';
 import { lockBodyScroll } from '../utils/overlay';
+import { overlayStack } from '../utils/overlay-stack.svelte';
 import ModalFieldHarness from './__fixtures__/ModalFieldHarness.svelte';
+import NestedSurfaceHarness from './__fixtures__/NestedSurfaceHarness.svelte';
 
 // The modal-surface contract, run against each component in SURFACES — a new
 // consumer of `createModalSurface` belongs in that list: lifecycle (deferred
-// showModal, scroll lock, focus in and back out), the dismiss policy (Escape on both paths, native cancel/close,
-// backdrop, close button, overlay stack) and the composition of those handlers
-// with a consumer's own. What only one surface has — Dialog's `<dialog>`-level
-// backdrop click, its drag handle, Drawer's plain `onclick` spread — stays in
-// that component's own suite.
+// showModal, scroll lock, focus in and back out), the dismiss policy (Escape on
+// both paths, native cancel/close, backdrop, close button, overlay stack,
+// nested surfaces) and the composition of those handlers with a consumer's
+// own. What only one surface has — Dialog's `<dialog>`-level backdrop click, its
+// drag handle, Drawer's plain `onclick` spread — stays in that component's own
+// suite.
 //
 // Same stack as the component suites: Svelte's own `mount`/`unmount`,
 // @testing-library/dom + user-event, native vitest matchers. `showModal()` runs
@@ -224,8 +227,9 @@ describe.each(SURFACES)('$name (modal surface contract)', ({ name, component, no
     });
 
     it('stays open when an inner widget already consumed the Escape', async () => {
-      // What Select, Combobox and Popover do when Escape dismisses THEM: handle
-      // it and mark it consumed. The real widgets are driven further down.
+      // What Select, Combobox, Menu and Popover do when Escape dismisses THEM:
+      // handle it and mark it consumed. Select, Combobox and Popover are driven
+      // for real further down.
       const user = userEvent.setup();
       const onClose = vi.fn();
       render({
@@ -269,6 +273,32 @@ describe.each(SURFACES)('$name (modal surface contract)', ({ name, component, no
 
       expect(onCloseUpper).toHaveBeenCalledOnce();
       expect(onCloseLower).toHaveBeenCalledOnce();
+    });
+
+    it('keeps its place in the stack when a lower surface changes its props', async () => {
+      // The overlay-stack registration depends on `open` alone. Were it to
+      // re-run on another prop, the lower surface would unregister and register
+      // again — on top — and the next window Escape would land on it instead.
+      const onCloseLower = vi.fn();
+      const onCloseUpper = vi.fn();
+      const lower = $state<SurfaceProps>({ open: true, onClose: onCloseLower });
+      render(lower);
+      await tick();
+      render({ open: true, onClose: onCloseUpper });
+      await settleFocus();
+      const top = overlayStack.topId;
+      expect(top).not.toBeNull();
+
+      lower.closeOnEscape = false;
+      lower.closeOnBackdropClick = false;
+      lower.onClose = vi.fn();
+      flushSync();
+
+      expect(overlayStack.topId).toBe(top);
+      (document.activeElement as HTMLElement | null)?.blur();
+      document.body.dispatchEvent(escapeKeydown());
+      flushSync();
+      expect(onCloseUpper).toHaveBeenCalledOnce();
     });
   });
 
@@ -584,6 +614,59 @@ describe.each(SURFACES)('$name (modal surface contract)', ({ name, component, no
   });
 });
 
+// One surface inside the other's content: the inner `<dialog>` is a DOM
+// descendant of the outer one, so an Escape inside the inner surface reaches the
+// outer surface's element-level handler too, and only the inner one may act on
+// it. The sibling stack test above cannot show this — its keydowns never meet.
+describe.each(
+  SURFACES.flatMap(({ name: outer }) => SURFACES.map(({ name: inner }) => ({ outer, inner })))
+)('$inner nested inside a $outer', ({ outer, inner }) => {
+  async function renderNested(innerCloseOnEscape: boolean) {
+    const onOuterClose = vi.fn();
+    const onInnerClose = vi.fn();
+    const instance = mount(NestedSurfaceHarness, {
+      target: document.body,
+      props: { outer, inner, innerCloseOnEscape, onOuterClose, onInnerClose }
+    });
+    disposers.push(() => unmount(instance));
+    flushSync();
+    await settleFocus();
+
+    const innerSurface = screen.getByRole('dialog', { name: 'Inner', hidden: true });
+    const outerSurface = screen.getByRole('dialog', { name: 'Outer', hidden: true });
+    expect(outerSurface.contains(innerSurface)).toBe(true);
+    // The inner close button: focus inside the inner surface, whichever of the
+    // two opener ticks moved focus last.
+    const innerControl = innerSurface.querySelector('header button') as HTMLElement;
+    innerControl.focus();
+    return { onOuterClose, onInnerClose, innerSurface, outerSurface };
+  }
+
+  it('an Escape inside the inner surface closes the inner one only', async () => {
+    const user = userEvent.setup();
+    const { onOuterClose, onInnerClose, innerSurface, outerSurface } = await renderNested(true);
+
+    await user.keyboard('{Escape}');
+
+    expect(onInnerClose).toHaveBeenCalledOnce();
+    expect(innerSurface.getAttribute('data-state')).toBe('closed');
+    expect(onOuterClose).not.toHaveBeenCalled();
+    expect(outerSurface.getAttribute('data-state')).toBe('open');
+  });
+
+  it('an Escape inside an inner surface that keeps it open closes neither', async () => {
+    const user = userEvent.setup();
+    const { onOuterClose, onInnerClose, innerSurface, outerSurface } = await renderNested(false);
+
+    await user.keyboard('{Escape}');
+
+    expect(onInnerClose).not.toHaveBeenCalled();
+    expect(innerSurface.getAttribute('data-state')).toBe('open');
+    expect(onOuterClose).not.toHaveBeenCalled();
+    expect(outerSurface.getAttribute('data-state')).toBe('open');
+  });
+});
+
 // A real field inside a real surface. The raw-snippet test above stands in for
 // any widget that consumes its Escape; these drive the two that sit in modal
 // forms most often, so a change to either field's keydown handling that stops
@@ -623,4 +706,72 @@ describe.each(
     expect(onClose).toHaveBeenCalledOnce();
     expect(screen.getByTestId('bound-open').textContent).toBe('false');
   });
+});
+
+// Popover inside a modal surface leaves the top layer and runs its manual
+// dismiss mode (`isAnchoredInModalDialog`). jsdom has no `:modal`, so the
+// pseudo-class is answered from the `open` attribute the showModal stub sets —
+// without it the Popover would stay in `auto` mode, where jsdom's no-op
+// showPopover never closes anything, and these tests would measure nothing.
+describe.each(SURFACES)('Popover inside a $name', ({ name: surface }) => {
+  beforeEach(() => {
+    const matches = Element.prototype.matches;
+    vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string
+    ) {
+      if (selector === ':modal') return this.tagName === 'DIALOG' && this.hasAttribute('open');
+      return matches.call(this, selector);
+    });
+  });
+
+  async function openPopover() {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onFieldOpenChange = vi.fn();
+    const onFieldEscape = vi.fn();
+    const instance = mount(ModalFieldHarness, {
+      target: document.body,
+      props: { surface, field: 'Popover', onClose, onFieldOpenChange, onFieldEscape }
+    });
+    disposers.push(() => unmount(instance));
+    flushSync();
+    await settleFocus();
+
+    const triggerButton = screen.getByRole('button', { name: 'Operator', hidden: true });
+    await user.click(triggerButton);
+    expect(screen.getByTestId('field-open').textContent).toBe('true');
+    // The precondition the tests are about: inside the surface the panel is
+    // not promoted to the top layer, so Escape is not the browser's to handle.
+    const panel = screen.getByRole('dialog', { name: 'Operator options', hidden: true });
+    expect(panel.hasAttribute('popover')).toBe(false);
+    return { user, onClose, onFieldOpenChange, onFieldEscape, triggerButton };
+  }
+
+  const surfaceState = () =>
+    screen.getByRole('dialog', { name: 'Filters', hidden: true }).getAttribute('data-state');
+
+  for (const focus of ['trigger', 'panel'] as const) {
+    it(`swallows its own Escape with focus on the ${focus}; the next Escape closes the surface`, async () => {
+      const { user, onClose, onFieldOpenChange, onFieldEscape, triggerButton } =
+        await openPopover();
+      if (focus === 'panel') screen.getByRole('button', { name: 'Inside', hidden: true }).focus();
+
+      await user.keyboard('{Escape}');
+
+      expect(screen.getByTestId('field-open').textContent).toBe('false');
+      expect(onFieldOpenChange.mock.calls).toEqual([[true], [false]]);
+      expect(onFieldEscape).toHaveBeenCalledOnce();
+      expect(document.activeElement).toBe(triggerButton);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(surfaceState()).toBe('open');
+
+      await user.keyboard('{Escape}');
+
+      expect(onClose).toHaveBeenCalledOnce();
+      expect(screen.getByTestId('bound-open').textContent).toBe('false');
+      expect(onFieldOpenChange).toHaveBeenCalledTimes(2);
+      expect(onFieldEscape).toHaveBeenCalledOnce();
+    });
+  }
 });

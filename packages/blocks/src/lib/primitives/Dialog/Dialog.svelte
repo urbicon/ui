@@ -220,11 +220,11 @@
   });
 
   // Reset the drag offset whenever the dialog opens so a reopened dialog always
-  // starts centred — keyed on `open`, not the `open && !modal.visible` transition.
-  // Reopening *during* the close outro (modal.visible still true) must still recentre;
-  // the old transition-guarded reset silently skipped that case, restoring the
-  // stale drag position. `open` is constant during a drag, so this never fights
-  // the pointer handlers.
+  // starts centred — keyed on `open`, not on the `open && !modal.visible`
+  // transition: reopening *during* the close outro (`modal.visible` still true)
+  // must recentre too, and a reset guarded on that transition would skip it and
+  // restore the stale drag position. `open` is constant during a drag, so this
+  // never fights the pointer handlers.
   $effect(() => {
     if (open) {
       dragX = 0;

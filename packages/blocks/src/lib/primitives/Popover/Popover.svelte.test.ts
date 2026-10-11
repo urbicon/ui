@@ -140,6 +140,68 @@ describe('Popover (manual-mode dismiss matrix)', () => {
     expect(document.activeElement).toBe(trigger());
   });
 
+  // Escape on the panel or the trigger is claimed there, before it bubbles to
+  // an ancestor — a modal Dialog or Drawer acts on Escape from such an ancestor.
+  // The document listener still takes an Escape that starts elsewhere. The
+  // listener on <body> is registered after mount, so it runs after Svelte's
+  // delegated handlers and reads what the element-level handling left behind.
+  for (const focus of ['panel', 'trigger', 'elsewhere'] as const) {
+    it(`reports exactly one close for an Escape with focus on the ${focus}`, async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      const onEscape = vi.fn();
+      renderPopover({ closeOnClickOutside: false, onOpenChange, onEscape });
+      const elsewhere = document.createElement('button');
+      elsewhere.textContent = 'Elsewhere';
+      document.body.appendChild(elsewhere);
+      const consumedOnArrival: boolean[] = [];
+      const listen = new AbortController();
+      document.body.addEventListener('keydown', (e) => consumedOnArrival.push(e.defaultPrevented), {
+        signal: listen.signal
+      });
+      try {
+        await user.click(trigger());
+        if (focus === 'panel') screen.getByTestId('inner-btn').focus();
+        if (focus === 'elsewhere') elsewhere.focus();
+
+        await user.keyboard('{Escape}');
+
+        expect(isOpen()).toBe(false);
+        expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+        expect(onEscape).toHaveBeenCalledOnce();
+        expect(consumedOnArrival).toEqual([focus !== 'elsewhere']);
+        expect(document.activeElement).toBe(trigger());
+      } finally {
+        listen.abort();
+      }
+    });
+  }
+
+  it('leaves Escape on its panel to the browser in auto mode', async () => {
+    const user = userEvent.setup();
+    const onEscape = vi.fn();
+    renderPopover({ onEscape });
+    const consumedOnArrival: boolean[] = [];
+    const listen = new AbortController();
+    document.body.addEventListener('keydown', (e) => consumedOnArrival.push(e.defaultPrevented), {
+      signal: listen.signal
+    });
+    try {
+      await user.click(trigger());
+      screen.getByTestId('inner-btn').focus();
+
+      await user.keyboard('{Escape}');
+
+      // In `popover="auto"` the browser owns Escape and reports the dismiss
+      // through `toggle` (the auto-mode suite below); the element-level claim
+      // stays out of that path. jsdom has no light dismiss, so nothing closes.
+      expect(consumedOnArrival).toEqual([false]);
+      expect(onEscape).not.toHaveBeenCalled();
+    } finally {
+      listen.abort();
+    }
+  });
+
   it('outside pointerdown does NOT close when closeOnClickOutside is false', async () => {
     const user = userEvent.setup();
     const onClickOutside = vi.fn();

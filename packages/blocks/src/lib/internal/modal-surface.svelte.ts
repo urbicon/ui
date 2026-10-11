@@ -38,7 +38,10 @@ export interface ModalSurfaceOptions {
   hideCloseButton: () => boolean;
   dialog: () => HTMLDialogElement | undefined;
   panel: () => HTMLElement | undefined;
-  /** Runs after each open's deferred promotion, whether or not a `<dialog>` was bound to promote. */
+  /**
+   * Runs after each open's deferred promotion, whether or not a `<dialog>` was
+   * bound to promote.
+   */
   afterShow?: () => void;
 }
 
@@ -96,10 +99,16 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
       // Honour an inner widget that already consumed this Escape — the same
       // rule `handleWindowKeydown` below applies, and it has to hold here too
       // or the two paths disagree about who owns the key. Select, Combobox and
-      // Popover all `preventDefault()` when Escape dismisses THEM; without this
-      // guard the event goes on to close the whole surface, so dismissing an
-      // open dropdown tears down the surface it is sitting on.
+      // Menu `preventDefault()` when Escape dismisses them, and so does Popover
+      // with focus on its trigger or in its panel; without this guard the event
+      // goes on to close the whole surface, so dismissing an open dropdown
+      // tears down the surface it is sitting on. An Escape that dismisses none
+      // of them — a Popover is open but focus sits on another control — still
+      // closes the surface.
       if (event.defaultPrevented) return;
+      // Claimed whether or not it closes: a surface rendered inside another
+      // one's content has the outer `<dialog>` as an ancestor, which must not
+      // act on the same Escape.
       event.preventDefault();
       if (options.closeOnEscape()) requestClose();
       return;
@@ -155,7 +164,8 @@ export function createModalSurface(options: ModalSurfaceOptions): ModalSurface {
 
   // The end of a close: the `<dialog>` leaves the top layer, the lock is
   // released and focus goes back to where it was before the open. A destroy
-  // while open plays no outro and never gets here — onDestroy below covers it.
+  // while open plays no outro and never gets here: onDestroy below releases the
+  // lock, and focus is not returned.
   function handleOutroEnd() {
     closeDialogModal(options.dialog(), previouslyFocused, releaseScrollLock);
     releaseScrollLock = undefined;

@@ -7,11 +7,10 @@ import { focusFirstElement } from './overlay';
  * Focus-move contract of `focusFirstElement`, isolated from any overlay
  * component (internal/modal-surface.svelte.test.ts asserts the same mechanics
  * through a mounted Dialog and Drawer). jsdom per-file: the function reads and
- * writes real DOM focus. The third case is the c788469 review finding: a consumer that has
- * already focused a `tabindex="-1"` element inside the container (the
- * focus-the-heading pattern) must keep that focus — the selector excludes
- * `tabindex="-1"`, so without the contains-guard the empty-list fallback
- * stole it a tick later.
+ * writes real DOM focus. The third case: a consumer that has already focused a
+ * `tabindex="-1"` element inside the container (the focus-the-heading pattern)
+ * must keep that focus — the selector excludes `tabindex="-1"`, so without the
+ * contains-guard the empty-list fallback would steal it a tick later.
  */
 describe('focusFirstElement', () => {
   afterEach(() => {
