@@ -4,8 +4,9 @@ import { composeHandlers } from './compose-handlers';
 // Unit layer for the restProps handler composition. The contract these tests
 // pin down (internal first + unconditional, consumer additive, preventDefault
 // is not a veto) is asserted end-to-end through real components in
-// Dialog.svelte.test.ts / Drawer.svelte.test.ts; here it is checked in
-// isolation, where ordering and the throwing-consumer edge are cheap to drive.
+// internal/modal-surface.svelte.test.ts (Dialog and Drawer) and
+// Dialog.svelte.test.ts (its `onclick`); here it is checked in isolation,
+// where ordering and the throwing-consumer edge are cheap to drive.
 
 // The composed handler is typed against DOM event handlers; these unit tests
 // only need the call/order semantics, so a bare Event is enough.
