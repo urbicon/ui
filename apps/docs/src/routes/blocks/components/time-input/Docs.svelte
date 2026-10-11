@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { DatePicker, Kbd, TimeInput } from '@urbicon-ui/blocks';
+  import { DatePicker, Kbd, TimeInput, toDateInputValue } from '@urbicon-ui/blocks';
 
   let startTime = $state('09:30');
   let meetingTime = $state('14:15');
@@ -13,8 +13,11 @@
     pickupLeft && pickupTime === null ? 'Finish the time or clear it' : undefined
   );
 
-  let apptDate = $state('2026-08-15');
+  let apptDate = $state<Date | undefined>(new Date(2026, 7, 15));
   let apptTime = $state('14:30');
+  const startsAt = $derived(
+    apptDate && apptTime ? `${toDateInputValue(apptDate)}T${apptTime}` : null
+  );
   let departureTime = $state('06:45');
 
   function shown(v: string | null | undefined): string {
@@ -60,7 +63,7 @@
     <CodeExample
       title="Empty, half-typed, complete"
       previewClass="flex w-full flex-col"
-      description="The value is undefined while every segment is empty, null while the time is half-typed, and a string once it is complete, so an untouched optional field can pass while a half-typed one cannot. This field flags null when focus leaves it. onfocusout also fires on every hop between segments, so compare relatedTarget with the field first; it runs after the min/max clamp, so the value it reads is final."
+      description="The value is undefined while every segment is empty, null while the time is half-typed, and a string once it is complete, so an untouched optional field can pass while a half-typed one cannot. The hidden name input submits an empty string for both, so refuse null before the form submits. This field flags null when focus leaves it; onfocusout also fires on every hop between segments, so compare relatedTarget with the field first."
       code={`<script lang="ts">
   import { TimeInput } from '@urbicon-ui/blocks';
   let pickup = $state<string | null>();
@@ -92,7 +95,7 @@
     <CodeExample
       title="Range bounds"
       previewClass="flex w-full flex-col"
-      description="Type 06:00 and click away: values below min or above max clamp back into range on blur, and onValueChange fires with the corrected time. There is no out-of-range state — if 19:30 must be rejected rather than moved, validate before you offer the field."
+      description="Type 06:00 and click away: values below min or above max clamp back into range on blur, and onValueChange fires with the corrected time. There is no out-of-range state: if 19:30 must be rejected rather than moved, leave max out and check the value yourself."
       code={`<script>
   let officeTime = $state('09:00');
 <\/script>
@@ -118,7 +121,7 @@
     <CodeExample
       title="A 15-minute raster"
       previewClass="flex w-full flex-col"
-      description="step takes seconds, as on input type=&quot;time&quot;, and counts from min, or from midnight without one. The Arrow keys move the minutes 00, 15, 30, 45, and a typed 10:07 becomes 10:00 as soon as its minutes are complete, so the value never holds 10:07. An hourly step (3600) fixes the minutes, and the hour alone completes the time."
+      description="step takes seconds, as on input type=&quot;time&quot;, and counts from min, or from midnight without one. The Arrow keys move the minutes 00, 15, 30, 45, and a typed 10:07 becomes 10:00 as soon as its minutes are complete, so the value never holds 10:07. A time above max clamps to the last raster point at or below it. An hourly step (3600) fixes the minutes, and the hour alone completes the time."
       code={`<script>
   let slot = $state('10:15');
 <\/script>
@@ -137,9 +140,11 @@
       <code>TimeInput</code> is the form family's time field: <code>Calendar</code>,
       <code>DatePicker</code> and <code>DateRangePicker</code> are for dates, <code>TimeInput</code>
       for the time of day. It edits only the time, so for a full timestamp pair it with a
-      <code>DatePicker</code> as two separate fields. Each keeps its own value — an ISO date from
-      the picker, an <code>HH:MM</code> string from the time field — and you join them yourself, as
-      the example below does. What you get is a local wall-clock time, not a point in time: turning
+      <code>DatePicker</code> as two separate fields. Each keeps its own value (a <code>Date</code>
+      from the picker, an <code>HH:MM</code> string from the time field), and you join them
+      yourself; <code>toDateInputValue</code> turns the <code>Date</code> into its local
+      <code>YYYY-MM-DD</code>, as the example below does. What you get is a local wall-clock time,
+      not a point in time: turning
       <code>2026-08-15T14:30</code> into an instant needs a time zone, and that decision stays with you.
     </p>
   </div>
@@ -147,15 +152,17 @@
   <CodeExample
     title="Date and time in one row"
     previewClass="flex w-full flex-col"
-    description="Both fields default to full width, so a row needs w-auto on each — without it they stack at every width. flex-wrap then breaks the row when the container gets too narrow for both, which this docs column does at 1024 px."
-    code={`<script>
-  import { DatePicker, TimeInput } from '@urbicon-ui/blocks';
+    description="The outer wrapper of each component takes the full width by default (TimeInput's fullWidth stretches only the box inside it), so a row needs w-auto on each; without it they stack at every width. flex-wrap then breaks the row when the container gets too narrow for both."
+    code={`<script lang="ts">
+  import { DatePicker, TimeInput, toDateInputValue } from '@urbicon-ui/blocks';
 
-  let apptDate = $state('2026-08-15');
+  let apptDate = $state<Date | undefined>(new Date(2026, 7, 15));
   let apptTime = $state('14:30');
 
   // A local wall-clock string. Give it a time zone before it becomes an instant.
-  const startsAt = $derived(apptDate && apptTime ? \`\${apptDate}T\${apptTime}\` : null);
+  const startsAt = $derived(
+    apptDate && apptTime ? \`\${toDateInputValue(apptDate)}T\${apptTime}\` : null
+  );
 <\/script>
 
 <div class="flex flex-wrap items-end gap-3">
@@ -169,8 +176,7 @@
       <TimeInput label="Time" class="w-auto" bind:value={apptTime} />
     </div>
     <p class="text-text-secondary mt-2 text-sm">
-      Date: <code>{apptDate ?? '—'}</code> · Time: <code>{apptTime ?? '—'}</code> · Joined:
-      <code>{apptDate && apptTime ? apptDate + 'T' + apptTime : '—'}</code>
+      startsAt: <code>{startsAt ?? '—'}</code>
     </p>
   </CodeExample>
 </Section>
@@ -181,7 +187,8 @@
       For a reusable look, register a named <code>preset</code> on
       <code>&lt;BlocksProvider&gt;</code>; for individual parts, use <code>slotClasses</code>. The
       slots are <code>wrapper</code> (what <code>class</code> also targets), <code>label</code>,
-      <code>field</code>, <code>icon</code> (replace the clock with your own snippet via the
+      <code>requiredMark</code>, <code>field</code>, <code>icon</code> (replace the clock with your
+      own snippet via the
       <code>icon</code> prop), <code>segment</code>, <code>separator</code>,
       <code>meridiem</code>, and <code>message</code>. For a full ground-up restyle, set
       <code>unstyled</code> to drop every default class and rebuild from the slots.
@@ -236,7 +243,7 @@
     </Note>
     <Note title="Keyboard">
       <p>
-        <strong>Arrow Up / Down</strong> moves the focused segment by one and wraps inside it — 59
+        <strong>Arrow Up / Down</strong> moves the focused segment by one and wraps inside it: 59
         goes to 00 without carrying the hour. With <code>step</code> it moves to the segment's next
         raster value instead, and a segment the raster fixes is read-only and skipped.
         <strong>Arrow Left / Right</strong> moves between segments; typing digits auto-advances to
@@ -247,13 +254,6 @@
       <p>
         The AM/PM segment toggles by click, the Arrow keys, <Kbd keys="Enter" /> /
         <Kbd keys="Space" />, or the <Kbd keys="A" /> / <Kbd keys="P" /> keys.
-      </p>
-    </Note>
-    <Note title="Clamping">
-      <p>
-        Out-of-range values clamp to <code>min</code> / <code>max</code> when the field loses focus.
-        With a <code>step</code>, a value above <code>max</code> lands on the last raster point under
-        it.
       </p>
     </Note>
     <Note title="Errors are announced">
