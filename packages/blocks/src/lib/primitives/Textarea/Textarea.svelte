@@ -1,14 +1,17 @@
 <script lang="ts">
   import { mintAttachment } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { useFormField, getTierContext } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TextareaProps } from './index';
   import { autoResizeHeight, readAutosizeMetrics } from './textarea.autosize';
   import { textareaVariants, type TextareaVariants } from './textarea.variants';
 
+  const theme = useThemeProps('Textarea', () => preset);
+
   let {
+    preset,
     label,
     error,
     helper,
@@ -18,9 +21,9 @@
     minRows = 3,
     maxRows,
     tier,
-    variant = 'outlined',
-    size = 'md',
-    intent = 'default',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'default',
     mint = 'none',
     disabled = false,
     required = false,
@@ -30,7 +33,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     oninput: userOnInput,
     id: idProp,
     'aria-describedby': ariaDescribedby,
@@ -38,7 +40,7 @@
   }: TextareaProps = $props();
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

@@ -1,17 +1,19 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { separatorVariants } from './separator.variants';
   import type { SeparatorProps } from './index';
 
+  const theme = useThemeProps('Separator', () => preset);
+
   let {
+    preset,
     orientation = 'horizontal',
-    size = 'md',
+    size = theme.size ?? 'md',
     decorative = true,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: SeparatorProps = $props();
 

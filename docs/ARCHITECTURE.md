@@ -301,8 +301,8 @@ Coverage limits and why they are deliberate: [DECISIONS.md](DECISIONS.md#the-tv-
 
 ### The override cascade
 
-> **Canon.** The cascade, the ladder, `slotClasses`, `preset`, `overrides` and `unstyled` are
-> described once — here. [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md) carries
+> **Canon.** The cascade, the ladder, `slotClasses`, `preset`, `overrides`, theme `props` and
+> `unstyled` are described once — here. [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md) carries
 > the API-surface half (which props a component must offer, how they are named and typed) and
 > links back for the mechanism.
 
@@ -326,7 +326,9 @@ rings):
 1. **`class`** — restyle one element (the one that component's `class` prop names, usually
    the root slot) on one instance.
 2. **`slotClasses.<slot>`** — restyle an inner element on one instance.
-3. **`preset` / `BlocksProvider` defaults** — an app-wide look for a component type.
+3. **`preset` / `BlocksProvider` defaults** — an app-wide look for a component type: `props`
+   where the look is one the library ships as a variant, size or intent, `slotClasses` for the
+   rest.
 4. **`overrides`** — style only one variant / intent / state; prop-conditional, which is
    what unconditional `slotClasses` cannot express.
 5. **`unstyled` + `slotClasses`** — strip every default and rebuild the look.
@@ -346,6 +348,59 @@ strips a provider default. Reaching higher up the list buys reach, never precede
   <Button preset="overlay">Weiter</Button>
 </BlocksProvider>
 ```
+
+**Theme `props` decide the variant before the cascade dresses it.** A provider entry and a preset
+carry a `props` key beside their classes, and it sets the component's style props where the
+instance sets none: instance prop → the active preset's `props` → `defaults.<Name>.props` → the
+component's own default. Everything already ranked above that own default stays above the theme —
+a `TierContext` from a Toolbar or ButtonGroup, a ButtonGroup's variant on its Buttons, Badge's
+neutral `tag` intent — and a theme never decides what is announced: Alert paints a theme's `intent`,
+from `defaults` or from a preset alike (a `preset="error"` written at the call site included), but
+takes `role="alert"` from the instance `intent` alone. Which props a theme may set at all — style yes, behaviour and state no — and
+the classification behind it are
+[COMPONENT-API-CONVENTIONS.md § Theme props](COMPONENT-API-CONVENTIONS.md#theme-props-style-in-the-theme-behaviour-at-the-call-site).
+
+```svelte
+<BlocksProvider defaults={{ Input: { props: { variant: 'underline' } }, Card: { props: { variant: 'outlined' } } }}>
+  <!-- every Input without a variant of its own is the shipped underline: 2px edge, no focus ring -->
+</BlocksProvider>
+```
+
+Nothing about the class cascade changes: it runs against the props the component resolved, so an
+`overrides` rule keyed on `{ variant: 'outlined' }` fires on every instance a theme made outlined
+(pinned in `provider/theme-props.svelte.test.ts`). That is also why a theme default beats repainting
+a variant through `overrides`: an `outlined` repainted into an underline means something else in
+that theme than everywhere else, and an agent asking for `outlined` gets an underline.
+
+Each component reads its theme under its own name, where its own default is written
+(`variant = theme.variant ?? 'outlined'`, after `preset` in the destructuring), so a value it
+forwards to a component it renders is that component's instance value. Two shapes follow. A
+composite with a default of its own sets the forwarded prop, and the inner name does not reach it:
+DatePicker's field takes `DatePicker.props.inputVariant`, not `Input.props.variant`. A composite
+without one forwards `undefined` where its name sets nothing, and the inner component resolves
+under its own name — NumberInput's field takes `NumberInput`'s entry, then `Input`'s, the same order
+the two names' classes fold in. Either way a value is resolved once. An agent-rendered component
+gets the theme the same way, which is what presets could not do (an agent never writes `preset`):
+the A2UI renderers leave a style prop the payload does not name `undefined` rather than writing a
+fallback of their own, which would read as an instance value.
+
+What holds the two halves together. The type derives each component's admissible keys and values
+from its own props (`ThemePropsOf` in `provider/component-slots.ts`, the same barrel query the slot
+map uses), so `Card: { props: { size } }` — a key Card does not declare — does not compile. Whether
+the component *reads* a key it declares is not a type question; `provider/theme-props-sweep.svelte.test.ts` mounts
+every component of the cascade registry with every value the checker says `ThemePropsOf` admits, and
+requires the theme mount to render what the call-site mount renders, plus the preset rung and the
+instance-beats-theme order. Its population comes from the type, so a style prop a component
+declares and does not read fails it. A style prop that also sets an attribute only the call site
+may decide — Alert's `intent` and its `role` — fails it too until it is an entry in
+`CALL_SITE_ATTRIBUTES` (`provider/__fixtures__/theme-call-site.ts`); the sweep then compares the rest
+of the markup and requires the theme mount to carry that attribute as a mount with no value does. `provider/theme-props-ssr.test.ts` repeats the first route on
+the server, where a style prop destructured ahead of `preset` throws. A value that paints only
+behind another prop, a real child or an opened panel is mounted with it (the sweep's `PROBES`, each
+stale once the prop shows without it). What neither reaches: a name outside the package barrel —
+`Table`, held by its own tests in `@urbicon-ui/table`, and a consumer's wrapper, typed open as their
+slots are — and a config typed `Record<string, ComponentDefaults>`, which checks nothing; a
+development build reports a `props` key that is no style prop at all, once per component.
 
 **Conditional `overrides`** target a specific variant/intent/state — what unconditional
 `slotClasses` cannot express. Each entry is a `compoundVariant`-shaped matcher; on a match
@@ -428,7 +483,11 @@ prop you hold, and `getTierContext()` is exported, so
 `open` is the component's own runtime state, and `hasRightIcon` diverges in one direction —
 `clearable` with a value renders a clear button, which makes the axis `true` on a field whose
 wrapper passed no `rightIcon` (measured), while the wrapper's `!!rightIcon` says `false`. For
-those two, put the rule under the inner component's name.
+those two, put the rule under the inner component's name. Theme `props` under your wrapper's name
+are read the way the library reads its own:
+`const theme = useThemeProps<YourWrapperProps>('YourWrapper', () => preset)`, then
+`variant = theme.variant` in the destructuring, after `preset`, forwarded to the inner component —
+which resolves its own name for whatever you leave `undefined`.
 
 The chain's last two rungs are the call site's array (above), so a library class placed in it
 belongs **before** the consumer's rungs (`Button`'s `pressCueClass`), never after. The
@@ -488,7 +547,7 @@ and link here. The structural plumbing of an embedded core survives as well —
 `CoreIconButton` takes no `unstyled` prop at all.
 
 Key files: `provider/BlocksProvider.svelte`, `provider/blocks-context.ts`,
-`utils/variants.ts`. Which props a component must expose for all of this, and how they are
+`provider/theme-props.ts`, `utils/variants.ts`. Which props a component must expose for all of this, and how they are
 named and typed: [COMPONENT-API-CONVENTIONS.md § Styling props](COMPONENT-API-CONVENTIONS.md#styling-props-class-unstyled-slotclasses-preset).
 
 ### The internal core layer

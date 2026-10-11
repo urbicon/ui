@@ -6,20 +6,23 @@
   // Button's mint default is 'scale', so the scale factory ships statically
   // as the apply() fallback; every other mint name stays demand-loaded.
   import { scaleMint } from '#lib/mint/engine.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
   import { buttonVariants, type ButtonVariants } from '#lib/primitives/index.js';
   import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ButtonProps } from './index';
 
+  const theme = useThemeProps('Button', () => preset);
+
   let {
+    preset,
     tier,
-    intent = 'neutral',
-    variant = 'filled',
-    size = 'md',
+    intent = theme.intent ?? 'neutral',
+    variant = theme.variant ?? 'filled',
+    size = theme.size ?? 'md',
     loading = false,
-    loadingPlacement = 'overlay',
+    loadingPlacement = theme.loadingPlacement ?? 'overlay',
     pressed = false,
     active = false,
     disabled = false,
@@ -28,7 +31,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     value,
     onclick,
     type = 'button',
@@ -46,9 +48,9 @@
   const registration = $derived(groupCtx ? groupCtx.registerButton(value) : null);
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar /
-  // ButtonGroup) → 'commit' default. Button is a commit surface unless
+  // ButtonGroup) → the theme → 'commit' default. Button is a commit surface unless
   // a wrapping container reframes it as modify (e.g. icon-only toolbar).
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
   const effectiveVariant = $derived(groupCtx?.variant ?? variant);
   const effectiveSize = $derived(groupCtx?.size ?? size);
   const effectiveIntent = $derived(groupCtx?.intent ?? intent);

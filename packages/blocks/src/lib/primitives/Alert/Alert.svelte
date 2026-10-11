@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
   import { alertVariants, type AlertVariants } from './alert.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -11,10 +11,13 @@
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('Alert', () => preset);
+
   let {
-    intent = 'primary',
-    variant = 'soft',
-    size = 'md',
+    preset,
+    intent: intentProp,
+    variant = theme.variant ?? 'soft',
+    size = theme.size ?? 'md',
     title,
     children,
     icon,
@@ -24,12 +27,15 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: AlertProps = $props();
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // The colour may come from a theme; the urgency below may not. A theme that
+  // tints every alert must not make every alert interrupt a screen reader.
+  const intent = $derived(intentProp ?? theme.intent ?? 'primary');
 
   const variantProps: AlertVariants = $derived({ intent, variant, size });
   const styles = $derived(alertVariants(variantProps));
@@ -40,7 +46,9 @@
   // destructuring above: an explicitly passed `role` arrives as an own key of
   // the rest object — a string or `undefined` alike — so the spread overwrites
   // the derived one, and `undefined` takes the attribute off entirely.
-  const announcedRole = $derived(intent === 'danger' || intent === 'warning' ? 'alert' : 'status');
+  const announcedRole = $derived(
+    intentProp === 'danger' || intentProp === 'warning' ? 'alert' : 'status'
+  );
 
   const slotClasses = $derived(
     resolveSlotClasses(

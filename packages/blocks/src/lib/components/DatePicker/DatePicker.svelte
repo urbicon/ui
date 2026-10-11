@@ -5,7 +5,7 @@
   import { Input } from '#lib/primitives/Input/index.js';
   import { Popover } from '#lib/primitives/Popover/index.js';
   import { Calendar } from '#lib/components/Calendar/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
     datePickerIconButtonClass,
     datePickerVariants,
@@ -26,7 +26,10 @@
   const CalendarIcon = resolveIcon('calendar', CalendarIconDefault);
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('DatePicker', () => preset);
+
   let {
+    preset,
     value = $bindable(undefined),
     label,
     placeholder,
@@ -53,9 +56,9 @@
     maxDate,
     disabledDates = [],
     isDateDisabled,
-    calendarVariant = 'default',
-    inputVariant = 'outlined',
-    size = 'md',
+    calendarVariant = theme.calendarVariant ?? 'default',
+    inputVariant = theme.inputVariant ?? 'outlined',
+    size = theme.size ?? 'md',
     onValueChange,
     onOpenChange,
     disabled = false,
@@ -67,7 +70,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     onkeydown: onkeydownProp,
     onfocusout: onfocusoutProp,
     ...restProps

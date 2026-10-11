@@ -1,18 +1,20 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { kbdVariants } from './kbd.variants';
   import type { KbdProps } from './index';
 
+  const theme = useThemeProps('Kbd', () => preset);
+
   let {
+    preset,
     keys,
     separator = '+',
-    size = 'md',
+    size = theme.size ?? 'md',
     children,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: KbdProps = $props();
 

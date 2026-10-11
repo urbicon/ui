@@ -1,16 +1,19 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { breadcrumbVariants, type BreadcrumbVariants } from './breadcrumb.variants';
   import type { BreadcrumbProps, BreadcrumbItem } from './index';
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Breadcrumb', () => preset);
+
   let {
+    preset,
     items,
-    size = 'md',
+    size = theme.size ?? 'md',
     wrap = true,
     separator,
     maxItems,
@@ -24,7 +27,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: BreadcrumbProps = $props();
 

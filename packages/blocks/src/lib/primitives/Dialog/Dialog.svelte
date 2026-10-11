@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
@@ -18,15 +18,18 @@
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('Dialog', () => preset);
+
   let {
+    preset,
     open = $bindable(false),
     children,
     footer,
     title,
     icon,
-    size = 'sm',
+    size = theme.size ?? 'sm',
     placement = 'center',
-    intent = 'neutral',
+    intent = theme.intent ?? 'neutral',
     closeOnBackdropClick = true,
     closeOnEscape = true,
     hideCloseButton = false,
@@ -37,7 +40,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     // Pulled out of restProps so the `{...restProps}`-first spread (internal
     // attributes win — see docs/COMPONENT-API-CONVENTIONS.md) can't clobber
     // them, and so neither side loses: the behavioural handlers below are

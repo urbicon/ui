@@ -4,7 +4,7 @@
   import { tick } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { comboboxVariants, type ComboboxVariants } from './combobox.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
@@ -24,7 +24,10 @@
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   const CheckMarkIcon = resolveIcon('check', CheckIconDefault);
 
+  const theme = useThemeProps('Combobox', () => preset);
+
   let {
+    preset,
     options = [],
     groups,
     value = $bindable(null),
@@ -46,8 +49,8 @@
     onError,
     seedOptions = [],
     tier,
-    variant = 'outlined',
-    size = 'md',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
     clearable = false,
     disabled = false,
     name,
@@ -64,7 +67,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     id: idProp,
     'aria-describedby': ariaDescribedby,
     'aria-label': ariaLabel,
@@ -79,7 +81,7 @@
   const dispatchValueChange = $derived(onValueChange as ((v: unknown) => void) | undefined);
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   // ARIA wiring is shared with every form primitive — see `useFormField`.
   const propsId = $props.id();

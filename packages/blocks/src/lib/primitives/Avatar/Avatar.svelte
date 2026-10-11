@@ -1,6 +1,6 @@
 <script lang="ts">
   import { mintAttachment } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { avatarVariants, type AvatarVariants } from '#lib/primitives/index.js';
   import { useBlocksI18n } from '#lib';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -8,19 +8,22 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Avatar', () => preset);
+
   let {
+    preset,
     src,
     alt,
     name,
     children,
-    size = 'md',
-    variant = 'circle',
-    intent = 'neutral',
+    size = theme.size ?? 'md',
+    variant = theme.variant ?? 'circle',
+    intent = theme.intent ?? 'neutral',
     status,
-    statusPosition = 'bottom-right',
+    statusPosition = theme.statusPosition ?? 'bottom-right',
     pulse = false,
     ring = false,
-    ringIntent = 'primary',
+    ringIntent = theme.ringIntent ?? 'primary',
     ringColor,
     randomColor = false,
     interactive = false,
@@ -31,7 +34,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: AvatarProps = $props();
 

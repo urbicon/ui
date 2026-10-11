@@ -1,20 +1,23 @@
 <script lang="ts">
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext, useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { RadioGroupProps } from './index';
   import { setRadioGroupContext } from './radioGroup.context';
   import { radioGroupVariants, type RadioGroupVariants } from './radioGroup.variants';
 
+  const theme = useThemeProps('RadioGroup', () => preset);
+
   let {
+    preset,
     children,
     value = $bindable(),
     name: nameProp,
     orientation = 'vertical',
-    size = 'md',
-    intent = 'primary',
-    variant = 'outlined',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'primary',
+    variant = theme.variant ?? 'outlined',
     tier,
     disabled = false,
     required = false,
@@ -26,7 +29,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     id,
     'aria-describedby': ariaDescribedby,
     'aria-labelledby': ariaLabelledby,
@@ -34,10 +36,10 @@
   }: RadioGroupProps = $props();
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar /
-  // ButtonGroup) → 'commit' default. Propagated through RadioGroupContext
+  // ButtonGroup) → the theme → 'commit' default. Propagated through RadioGroupContext
   // so every RadioItem indicator shares the same radius family.
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
 
   const propsId = $props.id();
   const name = $derived(nameProp ?? `radio-${propsId}`);

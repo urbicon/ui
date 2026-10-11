@@ -8,16 +8,18 @@
     Button,
     Card,
     Input,
-    Separator
+    Separator,
+    STYLE_PROPS
   } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { precedenceChain } from '#lib/customization-data.js';
 
   const description =
-    'One context provider for app-wide styling: round every Card, register a named stat-card look, add a border only on variant="outlined", or strip all default styles and bring your own.';
+    'One context provider for app-wide styling: underline every field with the shipped variant, round every Card, register a named stat-card look, add a border only on variant="outlined", or strip all default styles and bring your own.';
 
   const navigation = [
     { id: 'global-defaults', title: 'Global Defaults' },
+    { id: 'theme-props', title: 'Theme Props' },
     { id: 'merge-behavior', title: 'Merge Behavior' },
     { id: 'presets', title: 'Presets' },
     { id: 'conditional-overrides', title: 'Conditional Defaults' },
@@ -81,13 +83,13 @@
       name: 'defaults',
       type: 'Record<string, ComponentDefaults>',
       default: '{}',
-      desc: 'Per-component defaults. slotClasses apply to every instance; overrides are prop-conditional rules (e.g. only variant="outlined"). Keys are component names (e.g. "Button", "Card").'
+      desc: 'Per-component defaults. props set the style props (variant, size, intent, tier…) of every instance that sets none; slotClasses apply to every instance; overrides are prop-conditional rules (e.g. only variant="outlined"). Keys are component names (e.g. "Button", "Card").'
     },
     {
       name: 'presets',
       type: 'PresetMap',
       default: '{}',
-      desc: 'Named looks per component, opt-in via the preset="name" prop. Each preset may carry its own conditional overrides.'
+      desc: 'Named looks per component, opt-in via the preset="name" prop. Each preset carries the same keys as a defaults entry — props, slotClasses, overrides — and ranks above it.'
     },
     {
       name: 'children',
@@ -107,11 +109,13 @@ export interface ConditionalOverride {
 export interface ComponentDefaults {
   slotClasses?: Record<string, string>;     // unconditional
   overrides?: ConditionalOverride[];        // prop-conditional
+  props?: Record<string, unknown>;          // style-prop defaults, typed per component
 }
 
 export interface ComponentPreset {
   slotClasses?: Record<string, string>;     // unconditional
   overrides?: ConditionalOverride[];        // prop-conditional
+  props?: Record<string, unknown>;          // style-prop defaults, typed per component
 }
 
 // Outer key  = component name (e.g. 'Card', 'Spinner', 'Button')
@@ -147,10 +151,64 @@ slotClasses?: {
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
       via the <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">defaults</code>
       prop. Keys are the exported component names, case-sensitive; an unmatched key is ignored without
-      a warning (one exception: ConfirmDialog registers under the
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">Dialog</code> key).
+      a warning. A wrapper answers to two:
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">ConfirmDialog</code>
+      styles the confirmation alone,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">Dialog</code> every dialog,
+      that one included.
     </p>
     <CodeExample title="Setting global defaults" code={basicExample} preview={false} />
+  </Section>
+
+  <Separator class="mb-12" />
+
+  <Section id="theme-props" title="Theme Props" class="mb-12">
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      When the look you want is one the library already ships (underlined fields, outlined cards),
+      name it in <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">props</code>
+      instead of rebuilding it in classes. Every instance that sets no
+      <code class="text-xs">variant</code> of its own takes the shipped one exactly, border width
+      and focus treatment included; an instance that does set one keeps it. The class rungs then
+      dress that variant, and an <code class="text-xs">overrides</code> rule keyed on it fires.
+    </p>
+    <CodeExample
+      title="A house look from shipped variants"
+      isolate
+      previewClass="w-full max-w-md space-y-4"
+    >
+      <BlocksProvider
+        defaults={{
+          Input: { props: { variant: 'underline' } },
+          Card: { props: { variant: 'outlined' } }
+        }}
+      >
+        <Card>
+          <Input label="Guest name" placeholder="Ada Lovelace" />
+        </Card>
+        <Input label="Own variant wins" variant="filled" placeholder="filled" />
+      </BlocksProvider>
+    </CodeExample>
+    <p class="text-text-secondary mt-6 leading-relaxed">
+      A theme sets how a component looks, never what it does:
+      <code class="text-xs">disabled</code>, <code class="text-xs">open</code> or
+      <code class="text-xs">orientation</code> stay at the call site, and the type rejects them. The props
+      a theme may set, wherever a component declares them:
+    </p>
+    <p class="mt-3 flex flex-wrap gap-1.5">
+      {#each STYLE_PROPS as prop (prop)}
+        <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-xs">{prop}</code>
+      {/each}
+    </p>
+    <p class="text-text-secondary mt-6 leading-relaxed">
+      A preset carries <code class="text-xs">props</code> too, and ranks between the instance and
+      the provider default. A context that already outranks a component's own default outranks the
+      theme as well: a Toolbar's <code class="text-xs">tier</code>, a ButtonGroup's
+      <code class="text-xs">variant</code>. A component that renders another one sets the props it
+      hands down, so theme it by its own name: a DatePicker's field takes
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >DatePicker: &#123; props: &#123; inputVariant: 'underline' &#125; &#125;</code
+      >, not the Input entry.
+    </p>
   </Section>
 
   <Separator class="mb-12" />

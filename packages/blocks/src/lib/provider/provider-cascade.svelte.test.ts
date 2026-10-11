@@ -1279,6 +1279,7 @@ describe('BlocksProvider cascade reaches the markup', () => {
   // and a fixture that stopped entering the state read the same from one row.
   const foldProbe: CascadeComponent = {
     providerName: 'LadderFoldProbe',
+    propsType: null,
     exportName: 'LadderFoldProbe',
     slots: ['base', 'row', 'rowState'],
     libraryTokens: new Set([

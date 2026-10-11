@@ -3,7 +3,7 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { useBlocksI18n } from '#lib/i18n/index.js';
   import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '#lib/icons/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
@@ -13,10 +13,13 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('GuidePanel', () => preset);
+
   let {
+    preset,
     id: idProp,
     placement = 'right',
-    size = 'md',
+    size = theme.size ?? 'md',
     title,
     searchable = false,
     closeOnEscape = true,
@@ -25,7 +28,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     onkeydown: onkeydownProp,
     ...restProps
   }: GuidePanelProps = $props();

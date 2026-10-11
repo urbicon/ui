@@ -1,4 +1,23 @@
-import type { ComponentDefaults } from '@urbicon-ui/blocks';
+import type { BlocksDefaults } from '@urbicon-ui/blocks';
+
+/**
+ * The components a livery dresses. Typed as the provider types them, so each
+ * entry is checked against that component's own slot names and style props —
+ * `Record<string, ComponentDefaults>` would check neither.
+ */
+type LiveryDefaults = BlocksDefaults<
+  Record<
+    | 'Button'
+    | 'Card'
+    | 'Checkbox'
+    | 'DatePicker'
+    | 'Input'
+    | 'RadioGroup'
+    | 'RadioItem'
+    | 'Textarea',
+    unknown
+  >
+>;
 
 /**
  * A livery is one house's visual identity, in three layers:
@@ -32,7 +51,7 @@ export interface Livery {
   name: string;
   layout: LiveryLayout;
   /** Component-level styling the token layer cannot reach. */
-  defaults: Record<string, ComponentDefaults>;
+  defaults: LiveryDefaults;
 }
 
 /**
@@ -69,10 +88,9 @@ const CALA: Livery = {
   layout: 'courtyard',
   defaults: {
     // A card is a whitewashed cube: one hairline, no floating. Depth on this
-    // page belongs to the blue of the type, not to drop shadows.
-    Card: {
-      slotClasses: { base: 'border border-border-subtle shadow-none' }
-    },
+    // page belongs to the blue of the type, not to drop shadows — which is the
+    // shipped `outlined` variant, so the house names it rather than rebuilding it.
+    Card: { props: { variant: 'outlined' } },
     // `px-6` because this house makes the commit tier a full pill. The library's
     // 16px is measured against its own 6px radius; at radius 999px on a 40px
     // control the first 20px of each end IS the curve, so the same 16px leaves
@@ -87,13 +105,9 @@ const CALA: Livery = {
     // Boxed inputs: the library's own outlined chrome IS the house box — its
     // border and radius already resolve through Cala's tokens.
     //
-    // ANATOMY, measured 2026-08-10 (this corrects a salon-era comment that
-    // said the opposite): Input draws its field chrome on `base` — the input
-    // element itself — and `container` is a layout wrapper. The salon-era
-    // defaults styled the container, which stacked a second frame around
-    // every field; the DatePicker made it visible. The clean per-house idiom
-    // would be a VARIANT default (`underline` exists), but ComponentDefaults
-    // carries only slotClasses/overrides today — noted as a library follow-up.
+    // ANATOMY: Input draws its field chrome on `base` — the input element
+    // itself — and `container` is a layout wrapper. Styling the container
+    // stacks a second frame around every field.
     Input: {
       slotClasses: { base: 'bg-transparent' }
     },
@@ -148,26 +162,22 @@ const FIRN: Livery = {
         message: 'text-3xs'
       }
     },
+    // Fields are the shipped `underline` variant, the DatePicker's included —
+    // it renders its own Input and sets that Input's variant itself, so the
+    // house names it by `inputVariant`.
     Input: {
-      slotClasses: {
-        label: 'text-3xs',
-        // Underline = the library box minus three edges, ON `base` (see Cala's
-        // anatomy note): focus and error still repaint the remaining edge.
-        base: 'text-xs border-x-0 border-t-0 rounded-none bg-transparent'
-      }
+      props: { variant: 'underline' },
+      slotClasses: { label: 'text-3xs', base: 'text-xs' }
     },
     Textarea: {
-      slotClasses: {
-        label: 'text-3xs',
-        base: 'text-xs border-x-0 border-t-0 rounded-none bg-transparent'
-      }
+      props: { variant: 'underline' },
+      slotClasses: { label: 'text-3xs', base: 'text-xs' }
     },
+    DatePicker: { props: { inputVariant: 'underline' } },
     Checkbox: {
       slotClasses: { label: 'text-2xs tracking-[var(--livery-label-tracking)]' }
     },
-    Card: {
-      slotClasses: { base: 'border border-border-subtle shadow-none bg-transparent' }
-    },
+    Card: { props: { variant: 'outlined' } },
     Button: {
       slotClasses: {
         base: 'shadow-none hover:shadow-none active:shadow-none text-2xs tracking-[0.12em] uppercase'
@@ -184,7 +194,8 @@ const DUNA: Livery = {
     // Everything is glass over the glow: surfaces stay translucent so the
     // light behind them keeps coming through.
     Card: {
-      slotClasses: { base: 'border border-border-subtle bg-surface-base/70 shadow-none' }
+      props: { variant: 'outlined' },
+      slotClasses: { base: 'bg-surface-base/70' }
     },
     // `px-6` for the same reason as Cala: this house is the other one that
     // pushes the commit tier to a full pill.
@@ -192,21 +203,10 @@ const DUNA: Livery = {
       slotClasses: { base: 'px-6 shadow-none hover:shadow-none active:shadow-none' },
       overrides: [{ variant: 'outlined', class: { base: 'border border-primary-500' } }]
     },
-    Input: {
-      slotClasses: {
-        // Underline on `base` — see Cala's anatomy note.
-        base: 'border-x-0 border-t-0 rounded-none bg-transparent'
-      }
-    },
-    // Identical to the Input above, deliberately: one house, one field idiom.
-    // It used to read `border-x-0 border-t-0 border-b bg-transparent` — the
-    // `border-b` was redundant (the base slot already carries `border`, and
-    // stripping three edges leaves the fourth at its width) and the missing
-    // `rounded-none` left the textarea with rounded corners on a field that
-    // has only a bottom edge, while its own Input had none.
-    Textarea: {
-      slotClasses: { base: 'border-x-0 border-t-0 rounded-none bg-transparent' }
-    }
+    // One house, one field idiom: the shipped underline on every field.
+    Input: { props: { variant: 'underline' } },
+    Textarea: { props: { variant: 'underline' } },
+    DatePicker: { props: { inputVariant: 'underline' } }
   }
 };
 

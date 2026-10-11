@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CopyIconDefault from '#lib/icons/CopyIcon.svelte';
   import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
@@ -8,11 +8,14 @@
   import { codeBlockVariants, type CodeBlockVariants } from './code-block.variants';
   import type { CodeBlockProps } from './index';
 
+  const theme = useThemeProps('CodeBlock', () => preset);
+
   let {
+    preset,
     code,
     lang,
     label,
-    variant = 'card',
+    variant = theme.variant ?? 'card',
     showCopy = true,
     wrap = false,
     copyLabel = 'Copy',
@@ -24,7 +27,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: CodeBlockProps = $props();
 

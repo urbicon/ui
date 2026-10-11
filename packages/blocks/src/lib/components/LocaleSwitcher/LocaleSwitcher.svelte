@@ -1,6 +1,8 @@
 <script lang="ts">
   import Select from '#lib/primitives/Select/Select.svelte';
+  import { useThemeProps } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
   import type { LocaleSwitcherProps } from './index';
   import { useBlocksI18n, getBlocksLocales } from '#lib';
   import { useI18n } from '@urbicon-ui/i18n';
@@ -18,19 +20,27 @@
     nl: '🇳🇱'
   };
 
+  const theme = useThemeProps('LocaleSwitcher', () => preset);
+
   let {
-    variant = 'outlined',
-    size = 'sm',
+    preset,
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'sm',
+    tier,
     showFlag = false,
     locales,
     onLocaleChange,
     disabled = false,
     unstyled,
-    preset,
     slotClasses,
     class: className = '',
     ...restProps
   }: LocaleSwitcherProps = $props();
+
+  // Instance, then a Toolbar's TierContext, then this name's theme — the order
+  // Select applies to its own tier; what is left unset Select resolves itself.
+  const tierCtx = getTierContext();
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier);
 
   const localeNames: Record<string, string> = $derived({
     en: bt('languages.en'),
@@ -102,6 +112,7 @@
   onValueChange={handleLocaleChange}
   {variant}
   {size}
+  tier={effectiveTier}
   {unstyled}
   class={className}
   placeholder={isLoading

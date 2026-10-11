@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
     useFloatingPanel,
     floatingPanelHidden,
@@ -11,7 +11,10 @@
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
+  const theme = useThemeProps('Popover', () => preset);
+
   let {
+    preset,
     children,
     trigger,
     triggerElement = $bindable(),
@@ -32,7 +35,7 @@
     open = $bindable(false),
     autoTrigger = true,
     inline = false,
-    size = 'md',
+    size = theme.size ?? 'md',
 
     transitionDuration,
     transitionEasing,
@@ -47,7 +50,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     style = '',
 
     role = 'dialog',

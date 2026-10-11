@@ -1,31 +1,35 @@
 <script lang="ts">
   import PaginationItem from './PaginationItem.svelte';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { paginationVariants } from '#lib/primitives/index.js';
   import type { PaginationVariants } from './pagination.variants';
   import { MediaQuery } from 'svelte/reactivity';
+  import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { computeEllipsisState, computeVisiblePageNumbers } from './pagination.engine';
   import type { PaginationProps } from '.';
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Pagination', () => preset);
+
   let {
+    preset,
     currentPage,
     totalPages,
     onPageChange,
     layout = 'default',
-    size = 'md',
+    size = theme.size ?? 'md',
     // `ghost`, not `outlined`: a page window is up to nine buttons in a row, and
     // nine outlined pills are noise the moment ONE of them can stand out. That
     // became possible only with the `pressed` → `active` fix in PaginationItem —
     // before it, no entry had a visible state at all, and the outlines were the
     // only thing giving the bar a shape. Table has always passed `variant="ghost"`
     // for exactly this reason; the default now matches the practice.
-    variant = 'ghost',
-    intent = 'primary',
-    tier,
+    variant = theme.variant ?? 'ghost',
+    intent = theme.intent ?? 'primary',
+    tier: tierProp,
     visiblePages = 7,
     // Undefaulted so the DEV no-op warning below can tell an explicit
     // `showFirstLast` from the default; `showFirstLast` itself (derived) keeps
@@ -55,9 +59,14 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: PaginationProps = $props();
+
+  // Forwarded to the Buttons inside, which would read the TierContext
+  // themselves; read here too so this name's theme ranks below it, as a
+  // Button's own theme does. Left unset, each Button resolves its own.
+  const tierCtx = getTierContext();
+  const tier = $derived(tierProp ?? tierCtx?.tier ?? theme.tier);
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

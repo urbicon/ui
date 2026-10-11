@@ -661,10 +661,23 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
 ```
 
 `defaults` vs. `presets` vs. `overrides` — when to use which:
+- **`defaults.props`**: the variant, size, intent or tier every instance takes when it sets none
+  itself — when the look you want is one the library ships, name it here instead of rebuilding it
+  in classes. Style props only; behaviour and state (`disabled`, `open`, `orientation`) stay at the
+  call site. A preset carries `props` too, ranked above `defaults` and below the instance.
 - **`defaults.slotClasses`**: blanket project style applied to every instance (no opt-in required)
 - **`presets`**: named alternative look, opt-in via `preset="…"` prop at the call site
 - **`defaults.overrides` / `presets[…].overrides`**: prop-conditional rules targeting only a specific
   variant/intent/state (e.g. only `variant="outlined"`) — what unconditional `slotClasses` cannot express
+
+```svelte
+<!-- Every Input without a variant of its own is the shipped underline; every such Card outlined. -->
+<BlocksProvider defaults={{ Input: { props: { variant: 'underline' } }, Card: { props: { variant: 'outlined' } } }}>
+  {@render children()}
+</BlocksProvider>
+```
+
+`overrides` match the value a prop resolved to, the theme's included.
 
 ```svelte
 <!-- Only outlined badges get a 1px border; the conflict resolver strips the variant's border-2. -->

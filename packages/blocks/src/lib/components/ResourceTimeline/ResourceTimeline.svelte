@@ -8,7 +8,7 @@
     type DateRange,
     type DateGridView
   } from '#lib/internal/date-grid/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ResourceTimelineProps } from './index';
   import { setResourceTimelineContext } from './resource-timeline.context';
@@ -32,7 +32,10 @@
   } from './resource-timeline.variants';
   import ResourceTimelineHeader from './ResourceTimelineHeader.svelte';
 
+  const theme = useThemeProps('ResourceTimeline', () => preset);
+
   let {
+    preset,
     // Content / data
     resources = [],
     groups,
@@ -54,8 +57,8 @@
     maxDate,
     isDateDisabled,
     // Variants
-    variant = 'default',
-    size = 'md',
+    variant = theme.variant ?? 'default',
+    size = theme.size ?? 'md',
     // Behavior
     highlightToday = true,
     highlightWeekend = false,
@@ -80,7 +83,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: ResourceTimelineProps<T> = $props();
 

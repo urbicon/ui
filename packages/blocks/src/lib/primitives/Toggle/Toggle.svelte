@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n, mintAttachment } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext, useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { toggleVariants, type ToggleVariants } from './toggle.variants';
@@ -9,15 +9,18 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Toggle', () => preset);
+
   let {
+    preset,
     checked = $bindable(false),
     label,
     helper,
     error,
     tier,
-    size = 'md',
-    intent = 'primary',
-    variant = 'default',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'primary',
+    variant = theme.variant ?? 'default',
     disabled = false,
     required = false,
     name,
@@ -28,8 +31,7 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
-    withBorder = false,
+    withBorder = theme.withBorder ?? false,
     'aria-describedby': ariaDescribedby,
     'aria-label': ariaLabel,
     ...restProps
@@ -58,10 +60,10 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar / ButtonGroup)
-  // → 'commit' default. A bare Toggle is a Pill switch; a Toolbar tier="modify"
+  // → the theme → 'commit' default. A bare Toggle is a Pill switch; a Toolbar tier="modify"
   // re-frames it as a compact rectangular switch.
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
 
   // Variant props feed both the tv() style computation and the slot-class
   // cascade — extracted into one derived so `resolveSlotClasses` can match

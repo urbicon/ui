@@ -7,7 +7,7 @@
     useFloatingPanel,
     floatingPanelHidden
   } from '#lib/utils/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
@@ -23,7 +23,10 @@
   const CheckIcon = resolveIcon('check', CheckIconDefault);
   const CloseIcon = resolveIcon('close', CloseIconDefault);
 
+  const theme = useThemeProps('Select', () => preset);
+
   let {
+    preset,
     options = [],
     groups,
     value = $bindable(null),
@@ -38,8 +41,8 @@
     clearable = false,
     nullOption,
     tier,
-    variant = 'outlined',
-    size = 'md',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
     disabled = false,
     required = false,
     name,
@@ -59,7 +62,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     id: idProp,
     'aria-describedby': ariaDescribedby,
     'aria-label': ariaLabel,
@@ -67,7 +69,7 @@
   }: SelectProps<T> = $props();
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   // The exported `SelectProps<T>` is a discriminated union over `multiple`.
   // Externally this lets `<Select multiple bind:value={x: T[]}>` and

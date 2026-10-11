@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteSet } from 'svelte/reactivity';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { stepperVariants, type StepperVariants } from './stepper.variants';
@@ -10,11 +10,14 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Stepper', () => preset);
+
   let {
+    preset,
     activeStep = $bindable(0),
     orientation = 'horizontal',
-    variant = 'default',
-    size = 'md',
+    variant = theme.variant ?? 'default',
+    size = theme.size ?? 'md',
     tier,
     linear = false,
     clickable = false,
@@ -25,15 +28,14 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: StepperProps = $props();
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar /
-  // ButtonGroup) → 'commit' default. Propagated through the StepperContext
+  // ButtonGroup) → the theme → 'commit' default. Propagated through the StepperContext
   // so every StepperStep renders with the same radius family.
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

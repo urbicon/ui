@@ -13,6 +13,7 @@
     Pagination,
     resolveIcon,
     resolveSlotClasses,
+    useThemeProps,
     ChevronLeftIcon as ChevronLeftIconDefault,
     ChevronRightIcon as ChevronRightIconDefault
   } from '@urbicon-ui/blocks';
@@ -39,13 +40,16 @@
 
   const tt = useTableI18n();
 
+  const theme = useThemeProps<TableProps<T>>('Table', () => preset);
+
   let {
+    preset,
     items = [] as T[],
     columns = [],
     class: className = '',
     ariaLabel = undefined,
-    size = 'md' as 'sm' | 'md' | 'lg',
-    variant = 'flush' as 'flush' | 'surface' | 'framed',
+    size = theme.size ?? ('md' as 'sm' | 'md' | 'lg'),
+    variant = theme.variant ?? ('flush' as 'flush' | 'surface' | 'framed'),
 
     source = undefined,
     view = undefined,
@@ -81,7 +85,6 @@
     toolbar = undefined,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset = undefined,
     enableColumnReorder = false,
     enableLiveUpdates = false,
     autoApplyOnNavigation = true,
