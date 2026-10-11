@@ -65,8 +65,33 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
    */
   accentEdge?: DrawerVariants['accentEdge'];
 
-  /** Fires when the drawer is dismissed via Escape, backdrop click, or close button. */
+  /**
+   * Fires when the user asks to close the drawer — Escape, a backdrop click,
+   * the close button — before the exit animation, while focus is still
+   * inside. `open` is already `false` when it runs, and writing `open = true`
+   * back synchronously inside it vetoes the close: the drawer stays open,
+   * plays no exit, keeps focus and never reaches `onClosed`. A close the
+   * browser performs itself also arrives here, after the `<dialog>` has
+   * closed, and cannot be vetoed — a `<form method="dialog">`, a call to
+   * `close()`, or a close request that is not an Escape key press (a back
+   * gesture, assistive technology); the drawer stays closed and DEV warns.
+   * `closeOnEscape={false}` holds such requests off for as long as the
+   * browser lets a page refuse them. Not fired when you set `open = false`
+   * yourself.
+   */
   onClose?: () => void;
+
+  /**
+   * Fires once a close has finished: the exit animation has ended, the
+   * `<dialog>` is closed, the scroll lock is released and focus is back on the
+   * element that had it before the drawer opened. Fires once for every close
+   * that finishes, including one you started with `open = false`. Not for a
+   * close vetoed in `onClose`, nor for one interrupted by reopening before the
+   * animation ends, nor when the drawer is destroyed while open or mid-close
+   * (focus is not returned then either). The place to move focus elsewhere,
+   * reset a form without a visible flash, or open a follow-up surface.
+   */
+  onClosed?: () => void;
 
   /** Hides the built-in close button in the header. @default false */
   hideCloseButton?: boolean;
@@ -78,12 +103,12 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
    * Whether pressing Escape closes the drawer.
    *
    * Escape is dismissed one layer at a time: a control INSIDE the drawer that
-   * handles Escape itself — an open `Select`/`Combobox`/`Menu` panel, a
-   * `clearable` `Input` with text in it — consumes the key, and the drawer stays
-   * up. The second Escape closes the drawer. This is about controls in the
-   * content; it does not apply to a consumer `onkeydown` on the Drawer itself,
-   * which cannot veto the dismiss (see utils/compose-handlers.ts) — use this
-   * prop for that.
+   * handles Escape itself — an open `Select`/`Combobox`/`Menu` panel, an open
+   * `Popover` wherever focus sits, a `clearable` `Input` with text in it —
+   * consumes the key, and the drawer stays up. The second Escape closes the
+   * drawer. This is about controls in the content; it does not apply to a
+   * consumer `onkeydown` on the Drawer itself, which cannot veto the dismiss (see
+   * utils/compose-handlers.ts) — use this prop for that.
    * @default true
    * @summary Whether the Escape key dismisses the drawer.
    */

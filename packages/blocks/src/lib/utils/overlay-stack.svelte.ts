@@ -1,7 +1,8 @@
 import { untrack } from 'svelte';
 
 /**
- * Central registry for open modal overlays (Dialog, Drawer, Sidebar).
+ * Central registry for open overlays: Dialog, Drawer, the mobile Sidebar, a
+ * running Guide tour, and a Popover while it is open inside a modal dialog.
  *
  * The browser already handles top-layer stacking and ESC-to-close for native
  * `<dialog>` elements. This stack adds three things on top of that:

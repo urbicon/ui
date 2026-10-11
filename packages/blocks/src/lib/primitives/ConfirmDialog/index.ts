@@ -98,6 +98,18 @@ export interface ConfirmDialogProps
   onCancel?: () => void;
 
   /**
+   * Fires once the dialog has finished closing — the exit animation has ended
+   * and focus is back on the element that had it before the dialog opened —
+   * after either exit: `onConfirm` resolved, or `onCancel`. Never while an
+   * `onConfirm` is pending: should the browser close the dialog in that window
+   * (a close request it does not let the page refuse), `onClosed` waits until
+   * `onConfirm` settles. Not for a close interrupted by reopening before the
+   * animation ends, nor when the dialog is destroyed while open or mid-close.
+   * The place to move focus elsewhere or open a follow-up surface.
+   */
+  onClosed?: () => void;
+
+  /**
    * Externally controlled loading flag. Combined with the internal `busy`
    * flag from an async `onConfirm`. While truthy, the confirm button is busy
    * (spinner, still focusable, clicks dropped), the cancel button is

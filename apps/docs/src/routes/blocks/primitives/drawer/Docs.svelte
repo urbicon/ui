@@ -220,10 +220,10 @@
     </Note>
     <Note title="Close every overlay at once">
       <p>
-        Drawer, Dialog, and the mobile Sidebar register with a shared
-        <code class="text-text-primary">overlayStack</code> singleton on open. Reach for it when app-level
-        cleanup spans an unknown overlay depth: logout, a route change, or an expired session. Desktop
-        Sidebars stay out of the stack, since they are persistent layout rather than modal overlays.
+        Drawer, Dialog, the mobile Sidebar, and a Popover open inside one of them register with a
+        shared <code class="text-text-primary">overlayStack</code> singleton on open. Reach for it when
+        app-level cleanup spans an unknown overlay depth: logout, a route change, or an expired session.
+        Desktop Sidebars stay out of the stack, since they are persistent layout rather than modal overlays.
       </p>
     </Note>
   </NoteList>
@@ -233,7 +233,7 @@
       title="overlayStack"
       code={`import { overlayStack } from '@urbicon-ui/blocks';
 
-// Close every open Drawer, Dialog, and mobile Sidebar (top-down)
+// Close every registered overlay, the topmost first
 overlayStack.closeAll();
 
 // Inspect the stack
@@ -269,7 +269,11 @@ overlayStack.topId; // string | null`}
         <Kbd keys="Escape" />
         closes the drawer (<code class="text-text-primary">closeOnEscape</code>) and so does a click
         on the backdrop (<code class="text-text-primary">closeOnBackdropClick</code>). Both are on
-        by default.
+        by default. <code class="text-text-primary">onClose</code> fires as the reader asks to
+        close, before the panel slides out; set <code class="text-text-primary">open</code> back to
+        <code class="text-text-primary">true</code> inside it to keep the drawer.
+        <code class="text-text-primary">onClosed</code> fires once it is gone and focus is back on the
+        trigger.
       </p>
     </Note>
     <Note title="Reduced Motion">

@@ -34,6 +34,7 @@
     transitionDuration,
     transitionEasing,
     onClose,
+    onClosed,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -211,6 +212,7 @@
     open: () => open,
     setOpen: (value) => (open = value),
     onClose: () => onClose,
+    onClosed: () => onClosed,
     closeOnEscape: () => closeOnEscape,
     closeOnBackdropClick: () => closeOnBackdropClick,
     hideCloseButton: () => hideCloseButton,
@@ -224,9 +226,13 @@
   // transition: reopening *during* the close outro (`modal.visible` still true)
   // must recentre too, and a reset guarded on that transition would skip it and
   // restore the stale drag position. `open` is constant during a drag, so this
-  // never fights the pointer handlers.
+  // never fights the pointer handlers. Read through a derived: a close vetoed
+  // in `onClose` writes `open` false and back to true before any flush, the
+  // derived settles on the value it had, and the dialog stays where it was
+  // dragged.
+  const isOpen = $derived(open);
   $effect(() => {
-    if (open) {
+    if (isOpen) {
       dragX = 0;
       dragY = 0;
     }

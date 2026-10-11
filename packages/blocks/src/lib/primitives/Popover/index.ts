@@ -145,6 +145,13 @@ export interface PopoverProps
    * Whether the popover closes on Escape key. Default `true`.
    * Set to `false` for cases where Escape should be intercepted by an
    * inner widget (e.g. an editable cell that wants to revert on Escape).
+   *
+   * Inside an open modal dialog (a `Dialog`, a `Drawer`, or a `<dialog>` of
+   * your own opened with `showModal()`), an open popover is a layer of the
+   * overlay stack above it: Escape closes the popover first wherever focus
+   * sits in the dialog, the next one the dialog, and `overlayStack.closeAll()`
+   * closes it before the dialog. With `false` there, the popover holds Escape —
+   * neither it nor the dialog closes until it is closed some other way.
    */
   closeOnEscape?: boolean;
   /**
