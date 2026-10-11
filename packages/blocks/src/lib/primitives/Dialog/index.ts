@@ -157,8 +157,9 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   /**
    * Fires once a close has finished: the exit animation has ended, the
    * `<dialog>` is closed, the scroll lock is released and focus is back on the
-   * element that had it before the dialog opened — unless another modal
-   * surface above it is still closing, which leaves focus on the page body.
+   * element that had it before the dialog opened — unless that element is gone
+   * or still inert: when stacked surfaces close together, focus can end on the
+   * page body.
    * Fires once for every close that finishes, including one you started with
    * `open = false`. Not for a close vetoed in `onClose`, nor for one
    * interrupted by reopening before the animation ends, nor when the dialog

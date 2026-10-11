@@ -45,14 +45,27 @@ of the dialog, Escape used to close the dialog and leave the Popover open.
 
   ```svelte
   <Drawer bind:open>
-    <Popover open={showHelp} autoTrigger={false} closeOnEscape={false} closeOnClickOutside={false}>
+    <button bind:this={helpButton} onclick={() => (showHelp = true)}>Help</button>
+    <Popover
+      open={showHelp}
+      triggerElement={helpButton}
+      autoTrigger={false}
+      closeOnEscape={false}
+      closeOnClickOutside={false}
+    >
       …
     </Popover>
   </Drawer>
   ```
 
   Escape now does nothing here while `showHelp` is `true`. If Escape should take the user out,
-  leave `closeOnEscape` on: the first Escape closes the Popover, the next one the dialog.
+  leave `closeOnEscape` on: the first Escape closes the Popover, the next one the dialog. One
+  exception: a stack entry above both that leaves Escape unclaimed, such as a `GuideController`
+  tour without its UI, lets the dialog close under the Popover.
+
+- **A layer above the dialog takes Escape first.** A mobile `Sidebar` or a guided tour opened
+  over a dialog now gets the Escape even while focus sits inside the dialog, as it already did
+  with focus outside.
 
 - **The stack counts it.** While it is open, `overlayStack.depth` is one higher, `topId` is the
   Popover's, `closeTop()` closes the Popover instead of the dialog, and `closeAll()` closes it
@@ -67,7 +80,7 @@ a close the browser has already performed (`<form method="dialog">`, `dialog.clo
 write-back is undone instead, and DEV warns.
 
 ```sh
-rg -n 'overlayStack\.(depth|topId|isTop|closeTop|closeAll)|\.(paused|overlayDepth)\b|closeOnEscape=\{false\}' src e2e tests
+rg -n 'overlayStack\.(depth|topId|isTop|closeTop|closeAll)|\.(paused|overlayDepth)\b|closeOnEscape=\{false\}' src
 ```
 
 ## 8.29.0

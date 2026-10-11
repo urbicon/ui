@@ -142,7 +142,8 @@
         are disabled and the close button is hidden, so the user cannot dismiss the dialog
         mid-action. The focus trap stays active throughout.
         <code class="text-text-primary">onClosed</code>
-        fires once the dialog has closed and focus is back on the element that opened it, after
+        fires once the dialog has closed and focus is back on the element that opened it (when stacked
+        surfaces close together, focus can end on the page body instead), after
         <code class="text-text-primary">onConfirm</code> resolved or
         <code class="text-text-primary">onCancel</code> ran, and never while
         <code class="text-text-primary">onConfirm</code> is still pending.

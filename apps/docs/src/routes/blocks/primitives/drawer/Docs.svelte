@@ -277,7 +277,7 @@ overlayStack.topId; // string | null`}
         close, before the panel slides out; set <code class="text-text-primary">open</code> back to
         <code class="text-text-primary">true</code> inside it to keep the drawer.
         <code class="text-text-primary">onClosed</code> fires once it is gone and focus is back on the
-        trigger.
+        trigger; when stacked surfaces close together, focus can end on the page body instead.
       </p>
     </Note>
     <Note title="Reduced Motion">

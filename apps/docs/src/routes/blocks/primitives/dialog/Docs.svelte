@@ -279,7 +279,7 @@
         <code class="text-text-primary">true</code> inside it to keep the dialog open.
         <code class="text-text-primary">onClosed</code> fires once the close has finished and focus is
         back on the opener: reset a form there, so nobody watches it empty on its way out, or move focus
-        on.
+        on. When stacked surfaces close together, focus can end on the page body instead.
       </p>
     </Note>
     <Note title="Scroll Lock">

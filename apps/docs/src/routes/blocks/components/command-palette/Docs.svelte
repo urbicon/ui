@@ -257,7 +257,8 @@
         >. <code class="text-text-primary">onOpenChange(false)</code> fires as the palette starts to
         close, with focus still inside it; <code class="text-text-primary">onClosed</code> fires once
         it has closed and focus is back where it was, which is the moment to move focus on or open what
-        the selection asked for.
+        the selection asked for. When stacked surfaces close together, focus can end on the page body
+        instead.
       </p>
     </Note>
   </NoteList>
