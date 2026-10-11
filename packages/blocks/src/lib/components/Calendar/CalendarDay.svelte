@@ -101,11 +101,27 @@
     }, 300);
   }
 
+  let popoverBody: HTMLDivElement | undefined = $state();
+
+  function closePopover() {
+    const focusInside = popoverBody?.contains(document.activeElement) ?? false;
+    popoverOpen = false;
+    // The panel leaves the DOM with the focused event in it; without this the
+    // focus drops to <body>.
+    if (focusInside) buttonEl?.focus();
+  }
+
   function scheduleClosePopover() {
     clearTimeout(hoverTimer);
-    closeTimer = setTimeout(() => {
-      popoverOpen = false;
-    }, 150);
+    closeTimer = setTimeout(closePopover, 150);
+  }
+
+  // Keyboard focus may move from the day into its popover and stay there; it
+  // closes once focus goes anywhere but the popover or its day.
+  function handlePopoverFocusout(e: FocusEvent) {
+    const to = e.relatedTarget as Node | null;
+    if (popoverBody?.contains(to) || to === buttonEl) return;
+    scheduleClosePopover();
   }
 
   function cancelClosePopover() {
@@ -138,7 +154,8 @@
     }
   }
 
-  function handleBlur() {
+  function handleBlur(e: FocusEvent) {
+    if (popoverBody?.contains(e.relatedTarget as Node | null)) return;
     if (showPopoverEnabled) scheduleClosePopover();
   }
 
@@ -224,7 +241,9 @@
       onmouseenter={cancelClosePopover}
       onmouseleave={scheduleClosePopover}
     >
-      <CalendarEventPopover {events} {onEventClick} />
+      <div bind:this={popoverBody} onfocusout={handlePopoverFocusout}>
+        <CalendarEventPopover {events} {onEventClick} />
+      </div>
     </Popover>
   {/if}
 {/if}

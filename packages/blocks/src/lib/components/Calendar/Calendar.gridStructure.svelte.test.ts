@@ -140,11 +140,15 @@ describe('month view', () => {
         ?.getAttribute('aria-label');
     expect(label('Conference')).toMatch(/^Conference, Jun 9\s–\s11, 2026$/);
     // A bar that continues into the next week names the whole event, both halves.
-    const trips = document.querySelectorAll('[role="gridcell"][aria-colspan][title="Trip"]');
+    const trips = document.querySelectorAll('[role="gridcell"][aria-colspan][aria-label^="Trip,"]');
     expect(trips).toHaveLength(2);
     for (const trip of Array.from(trips)) {
       expect(trip.getAttribute('aria-label')).toMatch(/^Trip, Jun 13\s–\s16, 2026$/);
     }
+    // Only the half that shows the title keeps it as a tooltip; the textless
+    // continuation would only repeat its name as a hint.
+    expect(trips[0].getAttribute('title')).toBe('Trip');
+    expect(trips[1].hasAttribute('title')).toBe(false);
   });
 
   it('follows the calendar locale in a bar name', () => {

@@ -204,6 +204,45 @@ test.describe('Calendar accessibility (#208)', () => {
     await expect(clicked).toHaveText('Trip');
   });
 
+  test('day popover: keyboard focus can stay in it, and is never dropped to the page', async ({
+    page
+  }) => {
+    await setupPage(page);
+    const event = page.getByRole('button', { name: /Release v7/ });
+
+    // Tab from the day into its popover and dwell: it used to close 150 ms after
+    // the day lost focus and take the focused event with it.
+    await day(page, '2026-06-24').focus();
+    await page.keyboard.press('Tab');
+    await expect(event).toBeFocused();
+    await page.waitForTimeout(400);
+    await expect(event).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(probe(page, 'cal-event-clicked')).toHaveText('Release v7');
+    await page.waitForTimeout(400);
+    await expect(event).toBeFocused();
+
+    // When the pointer closes it with focus inside, focus goes back to the day.
+    await event.hover();
+    await page.mouse.move(0, 0);
+    await expect(day(page, '2026-06-24')).toBeFocused();
+  });
+
+  test('day popover: an outside click closes it without pulling focus to the day', async ({
+    page
+  }) => {
+    await setupPage(page);
+
+    await day(page, '2026-06-24').focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: /Release v7/ })).toBeFocused();
+    await page.getByRole('heading', { name: 'Calendar fixtures' }).click();
+    await expect(page.getByRole('button', { name: /Release v7/ })).toHaveCount(0);
+    await page.waitForTimeout(400);
+    await expect(day(page, '2026-06-24')).not.toBeFocused();
+  });
+
   test('mini calendar: arrows move focus between days', async ({ page }) => {
     await setupPage(page);
     const mini = (iso: string) =>

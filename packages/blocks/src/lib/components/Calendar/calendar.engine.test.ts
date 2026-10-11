@@ -838,6 +838,13 @@ describe('getContrastTextColor', () => {
       expect(getContrastTextColor('oklch(0.85 0.1 330deg)')).toBe('black');
       expect(getContrastTextColor('oklch(none 0 0)')).toBe('white');
     });
+
+    it('reads a hue in turn, rad or grad', () => {
+      // Each is a light colour that falls back to white when the unit is not read.
+      expect(getContrastTextColor('oklch(0.7 0.15 0.5turn)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 3rad)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 100grad)')).toBe('black');
+    });
   });
 
   describe('hex and rgb forms', () => {
@@ -861,17 +868,35 @@ describe('getContrastTextColor', () => {
     });
   });
 
+  // A translucent fill shows the page through it, so it is judged painted over
+  // white and over black; the ink whose worse ratio of the two is higher wins.
+  describe('translucent colours', () => {
+    it('gives translucent yellow black: worst 4.19 against white’s 1.18', () => {
+      expect(getContrastTextColor('#ffdd0080')).toBe('black');
+      expect(getContrastTextColor('rgba(255, 221, 0, 0.5)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.9 0.1 100 / 0.5)')).toBe('black');
+    });
+
+    it('gives translucent mid-blue black, narrowly: worst 2.10 against white’s 1.85', () => {
+      expect(getContrastTextColor('#3b82f680')).toBe('black');
+      expect(getContrastTextColor('rgb(59 130 246 / 50%)')).toBe('black');
+    });
+
+    it('gives translucent near-black white: worst 3.57 against black’s 1.05', () => {
+      expect(getContrastTextColor('#11111180')).toBe('white');
+      expect(getContrastTextColor('#0008')).toBe('white');
+    });
+  });
+
   describe('fallback — colours this module cannot read get white', () => {
     it.each([
-      // Translucent: the label sits on whatever shows through the fill.
-      '#fff8',
-      '#3b82f680',
-      'rgba(59, 130, 246, 0.5)',
-      'rgb(59 130 246 / 50%)',
-      'oklch(0.9 0 0 / 0.5)',
-      // Only the page resolves these.
+      // Only the page resolves these — a colour nested inside one is not the
+      // painted colour, so it must not be read as if it were.
       'var(--color-primary)',
+      'var(--x, oklch(0.9 0 0))',
+      'var(--x, rgb(255 255 255))',
       'color-mix(in oklab, var(--color-primary) 80%, black)',
+      'color-mix(in oklch, oklch(0.9 0.1 100) 30%, black)',
       // Not parsed here.
       'hsl(120, 50%, 50%)',
       'rebeccapurple',

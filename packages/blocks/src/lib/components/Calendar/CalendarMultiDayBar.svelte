@@ -50,6 +50,9 @@
   const label = $derived(
     `${event.title}, ${formatDateRange(event.start, event.end ?? event.start, ctx.locale)}`
   );
+  // `title` stays only on the first segment, as the tooltip for its truncated
+  // text. A continuation segment shows no text, and with the name already set
+  // VoiceOver reads its title as a redundant hint.
 
   const barHeight = $derived(ctx.size === 'sm' ? 16 : ctx.size === 'lg' ? 24 : 20);
   const barGap = 2;
@@ -72,7 +75,7 @@
       height: {barHeight}px;
       margin-bottom: {barGap}px;
     "
-    title={event.title}
+    title={isFirstSegment ? event.title : undefined}
     aria-label={label}
     onclick={() => onEventClick?.(event)}
   >
@@ -93,7 +96,7 @@
       height: {barHeight}px;
       margin-bottom: {barGap}px;
     "
-    title={event.title}
+    title={isFirstSegment ? event.title : undefined}
     aria-label={label}
   >
     {#if isFirstSegment}

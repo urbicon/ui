@@ -60,9 +60,10 @@ export interface DateCategory {
   /**
    * CSS colour value for the dot, bar or border. Where a label sits on it (a
    * Calendar event bar, a ResourceTimeline span), the component picks black or
-   * white for contrast — but only for an opaque hex, `rgb()` or `oklch()`
-   * colour; anything else, a translucent colour or a `var(--…)` included, gets
-   * a white label.
+   * white for contrast when the value is a hex, `rgb()` or `oklch()` colour —
+   * a translucent one judged over both a white and a black page, since either
+   * may show through. Anything else, a `var(--…)` or `color-mix()` included,
+   * gets a white label.
    */
   color: string;
 }
