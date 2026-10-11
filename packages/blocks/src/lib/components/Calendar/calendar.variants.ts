@@ -76,8 +76,10 @@ export const calendarVariants = tv({
     weekdayHeader: 'grid grid-cols-7',
     weekday: 'text-center font-medium text-text-tertiary select-none',
     weekRow: 'grid grid-cols-7',
+    // Week numbers are information, not marks: tertiary, the last ink that holds
+    // AA on every reading surface (quaternary is mark-only, see semantic.css).
     weekNumber:
-      'text-text-quaternary text-center select-none tabular-nums italic border-r border-border-hairline',
+      'text-text-tertiary text-center select-none tabular-nums italic border-r border-border-hairline',
 
     // Day cell
     day: [
@@ -349,7 +351,9 @@ export const calendarVariants = tv({
         base: 'bg-transparent',
         header: 'border-b-0 bg-transparent',
         navButton: 'hover:bg-transparent hover:text-primary-text',
-        weekday: 'text-text-quaternary font-normal',
+        // Weekday names are information, like the week numbers: subdued by
+        // weight against the default variant's medium, not by a mark-only ink.
+        weekday: 'text-text-tertiary font-normal',
         day: 'hover:bg-transparent hover:text-primary-text',
         weekColumnHeader: 'border-b-0',
         // Ghost drops the whole pinned-strip frame: the grid's top edge, and
@@ -359,8 +363,10 @@ export const calendarVariants = tv({
         timeGrid: 'border-t-0',
         timeHeadCell: 'border-b-0 border-l-0',
         timeCorner: 'border-b-0',
-        item: 'border-transparent shadow-none hover:shadow-none',
-        multiDayBar: 'opacity-90'
+        // No dimming on the multi-day bars: their label ink is picked against the
+        // fill at full strength, and `opacity-90` took it below AA (4.04:1 on the
+        // dark-mode primary).
+        item: 'border-transparent shadow-none hover:shadow-none'
       }
     },
 
@@ -563,9 +569,12 @@ export const calendarVariants = tv({
         day: 'bg-primary-subtle/50 ring-1 ring-primary/30 rounded-md',
         dayNumber: 'text-primary-text font-medium'
       },
+      // Outside-month days stay clickable, so WCAG's exemption for inactive
+      // controls does not cover them: tertiary (AA on every reading surface),
+      // subdued against the in-month primary ink by colour and by weight.
       outsideMonth: {
         day: 'cursor-pointer hover:bg-surface-hover/50',
-        dayNumber: 'text-text-quaternary font-normal'
+        dayNumber: 'text-text-tertiary font-normal'
       },
       disabled: {
         day: 'opacity-40 cursor-not-allowed hover:bg-transparent',

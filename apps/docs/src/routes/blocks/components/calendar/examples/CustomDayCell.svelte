@@ -63,34 +63,34 @@
     'bg-emerald-500/75'
   ];
 
-  // Heatmap ink, mode-aware via the CSS light-dark() function (darker emerald in
-  // light mode, lighter in dark). This follows `color-scheme` natively — incl.
-  // system mode, where there is no `.dark` class — so it needs no `dark:` override
-  // (which the design linter flags and which would silently break in system mode).
+  // Heatmap ink, mode-aware via the CSS light-dark() function. This follows
+  // `color-scheme` natively — incl. system mode, where there is no `.dark` class —
+  // so it needs no `dark:` override (which the design linter flags and which would
+  // silently break in system mode). Every step holds AA (4.5:1) against its own
+  // fill in both modes: the two lightest fills share emerald-800 in light, and the
+  // strongest takes dark ink in both — white on it measured 2.03:1 in light, and
+  // over the dark ground even emerald-950 measured 3.73:1, so dark mode gets black.
   const heatText = [
     'text-text-primary', // 0 – no heat
-    'text-[color:light-dark(var(--color-emerald-700),var(--color-emerald-300))]',
+    'text-[color:light-dark(var(--color-emerald-800),var(--color-emerald-300))]',
     'text-[color:light-dark(var(--color-emerald-800),var(--color-emerald-200))]',
     'text-[color:light-dark(var(--color-emerald-900),var(--color-emerald-100))]',
-    'text-[color:light-dark(white,var(--color-emerald-950))]'
+    'text-[color:light-dark(var(--color-emerald-950),black)]'
   ];
 </script>
 
 <div class="max-w-sm">
   <Calendar {events} showEventList showViewSwitcher={false} defaultMonth={2} defaultYear={2026}>
     {#snippet dayCell(ctx: DayCellContext)}
-      {@const level = heatLevel(ctx.events.length)}
-      <!-- A heatmap cell is read-only, so it renders as a div, not a button. -->
+      {@const level = ctx.isOutsideMonth ? 0 : heatLevel(ctx.events.length)}
+      <!-- Content only: Calendar wraps this in the day's gridcell. A heatmap
+           cell is read-only, so it renders as a div, not a button. Outside-month
+           days carry no heat and the calendar's own subdued ink. -->
       <div
         class="flex h-10 w-full items-center justify-center rounded-md text-sm tabular-nums
-          {ctx.isOutsideMonth ? 'opacity-20' : ''}
           {heatBg[level]}
           {ctx.isToday ? 'font-black underline decoration-2 underline-offset-2' : ''}
-          {level > 0
-          ? heatText[level]
-          : ctx.isOutsideMonth
-            ? 'text-text-quaternary'
-            : 'text-text-primary'}"
+          {ctx.isOutsideMonth ? 'text-text-tertiary' : heatText[level]}"
       >
         {ctx.date.getDate()}
       </div>

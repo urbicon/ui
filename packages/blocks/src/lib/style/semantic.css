@@ -140,8 +140,8 @@
      in both modes — measured by style/contrast.test.ts ("informative text on
      reading surfaces"). tertiary was shifted darker (light) for exactly this.
 
-     quaternary is a MARK-ONLY token — placeholders, dense-grid marks (calendar
-     day cells, kbd hints), disabled glyphs, decoration. It sits at the AA edge
+     quaternary is a MARK-ONLY token — placeholders, dense-grid marks (kbd
+     hints), disabled glyphs, decoration. It sits at the AA edge
      on reading surfaces (4.58–4.85:1 light) and drops BELOW AA on interactive/
      pressed surfaces (4.19/3.49) and hard below it under the docs Rooms skin
      (docs-softer, 1.96:1). Never use it for body text — reach for tertiary. The

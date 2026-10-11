@@ -55,6 +55,13 @@ const trackList = () => timeGrid().className;
 const dayCount = () => timeGrid().getAttribute('style') ?? '';
 
 const dayHeads = () => Array.from(document.querySelectorAll<HTMLElement>('[data-weekday]'));
+
+/** The week's outer layout, which owns the swipe. */
+function weekLayout(): HTMLElement {
+  const el = document.querySelector<HTMLElement>('[role="group"][aria-label="Week view"]');
+  expect(el).not.toBeNull();
+  return el as HTMLElement;
+}
 const dayColumns = () => Array.from(document.querySelectorAll<HTMLElement>('[data-day-column]'));
 
 /**
@@ -240,13 +247,13 @@ describe('Calendar week view — one scrolling column system (#96)', () => {
     // unconditional opt-out would cost the swipe at every width.
     stubHorizontalOverflow(true);
     renderCalendar({ view: 'week' });
-    expect(document.querySelector<HTMLElement>('[role="grid"]')?.style.touchAction).toBe('');
+    expect(weekLayout().style.touchAction).toBe('');
   });
 
   it('keeps the swipe while the seven columns fit', () => {
     stubHorizontalOverflow(false);
     renderCalendar({ view: 'week' });
-    expect(document.querySelector<HTMLElement>('[role="grid"]')?.style.touchAction).toBe('pan-y');
+    expect(weekLayout().style.touchAction).toBe('pan-y');
   });
 });
 

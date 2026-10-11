@@ -16,6 +16,10 @@
   const ctx = getCalendarContext();
   const slot = createSlotHelper(ctx);
 
+  // The months in rows of three: ArrowUp/ArrowDown below step by three, so the
+  // grid's rows are the rows the keys move between.
+  const MONTHS_PER_ROW = 3;
+
   const miniMonths = $derived(
     ctx.yearMonths.map(({ month, year }) => ({
       month,
@@ -29,6 +33,12 @@
         ctx.highlightToday && month === ctx.today.getMonth() && year === ctx.today.getFullYear(),
       isDisplayed: month === ctx.displayedMonth && year === ctx.displayedYear
     }))
+  );
+
+  const monthRows = $derived(
+    Array.from({ length: Math.ceil(miniMonths.length / MONTHS_PER_ROW) }, (_, r) =>
+      miniMonths.slice(r * MONTHS_PER_ROW, (r + 1) * MONTHS_PER_ROW)
+    )
   );
 
   function handleMonthClick(month: number) {
@@ -54,10 +64,10 @@
         nextIdx = Math.max(currentIdx - 1, 0);
         break;
       case 'ArrowDown':
-        nextIdx = Math.min(currentIdx + 3, buttons.length - 1);
+        nextIdx = Math.min(currentIdx + MONTHS_PER_ROW, buttons.length - 1);
         break;
       case 'ArrowUp':
-        nextIdx = Math.max(currentIdx - 3, 0);
+        nextIdx = Math.max(currentIdx - MONTHS_PER_ROW, 0);
         break;
       case 'Home':
         nextIdx = 0;
@@ -106,7 +116,6 @@
   <div class="grid [&>*]:col-start-1 [&>*]:row-start-1">
     {#key ctx.displayedYear}
       <div
-        class="grid grid-cols-3"
         in:fly={ctx.shouldAnimate && ctx.navDirection
           ? { x: ctx.navDirection === 'forward' ? 40 : -40, duration: 200 }
           : { duration: 0 }}
@@ -114,47 +123,53 @@
           ? { x: ctx.navDirection === 'forward' ? -40 : 40, duration: 150 }
           : { duration: 0 }}
       >
-        {#each miniMonths as mini (mini.month)}
-          <button
-            type="button"
-            class="{slot('yearMonth')} {mini.isCurrent
-              ? 'bg-primary-subtle ring-primary ring-1'
-              : ''}"
-            data-month={mini.month}
-            onclick={() => handleMonthClick(mini.month)}
-            aria-label="{mini.label} {ctx.displayedYear}"
-          >
-            <span
-              class="{slot('yearMonthTitle')} {mini.isCurrent ? 'text-primary-text font-bold' : ''}"
-              >{mini.label}</span
-            >
-            <div class="grid w-full grid-cols-7 gap-px">
-              {#each mini.grid.flat() as date (date.toISOString())}
-                {@const inMonth = date.getMonth() === mini.month}
-                {@const events = ctx.getEventsForDate(date)}
-                {@const hasEvents = events.length > 0}
-                {@const markToday = isSameDay(date, ctx.today) && ctx.highlightToday}
-                <span
-                  class="{slot('yearMiniDay')}
-                  {!inMonth ? 'invisible' : ''}
-                  {hasEvents && inMonth ? 'text-text-primary bg-primary-subtle/30 font-bold' : ''}
-                  {markToday && inMonth ? 'bg-primary text-text-on-primary rounded-full' : ''}"
-                >
-                  {#if inMonth}
-                    {date.getDate()}
-                    {#if hasEvents && !markToday}
-                      <span
-                        class="{slot('yearMiniDot')} block"
-                        style="background-color: var(--color-primary)"
-                      ></span>
-                    {/if}
-                  {/if}
-                </span>
-              {/each}
-            </div>
-          </button>
+        {#each monthRows as row (row[0].month)}
+          <div class="grid grid-cols-3" role="row">
+            {#each row as mini (mini.month)}
+              {@render monthCell(mini)}
+            {/each}
+          </div>
         {/each}
       </div>
     {/key}
   </div>
 </div>
+
+{#snippet monthCell(mini: (typeof miniMonths)[number])}
+  <button
+    type="button"
+    role="gridcell"
+    class="{slot('yearMonth')} {mini.isCurrent ? 'bg-primary-subtle ring-primary ring-1' : ''}"
+    data-month={mini.month}
+    onclick={() => handleMonthClick(mini.month)}
+    aria-label="{mini.label} {ctx.displayedYear}"
+  >
+    <span class="{slot('yearMonthTitle')} {mini.isCurrent ? 'text-primary-text font-bold' : ''}"
+      >{mini.label}</span
+    >
+    <div class="grid w-full grid-cols-7 gap-px">
+      {#each mini.grid.flat() as date (date.toISOString())}
+        {@const inMonth = date.getMonth() === mini.month}
+        {@const events = ctx.getEventsForDate(date)}
+        {@const hasEvents = events.length > 0}
+        {@const markToday = isSameDay(date, ctx.today) && ctx.highlightToday}
+        <span
+          class="{slot('yearMiniDay')}
+          {!inMonth ? 'invisible' : ''}
+          {hasEvents && inMonth ? 'text-text-primary bg-primary-subtle/30 font-bold' : ''}
+          {markToday && inMonth ? 'bg-primary text-text-on-primary rounded-full' : ''}"
+        >
+          {#if inMonth}
+            {date.getDate()}
+            {#if hasEvents && !markToday}
+              <span
+                class="{slot('yearMiniDot')} block"
+                style="background-color: var(--color-primary)"
+              ></span>
+            {/if}
+          {/if}
+        </span>
+      {/each}
+    </div>
+  </button>
+{/snippet}

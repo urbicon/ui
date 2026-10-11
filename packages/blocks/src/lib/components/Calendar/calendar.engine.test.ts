@@ -782,67 +782,128 @@ describe('getEventDayInfo', () => {
 // getContrastTextColor
 // ---------------------------------------------------------------------------
 describe('getContrastTextColor', () => {
-  describe('oklch colors', () => {
-    it('returns black for high-lightness oklch', () => {
-      expect(getContrastTextColor('oklch(0.9 0.1 150)')).toBe('black');
+  // The pick is whichever of white and black has the higher WCAG 2 contrast
+  // ratio. The crossover sits at relative luminance ≈ 0.179, i.e. between the
+  // greys #757575 (white 4.61 : black 4.56) and #767676 (white 4.54 : black 4.62).
+  describe('picks the higher WCAG ratio, not a brightness threshold', () => {
+    it.each([
+      // The three category colours the #208 scan caught with white labels.
+      ['#8b5cf6', 'black'], // white 4.23 : black 4.96
+      ['#3b82f6', 'black'], // white 3.68 : black 5.71
+      ['#ef4444', 'black'], // white 3.76 : black 5.58
+      // White genuinely wins.
+      ['#6b7280', 'white'], // white 4.83 : black 4.34
+      ['#000080', 'white']
+    ] as const)('%s → %s', (color, expected) => {
+      expect(getContrastTextColor(color)).toBe(expected);
     });
 
-    it('returns white for low-lightness oklch', () => {
-      expect(getContrastTextColor('oklch(0.3 0.1 150)')).toBe('white');
+    it('flips exactly at the crossover between #757575 and #767676', () => {
+      expect(getContrastTextColor('#757575')).toBe('white');
+      expect(getContrastTextColor('#767676')).toBe('black');
     });
 
-    it('returns black for lightness at the boundary (0.61)', () => {
-      expect(getContrastTextColor('oklch(0.61 0.2 200)')).toBe('black');
-    });
-
-    it('returns white for lightness at the boundary (0.59)', () => {
-      expect(getContrastTextColor('oklch(0.59 0.2 200)')).toBe('white');
-    });
-  });
-
-  describe('hex colors', () => {
-    it('returns black for white (#ffffff)', () => {
+    it('takes the extremes the obvious way', () => {
       expect(getContrastTextColor('#ffffff')).toBe('black');
-    });
-
-    it('returns white for black (#000000)', () => {
       expect(getContrastTextColor('#000000')).toBe('white');
-    });
-
-    it('returns black for light yellow (#ffff00)', () => {
       expect(getContrastTextColor('#ffff00')).toBe('black');
     });
+  });
 
-    it('handles shorthand hex (#fff)', () => {
-      expect(getContrastTextColor('#fff')).toBe('black');
+  describe('oklch colors', () => {
+    it('crosses over at the same luminance for a neutral (L ≈ 0.564)', () => {
+      expect(getContrastTextColor('oklch(0.567 0 0)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.561 0 0)')).toBe('white');
     });
 
-    it('handles shorthand hex (#000)', () => {
+    it('agrees with the hex form of the same colour', () => {
+      // #3b82f6 ≈ oklch(0.6231 0.188 259.81); #6b7280 ≈ oklch(0.551 0.0234 264.36).
+      expect(getContrastTextColor('oklch(0.6231 0.188 259.81)')).toBe(
+        getContrastTextColor('#3b82f6')
+      );
+      expect(getContrastTextColor('oklch(0.551 0.0234 264.36)')).toBe(
+        getContrastTextColor('#6b7280')
+      );
+    });
+
+    it('reads percentage lightness and chroma', () => {
+      expect(getContrastTextColor('oklch(62.31% 47% 259.81)')).toBe('black');
+      expect(getContrastTextColor('oklch(30% 0.1 150)')).toBe('white');
+    });
+
+    it('reads `none` as 0 and a negative or `deg` hue', () => {
+      expect(getContrastTextColor('oklch(0.9 0 none)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.9 none 100)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 -30)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 330deg)')).toBe('black');
+      expect(getContrastTextColor('oklch(none 0 0)')).toBe('white');
+    });
+
+    it('reads a hue in turn, rad or grad', () => {
+      // Each is a light colour that falls back to white when the unit is not read.
+      expect(getContrastTextColor('oklch(0.7 0.15 0.5turn)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 3rad)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 100grad)')).toBe('black');
+    });
+  });
+
+  describe('hex and rgb forms', () => {
+    it('expands shorthand', () => {
+      expect(getContrastTextColor('#fff')).toBe('black');
       expect(getContrastTextColor('#000')).toBe('white');
     });
-  });
 
-  describe('rgb colors', () => {
-    it('returns black for light rgb color', () => {
+    it('reads rgb() and rgba()', () => {
       expect(getContrastTextColor('rgb(255, 255, 255)')).toBe('black');
-    });
-
-    it('returns white for dark rgb color', () => {
-      expect(getContrastTextColor('rgb(0, 0, 0)')).toBe('white');
-    });
-
-    it('returns white for dark blue rgb', () => {
       expect(getContrastTextColor('rgb(0, 0, 128)')).toBe('white');
+      expect(getContrastTextColor('rgb(59 130 246)')).toBe('black');
+    });
+
+    it('reads a colour whose alpha is full as opaque', () => {
+      expect(getContrastTextColor('#ffff')).toBe('black');
+      expect(getContrastTextColor('#3b82f6ff')).toBe('black');
+      expect(getContrastTextColor('rgba(59, 130, 246, 1)')).toBe('black');
+      expect(getContrastTextColor('rgb(59 130 246 / 100%)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.9 0 0 / 1)')).toBe('black');
     });
   });
 
-  describe('fallback', () => {
-    it('returns white for unrecognized color formats', () => {
-      expect(getContrastTextColor('hsl(120, 50%, 50%)')).toBe('white');
+  // A translucent fill shows the page through it, so it is judged painted over
+  // white and over black; the ink whose worse ratio of the two is higher wins.
+  describe('translucent colours', () => {
+    it('gives translucent yellow black: worst 4.19 against white’s 1.18', () => {
+      expect(getContrastTextColor('#ffdd0080')).toBe('black');
+      expect(getContrastTextColor('rgba(255, 221, 0, 0.5)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.9 0.1 100 / 0.5)')).toBe('black');
     });
 
-    it('returns white for arbitrary string', () => {
-      expect(getContrastTextColor('not-a-color')).toBe('white');
+    it('gives translucent mid-blue black, narrowly: worst 2.10 against white’s 1.85', () => {
+      expect(getContrastTextColor('#3b82f680')).toBe('black');
+      expect(getContrastTextColor('rgb(59 130 246 / 50%)')).toBe('black');
+    });
+
+    it('gives translucent near-black white: worst 3.57 against black’s 1.05', () => {
+      expect(getContrastTextColor('#11111180')).toBe('white');
+      expect(getContrastTextColor('#0008')).toBe('white');
+    });
+  });
+
+  describe('fallback — colours this module cannot read get white', () => {
+    it.each([
+      // Only the page resolves these — a colour nested inside one is not the
+      // painted colour, so it must not be read as if it were.
+      'var(--color-primary)',
+      'var(--x, oklch(0.9 0 0))',
+      'var(--x, rgb(255 255 255))',
+      'color-mix(in oklab, var(--color-primary) 80%, black)',
+      'color-mix(in oklch, oklch(0.9 0.1 100) 30%, black)',
+      // Not parsed here.
+      'hsl(120, 50%, 50%)',
+      'rebeccapurple',
+      '#12345',
+      'not-a-color'
+    ])('%s → white', (color) => {
+      expect(getContrastTextColor(color)).toBe('white');
     });
   });
 });

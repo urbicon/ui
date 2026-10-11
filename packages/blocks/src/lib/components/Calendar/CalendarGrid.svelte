@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getWeekNumber, toIso } from '#lib/date/index.js';
+  import { getWeekNumber, isoToDate, isSameDay, toIso } from '#lib/date/index.js';
   import { handleDateGridKeydown } from '#lib/internal/date-grid/index.js';
   import { getMultiDayEventLayout } from './calendar.engine';
   import { swipeable } from '#lib/utils/swipeable.js';
@@ -39,8 +39,18 @@
     return map;
   });
 
-  const barHeight = $derived(ctx.size === 'sm' ? 16 : ctx.size === 'lg' ? 24 : 20);
-  const barGap = 2;
+  // A week's multi-day bars, one entry per stacking line. Each line renders as
+  // its own `role="row"` with one gridcell per bar: the grid may own rows only,
+  // and a bar spans several day columns, so it cannot sit inside a day's cell
+  // (that cell is a <button>). Lines whose events are unknown are dropped
+  // rather than rendered as rows without cells.
+  function barLines(weekIdx: number) {
+    const segments = (multiDayLayout[weekIdx]?.segments ?? []).filter((s) =>
+      eventById.has(s.eventId)
+    );
+    const rows = [...new Set(segments.map((s) => s.row))].sort((a, b) => a - b);
+    return rows.map((row) => ({ row, segments: segments.filter((s) => s.row === row) }));
+  }
 
   // Roving-focus keyboard nav runs through the shared date-grid handler (the same
   // one Planner's DateGridScaffold uses) so the ARIA key map — arrows, Home/End,
@@ -49,7 +59,26 @@
   // selectDate all delegate to the shared controller).
   let gridEl = $state<HTMLElement | null>(null);
 
+  /** The day an element inside this grid belongs to, read off its `[data-date]`. */
+  function dayOf(target: EventTarget | null): Date | null {
+    const day = target instanceof Element ? target.closest<HTMLElement>('[data-date]') : null;
+    return day && gridEl?.contains(day) && day.dataset.date ? isoToDate(day.dataset.date) : null;
+  }
+
+  // The keys move from `focusedDate`. The default day sets it on focus; a
+  // custom `dayCell` control cannot, so the grid takes it from wherever focus
+  // lands on a `[data-date]`.
+  function syncFocusedDate(target: EventTarget | null) {
+    const day = dayOf(target);
+    if (day && !isSameDay(day, ctx.focusedDate)) ctx.setFocusedDate(day);
+  }
+
   function handleKeydown(event: KeyboardEvent) {
+    // The grid's keys belong to the grid and its days. Any other control in it
+    // — a multi-day bar, a control in a custom day without `data-date` — keeps
+    // its own Enter and Space.
+    if (event.target !== gridEl && !dayOf(event.target)) return;
+    syncFocusedDate(event.target);
     if (!handleDateGridKeydown(event, ctx)) return;
     // CalendarDay uses pure roving tabindex with no isFocused-driven .focus(), so
     // this rAF is the only thing that moves real DOM focus onto the landed day.
@@ -69,6 +98,7 @@
   tabindex={0}
   aria-label={bt('calendar.calendarGrid')}
   onkeydown={handleKeydown}
+  onfocusin={(event) => syncFocusedDate(event.target)}
   onmouseleave={() => ctx.setHoveredDate(null)}
   style="overflow: hidden; position: relative;"
   {@attach swipeable({
@@ -96,21 +126,13 @@
           : { duration: 0 }}
       >
         {#each ctx.grid as week, weekIdx (week[0] ? toIso(week[0]) : weekIdx)}
-          {@const weekLayout = multiDayLayout[weekIdx]}
-          {@const maxBarRow =
-            weekLayout?.segments.length > 0
-              ? Math.max(...weekLayout.segments.map((s) => s.row)) + 1
-              : 0}
-          {@const _barAreaHeight = maxBarRow * (barHeight + barGap)}
-
-          {#if weekLayout && weekLayout.segments.length > 0}
+          {#each barLines(weekIdx) as line (line.row)}
             <div
               class={slot('multiDayBarContainer')}
-              style="grid-template-columns: repeat({ctx.showWeekNumbers
-                ? 8
-                : 7}, minmax(0, 1fr)); grid-template-rows: repeat({maxBarRow}, auto);"
+              role="row"
+              style="grid-template-columns: repeat({ctx.showWeekNumbers ? 8 : 7}, minmax(0, 1fr));"
             >
-              {#each weekLayout.segments as seg (seg.eventId + '-' + weekIdx)}
+              {#each line.segments as seg (seg.eventId + '-' + weekIdx)}
                 {@const event = eventById.get(seg.eventId)}
                 {@const colOffset = ctx.showWeekNumbers ? 1 : 0}
                 {#if event}
@@ -120,13 +142,12 @@
                     spanCols={seg.spanCols}
                     isFirstSegment={seg.isFirstSegment}
                     isLastSegment={seg.isLastSegment}
-                    row={seg.row}
                     {onEventClick}
                   />
                 {/if}
               {/each}
             </div>
-          {/if}
+          {/each}
 
           <div class={slot('weekRow')} role="row">
             {#if ctx.showWeekNumbers}

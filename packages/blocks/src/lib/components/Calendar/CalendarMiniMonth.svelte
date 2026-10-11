@@ -102,6 +102,9 @@
 
     if (newDate) {
       e.preventDefault();
+      // Read before the frame: the browser resets `currentTarget` to null once
+      // dispatch ends, so the rAF below could not find the grid through it.
+      const grid = e.currentTarget as HTMLElement;
       focusedMiniDate = newDate;
       // Navigate mini calendar if month changed
       if (newDate.getMonth() !== miniMonth || newDate.getFullYear() !== miniYear) {
@@ -110,9 +113,7 @@
       }
       requestAnimationFrame(() => {
         const dateStr = `${newDate!.getFullYear()}-${String(newDate!.getMonth() + 1).padStart(2, '0')}-${String(newDate!.getDate()).padStart(2, '0')}`;
-        const btn = (e.currentTarget as HTMLElement)?.querySelector(
-          `[data-mini-date="${dateStr}"]`
-        ) as HTMLElement;
+        const btn = grid.querySelector(`[data-mini-date="${dateStr}"]`) as HTMLElement | null;
         btn?.focus();
       });
     }
@@ -150,42 +151,50 @@
     {/each}
   </div>
 
-  <!-- Day grid -->
-  <div class="grid grid-cols-7" role="grid" onkeydown={handleMiniKeydown}>
-    {#each miniGrid.flat() as date (date.getTime())}
-      {@const inMonth = date.getMonth() === miniMonth}
-      {@const isToday = isSameDay(date, ctx.today)}
-      {@const markToday = isToday && ctx.highlightToday}
-      {@const isSelected = ctx.isDateSelected(date)}
-      {@const hasEvents = ctx.getEventsForDate(date).length > 0}
-      {@const isMiniFirstDay = isSameDay(date, miniGrid[0][0])}
-      {@const isFocusedMini = focusedMiniDate ? isSameDay(date, focusedMiniDate) : false}
-      <button
-        type="button"
-        class="{slot('miniCalendarDay')}
-          {!inMonth ? 'opacity-30' : ''}
-          {markToday && inMonth ? 'bg-primary text-text-on-primary' : ''}
-          {isSelected && !markToday && inMonth
-          ? 'bg-primary-subtle text-primary-text font-bold'
-          : ''}
-          {hasEvents && inMonth && !markToday && !isSelected ? 'font-bold' : ''}"
-        tabindex={isFocusedMini || (!focusedMiniDate && isMiniFirstDay) ? 0 : -1}
-        role="gridcell"
-        aria-label={formatDateFull(date, ctx.locale)}
-        aria-selected={isSelected || undefined}
-        aria-current={isToday ? 'date' : undefined}
-        data-mini-date={`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`}
-        onclick={() => handleDayClick(date)}
-        onfocus={() => {
-          focusedMiniDate = date;
-        }}
-      >
-        {date.getDate()}
-        {#if hasEvents && inMonth && !markToday}
-          <span class="bg-primary absolute bottom-0 left-1/2 size-1 -translate-x-1/2 rounded-full"
-          ></span>
-        {/if}
-      </button>
+  <!-- Day grid: one row per week, so the arrows' ±7 moves between the rows a
+       screen reader reports. `tabindex="-1"` makes the grid focusable as a
+       widget without adding a tab stop — that stays on the roving day button. -->
+  <div role="grid" tabindex="-1" aria-label={miniTitle} onkeydown={handleMiniKeydown}>
+    {#each miniGrid as week (week[0].getTime())}
+      <div class="grid grid-cols-7" role="row">
+        {#each week as date (date.getTime())}
+          {@render miniDay(date)}
+        {/each}
+      </div>
     {/each}
   </div>
 </div>
+
+{#snippet miniDay(date: Date)}
+  {@const inMonth = date.getMonth() === miniMonth}
+  {@const isToday = isSameDay(date, ctx.today)}
+  {@const markToday = isToday && ctx.highlightToday}
+  {@const isSelected = ctx.isDateSelected(date)}
+  {@const hasEvents = ctx.getEventsForDate(date).length > 0}
+  {@const isMiniFirstDay = isSameDay(date, miniGrid[0][0])}
+  {@const isFocusedMini = focusedMiniDate ? isSameDay(date, focusedMiniDate) : false}
+  <button
+    type="button"
+    class="{slot('miniCalendarDay')}
+      {!inMonth ? 'text-text-tertiary' : ''}
+      {markToday && inMonth ? 'bg-primary text-text-on-primary' : ''}
+      {isSelected && !markToday && inMonth ? 'bg-primary-subtle text-primary-text font-bold' : ''}
+      {hasEvents && inMonth && !markToday && !isSelected ? 'font-bold' : ''}"
+    tabindex={isFocusedMini || (!focusedMiniDate && isMiniFirstDay) ? 0 : -1}
+    role="gridcell"
+    aria-label={formatDateFull(date, ctx.locale)}
+    aria-selected={isSelected || undefined}
+    aria-current={isToday ? 'date' : undefined}
+    data-mini-date={`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`}
+    onclick={() => handleDayClick(date)}
+    onfocus={() => {
+      focusedMiniDate = date;
+    }}
+  >
+    {date.getDate()}
+    {#if hasEvents && inMonth && !markToday}
+      <span class="bg-primary absolute bottom-0 left-1/2 size-1 -translate-x-1/2 rounded-full"
+      ></span>
+    {/if}
+  </button>
+{/snippet}

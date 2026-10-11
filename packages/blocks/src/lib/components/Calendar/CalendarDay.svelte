@@ -101,11 +101,27 @@
     }, 300);
   }
 
+  let popoverBody: HTMLDivElement | undefined = $state();
+
+  function closePopover() {
+    const focusInside = popoverBody?.contains(document.activeElement) ?? false;
+    popoverOpen = false;
+    // The panel leaves the DOM with the focused event in it; without this the
+    // focus drops to <body>.
+    if (focusInside) buttonEl?.focus();
+  }
+
   function scheduleClosePopover() {
     clearTimeout(hoverTimer);
-    closeTimer = setTimeout(() => {
-      popoverOpen = false;
-    }, 150);
+    closeTimer = setTimeout(closePopover, 150);
+  }
+
+  // Keyboard focus may move from the day into its popover and stay there; it
+  // closes once focus goes anywhere but the popover or its day.
+  function handlePopoverFocusout(e: FocusEvent) {
+    const to = e.relatedTarget as Node | null;
+    if (popoverBody?.contains(to) || to === buttonEl) return;
+    scheduleClosePopover();
   }
 
   function cancelClosePopover() {
@@ -130,15 +146,17 @@
     if (showPopoverEnabled) scheduleClosePopover();
   }
 
-  function handleFocus() {
+  function handleFocus(e: FocusEvent) {
     ctx.setFocusedDate(date);
-    if (showPopoverEnabled) {
+    // Focus handed back from the popover as it closes must not reopen it.
+    if (showPopoverEnabled && !popoverBody?.contains(e.relatedTarget as Node | null)) {
       clearTimeout(closeTimer);
       popoverOpen = true;
     }
   }
 
-  function handleBlur() {
+  function handleBlur(e: FocusEvent) {
+    if (popoverBody?.contains(e.relatedTarget as Node | null)) return;
     if (showPopoverEnabled) scheduleClosePopover();
   }
 
@@ -149,15 +167,27 @@
 </script>
 
 {#if dayCell}
-  {@render dayCell({
-    date,
-    events,
-    isToday,
-    isSelected,
-    isDisabled,
-    isOutsideMonth,
-    isFocused
-  })}
+  <!-- The library owns the gridcell and its state; the snippet renders what
+       goes inside it, so a custom cell cannot leave its week row without a
+       cell. No aria-label: it would replace whatever the snippet says. No
+       `data-date` either: the grid's arrow keys focus the first `[data-date]`
+       they find, and this wrapper is not focusable. -->
+  <div
+    role="gridcell"
+    aria-selected={isSelected || undefined}
+    aria-disabled={isDisabled || undefined}
+    aria-current={isToday ? 'date' : undefined}
+  >
+    {@render dayCell({
+      date,
+      events,
+      isToday,
+      isSelected,
+      isDisabled,
+      isOutsideMonth,
+      isFocused
+    })}
+  </div>
 {:else if isOutsideMonth && !ctx.showOutsideDays}
   <div class={daySlot('day')} role="gridcell" aria-hidden="true"></div>
 {:else}
@@ -212,7 +242,9 @@
       onmouseenter={cancelClosePopover}
       onmouseleave={scheduleClosePopover}
     >
-      <CalendarEventPopover {events} {onEventClick} />
+      <div bind:this={popoverBody} onfocusout={handlePopoverFocusout}>
+        <CalendarEventPopover {events} {onEventClick} />
+      </div>
     </Popover>
   {/if}
 {/if}
