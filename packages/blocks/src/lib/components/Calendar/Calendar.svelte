@@ -18,6 +18,7 @@
     daysInMonth
   } from '#lib/date/index.js';
   import { DateGridController } from '#lib/internal/date-grid/index.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import type { DateGridSelection, DateGridView } from '#lib/internal/date-grid/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { compareDayEvents, getEventDayInfo, expandRecurrence } from './calendar.engine';
@@ -118,6 +119,9 @@
     slotClasses: slotClassesProp = {},
     ...restProps
   }: CalendarProps = $props();
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV) warnRemovedDisabledDates('Calendar', restProps);
 
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>` (CurrencyInput/Sankey/

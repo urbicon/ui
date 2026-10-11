@@ -84,9 +84,12 @@
     // this rAF is the only thing that moves real DOM focus onto the landed day.
     // The controller clamps focus to [minDate, maxDate], so target the day that
     // actually took the roving tabindex (ctx.focusedDate), not the raw key intent.
+    // A month change keeps the outgoing grid in the DOM, inert, while it slides
+    // out, and it comes first: its spill day carries the same `data-date`.
     const target = toIso(ctx.focusedDate);
     requestAnimationFrame(() => {
-      gridEl?.querySelector<HTMLElement>(`[data-date="${target}"]`)?.focus();
+      const days = gridEl?.querySelectorAll<HTMLElement>(`[data-date="${target}"]`) ?? [];
+      [...days].find((day) => !day.closest('[inert]'))?.focus();
     });
   }
 </script>

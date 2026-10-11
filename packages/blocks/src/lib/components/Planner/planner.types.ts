@@ -38,9 +38,10 @@ export interface PlannerCellContext<T> {
   /** Whether this date spills outside the focused month / requested range. */
   isOutsideRange: boolean;
   /**
-   * Whether this date cannot be selected — outside `[minDate, maxDate]`,
-   * rejected by `isDateDisabled`, or the whole grid is `disabled`. The scaffold already sets `aria-disabled` on the gridcell; read
-   * this to grey out your own content or hide an "add" affordance.
+   * Whether this date cannot be selected — outside `[minDate, maxDate]`, rejected by
+   * `isDateDisabled`, or the whole grid is `disabled`. The scaffold already sets
+   * `aria-disabled` on the gridcell; read this to grey out your own content or hide an
+   * "add" affordance.
    */
   isDisabled: boolean;
   /** ISO 8601 week number of this date. */

@@ -172,11 +172,12 @@ export interface ResourceTimelineProps<T = unknown>
   /**
    * Disables every day it returns `true` for, on top of `minDate`/`maxDate`: that day's
    * cells report `aria-disabled` in every lane and do not activate. The one way to disable
-   * single days, whether a rule (weekends) or a list (holidays). It receives each day as a
-   * `Date` at local midnight and runs again when `$state` it reads changes. Compare
-   * calendar days, not `Date` objects (`list.includes(d)` matches nothing): keep a list as
-   * a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
-   * `(d) => blocked.has(toIso(d))`. It must not throw; the grid does not catch it.
+   * single days, whether a rule (weekends) or a list (holidays). It receives a `Date` of
+   * its own for each day, at the day's local start: read only its calendar day. It runs
+   * again when `$state` it reads changes. Compare calendar days, not `Date` objects
+   * (`list.includes(d)` matches nothing): keep a list as a `Set` of `toIso` keys from
+   * `@urbicon-ui/blocks/date` and pass `(d) => blocked.has(toIso(d))`. It must not throw;
+   * the grid does not catch it.
    */
   isDateDisabled?: (date: Date) => boolean;
 

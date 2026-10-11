@@ -191,6 +191,11 @@
 {:else if isOutsideMonth && !ctx.showOutsideDays}
   <div class={daySlot('day')} role="gridcell" aria-hidden="true"></div>
 {:else}
+  <!-- A closed day is `aria-disabled`, not a disabled button: a browser does not
+       focus a `<button disabled>`, and the arrow keys land on a day that
+       `isDateDisabled` closes. Its clicks reach `selectDate` and
+       `handleDblClick`, which refuse it. A disabled calendar keeps every day out
+       of focus, because focusing a spill day moves the month. -->
   <button
     bind:this={buttonEl}
     type="button"
@@ -205,7 +210,7 @@
     data-date={`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`}
     data-drop-target={ctx.draggable ? '' : undefined}
     title={showPopoverEnabled ? undefined : eventTooltip}
-    disabled={isDisabled}
+    disabled={ctx.disabled}
     onclick={handleClick}
     ondblclick={handleDblClick}
     onmouseenter={handleMouseEnter}

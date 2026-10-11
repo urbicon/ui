@@ -20,6 +20,7 @@
   import { toDateInputValue } from '#lib/utils/date.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import type { DateRangePickerProps } from '.';
 
   const bt = useBlocksI18n();
@@ -70,6 +71,9 @@
     onfocusout: onfocusoutProp,
     ...restProps
   }: DateRangePickerProps = $props();
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV) warnRemovedDisabledDates('DateRangePicker', restProps);
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

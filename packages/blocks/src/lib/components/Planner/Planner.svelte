@@ -14,6 +14,7 @@
     type DayHeaderInfo
   } from '#lib/internal/date-grid/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
   import {
@@ -81,6 +82,9 @@
     slotClasses: slotClassesProp = {},
     ...restProps
   }: PlannerProps<T> = $props();
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV) warnRemovedDisabledDates('Planner', restProps);
 
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading

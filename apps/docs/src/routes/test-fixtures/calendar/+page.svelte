@@ -13,7 +13,8 @@
     Calendar,
     type CalendarEvent,
     type CalendarSelection,
-    type CalendarViewMode
+    type CalendarViewMode,
+    DatePicker
   } from '@urbicon-ui/blocks';
 
   const anchor = new Date(2026, 5, 15);
@@ -56,11 +57,21 @@
   ];
   const variants = ['default', 'bordered', 'ghost'] as const;
 
+  // Disabled days the keys must still reach: every weekend, one of them with an
+  // event, so its popover is in play too.
+  const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+  const weekendEvents: CalendarEvent[] = [
+    { id: 'w1', title: 'Closed for inventory', start: new Date(2026, 5, 7) }
+  ];
+  let weekendRange = $state<CalendarSelection | undefined>(undefined);
+
   // Single-select mode always yields a Date; anything else renders 'none'.
   const iso = (v: CalendarSelection | undefined) =>
     v instanceof Date
       ? `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
       : 'none';
+  const isoRange = (v: CalendarSelection | undefined) =>
+    v && !(v instanceof Date) && !Array.isArray(v) ? `${iso(v.start)}..${iso(v.end)}` : 'none';
 </script>
 
 <svelte:head>
@@ -99,6 +110,32 @@
       minDate={new Date(2026, 5, 1)}
       maxDate={new Date(2026, 5, 30)}
       views={['month']}
+    />
+  </section>
+
+  <section data-testid="cal-weekends" class="max-w-3xl">
+    <Calendar
+      defaultDate={anchor}
+      locale="en-US"
+      views={['month']}
+      selectionMode="range"
+      bind:value={weekendRange}
+      isDateDisabled={isWeekend}
+      events={weekendEvents}
+      eventPopover
+    />
+    <span class="text-text-secondary text-sm" data-testid="cal-weekends-range"
+      >{isoRange(weekendRange)}</span
+    >
+  </section>
+
+  <section data-testid="cal-picker-weekends" class="max-w-sm">
+    <DatePicker
+      label="Delivery day"
+      locale="en-US"
+      defaultMonth={5}
+      defaultYear={2026}
+      isDateDisabled={isWeekend}
     />
   </section>
 

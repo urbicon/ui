@@ -50,17 +50,36 @@ once:
 ```
 
 The removed prop compared local calendar days, and so does `toIso`. A plain `includes` does not:
-the component calls the predicate with `Date` objects of its own, at local midnight, so
-`holidays.includes(d)` disables no day at all, and comparing `getTime()` misses every entry with a
-time of day. If you passed both props, join them in one predicate:
+the component calls the predicate with a `Date` of its own for each day, at the day's local start,
+so `holidays.includes(d)` disables no day at all, and comparing `getTime()` misses every entry with
+a time of day. If you passed both props, join them in one predicate:
 `(d) => blocked.has(toIso(d)) || isWeekend(d)`.
 
 Written as an attribute, `disabledDates` is now a type error. Passed through a spread, it
-type-checks, lands on the root element as a `disableddates` attribute and disables nothing, so
-grep for it:
+type-checks and disables nothing. In development the component warns in the browser console as it
+mounts, naming the replacement; a production build says nothing, so grep for it:
 
 ```sh
 rg -n 'disabledDates' src
+```
+
+### A closed `Calendar` day is `aria-disabled`, not a disabled button
+
+A day that `isDateDisabled`, `minDate` or `maxDate` closes in the month grid of `Calendar`,
+`DatePicker` or `DateRangePicker` used to be a `<button disabled>`. A browser does not focus a
+disabled button, so the arrow keys stopped in front of the day, and a month step onto one dropped
+the focus to the page. The day now carries `aria-disabled="true"` and nothing else: it takes focus,
+the arrow keys land on it, and selecting it still does nothing. A closed day with events opens its
+event popover on focus, as any other day does. A `Calendar` with `disabled` keeps its days out of
+focus, as before.
+
+A selector, a `disabled:` class in `slotClasses.day` or a check of the button's `disabled`
+property no longer matches a closed day; use `[aria-disabled="true"]`. Playwright reads
+`aria-disabled` as well, so its `toBeDisabled()` still passes and its `click()` still waits for an
+enabled day; a matcher that reads only the attribute now fails:
+
+```sh
+rg -n -e ':disabled' -e '\[disabled\]' -e 'toBeDisabled' -e '\bdisabled:[a-z]'
 ```
 
 ## 8.29.0

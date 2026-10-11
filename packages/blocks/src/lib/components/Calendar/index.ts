@@ -222,13 +222,15 @@ export interface CalendarProps
   /** Latest selectable/navigable date. */
   maxDate?: Date;
   /**
-   * Disables every day it returns `true` for, on top of `minDate`/`maxDate` — the one way
-   * to disable single days, whether a rule (weekends) or a list (holidays). Only the month
-   * grid marks a disabled day; the week view's day headings and the mini calendar do not,
-   * but selecting one there does nothing. It receives each day as a `Date` at local
-   * midnight and runs again when `$state` it reads changes.
-   * Compare calendar days, not `Date` objects (`list.includes(d)` matches nothing): keep a
-   * list as a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
+   * A day it returns `true` for cannot be selected or created by double-click, on top of
+   * `minDate`/`maxDate` — the one way to close single days, whether a rule (weekends) or a
+   * list (holidays). The month grid marks it, and its arrow keys still land on it; the week
+   * view's day headings and the mini calendar do not mark it, but selecting it there does
+   * nothing. Dropping an event on it, creating one in the time grid and the mini calendar's
+   * navigation do not ask the predicate. It receives a `Date` of its own for each day, at
+   * the day's local start: read only its calendar day. It runs again when `$state` it reads
+   * changes. Compare calendar days, not `Date` objects (`list.includes(d)` matches nothing):
+   * keep a list as a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
    * `(d) => blocked.has(toIso(d))`. It must not throw; the calendar does not catch it.
    */
   isDateDisabled?: (date: Date) => boolean;

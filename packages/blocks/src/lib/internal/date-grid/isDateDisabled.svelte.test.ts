@@ -4,12 +4,13 @@
  * DateRangePicker, Planner and ResourceTimeline. This file pins the three things
  * its JSDoc promises on each of them:
  *
- *  1. **What it receives** — a `Date` at local midnight, on every call.
+ *  1. **What it receives** — a `Date` at the day's local start, on every call;
+ *     in Europe/Berlin that is always midnight.
  *  2. **A list, kept as a `Set` of `toIso` keys**, disables exactly the days it
  *     names: an entry with a time of day, one built by adding hours across the
  *     spring-forward switch, one parsed from a UTC instant. `list.includes(d)`
  *     disables none of them; comparing `getTime()` only the midnight one. A
- *     leftover `disabledDates` in a spread disables nothing.
+ *     leftover `disabledDates` in a spread disables nothing and warns in DEV.
  *  3. **It is followed when it changes** — a predicate closing over `$state`,
  *     flipped after mount, and a predicate prop swapped for another, reach every
  *     path that consults it: the rendered cells, click and keyboard selection,
@@ -208,14 +209,34 @@ describe('a list kept as a Set of toIso keys', () => {
   });
 });
 
-it('a disabledDates left in a spread disables nothing and lands on the root as an attribute', () => {
+describe('a disabledDates left in a spread disables nothing and warns once', () => {
   // Written in markup it is a type error; a spread of an object type-checks.
-  const leftover: Record<string, unknown> = { disabledDates: holidayList() };
-  render(Calendar, { defaultDate: new Date(2026, 2, 15), ...leftover });
-  expect(disabledMarchDays()).toEqual([]);
-  expect(document.querySelector('[disableddates]')?.getAttribute('disableddates')).toContain(
-    'Mar 06 2026'
-  );
+  const march = { locale: 'de-DE', defaultMonth: 2, defaultYear: 2026 };
+  it.each([
+    ['Calendar', Calendar, { defaultDate: new Date(2026, 2, 15) }, false],
+    ['DatePicker', DatePicker, march, true],
+    ['DateRangePicker', DateRangePickerHarness, march, true],
+    [
+      'Planner',
+      Planner,
+      { view: 'month', value: new Date(2026, 2, 15), items: [], getDate: () => '2026-03-01' },
+      false
+    ]
+  ] as const)('%s', (name, component, props, popup) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const leftover: Record<string, unknown> = { disabledDates: holidayList() };
+    try {
+      render(component, { ...props, ...leftover });
+      if (popup) openCalendar();
+      expect(disabledMarchDays()).toEqual([]);
+      const warnings = warn.mock.calls.filter(([m]) => String(m).includes('disabledDates'));
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0][0]).toContain(`[${name}]`);
+      expect(warnings[0][0]).toContain('isDateDisabled={(d) => blocked.has(toIso(d))}');
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });
 
 describe('every date the predicate receives is at local midnight', () => {
@@ -334,7 +355,9 @@ describe('Calendar follows the predicate', () => {
     expect(isDisabled('2026-03-12')).toBe(false);
     setGate(true);
     expect(isDisabled('2026-03-12')).toBe(true);
-    expect((cell('2026-03-12') as HTMLButtonElement).disabled).toBe(true);
+    // `aria-disabled` alone: a browser does not focus a disabled button, and
+    // the arrows must land on it. Where focus goes: e2e/calendar.spec.ts.
+    expect((cell('2026-03-12') as HTMLButtonElement).disabled).toBe(false);
     setGate(false);
     expect(isDisabled('2026-03-12')).toBe(false);
   });
@@ -347,7 +370,7 @@ describe('Calendar follows the predicate', () => {
       onValueChange
     });
     setGate(true);
-    key('ArrowRight'); // focus 11 → 12; the arrows do not skip a disabled day
+    key('ArrowRight'); // focus 11 → 12, onto the disabled day
     key('Enter');
     expect(onValueChange).not.toHaveBeenCalled();
 
