@@ -5,6 +5,7 @@ import CascadeCompoundHost from './__fixtures__/CascadeCompoundHost.svelte';
 import { MOUNT_FIXTURES } from './__fixtures__/cascade-mount-props';
 import { type CascadeComponent, exportedComponents } from './__fixtures__/cascade-registry';
 import ThemeHost from './__fixtures__/ThemeHost.svelte';
+import { CALL_SITE_ATTRIBUTES, withoutAttribute } from './__fixtures__/theme-call-site';
 import { themeVocabularies } from './__fixtures__/theme-vocabulary';
 import type { PresetMap } from './blocks-context';
 
@@ -68,10 +69,13 @@ describe('theme props on the server', () => {
   describe.each(themed)('%s', (_, c, vocabulary) => {
     it.each(Object.entries(vocabulary))('%s', (prop, values) => {
       const name = c.providerName;
+      const attribute = CALL_SITE_ATTRIBUTES[c.exportName]?.[prop]?.attribute;
       for (const value of values) {
         const fromPreset = body(c, {}, { [name]: { [PRESET]: { props: { [prop]: value } } } });
         const written = body(c, { [prop]: value }, { [name]: { [PRESET]: {} } });
-        expect(fromPreset, `${prop}=${String(value)}`).toBe(written);
+        expect(withoutAttribute(fromPreset, attribute), `${prop}=${String(value)}`).toBe(
+          withoutAttribute(written, attribute)
+        );
       }
     });
   });

@@ -84,10 +84,19 @@ describe('provider theme props', () => {
     expect(typeCheckedOnly).toBeTypeOf('function');
   });
 
-  it('distributes over a union props type', () => {
-    // Each Badge arm contributes the members it declares; a label badge's
-    // variant still cannot be a value no arm admits.
+  it('reads a union props type in the arm an instance naming nothing is in', () => {
+    // Badge's dot arms are entered by a discriminant the call site writes
+    // (`purpose="dot"`, `variant="dot"`); the open arm is the label badge's.
+    const badge: Eq<
+      NonNullable<ThemePropsOf<'Badge'>['variant']>,
+      'filled' | 'outlined' | 'soft'
+    > = true;
     const typeCheckedOnly = () => {
+      BlocksProvider(internal, {
+        children,
+        // @ts-expect-error `dot` hides a badge's content — a call-site choice, not a look
+        defaults: { Badge: { props: { variant: 'dot' } } }
+      });
       BlocksProvider(internal, {
         children,
         // @ts-expect-error no Badge arm admits this variant
@@ -98,7 +107,7 @@ describe('provider theme props', () => {
         defaults: { Badge: { props: { variant: 'soft', intent: 'neutral', size: 'sm' } } }
       });
     };
-    expect(typeCheckedOnly).toBeTypeOf('function');
+    expect([badge, typeCheckedOnly]).toBeDefined();
   });
 
   it('leaves a name from outside this package open, like its slots', () => {

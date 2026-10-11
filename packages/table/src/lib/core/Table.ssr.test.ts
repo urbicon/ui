@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTableView, type TableViewSnapshot } from '#lib/view/view.svelte.js';
+import ProviderTableHarness from './__fixtures__/ProviderTableHarness.svelte';
 import TableHarness from './__fixtures__/TableHarness.svelte';
 
 /**
@@ -239,6 +240,31 @@ describe('Table — server render of a managed server source', () => {
 
     expect(body).toContain('data-testid="empty-state"');
     expect(body).not.toContain('data-testid="loading-state"');
+  });
+});
+
+describe('Table theme props — server render', () => {
+  // Table reads its preset's `props` while `$props()` is destructured. The
+  // server keeps that destructuring in source order, so a style prop listed
+  // before `preset` reads it uninitialised and the render throws — a failure
+  // the jsdom suite cannot see, the client compiling `preset` to a props read.
+  const ids = (html: string) => html.replace(/\bs\d+\b/g, 'sN');
+
+  it('renders a preset style prop as the call site renders it', () => {
+    const viaPreset = render(ProviderTableHarness, {
+      props: {
+        items: ROWS,
+        preset: 'house',
+        presets: { Table: { house: { props: { size: 'lg' } } } }
+      }
+    }).body;
+    const written = render(ProviderTableHarness, {
+      props: { items: ROWS, preset: 'house', size: 'lg', presets: { Table: { house: {} } } }
+    }).body;
+    expect(ids(viaPreset)).toBe(ids(written));
+    expect(ids(written)).not.toBe(
+      ids(render(ProviderTableHarness, { props: { items: ROWS } }).body)
+    );
   });
 });
 

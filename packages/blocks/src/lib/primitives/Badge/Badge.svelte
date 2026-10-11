@@ -16,13 +16,19 @@
   const bt = useBlocksI18n();
 
   const theme = useThemeProps('Badge', () => preset);
+  // The type admits no theme `dot`; an untyped config is held to the same, or
+  // it would hide the content of every badge that names no variant.
+  const themeVariant = (): BadgeProps['variant'] => {
+    const value: string | undefined = theme.variant;
+    return value === 'dot' ? undefined : theme.variant;
+  };
 
   let {
     preset,
     tier,
     intent: intentProp,
     purpose,
-    variant = theme.variant ?? 'filled',
+    variant = themeVariant() ?? 'filled',
     size = theme.size ?? 'md',
     counter = false,
     pulse = false,

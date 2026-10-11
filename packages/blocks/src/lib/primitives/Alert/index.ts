@@ -41,7 +41,8 @@ export interface AlertProps
   /**
    * Semantic color intent — and the announced urgency with it: `danger` and `warning`
    * render `role="alert"` (assertive), every other intent `role="status"` (polite).
-   * An explicit `role` overrides the derived one.
+   * An explicit `role` overrides the derived one. Only this prop sets the urgency: an
+   * `intent` from a `BlocksProvider` theme colours the alert and leaves it `status`.
    * @default 'primary'
    * @summary Semantic color — and the announced urgency: danger and warning interrupt, the rest wait.
    */

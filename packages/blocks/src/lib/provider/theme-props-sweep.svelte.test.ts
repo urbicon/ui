@@ -6,6 +6,7 @@ import { MOUNT_FIXTURES } from './__fixtures__/cascade-mount-props';
 import { type CascadeComponent, exportedComponents } from './__fixtures__/cascade-registry';
 import ThemeHost from './__fixtures__/ThemeHost.svelte';
 import ThemeParentHost, { type ThemeChildren } from './__fixtures__/ThemeParentHost.svelte';
+import { CALL_SITE_ATTRIBUTES, withoutAttribute } from './__fixtures__/theme-call-site';
 import { themeVocabularies, type Vocabulary } from './__fixtures__/theme-vocabulary';
 import type { ComponentDefaults, PresetMap } from './blocks-context';
 
@@ -39,6 +40,8 @@ interface Probe {
   props?: Record<string, unknown>;
   /** A real child, for a parent whose prop paints only what it hands down. */
   child?: ThemeChildren;
+  /** A selector clicked once after mounting, for a prop that paints an opened panel. */
+  open?: string;
   why: string;
 }
 
@@ -71,6 +74,12 @@ const PROBES: Record<string, Record<string, Probe>> = {
   },
   Card: { dividers: { props: { header: HEADER }, why: 'rules off a header or footer' } },
   Checkbox: { intent: { props: { checked: true }, why: 'colours the checked box' } },
+  DatePicker: {
+    calendarVariant: { open: 'button[aria-expanded]', why: 'paints the calendar the field opens' }
+  },
+  DateRangePicker: {
+    calendarVariant: { open: 'button[aria-expanded]', why: 'paints the calendar the field opens' }
+  },
   GuideMarker: {
     size: { props: { children: undefined }, why: 'sizes the default icon, which children replace' }
   },
@@ -98,16 +107,6 @@ const PROBES: Record<string, Record<string, Probe>> = {
   Tab: { tier: { child: 'tabItem', why: 'shapes the tabs, not the strip' } },
   Toggle: { intent: { props: { checked: true }, why: 'colours the checked track' } },
   Toolbar: { tier: { child: 'button', why: 'reaches its children as a TierContext' } }
-};
-
-/**
- * A prop no mount the sweep can make shows at all. The route still runs every
- * value and still requires theme and instance to agree; this only waives the
- * requirement that some value differ from the default mount. Stale when one does.
- */
-const BLIND: Record<string, Record<string, string>> = {
-  DatePicker: { calendarVariant: 'paints the calendar, which opens only on a click' },
-  DateRangePicker: { calendarVariant: 'paints the calendar, which opens only on a click' }
 };
 
 const PRESET = 'zz-theme-sweep';
@@ -148,6 +147,12 @@ function render(
           props: { component: c.component as AnyComponent, props: merged, config }
         });
   flushSync();
+  if (probe?.open) {
+    const opener = target.querySelector<HTMLElement>(probe.open);
+    if (!opener) throw new Error(`${c.exportName}: nothing matches ${probe.open} to open`);
+    opener.click();
+    flushSync();
+  }
   // The whole body: a portalled panel lands outside the target.
   const html = document.body.innerHTML.replace(/\bc\d+\b/g, 'cN');
   unmount(app);
@@ -186,19 +191,24 @@ describe('theme props reach every component that admits them', () => {
         const plain = at({});
 
         // Route 1 — every value, from the theme and from the call site.
+        const callSite = CALL_SITE_ATTRIBUTES[c.exportName]?.[prop];
+        const look = (html: string | undefined) =>
+          withoutAttribute(html ?? '', callSite?.attribute);
         const written = new Map<string | boolean, string>();
+        let callSiteDiffers = false;
         for (const value of values) {
           written.set(value, at({ [prop]: value }));
           const fromTheme = at({}, { defaults: { [name]: { props: { [prop]: value } } } });
-          expect(fromTheme, `${prop}=${String(value)} from the theme`).toBe(written.get(value));
+          expect(look(fromTheme), `${prop}=${String(value)} from the theme`).toBe(
+            look(written.get(value))
+          );
+          if (fromTheme !== written.get(value)) callSiteDiffers = true;
+        }
+        if (callSite) {
+          expect(callSiteDiffers, `stale CALL_SITE_ATTRIBUTES entry: ${callSite.why}`).toBe(true);
         }
         const shown = values.find((value) => written.get(value) !== plain);
-        const blind = BLIND[c.exportName]?.[prop];
-        if (blind) {
-          expect(shown, `stale BLIND entry, ${prop} shows: ${blind}`).toBeUndefined();
-          return;
-        }
-        expect(shown, `${prop} paints nothing here — a PROBES or BLIND entry?`).toBeDefined();
+        expect(shown, `${prop} paints nothing here — a PROBES entry?`).toBeDefined();
         if (probe) {
           const unprobed = values.some(
             (value) => render(c, { [prop]: value }, {}) !== render(c, {}, {})
@@ -224,7 +234,9 @@ describe('theme props reach every component that admits them', () => {
           { preset: PRESET, [prop]: shown },
           { presets: { [name]: { [PRESET]: {} } } }
         );
-        expect(fromPreset, "a preset's props rank above the defaults").toBe(writtenWithPreset);
+        expect(look(fromPreset), "a preset's props rank above the defaults").toBe(
+          look(writtenWithPreset)
+        );
 
         const contested = at(
           { [prop]: shown },

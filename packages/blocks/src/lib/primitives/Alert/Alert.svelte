@@ -15,7 +15,7 @@
 
   let {
     preset,
-    intent = theme.intent ?? 'primary',
+    intent: intentProp,
     variant = theme.variant ?? 'soft',
     size = theme.size ?? 'md',
     title,
@@ -33,6 +33,10 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
+  // The colour may come from a theme; the urgency below may not. A theme that
+  // tints every alert must not make every alert interrupt a screen reader.
+  const intent = $derived(intentProp ?? theme.intent ?? 'primary');
+
   const variantProps: AlertVariants = $derived({ intent, variant, size });
   const styles = $derived(alertVariants(variantProps));
 
@@ -42,7 +46,9 @@
   // destructuring above: an explicitly passed `role` arrives as an own key of
   // the rest object — a string or `undefined` alike — so the spread overwrites
   // the derived one, and `undefined` takes the attribute off entirely.
-  const announcedRole = $derived(intent === 'danger' || intent === 'warning' ? 'alert' : 'status');
+  const announcedRole = $derived(
+    intentProp === 'danger' || intentProp === 'warning' ? 'alert' : 'status'
+  );
 
   const slotClasses = $derived(
     resolveSlotClasses(

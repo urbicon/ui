@@ -54,14 +54,22 @@ type IsVocabulary<V> = [NonNullable<V>] extends [string | boolean]
     : true
   : false;
 
+/** The arms of a props union an instance naming nothing can be in: no required member. */
+type OpenArms<P> = P extends unknown ? (Partial<P> extends P ? P : never) : never;
+
 /**
  * The props of `P` a theme may default: every member named in
  * {@link STYLE_PROPS} whose type is a vocabulary, at the type `P` gives it.
  *
- * Distributes over a union props type (`BadgeProps` is three arms), so each arm
- * contributes the members it declares.
+ * A theme default reaches an instance that names nothing, so a props type split
+ * into arms is read in the arms such an instance is in — those without a
+ * required member. A value only a discriminated arm admits (Badge's
+ * `variant: 'dot'`, which hides the badge's content) stays a call-site choice. A
+ * props type with no such arm, or no union at all, is read whole.
  */
-export type StylePropsOf<P> = P extends unknown
+export type StylePropsOf<P> = StyleMembers<[OpenArms<P>] extends [never] ? P : OpenArms<P>>;
+
+type StyleMembers<P> = P extends unknown
   ? {
       [A in keyof P as A extends StyleProp
         ? IsVocabulary<P[A]> extends true

@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
-import { type Component, flushSync, mount, unmount } from 'svelte';
+import { type Component, createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import A2UIView from '#lib/components/Chat/A2UIView/A2UIView.svelte';
 import { urbiconA2uiCatalog } from '#lib/components/Chat/A2UIView/urbicon/a2ui-urbicon-catalog.js';
 import { URBICON_A2UI_CATALOG_ID } from '#lib/components/Chat/A2UIView/urbicon/a2ui-urbicon-registry.js';
 import DatePicker from '#lib/components/DatePicker/DatePicker.svelte';
 import NumberInput from '#lib/components/NumberInput/NumberInput.svelte';
+import Alert from '#lib/primitives/Alert/Alert.svelte';
+import Badge from '#lib/primitives/Badge/Badge.svelte';
 import Card from '#lib/primitives/Card/Card.svelte';
 import Input from '#lib/primitives/Input/Input.svelte';
 import ThemeContextHost from './__fixtures__/ThemeContextHost.svelte';
@@ -246,6 +248,69 @@ describe('agent-rendered components', () => {
     expect(view({ variant: 'elevated' }, { intent: 'danger' }, theme)).toBe(
       view({ variant: 'elevated' }, { intent: 'danger' }, {})
     );
+  });
+});
+
+describe('a theme sets the look, never what is announced or rendered', () => {
+  /** The innermost element carrying a role that contains `text`. */
+  function roleAround(root: HTMLElement, text: string): string | null {
+    const owners = [...root.querySelectorAll('[role]')].filter((el) =>
+      el.textContent?.includes(text)
+    );
+    return owners.at(-1)?.getAttribute('role') ?? null;
+  }
+
+  // Alert's intent is also its announced urgency: `danger` and `warning` take
+  // `role="alert"`, which interrupts a screen reader. A theme colours every
+  // alert; whether this one interrupts is the call site's to say.
+  it("takes an Alert's colour from the theme and its urgency from the call site alone", () => {
+    const danger: Config = { defaults: { Alert: { props: { intent: 'danger' } } } };
+    const themed = render(Alert as AnyComponent, { title: 'Saved' }, danger);
+    expect(roleAround(themed, 'Saved')).toBe('status');
+    expect(markup(themed).replace(/role="\w+"/g, '')).toBe(
+      markup(render(Alert as AnyComponent, { title: 'Saved', intent: 'danger' })).replace(
+        /role="\w+"/g,
+        ''
+      )
+    );
+    expect(
+      roleAround(render(Alert as AnyComponent, { title: 'Saved', intent: 'danger' }), 'Saved')
+    ).toBe('alert');
+  });
+
+  it('keeps an agent Alert without an intent polite under a theme intent', () => {
+    const alertPayload = (alert: Record<string, unknown>) => [
+      { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID } },
+      {
+        version: 'v0.9.1',
+        updateComponents: {
+          surfaceId: 's',
+          components: [{ id: 'root', component: 'Alert', title: 'Saved', ...alert }]
+        }
+      }
+    ];
+    const agent = (alert: Record<string, unknown>, config: Config) =>
+      roleAround(
+        render(
+          A2UIView as unknown as AnyComponent,
+          { payload: alertPayload(alert), catalogs: [urbiconA2uiCatalog] },
+          config
+        ),
+        'Saved'
+      );
+    const danger: Config = { defaults: { Alert: { props: { intent: 'danger' } } } };
+    expect(agent({}, danger)).toBe('status');
+    expect(agent({ intent: 'danger' }, {})).toBe('alert');
+  });
+
+  // `variant: 'dot'` hides a badge's content. The type admits no theme `dot`;
+  // this pins that an untyped config cannot delete badge text either.
+  it("keeps a Badge's text under a theme `variant: 'dot'`", () => {
+    const text = createRawSnippet(() => ({ render: () => '<span>New</span>' }));
+    const dot = { defaults: { Badge: { props: { variant: 'dot' } } } } as unknown as Config;
+    const themed = render(Badge as AnyComponent, { children: text }, dot);
+    expect(themed.textContent).toContain('New');
+    expect(markup(themed)).toBe(markup(render(Badge as AnyComponent, { children: text })));
   });
 });
 
