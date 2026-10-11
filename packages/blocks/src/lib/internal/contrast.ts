@@ -32,9 +32,9 @@ function luminanceFromSrgb255(r: number, g: number, b: number): number {
 
 /**
  * OKLCH → linear sRGB (Björn Ottosson's OKLab matrices). An out-of-gamut colour
- * is clipped per channel, which is not the CSS gamut mapping a browser applies
- * (that reduces chroma instead), so near the white/black crossover the pick for
- * such a colour can differ from what the rendered pixels would warrant.
+ * is clipped per channel, as Chromium paints it on an sRGB display; on a
+ * wide-gamut display the painted colour lies outside sRGB and the pick near the
+ * white/black crossover can be off.
  */
 function luminanceFromOklch(l: number, c: number, hDeg: number): number {
   const h = (hDeg * Math.PI) / 180;
@@ -50,22 +50,45 @@ function luminanceFromOklch(l: number, c: number, hDeg: number): number {
   );
 }
 
-/** Relative luminance of `color`, or `null` when this module cannot read it. */
+/** A CSS number or `none` (which CSS Color 4 resolves to 0). */
+const NUM = '(-?[\\d.]+|none)';
+const num = (value: string) => (value === 'none' ? 0 : Number.parseFloat(value));
+
+/** Whether an alpha component (absent, a number, or a percentage) is fully opaque. */
+function isOpaque(value: string | undefined, percent: string | undefined): boolean {
+  if (value === undefined) return true;
+  return num(value) / (percent ? 100 : 1) >= 1;
+}
+
+const OKLCH = new RegExp(
+  `oklch\\(\\s*${NUM}(%?)\\s+${NUM}(%?)\\s+${NUM}(?:deg)?\\s*(?:\\/\\s*${NUM}(%?))?\\s*\\)`,
+  'i'
+);
+const RGB = /rgba?\(\s*(\d+)\s*,?\s*(\d+)\s*,?\s*(\d+)\s*(?:[,/]\s*([\d.]+)(%?))?\s*\)/i;
+
+/**
+ * Relative luminance of `color`, or `null` when this module cannot read it or
+ * the colour is translucent — a label on a translucent fill sits on whatever
+ * shows through it, which only the page knows.
+ */
 function relativeLuminance(color: string): number | null {
-  const oklch = color.match(/oklch\(\s*([\d.]+)(%?)\s+([\d.]+)(%?)\s+([\d.]+)/i);
+  const oklch = color.match(OKLCH);
   if (oklch) {
-    const l = Number.parseFloat(oklch[1]) / (oklch[2] ? 100 : 1);
-    const chroma = Number.parseFloat(oklch[3]);
+    if (!isOpaque(oklch[6], oklch[7])) return null;
+    const l = num(oklch[1]) / (oklch[2] ? 100 : 1);
     // CSS Color 4: a chroma percentage is relative to 0.4.
-    const c = oklch[4] ? (chroma / 100) * 0.4 : chroma;
-    return luminanceFromOklch(l, c, Number.parseFloat(oklch[5]));
+    const c = oklch[4] ? (num(oklch[3]) / 100) * 0.4 : num(oklch[3]);
+    return luminanceFromOklch(l, c, num(oklch[5]));
   }
 
   const hex = color.trim().match(/^#?([\da-f]{3,8})$/i);
   if (hex) {
     let digits = hex[1];
-    // #rgb / #rgba expand per digit; #rrggbbaa drops its alpha. Five and seven
-    // digits are not colours.
+    // #rgb / #rgba expand per digit. Five and seven digits are not colours.
+    if (digits.length === 4 || digits.length === 8) {
+      const alpha = digits.length === 4 ? digits[3] : digits.slice(6);
+      if (!/^f+$/i.test(alpha)) return null;
+    }
     if (digits.length === 3 || digits.length === 4) {
       digits = [...digits.slice(0, 3)].map((d) => d + d).join('');
     } else if (digits.length === 6 || digits.length === 8) {
@@ -80,8 +103,9 @@ function relativeLuminance(color: string): number | null {
     );
   }
 
-  const rgb = color.match(/rgba?\(\s*(\d+)\s*,?\s*(\d+)\s*,?\s*(\d+)/);
+  const rgb = color.match(RGB);
   if (rgb) {
+    if (!isOpaque(rgb[4], rgb[5])) return null;
     return luminanceFromSrgb255(
       Number.parseInt(rgb[1], 10),
       Number.parseInt(rgb[2], 10),
@@ -94,10 +118,10 @@ function relativeLuminance(color: string): number | null {
 
 /**
  * The label colour — white or black — with the higher WCAG 2 contrast ratio
- * against `bgColor`. Reads hex (#rgb, #rgba, #rrggbb, #rrggbbaa; alpha ignored),
- * rgb()/rgba() and oklch(). Anything else — hsl(), a named colour, a
- * `var(--…)` token, a color-mix() — cannot be resolved without the page, and
- * gets white.
+ * against `bgColor`. Reads opaque hex (#rgb, #rrggbb, and #rgba/#rrggbbaa at
+ * full alpha), rgb()/rgba() and oklch(). It gives white for everything else: a
+ * translucent colour, a `var(--…)` token or a color-mix(), which only the page
+ * can resolve, and hsl() or a named colour, which this module does not parse.
  */
 export function getContrastTextColor(bgColor: string): 'white' | 'black' {
   const l = relativeLuminance(bgColor);

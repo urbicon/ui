@@ -830,28 +830,50 @@ describe('getContrastTextColor', () => {
       expect(getContrastTextColor('oklch(62.31% 47% 259.81)')).toBe('black');
       expect(getContrastTextColor('oklch(30% 0.1 150)')).toBe('white');
     });
+
+    it('reads `none` as 0 and a negative or `deg` hue', () => {
+      expect(getContrastTextColor('oklch(0.9 0 none)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.9 none 100)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 -30)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.85 0.1 330deg)')).toBe('black');
+      expect(getContrastTextColor('oklch(none 0 0)')).toBe('white');
+    });
   });
 
   describe('hex and rgb forms', () => {
-    it('expands shorthand and ignores alpha', () => {
+    it('expands shorthand', () => {
       expect(getContrastTextColor('#fff')).toBe('black');
       expect(getContrastTextColor('#000')).toBe('white');
-      expect(getContrastTextColor('#fff8')).toBe('black');
-      expect(getContrastTextColor('#00000080')).toBe('white');
     });
 
     it('reads rgb() and rgba()', () => {
       expect(getContrastTextColor('rgb(255, 255, 255)')).toBe('black');
       expect(getContrastTextColor('rgb(0, 0, 128)')).toBe('white');
-      expect(getContrastTextColor('rgba(59, 130, 246, 0.5)')).toBe('black');
+      expect(getContrastTextColor('rgb(59 130 246)')).toBe('black');
+    });
+
+    it('reads a colour whose alpha is full as opaque', () => {
+      expect(getContrastTextColor('#ffff')).toBe('black');
+      expect(getContrastTextColor('#3b82f6ff')).toBe('black');
+      expect(getContrastTextColor('rgba(59, 130, 246, 1)')).toBe('black');
+      expect(getContrastTextColor('rgb(59 130 246 / 100%)')).toBe('black');
+      expect(getContrastTextColor('oklch(0.9 0 0 / 1)')).toBe('black');
     });
   });
 
-  describe('fallback — formats this module cannot resolve get white', () => {
+  describe('fallback — colours this module cannot read get white', () => {
     it.each([
-      'hsl(120, 50%, 50%)',
+      // Translucent: the label sits on whatever shows through the fill.
+      '#fff8',
+      '#3b82f680',
+      'rgba(59, 130, 246, 0.5)',
+      'rgb(59 130 246 / 50%)',
+      'oklch(0.9 0 0 / 0.5)',
+      // Only the page resolves these.
       'var(--color-primary)',
       'color-mix(in oklab, var(--color-primary) 80%, black)',
+      // Not parsed here.
+      'hsl(120, 50%, 50%)',
       'rebeccapurple',
       '#12345',
       'not-a-color'

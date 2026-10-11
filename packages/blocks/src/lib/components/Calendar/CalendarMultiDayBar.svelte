@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getContrastTextColor } from './calendar.engine';
+  import { formatDateRange } from '#lib/date/index.js';
   import type { CalendarEvent } from './calendar.types';
 
   interface CalendarMultiDayBarProps {
@@ -43,6 +44,13 @@
     ].join(' ')
   );
 
+  // The dates are in the name because the column is not: Chromium's
+  // accessibility tree places a cell by DOM order and ignores aria-colindex and
+  // aria-colspan, so a bar's cell reports neither its days nor their headers.
+  const label = $derived(
+    `${event.title}, ${formatDateRange(event.start, event.end ?? event.start, ctx.locale)}`
+  );
+
   const barHeight = $derived(ctx.size === 'sm' ? 16 : ctx.size === 'lg' ? 24 : 20);
   const barGap = 2;
 </script>
@@ -65,7 +73,7 @@
       margin-bottom: {barGap}px;
     "
     title={event.title}
-    aria-label={event.title}
+    aria-label={label}
     onclick={() => onEventClick?.(event)}
   >
     {#if isFirstSegment}
@@ -86,6 +94,7 @@
       margin-bottom: {barGap}px;
     "
     title={event.title}
+    aria-label={label}
   >
     {#if isFirstSegment}
       <span class="truncate">{event.title}</span>

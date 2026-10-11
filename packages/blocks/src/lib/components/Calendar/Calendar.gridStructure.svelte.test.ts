@@ -78,7 +78,7 @@ describe('month view', () => {
     expectWellFormedGrid(grids()[0]);
     // The bars really are there — the test is not passing over an empty month.
     expect(
-      document.querySelectorAll('button[role="gridcell"][aria-label="Conference"]')
+      document.querySelectorAll('button[role="gridcell"][aria-colspan][title="Conference"]')
     ).toHaveLength(1);
   });
 
@@ -87,7 +87,9 @@ describe('month view', () => {
 
     // Mon 8 – Sun 14 Jun (weekStartsOn 1): Conference runs Tue 9 – Thu 11, i.e.
     // day columns 2–4, which are grid columns 3–5 behind the week number.
-    const conference = document.querySelector('[role="gridcell"][aria-label="Conference"]');
+    const conference = document.querySelector(
+      '[role="gridcell"][aria-colspan][title="Conference"]'
+    );
     expect(conference?.getAttribute('aria-colindex')).toBe('3');
     expect(conference?.getAttribute('aria-colspan')).toBe('3');
     expect((conference as HTMLElement).style.gridColumn).toBe('3 / span 3');
@@ -97,7 +99,9 @@ describe('month view', () => {
     renderCalendar({ view: 'month', events, categories, onEventClick() {} });
 
     const rowOf = (label: string) =>
-      document.querySelector(`[role="gridcell"][aria-label="${label}"]`)?.closest('[role="row"]');
+      document
+        .querySelector(`[role="gridcell"][aria-colspan][title="${label}"]`)
+        ?.closest('[role="row"]');
     expect(rowOf('Conference')).not.toBeNull();
     expect(rowOf('Sprint')).not.toBeNull();
     expect(rowOf('Conference')).not.toBe(rowOf('Sprint'));
@@ -107,19 +111,79 @@ describe('month view', () => {
     renderCalendar({ view: 'month', events, categories });
 
     expectWellFormedGrid(grids()[0]);
-    expect(document.querySelectorAll('div[role="gridcell"][title="Conference"]')).toHaveLength(1);
+    expect(
+      document.querySelectorAll('div[role="gridcell"][aria-colspan][title="Conference"]')
+    ).toHaveLength(1);
   });
 
   it('labels a bar on a category colour with the higher-contrast ink, and its own fill with its pair', () => {
     renderCalendar({ view: 'month', events, categories, onEventClick() {} });
 
     const bar = (label: string) =>
-      document.querySelector<HTMLElement>(`[role="gridcell"][aria-label="${label}"]`);
+      document.querySelector<HTMLElement>(`[role="gridcell"][aria-colspan][title="${label}"]`);
     // #8b5cf6: black 4.96 against white 4.23.
     expect(bar('Trip')?.style.color).toBe('black');
     // No category: the library's primary fill, labelled by its own on-colour.
     expect(bar('Conference')?.style.backgroundColor).toBe('var(--color-primary)');
     expect(bar('Conference')?.style.color).toBe('var(--color-text-on-primary)');
+  });
+
+  it('names each bar with its title and the dates it covers', () => {
+    renderCalendar({ view: 'month', events, categories, onEventClick() {} });
+
+    // The dates are in the name because Chromium places the cell by DOM order
+    // and ignores aria-colindex/colspan. \s covers the thin spaces Intl puts
+    // around the range dash.
+    const label = (title: string) =>
+      document
+        .querySelector(`[role="gridcell"][aria-colspan][title="${title}"]`)
+        ?.getAttribute('aria-label');
+    expect(label('Conference')).toMatch(/^Conference, Jun 9\s–\s11, 2026$/);
+    // A bar that continues into the next week names the whole event, both halves.
+    const trips = document.querySelectorAll('[role="gridcell"][aria-colspan][title="Trip"]');
+    expect(trips).toHaveLength(2);
+    for (const trip of Array.from(trips)) {
+      expect(trip.getAttribute('aria-label')).toMatch(/^Trip, Jun 13\s–\s16, 2026$/);
+    }
+  });
+
+  it('follows the calendar locale in a bar name', () => {
+    renderCalendar({ view: 'month', events, categories, locale: 'de-DE' });
+
+    const dates = new Intl.DateTimeFormat('de-DE', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }).formatRange(new Date(2026, 5, 9), new Date(2026, 5, 11));
+    expect(dates).toContain('Juni');
+    expect(
+      document
+        .querySelector('[role="gridcell"][aria-colspan][title="Conference"]')
+        ?.getAttribute('aria-label')
+    ).toBe(`Conference, ${dates}`);
+  });
+
+  it('leaves Enter and Space on a bar to the bar', () => {
+    renderCalendar({
+      view: 'month',
+      events,
+      categories,
+      onEventClick() {},
+      value: new Date(2026, 5, 15)
+    });
+
+    const bar = document.querySelector<HTMLElement>(
+      'button[role="gridcell"][aria-colspan][title="Conference"]'
+    )!;
+    bar.focus();
+    // `fireEvent` returns false when a listener called preventDefault, which is
+    // what kept the button's own activation from firing.
+    expect(fireEvent.keyDown(bar, { key: 'Enter' })).toBe(true);
+    expect(fireEvent.keyDown(bar, { key: ' ' })).toBe(true);
+    flushSync();
+    expect(document.querySelector('[data-date="2026-06-15"]')?.getAttribute('aria-selected')).toBe(
+      'true'
+    );
   });
 
   it('keeps arrow-key navigation over the days', () => {
@@ -167,7 +231,7 @@ describe('custom day cells', () => {
     expect(selected?.hasAttribute('data-date')).toBe(false);
   });
 
-  it('lands the arrow keys on a control that carries data-date, as the JSDoc says', async () => {
+  describe('a control that carries data-date, as the JSDoc says', () => {
     const pad = (n: number) => String(n).padStart(2, '0');
     const focusable = createRawSnippet((ctx: () => DayCellContext) => ({
       render: () => {
@@ -176,13 +240,38 @@ describe('custom day cells', () => {
         return `<button type="button" data-date="${iso}" tabindex="${isFocused ? 0 : -1}">${date.getDate()}</button>`;
       }
     }));
-    renderCalendar({ view: 'month', dayCell: focusable });
-
     const day = (iso: string) => document.querySelector<HTMLElement>(`[data-date="${iso}"]`)!;
-    day('2026-06-15').focus();
-    fireEvent.keyDown(day('2026-06-15'), { key: 'ArrowRight' });
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    expect(document.activeElement).toBe(day('2026-06-16'));
+    const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    const selectedIso = () =>
+      document
+        .querySelector('[role="gridcell"][aria-selected="true"] [data-date]')
+        ?.getAttribute('data-date');
+
+    // Jun 15 is the initial focused date, so every case starts somewhere else:
+    // a grid that kept moving from the stale date would pass from there.
+    it('moves the arrow keys on from the day that has focus', async () => {
+      renderCalendar({ view: 'month', dayCell: focusable });
+
+      day('2026-06-20').focus();
+      fireEvent.keyDown(day('2026-06-20'), { key: 'ArrowRight' });
+      await frame();
+      expect(document.activeElement).toBe(day('2026-06-21'));
+    });
+
+    it('selects the focused day on Enter and Space', async () => {
+      renderCalendar({ view: 'month', dayCell: focusable });
+
+      day('2026-06-20').focus();
+      fireEvent.keyDown(day('2026-06-20'), { key: 'Enter' });
+      flushSync();
+      expect(selectedIso()).toBe('2026-06-20');
+
+      fireEvent.keyDown(day('2026-06-20'), { key: 'ArrowDown' });
+      await frame();
+      fireEvent.keyDown(document.activeElement!, { key: ' ' });
+      flushSync();
+      expect(selectedIso()).toBe('2026-06-27');
+    });
   });
 });
 

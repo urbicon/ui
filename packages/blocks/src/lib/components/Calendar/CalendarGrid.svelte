@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getWeekNumber, toIso } from '#lib/date/index.js';
+  import { getWeekNumber, isoToDate, isSameDay, toIso } from '#lib/date/index.js';
   import { handleDateGridKeydown } from '#lib/internal/date-grid/index.js';
   import { getMultiDayEventLayout } from './calendar.engine';
   import { swipeable } from '#lib/utils/swipeable.js';
@@ -59,7 +59,26 @@
   // selectDate all delegate to the shared controller).
   let gridEl = $state<HTMLElement | null>(null);
 
+  /** The day an element inside this grid belongs to, read off its `[data-date]`. */
+  function dayOf(target: EventTarget | null): Date | null {
+    const day = target instanceof Element ? target.closest<HTMLElement>('[data-date]') : null;
+    return day && gridEl?.contains(day) && day.dataset.date ? isoToDate(day.dataset.date) : null;
+  }
+
+  // The keys move from `focusedDate`. The default day sets it on focus; a
+  // custom `dayCell` control cannot, so the grid takes it from wherever focus
+  // lands on a `[data-date]`.
+  function syncFocusedDate(target: EventTarget | null) {
+    const day = dayOf(target);
+    if (day && !isSameDay(day, ctx.focusedDate)) ctx.setFocusedDate(day);
+  }
+
   function handleKeydown(event: KeyboardEvent) {
+    // The grid's keys belong to the grid and its days. Any other control in it
+    // — a multi-day bar, a control in a custom day without `data-date` — keeps
+    // its own Enter and Space.
+    if (event.target !== gridEl && !dayOf(event.target)) return;
+    syncFocusedDate(event.target);
     if (!handleDateGridKeydown(event, ctx)) return;
     // CalendarDay uses pure roving tabindex with no isFocused-driven .focus(), so
     // this rAF is the only thing that moves real DOM focus onto the landed day.
@@ -79,6 +98,7 @@
   tabindex={0}
   aria-label={bt('calendar.calendarGrid')}
   onkeydown={handleKeydown}
+  onfocusin={(event) => syncFocusedDate(event.target)}
   onmouseleave={() => ctx.setHoveredDate(null)}
   style="overflow: hidden; position: relative;"
   {@attach swipeable({

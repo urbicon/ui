@@ -108,8 +108,9 @@
 <!--
   A labelled group, not a grid: the only arrow-key movement here is one row of
   day heads, and the hour grid's slots and events are not cells — a `role="grid"`
-  would promise cell navigation this view does not have. The heads keep their
-  roving tabindex; the keydown handler below is delegated from them, and the
+  would promise cell navigation this view does not have. The first head is the
+  tab stop (its tabindex is fixed, not roving) and the arrow keys move focus
+  between the heads; the keydown handler below is delegated from them, and the
   group itself takes no focus.
 -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

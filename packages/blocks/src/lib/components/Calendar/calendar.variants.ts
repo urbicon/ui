@@ -351,7 +351,9 @@ export const calendarVariants = tv({
         base: 'bg-transparent',
         header: 'border-b-0 bg-transparent',
         navButton: 'hover:bg-transparent hover:text-primary-text',
-        weekday: 'text-text-quaternary font-normal',
+        // Weekday names are information, like the week numbers: subdued by
+        // weight against the default variant's medium, not by a mark-only ink.
+        weekday: 'text-text-tertiary font-normal',
         day: 'hover:bg-transparent hover:text-primary-text',
         weekColumnHeader: 'border-b-0',
         // Ghost drops the whole pinned-strip frame: the grid's top edge, and

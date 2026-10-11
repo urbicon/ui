@@ -167,7 +167,7 @@ const categories: CalendarEventCategory[] = [
         <code class="text-text-primary">aria-selected</code>,
         <code class="text-text-primary">aria-disabled</code>, and
         <code class="text-text-primary">aria-current="date"</code> for today. Multi-day events sit
-        in rows of their own above each week, one cell per bar, spanning the days it covers. A
+        in rows of their own above each week, one cell per bar, named by the event and its dates. A
         <code class="text-text-primary">dayCell</code> snippet renders inside the day's gridcell, which
         Calendar keeps.
       </p>

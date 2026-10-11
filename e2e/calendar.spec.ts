@@ -183,6 +183,27 @@ test.describe('Calendar accessibility (#208)', () => {
     expect(judged.length).toBeGreaterThan(5);
   });
 
+  test('Enter on an event bar or an all-day item opens the event, not the day', async ({
+    page
+  }) => {
+    await setupPage(page);
+    const clicked = page.getByTestId('cal-a11y-clicked');
+    await expect(clicked).toHaveText('none');
+
+    // The month grid's own keys must not swallow a bar's activation.
+    await page
+      .getByTestId('cal-a11y-month-default')
+      .locator('button[aria-colspan][title="Offsite"]')
+      .focus();
+    await page.keyboard.press('Enter');
+    await expect(clicked).toHaveText('Offsite');
+
+    // Nor the week view's, an all-day item's (Trip shows on two of its days).
+    await page.getByTestId('cal-a11y-week').locator('button[title="Trip"]').first().focus();
+    await page.keyboard.press('Enter');
+    await expect(clicked).toHaveText('Trip');
+  });
+
   test('mini calendar: arrows move focus between days', async ({ page }) => {
     await setupPage(page);
     const mini = (iso: string) =>
@@ -197,7 +218,7 @@ test.describe('Calendar accessibility (#208)', () => {
 
   for (const scheme of ['light', 'dark'] as const) {
     for (const skin of ['rooms', 'library'] as const) {
-      test(`${scheme} · ${skin}: outside-month days and week numbers clear AA, still subdued`, async ({
+      test(`${scheme} · ${skin}: dimmed calendar text clears AA, still subdued`, async ({
         page
       }) => {
         await setupScheme(page, scheme, skin);
@@ -205,6 +226,13 @@ test.describe('Calendar accessibility (#208)', () => {
         const outside = await contrastRatios(page, `${MONTHS} [data-state="outsideMonth"]`);
         const weekNumbers = await contrastRatios(page, `${MONTHS} [role="rowheader"]`);
         const inMonth = await contrastRatios(page, `${MONTHS} [data-state="default"]`);
+        // The ghost variant's weekday names are the lightest of the three.
+        const ghostWeekdays = await contrastRatios(
+          page,
+          '[data-testid="cal-a11y-month-ghost"] [role="columnheader"]'
+        );
+        expect(ghostWeekdays.length).toBeGreaterThanOrEqual(7);
+        expect(Math.min(...ghostWeekdays)).toBeGreaterThanOrEqual(4.5);
 
         // Three month grids, each with spill days and week numbers.
         expect(outside.length).toBeGreaterThanOrEqual(9);

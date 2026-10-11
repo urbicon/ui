@@ -38,6 +38,7 @@
   let view = $state<CalendarViewMode>('month');
   let lastEventTitle = $state('');
   let lastMonth = $state('');
+  let a11yClicked = $state('');
 
   // The accessibility section (#208): every view whose structure axe judges,
   // with multi-day bars both on a consumer colour and on the library's own fill,
@@ -102,6 +103,9 @@
   </section>
 
   <section data-testid="cal-a11y" class="max-w-3xl space-y-10">
+    <span class="text-text-secondary text-sm" data-testid="cal-a11y-clicked"
+      >{a11yClicked || 'none'}</span
+    >
     {#each variants as variant (variant)}
       <div data-testid="cal-a11y-month-{variant}">
         <Calendar
@@ -112,7 +116,7 @@
           showWeekNumbers
           events={spanEvents}
           categories={spanCategories}
-          onEventClick={() => {}}
+          onEventClick={(e) => (a11yClicked = e.title)}
         />
       </div>
     {/each}
@@ -128,7 +132,7 @@
         showMiniCalendar
         events={spanEvents}
         categories={spanCategories}
-        onEventClick={() => {}}
+        onEventClick={(e) => (a11yClicked = e.title)}
       />
     </div>
     <div data-testid="cal-a11y-daycell">

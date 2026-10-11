@@ -26,7 +26,9 @@ model matches, and the text it drew below AA moves to inks that clear it.
   grid placement on your snippet's root (`col-start-*`, `self-*`) no longer reaches the row, and
   a root that filled the row's height by stretching needs `h-full`. The wrapper takes no clicks
   and no focus; a control of yours that should take the arrow keys carries `data-date`
-  (`YYYY-MM-DD`) and `tabindex={isFocused ? 0 : -1}`.
+  (`YYYY-MM-DD`) and `tabindex={isFocused ? 0 : -1}`. The arrows move on from whichever such
+  control has focus, and Enter and Space on it select its date through Calendar instead of
+  reaching its own click handler. A control without `data-date` keeps its own keys.
 - **The week view is a labelled group, not a grid.** Its only arrow keys move between the day
   headings, and its hour grid has no cells, so `role="grid"` promised navigation it does not
   have. The layout is `role="group"` with the same label ("Week view") and is no longer a tab
@@ -35,8 +37,11 @@ model matches, and the text it drew below AA moves to inks that clear it.
   now with `role="gridcell"` inside a `role="row"`, so it is found by role as a gridcell, not
   as a button. The arrow keys are unchanged.
 - **Multi-day bars in the month view are gridcells in rows of their own.** Each stacking line of
-  bars above a week is a `role="row"`, and each bar a `role="gridcell"` with `aria-colindex` and
-  `aria-colspan`; a bar you can click is still a `<button>`, found by role as a gridcell. The
+  bars above a week is a `role="row"`, and each bar a `role="gridcell"` named by its title and
+  its dates in the calendar's locale (`Offsite, Jun 9 – 11, 2026`): Chromium places a cell by
+  its position in the row and ignores the `aria-colindex` and `aria-colspan` it also carries, so
+  the dates have to be in the name. A bar you can click is still a `<button>`, found by role as
+  a gridcell under that name, and Enter or Space on it fires `onEventClick`. The
   `multiDayBarContainer` slot styles each line's row instead of one box per week, so a row gap
   between lines no longer applies; space them with the bars' own margin.
 - **The mini calendar's days sit in one row per week**, and its grid is named by its month. Its
@@ -45,17 +50,20 @@ model matches, and the text it drew below AA moves to inks that clear it.
   brightness at a fixed threshold and chose white for mid tones where black reads better:
   `#8b5cf6`, `#3b82f6` and `#ef4444` labels turn black. A bar without a category, on the
   library's primary fill, takes `--color-text-on-primary`, which is dark on the dark-mode
-  primary. Colours the helper cannot read (`var()`, `color-mix()`, named colours, `hsl()`) still
-  get white. This reaches ResourceTimeline's category bars as well. The `ghost` variant no longer
-  draws its multi-day bars at 90 % opacity, which took their labels below AA.
+  primary. A colour the helper cannot read still gets white: a translucent one (an alpha below
+  1), a `var()` or `color-mix()`, a named colour or `hsl()`. This reaches ResourceTimeline's
+  category bars as well. The `ghost` variant no longer draws its multi-day bars at 90 % opacity,
+  which took their labels below AA.
 - **Outside-month days and week numbers are `text-tertiary`**, darker than the `text-quaternary`
-  they used: outside-month days stay clickable, so they are held to AA like any other text.
+  they used: outside-month days stay clickable, so they are held to AA like any other text. The
+  `ghost` variant's weekday names move from `text-quaternary` to `text-tertiary` as well.
 
 A test or selector that found a year-view month or a clickable bar as a `button`, or the week
-view as a `grid`, needs the new role:
+view as a `grid`, needs the new role, and a bar query by name needs its dates. The grep lists the
+role queries too, so expect hits that are not calendars:
 
 ```sh
-rg -n 'dayCell|multiDayBarContainer|Week view|Year overview|role="grid"' src e2e tests
+rg -n "dayCell|multiDayBarContainer|role=\"grid\"|getByRole\(['\"](button|grid)['\"]|role: ?['\"](button|grid)['\"]" src e2e tests
 ```
 
 ### TimeInput tells an empty field from a half-typed one

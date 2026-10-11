@@ -272,8 +272,11 @@ export interface CalendarProps
    * and no focus: a day that should respond to the pointer or the keyboard
    * renders its own control inside it. For the arrow keys to land on it, that
    * control must be focusable and carry `data-date` as `YYYY-MM-DD` — the grid
-   * focuses the `[data-date]` of the day the keys reach — and
-   * `tabindex={isFocused ? 0 : -1}` keeps it a single tab stop.
+   * focuses the `[data-date]` of the day the keys reach, and moves on from the
+   * one that has focus — and `tabindex={isFocused ? 0 : -1}` keeps it a single
+   * tab stop. Enter and Space on it select its date through Calendar; they do
+   * not reach the control's own click handler. A control without `data-date`
+   * keeps its own keys.
    * @summary Custom content for each day of the month grid; Calendar owns the gridcell around it.
    */
   dayCell?: Snippet<[DayCellContext]>;
