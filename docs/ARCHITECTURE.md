@@ -733,7 +733,11 @@ defaulting through `--blocks-duration-fast`:
 
 **Don't** hard-code 200/250 ms or panel-scale numbers in a new overlay. A new modal overlay
 picks up the `--blocks-overlay-*` tokens; a new anchored surface follows the Popover
-mechanism. In neither case mint parallel tokens.
+mechanism. In neither case mint parallel tokens. A new `<dialog>`-based modal also takes its
+lifecycle and dismiss policy from `createModalSurface`
+(`packages/blocks/src/lib/internal/modal-surface.svelte.ts`) — open/outro, scroll lock, focus
+return, Escape ownership, the overlay stack — the way Dialog and Drawer do, instead of
+writing its own.
 
 ### i18n
 

@@ -116,13 +116,13 @@ export function focusFirstElement(container: HTMLElement | undefined): void {
  * Promote a `<dialog>` to the top layer and move focus into its panel.
  *
  * **Precondition: `dialogEl` must already be bound.** Call this only once the
- * `bind:this` target exists — e.g. from `tick().then(...)` in the opener effect,
- * after the `{#if isVisible}` block has rendered. An earlier version deferred the
- * `showModal()` call with its own `tick()` in the hope of waiting for the bind,
- * but the ref is captured by value: if the caller passes an as-yet-unbound
- * `dialogEl`, the `tick()` still runs `undefined?.showModal()` — a silent no-op
- * that left Dialog/Drawer never actually modal. Sequencing is the caller's job;
- * the top-layer promotion here is synchronous (only the focus move inside
+ * `bind:this` target exists — e.g. from `tick().then(...)` in the opener effect
+ * (`createModalSurface`), after the block gated on `modal.visible` has rendered.
+ * Deferring inside this function cannot stand in for that: the ref is captured
+ * by value, so an as-yet-unbound `dialogEl` stays `undefined` through any
+ * `tick()` here, and `undefined?.showModal()` is a silent no-op that leaves the
+ * overlay never actually modal. Sequencing is the caller's job; the top-layer
+ * promotion here is synchronous (only the focus move inside
  * `focusFirstElement` defers by a tick).
  *
  * Acquires a body-scroll lock and returns its release function — the caller

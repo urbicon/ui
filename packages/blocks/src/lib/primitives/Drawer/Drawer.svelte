@@ -3,11 +3,10 @@
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
-  import { onDestroy, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { trapFocus, showDialogModal, closeDialogModal } from '#lib/utils/overlay.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
-  import { overlayStack, getOverlayMotion } from '#lib/utils/index.js';
+  import { getOverlayMotion } from '#lib/utils/index.js';
+  import { createModalSurface } from '#lib/internal/modal-surface.svelte.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -52,34 +51,15 @@
     ...restProps
   }: DrawerProps = $props();
 
-  // One-shot DEV sanity check on the initial close-path configuration.
-  // svelte-ignore state_referenced_locally
-  if (
-    import.meta.env?.DEV &&
-    hideCloseButton &&
-    closeOnEscape === false &&
-    closeOnBackdropClick === false
-  ) {
-    console.warn(
-      '[Drawer] All close paths are disabled (hideCloseButton + closeOnEscape=false + closeOnBackdropClick=false). The drawer is only closable programmatically — make sure your UI exposes an action that calls onClose or sets open=false.'
-    );
-  }
-
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   let dialogElement = $state<HTMLDialogElement>();
   let panelElement = $state<HTMLElement>();
-  let isVisible = $state(false);
-  let previouslyFocused: HTMLElement | null = null;
-  // Release for the body-scroll lock this instance holds while modal — set by
-  // showDialogModal, idempotent, so both teardown paths below may call it.
-  let releaseScrollLock: (() => void) | undefined;
 
   const uid = $props.id();
   const titleId = $derived(title ? `drawer-title-${uid}` : undefined);
   const bodyId = `drawer-body-${uid}`;
-  const overlayId = `drawer-${uid}`;
 
   // A rendered `title` owns the labelling; without one, a consumer-supplied
   // `aria-labelledby` (e.g. a heading inside `children`) is the fallback, so
@@ -128,113 +108,30 @@
     }
   });
 
-  function requestClose() {
-    if (!isVisible || !open) return;
-    open = false;
-    onClose?.();
-  }
-
-  // Native <dialog> only routes ESC to its `onkeydown` when focus is inside
-  // the dialog. With focus outside (never clicked in, or dropped to <body>
-  // when the focused button became disabled) an unclaimed ESC reaches the
-  // UA's close watcher, which closes a modal regardless of `closeOnEscape`.
-  // So the window listener claims ESC whenever this drawer is the top overlay
-  // and only then decides whether to close — the same rule as `handleKeydown`
-  // below. The `preventDefault()` is what holds the drawer: it stops the close
-  // watcher before it runs (the measurement is at Dialog's handler of the same
-  // name). The `isTop` guard makes sure stacked overlays close one-at-a-time.
-  function handleWindowKeydown(event: KeyboardEvent) {
-    if (event.key !== 'Escape') return;
-    if (!open || event.defaultPrevented) return;
-    if (!overlayStack.isTop(overlayId)) return;
-    event.preventDefault();
-    if (closeOnEscape) requestClose();
-  }
-
-  // Second line, for close requests that are not a keydown (back gesture,
-  // assistive tech): vetoing the UA's `cancel` keeps the drawer open while the
-  // window holds user activation; the close watcher's anti-abuse rule closes
-  // regardless on repeated requests without one (measured at Dialog). That
-  // close arrives as `close` and is routed through `onClose` like any other.
-  function handleNativeCancel(event: Event) {
-    if (!closeOnEscape) event.preventDefault();
-  }
-
-  $effect(() => {
-    if (open && !isVisible) {
-      isVisible = true;
-      previouslyFocused = document.activeElement as HTMLElement;
-      // Defer until the `{#if isVisible}` block has rendered so `bind:this` has
-      // assigned dialogElement/panelElement — showDialogModal captures the refs
-      // by value, so promoting before the bind would silently no-op (never modal).
-      // The guard covers same-flush teardown: if the component unmounts before
-      // the tick resolves, bind:this has nulled dialogElement and onDestroy has
-      // already run — a lock taken now could never be released.
-      tick().then(() => {
-        if (dialogElement) releaseScrollLock = showDialogModal(dialogElement, panelElement);
-      });
-    }
+  const modal = createModalSurface({
+    name: 'Drawer',
+    uid,
+    open: () => open,
+    setOpen: (value) => (open = value),
+    onClose: () => onClose,
+    closeOnEscape: () => closeOnEscape,
+    closeOnBackdropClick: () => closeOnBackdropClick,
+    hideCloseButton: () => hideCloseButton,
+    dialog: () => dialogElement,
+    panel: () => panelElement
   });
-
-  $effect(() => {
-    if (!open) return;
-    return overlayStack.register(overlayId, requestClose);
-  });
-
-  onDestroy(() => {
-    // Safety net for destroy-while-open, where no outro runs. Releasing is
-    // idempotent and scoped to this instance's own lock, so a regular close
-    // (already released in handleOutroEnd) or a never-opened instance make
-    // this a no-op — it can never free another overlay's lock.
-    releaseScrollLock?.();
-  });
-
-  function handleBackdropDirectClick() {
-    if (closeOnBackdropClick) requestClose();
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      // Honour an inner widget that already consumed this Escape — the same
-      // rule `handleWindowKeydown` above applies, and it has to hold here too
-      // or the two paths disagree about who owns the key. Select, Combobox and
-      // Popover all `preventDefault()` when Escape dismisses THEM; without this
-      // guard the event went on to close the whole drawer, so dismissing an
-      // open dropdown tore down the surface it was sitting on. Reachable from
-      // any drawer holding a control with a panel — the table's tools sheet is
-      // one.
-      if (event.defaultPrevented) return;
-      event.preventDefault();
-      if (closeOnEscape) requestClose();
-      return;
-    }
-    if (event.key === 'Tab') trapFocus(event, panelElement);
-  }
-
-  // Native `close` event (ESC handled by the UA, form[method=dialog], .close()).
-  // Named rather than inline so it can be composed with a consumer `onclose`.
-  function handleNativeClose() {
-    if (open) requestClose();
-  }
-
-  function handleOutroEnd() {
-    closeDialogModal(dialogElement, previouslyFocused, releaseScrollLock);
-    releaseScrollLock = undefined;
-    isVisible = false;
-    previouslyFocused = null;
-  }
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} />
+<svelte:window onkeydown={modal.handleWindowKeydown} />
 
-{#if isVisible}
+{#if modal.visible}
   <dialog
     {...restProps}
     bind:this={dialogElement}
     class={unstyled ? (slotClasses?.dialog ?? '') : styles.dialog({ class: slotClasses?.dialog })}
-    onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
-    onclose={composeHandlers(handleNativeClose, oncloseProp)}
-    oncancel={composeHandlers(handleNativeCancel, oncancelProp)}
+    onkeydown={composeHandlers(modal.handleKeydown, onkeydownProp)}
+    onclose={composeHandlers(modal.handleNativeClose, oncloseProp)}
+    oncancel={composeHandlers(modal.handleNativeCancel, oncancelProp)}
     aria-labelledby={labelledBy}
     aria-describedby={describedBy}
     aria-modal="true"
@@ -245,7 +142,7 @@
         class={unstyled
           ? (slotClasses?.backdrop ?? '')
           : styles.backdrop({ class: slotClasses?.backdrop })}
-        onclick={handleBackdropDirectClick}
+        onclick={modal.handleBackdropDirectClick}
         aria-hidden="true"
         role="presentation"
         transition:fade={{
@@ -266,7 +163,7 @@
         role="document"
         tabindex="-1"
         transition:fly={flyParams}
-        onoutroend={handleOutroEnd}
+        onoutroend={modal.handleOutroEnd}
       >
         {#if title || !hideCloseButton}
           <header
@@ -291,7 +188,7 @@
                 class={unstyled
                   ? (slotClasses?.closeButton ?? '')
                   : styles.closeButton({ class: slotClasses?.closeButton })}
-                onclick={requestClose}
+                onclick={modal.requestClose}
                 aria-label={bt('accessibility.closeDrawer')}
               >
                 <CloseIcon class="h-4 w-4" />

@@ -72,10 +72,11 @@ if (typeof window !== 'undefined') {
   // Svelte's transition engine actually touches (settable `onfinish`, `cancel`,
   // `currentTime`). Note it never *fires* `onfinish`, so the intro/outro
   // `on_finish` cleanup never runs — the panel is torn down by `unmount()`'s
-  // abort path instead (which the no-op `cancel()`/`onfinish` cover). Fine here
-  // because these tests assert synchronous dismiss logic, not the exit animation
-  // or post-close teardown; a future test that needs outro completion (DOM
-  // removal, focus-restore-on-close) would have to fire `onfinish` for real. The
+  // abort path instead (which the no-op `cancel()`/`onfinish` cover). A test
+  // that needs outro completion (DOM removal, focus restore on close) passes a
+  // zero duration instead (`transitionDuration: 0` on Dialog/Drawer): Svelte
+  // then never calls `element.animate` and finishes the transition
+  // synchronously, as `internal/modal-surface.svelte.test.ts` does. The
   // `finished`/`playState` fields are defensive only — Svelte doesn't read them.
   if (!Element.prototype.animate) {
     Element.prototype.animate = function animate() {

@@ -10,10 +10,11 @@ import type { ConfirmDialogProps } from './index';
 
 // Interaction layer for ConfirmDialog — the async confirm/cancel choreography on
 // top of Dialog. The dismiss matrix itself is Dialog's (covered in
-// Dialog.svelte.test.ts); what's unique here is the confirm/cancel contract and
-// the busy-lock: an async onConfirm keeps the dialog open + locked (spinner,
-// no double-submit) until it resolves, then auto-closes. That needs a mounted
-// DOM driven over time — a variant test can't reach it.
+// internal/modal-surface.svelte.test.ts and, for the `<dialog>`-level backdrop
+// click, Dialog.svelte.test.ts); what's unique here is the confirm/cancel
+// contract and the busy-lock: an async onConfirm keeps the dialog open + locked
+// (spinner, no double-submit) until it resolves, then auto-closes. That needs a
+// mounted DOM driven over time — a variant test can't reach it.
 //
 // Same stack as the Combobox pilot: svelte's own mount/unmount,
 // @testing-library/dom + user-event, native vitest matchers. Dialog opens via
