@@ -1,15 +1,18 @@
 <script lang="ts">
   import { mintAttachment } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { cardVariants, type CardVariants } from './card.variants';
   import type { CardProps } from './index';
 
+  const theme = useThemeProps('Card', () => preset);
+
   let {
-    variant = 'quiet',
-    tier = 'contain',
-    padding = 'md',
-    dividers = false,
+    preset,
+    variant = theme.variant ?? 'quiet',
+    tier = theme.tier ?? 'contain',
+    padding = theme.padding ?? 'md',
+    dividers = theme.dividers ?? false,
     disabled = false,
     mint = 'none',
     children,
@@ -22,7 +25,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: CardProps = $props();
 

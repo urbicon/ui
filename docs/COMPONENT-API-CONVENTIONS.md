@@ -372,6 +372,40 @@ Do not read "root slot" as "the first slot the `tv()` config declares". The two 
 
 `preset` is a plain `string` on every visible component, and **the library ships no presets**: `BlocksProvider`'s `presets` defaults to `{}`, and a name nobody registered resolves to nothing, with a development warning in the browser that prints the registration snippet. A preset is the consumer's name for a combination of `slotClasses` in its own product — `presets={{ Button: { overlay: { … } } }}` on its provider, `<Button preset="overlay">` at the call site. A look the library itself wants to offer goes into the component instead, as a variant, size or `intent`, where it is typed and held to the [variant contract](../packages/blocks/docs/VARIANT-CONTRACT.md). So a request for a library preset — `preset="circle"` on Button, say — is declined: it is a look for the consumer's `presets`, not a catalogue the library maintains. How a registered preset folds into the cascade is [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade).
 
+### Theme props: style in the theme, behaviour at the call site
+
+A provider entry and a preset can set a component's **props**, not only classes: `defaults={{ Input: { props: { variant: 'underline' } } }}` gives every Input that names no `variant` the shipped `underline` variant, instead of a theme rebuilding it in `slotClasses` and drifting from it (#214). Decided 2026-10-11, and the rule is one sentence: **style belongs in the theme, behaviour stays at the call site.** A theme may default a prop that changes how a component looks and nothing else — not what it renders, not how it behaves or is announced, not where it sits in the page, not a state the user or the data drives.
+
+The rule is applied per **name**, library-wide, and a name is admitted only where it is a look on every component that declares it. The admitted names are `STYLE_PROPS` in `packages/blocks/src/lib/provider/theme-props.ts` — the variant, size, colour-intent and tier axes, the spacing and density axes, and the motion and decoration axes. A component admits each of those names it declares as a prop **with a vocabulary type** (a literal union or a boolean): QRCode's `size` is pixels, a free value, and stays at the call site. `ThemePropsOf<'Input'>` is that set for one component, typed as the component types each prop, so a key the component does not declare, or a value its prop does not take, is a compile error; whether the component *reads* a key it declares is the sweep's question (below). A props type split into arms is read in the arm an instance naming nothing is in, so a value only a discriminated arm admits stays at the call site — Badge's `variant: 'dot'`, which hides the badge's content. A name with no provider entry of its own is typed open: `PaginationItem` declares no `slotClasses`, so `defaults.PaginationItem.props.variant` compiles and reaches nothing, as its slot classes would.
+
+What stays out, measured over every prop that is also a `tv()` axis of its component:
+
+| Why | Names |
+| --- | --- |
+| **Behaviour** — changes keys, focus, ARIA or what the element does | `orientation` (arrow keys or `aria-orientation` on Tab, RadioGroup, ButtonGroup, Toolbar, Separator, SplitPane, JourneyTimeline — so out on all), `mode`, `clickable`, `interactive`, `removable`, `clearable`, `autoResize`, `usePortal`, `syncWidth`, `snap`, `view`, `wrap` (a scrolling region on CodeBlock, truncation on Breadcrumb) |
+| **State** — the user or the data drives it | `disabled`, `readonly`, `required`, `error`, `open`, `checked`, `indeterminate`, `loading`, `active`, `pressed`, `expanded`, `status`, `dimmed`, `state` (StepperStep) |
+| **Content and structure** — changes what is rendered or announced | `layout` (Pagination's controls, ChatMessage's header), `citationStyle` (the chip's text), `detail`, `counter`, `optionalNote`, `showWeekNumbers`, `showWeekNumber` (Planner's deprecated spelling), `showToday`, `stacksOnNarrow`, `navPlacement` |
+| **Call-site layout** — where it sits, which the page decides | `placement`, `side`, `fullWidth`, `contentMaxWidth`, `align`, `emphasis` (needs `align="center"`), `legendPlacement`, `fluid`, `border` (Badge, to lift a positioned badge off its parent) |
+| **A signal about one instance** | `pulse`, `ring`, `animated` (Progress's moving stripes — and Calendar's and Planner's transition switch under the same name) |
+| **Derived by the component** — an axis its props type happens to expose | `hasLeftIcon`, `hasRightIcon`, `iconPosition`, `messageType`, `buttonGroupConnected`, `fill` |
+
+A new name joins `STYLE_PROPS` in the PR that introduces it, with its row here if it stays out.
+
+**How a component reads its theme.** Where its own default is written, so the theme ranks below the instance prop and above that default and nowhere else:
+
+```ts
+const theme = useThemeProps('Input', () => preset);
+let { preset, variant = theme.variant ?? 'outlined', ...rest }: InputProps = $props();
+```
+
+- **`preset` leads the destructuring.** The server keeps the pattern in source order, so a style prop listed before `preset` reads it before it exists and the render throws (`provider/theme-props-ssr.test.ts`).
+- **What already beats the own default beats the theme.** `tier` resolves `tier ?? tierCtx?.tier ?? theme.tier ?? 'modify'` — a Toolbar's `TierContext` outranks a theme; a ButtonGroup's variant outranks a Button's theme the way it outranks the Button's own prop. Badge's `purpose="tag"` keeps its neutral intent over a theme's for the same reason.
+- **Where a style prop also decides what is announced, only the call site's value decides that.** `intent` is a colour on every component that declares it, and on Alert it is also the urgency: `danger` and `warning` render `role="alert"`, which interrupts a screen reader. Alert paints a theme's `intent` — from `defaults` or a preset, a `preset="error"` written at the call site included — and takes its role from the instance `intent` alone, so a theme that tints every alert does not make every alert interrupt (`provider/theme-props.svelte.test.ts`).
+- **A composite resolves its own name and forwards the result.** What it passes down is an instance value for the component it renders, its own default included, so the inner name does not reach it: a DatePicker's field takes `DatePicker: { props: { inputVariant } }`, and `Input`'s entry does not reach it. A composite with no default of its own forwards `undefined` and the inner component resolves under its own name — NumberInput's field takes `NumberInput`'s entry first, then `Input`'s.
+- **Nothing to register, with one exception.** `provider/theme-props-sweep.svelte.test.ts` mounts every component the cascade registry finds with every value `ThemePropsOf` admits for it and requires the theme to render what the call site renders; a style prop a component declares and does not read fails it. A style prop that also sets an attribute only the call site may decide, as Alert's `intent` sets `role`, fails it as well until it is registered in `CALL_SITE_ATTRIBUTES` (`provider/__fixtures__/theme-call-site.ts`). The sweep then compares the markup without that attribute and requires the theme mount to carry it as a mount with no value does.
+
+The mechanism — precedence, how `overrides` see the resolved value, what a renderer has to leave unset — is [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade).
+
 ### The override ladder
 
 The five rungs a consumer reaches for, the rule that their numbering is blast radius rather than cascade strength, and how `unstyled` propagates are in [ARCHITECTURE.md § The override cascade](ARCHITECTURE.md#the-override-cascade). Two consequences bind the **prop surface** and belong here:

@@ -187,3 +187,53 @@ describe('Table under a BlocksProvider', () => {
     expect(classesOf(root, 'input[type="search"]')).toEqual([]);
   });
 });
+
+/**
+ * The blocks theme-props sweep reads the blocks barrel, which does not export
+ * Table, so Table's own style props are measured here: a value set through
+ * `defaults.Table.props` or a preset's `props` must render what the same value
+ * written on the instance renders.
+ */
+describe('Table theme props', () => {
+  /** The rendered table with the per-mount ids `$props.id()` hands out made equal. */
+  function markup(
+    provider: Parameters<typeof mountUnderProvider>[0],
+    table: Record<string, unknown> = {}
+  ): string {
+    const html = mountUnderProvider(provider, table).innerHTML.replace(/\bc\d+\b/g, 'cN');
+    if (comp) unmount(comp);
+    target?.remove();
+    comp = null;
+    target = null;
+    return html;
+  }
+
+  const CASES: [prop: 'variant' | 'size', values: string[]][] = [
+    ['variant', ['flush', 'surface', 'framed']],
+    ['size', ['sm', 'md', 'lg']]
+  ];
+
+  it.each(CASES)('%s: the theme renders what the call site renders', (prop, values) => {
+    const plain = markup({});
+    let shows = false;
+    for (const value of values) {
+      const written = markup({}, { [prop]: value });
+      expect(markup({ defaults: { Table: { props: { [prop]: value } } } }), value).toBe(written);
+      expect(
+        markup(
+          { presets: { Table: { house: { props: { [prop]: value } } } } },
+          { preset: 'house' }
+        ),
+        `${value} via a preset`
+      ).toBe(markup({ presets: { Table: { house: {} } } }, { preset: 'house', [prop]: value }));
+      if (written !== plain) shows = true;
+    }
+    expect(shows).toBe(true);
+  });
+
+  it('keeps the instance value above the theme', () => {
+    expect(
+      markup({ defaults: { Table: { props: { variant: 'framed' } } } }, { variant: 'surface' })
+    ).toBe(markup({}, { variant: 'surface' }));
+  });
+});

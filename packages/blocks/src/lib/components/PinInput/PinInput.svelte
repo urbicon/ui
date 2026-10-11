@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { PinInputProps } from './index';
@@ -10,7 +10,10 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('PinInput', () => preset);
+
   let {
+    preset,
     value = $bindable(''),
     length = 6,
     type = 'numeric',
@@ -21,9 +24,9 @@
     separator,
     groupSize = 3,
     tier,
-    variant = 'outlined',
-    size = 'md',
-    intent = 'default',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'default',
     disabled = false,
     readonly = false,
     required = false,
@@ -36,7 +39,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     id: idProp,
     'aria-label': ariaLabel,
     'aria-describedby': ariaDescribedby,
@@ -44,7 +46,7 @@
   }: PinInputProps = $props();
 
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);

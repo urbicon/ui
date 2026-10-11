@@ -1,3 +1,5 @@
+import type { StylePropsOf } from './theme-props';
+
 /**
  * The package barrel, as a type. Nothing is imported at runtime — `typeof
  * import(…)` is a type query, so this file emits no code and adds no edge to
@@ -81,3 +83,39 @@ export type ComponentSlotMap = {
  * case instead of resolving per member.
  */
 export type SlotOf<K> = [K] extends [keyof ComponentSlotMap] ? ComponentSlotMap[K] : string;
+
+/** A component's props, read off the same call signature {@link SlotKeysOf} matches. */
+type PropsOf<C> = C extends (internal: never, props: infer P) => unknown ? P : never;
+
+/**
+ * The props a provider entry under `K` may set in its `props` key: the
+ * component's own props, narrowed to the style props {@link StylePropsOf}
+ * admits — so each value is checked against the type the component itself
+ * gives that prop.
+ *
+ * Keyed on the names {@link ComponentSlotMap} holds, for the same reason: a
+ * component with no `slotClasses` prop resolves no cascade under a name of its
+ * own (`PaginationItem`), so it reads no theme under one either. A name outside
+ * the map keeps taking any key, as {@link SlotOf} does — the consumer's own
+ * wrapper reads its entry through `useThemeProps` with its own props type.
+ *
+ * `string` itself — the key of a config held in `Record<string,
+ * ComponentDefaults>` — names no component and takes any key too, and that
+ * branch comes first for a measured reason: against the published declarations
+ * the index signature of `BlocksDefaults<Record<string, unknown>>` resolved
+ * through the known-name branch (as {@link SlotOf} still does, harmlessly for a
+ * partial slot record), and every such config passed to the provider failed
+ * to compile in `@urbicon-ui/table`.
+ */
+export type ThemePropsOf<K> = string extends K
+  ? Record<string, unknown>
+  : [K] extends [keyof ComponentSlotMap]
+    ? NoneAsNever<StylePropsOf<PropsOf<Blocks[K & keyof Blocks]>>>
+    : Record<string, unknown>;
+
+/**
+ * An empty object type takes any object without an excess-property check, so a
+ * component with no style prop would accept every `props` key in silence. Each
+ * key is `never` instead, which rejects whatever is written.
+ */
+type NoneAsNever<S> = [keyof S] extends [never] ? Record<string, never> : S;

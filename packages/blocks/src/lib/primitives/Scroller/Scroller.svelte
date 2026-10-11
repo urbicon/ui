@@ -4,7 +4,7 @@
   import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
   import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ScrollerProps } from './index';
   import {
@@ -25,14 +25,17 @@
   const ChevronLeftIcon = resolveIcon('chevronLeft', ChevronLeftIconDefault);
   const ChevronRightIcon = resolveIcon('chevronRight', ChevronRightIconDefault);
 
+  const theme = useThemeProps('Scroller', () => preset);
+
   let {
+    preset,
     children,
     label,
     align = 'start',
     // Undefaulted: the resting strictness depends on `align` (see `snap` below),
     // which a plain default value cannot express.
     snap: snapProp,
-    gap = 'md',
+    gap = theme.gap ?? 'md',
     itemBasis = '16rem',
     controls = 'auto',
     indicator = 'none',
@@ -43,7 +46,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: ScrollerProps = $props();
 

@@ -105,6 +105,8 @@ export interface CascadeComponent {
    * with what `$props()` destructures.
    */
   declaredProps: string[];
+  /** The type its `$props()` call is annotated with, and the file declaring it. */
+  propsType: { name: string; file: string } | null;
   component: AnyComponent;
 }
 
@@ -377,27 +379,38 @@ function contractProps(
   resolveSpecifier: (specifier: string, from: string) => string | undefined
 ): string[] {
   const names = new Set(destructuredNames(code.match(PROPS_CALL)?.[1] ?? ''));
-  const typeName = code.match(PROPS_TYPE)?.[1];
-  if (typeName) {
-    // The annotation names a type this file imported, or declared itself.
-    let declaringFile = path;
-    for (const clause of code.matchAll(IMPORT_CLAUSE)) {
-      const imported = clause[1].split(',').map((name) =>
-        name
-          .trim()
-          .replace(/^type\s+/, '')
-          .split(/\s+as\s+/)
-          .pop()
-          ?.trim()
-      );
-      if (!imported.includes(typeName)) continue;
-      declaringFile = resolveSpecifier(clause[2], path) ?? path;
-    }
-    for (const member of membersOf(typeName, declaringFile, sourceOf, resolveSpecifier)) {
+  const propsType = propsTypeOf(path, code, resolveSpecifier);
+  if (propsType) {
+    for (const member of membersOf(propsType.name, propsType.file, sourceOf, resolveSpecifier)) {
       names.add(member);
     }
   }
   return [...names];
+}
+
+/** The type the `$props()` call is annotated with, and the file declaring it. */
+function propsTypeOf(
+  path: string,
+  code: string,
+  resolveSpecifier: (specifier: string, from: string) => string | undefined
+): { name: string; file: string } | null {
+  const typeName = code.match(PROPS_TYPE)?.[1];
+  if (!typeName) return null;
+  // The annotation names a type this file imported, or declared itself.
+  let declaringFile = path;
+  for (const clause of code.matchAll(IMPORT_CLAUSE)) {
+    const imported = clause[1].split(',').map((name) =>
+      name
+        .trim()
+        .replace(/^type\s+/, '')
+        .split(/\s+as\s+/)
+        .pop()
+        ?.trim()
+    );
+    if (!imported.includes(typeName)) continue;
+    declaringFile = resolveSpecifier(clause[2], path) ?? path;
+  }
+  return { name: typeName, file: declaringFile };
 }
 
 /**
@@ -611,6 +624,7 @@ export function exportedComponents(): Promise<CascadeComponent[]> {
       slots: scan.slots.size > 0 ? [...scan.slots] : ['base'],
       libraryTokens: scan.libraryTokens,
       declaredProps: contractProps(scan.path, scan.code, sourceOf, resolveSpecifier),
+      propsType: propsTypeOf(scan.path, scan.code, resolveSpecifier),
       component: scan.component
     }));
     return found.sort((a, b) => a.exportName.localeCompare(b.exportName));

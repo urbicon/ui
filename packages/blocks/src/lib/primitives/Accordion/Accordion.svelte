@@ -1,14 +1,17 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { accordionVariants, type AccordionVariants } from './accordion.variants';
   import { setAccordionContext } from './accordion.context';
   import type { AccordionProps, AccordionContext } from './index';
 
+  const theme = useThemeProps('Accordion', () => preset);
+
   let {
+    preset,
     type = 'single',
-    variant = 'default',
-    size = 'md',
+    variant = theme.variant ?? 'default',
+    size = theme.size ?? 'md',
     transitionDuration,
     transitionEasing,
     value = $bindable(),
@@ -20,7 +23,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: AccordionProps = $props();
 

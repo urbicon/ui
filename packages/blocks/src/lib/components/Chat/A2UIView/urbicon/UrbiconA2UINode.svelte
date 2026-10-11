@@ -88,6 +88,14 @@
     const value = nodeProps?.get(key);
     return typeof value === 'string' ? value : fallback;
   }
+  // A style prop the agent left out stays `undefined`, so the component resolves
+  // it as it does for any call site naming none: the provider's theme `props`
+  // first, then its own default. A fallback written here would read as an
+  // instance value and outrank the theme. Same narrowing as `u`.
+  function styleOpt<T extends string>(key: string): T | undefined {
+    const value = nodeProps?.get(key);
+    return typeof value === 'string' ? (value as T) : undefined;
+  }
   function numOr(value: unknown, fallback: number): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   }
@@ -512,7 +520,7 @@
   {/snippet}
   <Card
     unstyled={context.unstyled}
-    variant={u(enumOr('variant', 'quiet'))}
+    variant={styleOpt('variant')}
     aria-label={ariaLabel}
     header={headerNode ? cardHeader : undefined}
     footer={footerNode ? cardFooter : undefined}
@@ -578,9 +586,9 @@
 {:else if component === 'Button'}
   <Button
     unstyled={context.unstyled}
-    intent={u(enumOr('intent', 'neutral'))}
-    variant={u(enumOr('variant', 'filled'))}
-    size={u(enumOr('size', 'md'))}
+    intent={styleOpt('intent')}
+    variant={styleOpt('variant')}
+    size={styleOpt('size')}
     style={weightStyle}
     aria-label={ariaLabel}
     disabled={buttonDisabled}
@@ -726,20 +734,16 @@
     {/if}
   </div>
 {:else if component === 'Badge'}
-  {@const variant = enumOr('variant', 'filled')}
+  {@const variant = styleOpt<'filled' | 'soft' | 'outlined' | 'dot'>('variant')}
   {#if variant === 'dot'}
     <Badge
       unstyled={context.unstyled}
       variant="dot"
-      intent={u(enumOr('intent', 'primary'))}
+      intent={styleOpt('intent')}
       aria-label={ariaLabel || resolvedText('text') || undefined}
     />
   {:else}
-    <Badge
-      unstyled={context.unstyled}
-      variant={variant as 'filled' | 'soft' | 'outlined'}
-      intent={u(enumOr('intent', 'primary'))}
-    >
+    <Badge unstyled={context.unstyled} {variant} intent={styleOpt('intent')}>
       {resolvedText('text')}
     </Badge>
   {/if}
@@ -748,8 +752,8 @@
   <Alert
     unstyled={context.unstyled}
     title={resolvedText('title')}
-    intent={u(enumOr('intent', 'primary'))}
-    variant={u(enumOr('variant', 'soft'))}
+    intent={styleOpt('intent')}
+    variant={styleOpt('variant')}
     style={weightStyle}
   >
     {#if resolvedText('description')}
@@ -768,7 +772,7 @@
       ? undefined
       : progressValue}
     max={numOr(raw('max'), 100)}
-    intent={u(enumOr('intent', 'primary'))}
+    intent={styleOpt('intent')}
     label={resolvedText('label') || undefined}
     style={weightStyle}
     aria-label={ariaLabel}
@@ -778,7 +782,7 @@
     unstyled={context.unstyled}
     activeStep={stepperCurrent}
     orientation={enumOr('orientation', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}
-    variant={u(enumOr('variant', 'default'))}
+    variant={styleOpt('variant')}
     style={weightStyle}
     aria-label={ariaLabel}
   >
@@ -790,7 +794,7 @@
   <Accordion
     unstyled={context.unstyled}
     type={accordionMultiple ? 'multiple' : 'single'}
-    variant={u(enumOr('variant', 'default'))}
+    variant={styleOpt('variant')}
     style={weightStyle}
     aria-label={ariaLabel}
   >
@@ -808,8 +812,8 @@
     src={avatarSrc}
     name={resolvedText('name') || undefined}
     alt={resolvedText('name') || ariaLabel || undefined}
-    variant={u(enumOr('variant', 'circle'))}
-    size={u(enumOr('size', 'md'))}
+    variant={styleOpt('variant')}
+    size={styleOpt('size')}
   />
 {:else if component === 'Icon'}
   {#if iconSvgPath}

@@ -1,8 +1,9 @@
 <script lang="ts">
   import { Input } from '#lib/primitives/Input/index.js';
-  import { getBlocksConfig } from '#lib/provider/index.js';
+  import { getBlocksConfig, useThemeProps } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
   import { numberInputVariants, type NumberInputSlots } from './numberinput.variants';
@@ -10,7 +11,23 @@
 
   const ChevronIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
 
+  const theme = useThemeProps('NumberInput', () => preset);
+
   let {
+    // Out of the forwarded bag, each for its own reason: `preset` because it
+    // must resolve under this name rather than Input's (see below),
+    // `slotClasses` because it is the strongest rung of that same cascade, and
+    // `unstyled` because the stepper below is this component's own markup and
+    // has to obey it too. `preset` leads: the theme reads below read it.
+    preset,
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    // Resolved under this name and handed to Input as its own props; where
+    // this name sets nothing they stay `undefined`, and Input resolves its own.
+    variant = theme.variant,
+    size = theme.size,
+    intent = theme.intent,
+    tier,
     value = $bindable(null),
     min,
     max,
@@ -22,14 +39,6 @@
     name,
     onValueChange,
     rightIcon: userRightIcon,
-    // Out of the forwarded bag, each for its own reason: `preset` because it
-    // must resolve under this name rather than Input's (see below),
-    // `slotClasses` because it is the strongest rung of that same cascade, and
-    // `unstyled` because the stepper below is this component's own markup and
-    // has to obey it too.
-    unstyled: unstyledProp = false,
-    slotClasses: slotClassesProp = {},
-    preset,
     // Out of the bag too, so the handlers below run them after their own
     // instead of replacing them.
     oninput: oninputProp,
@@ -41,6 +50,10 @@
   }: NumberInputProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  // Instance, then a Toolbar's TierContext, then this name's theme — the order
+  // Input applies to its own tier; what is left unset Input resolves itself.
+  const tierCtx = getTierContext();
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier);
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   // Handed down rather than resolved here, and not forwarded as `preset`:
   // inside Input the name would be `Input`, so a preset written for the number
@@ -227,6 +240,10 @@
   unstyled={unstyledProp}
   {disabled}
   {readonly}
+  {variant}
+  {size}
+  {intent}
+  tier={effectiveTier}
   type="text"
   inputmode="decimal"
   role="spinbutton"

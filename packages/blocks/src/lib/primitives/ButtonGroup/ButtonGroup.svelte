@@ -1,6 +1,6 @@
 <script lang="ts">
   import { buttonGroupVariants, type ButtonGroupVariants } from '#lib/primitives/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
   import { getTierContext, setTierContext } from '#lib/utils/tier-context.js';
@@ -8,13 +8,16 @@
   import type { ButtonGroupContext, ButtonGroupProps } from './index';
   import { setButtonGroupContext } from './buttonGroup.context';
 
+  const theme = useThemeProps('ButtonGroup', () => preset);
+
   let {
+    preset,
     children,
     orientation = 'horizontal',
-    connected = true,
-    size = 'md',
-    intent = 'neutral',
-    variant = 'outlined',
+    connected = theme.connected ?? true,
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'neutral',
+    variant = theme.variant ?? 'outlined',
     tier,
     selection = 'none',
     value = $bindable(),
@@ -24,7 +27,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ariaLabel,
     ariaLabelledBy,
     // Pulled out of restProps so the `{...restProps}`-first spread (internal
@@ -36,25 +38,25 @@
     ...restProps
   }: ButtonGroupProps = $props();
 
-  // Tier precedence: own prop → outer TierContext (e.g. Toolbar) → orientation
-  // default. Re-propagate as our own TierContext so child Buttons inherit our
-  // tier (and not the outer one) when we override.
+  // Tier precedence: own prop → outer TierContext (e.g. Toolbar) → the theme →
+  // orientation default. Re-propagate as our own TierContext so child Buttons
+  // inherit our tier (and not the outer one) when we override.
   //
   // Why the fallback is orientation-aware: `commit` caps the group's outer
   // corners at the pill radius, which is right horizontally (that IS the
   // segmented-control pill — the cap is clamped to half the button height, the
   // group's short side). Vertically the same cap is clamped by the *width*, so
   // a stacked group of text buttons domes top and bottom into a lozenge (#194).
-  // Only the unset default softens; an explicit `tier="commit"` still gets the
-  // capsule, which is what a narrow icon-only stack wants — a judgement about
-  // the content that CSS cannot make. A wrapping Toolbar's TierContext counts as
+  // Only the unset default softens; an explicit `tier="commit"`, or a theme's,
+  // still gets the capsule, which is what a narrow icon-only stack wants — a
+  // judgement about the content that CSS cannot make. A wrapping Toolbar's TierContext counts as
   // set for the same reason (it is a deliberate setting one level out), so a
   // vertical group inside `<Toolbar tier="commit">` is a capsule too; Toolbar
   // itself defaults to `modify`. Disconnected groups have no caps at all, so
   // they keep the pill default their individual buttons read as.
   const outerTierCtx = getTierContext();
   const defaultTier = $derived(connected && orientation === 'vertical' ? 'modify' : 'commit');
-  const effectiveTier = $derived(tier ?? outerTierCtx?.tier ?? defaultTier);
+  const effectiveTier = $derived(tier ?? outerTierCtx?.tier ?? theme.tier ?? defaultTier);
   setTierContext({
     get tier() {
       return effectiveTier;

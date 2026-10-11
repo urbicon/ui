@@ -2,7 +2,7 @@
   import { useBlocksI18n } from '#lib';
   import type { FileUploadProps, FileUploadFile, FileUploadSlotName } from './index';
   import { fileUploadVariants, type FileUploadVariants } from './fileUpload.variants';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import UploadCloudIconDefault from '#lib/icons/UploadCloudIcon.svelte';
   import FileIconDefault from '#lib/icons/FileIcon.svelte';
@@ -35,7 +35,10 @@
   const CheckCircleIcon = resolveIcon('checkCircle', CheckCircleIconDefault);
   const DangerIcon = resolveIcon('danger', DangerCircleIconDefault);
 
+  const theme = useThemeProps('FileUpload', () => preset);
+
   let {
+    preset,
     children,
     fileItem: fileItemSnippet,
     dropzoneIcon,
@@ -59,13 +62,12 @@
     onFileReject,
     onFilesChange,
     onFileRemove,
-    size = 'md',
-    intent = 'neutral',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'neutral',
     mint = 'none',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp,
-    preset,
     // These address the control, so they go to the file input; the rest stays on the region.
     id: idProp,
     'aria-describedby': ariaDescribedby,

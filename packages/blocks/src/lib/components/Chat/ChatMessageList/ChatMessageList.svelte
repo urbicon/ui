@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ArrowDownIconDefault from '#lib/icons/ArrowDownIcon.svelte';
   import MessageSquareIconDefault from '#lib/icons/MessageSquareIcon.svelte';
@@ -21,14 +21,17 @@
   const ArrowDownIcon = resolveIcon('arrowDown', ArrowDownIconDefault);
   const MessageSquareIcon = resolveIcon('messageSquare', MessageSquareIconDefault);
 
+  const theme = useThemeProps('ChatMessageList', () => preset);
+
   let {
+    preset,
     messages,
     message: messageSnippet,
     empty,
     urlPolicy,
     partRenderers,
     layout,
-    density,
+    density = theme.density,
     onRegenerate,
     onRetry,
     onStickChange,
@@ -43,7 +46,6 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: ChatMessageListProps = $props();
 

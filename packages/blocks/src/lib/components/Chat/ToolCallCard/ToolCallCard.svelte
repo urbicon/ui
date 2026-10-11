@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { Badge, Collapsible } from '#lib/primitives/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
   import CoreSpinner from '#lib/internal/core/CoreSpinner.svelte';
@@ -11,9 +11,12 @@
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
 
+  const theme = useThemeProps('ToolCallCard', () => preset);
+
   let {
+    preset,
     toolCall,
-    variant = 'plain',
+    variant = theme.variant ?? 'plain',
     open = $bindable(),
     defaultOpen,
     onOpenChange,
@@ -27,7 +30,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: ToolCallCardProps = $props();
 

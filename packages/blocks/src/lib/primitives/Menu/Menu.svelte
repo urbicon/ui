@@ -1,7 +1,7 @@
 <script lang="ts" generics="TItem extends MenuItemType = MenuItemType">
   import { tick, untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { Button, menuVariants, type MenuVariants } from '#lib/primitives/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
@@ -31,7 +31,10 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Menu', () => preset);
+
   let {
+    preset,
     items = [],
     placeholder = bt('menu.placeholder'),
     getItemLabel,
@@ -58,17 +61,16 @@
     customItem,
     customHeader,
     customFooter,
-    variant = 'outlined',
-    size = 'md',
-    itemSize: itemSizeProp,
-    intent = 'neutral',
+    variant = theme.variant ?? 'outlined',
+    size = theme.size ?? 'md',
+    itemSize: itemSizeProp = theme.itemSize,
+    intent = theme.intent ?? 'neutral',
     tier,
     mint = 'none',
-    chevronAnimation = 'rotate',
+    chevronAnimation = theme.chevronAnimation ?? 'rotate',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     children,
     ...restProps
   }: MenuProps<TItem> = $props();
@@ -80,10 +82,10 @@
   const rootId = $derived(idProp ?? `menu-${propsId}`);
 
   // Tier resolution: explicit prop wins, otherwise inherit from a wrapping
-  // <Toolbar tier> / <ButtonGroup tier>, otherwise default to `commit` —
+  // <Toolbar tier> / <ButtonGroup tier>, then the theme, otherwise `commit` —
   // Menu is an Action surface, matching `<Button>`'s default tier.
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'commit');
 
   // The element that had focus when the menu opened (normally the trigger
   // button) — captured in the open effect below and refocused by `dismiss()`

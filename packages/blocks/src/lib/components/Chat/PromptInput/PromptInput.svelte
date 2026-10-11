@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
   import { resolveIcon } from '#lib/icons/index.js';
   import SendIconDefault from '#lib/icons/SendIcon.svelte';
@@ -21,7 +21,10 @@
   import { promptInputVariants, type PromptInputVariants } from './prompt-input.variants';
   import type { PromptInputProps } from './index';
 
+  const theme = useThemeProps('PromptInput', () => preset);
+
   let {
+    preset,
     value = $bindable(''),
     attachments = $bindable<FileIntakeEntry[]>([]),
     onValueChange,
@@ -47,14 +50,13 @@
     maxFiles,
     maxFileSize,
     validate,
-    size = 'md',
+    size = theme.size ?? 'md',
     leading,
     trailing,
     hint,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: PromptInputProps = $props();
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { mintAttachment } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext, useFormField } from '#lib/utils/index.js';
   import { checkboxVariants, type CheckboxVariants } from '#lib/primitives/index.js';
   import { resolveIcon } from '#lib/icons/index.js';
@@ -13,16 +13,19 @@
   const CheckMarkIcon = resolveIcon('check', CheckIconDefault);
   const IndeterminateIcon = resolveIcon('minus', MinusIconDefault);
 
+  const theme = useThemeProps('Checkbox', () => preset);
+
   let {
+    preset,
     checked = $bindable(false),
     indeterminate = $bindable(false),
     label,
     helper,
     error,
     tier,
-    size = 'md',
-    intent = 'primary',
-    variant = 'outlined',
+    size = theme.size ?? 'md',
+    intent = theme.intent ?? 'primary',
+    variant = theme.variant ?? 'outlined',
     disabled = false,
     required = false,
     name,
@@ -34,15 +37,14 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     'aria-describedby': ariaDescribedby,
     ...restProps
   }: CheckboxProps = $props();
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar /
-  // ButtonGroup) → 'modify' default (checkbox is an input-tap surface).
+  // ButtonGroup) → the theme → 'modify' default (checkbox is an input-tap surface).
   const tierCtx = getTierContext();
-  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? theme.tier ?? 'modify');
 
   // ARIA wiring is shared with every form primitive — see `useFormField`.
   const propsId = $props.id();

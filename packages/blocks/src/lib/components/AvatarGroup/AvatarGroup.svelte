@@ -1,21 +1,23 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
   import { Avatar } from '#lib/primitives/Avatar/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { avatarGroupVariants } from './avatar-group.variants';
   import type { AvatarGroupProps } from './index';
 
+  const theme = useThemeProps('AvatarGroup', () => preset);
+
   let {
+    preset,
     items,
-    size = 'md',
+    size = theme.size ?? 'md',
     max,
-    spacing = 'normal',
+    spacing = theme.spacing ?? 'normal',
     borderColor = 'var(--color-surface-base)',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: AvatarGroupProps = $props();
 

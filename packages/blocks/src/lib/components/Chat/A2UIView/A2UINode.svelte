@@ -164,13 +164,13 @@
     number: 'number',
     obscured: 'password'
   };
-  const BUTTON_STYLE: Record<
-    string,
-    { variant: 'filled' | 'text'; intent: 'primary' | 'neutral' }
-  > = {
-    default: { variant: 'filled', intent: 'neutral' },
-    primary: { variant: 'filled', intent: 'primary' },
-    borderless: { variant: 'text', intent: 'neutral' }
+  // Each spec style names only what it asks for. What it leaves out stays
+  // `undefined`, so the Button resolves it as it does for any call site naming
+  // none — the provider's theme `props`, then its own default.
+  const BUTTON_STYLE: Record<string, { variant?: 'text'; intent?: 'primary' }> = {
+    default: {},
+    primary: { intent: 'primary' },
+    borderless: { variant: 'text' }
   };
 
   // ── Icon resolution ──────────────────────────────────────────────────────

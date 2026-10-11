@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { createIncrementalParser } from '../markdown/blocks';
   import type { MarkdownParseOptions, MarkdownUrlPolicy } from '../markdown/types';
@@ -12,7 +12,10 @@
   } from './streaming-markdown.variants';
   import type { StreamingMarkdownProps } from './index';
 
+  const theme = useThemeProps('StreamingMarkdown', () => preset);
+
   let {
+    preset,
     content,
     streaming = false,
     sources,
@@ -22,11 +25,10 @@
     headingLevelStart = 1,
     linkTarget = '_blank',
     tableRegionLabel = 'Table',
-    size = 'md',
+    size = theme.size ?? 'md',
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: StreamingMarkdownProps = $props();
 

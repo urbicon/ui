@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { useBlocksI18n } from '#lib';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ProgressProps } from './index';
@@ -7,7 +7,10 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('Progress', () => preset);
+
   let {
+    preset,
     value,
     min = 0,
     max = 100,
@@ -17,15 +20,14 @@
     shape = 'linear',
     circularSize,
     strokeWidth,
-    intent = 'primary',
-    size = 'md',
+    intent = theme.intent ?? 'primary',
+    size = theme.size ?? 'md',
     indeterminate: indeterminateProp,
-    striped = false,
+    striped = theme.striped ?? false,
     animated = false,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: ProgressProps = $props();
 

@@ -171,7 +171,8 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
 
   /**
    * Size of the menu list items, independent from the trigger size.
-   * When not set, item size is derived from the trigger `size` prop.
+   * When not set, a `BlocksProvider` theme's `itemSize` applies, and without one
+   * the item size is derived from the trigger `size` prop.
    * @default undefined
    */
   itemSize?: 'sm' | 'md' | 'lg';

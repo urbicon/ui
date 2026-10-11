@@ -2,7 +2,7 @@
   import { tooltipVariants } from './tooltip.variants';
   import type { VariantProps } from '#lib/utils/variants.js';
   import type { TooltipProps } from './index';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
     computePosition,
     autoUpdate,
@@ -14,11 +14,14 @@
   import { isAnchoredInModalDialog } from '#lib/utils/overlay.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
 
+  const theme = useThemeProps('Tooltip', () => preset);
+
   let {
+    preset,
     children,
     label,
-    intent = 'neutral',
-    size = 'md',
+    intent = theme.intent ?? 'neutral',
+    size = theme.size ?? 'md',
     placement = 'top',
     showDelay = 200,
     hideDelay = 100,
@@ -31,7 +34,6 @@
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     ...restProps
   }: TooltipProps = $props();
 

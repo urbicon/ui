@@ -5,7 +5,8 @@
   import CopyIconDefault from '#lib/icons/CopyIcon.svelte';
   import { createCopyState } from '#lib/internal/copy-state.svelte.js';
   import { Button } from '#lib/primitives/Button/index.js';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { copyButtonVariants } from './copy-button.variants';
   import type { CopyButtonProps } from './index';
@@ -13,16 +14,19 @@
   const CopyIcon = resolveIcon('copy', CopyIconDefault);
   const CheckIcon = resolveIcon('check', CheckIconDefault);
 
+  const theme = useThemeProps('CopyButton', () => preset);
+
   let {
+    preset,
     value,
     label,
     children,
     copiedLabel,
     timeout = 2000,
-    variant = 'ghost',
-    intent = 'neutral',
-    size = 'md',
-    tier,
+    variant = theme.variant ?? 'ghost',
+    intent = theme.intent ?? 'neutral',
+    size = theme.size ?? 'md',
+    tier: tierProp,
     disabled = false,
     hideIcon = false,
     onCopy,
@@ -30,13 +34,18 @@
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
-    preset,
     // a11y attributes the component owns and merges consumer intent into (below),
     // pulled out of restProps so the component's state wiring can't be clobbered.
     'aria-label': ariaLabelProp,
     title: titleProp,
     ...restProps
   }: CopyButtonProps = $props();
+
+  // Forwarded to the Button inside, which would read the TierContext itself;
+  // read here too so this name's theme ranks below it, as a Button's own theme
+  // does. Left unset, the Button resolves its own.
+  const tierCtx = getTierContext();
+  const tier = $derived(tierProp ?? tierCtx?.tier ?? theme.tier);
 
   const bt = useBlocksI18n();
 

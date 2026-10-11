@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
+  import { useThemeProps } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import Button from '../Button/Button.svelte';
   import Dialog from '../Dialog/Dialog.svelte';
@@ -7,11 +8,14 @@
 
   const bt = useBlocksI18n();
 
+  const theme = useThemeProps('ConfirmDialog', () => preset);
+
   let {
+    preset,
     open = $bindable(false),
     title,
     description,
-    intent = 'danger',
+    intent = theme.intent ?? 'danger',
     confirmLabel,
     cancelLabel,
     confirmIntent,
@@ -23,7 +27,6 @@
     closeOnBackdropClick = true,
     closeOnEscape = true,
     children,
-    preset,
     slotClasses,
     // Destructured rather than left to ride `...rest`: the spread reaches the
     // inner Dialog and nothing else, so the two footer Buttons stayed dressed
