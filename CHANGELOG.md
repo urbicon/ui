@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.29.0](https://github.com/urbicon/ui/compare/v8.28.1...v8.29.0) - 2026-10-11
+
+### Breaking Changes
+- **blocks**: A label reaches FileUpload's file input, which is now its focusable control ([#529](https://github.com/urbicon/ui/issues/529))
+> **BREAKING:** FileUpload puts id, aria-labelledby, aria-describedby, aria-invalid and aria-required on its <input type="file"> instead of the root; the dropzone is no longer a focusable role="button"; the root is position: relative (MIGRATION.md).
+- **blocks**: Date pickers put aria-expanded on the calendar button, not the textbox ([#528](https://github.com/urbicon/ui/issues/528))
+> **BREAKING:** popup state moves from the text field to the calendar button; an `Input` `iconButton` override no longer reaches the empty-field calendar button; the clear + calendar pair is larger from `md` up; `onValueChange`/`bind:value` change on paths where they used to stay silent (MIGRATION.md).
+- **blocks**: Time inputs tell empty from half-typed and snap to a step raster ([#530](https://github.com/urbicon/ui/issues/530))
+> **BREAKING:** TimeInput's value and onValueChange carry string | null | undefined (undefined = empty, null = half-typed); with withSeconds the clamp emits HH:MM:SS (MIGRATION.md).
+- **blocks**: Date pickers report every close to onOpenChange, range picker keeps 6 rows ([#533](https://github.com/urbicon/ui/issues/533))
+> **BREAKING:** onOpenChange(false) now fires on outside click and Escape inside the calendar; DateRangePicker fixedWeeks defaults to true (MIGRATION.md).
+- **blocks**: Calendar grids keep to rows and cells, and its labels and outside days clear AA ([#534](https://github.com/urbicon/ui/issues/534))
+> **BREAKING:** Calendar grid roles, the dayCell gridcell wrapper, bar names and keys, label colour picks and outside-day ink change (MIGRATION.md).
+
+### Bug Fixes
+- **blocks**: Streaming markdown names each task-list checkbox by its own item ([#531](https://github.com/urbicon/ui/issues/531))
+
 ## [8.28.1](https://github.com/urbicon/ui/compare/v8.28.0...v8.28.1) - 2026-10-10
 
 ### Bug Fixes
