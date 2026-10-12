@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick, untrack } from 'svelte';
+  import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
@@ -83,6 +83,7 @@
     const el = viewportRef;
     if (!el) return;
 
+    writeEdgeWidths(el);
     viewportSize = el.clientWidth;
     scrollSize = el.scrollWidth;
     scrollStart = el.scrollLeft;
@@ -143,58 +144,74 @@
     };
   });
 
-  // Whether `itemBasis` is a length the `basis` edge padding can halve. Asked of
-  // the browser's own CSS parser, with the expression that padding resolves to
-  // once the custom property is substituted, so the answer is the one the
-  // cascade gives: `auto` and `max-content` are not lengths, and neither is
-  // anything else the parser would drop. An effect, so the server render and
-  // the hydrating client agree on `true`. For a basis that is not a length,
-  // `true` renders the dropped `basis` calc — zero padding, the same start
-  // padding `measured` shows until its first measurement.
-  let basisIsLength = $state(true);
+  // Whether `itemBasis` is a length the `basis` edge padding can halve.
+  //
+  // The browser has the last word: its CSS parser, asked about the custom
+  // property's COMPUTED value. The parser accepts any `var()` at parse time, so
+  // `itemBasis="var(--x)"` with `--x: auto` only shows itself once substituted.
+  // Asked only for a centred row, the one place the answer is used, and only
+  // where there is a `CSS` namespace (jsdom before 30 has none).
+  //
+  // Until it has answered — on the server, and so in the paint before
+  // hydration — the string answers: a bare identifier (`auto`, `max-content`,
+  // `stretch`) is never a length. That first answer has to be right, because
+  // the first layout decides where the row rests. Laid out start-aligned, the
+  // leading items of a centred row tie at scroll position 0, the engine counts
+  // one of them as snapped (WebKit: the second or third), and when the spacing
+  // lands it re-snaps onto that one. A `var()` the string cannot see through
+  // still takes that path, so in WebKit such a row can load resting there.
+  const keyword = /^-?[a-z][a-z-]*$/i;
+  let browserSaysLength = $state<boolean>();
   $effect(() => {
-    basisIsLength = CSS.supports('padding-left', `calc(50% - ${itemBasis}/2)`);
+    void itemBasis;
+    const el = viewportRef;
+    if (!el || align !== 'center' || typeof CSS === 'undefined') {
+      browserSaysLength = undefined;
+      return;
+    }
+    const basis = getComputedStyle(el).getPropertyValue('--blocks-scroller-item').trim();
+    browserSaysLength = CSS.supports('padding-left', `calc(50% - ${basis}/2)`);
   });
-  const edgePadding = $derived(basisIsLength ? 'basis' : 'measured');
+  const edgePadding = $derived(
+    (browserSaysLength ?? !keyword.test(itemBasis.trim())) ? 'basis' : 'measured'
+  );
 
-  // The `measured` edge padding's inputs (scroller.variants.ts). Written only on
-  // that path, so a row with a length basis keeps exactly the inline style it
-  // had. They come from `measure()`'s `offsetWidth`, so the `emphasis` lift
-  // cannot inflate them.
   const measuredEdges = $derived(align === 'center' && edgePadding === 'measured');
-  const widthOf = (item: ScrollerItemMetrics | undefined) => (item ? `${item.size}px` : undefined);
-  const firstItemWidth = $derived(measuredEdges ? widthOf(items[0]) : undefined);
-  const lastItemWidth = $derived(measuredEdges ? widthOf(items.at(-1)) : undefined);
 
-  // Prop changes that alter the track's geometry — a re-measure, not a re-render
-  // concern. Reading them is the point; `measure()` itself only writes.
+  // The `measured` edge spacing's inputs (scroller.variants.ts), written by
+  // `measure()` before it reads a single position. They move every item, and a
+  // consumer's `onMount` runs in the same flush right after this component's
+  // effects: written here they are in the DOM when it scrolls, so it aims at
+  // the final layout. Through the template they would land after it, and a
+  // smooth scroll already under way ends half the first item off centre.
+  // A margin changes no item's width, so one pass reads the widths that
+  // result. `offsetWidth`, so the `emphasis` lift cannot inflate them. Removed
+  // off that path, so a row with a length basis keeps exactly the inline style
+  // it had.
+  function writeEdgeWidths(el: HTMLElement) {
+    const measured = untrack(() => measuredEdges);
+    const ends = [
+      ['--blocks-scroller-first-item', el.firstElementChild],
+      ['--blocks-scroller-last-item', el.lastElementChild]
+    ] as const;
+    for (const [property, item] of ends) {
+      if (measured && item instanceof HTMLElement) {
+        el.style.setProperty(property, `${item.offsetWidth}px`);
+      } else {
+        el.style.removeProperty(property);
+      }
+    }
+  }
+
+  // Prop changes that alter the track's geometry, and the edge path they select
+  // — a re-measure, not a re-render concern. Reading them is the point;
+  // `measure()` reads the edge path untracked.
   $effect(() => {
     void itemBasis;
     void align;
     void gap;
+    void measuredEdges;
     measure();
-  });
-
-  // Writing the measured widths moves every item, so the row is measured again.
-  // After `tick()`: the widths change in the same flush as the measurement they
-  // come from, and an effect reading them runs before the template has written
-  // them to the DOM. A content-sized item keeps its width when the padding
-  // moves it, so the re-measure writes the same widths back and ends there.
-  //
-  // When they first land, the browser re-snaps to the item it had snapped
-  // before. Without the padding the leading items all clamp to one resting
-  // place, 0, and which of them counts as snapped is the engine's pick: WebKit
-  // picked the second or third chip and the row loaded resting there. So a row
-  // that is at its start when the widths change is put back on its first item —
-  // `instant`, because this corrects a layout rather than moving where the user
-  // asked.
-  $effect(() => {
-    if (firstItemWidth === undefined || lastItemWidth === undefined) return;
-    const restoreStart = untrack(() => scrollStart) <= 1;
-    void tick().then(() => {
-      if (restoreStart) viewportRef?.scrollTo({ left: 0, behavior: 'instant' });
-      measure();
-    });
   });
 
   // What the container can actually reach. Passing it into the geometry is what
@@ -367,8 +384,6 @@
       ? (slotClasses?.viewport ?? '')
       : styles.viewport({ class: slotClasses?.viewport })}
     style:--blocks-scroller-item={itemBasis}
-    style:--blocks-scroller-first-item={firstItemWidth}
-    style:--blocks-scroller-last-item={lastItemWidth}
     role={overflowing ? 'group' : undefined}
     aria-label={overflowing ? label : undefined}
     tabindex={overflowing ? 0 : undefined}

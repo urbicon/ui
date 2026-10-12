@@ -2,7 +2,7 @@
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ScrollerHarness from './__fixtures__/ScrollerHarness.svelte';
 
 // Interaction layer for Scroller. The contract under test is the one the plan
@@ -499,7 +499,7 @@ function parseLikeABrowser() {
 
 describe('Scroller — centring items of different widths', () => {
   // `itemBasis="auto"`: six chips at their content width in a 600px row. The
-  // geometry is padded the way the browser pads it once the component has
+  // geometry is spaced the way the browser spaces it once the component has
   // written the measured end widths — (600 − 40) / 2 before the first chip,
   // (600 − 180) / 2 after the last.
   const WIDTHS = [40, 160, 70, 130, 110, 180];
@@ -525,15 +525,36 @@ describe('Scroller — centring items of different widths', () => {
     expect(supports).toHaveBeenCalledWith('padding-left', 'calc(50% - auto/2)');
   });
 
-  it('pads each side by half its own end item, from the measured widths', () => {
+  it('asks about the basis as computed, so a var() that resolves to auto is seen', () => {
+    // The parser accepts any var() as written. jsdom does not substitute
+    // custom properties, so this stands in for the browser's computed value of
+    // `itemBasis="var(--chip-basis)"` under `--chip-basis: auto`.
+    const supports = parseLikeABrowser();
+    vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(
+      () =>
+        ({
+          getPropertyValue: (name: string) => (name === '--blocks-scroller-item' ? 'auto' : '')
+        }) as CSSStyleDeclaration
+    );
+    const { viewport } = render({ ...chipRow, itemBasis: 'var(--chip-basis)' }, CHIPS);
+
+    expect(supports).toHaveBeenCalledWith('padding-left', 'calc(50% - auto/2)');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
+    expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
+  });
+
+  it('spaces each end by half its own end item, from the measured widths', () => {
     parseLikeABrowser();
     const { viewport } = render(chipRow, CHIPS);
 
     expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
     expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('180px');
+    // Margins on the end items, never padding on the track: padding would
+    // narrow the box an item with a `%` width sizes against.
     expect(viewport.className).toContain(
-      'pl-[calc(50%_-_var(--blocks-scroller-first-item,100%)/2)]'
+      '[&>:first-child]:ms-[calc(50%_-_var(--blocks-scroller-first-item,0px)/2)]'
     );
+    expect(viewport.className).not.toMatch(/(^|\s)(p[xlrse]|ps|pe)-\[calc/);
     expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
     // Still a stage: the snap strictness follows `align`, not the basis.
     expect(viewport.className).toContain('snap-mandatory');
@@ -583,26 +604,42 @@ describe('Scroller — centring items of different widths', () => {
     expect(next.disabled).toBe(true);
   });
 
-  it('rests on the first chip after the padding lands, whichever chip the engine re-snapped to', async () => {
-    // Before the measured padding the first three chips all clamp to resting
-    // place 0, and when the padding moves them the engine re-snaps to the one it
-    // had picked — in WebKit the second or third. Simulated here by moving the
-    // row to the second chip's place between the write and the next tick.
+  it('has the end widths in place before a consumer onMount can scroll', () => {
+    // A consumer's scroll aims at the layout it finds. Without the widths the
+    // ends sit at the 50% fallback, and once they land the row has moved by
+    // half the first chip under a smooth scroll that is still aiming at the
+    // old place (e2e/scroller-centre.spec.ts).
+    parseLikeABrowser();
+    let seen: string | undefined;
+    render(
+      {
+        ...chipRow,
+        onmount: () => {
+          const viewport = document.querySelector('[data-align]')?.firstElementChild;
+          seen = (viewport as HTMLElement).style.getPropertyValue('--blocks-scroller-first-item');
+        }
+      },
+      CHIPS
+    );
+    expect(seen).toBe('40px');
+  });
+
+  it('never scrolls the row itself, neither when it loads nor when the end widths change', async () => {
+    // The position belongs to the user and the consumer. The engine snaps the
+    // first chip into the middle from the server render on, so the end widths
+    // land with nothing to correct (e2e/scroller-centre.spec.ts); a scroll of
+    // the component's own would override a consumer that moved the row first.
     const user = userEvent.setup();
     parseLikeABrowser();
-    const { viewport, items } = render({ ...chipRow, indicator: 'dots' }, CHIPS);
-    scrollOffsets.set(viewport, 101);
-
+    const { viewport } = render({ ...chipRow, indicator: 'dots' }, CHIPS);
     await tick();
     flushSync();
-    expect(viewport.scrollLeft).toBe(0);
-    expect(offCentre(viewport, items[0] as HTMLElement)).toBe(0);
-    expect(dots()[0]?.getAttribute('aria-current')).toBe('true');
+    expect(scrollToCalls).toEqual([]);
 
-    // A row the user has moved keeps its place when the end widths change.
     await user.click(dots()[3] as HTMLElement);
     flushSync();
     const placed = viewport.scrollLeft;
+    scrollToCalls = [];
     const chip = document.createElement('span');
     viewport.append(chip);
     itemViewports.set(chip, viewport);
@@ -610,6 +647,8 @@ describe('Scroller — centring items of different widths', () => {
     await Promise.resolve();
     await tick();
     flushSync();
+    expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('96px');
+    expect(scrollToCalls).toEqual([]);
     expect(viewport.scrollLeft).toBe(placed);
   });
 
@@ -627,6 +666,38 @@ describe('Scroller — centring items of different widths', () => {
     flushSync();
     expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('96px');
     expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
+  });
+});
+
+describe('Scroller — where there is no CSS namespace', () => {
+  // jsdom before 30 ships no `CSS`, and a consumer suite on it mounts every
+  // Scroller its pages hold — start-aligned ones included.
+  const css = globalThis.CSS;
+  beforeEach(() => {
+    Reflect.deleteProperty(globalThis, 'CSS');
+    // Positive control: without it every case below passes vacuously.
+    expect(typeof CSS).toBe('undefined');
+  });
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'CSS', { value: css, configurable: true, writable: true });
+  });
+
+  it('mounts a start-aligned row', () => {
+    expect(() => render({}, OVERFLOWS)).not.toThrow();
+  });
+
+  it('keeps a centred row with a length basis on its CSS padding', () => {
+    const { viewport } = render({ align: 'center' }, OVERFLOWS);
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+  });
+
+  it('still takes a centred `auto` row for what it is', () => {
+    const { viewport } = render(
+      { align: 'center', itemBasis: 'auto', count: 6 },
+      { viewportWidth: 600, itemWidth: 100 }
+    );
+    expect(viewport.className).toContain('[&>:first-child]:ms-[');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('100px');
   });
 });
 

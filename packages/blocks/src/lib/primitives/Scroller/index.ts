@@ -105,12 +105,15 @@ export interface ScrollerProps
    * Width of each item, as any CSS length (`'18rem'`, `'clamp(14rem,60vw,22rem)'`),
    * or `'auto'` to leave each item at its own content width. This is what
    * decides when the row overflows, so it is a prop rather than a class: with
-   * `align="center"` the component needs it to compute the edge padding. A
+   * `align="center"` the component needs it to compute the edge spacing. A
    * length does that in CSS, from the server render on. For a value that is not
-   * a length the component measures the first and last item instead, so a
-   * centred row of mixed widths still brings both ends to the middle; until the
-   * client has measured, it rests like `align="start"`. Override per-item layout
-   * via `slotClasses.viewport` if you need responsive widths.
+   * a length — `auto`, `max-content`, or a `var()` resolving to one — the
+   * component measures the first and last item instead, so a centred row of
+   * mixed widths still brings both ends to the middle. Pass a keyword directly
+   * where you can: the component can resolve a `var()` only in the browser, so
+   * until hydration such a row rests like `align="start"`, and Safari can then
+   * leave it on its second or third item. Override per-item layout via
+   * `slotClasses.viewport` if you need responsive widths.
    * @default '16rem'
    * @summary Width of each item — what decides when the row starts to overflow.
    */

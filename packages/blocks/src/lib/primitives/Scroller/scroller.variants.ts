@@ -96,18 +96,18 @@ export const scrollerVariants = tv({
   },
 
   variants: {
-    // Where an item comes to rest. `center` additionally pads the track by half
-    // the leftover width, which is the ONLY way the first and last item can ever
-    // reach the middle — without it the browser clamps at the scroll extent and
-    // they rest at the edge. That is the classic centred-carousel bug, and it is
-    // a layout rule, not decoration, so it lives here: in the compounds below,
-    // because how wide the padding is depends on `edgePadding`.
+    // Where an item comes to rest. `center` additionally spaces the track's ends
+    // by half the leftover width, which is the ONLY way the first and last item
+    // can ever reach the middle — without it the browser clamps at the scroll
+    // extent and they rest at the edge. That is the classic centred-carousel
+    // bug, and it is a layout rule, not decoration, so it lives here: in the
+    // compounds below, because how the ends are spaced depends on `edgePadding`.
     align: {
       start: { viewport: '[&>*]:snap-start' },
       center: { viewport: '[&>*]:snap-center' }
     },
 
-    // Where a centred row's edge padding takes the item width from. Not a prop:
+    // Where a centred row's edge spacing takes the item width from. Not a prop:
     // the component derives it from `itemBasis`.
     //
     // - `basis` — half of `--blocks-scroller-item` on both sides. Pure CSS, so
@@ -116,10 +116,21 @@ export const scrollerVariants = tv({
     // - `measured` — for a basis that is not a length (`auto`, `max-content`).
     //   There the `basis` calc() is invalid, the browser drops the whole
     //   declaration and the row rests like `align="start"`; and the items
-    //   differ in width, so no single half-item centres both ends. The left
-    //   side halves the first item, the right side the last, from widths the
-    //   component measures. Until they are written the `100%` fallback makes
-    //   each side `50% - 50%`, i.e. the start padding, as a valid declaration.
+    //   differ in width, so no single half-item centres both ends. The start
+    //   side halves the first item, the end side the last, from widths the
+    //   component measures.
+    //
+    //   Margins on the end items, not padding on the track: padding narrows the
+    //   content box, and an item sized against it — a `%` width, an image held
+    //   to `max-width: 100%` — shrinks, is measured again, and shrinks further.
+    //   A margin leaves the box alone, and the end margin still counts toward
+    //   the scrollable overflow, so the last item reaches the middle
+    //   (e2e/scroller-centre.spec.ts).
+    //
+    //   Until the widths are written the `0px` fallback leaves each side at
+    //   50%. That keeps the leading items apart from the first layout on, so
+    //   the engine snaps the first one into the middle before any script runs
+    //   instead of picking one of several items tied at scroll position 0.
     edgePadding: {
       basis: {},
       measured: {}
@@ -183,8 +194,8 @@ export const scrollerVariants = tv({
       edgePadding: 'measured' as const,
       class: {
         viewport: [
-          'pl-[calc(50%_-_var(--blocks-scroller-first-item,100%)/2)]',
-          'pr-[calc(50%_-_var(--blocks-scroller-last-item,100%)/2)]'
+          '[&>:first-child]:ms-[calc(50%_-_var(--blocks-scroller-first-item,0px)/2)]',
+          '[&>:last-child]:me-[calc(50%_-_var(--blocks-scroller-last-item,0px)/2)]'
         ]
       }
     },
