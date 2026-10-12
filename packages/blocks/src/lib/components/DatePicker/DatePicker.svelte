@@ -19,6 +19,7 @@
   import { coerceToDate, toDateInputValue } from '#lib/utils/date.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import type { DatePickerProps } from '.';
 
   const bt = useBlocksI18n();
@@ -54,7 +55,6 @@
     fixedWeeks = true,
     minDate,
     maxDate,
-    disabledDates = [],
     isDateDisabled,
     calendarVariant = theme.calendarVariant ?? 'default',
     inputVariant = theme.inputVariant ?? 'outlined',
@@ -74,6 +74,9 @@
     onfocusout: onfocusoutProp,
     ...restProps
   }: DatePickerProps = $props();
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV) warnRemovedDisabledDates('DatePicker', restProps);
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -211,7 +214,7 @@
       parseError = bt('datepicker.invalidDate');
       return;
     }
-    if (!isDateAllowed(parsed, { minDate, maxDate, disabledDates, isDateDisabled })) {
+    if (!isDateAllowed(parsed, { minDate, maxDate, isDateDisabled })) {
       parseError = bt('datepicker.outOfRange');
       return;
     }
@@ -437,7 +440,6 @@
         {fixedWeeks}
         {minDate}
         {maxDate}
-        {disabledDates}
         {isDateDisabled}
         {defaultMonth}
         {defaultYear}

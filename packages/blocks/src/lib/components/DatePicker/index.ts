@@ -46,14 +46,20 @@ import type { DatePickerSlots } from './datepicker.variants';
  * />
  * ```
  *
- * @example
+ * @example Weekends and holidays closed — a list becomes a `Set` of `toIso` keys
  * ```svelte
+ * <script lang="ts">
+ *   import { toIso } from '@urbicon-ui/blocks/date';
+ *
+ *   const holidays = new Set([new Date(2026, 11, 24), new Date(2026, 11, 25)].map(toIso));
+ * </script>
+ *
  * <DatePicker
  *   bind:value={deadline}
  *   label="Deadline"
  *   minDate={new Date()}
  *   maxDate={new Date(2026, 11, 31)}
- *   isDateDisabled={(d) => d.getDay() === 0 || d.getDay() === 6}
+ *   isDateDisabled={(d) => holidays.has(toIso(d)) || d.getDay() === 0 || d.getDay() === 6}
  *   required
  *   error={deadlineError}
  * />
@@ -139,12 +145,15 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
   minDate?: Date;
   /** Latest selectable date. */
   maxDate?: Date;
-  /** Specific dates that are disabled. */
-  disabledDates?: Date[];
   /**
-   * Predicate that disables specific dates. Errors thrown by the
-   * predicate are caught and logged; the date is then treated as
-   * allowed so a faulty consumer callback can't take the picker down.
+   * Disables every day it returns `true` for, on top of `minDate`/`maxDate` — the one way
+   * to disable single days, whether a rule (weekends) or a list (holidays). The calendar
+   * cannot pick a disabled day, though its arrow keys land on it, and a typed one is
+   * rejected as out of range when it is committed. It receives a `Date` of its own for
+   * each day — read only its calendar day. It runs again when `$state` it reads changes.
+   * Compare calendar days, not `Date` objects (`list.includes(d)` matches nothing): keep a
+   * list as a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
+   * `(d) => blocked.has(toIso(d))`. It must not throw; the calendar does not catch it.
    */
   isDateDisabled?: (date: Date) => boolean;
 
@@ -219,12 +228,27 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
 
 /**
  * @summary From and to, in two clicks on one calendar.
- * @description Date range picker with a dual-calendar popup for selecting a start and end date — min/max constraints, disabled dates, and native form submission via paired hidden inputs.
+ * @description Date range picker with a calendar popup for selecting a start and end date — min/max constraints, disabled dates, and native form submission via paired hidden inputs.
  *
  * @tag form
  * @related DatePicker
  * @related Calendar
  * @standalone
+ *
+ * @example Booked nights closed — a list becomes a `Set` of `toIso` keys
+ * ```svelte
+ * <script lang="ts">
+ *   import { toIso } from '@urbicon-ui/blocks/date';
+ *
+ *   const booked = new Set([new Date(2026, 6, 10), new Date(2026, 6, 11)].map(toIso));
+ * </script>
+ *
+ * <DateRangePicker
+ *   bind:value={stay}
+ *   label="Check-in / check-out"
+ *   isDateDisabled={(d) => booked.has(toIso(d))}
+ * />
+ * ```
  */
 export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Currently selected date range. Supports bind:value. */
@@ -304,11 +328,16 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
   minDate?: Date;
   /** Latest selectable date. */
   maxDate?: Date;
-  /** Specific dates that are disabled. */
-  disabledDates?: Date[];
   /**
-   * Predicate that disables specific dates. Throws are caught and logged;
-   * the date is then treated as allowed.
+   * Disables every day it returns `true` for, on top of `minDate`/`maxDate` — the one way
+   * to disable single days, whether a rule (weekends) or a list (holidays). Only a range's
+   * two ends are checked: the calendar cannot start or end a range on a disabled day, and a
+   * typed range with a disabled end is rejected as out of range, but a range may span
+   * disabled days. It receives a `Date` of its own for each day — read only its calendar
+   * day. It runs again when `$state` it reads changes. Compare calendar days, not `Date`
+   * objects (`list.includes(d)` matches nothing): keep a list as a `Set` of `toIso` keys
+   * from `@urbicon-ui/blocks/date` and pass `(d) => blocked.has(toIso(d))`. It must not
+   * throw; the calendar does not catch it.
    */
   isDateDisabled?: (date: Date) => boolean;
 

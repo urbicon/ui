@@ -87,8 +87,7 @@ export const calendarVariants = tv({
       'cursor-pointer select-none',
       'transition-[color,background-color,box-shadow] duration-[var(--blocks-duration-fast)]',
       'hover:bg-surface-hover',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1',
-      'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent'
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
     ],
     dayNumber: 'font-medium text-text-primary tabular-nums leading-none',
     dotContainer: 'flex items-center justify-center gap-0.5',

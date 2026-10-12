@@ -15,7 +15,11 @@
 
 export { default as DateGridScaffold } from './DateGridScaffold.svelte';
 export { getDateGridContext, setDateGridContext } from './date-grid.context';
-export { type DateGridKeyboardTarget, handleDateGridKeydown } from './date-grid.keyboard';
+export {
+  type DateGridKeyboardTarget,
+  focusDayCell,
+  handleDateGridKeydown
+} from './date-grid.keyboard';
 export { DateGridController, type DateGridOptions } from './date-grid.svelte';
 export type {
   DateCategory,

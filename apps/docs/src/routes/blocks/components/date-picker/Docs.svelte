@@ -31,7 +31,7 @@
 
     <CodeExample
       title="With Constraints"
-      description="minDate, maxDate, disabledDates and isDateDisabled together: only weekdays in March 2026 stay selectable, with weekends and holidays locked out."
+      description="minDate and maxDate bound the calendar to March 2026; isDateDisabled locks out weekends by rule and two holidays by list. The list is a Set of toIso keys, because the picker hands the predicate its own Date objects."
       code={withConstraintsCode}
     >
       <WithConstraints />

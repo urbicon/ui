@@ -4,7 +4,7 @@
  * Two groups:
  *
  *  1. What Planner gained from Calendar — `minDate`/`maxDate`,
- *     `disabledDates`/`isDateDisabled`, `fixedWeeks`, and the
+ *     `isDateDisabled`, `fixedWeeks`, and the
  *     `showWeekNumber` → `showWeekNumbers` rename. The bounds and the
  *     predicate were already implemented in the shared `DateGridController`;
  *     Planner simply never passed them, which is precisely the kind of gap
@@ -29,6 +29,7 @@
 import type { ComponentProps } from 'svelte';
 import { render } from 'svelte/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { toIso } from '#lib/date/index.js';
 import type { PlannerProps } from './index';
 import Planner from './Planner.svelte';
 
@@ -39,6 +40,12 @@ interface Meal {
 
 const anchor = new Date(2026, 5, 15); // Mon 15 Jun 2026
 const getMealDate = (m: Meal) => m.date;
+
+/** A list of days as the predicate the JSDoc gives: a `Set` of `toIso` keys. */
+const listed = (...days: Date[]) => {
+  const blocked = new Set(days.map(toIso));
+  return (d: Date) => blocked.has(toIso(d));
+};
 
 function renderPlanner(props: Partial<PlannerProps<Meal>>) {
   return render(Planner, {
@@ -64,11 +71,11 @@ describe('Planner navigation constraints (mirrored from Calendar)', () => {
     expect(cellTag(body, '2026-06-18')).toContain('aria-disabled="true"');
   });
 
-  it('disables the dates listed in disabledDates', () => {
+  it('disables the dates a toIso-keyed list names', () => {
     const { body } = renderPlanner({
       view: 'week',
       value: anchor,
-      disabledDates: [new Date(2026, 5, 17)]
+      isDateDisabled: listed(new Date(2026, 5, 17))
     });
     expect(cellTag(body, '2026-06-17')).toContain('aria-disabled="true"');
     expect(cellTag(body, '2026-06-18')).not.toContain('aria-disabled="true"');
@@ -86,12 +93,12 @@ describe('Planner navigation constraints (mirrored from Calendar)', () => {
     expect(cellTag(body, '2026-06-19')).not.toContain('aria-disabled="true"'); // Fri
   });
 
-  it('combines disabledDates with isDateDisabled rather than replacing it', () => {
+  it('combines a list with a rule in one predicate', () => {
+    const isListed = listed(new Date(2026, 5, 16));
     const { body } = renderPlanner({
       view: 'week',
       value: anchor,
-      disabledDates: [new Date(2026, 5, 16)],
-      isDateDisabled: (d: Date) => d.getDate() === 18
+      isDateDisabled: (d: Date) => isListed(d) || d.getDate() === 18
     });
     expect(cellTag(body, '2026-06-16')).toContain('aria-disabled="true"');
     expect(cellTag(body, '2026-06-18')).toContain('aria-disabled="true"');
@@ -119,7 +126,7 @@ describe('Planner renders the constraints, not just announces them', () => {
     const { body } = renderPlanner({
       view: 'week',
       value: anchor,
-      disabledDates: [new Date(2026, 5, 17)]
+      isDateDisabled: listed(new Date(2026, 5, 17))
     });
     expect(cellBody(body, '2026-06-17')).toContain('text-text-disabled');
     expect(cellBody(body, '2026-06-18')).toContain('text-text-secondary');

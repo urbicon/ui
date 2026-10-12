@@ -38,6 +38,22 @@ import type { PlannerCellState, PlannerSlots, PlannerVariants } from './planner.
  *   {/snippet}
  * </Planner>
  * ```
+ *
+ * @example Closed days — a list becomes a `Set` of `toIso` keys
+ * ```svelte
+ * <script lang="ts">
+ *   import { toIso } from '@urbicon-ui/blocks/date';
+ *
+ *   const closed = new Set([new Date(2026, 4, 1), new Date(2026, 4, 14)].map(toIso));
+ * </script>
+ *
+ * <Planner
+ *   view="month"
+ *   items={entries}
+ *   getDate={(e) => e.date}
+ *   isDateDisabled={(d) => closed.has(toIso(d))}
+ * />
+ * ```
  */
 export interface PlannerProps<T = unknown>
   extends Omit<PlannerVariants, 'view' | keyof PlannerCellState>,
@@ -94,9 +110,15 @@ export interface PlannerProps<T = unknown>
   minDate?: Date;
   /** Latest navigable/selectable date. */
   maxDate?: Date;
-  /** Specific dates that cannot be selected. */
-  disabledDates?: Date[];
-  /** Predicate for dates that cannot be selected, on top of `minDate`/`maxDate`. */
+  /**
+   * Disables every day it returns `true` for, on top of `minDate`/`maxDate` — the one way
+   * to disable single days, whether a rule (weekends) or a list (holidays). A disabled day
+   * is dimmed, reports `aria-disabled` and cannot be selected. It receives a `Date` of its
+   * own for each day — read only its calendar day. It runs again when `$state` it reads
+   * changes. Compare calendar days, not `Date` objects (`list.includes(d)` matches nothing):
+   * keep a list as a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
+   * `(d) => blocked.has(toIso(d))`. It must not throw; the grid does not catch it.
+   */
   isDateDisabled?: (date: Date) => boolean;
   /**
    * Always render 6 week rows in `view="month"`, so the grid keeps its height

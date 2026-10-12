@@ -7,7 +7,7 @@
  * when it crosses the visible window.
  */
 
-import { endOfWeek, startOfWeek } from '#lib/date/index.js';
+import { endOfWeek, startOfWeek, toIso } from '#lib/date/index.js';
 import type { DateGridContext } from './date-grid.types';
 
 /** The slice of the date-grid surface the keyboard handler drives. Both the
@@ -77,4 +77,19 @@ export function handleDateGridKeydown(
 
   event.preventDefault();
   return true;
+}
+
+/**
+ * Move DOM focus onto `date`'s `[data-date]` cell in `grid` on the next frame,
+ * once the grid has rendered the window the date belongs to. A navigating
+ * transition keeps the outgoing window in the DOM, inert and ahead of the
+ * incoming one, and its spill cell carries the same `data-date`: an inert cell
+ * takes no focus, so the first match would drop it to the body.
+ */
+export function focusDayCell(grid: HTMLElement | null | undefined, date: Date): void {
+  const iso = toIso(date);
+  requestAnimationFrame(() => {
+    const cells = grid?.querySelectorAll<HTMLElement>(`[data-date="${iso}"]`) ?? [];
+    [...cells].find((cell) => !cell.closest('[inert]'))?.focus();
+  });
 }

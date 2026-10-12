@@ -1,19 +1,19 @@
 <script lang="ts">
   import { DatePicker } from '@urbicon-ui/blocks';
+  import { toIso } from '@urbicon-ui/blocks/date';
 
   let selectedDate = $state<Date | undefined>(undefined);
 
   const minDate = new Date(2026, 2, 1);
   const maxDate = new Date(2026, 2, 31);
 
-  /** Disable weekends */
-  function isWeekend(date: Date): boolean {
-    const day = date.getDay();
-    return day === 0 || day === 6;
-  }
+  // Compared by calendar day: the picker passes its own Date objects.
+  const holidays = new Set([new Date(2026, 2, 6), new Date(2026, 2, 20)].map(toIso));
 
-  /** Specific holidays / blocked dates */
-  const holidays = [new Date(2026, 2, 6), new Date(2026, 2, 20)];
+  function isClosed(date: Date): boolean {
+    const day = date.getDay();
+    return day === 0 || day === 6 || holidays.has(toIso(date));
+  }
 </script>
 
 <div class="max-w-xs">
@@ -24,8 +24,7 @@
     helper="Weekdays in March 2026 only, no holidays."
     {minDate}
     {maxDate}
-    isDateDisabled={isWeekend}
-    disabledDates={holidays}
+    isDateDisabled={isClosed}
     defaultMonth={2}
     defaultYear={2026}
   />

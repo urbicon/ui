@@ -92,6 +92,20 @@ export type CalendarSlotName = CalendarSlots;
  *   views={narrow.current ? ['day', 'agenda'] : ['month', 'week', 'day', 'agenda']}
  * />
  * ```
+ *
+ * @example Holidays and weekends closed — a list becomes a `Set` of `toIso` keys
+ * ```svelte
+ * <script lang="ts">
+ *   import { toIso } from '@urbicon-ui/blocks/date';
+ *
+ *   const holidays = new Set([new Date(2026, 3, 3), new Date(2026, 3, 6)].map(toIso));
+ * </script>
+ *
+ * <Calendar
+ *   bind:value={selectedDate}
+ *   isDateDisabled={(d) => holidays.has(toIso(d)) || d.getDay() === 0 || d.getDay() === 6}
+ * />
+ * ```
  */
 export interface CalendarProps
   extends Omit<CalendarVariants, 'dayState' | 'hasEvents'>,
@@ -207,9 +221,18 @@ export interface CalendarProps
   minDate?: Date;
   /** Latest selectable/navigable date. */
   maxDate?: Date;
-  /** Specific dates that are disabled (not selectable). */
-  disabledDates?: Date[];
-  /** Function to test whether a date is disabled. */
+  /**
+   * A day it returns `true` for cannot be selected or created by double-click, on top of
+   * `minDate`/`maxDate` — the one way to close single days, whether a rule (weekends) or a
+   * list (holidays). The month grid marks it, and its arrow keys still land on it; the week
+   * view's day headings and the mini calendar do not mark it, but selecting it there does
+   * nothing. Dropping an event on it, creating one in the time grid and the mini calendar's
+   * navigation do not ask the predicate. It receives a `Date` of its own for each day — read
+   * only its calendar day. It runs again when `$state` it reads changes. Compare calendar
+   * days, not `Date` objects (`list.includes(d)` matches nothing): keep a list as a `Set` of
+   * `toIso` keys from `@urbicon-ui/blocks/date` and pass `(d) => blocked.has(toIso(d))`. It
+   * must not throw; the calendar does not catch it.
+   */
   isDateDisabled?: (date: Date) => boolean;
 
   // === Variants ===
