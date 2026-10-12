@@ -32,6 +32,57 @@ Popover open: that is the browser's close watcher, not something the library gua
 rg -nU '<Popover\b(?:=>|[^>])*?(\bonkeydown=|\{onkeydown\}|\{\.\.\.)' src
 ```
 
+### `disabledDates` is removed; `isDateDisabled` disables single days
+
+`Calendar`, `DatePicker`, `DateRangePicker` and `Planner` no longer take `disabledDates`.
+`isDateDisabled`, which all four and `ResourceTimeline` already took, is the one way to disable a
+single day. A list of dates becomes a `Set` of `toIso` keys from `@urbicon-ui/blocks/date`, built
+once:
+
+```svelte
+<script lang="ts">
+  import { toIso } from '@urbicon-ui/blocks/date';
+
+  const blocked = new Set(holidays.map(toIso));
+</script>
+
+<Calendar isDateDisabled={(d) => blocked.has(toIso(d))} />
+```
+
+The removed prop compared local calendar days, and so does `toIso`. A plain `includes` does not:
+the component calls the predicate with a `Date` of its own for each day — read only its calendar
+day — so `holidays.includes(d)` disables no day at all, and comparing `getTime()` misses every
+entry with a time of day. If you passed both props, join them in one predicate:
+`(d) => blocked.has(toIso(d)) || isWeekend(d)`.
+
+Written as an attribute, `disabledDates` is now a type error. Passed through a spread, it
+type-checks and disables nothing. In development the component warns in the browser console as it
+mounts, naming the replacement; a production build says nothing, so grep for it:
+
+```sh
+rg -n 'disabledDates' src
+```
+
+### A closed `Calendar` day is `aria-disabled`, not a disabled button
+
+A day that `isDateDisabled`, `minDate` or `maxDate` closes in the month grid of `Calendar`,
+`DatePicker` or `DateRangePicker` used to be a `<button disabled>`. A browser does not focus a
+disabled button, so the arrow keys stopped in front of the day, and a month step onto one dropped
+the focus to the page. The day now carries `aria-disabled="true"` and nothing else: it takes focus,
+the arrow keys land on it, and selecting it still does nothing. A closed day with events opens its
+event popover on focus, as any other day does. A `Calendar` with `disabled` keeps its days out of
+focus, as before.
+
+A selector, a `disabled:` class in `slotClasses.day` or a check of the button's `disabled`
+property or attribute no longer matches a closed day; use `[aria-disabled="true"]`. Playwright
+reads `aria-disabled` as well, so its `toBeDisabled()` still passes and its `click()` still waits
+for an enabled day; a matcher that reads only the attribute now fails:
+
+```sh
+rg -n -e ':disabled' -e '\[disabled\]' -e 'toBeDisabled' -e '\bdisabled:[a-z]' \
+  -e '\.disabled\b' -e "Attribute\(['\"]disabled['\"]"
+```
+
 ### A `Popover` open in a modal dialog joins the overlay stack
 
 An open `Popover` whose trigger sits in a modal dialog — a `Dialog`, a `Drawer` or your own

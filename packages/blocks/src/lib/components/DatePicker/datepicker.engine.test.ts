@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { toIso } from '#lib/date/index.js';
 import {
   formatDateInput,
   formatDateRangeInput,
@@ -256,10 +257,11 @@ describe('isDateAllowed', () => {
     expect(isDateAllowed(day(2026, 2, 14), { maxDate: day(2026, 2, 15) })).toBe(true);
   });
 
-  it('respects disabledDates', () => {
-    const disabled = [day(2026, 2, 15)];
-    expect(isDateAllowed(day(2026, 2, 15), { disabledDates: disabled })).toBe(false);
-    expect(isDateAllowed(day(2026, 2, 16), { disabledDates: disabled })).toBe(true);
+  it('rejects the days a Set of toIso keys lists', () => {
+    const blocked = new Set([day(2026, 2, 15)].map(toIso));
+    const isDateDisabled = (d: Date) => blocked.has(toIso(d));
+    expect(isDateAllowed(day(2026, 2, 15), { isDateDisabled })).toBe(false);
+    expect(isDateAllowed(day(2026, 2, 16), { isDateDisabled })).toBe(true);
   });
 
   it('respects isDateDisabled callback', () => {
@@ -303,14 +305,12 @@ describe('isDateAllowed', () => {
     );
   });
 
-  it('warns and skips Invalid entries in disabledDates', () => {
-    const disabled = [new Date('invalid'), day(2026, 2, 15)];
-    expect(isDateAllowed(day(2026, 2, 15), { disabledDates: disabled })).toBe(false);
-    expect(isDateAllowed(day(2026, 2, 16), { disabledDates: disabled })).toBe(true);
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining('disabledDates contains Invalid Date'),
-      expect.any(Object)
-    );
+  it('an Invalid Date in a toIso-keyed list blocks no valid day', () => {
+    // `toIso(Invalid Date)` is 'NaN-NaN-NaN', a key no valid day produces.
+    const blocked = new Set([new Date('invalid'), day(2026, 2, 15)].map(toIso));
+    const isDateDisabled = (d: Date) => blocked.has(toIso(d));
+    expect(isDateAllowed(day(2026, 2, 15), { isDateDisabled })).toBe(false);
+    expect(isDateAllowed(day(2026, 2, 16), { isDateDisabled })).toBe(true);
   });
 
   it('warns when minDate > maxDate', () => {

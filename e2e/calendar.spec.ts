@@ -117,6 +117,134 @@ test.describe('Calendar interactions', () => {
 });
 
 /**
+ * A day `isDateDisabled` closes is still a cell the grid's keys land on (the
+ * ARIA grid pattern): a browser will not focus a `<button disabled>`, so the
+ * day carries `aria-disabled` alone. The unit suite sends its keys to the grid
+ * and reads the controller, not where DOM focus went. The fixture closes every
+ * weekend.
+ */
+test.describe('Calendar: disabled days stay in the keyboard path', () => {
+  const weekends = (page: Page) => page.getByTestId('cal-weekends');
+  const weekendDay = (page: Page, date: string) => weekends(page).locator(`[data-date="${date}"]`);
+
+  test('arrows cross a disabled weekend', async ({ page }) => {
+    await setupPage(page);
+    await expect(weekendDay(page, '2026-06-06')).toHaveAttribute('aria-disabled', 'true');
+
+    await weekendDay(page, '2026-06-05').focus();
+    for (const date of ['2026-06-06', '2026-06-07', '2026-06-08']) {
+      await page.keyboard.press('ArrowRight');
+      await expect(weekendDay(page, date)).toBeFocused();
+    }
+  });
+
+  test('PageDown in a DatePicker lands on a disabled day of the next month', async ({ page }) => {
+    await setupPage(page);
+    const trigger = page
+      .getByTestId('cal-picker-weekends')
+      .getByRole('button', { name: 'Open calendar' });
+    await trigger.click();
+    const panel = page.locator(`[id="${await trigger.getAttribute('aria-controls')}"]`);
+    const pickerDay = (date: string) => panel.locator(`[data-date="${date}"]`);
+
+    await pickerDay('2026-06-04').focus();
+    await page.keyboard.press('PageDown');
+    await expect(pickerDay('2026-07-04')).toBeFocused();
+    await expect(pickerDay('2026-07-04')).toHaveAttribute('aria-disabled', 'true');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('a disabled day opens its event popover on keyboard focus', async ({ page }) => {
+    await setupPage(page);
+
+    await weekendDay(page, '2026-06-06').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(weekendDay(page, '2026-06-07')).toBeFocused();
+    await expect(page.getByRole('button', { name: /Closed for inventory/ })).toBeVisible();
+  });
+
+  test('a range preview reaches a disabled day, which still ends no range', async ({ page }) => {
+    await setupPage(page);
+    const range = page.getByTestId('cal-weekends-range');
+
+    await weekendDay(page, '2026-06-03').click();
+    await expect(range).toHaveText('2026-06-03..2026-06-03');
+    await weekendDay(page, '2026-06-06').hover();
+    await expect(weekendDay(page, '2026-06-05')).toHaveAttribute('data-state', 'previewRange');
+
+    // Playwright will not click an `aria-disabled` element unless forced; the
+    // browser itself delivers the click.
+    await weekendDay(page, '2026-06-06').click({ force: true });
+    await expect(range).toHaveText('2026-06-03..2026-06-03');
+    await expect(weekendDay(page, '2026-06-06')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(range).toHaveText('2026-06-03..2026-06-03');
+  });
+});
+
+test('an animated month change keeps the focus on the day the arrow moved to', async ({ page }) => {
+  await setupPage(page);
+
+  // The June grid shows 1 July as a spill day; the July grid as a day of its own.
+  await day(page, '2026-06-30').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(main(page).getByRole('status')).toHaveText('July 2026');
+  await expect(day(page, '2026-07-01').and(page.locator('[data-state="default"]'))).toBeFocused();
+  // One match left: the outgoing grid has slid out of the DOM.
+  await expect(day(page, '2026-07-01')).toHaveCount(1);
+  await expect(day(page, '2026-07-01')).toBeFocused();
+});
+
+test('Planner: an animated month change keeps the focus on the day the arrow moved to', async ({
+  page
+}) => {
+  await setupPage(page);
+  const cell = (date: string) => page.getByTestId('planner-month').locator(`[data-date="${date}"]`);
+
+  // The March grid shows 1 April as a spill day; the April grid as a day of its own.
+  await cell('2026-03-31').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(cell('2026-04-01')).toHaveCount(1);
+  await expect(cell('2026-04-01')).toBeFocused();
+});
+
+/**
+ * A day of the neighbouring month (a spill day) answers a pointer through its
+ * click alone: focusing it turns the month, and a press that focused it would
+ * replace the day under the pointer before the click. The keys still turn the
+ * month through focus (the tests above).
+ */
+test.describe('Calendar: a click on a spill day', () => {
+  test('an enabled one selects its date and turns to its month', async ({ page }) => {
+    await setupPage(page);
+    await expect(day(page, '2026-07-01')).toHaveAttribute('data-state', 'outsideMonth');
+
+    await day(page, '2026-07-01').click();
+    await expect(probe(page, 'cal-selected')).toHaveText('2026-07-01');
+    await expect(main(page).getByRole('status')).toHaveText('July 2026');
+    await expect(probe(page, 'cal-month')).toHaveText('6-2026');
+    await expect(day(page, '2026-07-01')).toHaveCount(1);
+    await expect(day(page, '2026-07-01')).toHaveAttribute('aria-selected', 'true');
+    await expect(day(page, '2026-07-01')).toBeFocused();
+  });
+
+  test('a disabled one changes nothing', async ({ page }) => {
+    await setupPage(page);
+    const weekends = page.getByTestId('cal-weekends');
+    const weekendDay = (date: string) => weekends.locator(`[data-date="${date}"]`);
+    // 4 July 2026, a Saturday, sits in the June grid's last row.
+    await expect(weekendDay('2026-07-04')).toHaveAttribute('aria-disabled', 'true');
+    await weekendDay('2026-06-05').focus();
+
+    await weekendDay('2026-07-04').click({ force: true });
+    await expect(weekendDay('2026-06-05')).toBeFocused();
+    await expect(weekends.getByRole('status')).toHaveText('June 2026');
+    await expect(page.getByTestId('cal-weekends-month')).toHaveText('none');
+    await expect(page.getByTestId('cal-weekends-range')).toHaveText('none');
+  });
+});
+
+/**
  * Accessibility of every Calendar view in a real browser (#208), on the
  * fixture's `cal-a11y` section. The docs-page scan (a11y.spec.ts) sees only the
  * views its demos render, in light mode, on the Rooms skin; this covers the

@@ -179,10 +179,9 @@ export const plannerVariants = tv({
     dayState: {
       default: {},
       today: { cellDate: 'bg-primary text-text-on-primary rounded-full' },
-      // Shipping minDate/maxDate/disabledDates without the cell half left a
-      // blocked day looking exactly like a bookable one — same surface, same
-      // border, same date colour, same cursor — with `aria-disabled` the only
-      // difference.
+      // Without the cell half, a day blocked by minDate/maxDate/isDateDisabled
+      // looks exactly like a bookable one — same surface, same border, same
+      // date colour, same cursor — with `aria-disabled` the only difference.
       disabled: {
         cell: 'opacity-40 cursor-not-allowed',
         cellDate: 'text-text-disabled'

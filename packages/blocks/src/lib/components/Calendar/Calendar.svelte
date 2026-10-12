@@ -18,6 +18,7 @@
     daysInMonth
   } from '#lib/date/index.js';
   import { DateGridController } from '#lib/internal/date-grid/index.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import type { DateGridSelection, DateGridView } from '#lib/internal/date-grid/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { compareDayEvents, getEventDayInfo, expandRecurrence } from './calendar.engine';
@@ -66,7 +67,6 @@
     // Navigation constraints
     minDate,
     maxDate,
-    disabledDates = [],
     isDateDisabled: isDateDisabledProp,
     // Variants
     variant = theme.variant ?? 'default',
@@ -119,6 +119,9 @@
     slotClasses: slotClassesProp = {},
     ...restProps
   }: CalendarProps = $props();
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV) warnRemovedDisabledDates('Calendar', restProps);
 
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>` (CurrencyInput/Sankey/
@@ -214,11 +217,10 @@
   );
 
   // --- Extra disable predicate (min/max handled by the controller) ---
-  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
+  // Reads the prop at call time: handing the controller `isDateDisabledProp`
+  // itself would keep the predicate of the first render.
   function checkExtraDisabled(date: Date): boolean {
-    if (isDateDisabledProp?.(date)) return true;
-    if (disabledDatesSet.has(toIso(date))) return true;
-    return false;
+    return isDateDisabledProp?.(date) ?? false;
   }
 
   // --- Headless date-grid controller: the shared mechanics engine ---

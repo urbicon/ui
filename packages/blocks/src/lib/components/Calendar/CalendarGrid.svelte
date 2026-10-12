@@ -4,7 +4,7 @@
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getWeekNumber, isoToDate, isSameDay, toIso } from '#lib/date/index.js';
-  import { handleDateGridKeydown } from '#lib/internal/date-grid/index.js';
+  import { focusDayCell, handleDateGridKeydown } from '#lib/internal/date-grid/index.js';
   import { getMultiDayEventLayout } from './calendar.engine';
   import { swipeable } from '#lib/utils/swipeable.js';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
@@ -81,13 +81,10 @@
     syncFocusedDate(event.target);
     if (!handleDateGridKeydown(event, ctx)) return;
     // CalendarDay uses pure roving tabindex with no isFocused-driven .focus(), so
-    // this rAF is the only thing that moves real DOM focus onto the landed day.
-    // The controller clamps focus to [minDate, maxDate], so target the day that
+    // this is what moves real DOM focus onto the day a key landed on. The
+    // controller clamps focus to [minDate, maxDate], so target the day that
     // actually took the roving tabindex (ctx.focusedDate), not the raw key intent.
-    const target = toIso(ctx.focusedDate);
-    requestAnimationFrame(() => {
-      gridEl?.querySelector<HTMLElement>(`[data-date="${target}"]`)?.focus();
-    });
+    focusDayCell(gridEl, ctx.focusedDate);
   }
 </script>
 

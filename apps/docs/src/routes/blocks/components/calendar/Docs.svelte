@@ -86,7 +86,14 @@ const categories: CalendarEventCategory[] = [
   defaultDate={new Date(2026, 2, 10)}
 />`;
 
-  const constraintsCode = `<!-- Two clicks pick a range; minDate/maxDate cap what you can reach and pick. -->
+  const constraintsCode = `<script lang="ts">
+  import { toIso } from '@urbicon-ui/blocks/date';
+
+  // Matched by calendar day: a Set of YYYY-MM-DD keys, never Date objects.
+  const holidays = new Set([new Date(2026, 2, 6), new Date(2026, 2, 20)].map(toIso));
+<\/script>
+
+<!-- Two clicks pick a range; minDate/maxDate cap what you can reach and pick. -->
 <Calendar
   selectionMode="range"
   bind:value
@@ -95,14 +102,13 @@ const categories: CalendarEventCategory[] = [
   maxDate={new Date(2026, 3, 30)}
 />
 
-<!-- disabledDates locks named days, isDateDisabled locks a rule. -->
+<!-- isDateDisabled locks out a rule (weekends) and a list (holidays). -->
 <Calendar
   bind:value={selectedDate}
   variant="bordered"
   {minDate}
   {maxDate}
-  disabledDates={holidays}
-  isDateDisabled={(d) => d.getDay() === 0 || d.getDay() === 6}
+  isDateDisabled={(d) => d.getDay() === 0 || d.getDay() === 6 || holidays.has(toIso(d))}
 />`;
 </script>
 
@@ -136,7 +142,7 @@ const categories: CalendarEventCategory[] = [
 
     <CodeExample
       title="Constrained selection"
-      description="Set selectionMode='range' to pick a start and end in two clicks. Three props constrain what's pickable: minDate/maxDate bound the range, disabledDates locks named days like public holidays, and isDateDisabled locks a rule like weekends."
+      description="Set selectionMode='range' to pick a start and end in two clicks. minDate/maxDate bound what's pickable, and isDateDisabled locks out single days: a rule like weekends, or named days like public holidays kept as a Set of toIso keys."
       code={constraintsCode}
     >
       <div class="space-y-10">

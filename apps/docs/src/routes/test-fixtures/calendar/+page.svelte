@@ -13,7 +13,9 @@
     Calendar,
     type CalendarEvent,
     type CalendarSelection,
-    type CalendarViewMode
+    type CalendarViewMode,
+    DatePicker,
+    Planner
   } from '@urbicon-ui/blocks';
 
   const anchor = new Date(2026, 5, 15);
@@ -56,11 +58,26 @@
   ];
   const variants = ['default', 'bordered', 'ghost'] as const;
 
+  // Disabled days the keys must still reach: every weekend, one of them with an
+  // event, so its popover is in play too.
+  const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+  const weekendEvents: CalendarEvent[] = [
+    { id: 'w1', title: 'Closed for inventory', start: new Date(2026, 5, 7) }
+  ];
+  let weekendRange = $state<CalendarSelection | undefined>(undefined);
+  let weekendMonth = $state('');
+
+  // A Planner month view anchored on 31 March: its grid's last row spills into
+  // April, so ArrowRight steps the month while both grids show 1 April.
+  const plannerItems: { id: string; date: Date }[] = [];
+
   // Single-select mode always yields a Date; anything else renders 'none'.
   const iso = (v: CalendarSelection | undefined) =>
     v instanceof Date
       ? `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
       : 'none';
+  const isoRange = (v: CalendarSelection | undefined) =>
+    v && !(v instanceof Date) && !Array.isArray(v) ? `${iso(v.start)}..${iso(v.end)}` : 'none';
 </script>
 
 <svelte:head>
@@ -99,6 +116,44 @@
       minDate={new Date(2026, 5, 1)}
       maxDate={new Date(2026, 5, 30)}
       views={['month']}
+    />
+  </section>
+
+  <section data-testid="cal-weekends" class="max-w-3xl">
+    <Calendar
+      defaultDate={anchor}
+      locale="en-US"
+      views={['month']}
+      selectionMode="range"
+      bind:value={weekendRange}
+      isDateDisabled={isWeekend}
+      events={weekendEvents}
+      eventPopover
+      onMonthChange={(month, year) => (weekendMonth = `${month}-${year}`)}
+    />
+    <div class="text-text-secondary space-x-4 text-sm">
+      <span data-testid="cal-weekends-range">{isoRange(weekendRange)}</span>
+      <span data-testid="cal-weekends-month">{weekendMonth || 'none'}</span>
+    </div>
+  </section>
+
+  <section data-testid="cal-picker-weekends" class="max-w-sm">
+    <DatePicker
+      label="Delivery day"
+      locale="en-US"
+      defaultMonth={5}
+      defaultYear={2026}
+      isDateDisabled={isWeekend}
+    />
+  </section>
+
+  <section data-testid="planner-month" class="max-w-3xl">
+    <Planner
+      view="month"
+      value={new Date(2026, 2, 31)}
+      locale="en-US"
+      items={plannerItems}
+      getDate={(item) => item.date}
     />
   </section>
 

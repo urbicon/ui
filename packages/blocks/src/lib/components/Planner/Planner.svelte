@@ -2,7 +2,7 @@
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '#lib';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { stripTime, toIso } from '#lib/date/index.js';
+  import { stripTime } from '#lib/date/index.js';
   import {
     DateGridController,
     DateGridScaffold,
@@ -14,6 +14,7 @@
     type DayHeaderInfo
   } from '#lib/internal/date-grid/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
   import {
@@ -53,7 +54,6 @@
     // Constraints
     minDate,
     maxDate,
-    disabledDates = [],
     isDateDisabled: isDateDisabledProp,
     fixedWeeks = false,
     // State
@@ -82,6 +82,9 @@
     slotClasses: slotClassesProp = {},
     ...restProps
   }: PlannerProps<T> = $props();
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV) warnRemovedDisabledDates('Planner', restProps);
 
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading
@@ -183,12 +186,10 @@
   }
 
   // --- Extra disable predicate (min/max are the controller's) ---
-  // Mirrors Calendar: the explicit date list is pre-hashed on the ISO key so a
-  // long `disabledDates` costs one lookup per cell instead of a linear scan.
-  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
+  // Reads the prop at call time: handing the controller `isDateDisabledProp`
+  // itself would keep the predicate of the first render.
   function checkExtraDisabled(date: Date): boolean {
-    if (isDateDisabledProp?.(date)) return true;
-    return disabledDatesSet.has(toIso(date));
+    return isDateDisabledProp?.(date) ?? false;
   }
 
   // --- Headless mechanics: Planner owns the source of truth, the controller
