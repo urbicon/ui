@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
   import { resolveIcon } from '#lib/icons/index.js';
   import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
@@ -82,6 +83,8 @@
     const el = viewportRef;
     if (!el) return;
 
+    askBrowser(el);
+    writeEdgeWidths(el);
     viewportSize = el.clientWidth;
     scrollSize = el.scrollWidth;
     scrollStart = el.scrollLeft;
@@ -142,12 +145,91 @@
     };
   });
 
-  // Prop changes that alter the track's geometry — a re-measure, not a re-render
-  // concern. Reading them is the point; `measure()` itself only writes.
+  // Whether `itemBasis` is a length the `basis` edge padding can halve.
+  //
+  // The browser has the last word: its CSS parser, asked about the custom
+  // property's COMPUTED value. The parser accepts any `var()` at parse time, so
+  // `itemBasis="var(--x)"` with `--x: auto` only shows itself once substituted.
+  // Asked only for a centred row, the one place the answer is used, and only
+  // where there is a `CSS` namespace (jsdom before 30 has none). Asked again on
+  // every `measure()`, because the computed value can change without the prop
+  // changing: a `var()` that is a length above a breakpoint and `auto` below
+  // it. The answer never depends on the edge path it selects (the inline style
+  // sets the property, the path only swaps classes), so the re-measure a path
+  // switch sets off gets the same answer and stops there.
+  //
+  // Until it has answered — on the server, and so in the paint before
+  // hydration — the string answers: a bare identifier (`auto`, `max-content`)
+  // is never a length, and a `var()` is taken for one that is not. That first
+  // answer has to be right where it can be wrong, because the first layout
+  // decides where the row rests. Laid out start-aligned, the leading items of
+  // a centred row tie at scroll position 0, the engine counts one of them as
+  // snapped (WebKit: the second or third), and when the spacing lands it
+  // re-snaps onto that one. A `var()` that turns out to be a length rests on
+  // its first item on the `measured` path too (its 50% fallback), but in
+  // Chromium with smooth scrolling the engine glides it the last half-item
+  // into the middle on load, where the `basis` padding places it at once. The
+  // wrong guess the other way leaves WebKit on the second or third item.
+  //
+  // `stretch` stays on the `basis` path: the item fills the row, so there is
+  // nothing to centre, and halving its measured width converges on that only
+  // over a chain of re-measures, which WebKit reports as a ResizeObserver loop.
+  const keyword = /^-?[a-z][a-z-]*$/i;
+  let browserSaysLength = $state<boolean>();
+  function askBrowser(el: HTMLElement) {
+    untrack(() => {
+      if (align !== 'center' || typeof CSS === 'undefined') {
+        browserSaysLength = undefined;
+        return;
+      }
+      const basis = getComputedStyle(el).getPropertyValue('--blocks-scroller-item').trim();
+      browserSaysLength = CSS.supports('padding-left', `calc(50% - ${basis}/2)`);
+    });
+  }
+  const edgePadding = $derived.by(() => {
+    const basis = itemBasis.trim();
+    if (basis === 'stretch') return 'basis';
+    const length = browserSaysLength ?? !(keyword.test(basis) || basis.includes('var('));
+    return length ? 'basis' : 'measured';
+  });
+
+  const measuredEdges = $derived(align === 'center' && edgePadding === 'measured');
+
+  // The `measured` edge spacing's inputs (scroller.variants.ts), written by
+  // `measure()` before it reads a single position. They move every item, and a
+  // consumer's `onMount` runs in the same flush right after this component's
+  // effects: written here they are in the DOM when it scrolls, so it aims at
+  // the layout at that moment. Through the template they would land after it,
+  // and a smooth scroll already under way ends half the first item off centre.
+  // An item whose width changes later (a webfont arriving) still moves the
+  // ones after it under that scroll; no edge spacing can undo that.
+  // A margin changes no item's width, so one pass reads the widths that
+  // result. `offsetWidth`, so the `emphasis` lift cannot inflate them. Removed
+  // off that path, so a row with a length basis keeps exactly the inline style
+  // it had.
+  function writeEdgeWidths(el: HTMLElement) {
+    const measured = untrack(() => measuredEdges);
+    const ends = [
+      ['--blocks-scroller-first-item', el.firstElementChild],
+      ['--blocks-scroller-last-item', el.lastElementChild]
+    ] as const;
+    for (const [property, item] of ends) {
+      if (measured && item instanceof HTMLElement) {
+        el.style.setProperty(property, `${item.offsetWidth}px`);
+      } else {
+        el.style.removeProperty(property);
+      }
+    }
+  }
+
+  // Prop changes that alter the track's geometry, and the edge path they select
+  // — a re-measure, not a re-render concern. Reading them is the point;
+  // `measure()` reads the edge path untracked.
   $effect(() => {
     void itemBasis;
     void align;
     void gap;
+    void measuredEdges;
     measure();
   });
 
@@ -184,10 +266,12 @@
   // wide as the viewport that padding is most of the row, and the result reads
   // as a broken layout — one card adrift in empty space — rather than a stage.
   // The pattern wants roughly three visible with two peeking; below
-  // two-and-a-bit it stops being one.
+  // two-and-a-bit it stops being one. The widest item is the one judged: with a
+  // basis that is not a length the items differ, and the widest leaves its
+  // neighbours the least room once centred.
   let warnedCentreTooNarrow = false;
   $effect(() => {
-    const itemWidth = items[0]?.size ?? 0;
+    const itemWidth = items.reduce((widest, item) => Math.max(widest, item.size), 0);
     if (
       import.meta.env?.DEV &&
       !warnedCentreTooNarrow &&
@@ -198,7 +282,7 @@
     ) {
       warnedCentreTooNarrow = true;
       console.warn(
-        `[Scroller] align="center" has room for only ${(viewportSize / itemWidth).toFixed(1)} items — the centring padding then takes up most of the row and it reads as a layout bug rather than a stage. Narrow itemBasis (currently rendering ${Math.round(itemWidth)}px in a ${Math.round(viewportSize)}px row) so about three items are visible with two peeking, or use align="start".`
+        `[Scroller] align="center" has room for only ${(viewportSize / itemWidth).toFixed(1)} items — the centring padding then takes up most of the row and it reads as a layout bug rather than a stage. Narrow itemBasis or the items' content (the widest renders ${Math.round(itemWidth)}px in a ${Math.round(viewportSize)}px row) so about three items are visible with two peeking, or use align="start".`
       );
     }
   });
@@ -251,6 +335,7 @@
 
   const variantProps: ScrollerVariants = $derived({
     align,
+    edgePadding,
     snap,
     gap,
     emphasis,

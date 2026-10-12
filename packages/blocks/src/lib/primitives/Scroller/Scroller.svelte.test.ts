@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { flushSync, mount, tick, unmount } from 'svelte';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ScrollerHarness from './__fixtures__/ScrollerHarness.svelte';
 
 // Interaction layer for Scroller. The contract under test is the one the plan
@@ -117,14 +117,19 @@ afterEach(() => {
   dispose = undefined;
   scrollToCalls = [];
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 interface Geometry {
   viewportWidth: number;
   itemWidth: number;
+  /** Per-item widths for a row of content-sized items; overrides `itemWidth`. */
+  itemWidths?: number[];
   gap?: number;
   /** Edge padding — what `align="center"` adds so the first/last item can reach the middle. */
   padding?: number;
+  /** Trailing edge padding where it differs from the leading one. */
+  paddingEnd?: number;
 }
 
 /**
@@ -132,18 +137,28 @@ interface Geometry {
  * so the component's first measurement already sees it — Svelte builds the DOM
  * synchronously in `mount()` but defers `$effect`s to the flush.
  */
-function applyGeometry({ viewportWidth, itemWidth, gap = 20, padding = 0 }: Geometry) {
+function applyGeometry({
+  viewportWidth,
+  itemWidth,
+  itemWidths,
+  gap = 20,
+  padding = 0,
+  paddingEnd = padding
+}: Geometry) {
   const root = document.body.querySelector('[data-align]') as HTMLElement;
   const viewport = root.firstElementChild as HTMLElement;
   const items = Array.from(viewport.children) as HTMLElement[];
 
-  const contentWidth = padding * 2 + items.length * itemWidth + Math.max(0, items.length - 1) * gap;
-  viewportBoxes.set(viewport, { clientWidth: viewportWidth, scrollWidth: contentWidth });
-
+  let start = padding;
   items.forEach((item, index) => {
+    const width = itemWidths?.[index] ?? itemWidth;
     itemViewports.set(item, viewport);
-    itemBoxes.set(item, { contentStart: padding + index * (itemWidth + gap), width: itemWidth });
+    itemBoxes.set(item, { contentStart: start, width });
+    start += width + gap;
   });
+
+  const contentWidth = start - (items.length > 0 ? gap : 0) + paddingEnd;
+  viewportBoxes.set(viewport, { clientWidth: viewportWidth, scrollWidth: contentWidth });
 
   return { root, viewport, items };
 }
@@ -452,6 +467,277 @@ describe('Scroller — DEV warnings for combinations that silently do nothing', 
     render({ align: 'center' }, { viewportWidth: 400, itemWidth: 340 });
     expect(warn.mock.calls.flat().join(' ')).toContain('room for only');
     warn.mockRestore();
+  });
+
+  it('judges the widest item, not the first, when the items differ in width', () => {
+    // A narrow first chip says nothing about the 300px item that will sit in
+    // the middle of a 400px row with barely a neighbour beside it.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    parseLikeABrowser();
+    render(
+      { align: 'center', itemBasis: 'auto', count: 3 },
+      { viewportWidth: 400, itemWidth: 0, itemWidths: [40, 300, 40], gap: 8 }
+    );
+    expect(warn.mock.calls.flat().join(' ')).toContain('room for only 1.3');
+  });
+});
+
+/**
+ * jsdom's `CSS.supports` accepts every value — `auto` included — so it cannot
+ * answer the one question the component asks it. This stands in for a
+ * browser's parser on that question: whether the centring calc() survives the
+ * basis being substituted into it. The real parser is exercised in a browser
+ * (e2e/scroller-centre.spec.ts).
+ */
+function parseLikeABrowser() {
+  return vi
+    .spyOn(CSS, 'supports')
+    .mockImplementation(
+      (_property: string, value?: string) =>
+        !/\b(auto|stretch|(min|max|fit)-content)\b/.test(value ?? '')
+    );
+}
+
+/**
+ * jsdom does not substitute custom properties, so this stands in for the
+ * browser's computed value of a `var()` basis — `itemBasis="var(--x)"` under
+ * `--x: <value>`.
+ */
+function computeBasisAs(value: string) {
+  vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(
+    () =>
+      ({
+        getPropertyValue: (name: string) => (name === '--blocks-scroller-item' ? value : '')
+      }) as CSSStyleDeclaration
+  );
+}
+
+describe('Scroller — centring items of different widths', () => {
+  // `itemBasis="auto"`: six chips at their content width in a 600px row. The
+  // geometry is spaced the way the browser spaces it once the component has
+  // written the measured end widths — (600 − 40) / 2 before the first chip,
+  // (600 − 180) / 2 after the last.
+  const WIDTHS = [40, 160, 70, 130, 110, 180];
+  const CHIPS: Geometry = {
+    viewportWidth: 600,
+    itemWidth: 0,
+    itemWidths: WIDTHS,
+    gap: 8,
+    padding: 280,
+    paddingEnd: 210
+  };
+  const chipRow = { align: 'center', itemBasis: 'auto', count: WIDTHS.length };
+
+  /** Distance from the viewport's middle to the item's middle at the current scroll. */
+  function offCentre(viewport: HTMLElement, item: HTMLElement) {
+    const box = itemBoxes.get(item) as ItemBox;
+    return box.contentStart + box.width / 2 - (viewport.scrollLeft + 300);
+  }
+
+  it('asks the CSS parser about the calc() the basis padding resolves to', () => {
+    const supports = parseLikeABrowser();
+    render(chipRow, CHIPS);
+    expect(supports).toHaveBeenCalledWith('padding-left', 'calc(50% - auto/2)');
+  });
+
+  it('asks about the basis as computed, so a var() that resolves to auto is seen', () => {
+    // The parser accepts any var() as written.
+    const supports = parseLikeABrowser();
+    computeBasisAs('auto');
+    const { viewport } = render({ ...chipRow, itemBasis: 'var(--chip-basis)' }, CHIPS);
+
+    expect(supports).toHaveBeenCalledWith('padding-left', 'calc(50% - auto/2)');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
+    expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
+  });
+
+  it('gives a var() that resolves to a length the CSS padding back', () => {
+    parseLikeABrowser();
+    computeBasisAs('15rem');
+    const { viewport } = render({ align: 'center', itemBasis: 'var(--card-basis)' }, OVERFLOWS);
+
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: var(--card-basis);');
+  });
+
+  it('keeps `stretch` on the CSS padding, whose calc() the browser drops', () => {
+    // A stretched item fills the row: there is nothing to centre, and halving
+    // its measured width would converge on that only over a chain of
+    // re-measures. The parser stand-in rejects `stretch` as browsers do.
+    parseLikeABrowser();
+    const { viewport } = render({ align: 'center', itemBasis: 'stretch' }, OVERFLOWS);
+
+    expect(CSS.supports('padding-left', 'calc(50% - stretch/2)')).toBe(false);
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: stretch;');
+  });
+
+  it('spaces each end by half its own end item, from the measured widths', () => {
+    parseLikeABrowser();
+    const { viewport } = render(chipRow, CHIPS);
+
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('180px');
+    // Margins on the end items, never padding on the track: padding would
+    // narrow the box an item with a `%` width sizes against.
+    expect(viewport.className).toContain(
+      '[&>:first-child]:ms-[calc(50%_-_var(--blocks-scroller-first-item,0px)/2)]'
+    );
+    expect(viewport.className).not.toMatch(/(^|\s)(p[xlrse]|ps|pe)-\[calc/);
+    expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
+    // Still a stage: the snap strictness follows `align`, not the basis.
+    expect(viewport.className).toContain('snap-mandatory');
+  });
+
+  it('leaves a row with a length basis exactly as it was', () => {
+    parseLikeABrowser();
+    const { viewport } = render({ align: 'center' }, OVERFLOWS);
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: 16rem;');
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+  });
+
+  it('writes no end widths for a start-aligned row, which has no centring padding', () => {
+    parseLikeABrowser();
+    const { viewport } = render(
+      { itemBasis: 'auto', count: WIDTHS.length },
+      { ...CHIPS, padding: 0, paddingEnd: 0 }
+    );
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: auto;');
+  });
+
+  it('centres the pressed chip and lights its dot, first and last included', async () => {
+    const user = userEvent.setup();
+    parseLikeABrowser();
+    const { viewport, items } = render({ ...chipRow, indicator: 'dots' }, CHIPS);
+
+    expect(dots()).toHaveLength(WIDTHS.length);
+    for (const [index, item] of [...items.entries()].reverse()) {
+      await user.click(dots()[index] as HTMLElement);
+      flushSync();
+      expect(offCentre(viewport, item)).toBe(0);
+      expect(dots()[index]?.getAttribute('aria-current')).toBe('true');
+    }
+  });
+
+  it('steps one chip per press and stops on the last', async () => {
+    const user = userEvent.setup();
+    parseLikeABrowser();
+    const { viewport, items } = render({ ...chipRow, controls: 'auto' }, CHIPS);
+    const next = screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement;
+
+    for (const item of items.slice(1)) {
+      await user.click(next);
+      flushSync();
+      expect(offCentre(viewport, item)).toBe(0);
+    }
+    expect(next.disabled).toBe(true);
+  });
+
+  it('has the end widths in place before a consumer onMount can scroll', () => {
+    // A consumer's scroll aims at the layout it finds. Without the widths the
+    // ends sit at the 50% fallback, and once they land the row has moved by
+    // half the first chip under a smooth scroll that is still aiming at the
+    // old place (e2e/scroller-centre.spec.ts).
+    parseLikeABrowser();
+    let seen: string | undefined;
+    render(
+      {
+        ...chipRow,
+        onmount: () => {
+          const viewport = document.querySelector('[data-align]')?.firstElementChild;
+          seen = (viewport as HTMLElement).style.getPropertyValue('--blocks-scroller-first-item');
+        }
+      },
+      CHIPS
+    );
+    expect(seen).toBe('40px');
+  });
+
+  it('never scrolls the row itself, neither when it loads nor when the end widths change', async () => {
+    // The position belongs to the user and the consumer. The engine snaps the
+    // first chip into the middle from the server render on, so the end widths
+    // land with nothing to correct (e2e/scroller-centre.spec.ts); a scroll of
+    // the component's own would override a consumer that moved the row first.
+    const user = userEvent.setup();
+    parseLikeABrowser();
+    const { viewport } = render({ ...chipRow, indicator: 'dots' }, CHIPS);
+    await tick();
+    flushSync();
+    expect(scrollToCalls).toEqual([]);
+
+    await user.click(dots()[3] as HTMLElement);
+    flushSync();
+    const placed = viewport.scrollLeft;
+    scrollToCalls = [];
+    const chip = document.createElement('span');
+    viewport.append(chip);
+    itemViewports.set(chip, viewport);
+    itemBoxes.set(chip, { contentStart: 1018, width: 96 });
+    await Promise.resolve();
+    await tick();
+    flushSync();
+    expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('96px');
+    expect(scrollToCalls).toEqual([]);
+    expect(viewport.scrollLeft).toBe(placed);
+  });
+
+  it('re-measures the last chip when one is appended', async () => {
+    parseLikeABrowser();
+    const { viewport } = render(chipRow, CHIPS);
+
+    const chip = document.createElement('span');
+    viewport.append(chip);
+    itemViewports.set(chip, viewport);
+    itemBoxes.set(chip, { contentStart: 1018, width: 96 });
+
+    // MutationObserver callbacks are delivered on a microtask.
+    await Promise.resolve();
+    flushSync();
+    expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('96px');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
+  });
+});
+
+describe('Scroller — where there is no CSS namespace', () => {
+  // jsdom before 30 ships no `CSS`, and a consumer suite on it mounts every
+  // Scroller its pages hold — start-aligned ones included.
+  const css = globalThis.CSS;
+  beforeEach(() => {
+    Reflect.deleteProperty(globalThis, 'CSS');
+    // Positive control: without it every case below passes vacuously.
+    expect(typeof CSS).toBe('undefined');
+  });
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'CSS', { value: css, configurable: true, writable: true });
+  });
+
+  it('mounts a start-aligned row', () => {
+    expect(() => render({}, OVERFLOWS)).not.toThrow();
+  });
+
+  it('keeps a centred row with a length basis on its CSS padding', () => {
+    const { viewport } = render({ align: 'center' }, OVERFLOWS);
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+  });
+
+  it('still takes a centred `auto` row for what it is', () => {
+    const { viewport } = render(
+      { align: 'center', itemBasis: 'auto', count: 6 },
+      { viewportWidth: 600, itemWidth: 100 }
+    );
+    expect(viewport.className).toContain('[&>:first-child]:ms-[');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('100px');
+  });
+
+  it('takes a centred var() row for one that is not a length, as the server does', () => {
+    // Only the browser can resolve the var(). Until it does, the `measured`
+    // path's fallback rests the first item in the middle whichever it is.
+    const { viewport } = render(
+      { align: 'center', itemBasis: 'var(--chip-basis)', count: 6 },
+      { viewportWidth: 600, itemWidth: 100 }
+    );
+    expect(viewport.className).toContain('[&>:first-child]:ms-[');
+    expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
   });
 });
 

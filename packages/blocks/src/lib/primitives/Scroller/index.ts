@@ -52,9 +52,10 @@ import type { ScrollerSlots, ScrollerVariants } from './scroller.variants';
  */
 export interface ScrollerProps
   // `emphasis` is re-declared below with its own docs; `snap` too (its default
-  // depends on `align`). `scrollbar` is NOT part of the public API — the
-  // component derives it from whether controls are on screen.
-  extends Omit<ScrollerVariants, 'emphasis' | 'snap' | 'scrollbar'>,
+  // depends on `align`). `scrollbar` and `edgePadding` are NOT part of the
+  // public API — the component derives the first from whether controls are on
+  // screen, the second from `itemBasis`.
+  extends Omit<ScrollerVariants, 'emphasis' | 'snap' | 'scrollbar' | 'edgePadding'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   // === Content ===
   /** The row's items. Each direct child becomes one snap target — width, snap alignment and (with `emphasis`) the lift are applied for you. Required. */
@@ -101,11 +102,17 @@ export interface ScrollerProps
 
   // === Behavior ===
   /**
-   * Width of each item, as any CSS length (`'18rem'`, `'clamp(14rem,60vw,22rem)'`).
-   * This is what decides when the row overflows, so it is a prop rather than a
-   * class: with `align="center"` the component needs it to compute the edge
-   * padding. Override per-item layout via `slotClasses.viewport` if you need
-   * responsive widths.
+   * Width of each item, as any CSS length (`'18rem'`, `'clamp(14rem,60vw,22rem)'`),
+   * or `'auto'` to leave each item at its own content width. This is what
+   * decides when the row overflows, so it is a prop rather than a class: with
+   * `align="center"` the component needs it to compute the edge spacing. A
+   * length does that in CSS, from the server render on. For a value that is not
+   * a length — `auto`, `max-content`, or a `var()` resolving to one — the
+   * component measures the first and last item instead, so a centred row of
+   * mixed widths still brings both ends to the middle. The first and last
+   * child carry that centring: a hidden end child has to be left out of the
+   * row, not hidden in it. Override per-item layout via `slotClasses.viewport`
+   * if you need responsive widths.
    * @default '16rem'
    * @summary Width of each item — what decides when the row starts to overflow.
    */

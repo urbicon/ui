@@ -75,6 +75,30 @@ describe('Scroller variants — align', () => {
     expect(centre).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
     expect(centre).not.toContain('[&>*]:snap-start');
   });
+
+  it('center with a basis that is not a length halves the measured first and last item instead', () => {
+    // `calc(50% - auto/2)` is invalid: the browser drops the declaration and
+    // the row rests like `start`. With content-sized items the two ends also
+    // differ, so each end halves its own item. The spacing is a margin on the
+    // end items, never padding on the track, and the `0px` fallback leaves
+    // each side at 50% until the width is written. Exactly one spacing rule
+    // per end — never the basis calc next to the measured pair.
+    const centre = viewport({ align: 'center', edgePadding: 'measured' });
+    expect(centre).toContain(
+      '[&>:first-child]:ms-[calc(50%_-_var(--blocks-scroller-first-item,0px)/2)]'
+    );
+    expect(centre).toContain(
+      '[&>:last-child]:me-[calc(50%_-_var(--blocks-scroller-last-item,0px)/2)]'
+    );
+    expect(centre).not.toContain('var(--blocks-scroller-item)/2');
+  });
+
+  it('start pads nothing, whichever way the basis is measured', () => {
+    for (const edgePadding of ['basis', 'measured'] as const) {
+      const start = viewport({ align: 'start', edgePadding });
+      expect(start).not.toContain('calc(50%');
+    }
+  });
 });
 
 describe('Scroller variants — emphasis', () => {
