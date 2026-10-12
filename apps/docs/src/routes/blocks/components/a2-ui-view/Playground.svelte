@@ -24,6 +24,14 @@
   das aufgelöste Ereignis als nächste Nutzer-Nachricht an — genau das, was ein
   echter Client an den Agenten schickt. Tippen im Feld tut das nicht; der
   Datenmodell-Stand reist erst mit der Aktion.
+
+  Auf die Aktion folgt der Zug des Agenten, denn die Surface prüft nichts
+  (`checks` ignoriert der Renderer; docs/A2UI.md: „The agent is the only
+  validator"). Endet die Bühne beim Echo, liest sich jede Aktion als ausgeführt,
+  auch eine leer abgeschickte. Ein leeres Feld beantwortet der Agent deshalb mit
+  einem Hinweis, den er in die bestehende Surface patcht — ausgeführt wird
+  nichts. Eine gelungene Anmeldung baut dieselbe Karte um: Ein Agent ändert UI,
+  die er schon geschickt hat, statt nur darunter zu antworten.
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '#lib/playground-host.js';
@@ -48,6 +56,8 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
+  // Die `context` einer Aktion nennt jedes Feld der Surface: Was sie weglässt,
+  // erreicht den Agenten nicht, und im Echo sieht es aus wie verloren.
   const SCENARIOS: Record<string, unknown[]> = {
     signin: [
       { version: 'v0.9.1', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
@@ -84,7 +94,12 @@
               id: 'submit',
               component: 'Button',
               child: 'submit-label',
-              action: { event: { name: 'signin', context: { email: { path: '/email' } } } }
+              action: {
+                event: {
+                  name: 'signin',
+                  context: { email: { path: '/email' }, password: { path: '/password' } }
+                }
+              }
             }
           ]
         }
@@ -130,7 +145,12 @@
               id: 'submit',
               component: 'Button',
               child: 'submit-label',
-              action: { event: { name: 'submit_survey', context: { rating: { path: '/rating' } } } }
+              action: {
+                event: {
+                  name: 'submit_survey',
+                  context: { rating: { path: '/rating' }, contact: { path: '/contact' } }
+                }
+              }
             }
           ]
         }
@@ -172,6 +192,86 @@
   const fullPayload = $derived(SCENARIOS[scenario] ?? SCENARIOS.signin);
 
   /**
+   * Der Zug des Agenten auf eine Aktion: ein Satz im Verlauf und, wo nötig, ein
+   * Patch an die Surface, aus der die Aktion kam — kein zweites Formular im
+   * Verlauf.
+   */
+  interface AgentTurn {
+    action: A2uiActionEvent;
+    reply: string;
+    patch: unknown[];
+  }
+
+  const signinColumn = (children: string[], extra: unknown[] = []) => ({
+    version: 'v0.9.1',
+    updateComponents: {
+      surfaceId: 'pg',
+      components: [{ id: 'col', component: 'Column', children }, ...extra]
+    }
+  });
+
+  function agentTurn(which: string, action: A2uiActionEvent): AgentTurn {
+    if (which === 'survey') {
+      const reply =
+        action.context.contact === true
+          ? 'Thanks — noted, and the team may follow up.'
+          : 'Thanks — noted for the summary.';
+      return { action, reply, patch: [] };
+    }
+    const email = String(action.context.email ?? '').trim();
+    const emailOk = /^[^\s@]+@[^\s@]+$/.test(email);
+    // Jedes Passwort gilt — nur ein leeres nicht.
+    const passwordOk = String(action.context.password ?? '') !== '';
+    if (!emailOk || !passwordOk) {
+      // Jeder Hinweis steht unter seinem Feld. `col` wird mit jedem Versuch neu
+      // gesetzt, so verliert ein inzwischen ausgefülltes Feld seinen Hinweis.
+      return {
+        action,
+        reply: 'Not signed in yet — the form shows what is missing.',
+        patch: [
+          signinColumn(
+            [
+              'title',
+              'email',
+              ...(emailOk ? [] : ['email-hint']),
+              'password',
+              ...(passwordOk ? [] : ['password-hint']),
+              'submit'
+            ],
+            [
+              {
+                id: 'email-hint',
+                component: 'Text',
+                text: 'Enter the email you signed up with.',
+                variant: 'caption'
+              },
+              {
+                id: 'password-hint',
+                component: 'Text',
+                text: 'Enter your password.',
+                variant: 'caption'
+              }
+            ]
+          )
+        ]
+      };
+    }
+    return {
+      action,
+      reply: 'You are in. Where were we?',
+      patch: [
+        signinColumn(
+          ['title', 'status'],
+          [{ id: 'status', component: 'Text', text: `Signed in as ${email}.` }]
+        )
+      ]
+    };
+  }
+
+  /** Die Aktionen der Surface und was der Agent darauf geantwortet hat. */
+  let turns = $state.raw<AgentTurn[]>([]);
+
+  /**
    * Wie viele Envelopes zugestellt sind — `null` heißt „alle".
    *
    * Ohne das ist der `streaming`-Regler folgenlos: Gemessen rendert eine
@@ -183,8 +283,12 @@
   let delivered = $state<number | null>(null);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
+  // Die Patches des Agenten hängen hinter dem Payload, nie dazwischen: A2UIView
+  // wendet nur an, was an einen referenzgleichen Anfang angehängt wird, und
+  // baut sonst neu auf — dann wäre das eingetippte Feld wieder leer.
+  const patches = $derived(turns.flatMap((turn) => turn.patch));
   const payload = $derived(
-    delivered === null ? fullPayload : fullPayload.slice(0, Math.max(1, delivered))
+    delivered === null ? [...fullPayload, ...patches] : fullPayload.slice(0, Math.max(1, delivered))
   );
   const playing = $derived(delivered !== null);
 
@@ -196,7 +300,7 @@
 
   function play() {
     clearTimeout(timer);
-    lastAction = null;
+    turns = [];
     delivered = 1;
     const step = () => {
       if (delivered === null) return;
@@ -251,34 +355,44 @@
     ];
   }
 
-  // Was die Surface zurückgemeldet hat. Der Szenario-Wechsel setzt es zurück —
-  // eine Antwort auf eine Frage, die nicht mehr dasteht, wäre falscher Verlauf.
-  let lastAction = $state<A2uiActionEvent | null>(null);
+  // Der Szenario-Wechsel setzt die Züge zurück — eine Antwort auf eine Frage,
+  // die nicht mehr dasteht, wäre falscher Verlauf.
   $effect(() => {
     void scenario;
-    lastAction = null;
+    turns = [];
     stopPlayback();
   });
 
-  const thread = $derived.by(() => {
-    const base = threadFor(scenario, payload);
-    if (!lastAction) return base;
-    return [
-      ...base,
+  // Die Blase zeigt, was der Agent bekommt — bis auf ein eingegebenes
+  // Passwort: Er bekommt es vollständig, im Verlauf stünde es im Klartext.
+  // Ein leeres bleibt sichtbar leer, denn genau das beantwortet der Agent.
+  const maskPassword = (key: string, value: unknown) =>
+    key === 'password' && typeof value === 'string' && value !== '' ? '••••' : value;
+
+  const thread = $derived.by((): ChatMessageData[] => [
+    ...threadFor(scenario, payload),
+    ...turns.flatMap((turn, i): ChatMessageData[] => [
       {
-        id: `${scenario}-action`,
-        role: 'user' as const,
+        id: `${scenario}-action-${i}`,
+        role: 'user',
         parts: [
           {
-            type: 'text' as const,
-            text: `\`${lastAction.name}\` → ${JSON.stringify(lastAction.context)}`
+            type: 'text',
+            text: `\`${turn.action.name}\` → ${JSON.stringify(turn.action.context, maskPassword)}`
           }
         ],
         createdAt: new Date('2026-01-01T09:41:20'),
-        status: 'complete' as const
+        status: 'complete'
+      },
+      {
+        id: `${scenario}-answer-${i}`,
+        role: 'assistant',
+        parts: [{ type: 'text', text: turn.reply }],
+        createdAt: new Date('2026-01-01T09:41:22'),
+        status: 'complete'
       }
-    ];
-  });
+    ])
+  ]);
 
   /**
    * Der Schnipsel zeigt die Verdrahtung, nicht das nackte Tag: A2UIView sitzt im
@@ -300,6 +414,8 @@
   function handleAction(event: A2uiActionEvent) {
     // The only return path: send this back to the agent as the next turn.
     // Typing in the surface does not report — the data model rides along here.
+    // Nothing is checked on the client: an empty field reaches the agent, which
+    // answers with a patched hint instead of acting (the shipped prompt says so).
   }
 <\/script>
 
@@ -334,7 +450,7 @@
       <A2UIView
         payload={part.payload}
         streaming={values.streaming === true}
-        onAction={(event) => (lastAction = event)}
+        onAction={(event) => (turns = [...turns, agentTurn(scenario, event)])}
       />
     {/snippet}
     <!-- Schmaler als eine Doku-Spalte: Eine Surface, die über die halbe Seite
