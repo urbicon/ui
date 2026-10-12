@@ -22,9 +22,9 @@ export interface CommandPaletteItem {
   /** Display text shown in the list. */
   label: string;
   /**
-   * Secondary line rendered under the label, truncated to one line. Use it for
-   * context the label cannot carry — a description, or an excerpt around a
-   * search match.
+   * Secondary line rendered under the label, truncated to one line: context the
+   * label cannot carry, a description or an excerpt around a search match. It is
+   * part of a command's accessible name, so a screen reader reads it with the label.
    */
   excerpt?: string;
   /** Group header this item belongs to. Items with the same category are grouped together. */
@@ -40,15 +40,15 @@ export interface CommandPaletteItem {
    */
   icon?: IconComponent;
   /**
-   * `'info'` makes the row information, not a command: the keyboard and the
-   * pointer pass over it, it cannot be selected, it has no locked look (the
-   * `itemInfo` slot styles it), and screen readers read it as text, not as an
-   * option. `disabled` has no effect on it. @default 'action'
+   * `'info'` makes the row information, not a command: keyboard and pointer skip it,
+   * it cannot be selected, it has no locked look (`itemInfo` styles it), and a screen
+   * reader reads it in reading mode only, never while the user types: what must be heard
+   * goes in the `excerpt` of an enabled command. `disabled` has no effect. @default 'action'
    */
   kind?: 'action' | 'info';
   /**
    * A command that cannot run right now: dimmed, skipped by the keyboard, not
-   * selectable, announced as unavailable. @default false
+   * selectable, read as unavailable in reading mode only. @default false
    */
   disabled?: boolean;
   /** Arbitrary payload forwarded to `onSelect`. */
@@ -155,12 +155,15 @@ export interface CommandPaletteProps
   /**
    * Current search text. Supports `bind:query`. Reset to `''` when the palette
    * has finished closing, just before `onClosed` fires, so it does not empty
-   * while it animates out. A query you set while the palette is closed —
-   * before or after `open = true` — is what it opens with, and a value you
-   * write inside `onClosed` stays. A close that does not finish resets
-   * nothing: one vetoed by writing `open = true` back in `onOpenChange`, one
-   * interrupted by reopening, or the palette destroyed while open. Selecting
-   * an item leaves the query as it was until then.
+   * while it animates out. A query you set once it has closed — in `onClosed`
+   * or later, before or after `open = true` — is what it opens with; one you
+   * write between `open = false` and `onClosed` is reset. A close that does
+   * not finish resets nothing: one vetoed by writing `open = true` back in
+   * `onOpenChange`, one interrupted by reopening (from `onSelect` too, so a
+   * drill-down that swaps `items` there sets `query = ''` itself), or the
+   * palette destroyed before it ends, as an `{#if}` that unmounts it on close
+   * does: clear your bound query where you unmount it. Selecting an item
+   * leaves the query as it was until then.
    *
    * For async or remote search, watch the bound `query`, fetch your own
    * results, and pass them back via `items` with `filter={() => true}` so the

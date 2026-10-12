@@ -157,10 +157,22 @@ function paletteInput(): HTMLInputElement {
   return screen.getByRole('combobox', { hidden: true }) as HTMLInputElement;
 }
 
-function press(key: string) {
-  paletteInput().dispatchEvent(
-    new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
-  );
+/** The results container, reached the way assistive tech reaches it: the input's `aria-controls`. */
+function paletteList(input: HTMLElement = paletteInput()): HTMLElement {
+  const id = input.getAttribute('aria-controls');
+  const list = id === null ? null : document.getElementById(id);
+  if (!list) throw new Error(`aria-controls names no element: ${id}`);
+  return list;
+}
+
+/** The flat index the input's aria-activedescendant names, -1 for none. */
+function activeIndex(): number {
+  const id = paletteInput().getAttribute('aria-activedescendant');
+  return id === null ? -1 : Number(id.slice(id.lastIndexOf('-') + 1));
+}
+
+function press(key: string, input: HTMLElement = paletteInput()) {
+  input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   flushSync();
 }
 
@@ -185,7 +197,7 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
     expect(highlighted()).toBe(0);
     press('ArrowDown');
     expect(highlighted()).toBe(2);
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-2');
+    expect(activeIndex()).toBe(2);
   });
 
   it('ArrowUp steps over a disabled row upwards', async () => {
@@ -235,7 +247,7 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
     await tick();
 
     expect(highlighted()).toBe(1);
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+    expect(activeIndex()).toBe(1);
   });
 
   it('resets to the first enabled match when the query changes', async () => {
@@ -252,7 +264,7 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
     type('beta');
     // `filtered` is now [Beta one (disabled), Beta two].
     expect(highlighted()).toBe(1);
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+    expect(activeIndex()).toBe(1);
   });
 
   /**
@@ -283,7 +295,7 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
     await tick();
 
     expect(highlighted()).toBe(0);
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-0');
+    expect(activeIndex()).toBe(0);
     // Enter works at once — no arrow key needed to "wake" the highlight.
     press('Enter');
     expect(selected.map((item) => item.id)).toEqual(['a']);
@@ -327,7 +339,7 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
     await tick();
 
     expect(highlighted()).toBe(0);
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-0');
+    expect(activeIndex()).toBe(0);
   });
 
   it('highlights nothing and ignores Enter when every row is disabled', async () => {
@@ -390,9 +402,11 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     await tick();
 
     press('ArrowDown');
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+    expect(activeIndex()).toBe(1);
 
-    const active = document.getElementById('command-palette-item-1');
+    const active = document.getElementById(
+      paletteInput().getAttribute('aria-activedescendant') ?? ''
+    );
     expect(active).not.toBeNull();
     expect(active?.getAttribute('role')).toBe('option');
     expect(active?.getAttribute('aria-selected')).toBe('true');
@@ -416,7 +430,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     flushSync();
 
     expect(highlighted()).toBe(1);
-    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('command-palette-item-1');
+    expect(activeIndex()).toBe(1);
   });
 
   it('hovering a disabled custom row leaves the highlight where it is', async () => {
@@ -901,16 +915,9 @@ const WITH_INFO: CommandPaletteItem[] = [
 
 /** The rendered info rows, in order — the presentational rows that are no group label. */
 function infoRows(): HTMLElement[] {
-  const list = document.getElementById('command-palette-list');
-  return [...(list?.querySelectorAll<HTMLElement>(':scope > [role="presentation"]') ?? [])].filter(
+  return [...paletteList().querySelectorAll<HTMLElement>(':scope > [role="presentation"]')].filter(
     (row) => !row.classList.contains('uppercase')
   );
-}
-
-/** The flat index the input's aria-activedescendant names, -1 for none. */
-function activeIndex(): number {
-  const id = paletteInput().getAttribute('aria-activedescendant');
-  return id === null ? -1 : Number(id.replace('command-palette-item-', ''));
 }
 
 describe('CommandPalette (info rows)', () => {
@@ -938,7 +945,7 @@ describe('CommandPalette (info rows)', () => {
 
     const options = screen.getAllByRole('option', { hidden: true });
     expect(options.map((o) => o.textContent?.trim())).toEqual(['Alpha', 'Beta']);
-    expect(document.getElementById('command-palette-list')?.getAttribute('role')).toBe('listbox');
+    expect(paletteList().getAttribute('role')).toBe('listbox');
     expect(paletteInput().getAttribute('aria-expanded')).toBe('true');
 
     const rows = infoRows();
@@ -1013,7 +1020,7 @@ describe('CommandPalette (info rows)', () => {
     });
     await tick();
 
-    expect(document.getElementById('command-palette-list')?.hasAttribute('role')).toBe(false);
+    expect(paletteList().hasAttribute('role')).toBe(false);
     expect(paletteInput().getAttribute('aria-expanded')).toBe('false');
     expect(paletteInput().hasAttribute('aria-activedescendant')).toBe(false);
     press('ArrowDown');
@@ -1028,9 +1035,9 @@ describe('CommandPalette (info rows)', () => {
     render({ items: [], emptyText: 'Nothing here' });
     await tick();
 
-    const list = document.getElementById('command-palette-list');
-    expect(list?.textContent).toContain('Nothing here');
-    expect(list?.hasAttribute('role')).toBe(false);
+    const list = paletteList();
+    expect(list.textContent).toContain('Nothing here');
+    expect(list.hasAttribute('role')).toBe(false);
     expect(paletteInput().getAttribute('aria-expanded')).toBe('false');
   });
 
@@ -1100,6 +1107,143 @@ describe('CommandPalette (info rows)', () => {
     const drawn = document.querySelector('[data-custom-row="Two letters start a search"]');
     expect(drawn?.parentElement?.getAttribute('role')).toBe('presentation');
   });
+
+  it('names an option by its label and its excerpt, where an explanation is heard', async () => {
+    render({ items: [{ id: 'u', label: 'Undo', excerpt: 'Nothing to undo yet' }] });
+    await tick();
+
+    // The option the input's aria-activedescendant names carries the excerpt
+    // in its accessible name; an info row is never that option.
+    const option = screen.getByRole('option', {
+      name: /^Undo\s*Nothing to undo yet$/,
+      hidden: true
+    });
+    expect(option.id).toBe(paletteInput().getAttribute('aria-activedescendant'));
+  });
+});
+
+/** An info row above and below more commands than the list shows at once. */
+const EDGE_ROWS: CommandPaletteItem[] = [
+  { id: 'hint-top', label: 'Type #project or a date word', kind: 'info' },
+  ...Array.from({ length: 30 }, (_, i) => ({ id: `c${i}`, label: `Command ${i + 1}` })),
+  { id: 'hint-bottom', label: 'Two letters start a search', kind: 'info' }
+];
+
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+/**
+ * The highlight scrolls into view a frame after it moves. At the first and the
+ * last command the list first scrolls to its own edge, so the info rows, group
+ * label or disabled rows beyond that command come into view as well: the
+ * keyboard stays in the input and has no other way to reach them. jsdom lays
+ * nothing out, so the list gets a `scrollHeight` to tell its end from its
+ * start; which rows really show, the command among them, is
+ * `e2e/command-palette.spec.ts`.
+ */
+describe('CommandPalette (scrolling the highlight into view)', () => {
+  it('scrolls to the list`s start at the first command and to its end at the last', async () => {
+    render({ items: EDGE_ROWS });
+    await tick();
+    const list = paletteList();
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1000 });
+
+    press('End');
+    await nextFrame();
+    expect(list.scrollTop, 'End').toBe(1000);
+
+    press('Home');
+    await nextFrame();
+    expect(list.scrollTop, 'Home').toBe(0);
+
+    press('ArrowUp');
+    await nextFrame();
+    expect(list.scrollTop, 'ArrowUp, wrapping to the last command').toBe(1000);
+
+    press('ArrowDown');
+    await nextFrame();
+    expect(list.scrollTop, 'ArrowDown, wrapping to the first command').toBe(0);
+  });
+
+  it('scrolls a command between the edges only as far as its row', async () => {
+    const scrolls = vi.spyOn(Element.prototype, 'scrollIntoView');
+    try {
+      render({ items: EDGE_ROWS });
+      await tick();
+      paletteList().scrollTop = 300;
+
+      press('ArrowDown');
+      await nextFrame();
+
+      expect(scrolls).toHaveBeenCalledExactlyOnceWith({ block: 'nearest' });
+      expect(scrolls.mock.contexts[0]).toBe(paletteList().querySelector('[aria-selected="true"]'));
+      expect(paletteList().scrollTop).toBe(300);
+    } finally {
+      scrolls.mockRestore();
+    }
+  });
+});
+
+/**
+ * Two palettes on one page, a site's global search beside a page's own. Each
+ * one's ARIA references and its scrolling stay inside it.
+ */
+describe('CommandPalette (two on one page)', () => {
+  function renderTwo(items: CommandPaletteItem[]): HTMLInputElement[] {
+    const instances = [0, 1].map(() =>
+      mount(CommandPalette, {
+        target: document.body,
+        props: { open: true, shortcut: false, items }
+      })
+    );
+    dispose = () => {
+      for (const instance of instances) unmount(instance);
+    };
+    flushSync();
+    return screen.getAllByRole('combobox', { hidden: true }) as HTMLInputElement[];
+  }
+
+  it('gives each palette its own list and row ids', async () => {
+    const inputs = renderTwo(ROW_STATES);
+    await tick();
+    expect(inputs).toHaveLength(2);
+
+    const listIds = inputs.map((input) => input.getAttribute('aria-controls'));
+    expect(new Set(listIds).size).toBe(2);
+    for (const input of inputs) {
+      const list = paletteList(input);
+      const active = document.getElementById(input.getAttribute('aria-activedescendant') ?? '');
+      expect(input.closest('dialog')?.contains(list)).toBe(true);
+      expect(list.contains(active)).toBe(true);
+      expect(active?.getAttribute('aria-selected')).toBe('true');
+    }
+  });
+
+  it('scrolls the highlighted row of its own list', async () => {
+    const scrolls = vi.spyOn(Element.prototype, 'scrollIntoView');
+    try {
+      const [, second] = renderTwo(EDGE_ROWS);
+      await tick();
+
+      press('ArrowDown', second);
+      await nextFrame();
+
+      const ownRow = paletteList(second).querySelector('[aria-selected="true"]');
+      expect(ownRow?.textContent?.trim()).toBe('Command 2');
+      expect(scrolls).toHaveBeenCalledOnce();
+      expect(scrolls.mock.contexts[0]).toBe(ownRow);
+    } finally {
+      scrolls.mockRestore();
+    }
+  });
+
+  it('derives the list and row ids from an id you pass, which stays on the dialog', async () => {
+    render({ items: ROW_STATES, id: 'commands' });
+    await tick();
+
+    expect(document.querySelector('dialog')?.id).toBe('commands');
+    expect(paletteInput().getAttribute('aria-controls')).toBe('commands-list');
+    expect(paletteInput().getAttribute('aria-activedescendant')).toBe('commands-item-0');
+  });
 });
 
 /**
@@ -1108,7 +1252,7 @@ describe('CommandPalette (info rows)', () => {
  */
 describe('CommandPalette (footer)', () => {
   function footerBar(): HTMLElement {
-    const bar = document.getElementById('command-palette-list')?.nextElementSibling;
+    const bar = paletteList().nextElementSibling;
     if (!(bar instanceof HTMLElement)) throw new Error('no footer bar after the list');
     return bar;
   }
@@ -1179,7 +1323,7 @@ describe('CommandPalette (footer)', () => {
     render({ items: ROW_STATES, footer, showFooter: false });
     await tick();
 
-    expect(document.getElementById('command-palette-list')?.nextElementSibling).toBeNull();
+    expect(paletteList().nextElementSibling).toBeNull();
     expect(document.querySelector('[data-own-footer]')).toBeNull();
   });
 

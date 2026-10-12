@@ -19,6 +19,7 @@
 
   let {
     preset,
+    id: idProp,
     items,
     placeholder: placeholderProp,
     emptyText: emptyTextProp,
@@ -46,8 +47,17 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
+  // `id` goes to the dialog. The list and its rows derive theirs from it, or
+  // from `$props.id()` without one, so the input's ARIA references resolve
+  // inside this palette when a second one is on the page.
+  const propsId = $props.id();
+  const baseId = $derived(idProp ?? `command-palette-${propsId}`);
+  const listId = $derived(`${baseId}-list`);
+  const itemId = (index: number) => `${baseId}-item-${index}`;
+
   let selectedIndex = $state(0);
   let inputEl: HTMLInputElement | undefined = $state();
+  let listEl: HTMLDivElement | undefined = $state();
 
   const variantProps: CommandPaletteVariants = $derived({ size });
 
@@ -215,14 +225,27 @@
     e.preventDefault();
     if (next >= 0 && next !== highlightIndex) {
       selectedIndex = next;
-      scrollSelectedIntoView();
+      scrollToHighlight(next);
     }
   }
 
-  function scrollSelectedIntoView() {
+  /**
+   * At the first and the last command the list scrolls to its own edge before
+   * the row's `nearest`: `nearest` alone stops at the command and leaves the
+   * info rows, the group label or the disabled rows beyond it out of view, and
+   * the keyboard, held in the input, has no other way to bring them in. The
+   * `nearest` after it keeps the command in view when those rows are taller
+   * than the list.
+   */
+  function scrollToHighlight(index: number) {
+    const first = edgeEnabledIndex(filtered.length, 1, isSkipped);
+    const last = edgeEnabledIndex(filtered.length, -1, isSkipped);
     requestAnimationFrame(() => {
-      const el = document.querySelector('[data-command-palette-selected="true"]');
-      el?.scrollIntoView({ block: 'nearest' });
+      if (!listEl) return;
+      if (index === first) listEl.scrollTop = 0;
+      else if (index === last) listEl.scrollTop = listEl.scrollHeight;
+      const row = listEl.querySelector('[data-command-palette-selected="true"]');
+      row?.scrollIntoView({ block: 'nearest' });
     });
   }
 
@@ -297,6 +320,7 @@
 
 <Dialog
   {...restProps}
+  id={idProp}
   {unstyled}
   bind:open
   size="md"
@@ -330,10 +354,8 @@
         class={unstyled ? (slotClasses?.input ?? '') : styles.input({ class: slotClasses?.input })}
         role="combobox"
         aria-expanded={hasOptions}
-        aria-controls="command-palette-list"
-        aria-activedescendant={filtered[highlightIndex]
-          ? `command-palette-item-${highlightIndex}`
-          : undefined}
+        aria-controls={listId}
+        aria-activedescendant={filtered[highlightIndex] ? itemId(highlightIndex) : undefined}
         autocomplete="off"
       />
       {#if query}
@@ -354,7 +376,8 @@
 
     <!-- Results -->
     <div
-      id="command-palette-list"
+      bind:this={listEl}
+      id={listId}
       role={hasOptions ? 'listbox' : undefined}
       class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}
     >
@@ -401,7 +424,7 @@
 
               The container is the component's in both branches: its id is what
               `aria-activedescendant` names and its data attribute is what
-              `scrollSelectedIntoView` queries, so `customItem` renders the
+              `scrollToHighlight` queries, so `customItem` renders the
               row's visible contents inside it and draws nothing focusable —
               a control here would be nested-interactive on role="option" and
               would select a second time when its click reaches this handler.
@@ -442,7 +465,7 @@
             {:else}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <div
-                id="command-palette-item-{flatIdx}"
+                id={itemId(flatIdx)}
                 role="option"
                 tabindex="-1"
                 aria-selected={isHighlighted}

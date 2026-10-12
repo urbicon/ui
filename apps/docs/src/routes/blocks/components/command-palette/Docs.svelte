@@ -107,7 +107,7 @@
 
     <CodeExample
       title="Disabled and Informational Rows"
-      description="disabled: true is a command that cannot run right now: greyed out, skipped by the arrow keys, read out as unavailable. kind: 'info' is a row that is no command at all, here the line explaining why Undo is off: the arrow keys skip it as well, but it keeps the list's own ink and a screen reader reads it as plain text."
+      description="disabled: true is a command that cannot run right now: greyed out and skipped by the arrow keys. kind: 'info' is a row that is no command at all, here the line explaining why Undo is off: the arrow keys skip it as well, but it keeps the list's own ink. A screen reader reaches both in reading mode only, never while the user types; an explanation that has to be heard then belongs in the excerpt of a command the arrow keys reach, which is part of that command's accessible name."
       isolate
     >
       <Button variant="outlined" intent="neutral" onclick={() => (iconsOpen = true)}>
