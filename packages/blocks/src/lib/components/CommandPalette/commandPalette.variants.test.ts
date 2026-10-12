@@ -16,6 +16,7 @@ describe('commandPaletteVariants', () => {
       'itemHighlighted',
       'itemDefault',
       'itemDisabled',
+      'itemInfo',
       'itemIcon',
       'itemLabel',
       'itemShortcut',
@@ -63,11 +64,17 @@ describe('commandPaletteVariants', () => {
     expect(styles.itemDisabled()).toContain('cursor-not-allowed');
   });
 
-  it('footer uses hairline (container divider), kbd uses subtle (pill border)', () => {
+  it('footer uses hairline (container divider); the keycaps are Kbd`s, the kbd slot adds nothing', () => {
     const styles = commandPaletteVariants();
     expect(styles.footer()).toContain('border-border-hairline');
-    expect(styles.kbd()).toContain('border-border-subtle');
-    expect(styles.kbd()).toContain('bg-surface-subtle');
+    expect(styles.kbd()).toBe('');
+  });
+
+  it('info row: no locked look, no pointer', () => {
+    const info = commandPaletteVariants().itemInfo();
+    expect(info).toContain('cursor-default');
+    expect(info).not.toContain('opacity-');
+    expect(info).not.toContain('hover:');
   });
 
   it('never outputs dark: overrides', () => {

@@ -150,6 +150,12 @@ export default {
       navigate: 'Navigieren',
       select: 'Auswählen',
       close: 'Schließen'
+    },
+    // Die Taste, die jeder Hinweis in der Fußzeile nennt, als Tastenkappe.
+    keys: {
+      navigate: '↑↓',
+      select: '↵',
+      close: 'Esc'
     }
   },
   compositionBar: {

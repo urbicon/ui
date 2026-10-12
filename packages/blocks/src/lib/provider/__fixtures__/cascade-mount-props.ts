@@ -81,11 +81,13 @@ export const MOUNT_FIXTURES: Record<string, MountFixture> = {
   CommandPalette: {
     props: {
       open: true,
-      // The disabled row is a state of its own — `itemDisabled` shares the
-      // `cursor` bucket with `item`, and no other item reaches that pairing.
+      // The disabled row and the info row are states of their own —
+      // `itemDisabled` and `itemInfo` each share the `cursor` bucket with
+      // `item`, and no other item reaches those pairings.
       items: [
         { id: 'new', label: 'New File' },
-        { id: 'archived', label: 'Archived', disabled: true }
+        { id: 'archived', label: 'Archived', disabled: true },
+        { id: 'hint', label: 'Type to search', kind: 'info' }
       ]
     }
   },

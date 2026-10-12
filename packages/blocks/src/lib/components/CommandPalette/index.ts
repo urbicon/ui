@@ -22,9 +22,9 @@ export interface CommandPaletteItem {
   /** Display text shown in the list. */
   label: string;
   /**
-   * Secondary line rendered under the label, truncated to one line. Use it for
-   * context the label cannot carry — a description, or an excerpt around a
-   * search match.
+   * Secondary line rendered under the label, truncated to one line: context the
+   * label cannot carry, a description or an excerpt around a search match. In the
+   * default row it is part of the command's accessible name, read with the label.
    */
   excerpt?: string;
   /** Group header this item belongs to. Items with the same category are grouped together. */
@@ -39,10 +39,45 @@ export interface CommandPaletteItem {
    * the slot's own size, inheriting `currentColor`.
    */
   icon?: IconComponent;
-  /** Whether the item is non-selectable. @default false */
+  /**
+   * `'info'` makes the row information, not a command: keyboard and pointer skip it,
+   * it cannot be selected, it has no locked look (`itemInfo` styles it), and a screen
+   * reader reads it in reading mode only, never while the user types: what must be heard
+   * goes in the `excerpt` of an enabled command. `disabled` has no effect. @default 'action'
+   */
+  kind?: 'action' | 'info';
+  /**
+   * A command that cannot run right now: dimmed, skipped by the keyboard, not
+   * selectable, read as unavailable in reading mode only. @default false
+   */
   disabled?: boolean;
   /** Arbitrary payload forwarded to `onSelect`. */
   data?: unknown;
+}
+
+/**
+ * One key hint in the palette's footer: the key, and what it does there.
+ *
+ * @example
+ * ```ts
+ * const hint: CommandPaletteHint = { id: 'complete', keys: 'Tab', label: 'Complete' };
+ * ```
+ */
+export interface CommandPaletteHint {
+  /**
+   * Which hint this is. The palette's own are `'navigate'`, `'select'` and
+   * `'close'`; pick or drop one by its id. Give a hint you add an id the
+   * others do not use, so an `{#each}` can key on it.
+   */
+  id: string;
+  /**
+   * The key, in the form `Kbd`'s `keys` takes: a string is one keycap, an
+   * array is a chord drawn in one keycap (`['Ctrl', 'K']` → Ctrl + K). The
+   * palette's own come from its translations (`commandPalette.keys.*`).
+   */
+  keys: string | string[];
+  /** What the key does, already translated. */
+  label: string;
 }
 
 /**
@@ -51,12 +86,15 @@ export interface CommandPaletteItem {
  * @summary Everything the app can do, one keystroke away.
  * @description Keyboard-driven command palette with search, grouped results,
  * and arrow-key navigation. Composes Dialog + search input into a ready-to-use overlay.
- * Open via bind:open or the built-in Cmd+K shortcut.
+ * Open via bind:open or the built-in Cmd+K shortcut. A row is a command, or with
+ * `kind: 'info'` a line of information the keyboard passes over; the footer's key hints are
+ * drawn with `Kbd` and can be replaced through the `footer` snippet.
  *
  * @tag action
  * @related Dialog
  * @related Menu
  * @related Combobox
+ * @related Kbd
  *
  * @example
  * ```svelte
@@ -102,7 +140,11 @@ export interface CommandPaletteProps
   /** Message shown when the filter returns no results. @default 'No results found.' */
   emptyText?: string;
 
-  /** Show keyboard-shortcut hints in the footer. @default true */
+  /**
+   * Show the footer with the keyboard hints. `false` hides the footer bar,
+   * a `footer` snippet included.
+   * @default true
+   */
   showFooter?: boolean;
 
   // ── Behavior ─────────────────────────────────────────────
@@ -111,8 +153,23 @@ export interface CommandPaletteProps
   open?: boolean;
 
   /**
-   * Current search text. Supports `bind:query`. Reset to `''` whenever the
-   * palette opens.
+   * The `<dialog>` element's id, and the prefix of the results list (`<id>-list`)
+   * and its rows (`<id>-item-N`). Generated per instance when omitted.
+   */
+  id?: string;
+
+  /**
+   * Current search text. Supports `bind:query`. Reset to `''` when the palette
+   * has finished closing, just before `onClosed` fires, so it does not empty
+   * while it animates out. A query you set once it has closed — in `onClosed`
+   * or later, before or after `open = true` — is what it opens with; one you
+   * write between `open = false` and `onClosed` is reset. A close that does
+   * not finish resets nothing: one vetoed by writing `open = true` back in
+   * `onOpenChange`, one interrupted by reopening (from `onSelect` too, so a
+   * drill-down that swaps `items` there sets `query = ''` itself), or the
+   * palette destroyed before it ends, as an `{#if}` that unmounts it on close
+   * does: clear your bound query where you unmount it. Selecting an item
+   * leaves the query as it was until then.
    *
    * For async or remote search, watch the bound `query`, fetch your own
    * results, and pass them back via `items` with `filter={() => true}` so the
@@ -153,7 +210,8 @@ export interface CommandPaletteProps
    * for a close interrupted by reopening before the animation ends, nor when
    * the palette is destroyed while open or mid-close. `onOpenChange(false)`
    * fires an animation earlier, while focus is still in the palette; this is
-   * the place to move focus elsewhere or open a follow-up surface.
+   * the place to move focus elsewhere or open a follow-up surface. The query
+   * and the highlight have been reset by then.
    */
   onClosed?: () => void;
 
@@ -163,7 +221,8 @@ export interface CommandPaletteProps
    * Replace the default per-row rendering. Receives the item, whether its row
    * is highlighted, the item's flat index into the filtered list, and a
    * `select` callback (call it to run the same selection the row's click runs;
-   * it is a no-op on a disabled item).
+   * it is a no-op on a disabled item and on an `info` row). It draws `info`
+   * rows too: `highlighted` is always `false` for them.
    *
    * **Render visible content only — nothing focusable, nothing interactive.**
    * A `<button>` or `<a>` inside the row is nested-interactive HTML on the
@@ -176,11 +235,12 @@ export interface CommandPaletteProps
    * The outer `<div role="option">` container is still owned by CommandPalette:
    * its id is what the input's `aria-activedescendant` points at, its
    * `data-command-palette-selected` attribute is what the scroll-into-view
-   * query finds, and it carries the row's click and hover-highlight.
+   * query finds, and it carries the row's click and hover-highlight. An `info`
+   * row's container is a plain `<div role="presentation">` with neither.
    *
    * Styling the row is `slotClasses.item` plus the state slot
-   * (`itemHighlighted`, `itemDisabled` or `itemDefault`), which reach the
-   * container here as well; the `itemIcon`, `itemText`, `itemLabel`,
+   * (`itemHighlighted`, `itemDisabled`, `itemInfo` or `itemDefault`), which
+   * reach the container here as well; the `itemIcon`, `itemText`, `itemLabel`,
    * `itemExcerpt` and `itemShortcut` slots style the default contents and go
    * unused under `customItem`.
    *
@@ -192,6 +252,19 @@ export interface CommandPaletteProps
 
   /** Custom empty-state renderer. Receives the current query string. */
   customEmpty?: Snippet<[query: string]>;
+
+  /**
+   * Replace the footer's contents. Receives `{ hints }`, the palette's own key
+   * hints in their default order — `navigate` (↑↓), `select` (↵) and `close`
+   * (esc), keys and labels already translated — to render all, some, or
+   * none of, next to hints of your own. Render a key through `Kbd`:
+   * `<Kbd keys={hint.keys} size="sm" />` draws it the way the default footer
+   * does. The footer bar itself stays the palette's, styled by the `footer`
+   * slot, and `showFooter={false}` hides it with the snippet in it.
+   *
+   * Positional args: `({ hints })`.
+   */
+  footer?: Snippet<[footer: { hints: CommandPaletteHint[] }]>;
 
   // ── Variants ─────────────────────────────────────────────
 
@@ -207,14 +280,16 @@ export interface CommandPaletteProps
   unstyled?: boolean;
 
   /**
-   * Per-slot class overrides. An option row is built from four sources in
-   * order — the library's `item` classes, the library's classes for the row's
-   * state (`itemHighlighted` when selected, `itemDisabled` when the item is
-   * disabled, `itemDefault` otherwise), then your `item` entry, then your entry
-   * for that state slot. Each source displaces the earlier ones per Tailwind
-   * bucket, so an `item` entry that collides with a state class *removes* it:
-   * `slotClasses={{ item: 'bg-white' }}` also drops the selected row's
-   * `bg-primary-subtle`. Write the state slot as well to keep both.
+   * Per-slot class overrides. A row is built from four sources in order — the
+   * library's `item` classes, the library's classes for the row's state
+   * (`itemInfo` for an `info` row, `itemDisabled` when the item is disabled,
+   * `itemHighlighted` when selected, `itemDefault` otherwise), then your
+   * `item` entry, then your entry for that state slot. Each source displaces
+   * the earlier ones per Tailwind bucket, so an `item` entry that collides
+   * with a state class *removes* it: `slotClasses={{ item: 'bg-white' }}` also
+   * drops the selected row's `bg-primary-subtle`. Write the state slot as well
+   * to keep both. `kbd` reaches the `Kbd` each default footer hint renders,
+   * after its own classes.
    */
   slotClasses?: Partial<Record<CommandPaletteSlots, string>>;
 

@@ -32,6 +32,9 @@ export const commandPaletteVariants = tv({
     itemHighlighted: 'bg-primary-subtle text-primary-text',
     itemDefault: 'text-text-secondary hover:bg-surface-hover',
     itemDisabled: 'text-text-quaternary cursor-not-allowed opacity-50',
+    // Not a command and not a locked one: no hover, no not-allowed cursor, no
+    // opacity — information in the list's own ink.
+    itemInfo: 'text-text-tertiary cursor-default',
     itemIcon: 'h-4 w-4 shrink-0',
     itemText: 'flex min-w-0 flex-1 flex-col items-start gap-0.5',
     itemLabel: 'text-left',
@@ -48,10 +51,9 @@ export const commandPaletteVariants = tv({
       'px-4 py-2 text-2xs text-text-quaternary'
     ],
     footerHint: 'flex items-center gap-1',
-    kbd: [
-      'rounded border border-border-subtle bg-surface-subtle',
-      'px-1 py-0.5 font-mono text-3xs'
-    ],
+    // The footer's keycaps are `Kbd` (size sm), which draws them; this slot is
+    // the consumer's handle on them and adds nothing of its own.
+    kbd: '',
     separator: 'my-1'
   },
   variants: {
