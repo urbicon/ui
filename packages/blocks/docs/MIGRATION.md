@@ -50,9 +50,9 @@ once:
 ```
 
 The removed prop compared local calendar days, and so does `toIso`. A plain `includes` does not:
-the component calls the predicate with a `Date` of its own for each day, at the day's local start,
-so `holidays.includes(d)` disables no day at all, and comparing `getTime()` misses every entry with
-a time of day. If you passed both props, join them in one predicate:
+the component calls the predicate with a `Date` of its own for each day — read only its calendar
+day — so `holidays.includes(d)` disables no day at all, and comparing `getTime()` misses every
+entry with a time of day. If you passed both props, join them in one predicate:
 `(d) => blocked.has(toIso(d)) || isWeekend(d)`.
 
 Written as an attribute, `disabledDates` is now a type error. Passed through a spread, it
@@ -74,12 +74,13 @@ event popover on focus, as any other day does. A `Calendar` with `disabled` keep
 focus, as before.
 
 A selector, a `disabled:` class in `slotClasses.day` or a check of the button's `disabled`
-property no longer matches a closed day; use `[aria-disabled="true"]`. Playwright reads
-`aria-disabled` as well, so its `toBeDisabled()` still passes and its `click()` still waits for an
-enabled day; a matcher that reads only the attribute now fails:
+property or attribute no longer matches a closed day; use `[aria-disabled="true"]`. Playwright
+reads `aria-disabled` as well, so its `toBeDisabled()` still passes and its `click()` still waits
+for an enabled day; a matcher that reads only the attribute now fails:
 
 ```sh
-rg -n -e ':disabled' -e '\[disabled\]' -e 'toBeDisabled' -e '\bdisabled:[a-z]'
+rg -n -e ':disabled' -e '\[disabled\]' -e 'toBeDisabled' -e '\bdisabled:[a-z]' \
+  -e '\.disabled\b' -e "Attribute\(['\"]disabled['\"]"
 ```
 
 ## 8.29.0

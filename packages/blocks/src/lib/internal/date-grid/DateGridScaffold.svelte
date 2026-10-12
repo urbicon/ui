@@ -19,7 +19,7 @@
   import { MediaQuery } from 'svelte/reactivity';
   import { fly } from 'svelte/transition';
   import { getDateGridContext } from './date-grid.context';
-  import { handleDateGridKeydown } from './date-grid.keyboard';
+  import { focusDayCell, handleDateGridKeydown } from './date-grid.keyboard';
   import type { DayCellInfo, DayHeaderInfo } from './date-grid.types';
   import { dateGridRow } from './date-grid.variants';
 
@@ -97,13 +97,8 @@
     // Drive grid navigation only from the cell itself; interactive children
     // (a Planner cell's buttons/inputs) keep their own Enter/Space/arrow keys.
     if (event.target !== event.currentTarget) return;
-    if (handleDateGridKeydown(event, ctx)) {
-      // Move DOM focus to follow the controller's roving focus.
-      const target = toIso(ctx.focusedDate);
-      requestAnimationFrame(() => {
-        gridEl?.querySelector<HTMLElement>(`[data-date="${target}"]`)?.focus();
-      });
-    }
+    // Move DOM focus to follow the controller's roving focus.
+    if (handleDateGridKeydown(event, ctx)) focusDayCell(gridEl, ctx.focusedDate);
   }
 
   // Interactive content inside a cell (a Planner cell's buttons/links/inputs)

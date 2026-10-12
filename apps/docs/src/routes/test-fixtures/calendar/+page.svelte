@@ -14,7 +14,8 @@
     type CalendarEvent,
     type CalendarSelection,
     type CalendarViewMode,
-    DatePicker
+    DatePicker,
+    Planner
   } from '@urbicon-ui/blocks';
 
   const anchor = new Date(2026, 5, 15);
@@ -64,6 +65,11 @@
     { id: 'w1', title: 'Closed for inventory', start: new Date(2026, 5, 7) }
   ];
   let weekendRange = $state<CalendarSelection | undefined>(undefined);
+  let weekendMonth = $state('');
+
+  // A Planner month view anchored on 31 March: its grid's last row spills into
+  // April, so ArrowRight steps the month while both grids show 1 April.
+  const plannerItems: { id: string; date: Date }[] = [];
 
   // Single-select mode always yields a Date; anything else renders 'none'.
   const iso = (v: CalendarSelection | undefined) =>
@@ -123,10 +129,12 @@
       isDateDisabled={isWeekend}
       events={weekendEvents}
       eventPopover
+      onMonthChange={(month, year) => (weekendMonth = `${month}-${year}`)}
     />
-    <span class="text-text-secondary text-sm" data-testid="cal-weekends-range"
-      >{isoRange(weekendRange)}</span
-    >
+    <div class="text-text-secondary space-x-4 text-sm">
+      <span data-testid="cal-weekends-range">{isoRange(weekendRange)}</span>
+      <span data-testid="cal-weekends-month">{weekendMonth || 'none'}</span>
+    </div>
   </section>
 
   <section data-testid="cal-picker-weekends" class="max-w-sm">
@@ -136,6 +144,16 @@
       defaultMonth={5}
       defaultYear={2026}
       isDateDisabled={isWeekend}
+    />
+  </section>
+
+  <section data-testid="planner-month" class="max-w-3xl">
+    <Planner
+      view="month"
+      value={new Date(2026, 2, 31)}
+      locale="en-US"
+      items={plannerItems}
+      getDate={(item) => item.date}
     />
   </section>
 

@@ -190,8 +190,58 @@ test('an animated month change keeps the focus on the day the arrow moved to', a
   await page.keyboard.press('ArrowRight');
   await expect(main(page).getByRole('status')).toHaveText('July 2026');
   await expect(day(page, '2026-07-01').and(page.locator('[data-state="default"]'))).toBeFocused();
-  await page.waitForTimeout(400);
+  // One match left: the outgoing grid has slid out of the DOM.
+  await expect(day(page, '2026-07-01')).toHaveCount(1);
   await expect(day(page, '2026-07-01')).toBeFocused();
+});
+
+test('Planner: an animated month change keeps the focus on the day the arrow moved to', async ({
+  page
+}) => {
+  await setupPage(page);
+  const cell = (date: string) => page.getByTestId('planner-month').locator(`[data-date="${date}"]`);
+
+  // The March grid shows 1 April as a spill day; the April grid as a day of its own.
+  await cell('2026-03-31').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(cell('2026-04-01')).toHaveCount(1);
+  await expect(cell('2026-04-01')).toBeFocused();
+});
+
+/**
+ * A day of the neighbouring month (a spill day) answers a pointer through its
+ * click alone: focusing it turns the month, and a press that focused it would
+ * replace the day under the pointer before the click. The keys still turn the
+ * month through focus (the tests above).
+ */
+test.describe('Calendar: a click on a spill day', () => {
+  test('an enabled one selects its date and turns to its month', async ({ page }) => {
+    await setupPage(page);
+    await expect(day(page, '2026-07-01')).toHaveAttribute('data-state', 'outsideMonth');
+
+    await day(page, '2026-07-01').click();
+    await expect(probe(page, 'cal-selected')).toHaveText('2026-07-01');
+    await expect(main(page).getByRole('status')).toHaveText('July 2026');
+    await expect(probe(page, 'cal-month')).toHaveText('6-2026');
+    await expect(day(page, '2026-07-01')).toHaveCount(1);
+    await expect(day(page, '2026-07-01')).toHaveAttribute('aria-selected', 'true');
+    await expect(day(page, '2026-07-01')).toBeFocused();
+  });
+
+  test('a disabled one changes nothing', async ({ page }) => {
+    await setupPage(page);
+    const weekends = page.getByTestId('cal-weekends');
+    const weekendDay = (date: string) => weekends.locator(`[data-date="${date}"]`);
+    // 4 July 2026, a Saturday, sits in the June grid's last row.
+    await expect(weekendDay('2026-07-04')).toHaveAttribute('aria-disabled', 'true');
+    await weekendDay('2026-06-05').focus();
+
+    await weekendDay('2026-07-04').click({ force: true });
+    await expect(weekendDay('2026-06-05')).toBeFocused();
+    await expect(weekends.getByRole('status')).toHaveText('June 2026');
+    await expect(page.getByTestId('cal-weekends-month')).toHaveText('none');
+    await expect(page.getByTestId('cal-weekends-range')).toHaveText('none');
+  });
 });
 
 /**

@@ -4,8 +4,8 @@
  * DateRangePicker, Planner and ResourceTimeline. This file pins the three things
  * its JSDoc promises on each of them:
  *
- *  1. **What it receives** — a `Date` at the day's local start, on every call;
- *     in Europe/Berlin that is always midnight.
+ *  1. **What it receives** — a `Date` of its own for each day, on every call;
+ *     in Europe/Berlin that is always local midnight.
  *  2. **A list, kept as a `Set` of `toIso` keys**, disables exactly the days it
  *     names: an entry with a time of day, one built by adding hours across the
  *     spring-forward switch, one parsed from a UTC instant. `list.includes(d)`

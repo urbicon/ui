@@ -5,6 +5,7 @@
   import { getCalendarContext } from './calendar.context';
   import { calendarVariants } from './calendar.variants';
   import { isSameDay, formatDateFull } from '#lib/date/index.js';
+  import { focusDayCell } from '#lib/internal/date-grid/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarEventPopover from './CalendarEventPopover.svelte';
@@ -128,8 +129,22 @@
     clearTimeout(closeTimer);
   }
 
+  // Focusing a spill day turns the month, and the turn replaces this button
+  // before its click: a press on one must not move the focus. The click selects
+  // through the controller, which refuses a disabled day and turns to an
+  // enabled one's month; the roving focus follows it into the new grid.
+  function handleMouseDown(event: MouseEvent) {
+    if (isOutsideMonth) event.preventDefault();
+  }
+
   function handleClick() {
+    // Read before selecting: the month turn makes the day an in-month one.
+    const turnsMonth = isOutsideMonth && !isDisabled;
+    const grid = buttonEl?.closest<HTMLElement>('[role="grid"]');
     ctx.selectDate(date);
+    if (!turnsMonth) return;
+    ctx.setFocusedDate(date);
+    focusDayCell(grid, date);
   }
 
   function handleDblClick() {
@@ -211,6 +226,7 @@
     data-drop-target={ctx.draggable ? '' : undefined}
     title={showPopoverEnabled ? undefined : eventTooltip}
     disabled={ctx.disabled}
+    onmousedown={handleMouseDown}
     onclick={handleClick}
     ondblclick={handleDblClick}
     onmouseenter={handleMouseEnter}

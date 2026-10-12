@@ -150,11 +150,10 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
    * to disable single days, whether a rule (weekends) or a list (holidays). The calendar
    * cannot pick a disabled day, though its arrow keys land on it, and a typed one is
    * rejected as out of range when it is committed. It receives a `Date` of its own for
-   * each day, at the day's local start: read only its calendar day. It runs again when
-   * `$state` it reads changes. Compare calendar days, not `Date` objects
-   * (`list.includes(d)` matches nothing): keep a list as a `Set` of `toIso` keys from
-   * `@urbicon-ui/blocks/date` and pass `(d) => blocked.has(toIso(d))`. It must not throw;
-   * the calendar does not catch it.
+   * each day — read only its calendar day. It runs again when `$state` it reads changes.
+   * Compare calendar days, not `Date` objects (`list.includes(d)` matches nothing): keep a
+   * list as a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
+   * `(d) => blocked.has(toIso(d))`. It must not throw; the calendar does not catch it.
    */
   isDateDisabled?: (date: Date) => boolean;
 
@@ -334,11 +333,11 @@ export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement
    * to disable single days, whether a rule (weekends) or a list (holidays). Only a range's
    * two ends are checked: the calendar cannot start or end a range on a disabled day, and a
    * typed range with a disabled end is rejected as out of range, but a range may span
-   * disabled days. It receives a `Date` of its own for each day, at the day's local start:
-   * read only its calendar day. It runs again when `$state` it reads changes. Compare
-   * calendar days, not `Date` objects (`list.includes(d)` matches nothing): keep a list as
-   * a `Set` of `toIso` keys from `@urbicon-ui/blocks/date` and pass
-   * `(d) => blocked.has(toIso(d))`. It must not throw; the calendar does not catch it.
+   * disabled days. It receives a `Date` of its own for each day — read only its calendar
+   * day. It runs again when `$state` it reads changes. Compare calendar days, not `Date`
+   * objects (`list.includes(d)` matches nothing): keep a list as a `Set` of `toIso` keys
+   * from `@urbicon-ui/blocks/date` and pass `(d) => blocked.has(toIso(d))`. It must not
+   * throw; the calendar does not catch it.
    */
   isDateDisabled?: (date: Date) => boolean;
 
