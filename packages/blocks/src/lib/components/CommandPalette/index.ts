@@ -23,8 +23,8 @@ export interface CommandPaletteItem {
   label: string;
   /**
    * Secondary line rendered under the label, truncated to one line: context the
-   * label cannot carry, a description or an excerpt around a search match. It is
-   * part of a command's accessible name, so a screen reader reads it with the label.
+   * label cannot carry, a description or an excerpt around a search match. In the
+   * default row it is part of the command's accessible name, read with the label.
    */
   excerpt?: string;
   /** Group header this item belongs to. Items with the same category are grouped together. */
@@ -151,6 +151,12 @@ export interface CommandPaletteProps
 
   /** Controls visibility. Supports `bind:open`. @default false */
   open?: boolean;
+
+  /**
+   * The `<dialog>` element's id, and the prefix of the results list (`<id>-list`)
+   * and its rows (`<id>-item-N`). Generated per instance when omitted.
+   */
+  id?: string;
 
   /**
    * Current search text. Supports `bind:query`. Reset to `''` when the palette

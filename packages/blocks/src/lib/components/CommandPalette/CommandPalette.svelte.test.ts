@@ -1164,11 +1164,30 @@ describe('CommandPalette (scrolling the highlight into view)', () => {
     expect(list.scrollTop, 'ArrowDown, wrapping to the first command').toBe(0);
   });
 
+  it('brings the new highlight into view when a query moves it', async () => {
+    render({ items: EDGE_ROWS });
+    await tick();
+    const list = paletteList();
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1000 });
+
+    press('End');
+    await nextFrame();
+    expect(list.scrollTop, 'End').toBe(1000);
+
+    // Typing highlights the first match, which no key moved there.
+    type('Command 1');
+    await nextFrame();
+    expect(list.scrollTop, 'first match after a query').toBe(0);
+  });
+
   it('scrolls a command between the edges only as far as its row', async () => {
     const scrolls = vi.spyOn(Element.prototype, 'scrollIntoView');
     try {
       render({ items: EDGE_ROWS });
       await tick();
+      // The opening scrolls its own highlight in; this test is about the key.
+      await nextFrame();
+      scrolls.mockClear();
       paletteList().scrollTop = 300;
 
       press('ArrowDown');
@@ -1223,6 +1242,8 @@ describe('CommandPalette (two on one page)', () => {
     try {
       const [, second] = renderTwo(EDGE_ROWS);
       await tick();
+      await nextFrame();
+      scrolls.mockClear();
 
       press('ArrowDown', second);
       await nextFrame();

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
@@ -140,13 +141,18 @@
       : edgeEnabledIndex(filtered.length, 1, isSkipped)
   );
 
+  // A new query and an opening move the highlight without a key, so they bring
+  // it into view too; untracked, or a change of `items` would reset the walk.
   $effect(() => {
     void query;
     selectedIndex = 0;
+    untrack(() => scrollToHighlight(highlightIndex));
   });
 
   $effect(() => {
-    if (open) requestAnimationFrame(() => inputEl?.focus());
+    if (!open) return;
+    requestAnimationFrame(() => inputEl?.focus());
+    untrack(() => scrollToHighlight(highlightIndex));
   });
 
   /**
