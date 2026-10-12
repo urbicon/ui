@@ -10,6 +10,9 @@ import { type SlotNames, tv, type VariantProps } from '#lib/utils/variants.js';
  * - `--blocks-scroller-item` — each item's flex basis (the `itemBasis` prop).
  *   It is what decides WHEN the row overflows, and the centred variant needs it
  *   to compute its edge padding.
+ * - `--blocks-scroller-first-item` / `-last-item` — the measured width of the
+ *   first and last item, written only where the basis is not a length (see
+ *   `edgePadding`).
  * - `--blocks-scroller-emphasis-scale` / `-shadow` — retune the `emphasis`
  *   lift per instance without widening the component API (the Tooltip
  *   convention). The keyframes live in `style/interaction.css`; `@keyframes`
@@ -97,12 +100,29 @@ export const scrollerVariants = tv({
     // the leftover width, which is the ONLY way the first and last item can ever
     // reach the middle — without it the browser clamps at the scroll extent and
     // they rest at the edge. That is the classic centred-carousel bug, and it is
-    // a layout rule, not decoration, so it lives here.
+    // a layout rule, not decoration, so it lives here: in the compounds below,
+    // because how wide the padding is depends on `edgePadding`.
     align: {
       start: { viewport: '[&>*]:snap-start' },
-      center: {
-        viewport: ['[&>*]:snap-center', 'px-[calc(50%_-_var(--blocks-scroller-item)/2)]']
-      }
+      center: { viewport: '[&>*]:snap-center' }
+    },
+
+    // Where a centred row's edge padding takes the item width from. Not a prop:
+    // the component derives it from `itemBasis`.
+    //
+    // - `basis` — half of `--blocks-scroller-item` on both sides. Pure CSS, so
+    //   it holds from the server render on, and exact because every item has
+    //   that width.
+    // - `measured` — for a basis that is not a length (`auto`, `max-content`).
+    //   There the `basis` calc() is invalid, the browser drops the whole
+    //   declaration and the row rests like `align="start"`; and the items
+    //   differ in width, so no single half-item centres both ends. The left
+    //   side halves the first item, the right side the last, from widths the
+    //   component measures. Until they are written the `100%` fallback makes
+    //   each side `50% - 50%`, i.e. the start padding, as a valid declaration.
+    edgePadding: {
+      basis: {},
+      measured: {}
     },
 
     snap: {
@@ -153,6 +173,22 @@ export const scrollerVariants = tv({
   },
 
   compoundVariants: [
+    {
+      align: 'center' as const,
+      edgePadding: 'basis' as const,
+      class: { viewport: 'px-[calc(50%_-_var(--blocks-scroller-item)/2)]' }
+    },
+    {
+      align: 'center' as const,
+      edgePadding: 'measured' as const,
+      class: {
+        viewport: [
+          'pl-[calc(50%_-_var(--blocks-scroller-first-item,100%)/2)]',
+          'pr-[calc(50%_-_var(--blocks-scroller-last-item,100%)/2)]'
+        ]
+      }
+    },
+
     // Scroll-driven lift, wired ONLY for `align="center"`. Pure CSS:
     // `animation-timeline: view(inline)` ties progress to where the item sits in
     // the scrollport, so nothing needs keeping in sync and there is nothing to
@@ -200,6 +236,7 @@ export const scrollerVariants = tv({
   // without a styling claim.
   defaultVariants: {
     align: 'start',
+    edgePadding: 'basis',
     snap: 'proximity',
     gap: 'md',
     emphasis: 'none',

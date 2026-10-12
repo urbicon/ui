@@ -75,6 +75,26 @@ describe('Scroller variants — align', () => {
     expect(centre).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
     expect(centre).not.toContain('[&>*]:snap-start');
   });
+
+  it('center with a basis that is not a length halves the measured first and last item instead', () => {
+    // `calc(50% - auto/2)` is invalid: the browser drops the declaration and
+    // the row rests like `start`. With content-sized items the two ends also
+    // differ, so each side halves its own end item. The `100%` fallback makes a
+    // side `50% - 50%` = 0 until the width is written: start padding, as a
+    // declaration the browser keeps. Exactly one padding rule is emitted —
+    // never the basis calc next to the measured pair.
+    const centre = viewport({ align: 'center', edgePadding: 'measured' });
+    expect(centre).toContain('pl-[calc(50%_-_var(--blocks-scroller-first-item,100%)/2)]');
+    expect(centre).toContain('pr-[calc(50%_-_var(--blocks-scroller-last-item,100%)/2)]');
+    expect(centre).not.toContain('var(--blocks-scroller-item)/2');
+  });
+
+  it('start pads nothing, whichever way the basis is measured', () => {
+    for (const edgePadding of ['basis', 'measured'] as const) {
+      const start = viewport({ align: 'start', edgePadding });
+      expect(start).not.toContain('calc(50%');
+    }
+  });
 });
 
 describe('Scroller variants — emphasis', () => {

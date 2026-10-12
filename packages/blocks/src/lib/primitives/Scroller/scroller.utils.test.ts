@@ -200,6 +200,77 @@ describe('restingPositions', () => {
   });
 });
 
+describe('a centred row of items with different widths', () => {
+  // `itemBasis="auto"`: chips at their content width, a 600px viewport, 8px
+  // gaps. The track is padded the way the `measured` edge padding pads it —
+  // half the leftover beside the FIRST item on the left, beside the LAST on
+  // the right.
+  const VIEWPORT = 600;
+  const GAP = 8;
+  const WIDTHS = [40, 160, 70, 130, 110, 180];
+
+  function chipRow(padStart: number, padEnd: number) {
+    const items: ScrollerItemMetrics[] = [];
+    let start = padStart;
+    for (const size of WIDTHS) {
+      items.push({ start, size });
+      start += size + GAP;
+    }
+    const content = start - GAP + padEnd;
+    return { items, maxScroll: content - VIEWPORT };
+  }
+
+  const first = WIDTHS[0] as number;
+  const last = WIDTHS.at(-1) as number;
+  const { items, maxScroll } = chipRow((VIEWPORT - first) / 2, (VIEWPORT - last) / 2);
+  const targets = items.map((_, i) => scrollTargetForIndex(items, i, VIEWPORT, 'center'));
+
+  it('brings the first item to the middle at 0 and the last at the end of the range', () => {
+    expect(targets[0]).toBe(0);
+    expect(targets.at(-1)).toBe(maxScroll);
+  });
+
+  it('gives every item its own resting place, all of them reachable', () => {
+    const positions = restingPositions(items, VIEWPORT, 'center', maxScroll);
+    expect(positions.map((p) => [p.firstIndex, p.lastIndex])).toEqual(WIDTHS.map((_, i) => [i, i]));
+    expect(positions.map((p) => p.target)).toEqual(targets);
+  });
+
+  it('marks as active the item resting in the middle', () => {
+    for (const [index, target] of targets.entries()) {
+      expect(activeItemIndex(items, target, VIEWPORT, 'center', maxScroll)).toBe(index);
+    }
+  });
+
+  it('steps through every item and back, one press each', () => {
+    let position = 0;
+    for (let index = 1; index < WIDTHS.length; index++) {
+      position = scrollTargetForStep(items, position, VIEWPORT, 'center', 1, maxScroll);
+      expect(position).toBe(targets[index]);
+    }
+    for (let index = WIDTHS.length - 2; index >= 0; index--) {
+      position = scrollTargetForStep(items, position, VIEWPORT, 'center', -1, maxScroll);
+      expect(position).toBe(targets[index]);
+    }
+  });
+
+  it('misses one end with a single shared half-item, whichever end it is taken from', () => {
+    // Why the padding takes two widths. Halving the 180px last chip on both
+    // sides leaves the 40px first chip's target 70px below 0 — it clamps and
+    // rests short of the middle. Halving the first chip on both sides runs the
+    // range 70px past the last chip's place, so the row's end is not a resting
+    // place and "next" stays live on the last chip.
+    const offset = (last - first) / 2;
+
+    const byLast = chipRow((VIEWPORT - last) / 2, (VIEWPORT - last) / 2);
+    expect(scrollTargetForIndex(byLast.items, 0, VIEWPORT, 'center')).toBe(-offset);
+
+    const byFirst = chipRow((VIEWPORT - first) / 2, (VIEWPORT - first) / 2);
+    const lastTarget = scrollTargetForIndex(byFirst.items, WIDTHS.length - 1, VIEWPORT, 'center');
+    expect(byFirst.maxScroll - lastTarget).toBe(offset);
+  });
+});
+
 describe('scrollEdges', () => {
   it('reports both ends of a row that overflows', () => {
     expect(scrollEdges(0, 1080, 600)).toEqual({ atStart: true, atEnd: false });

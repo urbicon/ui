@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import ScrollerHarness from './__fixtures__/ScrollerHarness.svelte';
 
@@ -117,14 +117,19 @@ afterEach(() => {
   dispose = undefined;
   scrollToCalls = [];
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 interface Geometry {
   viewportWidth: number;
   itemWidth: number;
+  /** Per-item widths for a row of content-sized items; overrides `itemWidth`. */
+  itemWidths?: number[];
   gap?: number;
   /** Edge padding — what `align="center"` adds so the first/last item can reach the middle. */
   padding?: number;
+  /** Trailing edge padding where it differs from the leading one. */
+  paddingEnd?: number;
 }
 
 /**
@@ -132,18 +137,28 @@ interface Geometry {
  * so the component's first measurement already sees it — Svelte builds the DOM
  * synchronously in `mount()` but defers `$effect`s to the flush.
  */
-function applyGeometry({ viewportWidth, itemWidth, gap = 20, padding = 0 }: Geometry) {
+function applyGeometry({
+  viewportWidth,
+  itemWidth,
+  itemWidths,
+  gap = 20,
+  padding = 0,
+  paddingEnd = padding
+}: Geometry) {
   const root = document.body.querySelector('[data-align]') as HTMLElement;
   const viewport = root.firstElementChild as HTMLElement;
   const items = Array.from(viewport.children) as HTMLElement[];
 
-  const contentWidth = padding * 2 + items.length * itemWidth + Math.max(0, items.length - 1) * gap;
-  viewportBoxes.set(viewport, { clientWidth: viewportWidth, scrollWidth: contentWidth });
-
+  let start = padding;
   items.forEach((item, index) => {
+    const width = itemWidths?.[index] ?? itemWidth;
     itemViewports.set(item, viewport);
-    itemBoxes.set(item, { contentStart: padding + index * (itemWidth + gap), width: itemWidth });
+    itemBoxes.set(item, { contentStart: start, width });
+    start += width + gap;
   });
+
+  const contentWidth = start - (items.length > 0 ? gap : 0) + paddingEnd;
+  viewportBoxes.set(viewport, { clientWidth: viewportWidth, scrollWidth: contentWidth });
 
   return { root, viewport, items };
 }
@@ -452,6 +467,166 @@ describe('Scroller — DEV warnings for combinations that silently do nothing', 
     render({ align: 'center' }, { viewportWidth: 400, itemWidth: 340 });
     expect(warn.mock.calls.flat().join(' ')).toContain('room for only');
     warn.mockRestore();
+  });
+
+  it('judges the widest item, not the first, when the items differ in width', () => {
+    // A narrow first chip says nothing about the 300px item that will sit in
+    // the middle of a 400px row with barely a neighbour beside it.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    parseLikeABrowser();
+    render(
+      { align: 'center', itemBasis: 'auto', count: 3 },
+      { viewportWidth: 400, itemWidth: 0, itemWidths: [40, 300, 40], gap: 8 }
+    );
+    expect(warn.mock.calls.flat().join(' ')).toContain('room for only 1.3');
+  });
+});
+
+/**
+ * jsdom's `CSS.supports` accepts every value — `auto` included — so it cannot
+ * answer the one question the component asks it. This stands in for a
+ * browser's parser on that question: whether the centring calc() survives the
+ * basis being substituted into it. The real parser is exercised in a browser
+ * (e2e/scroller-centre.spec.ts).
+ */
+function parseLikeABrowser() {
+  return vi
+    .spyOn(CSS, 'supports')
+    .mockImplementation(
+      (_property: string, value?: string) => !/\b(auto|(min|max|fit)-content)\b/.test(value ?? '')
+    );
+}
+
+describe('Scroller — centring items of different widths', () => {
+  // `itemBasis="auto"`: six chips at their content width in a 600px row. The
+  // geometry is padded the way the browser pads it once the component has
+  // written the measured end widths — (600 − 40) / 2 before the first chip,
+  // (600 − 180) / 2 after the last.
+  const WIDTHS = [40, 160, 70, 130, 110, 180];
+  const CHIPS: Geometry = {
+    viewportWidth: 600,
+    itemWidth: 0,
+    itemWidths: WIDTHS,
+    gap: 8,
+    padding: 280,
+    paddingEnd: 210
+  };
+  const chipRow = { align: 'center', itemBasis: 'auto', count: WIDTHS.length };
+
+  /** Distance from the viewport's middle to the item's middle at the current scroll. */
+  function offCentre(viewport: HTMLElement, item: HTMLElement) {
+    const box = itemBoxes.get(item) as ItemBox;
+    return box.contentStart + box.width / 2 - (viewport.scrollLeft + 300);
+  }
+
+  it('asks the CSS parser about the calc() the basis padding resolves to', () => {
+    const supports = parseLikeABrowser();
+    render(chipRow, CHIPS);
+    expect(supports).toHaveBeenCalledWith('padding-left', 'calc(50% - auto/2)');
+  });
+
+  it('pads each side by half its own end item, from the measured widths', () => {
+    parseLikeABrowser();
+    const { viewport } = render(chipRow, CHIPS);
+
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('180px');
+    expect(viewport.className).toContain(
+      'pl-[calc(50%_-_var(--blocks-scroller-first-item,100%)/2)]'
+    );
+    expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
+    // Still a stage: the snap strictness follows `align`, not the basis.
+    expect(viewport.className).toContain('snap-mandatory');
+  });
+
+  it('leaves a row with a length basis exactly as it was', () => {
+    parseLikeABrowser();
+    const { viewport } = render({ align: 'center' }, OVERFLOWS);
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: 16rem;');
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+  });
+
+  it('writes no end widths for a start-aligned row, which has no centring padding', () => {
+    parseLikeABrowser();
+    const { viewport } = render(
+      { itemBasis: 'auto', count: WIDTHS.length },
+      { ...CHIPS, padding: 0, paddingEnd: 0 }
+    );
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: auto;');
+  });
+
+  it('centres the pressed chip and lights its dot, first and last included', async () => {
+    const user = userEvent.setup();
+    parseLikeABrowser();
+    const { viewport, items } = render({ ...chipRow, indicator: 'dots' }, CHIPS);
+
+    expect(dots()).toHaveLength(WIDTHS.length);
+    for (const [index, item] of [...items.entries()].reverse()) {
+      await user.click(dots()[index] as HTMLElement);
+      flushSync();
+      expect(offCentre(viewport, item)).toBe(0);
+      expect(dots()[index]?.getAttribute('aria-current')).toBe('true');
+    }
+  });
+
+  it('steps one chip per press and stops on the last', async () => {
+    const user = userEvent.setup();
+    parseLikeABrowser();
+    const { viewport, items } = render({ ...chipRow, controls: 'auto' }, CHIPS);
+    const next = screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement;
+
+    for (const item of items.slice(1)) {
+      await user.click(next);
+      flushSync();
+      expect(offCentre(viewport, item)).toBe(0);
+    }
+    expect(next.disabled).toBe(true);
+  });
+
+  it('rests on the first chip after the padding lands, whichever chip the engine re-snapped to', async () => {
+    // Before the measured padding the first three chips all clamp to resting
+    // place 0, and when the padding moves them the engine re-snaps to the one it
+    // had picked — in WebKit the second or third. Simulated here by moving the
+    // row to the second chip's place between the write and the next tick.
+    const user = userEvent.setup();
+    parseLikeABrowser();
+    const { viewport, items } = render({ ...chipRow, indicator: 'dots' }, CHIPS);
+    scrollOffsets.set(viewport, 101);
+
+    await tick();
+    flushSync();
+    expect(viewport.scrollLeft).toBe(0);
+    expect(offCentre(viewport, items[0] as HTMLElement)).toBe(0);
+    expect(dots()[0]?.getAttribute('aria-current')).toBe('true');
+
+    // A row the user has moved keeps its place when the end widths change.
+    await user.click(dots()[3] as HTMLElement);
+    flushSync();
+    const placed = viewport.scrollLeft;
+    const chip = document.createElement('span');
+    viewport.append(chip);
+    itemViewports.set(chip, viewport);
+    itemBoxes.set(chip, { contentStart: 1018, width: 96 });
+    await Promise.resolve();
+    await tick();
+    flushSync();
+    expect(viewport.scrollLeft).toBe(placed);
+  });
+
+  it('re-measures the last chip when one is appended', async () => {
+    parseLikeABrowser();
+    const { viewport } = render(chipRow, CHIPS);
+
+    const chip = document.createElement('span');
+    viewport.append(chip);
+    itemViewports.set(chip, viewport);
+    itemBoxes.set(chip, { contentStart: 1018, width: 96 });
+
+    // MutationObserver callbacks are delivered on a microtask.
+    await Promise.resolve();
+    flushSync();
+    expect(viewport.style.getPropertyValue('--blocks-scroller-last-item')).toBe('96px');
+    expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
   });
 });
 
