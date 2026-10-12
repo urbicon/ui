@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.30.0](https://github.com/urbicon/ui/compare/v8.29.0...v8.30.0) - 2026-10-12
+
+### Breaking Changes
+- **blocks**: Popover inside a dialog or drawer claims its own escape; both share one modal policy
+> **BREAKING:** Popover runs a consumer onkeydown on its panel after its own manual-mode Escape handling, so preventDefault there no longer keeps it open; use closeOnEscape={false}.
+- **blocks**: Add onClosed to the overlay family, pin the onClose veto, stack a popover in a dialog
+> **BREAKING:** a Popover open in a modal dialog joins overlayStack and can hold Escape there
+- **blocks**: Remove disabledDates, isDateDisabled is the one way to disable single days
+> **BREAKING:** Calendar, DatePicker, DateRangePicker and Planner drop disabledDates (use isDateDisabled); a closed Calendar day is aria-disabled, not a disabled button.
+- **blocks**: Command palette resets on close, adds info rows and a footer hints snippet
+> **BREAKING:** CommandPalette resets on close instead of open, and its list ids are per instance
+
+### Bug Fixes
+- **blocks**: Scroller centres rows whose itemBasis is not a length on their measured end items
+
+### Features
+- **blocks**: Provider defaults and presets set style props, not only classes
+
 ## [8.29.0](https://github.com/urbicon/ui/compare/v8.28.1...v8.29.0) - 2026-10-11
 
 ### Breaking Changes
