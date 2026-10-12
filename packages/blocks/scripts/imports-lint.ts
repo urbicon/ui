@@ -61,6 +61,10 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   ['DateRangePicker -> Calendar', 'date grid inside the popover'],
   ['CommandPalette -> Dialog', 'modal shell'],
   ['CommandPalette -> Separator', 'divider between result groups'],
+  [
+    'CommandPalette -> Kbd',
+    'footer key hints — a styled keycap with its own tv() and provider entry, no core'
+  ],
   ['SidebarLayout -> Sidebar', 'the layout arranges the sidebar'],
   ['LocaleSwitcher -> Select', 'is-a select over the available locales'],
   // (FileUpload→Spinner, PlannerHeader→Button, CalendarHeader→Button,
