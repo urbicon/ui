@@ -55,6 +55,7 @@
   ];
 
   const disabledCommands: CommandPaletteItem[] = [
+    { label: 'Nothing to undo in this document yet', category: 'Edit', kind: 'info' },
     { label: 'Copy', category: 'Edit', shortcut: 'Ctrl+C' },
     { label: 'Paste', category: 'Edit', shortcut: 'Ctrl+V' },
     { label: 'Undo', category: 'Edit', shortcut: 'Ctrl+Z', disabled: true },
@@ -105,8 +106,8 @@
     </CodeExample>
 
     <CodeExample
-      title="With Disabled Items"
-      description="Set disabled: true on an item to show it greyed out and skip it in keyboard navigation."
+      title="Disabled and Informational Rows"
+      description="disabled: true is a command that cannot run right now: greyed out, skipped by the arrow keys, read out as unavailable. kind: 'info' is a row that is no command at all, here the line explaining why Undo is off: the arrow keys skip it as well, but it keeps the list's own ink and a screen reader reads it as plain text."
       isolate
     >
       <Button variant="outlined" intent="neutral" onclick={() => (iconsOpen = true)}>
@@ -197,20 +198,28 @@
     </CodeExample>
 
     <CodeExample
-      title="No Footer"
-      description="Hide the keyboard hints footer for a more compact look."
+      title="Footer Hints"
+      description="The footer snippet receives the palette's own key hints, translated, and draws the ones it wants; here the arrow hint goes. A hint for a key of your own takes the same shape: an id, its keys and a label. Setting showFooter to false hides the footer altogether."
       isolate
     >
       <Button variant="outlined" intent="neutral" onclick={() => (compactOpen = true)}>
-        Compact Palette
+        Fewer Footer Hints
       </Button>
       <CommandPalette
         bind:open={compactOpen}
-        items={disabledCommands}
+        items={simpleCommands}
         placeholder="Quick search..."
-        showFooter={false}
         shortcut={false}
-      />
+      >
+        {#snippet footer({ hints })}
+          {#each hints.filter((hint) => hint.id !== 'navigate') as hint (hint.id)}
+            <span class="flex items-center gap-1">
+              <Kbd keys={hint.keys} size="sm" />
+              {hint.label}
+            </span>
+          {/each}
+        {/snippet}
+      </CommandPalette>
     </CodeExample>
   </div>
 </Section>
@@ -227,7 +236,11 @@
         <code class="text-text-primary">aria-activedescendant</code> linking to the highlighted
         option. Results use
         <code class="text-text-primary">role="listbox"</code> with
-        <code class="text-text-primary">role="option"</code> on each item.
+        <code class="text-text-primary">role="option"</code> on each command. An info row is plain
+        text in the list, not an option, so it is never announced as an unavailable command. With no
+        command to offer — no match, or only info rows — the list is no listbox and the input
+        reports
+        <code class="text-text-primary">aria-expanded="false"</code>.
       </p>
     </Note>
     <Note title="Keyboard">
@@ -252,13 +265,13 @@
     <Note title="Focus Management">
       <p>
         Inherits focus trap from Dialog. The search input receives focus automatically when the
-        palette opens. Disabled items are skipped during keyboard navigation and have <code
-          class="text-text-primary">aria-disabled="true"</code
-        >. <code class="text-text-primary">onOpenChange(false)</code> fires as the palette starts to
-        close, with focus still inside it; <code class="text-text-primary">onClosed</code> fires once
-        it has closed and focus is back where it was, which is the moment to move focus on or open what
-        the selection asked for. When stacked surfaces close together, focus can end on the page body
-        instead.
+        palette opens. Disabled items and info rows are skipped during keyboard navigation; disabled
+        items have <code class="text-text-primary">aria-disabled="true"</code>.
+        <code class="text-text-primary">onOpenChange(false)</code>
+        fires as the palette starts to close, with focus still inside it;
+        <code class="text-text-primary">onClosed</code> fires once it has closed and focus is back where
+        it was, which is the moment to move focus on or open what the selection asked for. When stacked
+        surfaces close together, focus can end on the page body instead.
       </p>
     </Note>
   </NoteList>

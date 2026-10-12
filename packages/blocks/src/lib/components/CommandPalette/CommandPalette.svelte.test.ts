@@ -3,10 +3,13 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, type Snippet, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { registerBlocksLocale } from '#lib/i18n/index.js';
 import SearchIcon from '#lib/icons/SearchIcon.svelte';
+import deTranslations from '#lib/translations/de.js';
 import { manualAnimations } from '../../internal/__fixtures__/manual-animations';
+import PaletteHarness from './__fixtures__/PaletteHarness.svelte';
 import CommandPalette from './CommandPalette.svelte';
-import type { CommandPaletteItem, CommandPaletteProps } from './index';
+import type { CommandPaletteHint, CommandPaletteItem, CommandPaletteProps } from './index';
 
 // Item rendering for CommandPalette, which until now had only a variants test.
 // The `icon` field used to be SVG *path data* that the component inlined into
@@ -605,5 +608,591 @@ describe('CommandPalette (onClosed)', () => {
     } finally {
       animations.restore();
     }
+  });
+});
+
+/**
+ * The query and the highlight reset where the close has finished — at outro
+ * end, the moment `onClosed` fires — not where the next open starts. Driven
+ * through `PaletteHarness`, whose `bind:query` records every write the
+ * palette makes, so "one write" is counted rather than inferred.
+ */
+describe('CommandPalette (reset when the close finishes)', () => {
+  const ITEMS: CommandPaletteItem[] = [
+    { id: 'a', label: 'Alpha' },
+    { id: 'b', label: 'Beta' },
+    { id: 'g', label: 'Gamma' }
+  ];
+
+  type HarnessProps = {
+    items?: CommandPaletteItem[];
+    initialOpen?: boolean;
+    initialQuery?: string;
+    vetoClose?: boolean;
+    transitionDuration?: number;
+    onClosed?: () => void;
+    onSelect?: (item: CommandPaletteItem) => void;
+  };
+  type Harness = {
+    setOpen(value: boolean): void;
+    getOpen(): boolean;
+    setQuery(value: string): void;
+    getQuery(): string;
+    getQueryWrites(): string[];
+  };
+
+  let animations: ReturnType<typeof manualAnimations> | undefined;
+
+  afterEach(() => {
+    animations?.restore();
+    animations = undefined;
+  });
+
+  async function renderHarness(props: HarnessProps = {}): Promise<Harness> {
+    const instance = mount(PaletteHarness, {
+      target: document.body,
+      props: { items: ITEMS, ...props }
+    });
+    dispose = () => unmount(instance);
+    flushSync();
+    await animations?.finish();
+    await tick();
+    await tick();
+    return instance as unknown as Harness;
+  }
+
+  const dialogOpen = () => document.querySelector('dialog')?.open ?? false;
+
+  /** Finish the exit: the manual animations when installed, a flush otherwise. */
+  async function finishOutro() {
+    flushSync();
+    await animations?.finish();
+    await tick();
+  }
+
+  for (const duration of ['default', 0] as const) {
+    const timing =
+      duration === 'default' ? 'with the default exit animation' : 'with transitionDuration 0';
+    const setup = (): HarnessProps => {
+      if (duration === 'default') animations = manualAnimations();
+      return duration === 'default' ? {} : { transitionDuration: 0 };
+    };
+
+    it(`keeps the query while closing and resets it once at the end, ${timing}`, async () => {
+      const seenInOnClosed: string[] = [];
+      const harness: { current?: Harness } = {};
+      harness.current = await renderHarness({
+        ...setup(),
+        onClosed: () => seenInOnClosed.push(harness.current?.getQuery() ?? '<none>')
+      });
+      type('beta');
+      expect(harness.current.getQueryWrites()).toEqual(['beta']);
+
+      press('Escape');
+      expect(harness.current.getOpen()).toBe(false);
+      if (duration === 'default') {
+        // Mid-exit: the palette still shows what was typed.
+        expect(paletteInput().value).toBe('beta');
+        expect(harness.current.getQuery()).toBe('beta');
+      }
+
+      await finishOutro();
+
+      expect(harness.current.getQueryWrites()).toEqual(['beta', '']);
+      expect(seenInOnClosed).toEqual(['']);
+    });
+
+    it(`resets nothing for a close vetoed in onOpenChange, ${timing}`, async () => {
+      const onClosed = vi.fn();
+      const harness = await renderHarness({ ...setup(), vetoClose: true, onClosed });
+      type('beta');
+
+      press('Escape');
+      await finishOutro();
+
+      expect(harness.getOpen()).toBe(true);
+      expect(dialogOpen()).toBe(true);
+      expect(onClosed).not.toHaveBeenCalled();
+      expect(harness.getQueryWrites()).toEqual(['beta']);
+      expect(paletteInput().value).toBe('beta');
+    });
+
+    it(`keeps the query through a selection until the close finishes, ${timing}`, async () => {
+      const seenInOnSelect: string[] = [];
+      const harness: { current?: Harness } = {};
+      harness.current = await renderHarness({
+        ...setup(),
+        onSelect: (item) => seenInOnSelect.push(`${item.id}:${harness.current?.getQuery()}`)
+      });
+      type('gam');
+
+      press('Enter');
+      expect(seenInOnSelect).toEqual(['g:gam']);
+      if (duration === 'default') expect(harness.current.getQuery()).toBe('gam');
+
+      await finishOutro();
+
+      expect(harness.current.getQueryWrites()).toEqual(['gam', '']);
+    });
+  }
+
+  it('resets nothing for a close that a reopen interrupts, then once for the close that finishes', async () => {
+    animations = manualAnimations();
+    const onClosed = vi.fn();
+    const harness = await renderHarness({ onClosed });
+    type('beta');
+
+    press('Escape');
+    harness.setOpen(true);
+    await finishOutro();
+
+    expect(onClosed).not.toHaveBeenCalled();
+    expect(harness.getQueryWrites()).toEqual(['beta']);
+    expect(paletteInput().value).toBe('beta');
+
+    harness.setOpen(false);
+    await finishOutro();
+
+    expect(onClosed).toHaveBeenCalledOnce();
+    expect(harness.getQueryWrites()).toEqual(['beta', '']);
+  });
+
+  it('resets nothing when destroyed during its exit', async () => {
+    animations = manualAnimations();
+    const harness = await renderHarness();
+    type('beta');
+
+    press('Escape');
+    dispose?.();
+    dispose = undefined;
+    await animations.finish();
+
+    expect(harness.getQueryWrites()).toEqual(['beta']);
+  });
+
+  it('resets nothing when destroyed while open', async () => {
+    const harness = await renderHarness({ transitionDuration: 0 });
+    type('beta');
+
+    dispose?.();
+    dispose = undefined;
+    flushSync();
+    await tick();
+
+    expect(harness.getQueryWrites()).toEqual(['beta']);
+  });
+
+  it('writes nothing when the query is already empty', async () => {
+    const onClosed = vi.fn();
+    const harness = await renderHarness({ transitionDuration: 0, onClosed });
+
+    press('Escape');
+    await finishOutro();
+
+    expect(onClosed).toHaveBeenCalledOnce();
+    expect(harness.getQueryWrites()).toEqual([]);
+  });
+
+  it('opens with a query set while closed, and the first open after mount starts empty', async () => {
+    const harness = await renderHarness({ initialOpen: false, transitionDuration: 0 });
+
+    harness.setOpen(true);
+    flushSync();
+    await tick();
+    expect(paletteInput().value).toBe('');
+
+    press('Escape');
+    await finishOutro();
+    expect(dialogOpen()).toBe(false);
+
+    // Set while closed: what a consumer restoring a failed command's text
+    // writes, with no tick between the open and the query.
+    harness.setQuery('restored');
+    harness.setOpen(true);
+    flushSync();
+    await tick();
+
+    expect(paletteInput().value).toBe('restored');
+    expect(harness.getQueryWrites()).toEqual([]);
+  });
+
+  it('keeps a query written inside onClosed', async () => {
+    const harness: { current?: Harness } = {};
+    harness.current = await renderHarness({
+      transitionDuration: 0,
+      onClosed: () => harness.current?.setQuery('next')
+    });
+    type('beta');
+
+    press('Escape');
+    await finishOutro();
+    expect(harness.current.getQuery()).toBe('next');
+
+    harness.current.setOpen(true);
+    flushSync();
+    await tick();
+    expect(paletteInput().value).toBe('next');
+  });
+
+  it('resets the highlight with the query', async () => {
+    const harness = await renderHarness({ transitionDuration: 0 });
+    press('End');
+    expect(highlighted()).toBe(2);
+
+    press('Escape');
+    await finishOutro();
+    harness.setOpen(true);
+    flushSync();
+    await tick();
+
+    expect(highlighted()).toBe(0);
+  });
+
+  it('resets once per close for an open passed without bind:, closed from either side', async () => {
+    const onClosed = vi.fn();
+    const props = $state({
+      open: true,
+      shortcut: false as const,
+      items: ITEMS,
+      onClosed,
+      ...({ transitionDuration: 0 } as object)
+    });
+    const instance = mount(CommandPalette, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    await tick();
+
+    // Closed by the consumer.
+    type('beta');
+    props.open = false;
+    flushSync();
+    await tick();
+    expect(onClosed).toHaveBeenCalledOnce();
+    props.open = true;
+    flushSync();
+    await tick();
+    expect(paletteInput().value).toBe('');
+
+    // Closed by the palette, which can write only its own copy of `open`.
+    type('gam');
+    press('Escape');
+    flushSync();
+    await tick();
+    expect(onClosed).toHaveBeenCalledTimes(2);
+    instance.show();
+    flushSync();
+    await tick();
+    expect(paletteInput().value).toBe('');
+  });
+});
+
+/**
+ * An info row is a line of information among the commands. It is never a stop
+ * for the highlight, never selectable, carries no locked look, and is text in
+ * the list rather than an option.
+ */
+const WITH_INFO: CommandPaletteItem[] = [
+  { id: 'i0', label: 'Type #project or a date word', kind: 'info' },
+  { id: 'a', label: 'Alpha' },
+  { id: 'i1', label: 'Two letters start a search', kind: 'info' },
+  { id: 'b', label: 'Beta' },
+  { id: 'i2', label: 'Nothing else', kind: 'info' }
+];
+
+/** The rendered info rows, in order — the presentational rows that are no group label. */
+function infoRows(): HTMLElement[] {
+  const list = document.getElementById('command-palette-list');
+  return [...(list?.querySelectorAll<HTMLElement>(':scope > [role="presentation"]') ?? [])].filter(
+    (row) => !row.classList.contains('uppercase')
+  );
+}
+
+/** The flat index the input's aria-activedescendant names, -1 for none. */
+function activeIndex(): number {
+  const id = paletteInput().getAttribute('aria-activedescendant');
+  return id === null ? -1 : Number(id.replace('command-palette-item-', ''));
+}
+
+describe('CommandPalette (info rows)', () => {
+  it('steps over info rows with the arrow keys, Home and End', async () => {
+    render({ items: WITH_INFO });
+    await tick();
+
+    // Row 0 is info, so the open highlight starts on row 1.
+    expect(activeIndex()).toBe(1);
+    press('ArrowDown');
+    expect(activeIndex()).toBe(3);
+    press('ArrowDown');
+    expect(activeIndex(), 'wraps past the info rows at the end').toBe(1);
+    press('ArrowUp');
+    expect(activeIndex(), 'wraps past the info rows at the start').toBe(3);
+    press('Home');
+    expect(activeIndex()).toBe(1);
+    press('End');
+    expect(activeIndex()).toBe(3);
+  });
+
+  it('renders an info row as text in the listbox, not as an option', async () => {
+    render({ items: WITH_INFO });
+    await tick();
+
+    const options = screen.getAllByRole('option', { hidden: true });
+    expect(options.map((o) => o.textContent?.trim())).toEqual(['Alpha', 'Beta']);
+    expect(document.getElementById('command-palette-list')?.getAttribute('role')).toBe('listbox');
+    expect(paletteInput().getAttribute('aria-expanded')).toBe('true');
+
+    const rows = infoRows();
+    expect(rows.map((row) => row.textContent?.trim())).toEqual([
+      'Type #project or a date word',
+      'Two letters start a search',
+      'Nothing else'
+    ]);
+    for (const row of rows) {
+      expect(row.hasAttribute('id')).toBe(false);
+      expect(row.hasAttribute('aria-selected')).toBe(false);
+      expect(row.hasAttribute('aria-disabled')).toBe(false);
+      expect(row.hasAttribute('data-command-palette-selected')).toBe(false);
+    }
+  });
+
+  it('gives an info row its own state slot and no locked look', async () => {
+    render({
+      items: [
+        { id: 'i', label: 'A hint', kind: 'info' },
+        { id: 'd', label: 'Locked', disabled: true },
+        { id: 'a', label: 'Alpha' }
+      ],
+      slotClasses: { itemInfo: 'italic' }
+    });
+    await tick();
+
+    const tokens = (infoRows()[0].getAttribute('class') ?? '').split(/\s+/);
+    expect(tokens).toContain('text-text-tertiary');
+    expect(tokens).toContain('cursor-default');
+    expect(tokens).toContain('italic');
+    for (const locked of ['opacity-50', 'cursor-not-allowed', 'cursor-pointer']) {
+      expect(tokens).not.toContain(locked);
+    }
+    // The disabled row keeps the locked look the info row does without.
+    expect(rowTokens(0)).toContain('opacity-50');
+  });
+
+  it('ignores a click and a hover on an info row', async () => {
+    const onSelect = vi.fn();
+    render({ items: WITH_INFO, onSelect });
+    await tick();
+    press('ArrowDown');
+    expect(activeIndex()).toBe(3);
+
+    const info = infoRows()[1];
+    info.dispatchEvent(new MouseEvent('mouseenter'));
+    info.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    flushSync();
+
+    expect(activeIndex()).toBe(3);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('treats an info row marked disabled as info', async () => {
+    render({ items: [{ id: 'i', label: 'Both', kind: 'info', disabled: true }, ...ROW_STATES] });
+    await tick();
+
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(infoRows()[0].hasAttribute('aria-disabled')).toBe(false);
+    expect(infoRows()[0].classList.contains('opacity-50')).toBe(false);
+  });
+
+  it('has no listbox, no highlight and no Enter when every row is info', async () => {
+    const onSelect = vi.fn();
+    render({
+      items: [
+        { id: 'i0', label: 'Nothing to do yet', kind: 'info' },
+        { id: 'i1', label: 'Type to capture', kind: 'info' }
+      ],
+      onSelect
+    });
+    await tick();
+
+    expect(document.getElementById('command-palette-list')?.hasAttribute('role')).toBe(false);
+    expect(paletteInput().getAttribute('aria-expanded')).toBe('false');
+    expect(paletteInput().hasAttribute('aria-activedescendant')).toBe(false);
+    press('ArrowDown');
+    press('End');
+    press('Enter');
+    expect(paletteInput().hasAttribute('aria-activedescendant')).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(infoRows()).toHaveLength(2);
+  });
+
+  it('has no listbox in the empty state either', async () => {
+    render({ items: [], emptyText: 'Nothing here' });
+    await tick();
+
+    const list = document.getElementById('command-palette-list');
+    expect(list?.textContent).toContain('Nothing here');
+    expect(list?.hasAttribute('role')).toBe(false);
+    expect(paletteInput().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('moves the highlight off a row that becomes info', async () => {
+    const props = $state({
+      open: true,
+      shortcut: false as const,
+      items: [
+        { id: 'a', label: 'Alpha' },
+        { id: 'b', label: 'Beta' },
+        { id: 'c', label: 'Gamma' }
+      ] as CommandPaletteItem[]
+    });
+    const instance = mount(CommandPalette, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    await tick();
+    press('End');
+    expect(activeIndex()).toBe(2);
+
+    props.items = [
+      { id: 'a', label: 'Alpha' },
+      { id: 'b', label: 'Beta' },
+      { id: 'c', label: 'Gamma', kind: 'info' }
+    ];
+    flushSync();
+    await tick();
+
+    expect(activeIndex()).toBe(0);
+    expect(highlighted()).toBe(0);
+  });
+
+  it('starts on the first action when a query puts an info row first', async () => {
+    render({
+      items: [
+        { id: 'a', label: 'Alpha' },
+        { id: 'tip', label: 'Beta tip', kind: 'info' },
+        { id: 'b', label: 'Beta' }
+      ]
+    });
+    await tick();
+
+    type('beta');
+    expect(activeIndex()).toBe(1);
+    expect(screen.getAllByRole('option', { hidden: true })[0].textContent?.trim()).toBe('Beta');
+  });
+
+  it('draws an info row through customItem, never highlighted, with a select that does nothing', async () => {
+    const args: CustomItemArgs[] = [];
+    const onSelect = vi.fn();
+    render({ items: WITH_INFO, customItem: customRow((row) => args.push(row)), onSelect });
+    await tick();
+
+    const infoArgs = args.filter(([item]) => item.kind === 'info');
+    expect(infoArgs.map(([item, isHighlighted, index]) => [item.id, isHighlighted, index])).toEqual(
+      [
+        ['i0', false, 0],
+        ['i1', false, 2],
+        ['i2', false, 4]
+      ]
+    );
+    for (const [, , , select] of infoArgs) select();
+    flushSync();
+    expect(onSelect).not.toHaveBeenCalled();
+
+    // The snippet's content sits in the presentational row, not in an option.
+    const drawn = document.querySelector('[data-custom-row="Two letters start a search"]');
+    expect(drawn?.parentElement?.getAttribute('role')).toBe('presentation');
+  });
+});
+
+/**
+ * The footer's key hints: data the palette translates and hands to a `footer`
+ * snippet, drawn through `Kbd` when there is none.
+ */
+describe('CommandPalette (footer)', () => {
+  function footerBar(): HTMLElement {
+    const bar = document.getElementById('command-palette-list')?.nextElementSibling;
+    if (!(bar instanceof HTMLElement)) throw new Error('no footer bar after the list');
+    return bar;
+  }
+
+  /** Each hint's text, keycap and label. */
+  const hintTexts = () =>
+    [...footerBar().children].map((hint) => hint.textContent?.replace(/\s+/g, ' ').trim());
+
+  it('draws each default hint as a Kbd keycap with its label', async () => {
+    render({ items: ROW_STATES });
+    await tick();
+
+    const caps = [...footerBar().querySelectorAll('kbd')];
+    expect(caps.map((cap) => cap.textContent?.trim())).toEqual(['↑↓', '↵', 'esc']);
+    expect(hintTexts()).toEqual(['↑↓ Navigate', '↵ Select', 'esc Close']);
+    // Kbd's own keycap, at its sm size.
+    for (const cap of caps) {
+      expect(cap.classList.contains('bg-surface-elevated')).toBe(true);
+      expect(cap.classList.contains('h-4')).toBe(true);
+    }
+  });
+
+  it('reaches the keycaps through slotClasses.kbd', async () => {
+    render({ items: ROW_STATES, slotClasses: { kbd: 'bg-black' } });
+    await tick();
+
+    const cap = footerBar().querySelector('kbd');
+    expect(cap?.classList.contains('bg-black')).toBe(true);
+    expect(cap?.classList.contains('bg-surface-elevated')).toBe(false);
+  });
+
+  it('strips the keycaps` own look under unstyled', async () => {
+    render({ items: ROW_STATES, unstyled: true, slotClasses: { kbd: 'cap' } });
+    await tick();
+
+    expect(footerBar().querySelector('kbd')?.getAttribute('class')).toBe('cap');
+  });
+
+  it('hands the hints to a footer snippet, inside the footer bar', async () => {
+    const received: CommandPaletteHint[][] = [];
+    const footer = createRawSnippet<[{ hints: CommandPaletteHint[] }]>((args) => {
+      const { hints } = args();
+      received.push(hints);
+      const kept = hints.filter((hint) => hint.id !== 'navigate');
+      return {
+        render: () =>
+          `<span data-own-footer>${kept.map((hint) => `${hint.keys} ${hint.label}`).join(' / ')}</span>`
+      };
+    });
+    render({ items: ROW_STATES, footer, slotClasses: { footer: 'own-bar' } });
+    await tick();
+
+    expect(received.at(-1)).toEqual([
+      { id: 'navigate', keys: '↑↓', label: 'Navigate' },
+      { id: 'select', keys: '↵', label: 'Select' },
+      { id: 'close', keys: 'esc', label: 'Close' }
+    ]);
+    const bar = footerBar();
+    expect(bar.classList.contains('own-bar')).toBe(true);
+    expect(bar.querySelector('[data-own-footer]')?.textContent).toBe('↵ Select / esc Close');
+    expect(bar.querySelector('kbd')).toBeNull();
+  });
+
+  it('hides the footer bar under showFooter={false}, a footer snippet included', async () => {
+    const footer = createRawSnippet<[{ hints: CommandPaletteHint[] }]>(() => ({
+      render: () => '<span data-own-footer>mine</span>'
+    }));
+    render({ items: ROW_STATES, footer, showFooter: false });
+    await tick();
+
+    expect(document.getElementById('command-palette-list')?.nextElementSibling).toBeNull();
+    expect(document.querySelector('[data-own-footer]')).toBeNull();
+  });
+
+  it('translates the keys with the labels', async () => {
+    registerBlocksLocale('de', deTranslations);
+    const instance = mount(PaletteHarness, {
+      target: document.body,
+      props: { items: ROW_STATES, locale: 'de' }
+    });
+    dispose = () => unmount(instance);
+    flushSync();
+    await tick();
+
+    expect(hintTexts()).toEqual(['↑↓ Navigieren', '↵ Auswählen', 'Esc Schließen']);
   });
 });

@@ -13,6 +13,40 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ## 8.30.0
 
+### `CommandPalette` resets its query when it has closed, not when it opens
+
+The query and the highlighted row used to reset on every open, and a selection cleared the query
+before `onSelect` ran. Both now reset once, when the palette has finished closing: the exit
+animation has ended and focus is back, just before `onClosed` fires. The palette no longer empties
+while it animates out.
+
+- **A query you set while the palette is closed stays.** Setting `query` and then `open = true`,
+  in either order, opens on that text; the `open = true; await tick(); query = …` sequence that
+  worked around the old reset is no longer needed. A non-empty `query` you pass at mount shows on
+  the first open instead of being cleared.
+- **`onSelect` reads the query as typed.** It used to be `''` by then.
+- **A close that does not finish resets nothing.** Writing `open = true` back in `onOpenChange`,
+  reopening before the exit animation ends, or destroying the palette while open keeps the query
+  and the highlight where they were.
+- **`bind:query` sees one write per close**, the `''` at its end, and none when the query is
+  already empty. A value you write inside `onClosed` stays.
+
+With no command in the list, because nothing matches or every row is a new `kind: 'info'` row,
+the results container is no longer a `role="listbox"`, and the search input reports
+`aria-expanded="false"`: axe reports a listbox without options as `aria-required-children`. A test
+that finds the empty state through `getByRole('listbox')` needs another query.
+
+The footer's key hints render through `Kbd`: the keycaps take Kbd's look at its `sm` size, so the
+footer is 4px shorter and the keycap glyphs are darker. The `kbd` slot no longer carries the
+keycap classes; a `slotClasses.kbd` entry now lands on each `Kbd` after Kbd's own classes, and a
+`Kbd` entry in `<BlocksProvider>` reaches these keycaps too. The new `footer` snippet replaces
+the hints.
+
+```sh
+rg -nU '<CommandPalette\b(?:=>|[^>])*?(bind:query|\bquery=|onSelect|slotClasses|\{\.\.\.)' src
+rg -n "getByRole\(['\"]listbox['\"]|role: ?['\"]listbox['\"]" src e2e tests
+```
+
 ### `Popover` runs your `onkeydown` after its own Escape handling
 
 In manual mode the Popover now handles an Escape on its panel or its trigger right there: it

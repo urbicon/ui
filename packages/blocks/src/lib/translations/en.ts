@@ -149,6 +149,12 @@ export default {
       navigate: 'Navigate',
       select: 'Select',
       close: 'Close'
+    },
+    // The key each footer hint names, drawn in a keycap.
+    keys: {
+      navigate: '↑↓',
+      select: '↵',
+      close: 'esc'
     }
   },
   compositionBar: {
