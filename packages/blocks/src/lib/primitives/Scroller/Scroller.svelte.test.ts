@@ -493,8 +493,23 @@ function parseLikeABrowser() {
   return vi
     .spyOn(CSS, 'supports')
     .mockImplementation(
-      (_property: string, value?: string) => !/\b(auto|(min|max|fit)-content)\b/.test(value ?? '')
+      (_property: string, value?: string) =>
+        !/\b(auto|stretch|(min|max|fit)-content)\b/.test(value ?? '')
     );
+}
+
+/**
+ * jsdom does not substitute custom properties, so this stands in for the
+ * browser's computed value of a `var()` basis — `itemBasis="var(--x)"` under
+ * `--x: <value>`.
+ */
+function computeBasisAs(value: string) {
+  vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(
+    () =>
+      ({
+        getPropertyValue: (name: string) => (name === '--blocks-scroller-item' ? value : '')
+      }) as CSSStyleDeclaration
+  );
 }
 
 describe('Scroller — centring items of different widths', () => {
@@ -526,21 +541,35 @@ describe('Scroller — centring items of different widths', () => {
   });
 
   it('asks about the basis as computed, so a var() that resolves to auto is seen', () => {
-    // The parser accepts any var() as written. jsdom does not substitute
-    // custom properties, so this stands in for the browser's computed value of
-    // `itemBasis="var(--chip-basis)"` under `--chip-basis: auto`.
+    // The parser accepts any var() as written.
     const supports = parseLikeABrowser();
-    vi.spyOn(globalThis, 'getComputedStyle').mockImplementation(
-      () =>
-        ({
-          getPropertyValue: (name: string) => (name === '--blocks-scroller-item' ? 'auto' : '')
-        }) as CSSStyleDeclaration
-    );
+    computeBasisAs('auto');
     const { viewport } = render({ ...chipRow, itemBasis: 'var(--chip-basis)' }, CHIPS);
 
     expect(supports).toHaveBeenCalledWith('padding-left', 'calc(50% - auto/2)');
     expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('40px');
     expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
+  });
+
+  it('gives a var() that resolves to a length the CSS padding back', () => {
+    parseLikeABrowser();
+    computeBasisAs('15rem');
+    const { viewport } = render({ align: 'center', itemBasis: 'var(--card-basis)' }, OVERFLOWS);
+
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: var(--card-basis);');
+  });
+
+  it('keeps `stretch` on the CSS padding, whose calc() the browser drops', () => {
+    // A stretched item fills the row: there is nothing to centre, and halving
+    // its measured width would converge on that only over a chain of
+    // re-measures. The parser stand-in rejects `stretch` as browsers do.
+    parseLikeABrowser();
+    const { viewport } = render({ align: 'center', itemBasis: 'stretch' }, OVERFLOWS);
+
+    expect(CSS.supports('padding-left', 'calc(50% - stretch/2)')).toBe(false);
+    expect(viewport.className).toContain('px-[calc(50%_-_var(--blocks-scroller-item)/2)]');
+    expect(viewport.getAttribute('style')).toBe('--blocks-scroller-item: stretch;');
   });
 
   it('spaces each end by half its own end item, from the measured widths', () => {
@@ -698,6 +727,17 @@ describe('Scroller — where there is no CSS namespace', () => {
     );
     expect(viewport.className).toContain('[&>:first-child]:ms-[');
     expect(viewport.style.getPropertyValue('--blocks-scroller-first-item')).toBe('100px');
+  });
+
+  it('takes a centred var() row for one that is not a length, as the server does', () => {
+    // Only the browser can resolve the var(). Until it does, the `measured`
+    // path's fallback rests the first item in the middle whichever it is.
+    const { viewport } = render(
+      { align: 'center', itemBasis: 'var(--chip-basis)', count: 6 },
+      { viewportWidth: 600, itemWidth: 100 }
+    );
+    expect(viewport.className).toContain('[&>:first-child]:ms-[');
+    expect(viewport.className).not.toContain('var(--blocks-scroller-item)/2');
   });
 });
 

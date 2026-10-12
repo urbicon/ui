@@ -83,6 +83,7 @@
     const el = viewportRef;
     if (!el) return;
 
+    askBrowser(el);
     writeEdgeWidths(el);
     viewportSize = el.clientWidth;
     scrollSize = el.scrollWidth;
@@ -150,31 +151,47 @@
   // property's COMPUTED value. The parser accepts any `var()` at parse time, so
   // `itemBasis="var(--x)"` with `--x: auto` only shows itself once substituted.
   // Asked only for a centred row, the one place the answer is used, and only
-  // where there is a `CSS` namespace (jsdom before 30 has none).
+  // where there is a `CSS` namespace (jsdom before 30 has none). Asked again on
+  // every `measure()`, because the computed value can change without the prop
+  // changing: a `var()` that is a length above a breakpoint and `auto` below
+  // it. The answer never depends on the edge path it selects (the inline style
+  // sets the property, the path only swaps classes), so the re-measure a path
+  // switch sets off gets the same answer and stops there.
   //
   // Until it has answered — on the server, and so in the paint before
-  // hydration — the string answers: a bare identifier (`auto`, `max-content`,
-  // `stretch`) is never a length. That first answer has to be right, because
-  // the first layout decides where the row rests. Laid out start-aligned, the
-  // leading items of a centred row tie at scroll position 0, the engine counts
-  // one of them as snapped (WebKit: the second or third), and when the spacing
-  // lands it re-snaps onto that one. A `var()` the string cannot see through
-  // still takes that path, so in WebKit such a row can load resting there.
+  // hydration — the string answers: a bare identifier (`auto`, `max-content`)
+  // is never a length, and a `var()` is taken for one that is not. That first
+  // answer has to be right where it can be wrong, because the first layout
+  // decides where the row rests. Laid out start-aligned, the leading items of
+  // a centred row tie at scroll position 0, the engine counts one of them as
+  // snapped (WebKit: the second or third), and when the spacing lands it
+  // re-snaps onto that one. A `var()` that turns out to be a length rests on
+  // its first item on the `measured` path too (its 50% fallback), but in
+  // Chromium with smooth scrolling the engine glides it the last half-item
+  // into the middle on load, where the `basis` padding places it at once. The
+  // wrong guess the other way leaves WebKit on the second or third item.
+  //
+  // `stretch` stays on the `basis` path: the item fills the row, so there is
+  // nothing to centre, and halving its measured width converges on that only
+  // over a chain of re-measures, which WebKit reports as a ResizeObserver loop.
   const keyword = /^-?[a-z][a-z-]*$/i;
   let browserSaysLength = $state<boolean>();
-  $effect(() => {
-    void itemBasis;
-    const el = viewportRef;
-    if (!el || align !== 'center' || typeof CSS === 'undefined') {
-      browserSaysLength = undefined;
-      return;
-    }
-    const basis = getComputedStyle(el).getPropertyValue('--blocks-scroller-item').trim();
-    browserSaysLength = CSS.supports('padding-left', `calc(50% - ${basis}/2)`);
+  function askBrowser(el: HTMLElement) {
+    untrack(() => {
+      if (align !== 'center' || typeof CSS === 'undefined') {
+        browserSaysLength = undefined;
+        return;
+      }
+      const basis = getComputedStyle(el).getPropertyValue('--blocks-scroller-item').trim();
+      browserSaysLength = CSS.supports('padding-left', `calc(50% - ${basis}/2)`);
+    });
+  }
+  const edgePadding = $derived.by(() => {
+    const basis = itemBasis.trim();
+    if (basis === 'stretch') return 'basis';
+    const length = browserSaysLength ?? !(keyword.test(basis) || basis.includes('var('));
+    return length ? 'basis' : 'measured';
   });
-  const edgePadding = $derived(
-    (browserSaysLength ?? !keyword.test(itemBasis.trim())) ? 'basis' : 'measured'
-  );
 
   const measuredEdges = $derived(align === 'center' && edgePadding === 'measured');
 
@@ -182,8 +199,10 @@
   // `measure()` before it reads a single position. They move every item, and a
   // consumer's `onMount` runs in the same flush right after this component's
   // effects: written here they are in the DOM when it scrolls, so it aims at
-  // the final layout. Through the template they would land after it, and a
-  // smooth scroll already under way ends half the first item off centre.
+  // the layout at that moment. Through the template they would land after it,
+  // and a smooth scroll already under way ends half the first item off centre.
+  // An item whose width changes later (a webfont arriving) still moves the
+  // ones after it under that scroll; no edge spacing can undo that.
   // A margin changes no item's width, so one pass reads the widths that
   // result. `offsetWidth`, so the `emphasis` lift cannot inflate them. Removed
   // off that path, so a row with a length basis keeps exactly the inline style

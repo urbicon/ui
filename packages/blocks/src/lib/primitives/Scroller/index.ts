@@ -109,11 +109,10 @@ export interface ScrollerProps
    * length does that in CSS, from the server render on. For a value that is not
    * a length — `auto`, `max-content`, or a `var()` resolving to one — the
    * component measures the first and last item instead, so a centred row of
-   * mixed widths still brings both ends to the middle. Pass a keyword directly
-   * where you can: the component can resolve a `var()` only in the browser, so
-   * until hydration such a row rests like `align="start"`, and Safari can then
-   * leave it on its second or third item. Override per-item layout via
-   * `slotClasses.viewport` if you need responsive widths.
+   * mixed widths still brings both ends to the middle. The first and last
+   * child carry that centring: a hidden end child has to be left out of the
+   * row, not hidden in it. Override per-item layout via `slotClasses.viewport`
+   * if you need responsive widths.
    * @default '16rem'
    * @summary Width of each item — what decides when the row starts to overflow.
    */

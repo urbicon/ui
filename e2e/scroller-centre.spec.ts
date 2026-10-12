@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 /**
  * A centred Scroller brings every item to the middle, the first and the last
@@ -11,7 +11,8 @@ import { expect, type Page, test } from '@playwright/test';
  * drops the declaration, and the row rests like `align="start"` — the leading
  * chips never reach the middle and their dots collapse into one. A `var()`
  * basis passes the parser whatever it resolves to, so only the computed value
- * can tell. The length-basis row is the control: its padding is CSS alone.
+ * can tell, and that value can change with the viewport alone. The
+ * length-basis row is the control: its padding is CSS alone.
  *
  * Reduced motion turns the row's smooth scrolling off, so every press lands in
  * one step and `settle` only has to wait out the scroll event. It is set with
@@ -26,6 +27,7 @@ const ROWS = [
   'centre-basis',
   'centre-auto',
   'centre-var',
+  'centre-var-length',
   'centre-images',
   'centre-percent'
 ] as const;
@@ -83,6 +85,22 @@ async function load(page: Page, row: string, reducedMotion: Motion = 'reduce') {
   return dots;
 }
 
+/** Press every dot, last first, and expect its item in the middle with its dot lit. */
+async function expectEveryItemReachable(page: Page, row: string, dots: Locator) {
+  // One resting place per item. A row that cannot centre its ends collapses
+  // the items sharing an end of the scroll range into one dot.
+  const { dots: count, offCentre } = await rowState(page, row);
+  expect(count).toBe(offCentre.length);
+  // Last first: the far end is the one the spacing has to make reachable.
+  for (let index = count - 1; index >= 0; index--) {
+    await dots.nth(index).click();
+    await settle(page, row);
+    const now = await rowState(page, row);
+    expect(Math.abs(now.offCentre[index] as number), `item ${index + 1}`).toBeLessThanOrEqual(1);
+    expect(now.lit, `dot ${index + 1}`).toBe(index);
+  }
+}
+
 for (const row of ROWS) {
   test(`${row}: every item comes to rest in the middle, first and last included`, async ({
     page
@@ -90,22 +108,28 @@ for (const row of ROWS) {
     const dots = await load(page, row);
 
     const atLoad = await rowState(page, row);
-    // One resting place per item. A row that cannot centre its ends collapses
-    // the items sharing an end of the scroll range into one dot.
-    expect(atLoad.dots).toBe(atLoad.offCentre.length);
     expect(Math.abs(atLoad.offCentre[0] as number)).toBeLessThanOrEqual(1);
     expect(atLoad.lit).toBe(0);
-
-    // Last first: the far end is the one the spacing has to make reachable.
-    for (let index = atLoad.dots - 1; index >= 0; index--) {
-      await dots.nth(index).click();
-      await settle(page, row);
-      const now = await rowState(page, row);
-      expect(Math.abs(now.offCentre[index] as number), `item ${index + 1}`).toBeLessThanOrEqual(1);
-      expect(now.lit, `dot ${index + 1}`).toBe(index);
-    }
+    await expectEveryItemReachable(page, row, dots);
   });
 }
+
+// The basis is a length from 700px up and `auto` below it, so crossing that
+// width changes which edge spacing the row needs without any prop changing.
+test('centre-responsive: a resize across the breakpoint keeps every item reachable', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const dots = await load(page, 'centre-responsive');
+  await expectEveryItemReachable(page, 'centre-responsive', dots);
+
+  await page.setViewportSize({ width: 640, height: 900 });
+  await settle(page, 'centre-responsive');
+  // Wherever the resize left the row, it rests on an item.
+  const resized = await rowState(page, 'centre-responsive');
+  expect(Math.abs(resized.offCentre[resized.lit] as number)).toBeLessThanOrEqual(1);
+  await expectEveryItemReachable(page, 'centre-responsive', dots);
+});
 
 // The edge spacing must not narrow the box the items size against: an item
 // whose width resolves against the row would shrink, be measured again, and
@@ -142,11 +166,13 @@ test('centre-percent: a `%` width stays a share of the whole row', async ({ page
   }
 });
 
-// A consumer that moves the row owns the position. The fixture scrolls chip 4
+// A consumer that moves the row owns the position. The fixture scrolls item 4
 // into the middle from `onMount` — with motion, that scroll is still under way
 // when the row's own effects are done — and on the button press smooth-scrolls
 // to it and appends a trailing chip in the same task, which changes the last
-// item's width mid-scroll.
+// item's width mid-scroll. The `onMount` row's items have fixed widths: the
+// scroll aims at the layout of that moment, and a webfont arriving after it
+// would move content-sized items under it, which no row can correct.
 for (const motion of ['reduce', 'no-preference'] as const) {
   test(`consumer-mount: a position set in onMount is kept (motion: ${motion})`, async ({
     page
