@@ -88,7 +88,17 @@ export interface FloatingPanelState {
  * static design cap stays in CSS and the panel only ever shrinks to fit — and
  * recovers once room is restored (e.g. the iOS keyboard closes).
  */
-export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState {
+export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState & {
+  /**
+   * `true` while the panel is open and its anchor sat inside an open modal
+   * `<dialog>` when it was last checked — the case that keeps it out of the
+   * top layer whatever `portal` says. `false` while closed. Checked again only
+   * when `open` or the anchor changes, never on a change of the dialog's
+   * `:modal` state: a dialog that closes, or reopens, while the panel stays
+   * open leaves the value as it was.
+   */
+  readonly inModalDialog: boolean;
+} {
   let cleanupPosition: (() => void) | undefined;
 
   // Effective render mode — derived synchronously, never via an $effect-set
@@ -243,6 +253,9 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
     },
     get strategy() {
       return strategy;
+    },
+    get inModalDialog() {
+      return inModalDialog;
     }
   };
 }

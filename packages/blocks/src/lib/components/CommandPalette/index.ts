@@ -144,6 +144,19 @@ export interface CommandPaletteProps
   /** Fired when the open state changes (close via Escape, backdrop, or selection). */
   onOpenChange?: (open: boolean) => void;
 
+  /**
+   * Fires once the palette has finished closing — the exit animation has
+   * ended and focus is back on the element that had it before the palette
+   * opened, unless that element is gone or still inert: when stacked surfaces
+   * close together, focus can end on the page body. Fires once for every close that finishes:
+   * Escape, a backdrop click, a selection, or `open = false` from you. Not
+   * for a close interrupted by reopening before the animation ends, nor when
+   * the palette is destroyed while open or mid-close. `onOpenChange(false)`
+   * fires an animation earlier, while focus is still in the palette; this is
+   * the place to move focus elsewhere or open a follow-up surface.
+   */
+  onClosed?: () => void;
+
   // ── Snippets (custom rendering) ──────────────────────────
 
   /**

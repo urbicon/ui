@@ -8,6 +8,7 @@
   } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { overlayStack } from '#lib/utils/overlay-stack.svelte.js';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
@@ -61,6 +62,10 @@
 
     ...restProps
   }: PopoverProps = $props();
+
+  const propsId = $props.id();
+  const overlayId = `popover-${propsId}`;
+  let stacked = $state(false);
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -313,7 +318,16 @@
     // closed via `bind:open` — without this guard we'd report a second,
     // transition-less onOpenChange(false) + onEscape and steal focus.
     if (!open) return;
+    // Registered in the overlay stack (below), only the top layer acts: a
+    // Popover or a surface opened from inside this one takes the key first.
+    if (stacked && !overlayStack.isTop(overlayId)) return;
     e.preventDefault();
+    // With `closeOnEscape` off this is reached only from the document
+    // listener, which runs for such a Popover only while it is a layer in the
+    // stack. It holds the key and closes nothing: left unclaimed, the key
+    // would reach the browser's close watcher, which closes the modal dialog
+    // underneath whatever that dialog's own `closeOnEscape` says.
+    if (!closeOnEscape) return;
     open = false;
     onOpenChange?.(false);
     onEscapeProp?.();
@@ -326,7 +340,7 @@
   }
 
   $effect(() => {
-    if (!open || popoverMode !== 'manual' || !closeOnEscape) return;
+    if (!open || popoverMode !== 'manual' || !(closeOnEscape || stacked)) return;
     // Bubble phase intentionally — inner widgets (e.g. an editable input
     // inside the popover) get the first chance to handle Escape via
     // `e.preventDefault()` or `e.stopPropagation()`. Capture phase would
@@ -335,6 +349,37 @@
     // intentionally consume Escape.
     document.addEventListener('keydown', dismissOnEscape);
     return () => document.removeEventListener('keydown', dismissOnEscape);
+  });
+
+  // Anchored in an open modal dialog, the Popover is one more layer above the
+  // surface: it registers in the overlay stack, so the surface leaves an
+  // Escape to it from anywhere in its content (focus need not be on the
+  // trigger or in the panel) and `overlayStack.closeAll()` closes it first.
+  // Only there: a guided tour derives its paused state from the top of the
+  // stack, and a Popover open anywhere else must not pause it. `:modal` is
+  // read once per open, so the dialog's own `close` ends the registration
+  // too — a consumer's `<dialog>` can close and leave this Popover mounted.
+  // `inModalDialog` stays true after that close, and through a `showModal()`
+  // that reopens the dialog, so the Escape paths ask `stacked`: whether the
+  // entry is in the stack now.
+  $effect(() => {
+    if (!panel.inModalDialog) return;
+    const dialog = untrack(() => effectiveTriggerElement)?.closest('dialog');
+    const removeEntry = overlayStack.register(overlayId, () => {
+      if (!open) return;
+      open = false;
+      onOpenChange?.(false);
+    });
+    stacked = true;
+    const unregister = () => {
+      stacked = false;
+      removeEntry();
+    };
+    dialog?.addEventListener('close', unregister);
+    return () => {
+      dialog?.removeEventListener('close', unregister);
+      unregister();
+    };
   });
 
   $effect(() => {

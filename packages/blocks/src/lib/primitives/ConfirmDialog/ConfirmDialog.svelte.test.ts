@@ -467,3 +467,136 @@ describe('ConfirmDialog (component interaction)', () => {
     expectConfirmIntent(confirmBtn(), 'danger', 'neutral');
   });
 });
+
+// `onClosed` reports the end of either exit, after the callback that started
+// it. The panel outro has to end for it, so these pass `transitionDuration: 0`
+// (Svelte's no-duration path ends it synchronously).
+describe('ConfirmDialog (onClosed)', () => {
+  function placeOpener() {
+    const opener = document.createElement('button');
+    opener.textContent = 'Opener';
+    document.body.appendChild(opener);
+    opener.focus();
+    return opener;
+  }
+
+  const deferred = () => {
+    let resolve!: () => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+
+  it('fires after onCancel, once the close has finished and focus is back', async () => {
+    const opener = placeOpener();
+    const order: string[] = [];
+    renderConfirm({
+      ...base,
+      open: true,
+      transitionDuration: 0,
+      onCancel: () => order.push('onCancel'),
+      onClosed: () => order.push(`onClosed, focus back: ${document.activeElement === opener}`)
+    });
+    await tick();
+
+    await userEvent.setup().click(cancelBtn());
+    flushSync();
+
+    expect(order).toEqual(['onCancel', 'onClosed, focus back: true']);
+  });
+
+  it('fires after onConfirm resolves, once the close has finished', async () => {
+    const pending = deferred();
+    const order: string[] = [];
+    renderConfirm({
+      ...base,
+      open: true,
+      transitionDuration: 0,
+      onConfirm: async () => {
+        await pending.promise;
+        order.push('onConfirm resolved');
+      },
+      onClosed: () => order.push('onClosed')
+    });
+    await tick();
+
+    await userEvent.setup().click(confirmBtn());
+    expect(order).toEqual([]);
+
+    pending.resolve();
+    await tick();
+    await tick();
+
+    expect(order).toEqual(['onConfirm resolved', 'onClosed']);
+  });
+
+  it('fires on no close path while onConfirm is pending, and once after it settles', async () => {
+    const user = userEvent.setup();
+    const pending = deferred();
+    const onCancel = vi.fn();
+    const onClosed = vi.fn();
+    renderConfirm({
+      ...base,
+      open: true,
+      transitionDuration: 0,
+      onCancel,
+      onClosed,
+      onConfirm: () => pending.promise
+    });
+    await tick();
+    await user.click(confirmBtn());
+
+    // Escape, a backdrop click and the cancel button are all shut while busy.
+    await user.keyboard('{Escape}');
+    const dialog = screen.getByRole('dialog', { hidden: true }) as HTMLDialogElement;
+    (dialog.querySelector(':scope > [role="presentation"]') as HTMLElement).click();
+    cancelBtn().click();
+    flushSync();
+    expect(dialogState()).toBe('open');
+
+    // What still gets through: the browser closing the <dialog> itself — a
+    // close request it does not let the page refuse. jsdom's close() stub
+    // stands in for it; the close then finishes like any other.
+    dialog.close();
+    flushSync();
+    await tick();
+    expect(screen.queryByRole('dialog', { hidden: true })).toBeNull();
+    expect(onClosed).not.toHaveBeenCalled();
+
+    pending.resolve();
+    await tick();
+    await tick();
+
+    expect(onClosed).toHaveBeenCalledOnce();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('after a forced close under a pending onConfirm that rejects, fires after onError', async () => {
+    const pending = deferred();
+    const order: string[] = [];
+    renderConfirm({
+      ...base,
+      open: true,
+      transitionDuration: 0,
+      onConfirm: () => pending.promise,
+      onError: () => order.push('onError'),
+      onClosed: () => order.push('onClosed')
+    });
+    await tick();
+    await userEvent.setup().click(confirmBtn());
+
+    (screen.getByRole('dialog', { hidden: true }) as HTMLDialogElement).close();
+    flushSync();
+    await tick();
+    expect(order).toEqual([]);
+
+    pending.reject(new Error('offline'));
+    await tick();
+    await tick();
+
+    expect(order).toEqual(['onError', 'onClosed']);
+  });
+});

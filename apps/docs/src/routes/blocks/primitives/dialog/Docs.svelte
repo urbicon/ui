@@ -274,8 +274,12 @@
         <Kbd keys="Escape" />
         closes the dialog (<code class="text-text-primary">closeOnEscape</code>), and so does a
         click on the backdrop (<code class="text-text-primary">closeOnBackdropClick</code>). Both
-        are on by default. <code class="text-text-primary">onClose</code> fires on any dismissal, so reset
-        your state there.
+        are on by default. <code class="text-text-primary">onClose</code> fires when the reader asks
+        to close, before the exit animation; set <code class="text-text-primary">open</code> back to
+        <code class="text-text-primary">true</code> inside it to keep the dialog open.
+        <code class="text-text-primary">onClosed</code> fires once the close has finished and focus is
+        back on the opener: reset a form there, so nobody watches it empty on its way out, or move focus
+        on. When stacked surfaces close together, focus can end on the page body instead.
       </p>
     </Note>
     <Note title="Scroll Lock">

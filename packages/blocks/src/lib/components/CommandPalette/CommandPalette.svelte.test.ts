@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, type Snippet, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SearchIcon from '#lib/icons/SearchIcon.svelte';
+import { manualAnimations } from '../../internal/__fixtures__/manual-animations';
 import CommandPalette from './CommandPalette.svelte';
 import type { CommandPaletteItem, CommandPaletteProps } from './index';
 
@@ -547,5 +549,61 @@ describe('CommandPalette (restProps)', () => {
 
     expect(onkeydown).toHaveBeenCalledOnce();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+// `onClosed` is the inner Dialog's, relayed: it fires once the exit animation
+// has ended and focus is back where it was, an animation after
+// `onOpenChange(false)`.
+describe('CommandPalette (onClosed)', () => {
+  const ITEMS: CommandPaletteItem[] = [{ id: 'a', label: 'Alpha' }];
+
+  async function openPalette(props: Partial<CommandPaletteProps>) {
+    const animations = manualAnimations();
+    const opener = document.createElement('button');
+    opener.textContent = 'Opener';
+    document.body.appendChild(opener);
+    opener.focus();
+    render({ items: ITEMS, ...props });
+    await animations.finish();
+    await tick();
+    await tick();
+    return { animations, opener };
+  }
+
+  it('fires once after the close has finished, an animation after onOpenChange(false)', async () => {
+    const order: string[] = [];
+    const { animations, opener } = await openPalette({
+      onOpenChange: (open) => order.push(`onOpenChange(${open})`),
+      onClosed: () => order.push(`onClosed, focus back: ${document.activeElement === opener}`)
+    });
+    try {
+      await userEvent.setup().keyboard('{Escape}');
+      expect(order).toEqual(['onOpenChange(false)']);
+
+      await animations.finish();
+
+      expect(order).toEqual(['onOpenChange(false)', 'onClosed, focus back: true']);
+    } finally {
+      animations.restore();
+    }
+  });
+
+  it('fires after a selection closes the palette', async () => {
+    const onSelect = vi.fn();
+    const onClosed = vi.fn();
+    const { animations } = await openPalette({ onSelect, onClosed });
+    try {
+      screen.getByRole('combobox', { hidden: true }).focus();
+      await userEvent.setup().keyboard('{Enter}');
+      expect(onSelect).toHaveBeenCalledOnce();
+      expect(onClosed).not.toHaveBeenCalled();
+
+      await animations.finish();
+
+      expect(onClosed).toHaveBeenCalledOnce();
+    } finally {
+      animations.restore();
+    }
   });
 });

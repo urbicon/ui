@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { GuideController } from '../../utils/guide.svelte';
+import { overlayStack } from '../../utils/overlay-stack.svelte';
 import type { PopoverProps } from './index';
 import Popover from './Popover.svelte';
 
@@ -535,4 +537,35 @@ describe('Popover (auto-mode native dismiss)', () => {
     await user.click(trigger());
     expect(isOpen()).toBe(true);
   });
+});
+
+// Inside an open modal dialog an open Popover joins the overlay stack
+// (internal/modal-surface.svelte.test.ts drives that). Anywhere else it stays
+// out, in either dismiss mode: a guided tour reads its paused state from the
+// top of the stack.
+describe('Popover (overlay stack, outside a modal dialog)', () => {
+  for (const mode of ['auto', 'manual'] as const) {
+    it(`leaves the stack and a running tour alone in ${mode} mode`, async () => {
+      const guide = new GuideController({
+        storage: { load: () => [], save: () => {} },
+        navigationSource: { current: () => '/', subscribe: () => () => {} },
+        dev: false
+      });
+      guide.startTour({ id: 'tour', steps: [{ title: 'Step' }] });
+      try {
+        expect(guide.paused).toBe(false);
+        const depth = overlayStack.depth;
+
+        renderPopover(mode === 'manual' ? { closeOnEscape: false } : {});
+        await userEvent.setup().click(trigger());
+        expect(isOpen()).toBe(true);
+        expect(panel().getAttribute('popover')).toBe(mode);
+
+        expect(overlayStack.depth).toBe(depth);
+        expect(guide.paused).toBe(false);
+      } finally {
+        guide.stopTour();
+      }
+    });
+  }
 });
