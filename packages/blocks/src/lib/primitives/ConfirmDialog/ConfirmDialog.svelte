@@ -22,6 +22,7 @@
     onConfirm,
     onError,
     onCancel,
+    onClosed,
     loading = false,
     closeOnBackdropClick = true,
     closeOnEscape = true,
@@ -49,6 +50,12 @@
   });
 
   let busy = $state(false);
+  // Every dismiss path of ours is shut while `busy`, but the <dialog> can still
+  // close under a pending onConfirm: a close request the browser does not let
+  // a page refuse (the third without user activation), or a consumer's own
+  // `close()`. `onClosed` then waits for onConfirm to settle, so it never runs
+  // ahead of the callback that ends the exit.
+  let closedWhileBusy = false;
   const isLoading = $derived(loading || busy);
   const effectiveConfirmIntent = $derived(confirmIntent ?? intent);
 
@@ -76,6 +83,10 @@
       }
     } finally {
       busy = false;
+      if (closedWhileBusy) {
+        closedWhileBusy = false;
+        onClosed?.();
+      }
     }
   }
 
@@ -83,6 +94,14 @@
     if (isLoading) return;
     onCancel?.();
     open = false;
+  }
+
+  function handleClosed() {
+    if (busy) {
+      closedWhileBusy = true;
+      return;
+    }
+    onClosed?.();
   }
 </script>
 
@@ -97,6 +116,7 @@
   closeOnEscape={closeOnEscape && !isLoading}
   hideCloseButton={isLoading}
   onClose={handleCancel}
+  onClosed={handleClosed}
 >
   {#if description}
     <p class="text-text-secondary text-sm leading-relaxed">{description}</p>

@@ -595,9 +595,10 @@ export class GuideController {
   }
 
   /**
-   * `true` when a foreign overlay (Dialog/Drawer) sits above the running tour — the
-   * UI should hide/dim while paused. Derives from `overlayStack.isTop`, so it reacts
-   * automatically as foreign overlays open and close.
+   * `true` when a foreign overlay (Dialog/Drawer, or a Popover open inside a modal
+   * dialog) sits above the running tour — the UI should hide/dim while paused.
+   * Derives from `overlayStack.isTop`, so it reacts automatically as foreign
+   * overlays open and close.
    */
   get paused(): boolean {
     if (!this.#activeTour || this.#tourOverlayId === null) return false;
@@ -605,9 +606,10 @@ export class GuideController {
   }
 
   /**
-   * Number of modal overlays currently stacked (Dialog/Drawer/Sidebar + an active
-   * guided tour). Non-modal surfaces — notably `GuideHint` — hide while this is `> 0`,
-   * the top-layer discipline from GUIDE.md §6. Reactive via the injected overlay stack.
+   * Number of overlays currently stacked (Dialog/Drawer/Sidebar, an active guided
+   * tour, and a Popover open inside a modal dialog). Non-modal surfaces — notably
+   * `GuideHint` — hide while this is `> 0`, the top-layer discipline from GUIDE.md
+   * §6. Reactive via the injected overlay stack.
    */
   get overlayDepth(): number {
     return this.#overlayStack.depth;

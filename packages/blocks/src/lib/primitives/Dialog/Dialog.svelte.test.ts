@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import SurfaceHarness from '../../internal/__fixtures__/SurfaceHarness.svelte';
 import Dialog from './Dialog.svelte';
 import type { DialogProps } from './index';
 
@@ -139,6 +140,50 @@ describe('Dialog (draggable)', () => {
     dispose?.();
     renderDialog({ open: true, title: 'Movable', draggable: true });
     await tick();
+    expect(panel().style.translate).toBe('');
+  });
+
+  // Through a consumer's real `bind:open`, which the veto's write-back needs.
+  function renderBound(props: { vetoClose?: boolean; transitionDuration?: number } = {}) {
+    const instance = mount(SurfaceHarness, {
+      target: document.body,
+      props: { surface: 'Dialog', title: 'Movable', draggable: true, ...props }
+    });
+    dispose = () => unmount(instance);
+    flushSync();
+    return instance as unknown as { setOpen: (open: boolean) => void };
+  }
+
+  const dragBy = (x: number, y: number) => {
+    pointer(header(), 'pointerdown', 0, 0);
+    pointer(header(), 'pointermove', x, y);
+    pointer(header(), 'pointerup', x, y);
+  };
+
+  it('stays where it was dragged through a close vetoed in onClose', async () => {
+    renderBound({ vetoClose: true });
+    await tick();
+    dragBy(40, 40);
+
+    await userEvent.setup().keyboard('{Escape}');
+    flushSync();
+
+    expect(dialog().getAttribute('data-state')).toBe('open');
+    expect(panel().style.translate).toBe('40px 40px');
+  });
+
+  it('recentres when reopened after a close', async () => {
+    const harness = renderBound({ transitionDuration: 0 });
+    await tick();
+    dragBy(40, 40);
+
+    harness.setOpen(false);
+    flushSync();
+    await tick();
+    harness.setOpen(true);
+    flushSync();
+    await tick();
+
     expect(panel().style.translate).toBe('');
   });
 });

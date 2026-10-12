@@ -91,12 +91,12 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
    * the dialog must carry its own action.
    *
    * Escape is dismissed one layer at a time: a control INSIDE the dialog that
-   * handles Escape itself — an open `Select`/`Combobox`/`Menu` panel, a
-   * `clearable` `Input` with text in it — consumes the key, and the dialog stays
-   * up. The second Escape closes the dialog. This is about controls in the
-   * content; it does not apply to a consumer `onkeydown` on the Dialog itself,
-   * which cannot veto the dismiss (see utils/compose-handlers.ts) — use this
-   * prop for that.
+   * handles Escape itself — an open `Select`/`Combobox`/`Menu` panel, an open
+   * `Popover` wherever focus sits, a `clearable` `Input` with text in it —
+   * consumes the key, and the dialog stays up. The second Escape closes the
+   * dialog. This is about controls in the content; it does not apply to a
+   * consumer `onkeydown` on the Dialog itself, which cannot veto the dismiss (see
+   * utils/compose-handlers.ts) — use this prop for that.
    * @default true
    * @summary Whether the Escape key dismisses the dialog.
    */
@@ -138,8 +138,36 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   /** Override the enter/exit easing function. Defaults to the overlay token easing (`quintOut`). */
   transitionEasing?: (t: number) => number;
 
-  /** Fires when the dialog is dismissed via Escape, backdrop click, or close button. */
+  /**
+   * Fires when a close of the dialog is requested — Escape, a backdrop click,
+   * the close button, `overlayStack.closeAll()` or `closeTop()` — before the
+   * exit animation, while focus is still inside. `open` is already `false`
+   * when it runs, and writing `open = true` back synchronously inside it
+   * vetoes the close: the dialog stays open, plays no exit, keeps focus and
+   * never reaches `onClosed`. A close the browser performs itself also arrives
+   * here, after the `<dialog>` has closed, and cannot be vetoed — a
+   * `<form method="dialog">`, a call to `close()`, or a close request the
+   * dialog did not intercept (a back gesture, assistive technology); the
+   * dialog stays closed and DEV warns. `closeOnEscape={false}` holds such
+   * requests off for as long as the browser lets a page refuse them. Not
+   * fired when you set `open = false` yourself.
+   */
   onClose?: () => void;
+
+  /**
+   * Fires once a close has finished: the exit animation has ended, the
+   * `<dialog>` is closed, the scroll lock is released and focus is back on the
+   * element that had it before the dialog opened — unless that element is gone
+   * or still inert: when stacked surfaces close together, focus can end on the
+   * page body.
+   * Fires once for every close that finishes, including one you started with
+   * `open = false`. Not for a close vetoed in `onClose`, nor for one
+   * interrupted by reopening before the animation ends, nor when the dialog
+   * is destroyed while open or mid-close (focus is not returned then either).
+   * The place to move focus elsewhere, reset a form without a visible flash,
+   * or open a follow-up surface.
+   */
+  onClosed?: () => void;
 
   /** Additional CSS classes applied to the dialog panel. */
   class?: string;

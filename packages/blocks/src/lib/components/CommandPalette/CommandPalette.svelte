@@ -29,6 +29,7 @@
     filter,
     onSelect,
     onOpenChange,
+    onClosed,
     customItem,
     customEmpty,
     size = theme.size ?? 'md',
@@ -215,6 +216,7 @@
   placement="top"
   class="mt-[15vh]"
   onClose={() => setOpen(false)}
+  {onClosed}
 >
   <div
     class={unstyled
