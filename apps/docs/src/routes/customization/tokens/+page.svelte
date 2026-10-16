@@ -12,6 +12,9 @@
   // The shipped stylesheet itself, so the tables below cannot quote a value
   // the library does not have.
   import interactionCss from '@urbicon-ui/blocks/style/interaction.css?raw';
+  import type { PageData } from './$types';
+
+  let { data }: { data: PageData } = $props();
 
   const description =
     'The tokens the library ships, layer by layer: color ramps, spacing, typography, radius, motion and depth. Look values up here; write and switch themes on the Themes page.';
@@ -80,31 +83,10 @@
     { utility: 'p-12 / gap-12', value: '3rem', pixels: '48px' }
   ];
 
-  // `uses` counts word-bounded occurrences of the utility across every .ts/.svelte
-  // under packages/blocks/src/lib, excluding tests — an indicative snapshot, not a
-  // contract. It is here because it is the only honest answer to "which variable
-  // actually moves my UI?": the ramp is steep, and everything above text-xl is
-  // unused by the library. A 0 renders as an em-dash, i.e. reads as "nothing uses
-  // this" — so a stale count here is a factual lie, not a rounding error. The exact
-  // method above is the one typography-uses.test.ts re-measures against; keep them
-  // in step.
-  const typographyScale = [
-    { utility: 'text-3xs', variable: '--text-3xs', value: '0.625rem', pixels: '10px', uses: 16 },
-    { utility: 'text-2xs', variable: '--text-2xs', value: '0.6875rem', pixels: '11px', uses: 23 },
-    { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 130 },
-    { utility: 'text-sm', variable: '--text-sm', value: '0.875rem', pixels: '14px', uses: 170 },
-    { utility: 'text-base', variable: '--text-base', value: '1rem', pixels: '16px', uses: 96 },
-    { utility: 'text-lg', variable: '--text-lg', value: '1.125rem', pixels: '18px', uses: 39 },
-    { utility: 'text-xl', variable: '--text-xl', value: '1.25rem', pixels: '20px', uses: 14 },
-    { utility: 'text-2xl', variable: '--text-2xl', value: '1.5rem', pixels: '24px', uses: 5 }
-  ];
-
-  const weightScale = [
-    { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 6 },
-    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 71 },
-    { utility: 'font-semibold', variable: '--font-weight-semibold', value: '600', uses: 53 },
-    { utility: 'font-bold', variable: '--font-weight-bold', value: '700', uses: 12 }
-  ];
+  // `uses` is counted from the blocks source at build (+page.server.ts, method in
+  // #lib/server/blocks-utility-uses). It answers "which variable actually moves my
+  // UI?". A 0 renders as an em-dash, i.e. reads as "nothing uses this".
+  const { typographyScale, weightScale } = $derived(data);
 
   // Physical radius scale — real CSS variables defined in
   // blocks/src/lib/style/foundation.css, each with a matching Tailwind utility.
