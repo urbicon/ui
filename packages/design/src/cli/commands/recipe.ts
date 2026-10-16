@@ -4,20 +4,24 @@
  * components, code).
  */
 
-import type { RecipeEntry } from '@urbicon-ui/design-engine/search';
+import type { ComponentCatalog, RecipeEntry } from '@urbicon-ui/design-engine/search';
 import { boolFlag, type Flags } from '../args.js';
 import { loadCatalog } from '../content.js';
 import { EXIT, printError } from '../output.js';
 
-/** Component name → catalog slug (Button → button, DatePicker → date-picker). */
-function slugify(componentName: string): string {
-  return componentName.replace(
-    /([A-Z])/g,
-    (_, c: string, i: number) => (i > 0 ? '-' : '') + c.toLowerCase()
-  );
+/**
+ * The `get-component` slugs of a recipe's components, read from the catalog entries
+ * rather than re-derived from the names: docs-gen owns the slug rule (`QRCode` →
+ * `qr-code`), and a second copy here is one that can disagree with it. A name with no
+ * catalog entry (a sub-part such as `StepperStep`) gets no hint — `get-component`
+ * could not answer it.
+ */
+function componentSlugs(recipe: RecipeEntry, catalog: ComponentCatalog): string[] {
+  const slugByName = new Map(catalog.components.map((c) => [c.name, c.slug]));
+  return recipe.components.flatMap((name) => slugByName.get(name) ?? []);
 }
 
-function formatRecipe(recipe: RecipeEntry): string {
+function formatRecipe(recipe: RecipeEntry, catalog: ComponentCatalog): string {
   let md = `# Recipe: ${recipe.title}\n\n`;
   if (recipe.description) md += `${recipe.description}\n\n`;
   if (recipe.pattern) {
@@ -36,8 +40,8 @@ function formatRecipe(recipe: RecipeEntry): string {
   }
 
   md += '\n→ Next:';
-  for (const comp of recipe.components.slice(0, 3)) {
-    md += ` \`urbicon get-component ${slugify(comp)}\` ·`;
+  for (const slug of componentSlugs(recipe, catalog).slice(0, 3)) {
+    md += ` \`urbicon get-component ${slug}\` ·`;
   }
   md += ' `urbicon css-reference` for tokens · `urbicon validate` before shipping.';
   return md;
@@ -47,9 +51,9 @@ export async function runRecipe(positionals: string[], flags: Flags): Promise<nu
   const id = positionals[0];
   const asJson = boolFlag(flags, 'json');
 
-  let recipes: RecipeEntry[];
+  let catalog: ComponentCatalog;
   try {
-    recipes = (await loadCatalog()).recipes;
+    catalog = await loadCatalog();
   } catch (err) {
     printError(
       `could not read the component catalog (${(err as Error).message}). ` +
@@ -57,6 +61,7 @@ export async function runRecipe(positionals: string[], flags: Flags): Promise<nu
     );
     return EXIT.FAIL;
   }
+  const { recipes } = catalog;
 
   if (!id) {
     if (asJson) {
@@ -94,6 +99,6 @@ export async function runRecipe(positionals: string[], flags: Flags): Promise<nu
     return EXIT.OK;
   }
 
-  console.log(formatRecipe(recipe));
+  console.log(formatRecipe(recipe, catalog));
   return EXIT.OK;
 }
