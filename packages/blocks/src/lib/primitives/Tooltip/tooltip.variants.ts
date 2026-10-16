@@ -78,5 +78,5 @@ export const tooltipVariants = tv({
 // `open` is excluded from the public variants type — it is a real prop on
 // TooltipProps (bindable state), not a style knob.
 export type TooltipVariants = Omit<VariantProps<typeof tooltipVariants>, 'open'>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type TooltipSlots = SlotNames<typeof tooltipVariants>;

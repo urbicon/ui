@@ -159,5 +159,5 @@ export const docsLayoutVariants = tv({
 });
 
 export type DocsLayoutVariantProps = VariantProps<typeof docsLayoutVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type DocsLayoutSlots = SlotNames<typeof docsLayoutVariants>;

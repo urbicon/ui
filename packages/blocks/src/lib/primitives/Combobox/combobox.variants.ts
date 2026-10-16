@@ -314,5 +314,5 @@ export const comboboxVariants = tv({
 });
 
 export type ComboboxVariants = VariantProps<typeof comboboxVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type ComboboxSlots = SlotNames<typeof comboboxVariants>;

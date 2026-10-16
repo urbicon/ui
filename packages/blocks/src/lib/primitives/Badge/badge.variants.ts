@@ -488,6 +488,6 @@ export const badgeVariants = tv({
 });
 
 export type BadgeVariants = VariantProps<typeof badgeVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type BadgeSlots = SlotNames<typeof badgeVariants>;
 export type BadgePlacement = (typeof PLACEMENT_VALUES)[number];

@@ -137,5 +137,5 @@ export const toolCallCardVariants = tv({
 });
 
 export type ToolCallCardVariants = VariantProps<typeof toolCallCardVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type ToolCallCardSlots = SlotNames<typeof toolCallCardVariants>;

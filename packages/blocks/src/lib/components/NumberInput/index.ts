@@ -42,10 +42,10 @@ export interface NumberInputProps
   extends Omit<InputProps, 'value' | 'type' | 'inputmode' | 'clearable' | 'onClear' | 'children'> {
   /** Current numeric value. `null` when the field is empty. Supports `bind:value`. */
   value?: number | null;
+  // Redeclared from InputProps so the inheritance is a documented contract
+  // rather than an accident of the Omit list.
   /**
-   * Micro-interaction preset forwarded to the inner Input. Redeclared from
-   * InputProps so the inheritance is a documented contract rather than an
-   * accident of the Omit list.
+   * Micro-interaction preset, forwarded to the inner Input.
    * @default 'none'
    */
   mint?: InputProps['mint'];

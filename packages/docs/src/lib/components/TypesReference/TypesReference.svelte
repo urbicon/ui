@@ -128,8 +128,8 @@
 
 <!-- The description column's cell. Two jobs the default cell cannot do: clamp
      the prose to two lines (see the column note above), and render the
-     backticks the JSDoc is written with as code — `slotClasses` reads as a
-     literal pair of backticks otherwise. ApiReference does both on its own
+     inline markdown the JSDoc is written with (`InlineCode`) — `slotClasses`
+     reads as a literal pair of backticks otherwise. ApiReference does both on its own
      description column; this is the same treatment, not a second one. -->
 {#snippet documentationCell(_item: Record<string, unknown>, value: unknown)}
   {#if value}
@@ -209,7 +209,7 @@
               <pre class={slot('codeBlock')}><code>{code}</code></pre>
 
               {#if t.documentation}
-                <p class={slot('documentation')}>{t.documentation}</p>
+                <p class={slot('documentation')}><InlineCode text={t.documentation} /></p>
               {/if}
 
               {#if values.length > 0}

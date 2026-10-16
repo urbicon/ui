@@ -263,7 +263,7 @@ export type GuideMentionVariants = VariantProps<typeof guideMentionVariants>;
 export type GuideRefVariants = VariantProps<typeof guideRefVariants>;
 export type GuideHintVariants = VariantProps<typeof guideHintVariants>;
 
-/** Slot names derived from each `tv()` config — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type GuidePanelSlots = SlotNames<typeof guidePanelVariants>;
 export type GuideTourSlots = SlotNames<typeof guideTourVariants>;
 export type GuideBeaconSlots = SlotNames<typeof guideBeaconVariants>;

@@ -85,5 +85,5 @@ export const sectionVariants = tv({
 });
 
 export type SectionVariantProps = VariantProps<typeof sectionVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type SectionSlots = SlotNames<typeof sectionVariants>;

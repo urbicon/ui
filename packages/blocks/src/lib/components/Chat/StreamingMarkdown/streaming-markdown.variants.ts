@@ -74,5 +74,5 @@ export const streamingMarkdownVariants = tv({
 });
 
 export type StreamingMarkdownVariants = VariantProps<typeof streamingMarkdownVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type StreamingMarkdownSlots = SlotNames<typeof streamingMarkdownVariants>;

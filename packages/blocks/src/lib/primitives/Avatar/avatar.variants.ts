@@ -220,5 +220,5 @@ export const avatarVariants = tv({
 });
 
 export type AvatarVariants = VariantProps<typeof avatarVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type AvatarSlots = SlotNames<typeof avatarVariants>;

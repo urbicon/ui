@@ -63,5 +63,5 @@ export const a2uiViewVariants = tv({
 });
 
 export type A2UIViewVariants = VariantProps<typeof a2uiViewVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type A2UIViewSlots = SlotNames<typeof a2uiViewVariants>;

@@ -46,7 +46,7 @@ export const sparklineVariants = tv({
 });
 
 export type SparklineVariants = VariantProps<typeof sparklineVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type SparklineSlots = SlotNames<typeof sparklineVariants>;
 
 /** `T` unchanged, and a compile error unless every member of it is in `U`. */

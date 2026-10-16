@@ -67,5 +67,5 @@ export const codeBlockVariants = tv({
 });
 
 export type CodeBlockVariants = VariantProps<typeof codeBlockVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type CodeBlockSlots = SlotNames<typeof codeBlockVariants>;

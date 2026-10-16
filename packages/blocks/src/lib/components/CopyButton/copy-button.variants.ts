@@ -33,5 +33,5 @@ export const copyButtonVariants = tv({
 });
 
 export type CopyButtonVariants = VariantProps<typeof copyButtonVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type CopyButtonSlots = SlotNames<typeof copyButtonVariants>;

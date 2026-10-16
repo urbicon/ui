@@ -63,5 +63,5 @@ export const collapsibleVariants = tv({
 });
 
 export type CollapsibleVariants = VariantProps<typeof collapsibleVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type CollapsibleSlots = SlotNames<typeof collapsibleVariants>;

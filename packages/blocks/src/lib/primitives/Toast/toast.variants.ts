@@ -99,7 +99,7 @@ export const toastVariants = tv({
 });
 
 export type ToastVariants = VariantProps<typeof toastVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type ToasterSlots = SlotNames<typeof toastVariants>;
 
 export type ToastPlacement =

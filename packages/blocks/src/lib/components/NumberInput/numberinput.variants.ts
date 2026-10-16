@@ -22,5 +22,5 @@ export const numberInputVariants = tv({
 });
 
 export type NumberInputVariants = VariantProps<typeof numberInputVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type NumberInputSlots = SlotNames<typeof numberInputVariants>;

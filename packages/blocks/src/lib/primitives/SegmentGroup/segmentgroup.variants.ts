@@ -150,5 +150,5 @@ export const segmentGroupVariants = tv({
 });
 
 export type SegmentGroupVariants = VariantProps<typeof segmentGroupVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type SegmentGroupSlots = SlotNames<typeof segmentGroupVariants>;

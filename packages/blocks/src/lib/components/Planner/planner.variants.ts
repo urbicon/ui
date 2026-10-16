@@ -233,5 +233,5 @@ export type PlannerCellState = Pick<
   PlannerVariants,
   'dayState' | 'selected' | 'weekend' | 'outside'
 >;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type PlannerSlots = SlotNames<typeof plannerVariants>;

@@ -180,5 +180,5 @@ export const alertVariants = tv({
 });
 
 export type AlertVariants = VariantProps<typeof alertVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type AlertSlots = SlotNames<typeof alertVariants>;

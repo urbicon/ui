@@ -204,5 +204,5 @@ export const compositionBarVariants = tv({
 });
 
 export type CompositionBarVariants = VariantProps<typeof compositionBarVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type CompositionBarSlots = SlotNames<typeof compositionBarVariants>;

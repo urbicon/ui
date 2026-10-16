@@ -291,5 +291,5 @@ export const checkboxVariants = tv({
 });
 
 export type CheckboxVariants = VariantProps<typeof checkboxVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type CheckboxSlots = SlotNames<typeof checkboxVariants>;

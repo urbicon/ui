@@ -8,9 +8,22 @@ import type {
   PropInfo,
   VariantInfo
 } from '@urbicon-ui/shared-types';
-import type { APIData, ComponentAPIData, TypeDefinition, TypeUsedByRef } from '../../types';
+import type {
+  APIData,
+  ComponentAPIData,
+  TypeCategory,
+  TypeDefinition,
+  TypeUsedByRef
+} from '../../types';
 import { repoRelativePackageDir, repoRelativePackagePath } from '../../utils/repo-path';
 import { toSlug } from '../../utils/slug';
+
+/**
+ * The variant engine's generics (`packages/blocks/src/lib/utils/variants.ts`).
+ * A type of one of these names is tv() machinery, and so is an alias that
+ * applies one.
+ */
+const TV_ENGINE_TYPES: readonly string[] = ['VariantProps', 'SlotNames'];
 
 /**
  * Generates structured API data from enriched component information
@@ -136,6 +149,17 @@ export class APIDataGenerator {
   // ==========================================
 
   private async generateComponentAPIData(component: ComponentInfo): Promise<ComponentAPIData> {
+    // Before the props: `resolveTypeLink` links a prop's type to `#type-<name>`
+    // only for names in this list, so an entry dropped later would leave the
+    // API table pointing at a row the Types section never renders.
+    const compWithLocalTypes = component as unknown as { localTypes?: unknown };
+    const localTypeDefs = this.classifyLocalTypes(
+      Array.isArray(compWithLocalTypes.localTypes)
+        ? (compWithLocalTypes.localTypes as TypeDefinition[])
+        : []
+    );
+    compWithLocalTypes.localTypes = localTypeDefs;
+
     // Process props with cross-references and categorization
     const processedProps = await this.processProps(component.props, component);
 
@@ -168,11 +192,6 @@ export class APIDataGenerator {
     // Process inheritance with resolution and flattening
     const processedInheritance = await this.processInheritance(component.inheritance, component);
 
-    // Integrate and enrich local types if present on component (produced by extraction)
-    const compWithLocalTypes = component as unknown as { localTypes?: unknown };
-    const localTypeDefs: TypeDefinition[] = Array.isArray(compWithLocalTypes.localTypes)
-      ? (compWithLocalTypes.localTypes as TypeDefinition[])
-      : [];
     if (localTypeDefs.length > 0) {
       // Reverse index: which props reference which local types
       const usedByMap = new Map<string, TypeUsedByRef[]>();
@@ -199,35 +218,8 @@ export class APIDataGenerator {
       }
 
       for (const td of localTypeDefs) {
-        // annotate scope/category and usedBy — the extractor marks
-        // program-resolved definitions as 'imported'; everything else is local
-        td.scope = td.scope ?? 'local';
         td.usedByProps = usedByMap.get(td.name) || [];
         td.usedByCount = td.usedByProps.length;
-        // Canonical home: the documented component that declares this type.
-        // Left unset when none does — `#lib/utils` plumbing has no page to
-        // point at, and pretending otherwise would invent a link target.
-        const owner = this.resolveTypeOwner(td);
-        if (owner) td.owner = owner;
-        // Only the type's OWN members decide what it is. Since a definition
-        // carries its inherited members inline, matching against the whole
-        // string asks "does anything in this type's ancestry mention tv()
-        // machinery" — so an interface extending a base that happens to declare
-        // a `VariantProps<…>` or `SlotNames<…>` field would be reclassified as
-        // 'variant' and silently drop out of the llm.txt Types section, which
-        // lists business types only. What a type inherits is not what it is.
-        const defStr = String(td.definition || '').split('// ── inherited from')[0] ?? '';
-        // `SlotNames<…>` aliases (`XSlots`) are tv()-machinery like the
-        // `VariantProps<…>` aliases — categorized 'variant' so type surfaces
-        // (llm.txt Types section) list business types only.
-        const looksLikeVariant =
-          defStr.includes('VariantProps<') ||
-          defStr.includes('SlotNames<') ||
-          /Variants?$/.test(td.name) ||
-          /Slots$/.test(td.name);
-        const looksLikeProps = td.type === 'interface' && /Props$/.test(td.name);
-        td.category = looksLikeProps ? 'props' : looksLikeVariant ? 'variant' : 'helper';
-
         if (!this.generatedTypes.has(td.name)) {
           this.typeDefinitions.push(td);
           this.generatedTypes.add(td.name);
@@ -313,6 +305,58 @@ export class APIDataGenerator {
   // ==========================================
   // TYPE OWNERSHIP
   // ==========================================
+
+  /**
+   * Annotates scope, owner and category on a component's extracted types and
+   * returns the ones its Types section lists.
+   *
+   * tv() machinery is listed only where a consumer can import it by name
+   * (`ButtonVariants`). Unlisted: the engine's own generics, and aliases the
+   * package does not export (most `*Slots`, whose definition reads
+   * `SlotNames<typeof x>` and names no slot — the names ship as the
+   * component's `slots` list).
+   */
+  private classifyLocalTypes(types: TypeDefinition[]): TypeDefinition[] {
+    const listed: TypeDefinition[] = [];
+    for (const td of types) {
+      // The extractor marks program-resolved definitions as 'imported';
+      // everything else is local.
+      td.scope = td.scope ?? 'local';
+      // Canonical home: the documented component that declares this type.
+      // Left unset when none does — `#lib/utils` plumbing has no page to
+      // point at, and pretending otherwise would invent a link target.
+      const owner = this.resolveTypeOwner(td);
+      if (owner) td.owner = owner;
+      td.category = this.categorizeType(td);
+
+      if (
+        td.category === 'variant' &&
+        (TV_ENGINE_TYPES.includes(td.name) || td.exported === false)
+      ) {
+        continue;
+      }
+      listed.push(td);
+    }
+    return listed;
+  }
+
+  private categorizeType(td: TypeDefinition): TypeCategory {
+    // Only the type's OWN members decide what it is. Since a definition
+    // carries its inherited members inline, matching against the whole
+    // string asks "does anything in this type's ancestry mention tv()
+    // machinery" — so an interface extending a base that happens to declare
+    // a `VariantProps<…>` or `SlotNames<…>` field would be reclassified as
+    // 'variant' and silently drop out of the llm.txt Types section, which
+    // lists business types only. What a type inherits is not what it is.
+    const defStr = String(td.definition || '').split('// ── inherited from')[0] ?? '';
+    const looksLikeVariant =
+      TV_ENGINE_TYPES.includes(td.name) ||
+      TV_ENGINE_TYPES.some((engineType) => defStr.includes(`${engineType}<`)) ||
+      /Variants?$/.test(td.name) ||
+      /Slots$/.test(td.name);
+    const looksLikeProps = td.type === 'interface' && /Props$/.test(td.name);
+    return looksLikeProps ? 'props' : looksLikeVariant ? 'variant' : 'helper';
+  }
 
   /**
    * The documented component that declares `td` — its canonical home.

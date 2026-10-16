@@ -28,5 +28,5 @@ export const kbdVariants = tv({
 });
 
 export type KbdVariants = VariantProps<typeof kbdVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type KbdSlots = SlotNames<typeof kbdVariants>;

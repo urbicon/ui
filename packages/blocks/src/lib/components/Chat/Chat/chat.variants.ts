@@ -16,5 +16,5 @@ export const chatVariants = tv({
 });
 
 export type ChatVariants = VariantProps<typeof chatVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type ChatSlots = SlotNames<typeof chatVariants>;

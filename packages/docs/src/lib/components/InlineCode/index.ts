@@ -1,15 +1,18 @@
 /**
  * Props interface for InlineCode component
  *
- * @summary Renders a plain string, turning its backtick-wrapped spans into code.
+ * @summary Renders a plain string, turning its markdown code and emphasis spans into elements.
  * @description The documentation surfaces carry strings that were written for a
  * markdown reader: prop descriptions come from JSDoc, where naming a field in
- * backticks is the convention, and 78% of them do it. Rendered as text those
- * backticks reach the reader as characters.
+ * backticks is the convention and `**strong**` / `*emphasis*` mark the word a
+ * contract turns on. Rendered as text those markers reach the reader as
+ * characters.
  *
- * This turns paired backticks into `<code>` and leaves everything else alone. It
- * is not a markdown renderer — no emphasis, no links — and it never uses
- * `{@html}`, so a string is escaped whatever it contains.
+ * This renders exactly that inline subset — paired backticks as `<code>`,
+ * `**…**` as `<strong>`, `*…*` as `<em>` — and leaves everything else as
+ * written: links, underscores, any marker without a partner and any run of three
+ * or more asterisks. It never uses `{@html}`, so a string is escaped whatever it
+ * contains.
  *
  * @tag display
  * @tag documentation
@@ -23,8 +26,9 @@
  */
 export interface InlineCodeProps {
   /**
-   * The string to render. Paired backticks become `<code>`; an unpaired one is
-   * left as a character.
+   * The string to render. Paired backticks become `<code>`, `**…**` `<strong>`
+   * and `*…*` `<em>`; a marker without a partner, or a run of three or more
+   * asterisks, is left as written.
    */
   text?: string;
 

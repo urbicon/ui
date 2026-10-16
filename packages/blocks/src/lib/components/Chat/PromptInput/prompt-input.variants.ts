@@ -104,5 +104,5 @@ export const promptInputVariants = tv({
 });
 
 export type PromptInputVariants = VariantProps<typeof promptInputVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type PromptInputSlots = SlotNames<typeof promptInputVariants>;

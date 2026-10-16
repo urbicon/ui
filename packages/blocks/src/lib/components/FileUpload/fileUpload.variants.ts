@@ -203,5 +203,5 @@ export const fileUploadVariants = tv({
 });
 
 export type FileUploadVariants = VariantProps<typeof fileUploadVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type FileUploadSlots = SlotNames<typeof fileUploadVariants>;

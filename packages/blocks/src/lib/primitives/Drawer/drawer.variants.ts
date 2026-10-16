@@ -178,5 +178,5 @@ export const drawerVariants = tv({
 });
 
 export type DrawerVariants = VariantProps<typeof drawerVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type DrawerSlots = SlotNames<typeof drawerVariants>;

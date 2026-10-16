@@ -72,5 +72,5 @@ export const linkVariants = tv({
 });
 
 export type LinkVariants = VariantProps<typeof linkVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type LinkSlots = SlotNames<typeof linkVariants>;
