@@ -133,11 +133,29 @@ export const useBlocksI18n = blocksI18n.useTranslate;
 <button aria-label={bt('dialog.close')}>×</button>
 ```
 
-`bt('dialog.close')` reads the context locale **at call time**, so wrapping it in markup / `$derived` re-renders on locale change. Resolution falls back to the package's base locale, then the global namespace.
+`bt('dialog.close')` reads the context locale **at call time**, so wrapping it in markup / `$derived` re-renders on locale change. A package key resolves through the active locale, then the provider's `fallbackLocale`, then the package's own base bundle (complete by construction, so a declared key never renders raw), then the global namespace.
+
+### A package whose base is not English
+
+The base bundle is `en` unless `base` names another locale. A German-only product keeps no English bundle at all:
+
+<!-- typecheck -->
+
+```ts
+import { createPackageI18n } from '@urbicon-ui/i18n';
+
+const de = { save: 'Speichern', greeting: 'Hallo {{name}}' } as const;
+
+export const machI18n = createPackageI18n('mach', { de }, { base: 'de' });
+
+machI18n.t('greeting', { name: 'Ada' }); // 'Hallo Ada' — keys are typed from the de bundle
+```
+
+`base` is a property of the package, not of the app: the provider's `fallbackLocale` and `resolveLocale`'s `defaultLocale` stay as they are. A `de`-based package under an app whose locale and fallback are `en` renders its `de` strings rather than raw keys, and without a provider its hook, `t` and `exists` resolve against `de`. Any further locales are checked against the `de` structure, exactly as they are against `en` by default.
 
 ## Type-safe keys
 
-`createPackageI18n` is generic over the `en` bundle: with `as const` (or a plain literal object) the key **and** parameter types flow straight through to the hook's `t`, so keys autocomplete and typos are compile errors.
+`createPackageI18n` is generic over the base bundle (`en`, or the locale `base` names): with `as const` (or a plain literal object) the key **and** parameter types flow straight through to the hook's `t`, so keys autocomplete and typos are compile errors.
 
 ```ts
 const en = {
@@ -154,7 +172,7 @@ t('greeting', { name: 'Ada' }); // ✓ param `name` inferred from {{name}}
 t('greeting'); // ✗ compile error — missing required param
 ```
 
-Additional **eager** locales are checked against the `en` structure, so a missing or misspelled key in `de` is a compile error too (key parity by construction). For **lazy** locales (below) parity is a runtime check — pair with `validatePackageTranslations` in a test.
+Additional **eager** locales are checked against the base structure, so a missing or misspelled key in `de` is a compile error too (key parity by construction). For **lazy** locales (below) parity is a runtime check — pair with `validatePackageTranslations` in a test.
 
 > `createTypedPackage` is **deprecated** — `createPackageI18n` gives the same type safety directly.
 
@@ -297,6 +315,8 @@ it('en/de key parity', () => {
 });
 ```
 
+The diff runs against `en` when present. A package with another `base` passes it along — `validatePackageTranslations('mach', { de, en }, { baseLocale: 'de' })`; `auditTranslations` takes the same `baseLocale` option, and the `urbicon i18n` CLI takes `--base-locale de` (or `"baseLocale"` in `i18n.audit.json`).
+
 ## API Surface
 
 <!-- typecheck -->
@@ -317,7 +337,7 @@ import {
 
 // Package integration
 import {
-  createPackageI18n, // (name, { en }, { loaders }?) -> { useTranslate, t, exists, getLocales, ... }
+  createPackageI18n, // (name, { en }, { base?, loaders? }?) -> { useTranslate, t, exists, getLocales, ... }
   createComponentI18n,
   registerTranslationLoaders,
   registerPackages,

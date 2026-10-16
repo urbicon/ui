@@ -1,5 +1,12 @@
+import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import { createPackageI18n, validatePackageTranslations } from './package-integration';
+import BaseLocaleHarness from './__fixtures__/BaseLocaleHarness.svelte';
+import { dePackage } from './__fixtures__/de-package';
+import {
+  createPackageI18n,
+  createTypedPackage,
+  validatePackageTranslations
+} from './package-integration';
 import { getRegistry } from './registry.svelte';
 
 /**
@@ -92,7 +99,136 @@ describe('createPackageI18n — non-en locales are checked against the en schema
   });
 });
 
+describe('createPackageI18n — `base` names a non-en base bundle', () => {
+  it('type-checks a de-only package and types `t` from the de bundle', () => {
+    dePackage.t('save');
+    dePackage.t('greeting', { name: 'Ada' });
+    // @ts-expect-error 'nope' is not a key of the de base bundle
+    dePackage.t('nope');
+    // @ts-expect-error missing param object for {{name}}
+    dePackage.t('greeting');
+
+    // Other locales are checked against the de schema.
+    createPackageI18n(
+      'base-de-parity-ok',
+      { de: { a: 'A', b: 'B' } as const, en: { a: 'A', b: 'B' } },
+      { base: 'de' }
+    );
+    // Overload errors are reported on the call, so each directive sits above one.
+    // @ts-expect-error en is missing key `b` that the de base declares
+    createPackageI18n('bad-b', { de: { a: 'A', b: 'B' } as const, en: { a: 'A' } }, { base: 'de' });
+    // @ts-expect-error en declares key `z` that the de base does not
+    createPackageI18n('bad-z', { de: { a: 'A' } as const, en: { a: 'A', z: 'Z' } }, { base: 'de' });
+    // @ts-expect-error with `base: 'de'` the de bundle is required
+    createPackageI18n('base-de-missing', { en: { a: 'A' } }, { base: 'de' });
+    // @ts-expect-error without `base` the en bundle is still required
+    createPackageI18n('base-en-missing', { de: { a: 'A' } });
+
+    // The deprecated en-only wrapper keeps its typed `t`.
+    const typed = createTypedPackage('base-typed-shim', { en: { a: 'A' } as const });
+    typed.t('a');
+    // @ts-expect-error 'nope' is not a key of the en bundle
+    typed.t('nope');
+
+    expect(true).toBe(true);
+  });
+
+  it('resolves its strings without a provider (non-hook t, exists)', () => {
+    expect(dePackage.t('save')).toBe('Speichern');
+    expect(dePackage.t('greeting', { name: 'Ada' })).toBe('Hallo Ada');
+    expect(dePackage.exists('save')).toBe(true);
+    expect(dePackage.getLocales()).toEqual(['de']);
+  });
+
+  it('ends the lookup chain at the de base: active en, fallback en → de string, not the raw key', () => {
+    dePackage.register();
+    // Exactly the call useTranslate makes under <I18nProvider locale="en">.
+    expect(
+      getRegistry().translate('save', 'en', 'en', undefined, { packageName: 'base-de-fixture' })
+    ).toBe('Speichern');
+  });
+
+  it('a package-prefixed global key walks the same chain before the global namespace', () => {
+    dePackage.register();
+    // `useI18n().t('base-de-fixture.save')` under a provider on en/en.
+    expect(getRegistry().translate('base-de-fixture.save', 'en', 'en')).toBe('Speichern');
+
+    const prefixed = createPackageI18n(
+      'base-prefix',
+      { en: { a: 'A', b: 'B' } as const, fr: { a: 'A-fr', b: '' } },
+      {}
+    );
+    prefixed.register();
+    expect(getRegistry().translate('base-prefix.a', 'fr', 'de')).toBe('A-fr');
+    // Missing in fr (empty) and in the de fallback (no bundle) → the en base.
+    expect(getRegistry().translate('base-prefix.b', 'fr', 'de')).toBe('B');
+  });
+
+  it('a re-registration without a base keeps the stored base', () => {
+    const registry = getRegistry();
+    registry.registerPackage('base-kept', { de: { a: 'Basis' } }, 'de');
+    registry.registerPackage('base-kept', { de: { a: 'Basis' } });
+    expect(registry.translate('a', 'en', 'en', undefined, { packageName: 'base-kept' })).toBe(
+      'Basis'
+    );
+  });
+
+  it('keeps the order active → fallback → base', () => {
+    const pkg = createPackageI18n(
+      'base-de-order',
+      {
+        de: { onlyBase: 'Basis', inFallback: 'Basis', inActive: 'Basis' } as const,
+        en: { onlyBase: '', inFallback: 'Fallback', inActive: 'Fallback' },
+        fr: { onlyBase: '', inFallback: '', inActive: 'Actif' }
+      },
+      { base: 'de' }
+    );
+    pkg.register();
+    const resolve = (key: string) =>
+      getRegistry().translate(key, 'fr', 'en', undefined, { packageName: 'base-de-order' });
+    expect(resolve('inActive')).toBe('Actif');
+    expect(resolve('inFallback')).toBe('Fallback');
+    expect(resolve('onlyBase')).toBe('Basis');
+  });
+
+  it('renders the de base under a provider whose locale and fallback are en (SSR)', () => {
+    expect(render(BaseLocaleHarness, { props: { locale: 'en' } }).body).toContain('Speichern');
+    expect(render(BaseLocaleHarness, { props: {} }).body).toContain('Speichern');
+  });
+
+  it('leaves en packages unchanged: provider-less t resolves en, a miss stays the raw key', () => {
+    const en = createPackageI18n('base-en-default', { en: { a: 'A' } as const, de: { a: 'A-de' } });
+    expect(en.t('a')).toBe('A');
+    expect(en.exists('a')).toBe(true);
+    const loose = en.t as unknown as (key: string) => string;
+    expect(loose('missing')).toBe('missing');
+  });
+
+  it('throws on an unsupported base locale', () => {
+    expect(() =>
+      // @ts-expect-error deliberately unsupported locale
+      createPackageI18n('base-bad', { xx: { a: 'A' } }, { base: 'xx' })
+    ).toThrow(/unsupported base locale "xx"/);
+  });
+});
+
 describe('validatePackageTranslations — runtime deep-key parity', () => {
+  it('diffs against an explicit baseLocale', () => {
+    const r = validatePackageTranslations(
+      'p',
+      { en: { a: 'A' }, de: { a: 'A', b: 'B' } },
+      { baseLocale: 'de' }
+    );
+    expect(r.isValid).toBe(false);
+    expect(r.errors.join()).toContain('Locale en missing keys: b');
+  });
+
+  it('checks every non-base locale, whatever the key order of the object', () => {
+    // The `en` base is not the object's first key; `de` before it must still be checked.
+    const r = validatePackageTranslations('p', { de: { a: 'A' }, en: { a: 'A', b: 'B' } });
+    expect(r.errors.join()).toContain('Locale de missing keys: b');
+  });
+
   it('passes when locales share the same nested keys', () => {
     const r = validatePackageTranslations('p', {
       en: { a: 'A', nested: { x: 'X' } },

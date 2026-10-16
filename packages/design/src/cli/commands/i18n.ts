@@ -273,7 +273,11 @@ async function runUnused(
 ): Promise<Outcome> {
   const defined = new Set<string>();
   for (const group of groups) {
-    const base = group.bundles.en ?? Object.values(group.bundles)[0];
+    // The same base `parity` diffs against: the defined-key set is the base's.
+    const base =
+      (config.baseLocale ? group.bundles[config.baseLocale] : undefined) ??
+      group.bundles.en ??
+      Object.values(group.bundles)[0];
     if (base) for (const key of audit.collectDeepKeys(base)) defined.add(key);
   }
 

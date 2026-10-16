@@ -59,8 +59,9 @@
   <Section id="loaders" title="Registering loaders">
     <p class="text-text-secondary mb-4">
       Pass <code>options.loaders</code> to <code>createPackageI18n</code>. The bundle in
-      <code>translations</code> (typically <code>en</code>) stays eager as the base/fallback; each
-      listed locale becomes a dynamic import that Vite/Rollup splits into its own chunk.
+      <code>translations</code> (<code>en</code>, or the locale <code>options.base</code> names) stays
+      eager as the base; each listed locale becomes a dynamic import that Vite/Rollup splits into its
+      own chunk.
     </p>
     <CodeExample code={loadersCode} language="typescript" preview={false} />
     <p class="text-text-tertiary mt-3 text-xs">

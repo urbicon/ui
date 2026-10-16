@@ -67,7 +67,7 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
 
 <DocsPageLayout
   title="Type Safety"
-  description="Keys and their parameters flow from the en bundle straight into the hook's t — typos and missing params are compile errors, not runtime surprises."
+  description="Keys and their parameters flow from the base bundle (en by default) straight into the hook's t — typos and missing params are compile errors, not runtime surprises."
   maxWidth="2xl"
   showToc={true}
   {navigation}
@@ -75,10 +75,10 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
 >
   <Section id="inference" title="Key inference">
     <p class="text-text-secondary mb-4">
-      <code>createPackageI18n</code> is generic over the <code>en</code> bundle (declared
-      <code>&lt;const T&gt;</code>). With <code>as const</code> — or a plain literal object — the
-      key type flows straight through to the hook's <code>t</code>, so keys autocomplete and typos
-      are compile errors.
+      <code>createPackageI18n</code> is generic over the base bundle — <code>en</code>, or the
+      locale <code>options.base</code> names. With <code>as const</code> — or a plain literal object
+      — the key type flows straight through to the hook's <code>t</code>, so keys autocomplete and
+      typos are compile errors.
     </p>
     <CodeExample code={inferCode} language="typescript" preview={false} />
   </Section>
@@ -93,8 +93,8 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
 
   <Section id="parity" title="Eager vs. lazy parity">
     <p class="text-text-secondary mb-4">
-      Additional <strong>eager</strong> locales are checked against the <code>en</code> structure,
-      so a missing or misspelled key in <code>de</code> is a compile error too — key parity by
+      Additional <strong>eager</strong> locales are checked against the base bundle's structure, so
+      a missing or misspelled key in <code>de</code> is a compile error too — key parity by
       construction. For <strong>lazy</strong> locales the bundle isn't visible to the type-checker,
       so parity becomes a runtime check; pair it with
       <a class="text-primary hover:underline" href={resolve('/i18n/package-integration')}

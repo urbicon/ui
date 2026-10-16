@@ -193,7 +193,7 @@ Commands — judgment (is what you built right):
                         --runtime-usage <p> JSON array of keys observed at runtime;
                                            they count as used even if no call site
                                            mentions them literally.
-                        --base-locale <l>  Parity base (default en).
+                        --base-locale <l>  Base bundle for parity + unused (default en).
                         --json             Machine-readable report.
                         --strict           Gate on advisory findings too.
                         Gates on parity errors + used-but-undefined; unused,

@@ -130,6 +130,37 @@ type WidenStringLiteralsDeep<T> = T extends string
 // Schema type to validate translation shape while allowing locale-specific strings
 export type TranslationSchema<T extends Translations> = WidenStringLiteralsDeep<T>;
 
+/** The base locale's bundle out of a package's per-locale bundle map `M`. */
+export type BaseBundle<M, B extends Locale> = M[B & keyof M] extends infer T extends Translations
+  ? T
+  : never;
+
+// Without a base bundle there is no schema; `Translations` keeps the other locales
+// error-free so the one error reported is the missing base key.
+type BaseSchema<M, B extends Locale> = B extends keyof M
+  ? TranslationSchema<BaseBundle<M, B>>
+  : Translations;
+
+// Maps every leaf that the schema `S` does not declare to `never`. The bundle's
+// own literal type is part of the parameter type, so an object-literal excess
+// property check never fires on a non-base locale — this is what reports it.
+type NoExtraKeys<X, S> = {
+  [K in keyof X]: K extends keyof S
+    ? X[K] extends string
+      ? S[K]
+      : NoExtraKeys<X[K], S[K]>
+    : never;
+};
+
+/**
+ * The check `createPackageI18n` puts on its bundle map `M`: the base locale `B`
+ * is present, and every other locale has exactly the base's keys (values widened
+ * to `string`).
+ */
+export type PackageBundles<M, B extends Locale> = { [K in B]: Translations } & {
+  [L in keyof M]: L extends B ? M[L] : BaseSchema<M, B> & NoExtraKeys<M[L], BaseSchema<M, B>>;
+};
+
 // Translation options
 export interface TranslationOptions {
   packageName?: string;

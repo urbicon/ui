@@ -1,9 +1,11 @@
 import { collectDeepKeys } from '#lib/utils/deep-keys.js';
-import { BASE_LOCALE, useI18nState } from './context.svelte';
+import { useI18nState } from './context.svelte';
 import { getRegistry } from './registry.svelte';
 import type {
+  BaseBundle,
   CreatePackageTypes,
   Locale,
+  PackageBundles,
   PackageI18n,
   PackageTranslations,
   TranslationOptions,
@@ -26,15 +28,33 @@ type LooseTranslate = (
   options?: TranslationOptions
 ) => string;
 
-export interface CreatePackageI18nOptions {
+export interface CreatePackageI18nOptions<B extends Locale = 'en'> {
+  /**
+   * The locale of the package's **base bundle** — the one the factory is generic
+   * over, the schema every other locale is checked against, and therefore the one
+   * bundle that is always complete. Defaults to `'en'`.
+   *
+   * Set it when the product does not speak English: a German-only package passes
+   * `createPackageI18n('mach', { de }, { base: 'de' })` and keeps no `en` bundle.
+   * The base is the **last** step of the package's lookup chain — active locale →
+   * the provider's `fallbackLocale` → this bundle — so a key missing in the other
+   * two still renders the base string, never the raw key. Without an
+   * `<I18nProvider>`, the package's `useTranslate`, `t` and `exists` resolve
+   * against this locale. The provider's `fallbackLocale` and `resolveLocale`'s
+   * `defaultLocale` stay app-level and are not affected.
+   *
+   * Must be a supported locale (`SUPPORTED_LOCALES`); the factory throws otherwise.
+   * The base bundle is always eager, so it never needs a `loaders` entry.
+   */
+  base?: B;
   /**
    * Per-locale lazy loaders (code-splitting). Each returns the package's
    * bundle for that locale as a dynamic-import chunk, e.g.
    * `() => import('./translations/de').then((m) => m.default)`. Listed locales
    * stay out of the initial bundle until activated by the provider / `setLocale`;
-   * the eager bundle passed in `translations` (typically `en`) is the base/
-   * fallback. Compile-time key parity is NOT checked for lazy locales — pair with
-   * `validatePackageTranslations` in a test to guard parity at runtime/CI.
+   * the eager base bundle (see `base`) stays the last fallback. Compile-time key
+   * parity is NOT checked for lazy locales — pair with `validatePackageTranslations`
+   * in a test to guard parity at runtime/CI.
    */
   loaders?: Partial<Record<Locale, () => Promise<Translations>>>;
 }
@@ -42,12 +62,13 @@ export interface CreatePackageI18nOptions {
 /**
  * Creates a standardized i18n integration for a package.
  *
- * Generic over the `en` bundle: with `<const T>` the literal key/param types of
- * `en` flow through `PackageI18n<T>` into a fully typed `t` — real `DeepKeys<T>`
- * plus `ExtractParams`, so `t('dialog.close')` autocompletes and
- * `t('dialog.nope')` is a compile error. Other locales are checked against
- * `TranslationSchema<T>` (T's structure with its string values widened), which
- * enforces key parity at compile time while allowing locale-specific strings.
+ * Generic over the base bundle (`en`, unless `options.base` names another
+ * locale): with `<const T>` the literal key/param types of that bundle flow
+ * through `PackageI18n<T>` into a fully typed `t` — real `DeepKeys<T>` plus
+ * `ExtractParams`, so `t('dialog.close')` autocompletes and `t('dialog.nope')` is
+ * a compile error. Other locales are checked against `TranslationSchema<T>` (T's
+ * structure with its string values widened), which enforces key parity at compile
+ * time while allowing locale-specific strings.
  *
  * Opt-in code-splitting: pass `options.loaders` to keep non-base locales
  * out of the initial bundle as dynamic-import chunks, loaded only when activated.
@@ -55,8 +76,35 @@ export interface CreatePackageI18nOptions {
 export function createPackageI18n<const T extends Translations>(
   packageName: string,
   translations: { en: T } & Partial<Record<Locale, TranslationSchema<T>>>,
-  options?: CreatePackageI18nOptions
-): PackageI18n<T> {
+  options?: CreatePackageI18nOptions<'en'>
+): PackageI18n<T>;
+// A non-en base. Generic over the whole bundle map `M` rather than over the base
+// bundle `T`: a parameter shaped `{ [K in B]: T }` (B still a type parameter
+// during inference) infers T from *every* locale's bundle as a union, which
+// silently disables the parity check. `M` keeps each bundle's literal type, the
+// base is read out of it, and `NoInfer<B>` takes the base from `options.base`.
+export function createPackageI18n<
+  const M extends Partial<Record<Locale, Translations>>,
+  const B extends Locale
+>(
+  packageName: string,
+  translations: M & PackageBundles<M, NoInfer<B>>,
+  options: CreatePackageI18nOptions<B> & { base: B }
+): PackageI18n<BaseBundle<M, B>>;
+export function createPackageI18n(
+  packageName: string,
+  translations: PackageTranslations,
+  options?: CreatePackageI18nOptions<Locale>
+): PackageI18n<Translations> {
+  type T = Translations;
+  const baseLocale: Locale = options?.base ?? 'en';
+  if (!isLocaleSupported(baseLocale)) {
+    throw new Error(
+      `[i18n] createPackageI18n("${packageName}"): unsupported base locale "${String(baseLocale)}". ` +
+        `Supported: ${SUPPORTED_LOCALES.join(', ')}.`
+    );
+  }
+
   // Lazy, first-use registration — deliberately NOT at module-eval.
   // A consumer's top-level `export const x = createPackageI18n(...)` must not call
   // getRegistry() during module initialisation: in a reordered *production* chunk
@@ -79,7 +127,7 @@ export function createPackageI18n<const T extends Translations>(
     if (registered) return;
     registered = true;
     const registry = getRegistry();
-    registry.registerPackage(packageName, translations as PackageTranslations);
+    registry.registerPackage(packageName, translations, baseLocale);
     // Opt-in lazy locales: dynamic-import loaders alongside the eager base
     // bundle, loaded on demand by the provider / setLocale.
     if (options?.loaders) {
@@ -91,7 +139,7 @@ export function createPackageI18n<const T extends Translations>(
 
   // Context-scoped hook — the SSR-correct, reactive accessor. Captures the
   // request-scoped locale state at component init (or `undefined` without a
-  // provider → base locale), then resolves against the static registry. Reading
+  // provider → the package's base locale), then resolves against the static registry. Reading
   // `state.locale` inside the returned closure (called from a `$derived`) makes
   // call-sites re-render on locale change; reading the registry's SvelteMap makes
   // them re-render when a package registers more translations.
@@ -102,20 +150,20 @@ export function createPackageI18n<const T extends Translations>(
     return ((key: string, params?: TranslationParams, callOptions?: TranslationOptions) =>
       registry.translate(
         key,
-        state?.locale ?? BASE_LOCALE,
-        state?.fallbackLocale ?? BASE_LOCALE,
+        state?.locale ?? baseLocale,
+        state?.fallbackLocale ?? baseLocale,
         params,
         { packageName, ...callOptions }
       )) as TypedTranslationFunction<T>;
   };
 
   // Non-hook `t` for non-component use (tests, server utilities). Resolves
-  // against the base locale — there is no request-scoped state outside a
-  // component. Components use `useTranslate` for the reactive, provider-scoped
+  // against the package's base locale — there is no request-scoped state outside
+  // a component. Components use `useTranslate` for the reactive, provider-scoped
   // locale.
   const t = ((key: string, params?: TranslationParams, callOptions?: TranslationOptions) => {
     ensureRegistered();
-    return getRegistry().translate(key, BASE_LOCALE, BASE_LOCALE, params, {
+    return getRegistry().translate(key, baseLocale, baseLocale, params, {
       packageName,
       ...callOptions
     });
@@ -123,7 +171,7 @@ export function createPackageI18n<const T extends Translations>(
 
   const exists = (key: string): boolean => {
     ensureRegistered();
-    return getRegistry().exists(key, BASE_LOCALE, packageName);
+    return getRegistry().exists(key, baseLocale, packageName);
   };
 
   const getLocales = (): Locale[] => {
@@ -313,7 +361,11 @@ export function registerPackages(
 // values, decoupling the locales — parity is verified at runtime via keys.
 export function validatePackageTranslations(
   packageName: string,
-  translations: Partial<Record<Locale, Translations>>
+  translations: Partial<Record<Locale, Translations>>,
+  options: {
+    /** The package's base locale — pass the `createPackageI18n` `base` when it is not `en`. */
+    baseLocale?: Locale;
+  } = {}
 ): {
   isValid: boolean;
   errors: string[];
@@ -328,10 +380,10 @@ export function validatePackageTranslations(
     return { isValid: false, errors, warnings };
   }
 
-  // Prefer `en` as the base: the error (missing) vs warning (extra) asymmetry
-  // is only meaningful against the canonical source locale, not whichever key
-  // Object.keys happens to return first.
-  const baseLocale = locales.includes('en') ? 'en' : locales[0];
+  // An explicit base wins, else `en`: the error (missing) vs warning (extra)
+  // asymmetry is only meaningful against the canonical source locale, not
+  // whichever key Object.keys happens to return first.
+  const baseLocale = options.baseLocale ?? (locales.includes('en') ? 'en' : locales[0]);
   const baseBundle = translations[baseLocale];
   if (!baseBundle) {
     errors.push(`[${packageName}] Base locale ${baseLocale} has no translations`);
@@ -341,7 +393,8 @@ export function validatePackageTranslations(
   const baseKeys = collectDeepKeys(baseBundle);
   const baseKeySet = new Set(baseKeys);
 
-  locales.slice(1).forEach((locale) => {
+  locales.forEach((locale) => {
+    if (locale === baseLocale) return;
     const bundle = translations[locale];
     if (!bundle) return;
     const localeKeySet = new Set(collectDeepKeys(bundle));
