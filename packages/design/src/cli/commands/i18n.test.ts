@@ -70,6 +70,12 @@ describe('urbicon i18n', () => {
     expect(json.unused?.unused.some((u) => u.key === 'unused.deep')).toBe(true);
   });
 
+  it('takes the defined keys from --base-locale, not from en', async () => {
+    // `unused.deep` exists only in en; against a de base it is not a defined key.
+    expect(await run('unused', { 'base-locale': 'de', json: true })).toBe(0);
+    expect(lastJson().unused?.unused.some((u) => u.key === 'unused.deep')).toBe(false);
+  });
+
   it('flags hardcoded markup copy', async () => {
     await run('hardcoded', { json: true });
     const json = lastJson();

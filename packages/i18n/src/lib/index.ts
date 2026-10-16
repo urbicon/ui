@@ -46,6 +46,7 @@ export type { LocaleSource, ResolveLocaleOptions } from '#lib/i18n/resolve-local
 export { resolveLocale } from '#lib/i18n/resolve-locale.js';
 // Types
 export type {
+  BaseBundle,
   CreatePackageTypes,
   I18nComponentProps,
   I18nConfig,
@@ -53,6 +54,7 @@ export type {
   I18nMissingKey,
   I18nStore,
   Locale,
+  PackageBundles,
   PackageI18n,
   PackageTranslations,
   PluralParams,

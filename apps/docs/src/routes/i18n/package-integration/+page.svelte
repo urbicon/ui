@@ -129,9 +129,10 @@ it('en/de key parity', () => {
   <Section id="create" title="createPackageI18n">
     <p class="text-text-secondary mb-4">
       The factory registers the bundles at module init and returns a small typed object. Its
-      signature is <code>createPackageI18n(name, {'{ en, …otherLocales }'}, options?)</code> —
-      <code>en</code>
-      is required (the base), other eager locales are checked against its structure, and
+      signature is <code>createPackageI18n(name, {'{ en, …otherLocales }'}, options?)</code> — the
+      base bundle is required (<code>en</code>, unless <code>options.base</code> names another
+      locale, e.g. <code>{"createPackageI18n('mach', { de }, { base: 'de' })"}</code> for a
+      German-only product), other eager locales are checked against its structure, and
       <code>options.loaders</code> opts into
       <a class="text-primary hover:underline" href={resolve('/i18n/lazy-loading')}>code-splitting</a
       >.
@@ -181,7 +182,11 @@ it('en/de key parity', () => {
     <p class="text-text-secondary mb-4">For a package hook, a key resolves in this order:</p>
     <ol class="text-text-secondary mb-4 list-decimal space-y-1 pl-5 text-sm">
       <li>the package namespace in the <strong>active</strong> locale,</li>
-      <li>the package namespace in the package's <strong>base/fallback</strong> locale,</li>
+      <li>the package namespace in the provider's <strong>fallback</strong> locale,</li>
+      <li>
+        the package's own <strong>base</strong> bundle (<code>en</code> or <code>options.base</code>
+        — complete by construction, so a key the package declares never renders raw),
+      </li>
       <li>the <strong>global</strong> namespace (shared keys registered without a package).</li>
     </ol>
     <p class="text-text-tertiary text-xs">

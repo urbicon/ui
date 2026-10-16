@@ -17,23 +17,19 @@ import enTranslations from '../translations/en';
  * ## Before the `de` chunk loads: resolution falls back to `en`
  *
  * A package-scoped lookup for a `de` key that isn't loaded yet resolves through
- * the package fallback locale, i.e. it returns the **English** string (verified:
+ * the provider's fallback locale, then the package's eager `en` base — with the
+ * default `fallbackLocale` (`en`) it returns the **English** string (verified:
  * `@urbicon-ui/i18n` `registry.translate` package path + `lazy-load.test.ts`). It
- * never renders the raw key. The provider (`<I18nProvider>`) triggers the `de`
- * load in a **client-only** `$effect` on mount, so a `de` app renders English on
- * the server and the first client paint, then re-resolves to German once the
- * chunk lands — a brief text flash and a possible hydration text mismatch.
- * Two consequences of that window worth knowing:
+ * never renders the raw key, even when `fallbackLocale` names a lazy locale that
+ * has not loaded either. The provider (`<I18nProvider>`) triggers the `de` load in
+ * a **client-only** `$effect` on mount, so a `de` app renders English on the
+ * server and the first client paint, then re-resolves to German once the chunk
+ * lands — a brief text flash and a possible hydration text mismatch. The same
+ * window also affects `LocaleSwitcher`: it disables its trigger while a locale
+ * chunk load is in flight (`registry.isLoading`), so without the eager register a
+ * `de` app briefly shows the switcher disabled on first mount.
  *
- * - The "falls back to English" guarantee assumes the provider's `fallbackLocale`
- *   stays at its default (`en`). Pointing `fallbackLocale` at a lazy locale that
- *   has not loaded yet leaves both lookup paths empty — such a key then renders
- *   raw and fires `onMissingKey`. Eager-register any locale you use as fallback.
- * - `LocaleSwitcher` disables its trigger while a locale chunk load is in flight
- *   (`registry.isLoading`), so without the eager register a `de` app briefly
- *   shows the switcher disabled on first mount.
- *
- * The SSR recipe below removes both, along with the flash itself.
+ * The SSR recipe below removes that, along with the flash itself.
  *
  * ## SSR recipe for German (and other non-base) apps
  *

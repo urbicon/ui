@@ -35,6 +35,10 @@ export class I18nRegistry {
   // downstream $derived recomputation. Plain Map/Set inside $state are
   // shallow-reactive only.
   private packageTranslations = new SvelteMap<string, Partial<Record<Locale, Translations>>>();
+  // The locale whose bundle is each package's schema — the last step of its lookup
+  // chain. Written in the same call as the reactive packageTranslations entry, so
+  // that entry's notification already covers it; a plain Map suffices.
+  private packageBaseLocales = new Map<string, Locale>();
   private translations = $state<Partial<Record<Locale, Translations>>>({});
   private loadedLocales = new SvelteSet<Locale>();
   private loadingLocales = new SvelteSet<Locale>();
@@ -118,7 +122,19 @@ export class I18nRegistry {
 
   // --- registration / loading (static data; idempotent, request-identical) ---
 
-  registerPackage(packageName: string, translations: PackageTranslations): void {
+  /**
+   * Register a package's bundles. `baseLocale` names the bundle that is complete by
+   * construction (the schema the other locales are typed against); a package-scoped
+   * lookup that misses in both the active and the fallback locale resolves there
+   * before giving up. Omitted, a base stored by an earlier registration stays; with
+   * none stored, the chain ends at the fallback locale.
+   */
+  registerPackage(
+    packageName: string,
+    translations: PackageTranslations,
+    baseLocale?: Locale
+  ): void {
+    if (baseLocale) this.packageBaseLocales.set(packageName, baseLocale);
     this.packageTranslations.set(packageName, translations);
 
     Object.entries(translations).forEach(([locale, trans]) => {
@@ -296,7 +312,12 @@ export class I18nRegistry {
       const potentialPackage = key.split('.')[0];
       if (this.packageTranslations.has(potentialPackage)) {
         const packageKey = key.substring(potentialPackage.length + 1);
-        translation = this.getPackageTranslation(potentialPackage, packageKey, locale);
+        translation = this.resolvePackageTranslation(
+          potentialPackage,
+          packageKey,
+          locale,
+          fallbackLocale
+        );
         if (translation) {
           return opts.interpolate ? this.interpolate(translation, locale, params) : translation;
         }
@@ -304,12 +325,7 @@ export class I18nRegistry {
     }
 
     if (opts.packageName) {
-      translation = this.getPackageTranslation(opts.packageName, key, locale);
-      if (translation) {
-        return opts.interpolate ? this.interpolate(translation, locale, params) : translation;
-      }
-
-      translation = this.getPackageTranslation(opts.packageName, key, fallbackLocale);
+      translation = this.resolvePackageTranslation(opts.packageName, key, locale, fallbackLocale);
       if (translation) {
         return opts.interpolate ? this.interpolate(translation, locale, params) : translation;
       }
@@ -428,6 +444,27 @@ export class I18nRegistry {
         ? (current as Record<string, unknown>)[key]
         : undefined;
     }, params);
+  }
+
+  /**
+   * A package's lookup chain: the active locale, then the app's fallback locale,
+   * then the package's own base bundle (when it registered one). The base is last
+   * because it is the package's opinion, not the app's — but it is complete, so a
+   * key the package declares never renders raw.
+   */
+  private resolvePackageTranslation(
+    packageName: string,
+    key: string,
+    locale: Locale,
+    fallbackLocale: Locale
+  ): string | undefined {
+    const baseLocale = this.packageBaseLocales.get(packageName);
+    // `||`, not `??`: an empty string is a miss here, as it is in translate().
+    return (
+      this.getPackageTranslation(packageName, key, locale) ||
+      this.getPackageTranslation(packageName, key, fallbackLocale) ||
+      (baseLocale ? this.getPackageTranslation(packageName, key, baseLocale) : undefined)
+    );
   }
 
   private getPackageTranslation(
