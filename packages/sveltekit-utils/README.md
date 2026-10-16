@@ -52,7 +52,7 @@ import { updateUrlSearchParams } from '@urbicon-ui/sveltekit-utils/url.svelte';
 updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 ```
 
-A link needs an address, not a setter. `withSearchParams(url, patch)` is the pure core that `updateUrlSearchParams` and `createUrlParam`'s setter navigate to: the address `url` has after `patch` — a scalar `set`s its key, an array `append`s each element, `null` removes the key, every other param stays as it is. An empty string is a value and keeps its key (`?a=`); an empty array appends nothing and so removes it. It reads nothing from the page and navigates nowhere, so the same call builds a link's `href` and a redirect's location.
+A link needs an address, not a setter. `withSearchParams(url, patch)` is the pure core that `updateUrlSearchParams` and `createUrlParam`'s setter navigate to: the address `url` has after `patch` — a scalar replaces its key's value, an array replaces it with each element, `null` removes the key, every other param stays as it is. A patched key keeps the position of its first occurrence and only a new key goes to the end, so changing a key's value and changing it back returns the same address. An empty string is a value and keeps its key (`?a=`); an empty array has no values and so removes it. It reads nothing from the page and navigates nowhere, so the same call builds a link's `href` and a redirect's location.
 
 <!-- typecheck -->
 
@@ -61,7 +61,7 @@ import { withSearchParams } from '@urbicon-ui/sveltekit-utils/search-params';
 
 const url = new URL('https://films.test/archive?sort=title&page=3');
 
-withSearchParams(url, { sort: 'year' }); // '/archive?page=3&sort=year'
+withSearchParams(url, { sort: 'year' }); // '/archive?sort=year&page=3'
 withSearchParams(url, { tag: ['noir', 'silent'] }); // '/archive?sort=title&page=3&tag=noir&tag=silent'
 withSearchParams(url, { sort: null, page: null }); // '/archive'
 ```
