@@ -97,5 +97,5 @@ export const typesReferenceVariants = tv({
 });
 
 export type TypesReferenceVariantProps = VariantProps<typeof typesReferenceVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type TypesReferenceSlots = SlotNames<typeof typesReferenceVariants>;

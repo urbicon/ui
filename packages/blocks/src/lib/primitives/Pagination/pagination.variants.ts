@@ -97,5 +97,5 @@ export const paginationLinkVariants = tv({
 
 export type PaginationLinkVariants = VariantProps<typeof paginationLinkVariants>;
 export type PaginationVariants = VariantProps<typeof paginationVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type PaginationSlots = SlotNames<typeof paginationVariants>;

@@ -216,5 +216,5 @@ export const resourceTimelineVariants = tv({
 });
 
 export type ResourceTimelineVariants = VariantProps<typeof resourceTimelineVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type ResourceTimelineSlots = SlotNames<typeof resourceTimelineVariants>;

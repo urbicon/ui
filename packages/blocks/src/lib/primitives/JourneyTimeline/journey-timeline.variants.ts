@@ -353,5 +353,5 @@ export const journeyTimelineVariants = tv({
 });
 
 export type JourneyTimelineVariants = VariantProps<typeof journeyTimelineVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type JourneyTimelineSlots = SlotNames<typeof journeyTimelineVariants>;

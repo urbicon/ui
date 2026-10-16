@@ -40,5 +40,5 @@ export const infoCardVariants = tv({
 });
 
 export type InfoCardVariantProps = VariantProps<typeof infoCardVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type InfoCardSlots = SlotNames<typeof infoCardVariants>;

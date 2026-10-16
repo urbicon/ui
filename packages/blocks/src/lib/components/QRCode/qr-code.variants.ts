@@ -31,5 +31,5 @@ export const qrCodeVariants = tv({
 });
 
 export type QRCodeVariants = VariantProps<typeof qrCodeVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type QRCodeSlots = SlotNames<typeof qrCodeVariants>;

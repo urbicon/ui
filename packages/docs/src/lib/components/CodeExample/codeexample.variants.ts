@@ -50,5 +50,5 @@ export const codeExampleVariants = tv({
 });
 
 export type CodeExampleVariantProps = VariantProps<typeof codeExampleVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type CodeExampleSlots = SlotNames<typeof codeExampleVariants>;

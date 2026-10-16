@@ -162,5 +162,5 @@ export const dialogVariants = tv({
 });
 
 export type DialogVariants = VariantProps<typeof dialogVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type DialogSlots = SlotNames<typeof dialogVariants>;

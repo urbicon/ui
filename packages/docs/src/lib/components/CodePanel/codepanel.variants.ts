@@ -56,5 +56,5 @@ export const codePanelVariants = tv({
 });
 
 export type CodePanelVariantProps = VariantProps<typeof codePanelVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type CodePanelSlots = SlotNames<typeof codePanelVariants>;

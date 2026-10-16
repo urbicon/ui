@@ -156,5 +156,5 @@ export const spinnerVariants = tv({
 });
 
 export type SpinnerVariants = VariantProps<typeof spinnerVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type SpinnerSlots = SlotNames<typeof spinnerVariants>;

@@ -689,5 +689,5 @@ export const buttonVariants = tv({
 });
 
 export type ButtonVariants = VariantProps<typeof buttonVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type ButtonSlots = SlotNames<typeof buttonVariants>;

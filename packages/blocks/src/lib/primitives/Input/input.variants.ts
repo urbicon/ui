@@ -228,5 +228,5 @@ export const inputVariants = tv({
 });
 
 export type InputVariants = VariantProps<typeof inputVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type InputSlots = SlotNames<typeof inputVariants>;

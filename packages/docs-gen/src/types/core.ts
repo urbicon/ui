@@ -198,8 +198,8 @@ export interface TypeUsedByRef {
 /**
  * Coarse classification assigned during enrichment so type surfaces can pick
  * their audience: `props` (a `*Props` interface), `variant` (tv() machinery —
- * `VariantProps<…>` / `SlotNames<…>` aliases), `helper` (everything else,
- * i.e. the business types).
+ * `VariantProps<…>` / `SlotNames<…>` aliases and those two generics
+ * themselves), `helper` (everything else, i.e. the business types).
  */
 export type TypeCategory = 'props' | 'variant' | 'helper';
 

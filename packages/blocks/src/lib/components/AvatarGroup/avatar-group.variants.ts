@@ -71,5 +71,5 @@ export const avatarGroupVariants = tv({
 });
 
 export type AvatarGroupVariants = VariantProps<typeof avatarGroupVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type AvatarGroupSlots = SlotNames<typeof avatarGroupVariants>;

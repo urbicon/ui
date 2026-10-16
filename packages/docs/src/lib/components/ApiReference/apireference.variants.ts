@@ -90,5 +90,5 @@ export const apiReferenceVariants = tv({
 });
 
 export type ApiReferenceVariantProps = VariantProps<typeof apiReferenceVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type ApiReferenceSlots = SlotNames<typeof apiReferenceVariants>;

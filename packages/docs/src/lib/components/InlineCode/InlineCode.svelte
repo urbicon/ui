@@ -1,24 +1,16 @@
 <script lang="ts">
   import type { InlineCodeProps } from './index';
+  import { parseInlineRuns, type InlineRun } from './inline-runs';
 
   let { text = '', codeClass = 'text-text-primary font-mono' }: InlineCodeProps = $props();
 
-  /**
-   * Split on backticks. Even indices are prose, odd indices are code.
-   *
-   * An odd number of backticks means one of them is unpaired — a stray
-   * character rather than a marker — so the string is left as written instead
-   * of turning its tail into code.
-   *
-   * Deliberately not a markdown parser and deliberately not `{@html}`: every
-   * segment goes through Svelte's text interpolation and is escaped, so a
-   * description carrying `<script>` stays a description.
-   */
-  const parts = $derived.by(() => {
-    const segments = text.split('`');
-    return segments.length % 2 === 1 ? segments : [text];
-  });
+  // Not `{@html}`: every run reaches the DOM through text interpolation, so a
+  // description carrying `<script>` stays a description.
+  const runs = $derived(parseInlineRuns(text));
 </script>
 
 <!-- prettier-ignore -->
-{#each parts as part, i (i)}{#if i % 2 === 1}<code class={codeClass}>{part}</code>{:else}{part}{/if}{/each}
+{#snippet content(run: InlineRun)}{#if run.code}<code class={codeClass}>{run.text}</code>{:else}{run.text}{/if}{/snippet}
+
+<!-- prettier-ignore -->
+{#each runs as run, i (i)}{#if run.strong && run.em}<strong><em>{@render content(run)}</em></strong>{:else if run.strong}<strong>{@render content(run)}</strong>{:else if run.em}<em>{@render content(run)}</em>{:else}{@render content(run)}{/if}{/each}

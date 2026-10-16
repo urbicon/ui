@@ -256,5 +256,5 @@ export const scrollerVariants = tv({
 });
 
 export type ScrollerVariants = VariantProps<typeof scrollerVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type ScrollerSlots = SlotNames<typeof scrollerVariants>;

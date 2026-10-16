@@ -36,5 +36,5 @@ export const themeSwitcherVariants = tv({
 });
 
 export type ThemeSwitcherVariants = VariantProps<typeof themeSwitcherVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type ThemeSwitcherSlots = SlotNames<typeof themeSwitcherVariants>;

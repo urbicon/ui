@@ -56,9 +56,9 @@ export const noteVariants = tv({
 });
 
 export type NoteListVariantProps = VariantProps<typeof noteListVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type NoteListSlots = SlotNames<typeof noteListVariants>;
 
 export type NoteVariantProps = VariantProps<typeof noteVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type NoteSlots = SlotNames<typeof noteVariants>;

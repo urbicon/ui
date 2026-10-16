@@ -296,5 +296,5 @@ export const tabVariants = tv({
 });
 
 export type TabVariants = VariantProps<typeof tabVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type TabSlots = SlotNames<typeof tabVariants>;

@@ -89,5 +89,5 @@ export const SIDEBAR_TOGGLE_GUTTER = {
 } as const;
 
 export type SidebarLayoutVariants = VariantProps<typeof sidebarLayoutVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type SidebarLayoutSlots = SlotNames<typeof sidebarLayoutVariants>;

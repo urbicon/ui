@@ -66,5 +66,5 @@ export const sankeyVariants = tv({
 });
 
 export type SankeyVariants = VariantProps<typeof sankeyVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type SankeySlots = SlotNames<typeof sankeyVariants>;

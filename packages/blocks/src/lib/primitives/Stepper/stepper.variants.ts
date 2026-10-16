@@ -203,5 +203,5 @@ export const stepperVariants = tv({
 });
 
 export type StepperVariants = VariantProps<typeof stepperVariants>;
-/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+/** The slot names `slotClasses` accepts. */
 export type StepperSlots = SlotNames<typeof stepperVariants>;

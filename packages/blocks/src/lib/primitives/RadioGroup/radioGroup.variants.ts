@@ -319,6 +319,6 @@ export const radioItemVariants = tv({
 
 export type RadioGroupVariants = VariantProps<typeof radioGroupVariants>;
 export type RadioItemVariants = VariantProps<typeof radioItemVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type RadioGroupSlots = SlotNames<typeof radioGroupVariants>;
 export type RadioItemSlots = SlotNames<typeof radioItemVariants>;

@@ -140,5 +140,5 @@ export const playgroundConfiguratorVariants = tv({
 export type PlaygroundConfiguratorVariantProps = VariantProps<
   typeof playgroundConfiguratorVariants
 >;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type PlaygroundConfiguratorSlots = SlotNames<typeof playgroundConfiguratorVariants>;

@@ -88,5 +88,5 @@ export const progressVariants = tv({
 });
 
 export type ProgressVariants = VariantProps<typeof progressVariants>;
-/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+/** The slot names `slotClasses` accepts. */
 export type ProgressSlots = SlotNames<typeof progressVariants>;
