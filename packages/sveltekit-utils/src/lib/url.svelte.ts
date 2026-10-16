@@ -93,8 +93,8 @@ export function updateUrlSearchParams(next: SearchParamsPatch, opts?: { replaceS
  * escape hatch when you need to read against a snapshot other than the live
  * page URL (tests, a server `load`).
  *
- * `set` rewrites only the keys that `options.serialize` produces (clear +
- * re-append) and preserves the rest, then navigates with `goto` to the address
+ * `set` rewrites only the keys that `options.serialize` produces (replaced in
+ * place) and preserves the rest, then navigates with `goto` to the address
  * {@link withSearchParams} builds (`replace` per `replaceState`, `reset: false`).
  *
  * @param _key - Ignored — `options.parse`/`options.serialize` already close

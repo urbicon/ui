@@ -8,16 +8,33 @@ import { withSearchParams } from './search-params';
 const at = (href: string) => new URL(href, 'https://x.test');
 
 describe('withSearchParams', () => {
-  it('sets a scalar: the key is cleared and re-applied behind the untouched params', () => {
+  it('sets a scalar in the slot of the key it replaces', () => {
     expect(withSearchParams(at('/films?a=1&page=3&b=2'), { page: '4' })).toBe(
-      '/films?a=1&b=2&page=4'
+      '/films?a=1&page=4&b=2'
     );
   });
 
-  it('appends each element of an array, replacing every prior entry of that key', () => {
-    expect(withSearchParams(at('/films?tag=x&q=1'), { tag: ['a', 'b'] })).toBe(
-      '/films?q=1&tag=a&tag=b'
+  it('collapses repeated entries of a scalar-patched key into its first slot', () => {
+    expect(withSearchParams(at('/films?tag=x&q=1&tag=y'), { tag: 'z' })).toBe('/films?tag=z&q=1');
+  });
+
+  it('puts the elements of an array in the slot of the key’s first occurrence', () => {
+    expect(withSearchParams(at('/films?tag=x&q=1&tag=y'), { tag: ['a', 'b'] })).toBe(
+      '/films?tag=a&tag=b&q=1'
     );
+  });
+
+  it('puts a key the url does not have yet at the end, in patch order', () => {
+    expect(withSearchParams(at('/films?q=1'), { tag: ['a', 'b'], page: '2' })).toBe(
+      '/films?q=1&tag=a&tag=b&page=2'
+    );
+  });
+
+  it('returns the original address after changing a value and changing it back', () => {
+    const original = '/films?sort=title&page=3&q=noir';
+    const changed = withSearchParams(at(original), { sort: 'year' });
+    expect(changed).toBe('/films?sort=year&page=3&q=noir');
+    expect(withSearchParams(at(changed), { sort: 'title' })).toBe(original);
   });
 
   it('removes the key for null and for undefined', () => {
@@ -35,12 +52,13 @@ describe('withSearchParams', () => {
     );
   });
 
-  it('re-appends all entries of a URLSearchParams patch, so repeated keys survive', () => {
+  it('puts all entries of a URLSearchParams patch in the key’s slot, so repeated keys survive', () => {
     const patch = new URLSearchParams([
       ['tag', 'a'],
+      ['new', '1'],
       ['tag', 'b']
     ]);
-    expect(withSearchParams(at('/films?tag=old&q=1'), patch)).toBe('/films?q=1&tag=a&tag=b');
+    expect(withSearchParams(at('/films?tag=old&q=1'), patch)).toBe('/films?tag=a&tag=b&q=1&new=1');
   });
 
   it('keeps the key for an empty string and drops it for an empty array', () => {

@@ -25,13 +25,15 @@ export type SearchParamsPatch =
  * serves as a link's `href`, a redirect's location, or the argument of `goto`.
  * Reads nothing from the page, mutates neither argument, navigates nowhere.
  *
- * Merge semantics per key in `patch`: the key is first cleared, then
- * re-applied — a record value `set`s a scalar, `append`s each array element,
- * and **removes** the key entirely for `null`/`undefined`; a `URLSearchParams`
- * re-appends all of its entries, so repeated keys survive. An empty string is a
- * value and keeps its key (`?a=`); an empty array appends nothing and therefore
- * removes it. A param the patch does not name keeps its value and its position;
- * a patched key moves behind them. The hash is not carried.
+ * Merge semantics per key in `patch`: every prior entry of the key is replaced
+ * — a record value by its scalar, by each array element in turn, or by nothing
+ * for `null`/`undefined`, which **removes** the key; a `URLSearchParams` by all
+ * of its entries for that key, so repeated keys survive. An empty string is a
+ * value and keeps its key (`?a=`); an empty array has no values and therefore
+ * removes it. A patched key keeps the position of its first occurrence, so
+ * changing a key's value and changing it back returns the same address; a key
+ * the URL does not have yet goes to the end, in patch order. A param the patch does not name
+ * keeps its value and its position. The hash is not carried.
  *
  * A `url.pathname` that itself begins with `//` comes back origin-qualified
  * (`https://host//films?page=2`): left relative, `//films` is a
@@ -54,19 +56,30 @@ export type SearchParamsPatch =
  * ```
  */
 export function withSearchParams(url: ReadableUrl, patch: SearchParamsPatch): string {
-  const next = new URLSearchParams(url.searchParams.toString());
+  const replacements = new Map<string, string[]>();
   if (patch instanceof URLSearchParams) {
-    for (const [key] of patch) next.delete(key);
-    for (const [key, value] of patch) next.append(key, value);
+    for (const [key, value] of patch) {
+      const values = replacements.get(key);
+      if (values) values.push(value);
+      else replacements.set(key, [value]);
+    }
   } else {
     for (const [key, value] of Object.entries(patch)) {
-      next.delete(key);
-      if (Array.isArray(value)) {
-        for (const v of value) next.append(key, v);
-      } else if (value != null) {
-        next.set(key, value);
-      }
+      replacements.set(key, value == null ? [] : Array.isArray(value) ? value : [value]);
     }
+  }
+  const next = new URLSearchParams();
+  const placed = new Set<string>();
+  for (const [key, value] of url.searchParams) {
+    const values = replacements.get(key);
+    if (!values) next.append(key, value);
+    else if (!placed.has(key)) {
+      placed.add(key);
+      for (const v of values) next.append(key, v);
+    }
+  }
+  for (const [key, values] of replacements) {
+    if (!placed.has(key)) for (const v of values) next.append(key, v);
   }
   const query = next.toString();
   const address = query ? `${url.pathname}?${query}` : url.pathname;
