@@ -8,6 +8,7 @@ import type { LlmsAssemblerConfig } from '../generators/llm/LlmsAssembler';
 import { LlmsAssembler } from '../generators/llm/LlmsAssembler';
 import { LlmsFullAssembler } from '../generators/llm/LlmsFullAssembler';
 import { ConfigurationFactory } from '../schema/ConfigurationBuilder';
+import { toSlug } from '../utils/slug';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -390,10 +391,7 @@ export class DocsGeneratorCLI {
       process.exit(1);
     }
 
-    const slug = name
-      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-      .replace(/_/g, '-')
-      .toLowerCase();
+    const slug = toSlug(name);
 
     const docsDir = resolveFromDocsGen(
       '..',

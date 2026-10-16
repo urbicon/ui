@@ -1,4 +1,6 @@
-import { dirname, resolve } from 'node:path';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runCssReference } from './css-reference.js';
@@ -196,6 +198,44 @@ describe('runRecipe', () => {
     expect(stdout()).toContain('```svelte');
     expect(stdout()).toContain('urbicon pattern form-page');
     expect(stdout()).toContain('urbicon get-component button');
+  });
+
+  it('hints the catalog slug, not one re-derived from the name', async () => {
+    // docs-gen keeps acronym runs whole; the hint must be the slug the catalog was keyed by.
+    const dir = await mkdtemp(join(tmpdir(), 'urbicon-recipe-'));
+    const catalog = {
+      generated: '',
+      version: '0.0.0',
+      tags: [],
+      components: [
+        { name: 'QRCode', slug: 'qr-code' },
+        { name: 'A2UIView', slug: 'a2-ui-view' }
+      ],
+      recipes: [
+        {
+          id: 'share',
+          title: 'Share',
+          description: '',
+          components: ['QRCode', 'StepperStep', 'A2UIView'],
+          code: '',
+          features: []
+        }
+      ]
+    };
+    await writeFile(join(dir, 'component-catalog.json'), JSON.stringify(catalog));
+    const fixtures = process.env.URBICON_CONTENT_DIR;
+    process.env.URBICON_CONTENT_DIR = dir;
+    try {
+      expect(await runRecipe(['share'], {})).toBe(0);
+    } finally {
+      process.env.URBICON_CONTENT_DIR = fixtures;
+      await rm(dir, { recursive: true, force: true });
+    }
+    const next = stdout().slice(stdout().indexOf('→ Next:'));
+    expect(next).toContain('`urbicon get-component qr-code`');
+    expect(next).toContain('`urbicon get-component a2-ui-view`');
+    // No catalog entry, nothing `get-component` could answer — so no hint for it.
+    expect(next).not.toContain('stepper-step');
   });
 
   it('fails clearly for an unknown recipe', async () => {
