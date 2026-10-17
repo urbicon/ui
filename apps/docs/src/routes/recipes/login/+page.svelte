@@ -7,6 +7,7 @@
     EyeIcon,
     EyeOffIcon,
     Input,
+    Link,
     LockIcon,
     Separator
   } from '@urbicon-ui/blocks';
@@ -153,7 +154,7 @@
         </div>
         <div class="flex items-center justify-between">
           <Checkbox label="Remember me" size="sm" bind:checked={rememberMe} />
-          <a href="#forgot" class="text-primary text-sm hover:underline">Forgot password?</a>
+          <Link href="#forgot" class="text-sm">Forgot password?</Link>
         </div>
         <Button intent="primary" class="w-full" type="submit" disabled={loading} {loading}>
           Sign in
@@ -163,7 +164,7 @@
         <Separator />
         <p class="text-text-tertiary mt-4 text-left text-sm">
           Don't have an account?
-          <a href="#signup" class="text-primary font-medium hover:underline">Sign up</a>
+          <Link href="#signup">Sign up</Link>
         </p>
       </div>
     {/if}
@@ -253,7 +254,7 @@
               </div>
               <div class="flex items-center justify-between">
                 <Checkbox label="Remember me" size="sm" bind:checked={rememberMe} />
-                <a href="#forgot" class="text-primary text-sm hover:underline">Forgot password?</a>
+                <Link href="#forgot" class="text-sm">Forgot password?</Link>
               </div>
               <Button intent="primary" class="w-full" type="submit" disabled={loading} {loading}>
                 Sign in
@@ -263,7 +264,7 @@
               <Separator />
               <p class="text-text-tertiary mt-4 text-left text-sm">
                 Don't have an account?
-                <a href="#signup" class="text-primary font-medium hover:underline">Sign up</a>
+                <Link href="#signup">Sign up</Link>
               </p>
             </div>
           {/if}
