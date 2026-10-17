@@ -28,11 +28,10 @@ export const linkVariants = tv({
       inline: {
         // `text-text-link` rather than a spelled-out intent stop: that token is
         // the lever a consumer turns to restyle links without touching the
-        // primary intent (style/semantic.css `@role link ink`), and it is where
-        // auth's link sites already point. Two cues, not one — colour alone
-        // would not distinguish the link from its paragraph (WCAG 1.4.1) — and
-        // hover moves only the decoration, so a hovered paragraph does not
-        // change hue.
+        // primary intent (style/semantic.css `@role link ink`). Two cues, not
+        // one — colour alone would not distinguish the link from its paragraph
+        // (WCAG 1.4.1) — and hover moves only the decoration, so a hovered
+        // paragraph does not change hue.
         base: 'text-text-link underline underline-offset-4 decoration-text-quaternary'
       },
       /** A handle in a nav strip, a filter row, a table header — no underline. */
