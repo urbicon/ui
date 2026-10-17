@@ -122,13 +122,10 @@ describe('semantic.css — surface/border refinement tokens', () => {
   });
 
   /**
-   * `text-text-link` shipped in five auth link call sites while no
-   * `--color-text-link` token existed anywhere — a class in a theme-driven
-   * namespace whose key is missing produces NO CSS instead of failing, so
-   * every auth link silently rendered in the inherited colour (#86). Those
-   * call sites live in `.svelte` markup in `packages/auth`, which no variant
-   * lint reads; this test pins the token's existence at the definition side
-   * instead.
+   * `text-text-link` lives in a theme-driven namespace: without a
+   * `--color-text-link` key Tailwind emits NO CSS for the class instead of
+   * failing, and every link renders in the inherited colour (#86). This pins
+   * the token's existence and the stop it aliases at the definition side.
    */
   describe('--color-text-link exists and stays on the measured AA link ink', () => {
     it('is defined inside the @theme block (Tailwind emits text-text-link only then)', () => {

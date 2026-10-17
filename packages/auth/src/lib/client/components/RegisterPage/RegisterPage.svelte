@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Input, Link, getBlocksConfig } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
@@ -217,7 +217,7 @@
   {:else}
     <div class={cls('text-text-secondary mt-6 text-center text-sm', slotClasses.links)}>
       {t.auth.register.hasAccount}
-      <a href={loginUrl} class={cls('text-text-link hover:underline')}>{t.auth.register.login}</a>
+      <Link href={loginUrl} variant="inline" {unstyled}>{t.auth.register.login}</Link>
     </div>
   {/if}
 </AuthPageShell>
