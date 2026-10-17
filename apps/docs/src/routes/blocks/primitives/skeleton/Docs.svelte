@@ -154,7 +154,7 @@
       <code class="text-text-primary">presets.Skeleton</code> on
       <code class="text-text-primary">BlocksProvider</code>
       and apply it with <code class="text-text-primary">preset</code>. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      <a href={resolve('/customization')}>Customization</a>.
     </p>
   </div>
 </Section>

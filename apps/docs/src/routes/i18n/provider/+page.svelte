@@ -284,9 +284,7 @@ configureI18n({
     <p class="text-text-secondary mb-4">
       <code>setLocale</code> mutates the request-scoped state and re-renders reactively in place —
       no reload. The built-in
-      <a class="text-primary hover:underline" href={resolve('/blocks/components/locale-switcher')}
-        >LocaleSwitcher</a
-      > does this for you; programmatically:
+      <a href={resolve('/blocks/components/locale-switcher')}>LocaleSwitcher</a> does this for you; programmatically:
     </p>
     <CodeExample code={switchCode} language="svelte" preview={false} />
 

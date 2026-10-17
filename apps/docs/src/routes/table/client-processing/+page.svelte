@@ -115,13 +115,11 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Every column sorts and answers the search field unless it opts out;
         <code class="text-text-primary">groupable</code> is the one you opt into (<a
-          class="text-primary hover:underline"
           href={resolve('/table/column-config')}>Column Configuration</a
         >). <code class="text-text-primary">viewDefaults</code> sets where the view the table owns
         starts. Once that state has to live somewhere the reader can share, hand in a
         <code class="text-text-primary">view</code> of your own from
         <code class="text-text-primary">createTableView</code> instead (<a
-          class="text-primary hover:underline"
           href={resolve('/table/url-state')}>URL State</a
         >); a table takes one or the other, never both.
       </p>
@@ -181,12 +179,9 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Two ways out, and they answer different questions. If the rows still fit and only the
         rendering hurts, keep client processing and draw fewer of them:
-        <a class="text-primary hover:underline" href={resolve('/table/virtual-scrolling')}
-          >Virtual Scrolling</a
-        >. If the set is too large to send at all, the backend sorts and pages it instead:
-        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
-          >Server Processing</a
-        >.
+        <a href={resolve('/table/virtual-scrolling')}>Virtual Scrolling</a>. If the set is too large
+        to send at all, the backend sorts and pages it instead:
+        <a href={resolve('/table/server-processing')}>Server Processing</a>.
       </p>
     </div>
   </Section>

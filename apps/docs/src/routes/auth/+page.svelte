@@ -143,9 +143,7 @@ export const POST = createForgotPasswordHandler(authDeps);
     <p class="text-text-secondary mt-4">
       For the complete reference — architecture, staged setup, federation (SSO), the adapter
       contract, and the known-limitations catalog with the production checklist — see the
-      <a href={resolve('/auth/guide')} class="text-primary hover:underline"
-        >Auth Reference (AUTH.md)</a
-      >.
+      <a href={resolve('/auth/guide')}>Auth Reference (AUTH.md)</a>.
     </p>
   </Section>
 

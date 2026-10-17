@@ -178,12 +178,10 @@
       <code class="text-text-primary">BlocksProvider</code> instead, as a
       <code class="text-text-primary">defaults</code> entry for
       <code class="text-text-primary">Input</code> and the same one for
-      <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">Select</a>
+      <a href={resolve('/blocks/primitives/select')}>Select</a>
       and
-      <a href={resolve('/blocks/primitives/textarea')} class="text-primary hover:underline"
-        >Textarea</a
-      >. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/blocks/primitives/textarea')}>Textarea</a>. See
+      <a href={resolve('/customization')}>Customization</a>
       for that and for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code> and

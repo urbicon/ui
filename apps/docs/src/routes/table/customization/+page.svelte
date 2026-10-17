@@ -154,7 +154,6 @@ ${scriptClose}
         <code class="text-text-primary">loading</code> and
         <code class="text-text-primary">error</code> yourself, or give it a
         <code class="text-text-primary">query</code> and it manages both (<a
-          class="text-primary hover:underline"
           href={resolve('/table/client-processing') + '#fetching'}>While the rows are loading</a
         >).
       </p>
@@ -183,10 +182,8 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Seventeen slots, one per element the table renders, are listed with what each one wraps
         under
-        <a
-          class="text-primary hover:underline"
-          href={resolve('/table/table') + '#type-TableSlotClasses'}>TableSlotClasses</a
-        >: the frame around the table (<code class="text-text-primary">container</code>,
+        <a href={resolve('/table/table') + '#type-TableSlotClasses'}>TableSlotClasses</a>: the frame
+        around the table (<code class="text-text-primary">container</code>,
         <code class="text-text-primary">toolbar</code>,
         <code class="text-text-primary">scrollArea</code>), every part of the grid down to the
         single <code class="text-text-primary">cell</code>, the rows the table adds itself (<code
@@ -211,9 +208,8 @@ ${scriptClose}
         <code class="text-text-primary">slotClasses</code>, so plan on restyling borders, padding,
         surfaces and row states yourself. Which layout shows is structure rather than style, so the
         card switch survives; the classes that pin the toolbar and header do not, and
-        <a class="text-primary hover:underline" href={resolve('/table/sticky-pinning')}
-          >Sticky Pinning</a
-        > says which slots to put them back on.
+        <a href={resolve('/table/sticky-pinning')}>Sticky Pinning</a> says which slots to put them back
+        on.
       </p>
     </div>
   </Section>
@@ -238,7 +234,6 @@ ${scriptClose}
         Tailwind bucket, so a preset's <code class="text-text-primary">cell: 'py-1'</code> gives way
         to
         <code class="text-text-primary">py-3</code> on the instance (<a
-          class="text-primary hover:underline"
           href={resolve('/customization/blocks-provider') + '#merge-behavior'}>Merge behavior</a
         >). The table resolves the layers once, so a preset reaches the header, the rows and the
         card list alike.
@@ -302,13 +297,12 @@ ${scriptClose}
 
       <NoteList variant="flush">
         <Note title="Every view setting except the page number is stored">
-          Naming a page is what a link is for, so a fresh visit starts on page one. The page
-          <em>size</em> is stored: "yesterday's page size is still set" is squarely this binding's
-          promise. To keep the page number too, bind the same view to the URL with
-          <code>bindViewToUrl</code> (<a
-            class="text-primary hover:underline"
-            href={resolve('/table/url-state')}>URL State</a
-          >).
+          <p>
+            Naming a page is what a link is for, so a fresh visit starts on page one. The page
+            <em>size</em> is stored: "yesterday's page size is still set" is squarely this binding's
+            promise. To keep the page number too, bind the same view to the URL with
+            <code>bindViewToUrl</code> (<a href={resolve('/table/url-state')}>URL State</a>).
+          </p>
         </Note>
         <Note title="Only what the reader changed">
           A default is never written back, so a value you change in <code>defaults</code> later reaches

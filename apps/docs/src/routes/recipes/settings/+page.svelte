@@ -501,9 +501,7 @@
           One <code class="text-text-primary">Tab</code> in its
           <code class="text-text-primary">line</code> variant holds them in a single column. Reach
           for a
-          <a class="text-primary hover:underline" href={resolve('/blocks/primitives/sidebar')}
-            >Sidebar</a
-          >
+          <a href={resolve('/blocks/primitives/sidebar')}>Sidebar</a>
           the moment a group commits on its own, nests, or the list keeps growing: a tab strip shows no
           hierarchy and stops scaling at about five entries.
         </p>

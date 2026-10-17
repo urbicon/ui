@@ -135,8 +135,8 @@ ${scriptClose}
         There are two ways to run the fetch, and the tag is the same for both. A
         <code class="text-text-primary">query</code> function lets the table fetch for you whenever
         the view changes:
-        <a class="text-primary hover:underline" href={resolve('/table/query')}>Query Function</a>.
-        Fetching yourself and handing in each page (from a SvelteKit
+        <a href={resolve('/table/query')}>Query Function</a>. Fetching yourself and handing in each
+        page (from a SvelteKit
         <code class="text-text-primary">load</code>, a store, a cache of your own) is what the rest
         of this page shows; take it when something other than the view has to trigger a fetch too, a
         refresh button or a poll.
@@ -151,10 +151,10 @@ ${scriptClose}
           <code>items</code> prop needs none: rows on their own mean client processing.
         </Note>
         <Note title="A few thousand rows need none of this">
-          Pass them to <code>items</code> and let the table sort and page them in the browser:
-          <a class="text-primary hover:underline" href={resolve('/table/client-processing')}
-            >Client Processing</a
-          >.
+          <p>
+            Pass them to <code>items</code> and let the table sort and page them in the browser:
+            <a href={resolve('/table/client-processing')}>Client Processing</a>.
+          </p>
         </Note>
       </NoteList>
     </div>
@@ -188,9 +188,7 @@ ${scriptClose}
         <code class="text-text-primary">groupBy</code>. Every
         <code class="text-text-primary">column</code> is a column id. Projecting those six onto your
         backend's parameters happens inside your fetch, and
-        <a class="text-primary hover:underline" href={resolve('/table/query') + '#params'}
-          >parameter translation</a
-        > walks through one.
+        <a href={resolve('/table/query') + '#params'}>parameter translation</a> walks through one.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -198,7 +196,7 @@ ${scriptClose}
         same defaults you hand <code class="text-text-primary">createTableView</code>. Export those
         defaults from one module, as above, and both halves resolve a missing parameter the same
         way. Which parameters get written, and what else the server can read from them, is on
-        <a class="text-primary hover:underline" href={resolve('/table/url-state')}>URL State</a>.
+        <a href={resolve('/table/url-state')}>URL State</a>.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -292,10 +290,8 @@ ${scriptClose}
         and <code class="text-text-primary">onSelectionChange</code> does not fire on a page change.
         This is why its second argument matters here — the ids are the whole selection, the rows
         only the ones currently loaded, so a
-        <a href={resolve('/table/selection') + '#controlled'} class="text-primary hover:underline"
-          >controlled selection</a
-        > writes the ids back. For an action across the whole result set, send the query instead of the
-        selection.
+        <a href={resolve('/table/selection') + '#controlled'}>controlled selection</a> writes the ids
+        back. For an action across the whole result set, send the query instead of the selection.
       </p>
     </div>
   </Section>

@@ -320,7 +320,7 @@
       >) or live on another route (<code class="text-text-primary">route</code>, with a
       <code class="text-text-primary">navigate</code> hook wired to
       <code class="text-text-primary">goto</code>); the
-      <a class="text-primary hover:underline" href={resolve('/blocks/components/guide')}>Guide</a>
+      <a href={resolve('/blocks/components/guide')}>Guide</a>
       page documents both, together with the panel's search and article groups.
     </p>
   </Section>

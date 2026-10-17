@@ -163,12 +163,9 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
 
     <p class="text-text-tertiary mt-3 text-xs">
       Switching language at runtime needs no reload — the built-in
-      <a class="text-primary hover:underline" href={resolve('/blocks/components/locale-switcher')}
-        >LocaleSwitcher</a
-      >
+      <a href={resolve('/blocks/components/locale-switcher')}>LocaleSwitcher</a>
       calls <code>setLocale</code> for you. See
-      <a class="text-primary hover:underline" href={resolve('/i18n/provider')}>Provider &amp; SSR</a
-      >.
+      <a href={resolve('/i18n/provider')}>Provider &amp; SSR</a>.
     </p>
   </Section>
 

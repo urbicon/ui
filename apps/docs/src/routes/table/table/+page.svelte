@@ -136,9 +136,7 @@ ${scriptClose}
         <code class="text-text-primary">TableColumns</code> builds a column with the cell component,
         the alignment and the flags already set, so a typed column is one call. For a column no
         factory covers, write the object yourself:
-        <a class="text-primary hover:underline" href={resolve('/table/column-config')}
-          >Column Configuration</a
-        >.
+        <a href={resolve('/table/column-config')}>Column Configuration</a>.
       </p>
 
       <CodeExample
@@ -183,15 +181,11 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         <strong class="text-text-primary">Who does the work.</strong> A few hundred rows sort,
         filter and page in the browser:
-        <a class="text-primary hover:underline" href={resolve('/table/client-processing')}
-          >Client Processing</a
-        >. Past a few thousand it becomes the backend's job, and you hand the table one page at a
-        time:
-        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
-          >Server Processing</a
-        >. Give it a
+        <a href={resolve('/table/client-processing')}>Client Processing</a>. Past a few thousand it
+        becomes the backend's job, and you hand the table one page at a time:
+        <a href={resolve('/table/server-processing')}>Server Processing</a>. Give it a
         <code class="text-text-primary">query</code> function and it runs the fetch itself:
-        <a class="text-primary hover:underline" href={resolve('/table/query')}>Query Function</a>.
+        <a href={resolve('/table/query')}>Query Function</a>.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -201,33 +195,23 @@ ${scriptClose}
           >viewDefaults</code
         >
         sets its starting values), and
-        <a class="text-primary hover:underline" href={resolve('/table/url-state')}>URL State</a>
+        <a href={resolve('/table/url-state')}>URL State</a>
         puts it in the address bar, so a view can be reloaded, shared and read by the server. What each
         setting does is on
-        <a class="text-primary hover:underline" href={resolve('/table/filtering')}
-          >Filtering &amp; Search</a
-        >
+        <a href={resolve('/table/filtering')}>Filtering &amp; Search</a>
         and
-        <a class="text-primary hover:underline" href={resolve('/table/sorting-grouping')}
-          >Sorting, Grouping &amp; Summaries</a
-        >.
+        <a href={resolve('/table/sorting-grouping')}>Sorting, Grouping &amp; Summaries</a>.
       </p>
 
       <p class="text-text-secondary text-sm">
         <strong class="text-text-primary">Once the rows are on screen.</strong>
-        <a class="text-primary hover:underline" href={resolve('/table/selection')}>Row Selection</a>
+        <a href={resolve('/table/selection')}>Row Selection</a>
         for acting on rows,
-        <a class="text-primary hover:underline" href={resolve('/table/custom-cells')}
-          >Custom Cells</a
-        >
+        <a href={resolve('/table/custom-cells')}>Custom Cells</a>
         for rendering them your way,
-        <a class="text-primary hover:underline" href={resolve('/table/virtual-scrolling')}
-          >Virtual Scrolling</a
-        >
+        <a href={resolve('/table/virtual-scrolling')}>Virtual Scrolling</a>
         and
-        <a class="text-primary hover:underline" href={resolve('/table/sticky-pinning')}
-          >Sticky Pinning</a
-        > for long lists.
+        <a href={resolve('/table/sticky-pinning')}>Sticky Pinning</a> for long lists.
       </p>
     </div>
   </Section>

@@ -194,8 +194,12 @@ bunx urbicon init --hook`;
       marker, which is a different idea — the five prose pages under
       /customization moved onto `Section` in this same pass precisely because
       their headings had no such design behind them.
+
+      `data-docs-content` is DocsLayout's hook: links in running text under it
+      take the look of blocks' Link `variant="inline"` (app.css). The preview
+      card beside it is not prose.
     -->
-    <div>
+    <div data-docs-content>
       <!-- 00 · No project yet? — optional pre-step, outside STEPS (see head
            comment): no scrollspy id, no effect on the preview card. -->
       <section aria-labelledby="prestep-title" class="pb-12">
@@ -234,9 +238,8 @@ bunx urbicon init --hook`;
              die bewusste Abwägung der Latch, kein Fehler des Links. -->
         <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
           That covers steps 01 and 02 — jump straight to
-          <a href="#first-component" class="text-primary font-medium hover:underline"
-            >your first component</a
-          >, or read on to see what the add-on did. Inside an existing project, start at 01.
+          <a href="#first-component">your first component</a>, or read on to see what the add-on
+          did. Inside an existing project, start at 01.
         </p>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
           Not a SvelteKit project? The components don&rsquo;t need one — they import neither
@@ -491,7 +494,7 @@ bunx urbicon init --hook`;
             >urbicon</code
           >
           CLI — lives on
-          <a href={resolve('/ai')} class="text-primary font-medium hover:underline">AI &amp; DX</a>.
+          <a href={resolve('/ai')}>AI &amp; DX</a>.
         </p>
       </section>
     </div>

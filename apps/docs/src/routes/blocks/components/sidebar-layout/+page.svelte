@@ -56,9 +56,7 @@
     </p>
     <p class="text-text-secondary mt-3 text-sm leading-relaxed">
       For non-shell sidebars (right-side detail panels, drawers inside a page), use the
-      <a class="text-primary hover:underline" href={resolve('/blocks/primitives/sidebar')}
-        >Sidebar primitive</a
-      > directly.
+      <a href={resolve('/blocks/primitives/sidebar')}>Sidebar primitive</a> directly.
     </p>
   </Section>
 

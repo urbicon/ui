@@ -100,7 +100,7 @@
       <code class="text-text-primary">BlocksProvider</code>.
     </p>
     <p class="text-text-secondary text-sm leading-relaxed">
-      See <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      See <a href={resolve('/customization')}>Customization</a>
       for the <code class="text-text-primary">class</code> and
       <code class="text-text-primary">slotClasses</code> contract shared across blocks.
     </p>

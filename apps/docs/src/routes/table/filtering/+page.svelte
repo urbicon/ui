@@ -211,8 +211,7 @@ ${scriptClose}
         accessor is searched and gets its own filter entry unless it carries
         <code class="text-text-primary">searchable: false</code>, and its
         <code class="text-text-primary">dataType</code> decides which operators that filter offers (<a
-          href={resolve('/table/column-config')}
-          class="text-primary hover:underline">Column Configuration</a
+          href={resolve('/table/column-config')}>Column Configuration</a
         >).
       </p>
 
@@ -265,9 +264,7 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Drag the slider to squeeze the container past the threshold, then open the sheet. The switch
         is automatic; there is no prop for it. The sheet is a bottom
-        <a href={resolve('/blocks/primitives/drawer')} class="text-primary hover:underline"
-          >Drawer</a
-        >, so it spans the
+        <a href={resolve('/blocks/primitives/drawer')}>Drawer</a>, so it spans the
         <em>window</em>, not the bar: here a 360px table opens a full-width sheet. On a phone the
         two are usually the same width, though a bar inside a card is narrower than the sheet there
         too.
@@ -447,9 +444,7 @@ ${scriptClose}
         >
         the table does not filter locally: the active filters arrive as
         <code class="text-text-primary">filters</code> on the view your backend is given — see
-        <a href={resolve('/table/server-processing')} class="text-primary hover:underline"
-          >Server Processing</a
-        >.
+        <a href={resolve('/table/server-processing')}>Server Processing</a>.
       </p>
     </div>
   </Section>
@@ -493,9 +488,7 @@ ${scriptClose}
         <code class="text-text-primary">createTableView</code> in
         <code class="text-text-primary">@urbicon-ui/table</code>; what it stores when and how it
         meets the URL is
-        <a href={resolve('/table/url-state')} class="text-primary hover:underline"
-          >URL State &amp; Persistence</a
-        >.
+        <a href={resolve('/table/url-state')}>URL State &amp; Persistence</a>.
       </p>
 
       <CodeExample

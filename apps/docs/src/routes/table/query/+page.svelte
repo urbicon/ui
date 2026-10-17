@@ -93,10 +93,9 @@ function toParams(view: TableViewSnapshot) {
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         A <code class="text-text-primary">query</code> function is the second way to run
-        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
-          >server processing</a
-        >: instead of fetching each page yourself, you hand the table a function and it calls that
-        function whenever the reader changes what they see.
+        <a href={resolve('/table/server-processing')}>server processing</a>: instead of fetching
+        each page yourself, you hand the table a function and it calls that function whenever the
+        reader changes what they see.
       </p>
 
       <CodeExample
@@ -119,13 +118,14 @@ function toParams(view: TableViewSnapshot) {
       </p>
 
       <InfoCard title="The rows already arrive some other way?">
-        A <code class="text-text-primary">query</code> function fetches in the browser, after
-        hydration, so the server's HTML carries the empty state. When the rows come from a SvelteKit
-        <code class="text-text-primary">load</code>, a store or a cache of your own, you hand the
-        table finished rows instead:
-        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
-          >Server Processing</a
-        >.
+        <p>
+          A <code class="text-text-primary">query</code> function fetches in the browser, after
+          hydration, so the server's HTML carries the empty state. When the rows come from a
+          SvelteKit
+          <code class="text-text-primary">load</code>, a store or a cache of your own, you hand the
+          table finished rows instead:
+          <a href={resolve('/table/server-processing')}>Server Processing</a>.
+        </p>
       </InfoCard>
     </div>
   </Section>
@@ -176,10 +176,7 @@ function toParams(view: TableViewSnapshot) {
         In the browser the table reads <code class="text-text-primary">greaterThan</code> and
         <code class="text-text-primary">lessThan</code> as a number first and as a date second;
         match that if the same columns are also filtered client-side somewhere. The full type is
-        <a
-          class="text-primary hover:underline"
-          href={resolve('/table/table') + '#type-TableViewSnapshot'}>TableViewSnapshot</a
-        >.
+        <a href={resolve('/table/table') + '#type-TableViewSnapshot'}>TableViewSnapshot</a>.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -245,17 +242,13 @@ function toParams(view: TableViewSnapshot) {
         layer, and yours will do it better than one grown inside a table. TanStack Query and
         SvelteKit's remote functions both already have one. Hand its result to the manual flow,
         which asks only for rows and a total:
-        <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
-          >Server Processing</a
-        >.
+        <a href={resolve('/table/server-processing')}>Server Processing</a>.
       </p>
 
       <p class="text-text-secondary text-sm">
         Rows changing under the reader are the third case. Push them into the table rather than
         refetching:
-        <a class="text-primary hover:underline" href={resolve('/table/live-updates')}
-          >Live Updates</a
-        >.
+        <a href={resolve('/table/live-updates')}>Live Updates</a>.
       </p>
     </div>
   </Section>

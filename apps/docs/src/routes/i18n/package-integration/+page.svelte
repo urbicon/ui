@@ -134,8 +134,7 @@ it('en/de key parity', () => {
       locale, e.g. <code>{"createPackageI18n('mach', { de }, { base: 'de' })"}</code> for a
       German-only product), other eager locales are checked against its structure, and
       <code>options.loaders</code> opts into
-      <a class="text-primary hover:underline" href={resolve('/i18n/lazy-loading')}>code-splitting</a
-      >.
+      <a href={resolve('/i18n/lazy-loading')}>code-splitting</a>.
     </p>
     <CodeExample code={createCode} language="typescript" preview={false} />
 
@@ -229,7 +228,7 @@ it('en/de key parity', () => {
       locale bundles — a missing nested key is an error, an extra one a warning. Wire it into a
       vitest test to fail CI on drift. It complements the compile-time parity the generic factory
       enforces for eager bundles, and covers lazy/dynamic ones (see
-      <a class="text-primary hover:underline" href={resolve('/i18n/typed-keys')}>Type Safety</a>).
+      <a href={resolve('/i18n/typed-keys')}>Type Safety</a>).
     </p>
     <CodeExample code={validateCode} language="typescript" preview={false} />
   </Section>

@@ -370,7 +370,7 @@ ${asyncScriptClose}
       <code class="text-text-primary">value</code> on mount), pass
       <code class="text-text-primary">seedOptions</code> so the selection renders its label instead
       of the raw value. The same mock-backend pattern drives the Table's query demo. See
-      <a href={resolve('/table/query')} class="text-primary hover:underline">Query Function</a>.
+      <a href={resolve('/table/query')}>Query Function</a>.
     </p>
   </div>
 </Section>
@@ -411,13 +411,13 @@ ${asyncScriptClose}
       line, a label before it — and it keeps the one thing such a reset usually loses, a focus
       outline, whose colour is the <code class="text-text-primary">--blocks-focus-ring-color</code>
       custom property. Worked through on the
-      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>
+      <a href={resolve('/blocks/primitives/input')}>Input</a>
       page.
     </p>
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

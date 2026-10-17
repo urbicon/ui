@@ -20,11 +20,9 @@
 <Section marker id="when-to-use" title="When to use Menu">
   <p class="text-text-secondary mb-6 text-sm leading-relaxed">
     Menu invokes actions. To pick a value that binds to a form, reach for
-    <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">Select</a>
+    <a href={resolve('/blocks/primitives/select')}>Select</a>
     or
-    <a href={resolve('/blocks/primitives/combobox')} class="text-primary hover:underline"
-      >Combobox</a
-    > instead.
+    <a href={resolve('/blocks/primitives/combobox')}>Combobox</a> instead.
   </p>
 
   <div class="overflow-x-auto">
@@ -146,7 +144,7 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

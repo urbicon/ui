@@ -397,8 +397,12 @@
          which renders `<main id="main-content">` — a <main> here would be a
          second one on every page, which is worse than none. A consumer using
          DocsLayout without such a shell owns the landmark. -->
+    <!-- `data-docs-content` is part of the data-docs-* theming contract: it
+         scopes prose-only rules (the docs app styles links in running text
+         under it as blocks' Link `variant="inline"`) to the article column,
+         away from the header and TOC. -->
     <div class={slot('main')}>
-      <div class={slot('content')}>
+      <div class={slot('content')} data-docs-content>
         {@render children?.()}
 
         {@render pageNav?.()}

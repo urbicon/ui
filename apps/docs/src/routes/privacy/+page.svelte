@@ -8,7 +8,7 @@
   noindex={true}
 />
 
-<div class="mx-auto w-full max-w-2xl px-6 py-16">
+<div class="mx-auto w-full max-w-2xl px-6 py-16" data-docs-content>
   <p class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">// Legal</p>
   <h1 class="text-text-primary mt-5 text-4xl font-bold tracking-tight">
     Datenschutzerklärung<span class="text-primary">|</span>
@@ -32,7 +32,7 @@
       40476 Düsseldorf<br />
       Deutschland<br />
       E-Mail:
-      <a href="mailto:info@urbicon.de" class="text-primary hover:underline">info@urbicon.de</a>
+      <a href="mailto:info@urbicon.de">info@urbicon.de</a>
     </p>
   </section>
 

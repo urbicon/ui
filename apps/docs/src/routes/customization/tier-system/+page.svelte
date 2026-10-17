@@ -73,8 +73,8 @@
       component's default radius and how it responds to a wrapping context. Brands tune the visual
       identity by changing the three token values once, e.g.
       <code class="text-text-primary">@theme {'{'} --radius-commit: var(--radius-lg); {'}'}</code>
-      (<a href="#override-pathway" class="text-primary hover:underline">Override Pathway</a>);
-      component code never touches a raw pixel value.
+      (<a href="#override-pathway">Override Pathway</a>); component code never touches a raw pixel
+      value.
     </p>
 
     <!-- Each swatch is shaped like the tier's typical component (pill button,
@@ -123,7 +123,7 @@
       and applies <code class="text-text-primary">rounded-commit</code>. The contract is symmetric.
       One exception: radio indicators keep their circle via
       <code class="text-text-primary">--radius-control</code> (see
-      <a href="#override-pathway" class="text-primary hover:underline">Override Pathway</a>).
+      <a href="#override-pathway">Override Pathway</a>).
     </p>
   </Section>
 
@@ -133,8 +133,7 @@
       Interactive primitives take a <code class="text-text-primary">tier</code> prop and fall back
       to a wrapping
       <code class="text-text-primary">TierContext</code> when the prop is unset (<a
-        href={resolve('/blocks')}
-        class="text-primary hover:underline">the Blocks index</a
+        href={resolve('/blocks')}>the Blocks index</a
       > carries the per-component defaults). The defaults worth knowing:
     </p>
 
@@ -337,9 +336,9 @@
       Anything that genuinely <em>is</em> a panel, dialog or container stays on
       <code class="text-text-primary">contain</code>. Brands tune bridge via the foundation token
       like any other tier. See
-      <a href={resolve('/blocks/primitives/menu')} class="text-primary hover:underline">Menu</a>
+      <a href={resolve('/blocks/primitives/menu')}>Menu</a>
       for the adjacency case and
-      <a href={resolve('/blocks/primitives/card')} class="text-primary hover:underline">Card</a>
+      <a href={resolve('/blocks/primitives/card')}>Card</a>
       for the optical one.
     </p>
   </Section>

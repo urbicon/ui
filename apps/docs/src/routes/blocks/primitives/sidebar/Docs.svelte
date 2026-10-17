@@ -30,18 +30,16 @@
   <ul class="text-text-secondary mt-2 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       A ready-made app shell with mobile hamburger, header slot, and centered content column →
-      <a href={r('/blocks/components/sidebar-layout')} class="text-primary hover:underline"
-        >SidebarLayout</a
-      >.
+      <a href={r('/blocks/components/sidebar-layout')}>SidebarLayout</a>.
     </li>
     <li>
       A transient detail panel that pulls focus (backdrop + focus-trap, opens on click, closes after
       action) →
-      <a href={r('/blocks/primitives/drawer')} class="text-primary hover:underline">Drawer</a>.
+      <a href={r('/blocks/primitives/drawer')}>Drawer</a>.
     </li>
     <li>
       A floating panel anchored to a specific element (date picker, action menu, autocomplete) →
-      <a href={r('/blocks/primitives/popover')} class="text-primary hover:underline">Popover</a>.
+      <a href={r('/blocks/primitives/popover')}>Popover</a>.
     </li>
   </ul>
 </Section>
@@ -272,7 +270,7 @@
       on
       <code class="text-text-primary">BlocksProvider</code> and apply it via
       <code class="text-text-primary">preset</code>. See
-      <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+      <a href={r('/customization')}>Customization</a>.
     </p>
   </div>
 </Section>
@@ -316,9 +314,8 @@
         <code class="text-text-primary">--sidebar-effective-width</code> (0px when closed, full
         width when open), but it inherits only inside the sidebar, not to sibling content. To offset
         the main content beside it, reach for
-        <a href={r('/blocks/components/sidebar-layout')} class="text-primary hover:underline"
-          >SidebarLayout</a
-        >, which lifts the variable to the layout for you.
+        <a href={r('/blocks/components/sidebar-layout')}>SidebarLayout</a>, which lifts the variable
+        to the layout for you.
       </p>
     </Note>
     <Note title="Reduced Motion">

@@ -97,17 +97,13 @@
     <li>
       <code class="text-text-primary">children</code> — the scrollable body. This is the one region
       that scrolls; drop a
-      <a href={r('/blocks/components/chat-message-list')} class="text-primary hover:underline"
-        >ChatMessageList</a
-      >
+      <a href={r('/blocks/components/chat-message-list')}>ChatMessageList</a>
       here.
     </li>
     <li>
       <code class="text-text-primary">composer</code> — an optional pinned footer (border-t) — e.g.
       a
-      <a href={r('/blocks/components/prompt-input')} class="text-primary hover:underline"
-        >PromptInput</a
-      >. Never scrolls.
+      <a href={r('/blocks/components/prompt-input')}>PromptInput</a>. Never scrolls.
     </li>
   </ul>
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">

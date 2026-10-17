@@ -117,7 +117,7 @@
       line, a label before it — and it keeps the one thing such a reset usually loses, a focus
       outline, whose colour is the <code class="text-text-primary">--blocks-focus-ring-color</code>
       custom property. Worked through on the
-      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>
+      <a href={resolve('/blocks/primitives/input')}>Input</a>
       page.
     </p>
 
@@ -126,11 +126,10 @@
       <code class="text-text-primary">BlocksProvider</code>, as a
       <code class="text-text-primary">defaults</code> entry for
       <code class="text-text-primary">Textarea</code> next to the same entry for
-      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>
+      <a href={resolve('/blocks/primitives/input')}>Input</a>
       and
-      <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">Select</a
-      >. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/blocks/primitives/select')}>Select</a>. See
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

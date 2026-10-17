@@ -89,9 +89,7 @@
   </div>
 
   <p class="text-text-tertiary mt-4 text-xs leading-relaxed">
-    Reach for a <a href={resolve('/blocks/primitives/tab')} class="text-primary hover:underline"
-      >Tab</a
-    >
+    Reach for a <a href={resolve('/blocks/primitives/tab')}>Tab</a>
     panel instead when one item should be <em>presented</em> at a time, like a screenshot or a live demo.
     It carries the right semantics for that. A Scroller is for items you compare by sweeping across them.
   </p>
@@ -238,7 +236,7 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

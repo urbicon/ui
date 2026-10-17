@@ -200,13 +200,9 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       For a permanent navigation rail rather than two rebalanceable content regions, reach for
-      <a href={resolve('/blocks/components/sidebar-layout')} class="text-primary hover:underline"
-        >SidebarLayout</a
-      >
+      <a href={resolve('/blocks/components/sidebar-layout')}>SidebarLayout</a>
       or
-      <a href={resolve('/blocks/primitives/sidebar')} class="text-primary hover:underline"
-        >Sidebar</a
-      >
+      <a href={resolve('/blocks/primitives/sidebar')}>Sidebar</a>
       instead. SplitPane is for when both panes are primary content.
     </p>
   </div>

@@ -69,9 +69,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/spinner')} class="text-primary hover:underline"
-              >Spinner</a
-            >
+            <a href={resolve('/blocks/primitives/spinner')}>Spinner</a>
           </td>
           <td class="py-3 align-top"
             >The wait is short and unmeasured, and a bar would overstate the precision.</td
@@ -79,9 +77,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/skeleton')} class="text-primary hover:underline"
-              >Skeleton</a
-            >
+            <a href={resolve('/blocks/primitives/skeleton')}>Skeleton</a>
           </td>
           <td class="py-3 align-top"
             >Content itself is loading and you can hint at its shape in place.</td
@@ -219,7 +215,7 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

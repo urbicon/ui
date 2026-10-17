@@ -8,7 +8,7 @@
   noindex={true}
 />
 
-<div class="mx-auto w-full max-w-2xl px-6 py-16">
+<div class="mx-auto w-full max-w-2xl px-6 py-16" data-docs-content>
   <p class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">// Legal</p>
   <h1 class="text-text-primary mt-5 text-4xl font-bold tracking-tight">
     Impressum<span class="text-primary">|</span>
@@ -37,9 +37,7 @@
       // Kontakt
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">
-      E-Mail: <a href="mailto:ui.info@urbicon.de" class="text-primary hover:underline"
-        >ui.info@urbicon.de</a
-      >
+      E-Mail: <a href="mailto:ui.info@urbicon.de">ui.info@urbicon.de</a>
     </p>
   </section>
 

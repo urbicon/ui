@@ -523,7 +523,7 @@ The tier model — the three tokens, the two axes that share the name, which com
 
 | Hook | Attached to | Docs-scope behaviour |
 | --- | --- | --- |
-| `data-docs-header` | `DocsLayout` hero header (full-width band, direct child of the layout container) | Becomes the room colour field in `.docs-rooms`; spans everything right of the app sidebar, TOC drops below it |
+| `data-docs-header` | `DocsLayout` hero header (full-width band, direct child of the layout container) | Becomes the room colour field in `.docs-rooms`; spans everything right of the app sidebar, TOC drops below it; an inner wrapper sharing `main`'s max width keeps it aligned with the body column |
 | `data-docs-sticky-bar` | `DocsLayout` sticky breadcrumb strip | Shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon in the room colour |
 | `data-docs-sticky-hairline` | expanding hairline inside the sticky strip | `display: none` in `.docs-rooms` (the colour edge is the separator; kept for the bare library skin) |
 | `data-docs-scrollspy` | active-section badge in the sticky strip | Flips to a translucent-foreground inlay so it reads on the accent strip |
@@ -531,6 +531,7 @@ The tier model — the three tokens, the two axes that share the name, which com
 | `data-docs-stage-frame` | Inner preview frame (Code / Playground) | Same — flattens against cream paper |
 | `data-docs-subtitle` | `description` paragraph in `DocsLayout` | `display: none` in the docs scope (field is title-first) |
 | `data-docs-note` | `NoteList` and `InfoCard` roots | Marks reading material rather than an exhibit. A skin running a narrower reading edge than its exhibit edge (the docs app: 46rem prose inside a 60rem column) caps these with the prose instead of letting them stretch to the width a table gets |
+| `data-docs-content` | `DocsLayout` content column (page body plus the page-nav slot; not the header, sticky strip or TOC) | Scope for prose-only rules: the docs app styles `<a>` in running text under it as blocks' `Link` `variant="inline"` (and stamps the same hook on its recipe frame and hand-rolled prose columns) ([DocsPageGuide.md § Links in prose](DocsPageGuide.md#links-in-prose)) |
 | `data-room-hero` | hand-rolled section-landing heroes | Full-width colour-field band flush to the app sidebar (the page nests an inner `max-w` wrapper for alignment); `data-room-chip` flips a room-tinted chip to read on the fill |
 
 Consumers writing their own theme can hook the same attributes. The library defaults remain unchanged. See [the docs-site README § The Color Rooms theme](../apps/docs/README.md#the-color-rooms-theme) for the full theme architecture.

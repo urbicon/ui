@@ -159,9 +159,7 @@ ${scriptClose}
       <code class="text-text-primary">onSelectionChange</code>, which hands you the selected rows
       and their ids. Write the <em>ids</em> back: they are always the whole selection, while the
       rows can only be the ones the table currently holds — under
-      <a href={resolve('/table/server-processing')} class="text-primary hover:underline"
-        >server processing</a
-      >
+      <a href={resolve('/table/server-processing')}>server processing</a>
       that is one page, so mapping the rows would drop everything selected on another page. An empty array
       is a valid value (nothing selected);
       <code class="text-text-primary">undefined</code> hands the selection back to the table. Your
@@ -169,10 +167,8 @@ ${scriptClose}
       the same ids back is a no-op, so the Clear button below settles rather than looping. A
       controlled selection is never written to storage:
       <code class="text-text-primary">persistSelection</code> in the
-      <a
-        href={resolve('/table/customization') + '#persistence'}
-        class="text-primary hover:underline">preference channel</a
-      > restores only a table-owned one.
+      <a href={resolve('/table/customization') + '#persistence'}>preference channel</a> restores only
+      a table-owned one.
     </p>
 
     <CodeExample

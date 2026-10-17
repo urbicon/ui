@@ -93,8 +93,9 @@
  *
  * Usage: bun --bun run packages/blocks/scripts/variants-lint.ts [--warnings]
  */
-import { unlink } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdtemp, rm, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import {
   CATALOGUE_CANARIES,
@@ -155,37 +156,56 @@ type Loaded = { file: string; name: string; fn: (props?: object) => unknown; cfg
 const loaded: Loaded[] = [];
 const fileErrors: string[] = [];
 
-for (const file of files) {
-  const src = await Bun.file(file).text();
-  let rewritten = src
-    .replaceAll("'#lib/utils/variants.js'", `'${ENGINE}'`)
-    .replaceAll("'@urbicon-ui/blocks'", `'${ENGINE}'`);
-  // A blocks config may pull shared style fragments from other #lib modules
-  // (e.g. internal/field-chrome). The engine alias above is already resolved;
-  // point any remaining #lib import at the real blocks lib dir so the temp
-  // file resolves. Scoped to blocks files — table/docs #lib means their own lib.
-  if (file.includes('/packages/blocks/')) {
-    rewritten = rewritten.replaceAll("'#lib/", `'${BLOCKS_LIB}/`);
-  }
-  const tmp = file.replace(/\.ts$/, '.__variants_lint_tmp.ts');
-  await Bun.write(tmp, rewritten);
-  try {
-    const mod = await import(tmp);
-    for (const [name, value] of Object.entries(mod)) {
-      if (typeof value === 'function' && 'config' in value) {
-        loaded.push({
-          file: file.replace(`${REPO}/`, ''),
-          name,
-          fn: value as Loaded['fn'],
-          cfg: (value as { config: Cfg }).config
-        });
-      }
+// A table/docs config imports from `@urbicon-ui/blocks`, whose index pulls in
+// `.svelte` and cannot load here. The specifier points at this shim instead:
+// the engine plus every blocks config, so a slot can compose a blocks config
+// (`linkVariants(…).base()` in the docs reference tables).
+// It imports by absolute path, so it lives outside the repo, where no git, lint
+// or build step can pick it up.
+const SHIM_DIR = await mkdtemp(join(tmpdir(), 'variants-lint-'));
+const BLOCKS_SHIM = join(SHIM_DIR, 'blocks-shim.ts');
+await Bun.write(
+  BLOCKS_SHIM,
+  [ENGINE, ...files.filter((f) => f.includes('/packages/blocks/'))]
+    .map((f) => `export * from '${f}';`)
+    .join('\n')
+);
+
+try {
+  for (const file of files) {
+    const src = await Bun.file(file).text();
+    let rewritten = src
+      .replaceAll("'#lib/utils/variants.js'", `'${ENGINE}'`)
+      .replaceAll("'@urbicon-ui/blocks'", `'${BLOCKS_SHIM}'`);
+    // A blocks config may pull shared style fragments from other #lib modules
+    // (e.g. internal/field-chrome). The engine alias above is already resolved;
+    // point any remaining #lib import at the real blocks lib dir so the temp
+    // file resolves. Scoped to blocks files — table/docs #lib means their own lib.
+    if (file.includes('/packages/blocks/')) {
+      rewritten = rewritten.replaceAll("'#lib/", `'${BLOCKS_LIB}/`);
     }
-  } catch (e) {
-    fileErrors.push(`${file.replace(`${REPO}/`, '')}: ${e instanceof Error ? e.message : e}`);
-  } finally {
-    await unlink(tmp).catch(() => console.warn(`⚠ could not remove temp file ${tmp}`));
+    const tmp = file.replace(/\.ts$/, '.__variants_lint_tmp.ts');
+    await Bun.write(tmp, rewritten);
+    try {
+      const mod = await import(tmp);
+      for (const [name, value] of Object.entries(mod)) {
+        if (typeof value === 'function' && 'config' in value) {
+          loaded.push({
+            file: file.replace(`${REPO}/`, ''),
+            name,
+            fn: value as Loaded['fn'],
+            cfg: (value as { config: Cfg }).config
+          });
+        }
+      }
+    } catch (e) {
+      fileErrors.push(`${file.replace(`${REPO}/`, '')}: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      await unlink(tmp).catch(() => console.warn(`⚠ could not remove temp file ${tmp}`));
+    }
   }
+} finally {
+  await rm(SHIM_DIR, { recursive: true, force: true });
 }
 
 // The repo carries ~117 configs; a collapse of this number means the export

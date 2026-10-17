@@ -138,9 +138,8 @@ export const ROUTE_CHANNEL = {
         <code class="text-text-primary">rooms-docs.css</code> and do not set
         <code class="text-text-primary">.docs-rooms</code>; they live on the library defaults and
         customise via the regular
-        <a href={resolve('/customization')} class="text-primary hover:underline"
-          >customization ladder</a
-        > (class / slotClasses / preset / defaults / overrides / unstyled).
+        <a href={resolve('/customization')}>customization ladder</a> (class / slotClasses / preset / defaults
+        / overrides / unstyled).
       </p>
     </div>
   </Section>
@@ -267,9 +266,7 @@ export const ROUTE_CHANNEL = {
       token definition substitutes at the cascade level where it is defined, so overriding the ramp alone
       won't re-resolve <code class="text-text-primary">--color-primary</code> &amp; co. The general
       pattern is
-      <a href={`${resolve('/customization/themes')}#scoped`} class="text-primary hover:underline"
-        >Scoped Themes</a
-      >.
+      <a href={`${resolve('/customization/themes')}#scoped`}>Scoped Themes</a>.
     </p>
   </Section>
 
@@ -515,9 +512,8 @@ export const ROUTE_CHANNEL = {
       Remove the class (the sidebar's <strong>Docs theme → Library</strong> toggle does exactly
       this) and the page falls back to the bare library skin: no field header, no Schibsted, the
       library's blue primary. The underlying mechanism is the scoped-theme pattern from
-      <a href={`${resolve('/customization/themes')}#scoped`} class="text-primary hover:underline"
-        >Scoped Themes</a
-      >; Color Rooms just rebinds a wider set of tokens and derives them from the room.
+      <a href={`${resolve('/customization/themes')}#scoped`}>Scoped Themes</a>; Color Rooms just
+      rebinds a wider set of tokens and derives them from the room.
     </p>
   </Section>
 
@@ -557,9 +553,7 @@ export const ROUTE_CHANNEL = {
 
     <p class="text-text-tertiary mt-3 text-xs leading-relaxed">
       The same mechanism powers <code class="text-text-primary">semantic.css</code>: see
-      <a href={`${resolve('/customization/themes')}#dark-mode`} class="text-primary hover:underline"
-        >Themes → Dark Mode</a
-      >
+      <a href={`${resolve('/customization/themes')}#dark-mode`}>Themes → Dark Mode</a>
       for the library-side details.
     </p>
   </Section>
@@ -578,9 +572,7 @@ export const ROUTE_CHANNEL = {
 
     <p class="text-text-tertiary mt-4 text-xs leading-relaxed">
       For brand-wide theming (the library's own primary colour, the tier radii) reach for the
-      <a href={resolve('/customization/theme-builder')} class="text-primary hover:underline">
-        Theme Builder</a
-      >
+      <a href={resolve('/customization/theme-builder')}> Theme Builder</a>
       or write a custom <code class="text-text-primary">@theme</code> block. Color Rooms sits
       <em>on top</em> of that and, per room, overrides the primary chain with the room accent.
     </p>

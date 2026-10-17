@@ -354,9 +354,7 @@
           <code class="text-text-primary">tier="bridge"</code> because the default contain radius
           reads as a bare corner at tile size. The full contract of cards that link (and why the
           <code class="text-text-primary">href</code> never moves to a wrapper) is
-          <a class="text-primary hover:underline" href={resolve('/recipes/clickable-card')}
-            >Clickable Card</a
-          >.
+          <a href={resolve('/recipes/clickable-card')}>Clickable Card</a>.
         </p>
       </Note>
       <Note title="Up is green only while up is good">

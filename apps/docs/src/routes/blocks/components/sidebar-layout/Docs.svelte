@@ -22,21 +22,21 @@
     <li>
       A custom outer grid (multi-region layout, header bar with brand controls, full bleed sections)
       →
-      <a href={r('/blocks/primitives/sidebar')} class="text-primary hover:underline">Sidebar</a>
+      <a href={r('/blocks/primitives/sidebar')}>Sidebar</a>
       primitive directly.
     </li>
     <li>
       A transient detail panel that pulls focus (backdrop + focus-trap) →
-      <a href={r('/blocks/primitives/drawer')} class="text-primary hover:underline">Drawer</a>.
+      <a href={r('/blocks/primitives/drawer')}>Drawer</a>.
     </li>
     <li>
       A floating panel anchored to a specific element →
-      <a href={r('/blocks/primitives/popover')} class="text-primary hover:underline">Popover</a>.
+      <a href={r('/blocks/primitives/popover')}>Popover</a>.
     </li>
   </ul>
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
     See the
-    <a href={r('/recipes/dashboard')} class="text-primary hover:underline">Dashboard recipe</a>
+    <a href={r('/recipes/dashboard')}>Dashboard recipe</a>
     for a full app-shell demonstration.
   </p>
 </Section>

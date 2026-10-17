@@ -536,9 +536,7 @@
               <code class="text-text-primary">--radius-commit</code>
               is a literal, so set it yourself to square them. The radio dot has its own literal and stays
               a circle either way — see
-              <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
-                >Radius Tiers</a
-              >.
+              <a href={resolve('/customization/tier-system')}>Radius Tiers</a>.
             </p>
           </div>
 

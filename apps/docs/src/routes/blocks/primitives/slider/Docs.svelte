@@ -185,7 +185,7 @@
       <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
         >presets.Slider</code
       >). See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      <a href={resolve('/customization')}>Customization</a>.
     </p>
   </div>
 </Section>

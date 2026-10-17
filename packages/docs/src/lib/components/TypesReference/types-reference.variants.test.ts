@@ -1,3 +1,4 @@
+import { linkVariants } from '@urbicon-ui/blocks';
 import { describe, expect, it } from 'vitest';
 import { apiReferenceVariants } from '../ApiReference/apireference.variants';
 import { typesReferenceVariants } from './types-reference.variants';
@@ -50,7 +51,14 @@ describe('typesReferenceVariants', () => {
     expect(styles.literalBadge()).toContain('bg-surface-quiet');
     expect(styles.literalBadge()).toContain('text-text-secondary');
     expect(styles.usedBySection()).toContain('text-text-secondary');
-    expect(styles.usedByLink()).toContain('text-primary');
+  });
+
+  it('styles its links as blocks Link variant="inline"', () => {
+    const styles = typesReferenceVariants({ size: 'md' });
+    const inline = linkVariants({ variant: 'inline', active: false }).base();
+
+    expect(styles.usedByLink()).toBe(inline);
+    expect(styles.seeAlsoLink()).toBe(inline);
   });
 
   it('never outputs dark: overrides', () => {

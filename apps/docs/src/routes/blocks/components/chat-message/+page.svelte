@@ -51,7 +51,7 @@
       <code class="text-text-primary">bubble</code> layout tints and aligns by role;
       <code class="text-text-primary">plain</code> is a full-width column. Hover a message to reveal
       its copy and regenerate bar. The
-      <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>
+      <a href={resolve('/ai/chat')}>live playground</a>
       shows a full streaming conversation.
     </p>
     <Playground />

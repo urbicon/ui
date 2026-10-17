@@ -50,7 +50,7 @@
       Press <strong>Append</strong> while scrolled to the bottom: the list follows the new message.
       Scroll up first and append: following pauses (the badge flips to <em>paused</em>) and a
       jump-back pill shows how many messages arrived. Click the pill to resume. The
-      <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>
+      <a href={resolve('/ai/chat')}>live playground</a>
       shows streaming, tool calls, and citations together.
     </p>
     <Playground />

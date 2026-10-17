@@ -139,8 +139,7 @@ export function localizeHref(path, locale) {
 >
   <Section id="overview" title="Why routing lives here" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">
-      <a class="text-primary hover:underline" href={resolve('/i18n/provider')}>Provider &amp; SSR</a
-      >
+      <a href={resolve('/i18n/provider')}>Provider &amp; SSR</a>
       switches the locale <em>in place</em> — no URL change. That is enough for an app whose locale
       is a user preference. When the locale should be <strong>addressable</strong> — shareable
       <code>/de/…</code> links, distinct pages for crawlers, a browser back-button that walks language
@@ -182,9 +181,7 @@ export function localizeHref(path, locale) {
       from it and feeds the provider — SSR and the first client render agree, with no
       <code>navigator.language</code> guess. A bare path (first visit, or a legacy unprefixed link)
       has no locale to read, so redirect it to the
-      <a class="text-primary hover:underline" href={resolve('/i18n/provider')}
-        ><code>resolveLocale</code></a
-      >
+      <a href={resolve('/i18n/provider')}><code>resolveLocale</code></a>
       choice — the single point where cookie and <code>Accept-Language</code> still decide.
     </p>
     <CodeExample code={resolveCode} language="typescript" preview={false} />
@@ -193,9 +190,7 @@ export function localizeHref(path, locale) {
   <Section id="switch" title="3. Switch from the LocaleSwitcher">
     <p class="text-text-secondary mb-4">
       Nothing about the switcher changes — the built-in
-      <a class="text-primary hover:underline" href={resolve('/blocks/components/locale-switcher')}
-        >LocaleSwitcher</a
-      >
+      <a href={resolve('/blocks/components/locale-switcher')}>LocaleSwitcher</a>
       calls <code>setLocale</code> as always. You only translate the resulting
       <code>onLocaleChange</code> into a navigation to the prefixed URL. That one handler is the whole
       routing layer.

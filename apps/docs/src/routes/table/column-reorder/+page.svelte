@@ -61,9 +61,8 @@
       <code class="text-text-primary">accessor</code>, when the column has no explicit one). Passing
       a fresh <code class="text-text-primary">columns</code> array therefore leaves it alone, and a
       column you add later lands at the end. To keep the order across reloads, give the table a
-      <a href={resolve('/table/customization')} class="text-primary hover:underline"
-        >preferences storage key</a
-      >; <code class="text-text-primary">prefs.defaults.columnOrder</code> sets the order to start from,
+      <a href={resolve('/table/customization')}>preferences storage key</a>;
+      <code class="text-text-primary">prefs.defaults.columnOrder</code> sets the order to start from,
       such as one you loaded with the user's profile.
     </p>
   </div>

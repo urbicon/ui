@@ -434,7 +434,7 @@
 
     <p class="text-text-secondary mt-6 text-sm">
       The stat tiles are the short form of a pattern with a page of its own:
-      <a class="text-primary hover:underline" href={resolve('/recipes/stat-tile')}>Stat Tile</a>
+      <a href={resolve('/recipes/stat-tile')}>Stat Tile</a>
       isolates the KPI card, with an icon tile and trend indicator.
     </p>
   </Section>

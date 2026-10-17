@@ -260,9 +260,7 @@ export const load = async ({ url }) => {
       <code class="text-text-primary">{"axes: ['search', 'sort']"}</code> option, or hand in
       <code class="text-text-primary">sessionStorage</code> via
       <code class="text-text-primary">storage</code>; see
-      <a class="text-primary hover:underline" href={resolve('/table/customization')}
-        >Customization</a
-      >.
+      <a href={resolve('/table/customization')}>Customization</a>.
     </p>
     <p class="text-text-secondary mb-6 text-sm">
       Only values the reader chose are written:
@@ -334,7 +332,7 @@ export const load = async ({ url }) => {
       <code class="text-text-primary">createTableView</code>, so an absent parameter resolves on the
       server exactly as it does in the view, from one declaration rather than two. What it returns
       is what a
-      <a class="text-primary hover:underline" href={resolve('/table/query')}>query function</a> receives.
+      <a href={resolve('/table/query')}>query function</a> receives.
     </p>
 
     <CodeExample title="Seeding the first fetch" code={codeServer} preview={false} />
@@ -346,9 +344,7 @@ export const load = async ({ url }) => {
       and work without SvelteKit.
       <code class="text-text-primary">bindViewToUrl</code> in
       <code class="text-text-primary">/url.svelte</code> is the reactive half that needs it.
-      <a class="text-primary hover:underline" href={resolve('/table/server-processing')}
-        >Server Processing</a
-      > covers the fetch side.
+      <a href={resolve('/table/server-processing')}>Server Processing</a> covers the fetch side.
     </p>
   </Section>
 </DocsPageLayout>

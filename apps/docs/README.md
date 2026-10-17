@@ -226,27 +226,8 @@ is declared on both the wrapper (content — SSR-correct, no flash) and `.docs-r
 Components in `packages/docs` carry small `data-docs-*` hooks that the docs scope styles.
 The namespace is that package's **published theming contract**: skins target these
 attributes (never internal class names or test ids), and renames are breaking changes for
-skins.
-
-- `[data-docs-header]` — the `DocsLayout` hero header, becomes the room colour field. A
-  **full-width band**: a direct child of the layout container (not the body column), so it
-  spans everything right of the app sidebar and the on-this-page TOC drops below it.
-  Alignment with the body column is re-imposed by an inner wrapper sharing `main`'s `maxWidth`.
-- `[data-docs-sticky-bar]` — the sticky breadcrumb strip, shares the header's accent fill.
-  On scroll the title collapses under it, leaving a low ribbon in the room colour. Inside
-  it, `[data-docs-sticky-hairline]` is hidden (the colour edge is the separator) and
-  `[data-docs-scrollspy]` flips to a translucent-foreground inlay.
-- `[data-room-hero]` — hand-rolled section-landing heroes (`/blocks`, `/ai`,
-  `/getting-started`, `/recipes`, `/showcase`): the same full-width band flush to the app
-  sidebar, with the page nesting an inner `max-w-* mx-auto px-*` wrapper for alignment.
-  `[data-room-chip]` flips a room-tinted chip so it reads on the fill.
-- `[data-docs-stage="example|playground"]` / `[data-docs-stage-frame]` — on `CodeExample`
-  and `PlaygroundConfigurator`; backgrounds flatten to transparent in the scope.
-- `[data-docs-subtitle]` — the `DocsLayout` sub-headline, hidden on component pages (the
-  colour field is title-first).
-
-The consumer-facing summary of these hooks lives in
-[COMPONENT-API-CONVENTIONS.md § Docs Theme Hooks](../../docs/COMPONENT-API-CONVENTIONS.md#docs-theme-hooks).
+skins. The one list of the hooks, what each is attached to and what the docs scope does
+with it, is [COMPONENT-API-CONVENTIONS.md § Docs Theme Hooks](../../docs/COMPONENT-API-CONVENTIONS.md#docs-theme-hooks).
 
 ## Full catalogue
 

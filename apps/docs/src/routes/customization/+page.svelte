@@ -200,7 +200,7 @@
       <code class="text-xs">label</code>, <code class="text-xs">message</code>… for
       <code class="text-xs">Input</code>). Each component's API reference documents its slot map on
       the <code class="text-xs">slotClasses</code> prop (for example
-      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>).
+      <a href={resolve('/blocks/primitives/input')}>Input</a>).
     </p>
   </Section>
 
@@ -261,11 +261,8 @@
       (success, warning, danger) that lands near your brand hue has to be moved so status colors
       stay distinguishable. The full recipe, typography, a scoped-theme pattern and the dark-mode
       wiring are on
-      <a href={resolve('/customization/themes')} class="text-primary hover:underline">Themes</a>;
-      the
-      <a href={resolve('/customization/theme-builder')} class="text-primary hover:underline"
-        >Theme Builder</a
-      >
+      <a href={resolve('/customization/themes')}>Themes</a>; the
+      <a href={resolve('/customization/theme-builder')}>Theme Builder</a>
       generates the file from your brand color.
     </p>
   </Section>
@@ -287,13 +284,11 @@
       looks per instance, and
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">overrides</code> apply to
       one combination of variant props. All three sit below instance props in the
-      <a href="#ladder" class="text-primary hover:underline">precedence chain</a>.
+      <a href="#ladder">precedence chain</a>.
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">unstyled</code> sits
       outside it: it drops the <code class="text-xs">tv()</code> styles, and whatever you pass is
       all that is left. The full API with worked examples is
-      <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
-        >BlocksProvider</a
-      >.
+      <a href={resolve('/customization/blocks-provider')}>BlocksProvider</a>.
     </p>
   </Section>
 

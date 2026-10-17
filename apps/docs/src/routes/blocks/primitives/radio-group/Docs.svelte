@@ -34,9 +34,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/checkbox')} class="text-primary hover:underline">
-              Checkbox
-            </a>
+            <a href={resolve('/blocks/primitives/checkbox')}> Checkbox </a>
           </td>
           <td class="py-3 align-top">
             Independent on/off toggles, or when more than one option can be selected at the same
@@ -45,12 +43,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a
-              href={resolve('/blocks/primitives/segment-group')}
-              class="text-primary hover:underline"
-            >
-              SegmentGroup
-            </a>
+            <a href={resolve('/blocks/primitives/segment-group')}> SegmentGroup </a>
           </td>
           <td class="py-3 align-top">
             One choice from a few short, mutually exclusive options where a compact toggle row reads
@@ -59,9 +52,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/select')} class="text-primary hover:underline">
-              Select
-            </a>
+            <a href={resolve('/blocks/primitives/select')}> Select </a>
           </td>
           <td class="py-3 align-top">
             One choice from a long list. Showing every option would crowd the layout, so it
@@ -187,7 +178,7 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

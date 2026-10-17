@@ -201,8 +201,7 @@
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">light-dark()</code>; the
       <strong>interaction</strong> layer times motion and stacks depth. How to write, scope and
       switch a theme is the
-      <a href={resolve('/customization/themes')} class="text-primary-text hover:underline">Themes</a
-      > page; this one lists what exists.
+      <a href={resolve('/customization/themes')}>Themes</a> page; this one lists what exists.
     </p>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -248,14 +247,9 @@
           That is a job for
           <code class="bg-surface-base rounded-modify px-1.5 py-0.5">class</code>,
           <code class="bg-surface-base rounded-modify px-1.5 py-0.5">slotClasses</code> and
-          <a
-            href={resolve('/customization/blocks-provider')}
-            class="text-primary-text hover:underline">BlocksProvider</a
-          >, never for
+          <a href={resolve('/customization/blocks-provider')}>BlocksProvider</a>, never for
           <code class="bg-surface-base rounded-modify px-1.5 py-0.5">!</code> color overrides; the
-          <a href={resolve('/customization')} class="text-primary-text hover:underline"
-            >Customization hub</a
-          > carries the decision table.
+          <a href={resolve('/customization')}>Customization hub</a> carries the decision table.
         </li>
       </ul>
     </div>
@@ -268,15 +262,9 @@
     <p class="text-text-tertiary mt-6 text-sm leading-relaxed">
       <span id="custom-theming"></span><span id="dark-mode"></span>Custom theming and dark mode used
       to live on this page. They moved to
-      <a
-        href={`${resolve('/customization/themes')}#create`}
-        class="text-primary-text hover:underline">Themes → Write Your Own Theme</a
-      >
+      <a href={`${resolve('/customization/themes')}#create`}>Themes → Write Your Own Theme</a>
       and
-      <a
-        href={`${resolve('/customization/themes')}#dark-mode`}
-        class="text-primary-text hover:underline">Themes → Dark Mode</a
-      >.
+      <a href={`${resolve('/customization/themes')}#dark-mode`}>Themes → Dark Mode</a>.
     </p>
   </Section>
 
@@ -433,8 +421,7 @@
         >urbicon css-reference intents</code
       >
       (the
-      <a href={resolve('/ai')} class="text-primary-text hover:underline">urbicon CLI</a>) for the
-      stops of every other intent.
+      <a href={resolve('/ai')}>urbicon CLI</a>) for the stops of every other intent.
     </p>
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Intent Chrome</h3>
@@ -482,11 +469,8 @@
   <Section id="spacing" title="Spacing Scale" class="mb-16">
     <p class="text-text-secondary mb-6">
       Urbicon UI does not ship a custom spacing token layer. It uses
-      <a
-        href="https://tailwindcss.com/docs/padding"
-        class="text-primary-text hover:underline"
-        target="_blank"
-        rel="noreferrer">Tailwind's built-in spacing scale</a
+      <a href="https://tailwindcss.com/docs/padding" target="_blank" rel="noreferrer"
+        >Tailwind's built-in spacing scale</a
       >
       directly. Apply spacing with the standard utilities (<code
         class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">p-4</code
@@ -534,9 +518,8 @@
     <p class="text-text-secondary mb-6">
       Sizes, weights, leading, tracking and families are Tailwind
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> variables;
-      override them alongside your color ramps (<a
-        href={resolve('/customization/themes')}
-        class="text-primary-text hover:underline">Themes → Typography</a
+      override them alongside your color ramps (<a href={resolve('/customization/themes')}
+        >Themes → Typography</a
       >, including the paired
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >--text-*--line-height</code
@@ -629,9 +612,7 @@
     <p class="text-text-secondary mb-6">
       Components consume a 3-tier semantic vocabulary, not raw radii. Re-tint the three tier
       variables to reshape the whole library at once (the full cascade:
-      <a href={resolve('/customization/tier-system')} class="text-primary-text hover:underline"
-        >Radius Tiers</a
-      >). A fourth token,
+      <a href={resolve('/customization/tier-system')}>Radius Tiers</a>). A fourth token,
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--radius-bridge</code>,
       is not a tier: it pairs pill triggers with their dropdown panels.
     </p>

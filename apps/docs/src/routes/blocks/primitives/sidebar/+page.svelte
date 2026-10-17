@@ -53,10 +53,9 @@
       <p class="text-text-secondary mt-1.5 text-sm leading-relaxed">
         For the common pattern of a permanent left sidebar with a mobile hamburger and an offset
         main content area, prefer
-        <a class="text-primary hover:underline" href={resolve('/blocks/components/sidebar-layout')}
-          >SidebarLayout</a
-        >. It wraps this primitive and resolves the CSS-variable scoping that otherwise leaves your
-        main content underneath the sidebar.
+        <a href={resolve('/blocks/components/sidebar-layout')}>SidebarLayout</a>. It wraps this
+        primitive and resolves the CSS-variable scoping that otherwise leaves your main content
+        underneath the sidebar.
       </p>
     </div>
   </Section>
