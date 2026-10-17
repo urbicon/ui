@@ -11,14 +11,12 @@ export const playgroundConfiguratorVariants = tv({
     // card; the rooms skin tints the preview frame via [data-docs-stage-frame].
     container: ['border-y border-border-hairline'],
     preview: ['border-b border-border-hairline'],
-    // Centred only while nothing is latched. Once `latchPreviewHeight` has
-    // pinned a height, a state that renders SHORTER than the mark would be
-    // centred in the held box and slide down by half the difference — measured
-    // on Calendar: switching Month → List dropped the view's own toolbar 148 px
-    // (473 px latch, 325 px content). `data-latched` flips the stage to
-    // top-alignment exactly then; below the latch the design floor (`min-h-*`)
-    // keeps a small specimen optically centred, where nothing can jump because
-    // the floor does not move.
+    // Centred only until the stage's first observed size — in practice the
+    // server-rendered paint. From then on `data-latched` stays set for the
+    // stage's lifetime and the content sits at the top: a state shorter than
+    // the held height, or than the `min-h-*` floor, would otherwise be centred
+    // and slide by half the difference whenever the held height changes or is
+    // released, moving content out from under a pressed pointer.
     previewContent: ['flex items-center justify-center', 'data-[latched]:items-start'],
     controlsPanel: ['pb-8 bg-surface-elevated'],
     // Header row above the controls grid. Width-matched to the grid so a

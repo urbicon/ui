@@ -12,6 +12,7 @@
     Tooltip
   } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
+  import { on } from 'svelte/events';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
   import {
@@ -100,27 +101,57 @@
   // has a description — pages without any docs hide the affordance.
   let helpVisible = $state(false);
 
-  // Variable-size previews (Calendar month grids with 5 vs. 6 week
-  // rows, event lists, …) oscillate in height while the user interacts
-  // with the demo itself, which shifts the controls strip + code panel
-  // below — the configurator "drifts" away from the pointer. Latch the
-  // tallest observed preview height as an inline min-height (high-water
-  // mark) so the stage can only grow, never shrink.
+  // A stage height change moves everything below the stage: the controls strip
+  // and the code panel. That only costs the reader while the pointer is down
+  // there — working down the knobs, each change would slide the next knob out
+  // from under it. So while the reader works the controls, the stage latches
+  // the tallest height it reached as an inline min-height (a high-water mark):
+  // it may grow, never shrink.
   //
-  // The latch used to reset on every control change, on the theory that a new
-  // state "legitimately has a different natural size". In practice that is the
-  // loudest source of jumping there is: working down a control strip resizes
-  // the stage under the pointer at almost every step, and the controls
-  // themselves move with it. The stage now holds its high-water mark for as
-  // long as the component is on screen.
+  // Working the demo itself releases the mark and the stage follows its
+  // content; holding it there left a demo with views of very different heights
+  // (Calendar's Agenda → Month) sitting above a block of nothing. Entering the
+  // controls again re-arms the latch at the stage's height then. Neither step
+  // may move the content the pointer is on, so the alignment is not tied to
+  // the mark: `topAligned` turns on with the first mark and stays on.
   //
-  // Two things still drop it, both because the old mark stops being a
-  // measurement of anything: a width change (a reflow has a new natural
-  // height) and "Reset all", where the reader has explicitly asked for the
-  // starting state back.
+  // Two more things drop the mark, because it stops measuring anything: a
+  // width change (a reflow has a new natural height) and "Reset all", where the
+  // reader explicitly asked for the starting state back.
   let previewMinHeight = $state(0);
+  // Content shorter than the stage sits at its top rather than its centre, so
+  // a stage taller than its content — held by the mark, or by the `min-h-*`
+  // floor once the mark is released — never re-centres it under the pointer.
+  // Set once, never cleared: clearing it with the mark is exactly that move.
+  let topAligned = $state(false);
+  // Read only by the observer and the two handlers below, never by the
+  // template — no reason for it to be reactive.
+  let latching = true;
+  let previewNode: HTMLElement | undefined;
+
+  // The mark only remembers what fits on one screen. Uncapped, one tall state
+  // reached from the controls would become the floor for every state after it;
+  // a state that tall still grows past the mark (min-height only sets a floor).
+  const capHeight = (height: number) => Math.min(height, window.innerHeight * 0.7);
+
+  function armLatch() {
+    if (latching || !previewNode) return;
+    latching = true;
+    previewMinHeight = capHeight(previewNode.offsetHeight);
+    topAligned = true;
+  }
+
+  function releaseLatch(event: Event) {
+    // The stage's own dead space is not the demo: pressing it changes nothing,
+    // and collapsing it under a pressed pointer would pull the controls into
+    // the pointer's path.
+    if (event.target === event.currentTarget) return;
+    latching = false;
+    previewMinHeight = 0;
+  }
 
   function latchPreviewHeight(node: HTMLElement) {
+    previewNode = node;
     let lastWidth = node.offsetWidth;
     const observer = new ResizeObserver(() => {
       const width = node.offsetWidth;
@@ -133,19 +164,29 @@
         previewMinHeight = 0;
         return;
       }
-      // The mark only remembers what fits on one screen. Without the cap it is
-      // monotonic and remembers outliers forever: Calendar's Agenda view is
-      // 1681 px, so every later view sat in a stage held open to that — going
-      // back to Month left 1208 px of nothing below the calendar. A state that
-      // tall makes the stage grow past the mark anyway (min-height only ever
-      // sets a floor); it just must not become the floor for everything after
-      // it. Below the cap — where the jitter that the latch exists to absorb
-      // actually happens — nothing changes.
-      const height = Math.min(node.offsetHeight, window.innerHeight * 0.7);
+      if (!latching) return;
+      const height = capHeight(node.offsetHeight);
       if (height > previewMinHeight) previewMinHeight = height;
+      topAligned = true;
     });
     observer.observe(node);
-    return () => observer.disconnect();
+    const offPointer = on(node, 'pointerdown', releaseLatch);
+    const offFocus = on(node, 'focusin', releaseLatch);
+    return () => {
+      observer.disconnect();
+      offPointer();
+      offFocus();
+      previewNode = undefined;
+    };
+  }
+
+  function armLatchOnEntry(node: HTMLElement) {
+    const offPointer = on(node, 'pointerdown', armLatch);
+    const offFocus = on(node, 'focusin', armLatch);
+    return () => {
+      offPointer();
+      offFocus();
+    };
   }
 
   // Typed on the tv slots, NOT on `keyof slotClasses`: the latter also carries
@@ -240,9 +281,9 @@
     }
     values = next as TValues;
     onValuesChange?.(values);
-    // The one place the stage may shrink again: the reader asked for the
-    // starting state, and a mark left over from a taller variant would keep
-    // the stage padded out with nothing in it.
+    // The one place the controls themselves may shrink the stage: the reader
+    // asked for the starting state, and a mark left over from a taller variant
+    // would keep the stage padded out with nothing in it.
     previewMinHeight = 0;
   }
 
@@ -432,7 +473,7 @@
       <div
         class={slot('previewContent')}
         style:min-height={previewMinHeight ? `${previewMinHeight}px` : undefined}
-        data-latched={previewMinHeight ? '' : undefined}
+        data-latched={topAligned ? '' : undefined}
         {@attach latchPreviewHeight}
       >
         {@render children?.(values)}
@@ -445,7 +486,7 @@
          configurator is still worth having — it carries the stage and the code
          panel, which is what those components were missing. -->
     {#if visibleControls.length > 0}
-      <div class={slot('controlsPanel')}>
+      <div class={slot('controlsPanel')} {@attach armLatchOnEntry}>
         <div class={slot('controlsHeader')}>
           <!--
           The dirty-state count is carried visually by the "Reset all (N)"
