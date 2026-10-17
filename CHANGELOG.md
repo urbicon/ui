@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.31.0](https://github.com/urbicon/ui/compare/v8.30.0...v8.31.0) - 2026-10-17
+
+### Breaking Changes
+- **sveltekit-utils**: Keep a patched search param in its original position ([#542](https://github.com/urbicon/ui/issues/542))
+> **BREAKING:** withSearchParams keeps a patched key in place instead of moving it last
+
+### Bug Fixes
+- **design**: Take recipe hints' component slugs from the catalog ([#543](https://github.com/urbicon/ui/issues/543))
+- **docs**: Render inline markdown in reference cells and keep tv() plumbing out of types ([#545](https://github.com/urbicon/ui/issues/545))
+- **docs**: Let the playground stage follow its content while the demo is worked ([#548](https://github.com/urbicon/ui/issues/548))
+- **auth**: Draw the page links in blocks' inline link voice ([#549](https://github.com/urbicon/ui/issues/549))
+- **docs-app**: Style prose links as blocks Link inline, underlined at rest ([#550](https://github.com/urbicon/ui/issues/550))
+
+### Features
+- **i18n**: Add a base option to createPackageI18n for non-en packages ([#546](https://github.com/urbicon/ui/issues/546))
+
 ## [8.30.0](https://github.com/urbicon/ui/compare/v8.29.0...v8.30.0) - 2026-10-12
 
 ### Breaking Changes
@@ -80,6 +96,11 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Move the platform to SvelteKit 3, sv 1 and Vitest 5 ([#505](https://github.com/urbicon/ui/issues/505))
 > **BREAKING:** requires SvelteKit 3, Node 22.17, Svelte 5.57.1 (AUTH.md, Upgrade note SvelteKit 3)
 > **BREAKING:** tests importing @urbicon-ui/auth/server need the sveltekit() plugin in Vitest
+
+## [8.26.1](https://github.com/urbicon/ui/compare/v8.26.0...v8.26.1) - 2026-10-04
+
+### Features
+- **docs-app**: The inventory stays a table below 1420px and clears the header bar
 
 ## [8.26.0](https://github.com/urbicon/ui/compare/v8.25.0...v8.26.0) - 2026-09-24
 
