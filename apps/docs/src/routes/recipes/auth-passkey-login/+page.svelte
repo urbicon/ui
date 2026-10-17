@@ -110,9 +110,8 @@ export const POST = passkey.authenticationVerify.POST;
           <code class="text-text-primary">passkey.registrationOptions</code> /
           <code class="text-text-primary">passkey.registrationVerify</code> on sibling routes and
           give account settings a
-          <a class="text-primary hover:underline" href={resolve('/auth/components/passkey-manager')}
-            >PasskeyManager</a
-          >, whose list and delete run over
+          <a href={resolve('/auth/components/passkey-manager')}>PasskeyManager</a>, whose list and
+          delete run over
           <code class="text-text-primary">passkey.list</code> /
           <code class="text-text-primary">passkey.item</code>.
         </p>

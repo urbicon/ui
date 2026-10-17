@@ -185,9 +185,7 @@ const columns: Column<Employee>[] = [
         and
         <code class="text-text-primary">column.formatter</code> renders the cell (first match wins,
         in that order). A badge or a currency format therefore never changes what a column sorts by.
-        <a href={resolve('/table/custom-cells')} class="text-primary hover:underline"
-          >Custom Cells</a
-        > has the snippet and component recipes.
+        <a href={resolve('/table/custom-cells')}>Custom Cells</a> has the snippet and component recipes.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -250,9 +248,7 @@ const columns: Column<Employee>[] = [
         there on a plain <code class="text-text-primary">{'<Table>'}</code>: column visibility and
         the filter bar are on by default. Visibility choices persist across reloads once the table
         is given a
-        <a href={resolve('/table/customization')} class="text-primary hover:underline">
-          preferences storage key</a
-        >.
+        <a href={resolve('/table/customization')}> preferences storage key</a>.
       </p>
 
       <CodeExample

@@ -364,7 +364,7 @@
       <code class="text-text-primary">preset</code>
       instead of repeating
       <code class="text-text-primary">slotClasses</code>. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      <a href={resolve('/customization')}>Customization</a>.
     </p>
   </div>
 </Section>

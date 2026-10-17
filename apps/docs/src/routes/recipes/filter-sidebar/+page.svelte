@@ -649,10 +649,7 @@
           matches
           <code class="text-text-primary">width="18rem"</code>) and move the two together. For a
           ready-made shell that wires the offset and the mobile header,
-          <a
-            class="text-primary hover:underline"
-            href={resolve('/blocks/components/sidebar-layout')}>SidebarLayout</a
-          > does both.
+          <a href={resolve('/blocks/components/sidebar-layout')}>SidebarLayout</a> does both.
         </p>
       </Note>
     </NoteList>

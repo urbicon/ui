@@ -238,7 +238,7 @@ toaster.clear();      // remove all`}
       >, applied via
       <code class="text-text-primary">preset</code>) is mainly useful for sharing a skin between
       apps or switching skins per surface. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      <a href={resolve('/customization')}>Customization</a>.
     </p>
   </div>
 </Section>

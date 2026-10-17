@@ -131,14 +131,10 @@
     </p>
     <p>
       For a single date use
-      <a href={resolve('/blocks/components/date-picker')} class="text-primary hover:underline"
-        >DatePicker</a
-      >; for the calendar without an input, see
-      <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
-        >Calendar</a
-      >. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a> for the
-      general contract.
+      <a href={resolve('/blocks/components/date-picker')}>DatePicker</a>; for the calendar without
+      an input, see
+      <a href={resolve('/blocks/components/calendar')}>Calendar</a>. See
+      <a href={resolve('/customization')}>Customization</a> for the general contract.
     </p>
   </div>
 </Section>
@@ -161,9 +157,7 @@
         <Kbd keys="Enter" /> or <Kbd keys="Space" /> opens and closes it. Opening leaves focus where it
         is, and <Kbd keys="Tab" /> from the calendar button moves into the calendar, whose grid navigation
         follows the
-        <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
-          >Calendar</a
-        >
+        <a href={resolve('/blocks/components/calendar')}>Calendar</a>
         pattern. From inside the calendar, <Kbd keys="Esc" /> or completing a range returns focus to the
         calendar button. In the field, <Kbd keys="Enter" /> closes an open calendar and otherwise commits
         what you typed. <Kbd keys="Esc" /> closes the calendar; with the calendar already closed, it discards

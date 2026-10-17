@@ -185,11 +185,9 @@ html.add('dark');             // force dark; add('light') forces light`;
 >
   <p class="text-text-secondary mb-6 leading-relaxed">
     Here for your own brand color? The
-    <a href={resolve('/customization/theme-builder')} class="text-primary hover:underline"
-      >Theme Builder</a
-    >
+    <a href={resolve('/customization/theme-builder')}>Theme Builder</a>
     generates the file;
-    <a href="#create" class="text-primary hover:underline">Write Your Own Theme</a> explains it.
+    <a href="#create">Write Your Own Theme</a> explains it.
   </p>
 
   <!-- Theme selector -->
@@ -276,9 +274,7 @@ html.add('dark');             // force dark; add('light') forces light`;
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--color-neutral-*</code>
       (the chassis). Keep each stop's lightness and chroma; change only the hue. The full file is 37 ramp
       stops long and the
-      <a href={resolve('/customization/theme-builder')} class="text-primary hover:underline"
-        >Theme Builder</a
-      >
+      <a href={resolve('/customization/theme-builder')}>Theme Builder</a>
       writes it for you; the template shows every decision in it:
     </p>
     <div
@@ -366,7 +362,6 @@ html.add('dark');             // force dark; add('light') forces light`;
           typography overrides silently revert, exactly like color overrides do. See
           <a
             href="https://github.com/urbicon/ui/blob/main/docs/TailwindCaveats.md"
-            class="text-primary hover:underline"
             target="_blank"
             rel="noreferrer">docs/TailwindCaveats.md</a
           >.
@@ -381,9 +376,7 @@ html.add('dark');             // force dark; add('light') forces light`;
       by the library at all, so overriding
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-6xl</code>
       changes nothing (the
-      <a href={resolve('/customization/tokens')} class="text-primary hover:underline"
-        >Token Reference</a
-      >
+      <a href={resolve('/customization/tokens')}>Token Reference</a>
       lists per-size use counts). And because blocks never sets
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">font-sans</code>, body
       type already inherits your page's font: you own that decision without any override.
@@ -433,9 +426,7 @@ html.add('dark');             // force dark; add('light') forces light`;
         >apps/docs/src/lib/theme-preview.ts</code
       >), and this docs site itself, which re-derives the primary family per page from the component
       family it documents:
-      <a href={resolve('/customization/rooms-theme')} class="text-primary hover:underline"
-        >Color Rooms</a
-      >.
+      <a href={resolve('/customization/rooms-theme')}>Color Rooms</a>.
     </p>
     <div
       class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mt-6 border p-4 text-sm leading-relaxed"
@@ -474,9 +465,7 @@ html.add('dark');             // force dark; add('light') forces light`;
     </p>
     <p class="text-text-secondary mb-6 leading-relaxed">
       The ready-made toggle is the
-      <a href={resolve('/blocks/components/theme-switcher')} class="text-primary hover:underline"
-        >ThemeSwitcher</a
-      >
+      <a href={resolve('/blocks/components/theme-switcher')}>ThemeSwitcher</a>
       component: it cycles light → dark → system, sets the class, and persists the choice to
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">localStorage</code>. Its
       page also carries the

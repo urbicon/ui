@@ -497,6 +497,35 @@ Apply to all markup in docs pages – identical to the component rules:
 
 Semantic tokens automatically adapt between light and dark mode.
 
+### Links in prose
+
+A link inside running text takes **no classes** — `<a href={resolve('/x')}>X</a>` and nothing
+more. One rule in `apps/docs/src/app.css` gives it the look of blocks' `<Link variant="inline">`:
+link ink, an underline in the quaternary text colour at rest that turns to the primary text
+colour on hover (the ink itself stays), the library's focus ring. The class list is read from
+`linkVariants` at build time (`apps/docs/src/lib/style/link-inline.ts`), so a change to the Link
+voice reaches the docs without an edit here. The underline matters: colour alone does not mark a
+link (WCAG 1.4.1, axe `link-in-text-block`). ApiReference and TypesReference draw their own links
+from the same `linkVariants` call, so a type link in a reference table looks like a prose link.
+
+The rule reaches every `<a>` inside a `p`, `li`, `td`, `blockquote` or `figcaption` under
+`[data-docs-content]` — DocsLayout's content column, RecipeShell's frame, and the hand-rolled
+prose columns of `/getting-started`, `/auth/guide` and the legal pages. A new page that renders
+prose without DocsLayout puts the attribute on its prose column, not on the whole page.
+
+- **Overriding** needs no `!important`: the rule sits in Tailwind's `base` layer, so any utility
+  class on the anchor (`text-*`, `no-underline`, `decoration-*`) wins. Reach for it only when the
+  link means something other than "a link in a sentence"; `text-primary hover:underline` on a
+  prose link brings back the colour-only look the rule exists to replace.
+- **Opting out** is `data-plain` on the anchor — for an anchor in those contexts that is not a
+  text link (a chip, a card, a nav row rendered as a list item). Never on a link that sits in a
+  sentence.
+- **Specimens are not prose**: anchors inside a `CodeExample` or playground stage
+  (`[data-docs-stage]`) are left as the component renders them.
+- **A Note or InfoCard body with a link** needs its text in a `<p>` — bare text in the card's
+  `div` is not a prose context.
+- **Not reached**: the landing and the section overviews carry no `data-docs-content`.
+
 ## Checklist for New/Updated Pages
 
 - [ ] `+page.svelte`: `breadcrumbs` prop with `resolve()` links (not a snippet, not a hand-rolled row)

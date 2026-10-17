@@ -370,9 +370,7 @@ slotClasses?: {
 
     <p class="text-text-secondary mt-6 leading-relaxed">
       When to reach for which of the three: the
-      <a href={resolve('/customization')} class="text-primary hover:underline"
-        >Customization hub's decision table</a
-      > settles it in one look.
+      <a href={resolve('/customization')}>Customization hub's decision table</a> settles it in one look.
     </p>
   </Section>
 
@@ -461,8 +459,8 @@ slotClasses?: {
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code> prop
       row (generated from the component's <code class="text-xs">tv()</code> config, so it cannot go
       stale), and your editor autocompletes the same keys. For example:
-      <a href={resolve('/blocks/primitives/card')} class="text-primary hover:underline">Card</a>,
-      <a href={resolve('/blocks/primitives/input')} class="text-primary hover:underline">Input</a>.
+      <a href={resolve('/blocks/primitives/card')}>Card</a>,
+      <a href={resolve('/blocks/primitives/input')}>Input</a>.
     </p>
     <CodeExample
       title="Reading a slot map"

@@ -227,7 +227,7 @@
       presets (<code class="text-text-primary">presets.Stepper</code> for the shell,
       <code class="text-text-primary">presets.StepperStep</code>
       for the per-step slots), applied via <code class="text-text-primary">preset</code>. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+      <a href={resolve('/customization')}>Customization</a>.
     </p>
   </div>
 </Section>

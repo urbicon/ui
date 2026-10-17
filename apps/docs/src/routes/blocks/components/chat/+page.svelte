@@ -47,16 +47,13 @@
 >
   <Section id="playground" title="Playground" titleHidden intent="primary">
     <p class="text-text-secondary mb-6 text-sm leading-relaxed">
-      Chat stacks an optional header, a <a
-        class="text-primary hover:underline"
-        href={resolve('/blocks/components/chat-message-list')}>ChatMessageList</a
+      Chat stacks an optional header, a <a href={resolve('/blocks/components/chat-message-list')}
+        >ChatMessageList</a
       >
       body, and a
-      <a class="text-primary hover:underline" href={resolve('/blocks/components/prompt-input')}
-        >PromptInput</a
-      >
+      <a href={resolve('/blocks/components/prompt-input')}>PromptInput</a>
       composer. The
-      <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>
+      <a href={resolve('/ai/chat')}>live playground</a>
       shows the full streaming stack.
     </p>
     <Playground />

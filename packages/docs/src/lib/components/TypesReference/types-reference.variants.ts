@@ -1,4 +1,8 @@
-import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
+import { linkVariants, type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
+
+// blocks' Link `variant="inline"` — called, not copied, so the reference tables
+// carry the same link as the library and the docs prose.
+const inlineLink = linkVariants({ variant: 'inline', active: false }).base();
 
 export const typesReferenceVariants = tv({
   slots: {
@@ -36,11 +40,7 @@ export const typesReferenceVariants = tv({
     // "+N more" after the capped literal badges — was an inline class string.
     moreValues: ['text-text-tertiary text-2xs'],
     usedBySection: ['text-text-secondary mt-2'],
-    usedByLink: [
-      'text-primary-text hover:text-primary-emphasis',
-      'hover:underline transition-colors',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
-    ],
+    usedByLink: [inlineLink],
     // `@see` on the type declaration. Same two roles as in ApiReference: a
     // navigable target becomes a real link, a bare sibling-type name stays a
     // quiet footnote chip — a link there would have nowhere to point.
@@ -49,10 +49,7 @@ export const typesReferenceVariants = tv({
       'inline-flex items-center rounded-modify',
       'bg-surface-quiet px-1.5 py-0.5 font-mono leading-none text-text-secondary'
     ],
-    seeAlsoLink: [
-      'text-primary-text underline decoration-primary/40 hover:decoration-primary',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
-    ],
+    seeAlsoLink: [inlineLink],
     // Empty state when the "only referenced" filter matches nothing — was an
     // inline class string on the markup.
     emptyText: ['text-text-tertiary py-6 text-center text-sm'],

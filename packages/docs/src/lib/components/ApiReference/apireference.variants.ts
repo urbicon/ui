@@ -1,4 +1,8 @@
-import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
+import { linkVariants, type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
+
+// blocks' Link `variant="inline"` — called, not copied, so the reference tables
+// carry the same link as the library and the docs prose.
+const inlineLink = linkVariants({ variant: 'inline', active: false }).base();
 
 export const apiReferenceVariants = tv({
   slots: {
@@ -18,6 +22,9 @@ export const apiReferenceVariants = tv({
     deprecatedCode: ['font-mono text-xs font-semibold text-text-tertiary line-through'],
     spreadCode: ['font-mono text-xs text-text-tertiary'],
     typeCode: ['font-mono text-xs text-text-secondary'],
+    // `typeCode` inside a `link`: the same face without a colour of its own, so
+    // the type takes the link ink.
+    linkCode: ['font-mono text-xs'],
     // typeChip without a border, just a quiet tint.
     typeChip: [
       'inline-flex items-center rounded-modify',
@@ -53,11 +60,7 @@ export const apiReferenceVariants = tv({
       'inline-flex items-center rounded-modify',
       'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
     ],
-    sourceLink: [
-      'text-primary-text underline decoration-primary/40 hover:decoration-primary',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-      'focus-visible:rounded-modify'
-    ],
+    sourceLink: [inlineLink],
     // The complete literal union. The row shows the first few as chips; a prop
     // like `icon` has dozens, and printing all of them in the cell is what the
     // clamp above exists to prevent.
@@ -72,7 +75,7 @@ export const apiReferenceVariants = tv({
       'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
     ],
     placeholder: ['text-text-tertiary'],
-    link: ['text-primary-text underline decoration-primary/40 hover:decoration-primary'],
+    link: [inlineLink],
     // Cross-reference to a TypesReference entry. Reads as prose-quiet inline
     // reference, not a link: the dotted underline is the only affordance until
     // hover, so a type-heavy table doesn't turn into a wall of blue.

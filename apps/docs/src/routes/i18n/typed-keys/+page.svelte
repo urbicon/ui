@@ -97,9 +97,8 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
       a missing or misspelled key in <code>de</code> is a compile error too — key parity by
       construction. For <strong>lazy</strong> locales the bundle isn't visible to the type-checker,
       so parity becomes a runtime check; pair it with
-      <a class="text-primary hover:underline" href={resolve('/i18n/package-integration')}
-        ><code>validatePackageTranslations</code></a
-      > in a test.
+      <a href={resolve('/i18n/package-integration')}><code>validatePackageTranslations</code></a> in a
+      test.
     </p>
     <CodeExample code={parityCode} language="typescript" preview={false} />
   </Section>

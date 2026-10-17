@@ -39,6 +39,31 @@
   --color-orange: oklch(79.031% 0.16977 71.361);
 }
 
+/* A link in running text looks like blocks' Link `variant="inline"`: the
+ * `link-inline` utility is that variant's class list, read from `linkVariants`
+ * by the plugin, never copied here. Colour alone would not mark it (WCAG 1.4.1,
+ * axe `link-in-text-block`), so the underline is there at rest.
+ *
+ * A class on the anchor must override this without !important. Unlayered, the
+ * rule would beat every Tailwind utility (those sit in @layer utilities), so it
+ * lives in `base`; inside `base` it has to outrank preflight's
+ * `a { color: inherit; text-decoration: inherit }`, hence `a` stays outside
+ * `:where()` (0,0,1, later in source order) and everything else, the opt-out
+ * included, inside. Only prose contexts are listed, so anchors styled as chips,
+ * cards or nav rows stay untouched; `data-plain` opts an anchor out inside
+ * them. Example and playground stages are excluded: a specimen (Breadcrumb's
+ * `li > a`, a Link variant) must render as a consumer sees it, and its markup
+ * is the library's, so it cannot carry `data-plain`. Author-facing rule:
+ * docs/DocsPageGuide.md § Links in prose. */
+@plugin './lib/style/link-inline.ts';
+
+@layer base {
+  :where([data-docs-content] :is(p, li, td, blockquote, figcaption):not([data-docs-stage] *))
+    a:where(:not([data-plain])) {
+    @apply link-inline;
+  }
+}
+
 /* Custom scrollbar for better UX. Bound to library semantic tokens so
  * the scrollbar follows the active theme (Editorial cream-paper or
  * library neutral). `light-dark()` resolution lives in

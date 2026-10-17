@@ -67,9 +67,8 @@
     <p class="text-text-tertiary mt-3 text-xs">
       Compile-time key parity is <strong>not</strong> checked for lazy locales — the chunk isn't
       visible to the type-checker. Guard parity at runtime with
-      <a class="text-primary hover:underline" href={resolve('/i18n/package-integration')}
-        ><code>validatePackageTranslations</code></a
-      > in a test.
+      <a href={resolve('/i18n/package-integration')}><code>validatePackageTranslations</code></a> in a
+      test.
     </p>
   </Section>
 
@@ -100,8 +99,8 @@
         <strong class="text-text-primary">If a load fails</strong> and no data exists for that
         locale,
         <code>load-failed-no-fallback</code> is reported to the
-        <a class="text-primary hover:underline" href={resolve('/i18n/provider')}>error sink</a> — the
-        loud signal that "the language you switched to can't be rendered."
+        <a href={resolve('/i18n/provider')}>error sink</a> — the loud signal that "the language you switched
+        to can't be rendered."
       </li>
     </ul>
     <p class="text-text-secondary mb-2">

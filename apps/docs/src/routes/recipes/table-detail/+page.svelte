@@ -488,7 +488,7 @@
       the address bar, so a link reopens the panel on the right record. For the table's own view
       (search, sort, page, page size, filters, grouping) use
       <code class="text-text-primary">bindViewToUrl</code>, on
-      <a class="text-primary hover:underline" href={resolve('/table/url-state')}>URL State</a>.
+      <a href={resolve('/table/url-state')}>URL State</a>.
     </p>
   </Section>
 </RecipeShell>

@@ -1,3 +1,4 @@
+import { linkVariants } from '@urbicon-ui/blocks';
 import { describe, expect, it } from 'vitest';
 import { apiReferenceVariants } from './apireference.variants';
 
@@ -14,6 +15,7 @@ describe('apiReferenceVariants', () => {
       'deprecatedCode',
       'spreadCode',
       'typeCode',
+      'linkCode',
       'typeChip',
       'defaultCode',
       'description',
@@ -52,7 +54,16 @@ describe('apiReferenceVariants', () => {
     expect(styles.typeCode()).toContain('text-text-secondary');
     expect(styles.description()).toContain('text-text-secondary');
     expect(styles.placeholder()).toContain('text-text-tertiary');
-    expect(styles.link()).toContain('text-primary');
+  });
+
+  it('styles its links as blocks Link variant="inline"', () => {
+    const styles = apiReferenceVariants();
+    const inline = linkVariants({ variant: 'inline', active: false }).base();
+
+    expect(styles.link()).toBe(inline);
+    expect(styles.sourceLink()).toBe(inline);
+    // The type inside a link takes the link ink rather than its own colour.
+    expect(styles.linkCode().split(/\s+/)).not.toContain('text-text-secondary');
   });
 
   it('styles prose @see references as a quiet non-link footnote', () => {

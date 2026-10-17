@@ -29,15 +29,15 @@
   <ul class="text-text-secondary mt-2 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       A side panel that is <em>part of the page layout</em> (persistent on desktop, no backdrop) →
-      <a href={r('/blocks/primitives/sidebar')} class="text-primary hover:underline">Sidebar</a>.
+      <a href={r('/blocks/primitives/sidebar')}>Sidebar</a>.
     </li>
     <li>
       A floating panel anchored to a specific trigger element (date picker, action list) →
-      <a href={r('/blocks/primitives/popover')} class="text-primary hover:underline">Popover</a>.
+      <a href={r('/blocks/primitives/popover')}>Popover</a>.
     </li>
     <li>
       A centered modal for confirmations or short forms →
-      <a href={r('/blocks/primitives/dialog')} class="text-primary hover:underline">Dialog</a>.
+      <a href={r('/blocks/primitives/dialog')}>Dialog</a>.
     </li>
   </ul>
 </Section>
@@ -168,7 +168,7 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={r('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={r('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

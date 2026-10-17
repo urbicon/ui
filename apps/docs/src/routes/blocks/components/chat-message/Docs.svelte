@@ -51,21 +51,18 @@
   <ul class="text-text-secondary mt-3 list-outside list-disc space-y-1.5 pl-5 text-sm">
     <li>
       <code class="text-text-primary">text</code> → rendered through
-      <a href={r('/blocks/components/streaming-markdown')} class="text-primary hover:underline"
-        >StreamingMarkdown</a
-      >, with links checked against the URL policy.
+      <a href={r('/blocks/components/streaming-markdown')}>StreamingMarkdown</a>, with links checked
+      against the URL policy.
     </li>
     <li>
       <code class="text-text-primary">reasoning</code> → a collapsed
-      <a href={r('/blocks/components/reasoning-disclosure')} class="text-primary hover:underline"
-        >ReasoningDisclosure</a
-      > with a "Thought for Xs" label.
+      <a href={r('/blocks/components/reasoning-disclosure')}>ReasoningDisclosure</a> with a "Thought for
+      Xs" label.
     </li>
     <li>
       <code class="text-text-primary">tool-call</code> → a
-      <a href={r('/blocks/components/tool-call-card')} class="text-primary hover:underline"
-        >ToolCallCard</a
-      > reflecting its pending / running / complete / error state.
+      <a href={r('/blocks/components/tool-call-card')}>ToolCallCard</a> reflecting its pending / running
+      / complete / error state.
     </li>
     <li>
       <code class="text-text-primary">attachment</code> → a policy-checked chip linking to the file as
@@ -110,7 +107,7 @@
       <p>
         <code class="text-text-primary">status: 'error'</code> and
         <code class="text-text-primary">'aborted'</code> render through the
-        <a href={r('/blocks/primitives/alert')} class="text-primary hover:underline">Alert</a>
+        <a href={r('/blocks/primitives/alert')}>Alert</a>
         primitive, so the failure is exposed with the correct alert semantics rather than styled text
         alone.
       </p>

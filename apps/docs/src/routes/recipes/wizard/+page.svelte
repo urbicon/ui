@@ -376,7 +376,7 @@
           <code class="text-text-primary">error</code>, because presence is all this wizard checks.
           When a step checks shape instead (an email format, a minimum length), hold the message
           back until there is input, as the
-          <a class="text-primary hover:underline" href={resolve('/recipes/login')}>Login Form</a>
+          <a href={resolve('/recipes/login')}>Login Form</a>
           recipe does, and fold that field's validity into
           <code class="text-text-primary">canNext</code> so the button and the message never disagree.
         </p>
@@ -395,9 +395,7 @@
     <p class="text-text-secondary mt-6 text-sm">
       The three steps here run in a fixed order. When an answer decides what the next step even
       asks, derive the steps from the answers instead:
-      <a class="text-primary hover:underline" href={resolve('/recipes/decision-tree-wizard')}
-        >Decision Tree Wizard</a
-      >
+      <a href={resolve('/recipes/decision-tree-wizard')}>Decision Tree Wizard</a>
       builds its flow that way.
     </p>
   </Section>

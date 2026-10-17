@@ -71,16 +71,12 @@
       <code class="text-text-primary">rightIcon</code> puts your own adornment where the stepper
       sits. The Arrow keys still step, but the +/− buttons are gone, so pair it with
       <code class="text-text-primary">hideStepper</code> or add your own controls. See the
-      <a href={resolve('/customization')} class="text-primary hover:underline"
-        >global Customization guide</a
-      >
+      <a href={resolve('/customization')}>global Customization guide</a>
       for the general contract.
     </p>
     <p>
       For money use
-      <a href={resolve('/blocks/components/currency-input')} class="text-primary hover:underline"
-        >CurrencyInput</a
-      >
+      <a href={resolve('/blocks/components/currency-input')}>CurrencyInput</a>
       instead: it stores minor units, so summing and comparison stay exact. NumberInput's values are plain
       numbers and carry the usual float caveats.
     </p>

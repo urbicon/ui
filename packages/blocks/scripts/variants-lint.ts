@@ -155,11 +155,23 @@ type Loaded = { file: string; name: string; fn: (props?: object) => unknown; cfg
 const loaded: Loaded[] = [];
 const fileErrors: string[] = [];
 
+// A table/docs config imports from `@urbicon-ui/blocks`, whose index pulls in
+// `.svelte` and cannot load here. The specifier points at this shim instead:
+// the engine plus every blocks config, so a slot can compose a blocks config
+// (`linkVariants(…).base()` in the docs reference tables).
+const BLOCKS_SHIM = resolve(import.meta.dir, '.__variants_lint_blocks_shim.ts');
+await Bun.write(
+  BLOCKS_SHIM,
+  [ENGINE, ...files.filter((f) => f.includes('/packages/blocks/'))]
+    .map((f) => `export * from '${f}';`)
+    .join('\n')
+);
+
 for (const file of files) {
   const src = await Bun.file(file).text();
   let rewritten = src
     .replaceAll("'#lib/utils/variants.js'", `'${ENGINE}'`)
-    .replaceAll("'@urbicon-ui/blocks'", `'${ENGINE}'`);
+    .replaceAll("'@urbicon-ui/blocks'", `'${BLOCKS_SHIM}'`);
   // A blocks config may pull shared style fragments from other #lib modules
   // (e.g. internal/field-chrome). The engine alias above is already resolved;
   // point any remaining #lib import at the real blocks lib dir so the temp
@@ -187,6 +199,7 @@ for (const file of files) {
     await unlink(tmp).catch(() => console.warn(`⚠ could not remove temp file ${tmp}`));
   }
 }
+await unlink(BLOCKS_SHIM).catch(() => console.warn(`⚠ could not remove temp file ${BLOCKS_SHIM}`));
 
 // The repo carries ~117 configs; a collapse of this number means the export
 // pattern or `.config` introspection drifted and the guard is checking air.

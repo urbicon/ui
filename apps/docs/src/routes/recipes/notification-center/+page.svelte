@@ -397,9 +397,7 @@
       <Note title="A drawer, not a popover under the bell">
         <p>
           A
-          <a class="text-primary hover:underline" href={resolve('/blocks/primitives/popover')}
-            >Popover</a
-          >
+          <a href={resolve('/blocks/primitives/popover')}>Popover</a>
           anchored to the bell suits a short preview. This panel carries tabs, per-item actions and a
           footer, so it takes a full-height column instead:
           <code class="text-text-primary">Drawer</code> mounts in the top layer, traps focus and
@@ -436,18 +434,11 @@
       Everything here lives in one <code class="text-text-primary">$state</code> array and resets on
       reload. When notifications come from a server,
       <code class="text-text-primary">@urbicon-ui/auth</code> ships the wired version:
-      <a class="text-primary hover:underline" href={resolve('/auth/components/notification-center')}
-        >NotificationCenter</a
-      >
+      <a href={resolve('/auth/components/notification-center')}>NotificationCenter</a>
       is this list with mark-as-read and delete against your endpoints,
-      <a class="text-primary hover:underline" href={resolve('/auth/components/notification-badge')}
-        >NotificationBadge</a
-      >
+      <a href={resolve('/auth/components/notification-badge')}>NotificationBadge</a>
       the bell count that renders nothing at zero, and
-      <a
-        class="text-primary hover:underline"
-        href={resolve('/auth/components/notification-listener')}>NotificationListener</a
-      >
+      <a href={resolve('/auth/components/notification-listener')}>NotificationListener</a>
       the live stream behind both.
     </p>
   </Section>

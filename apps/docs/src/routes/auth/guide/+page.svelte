@@ -36,7 +36,7 @@
     </nav>
   {/if}
 
-  <article class="guide-prose mt-10">
+  <article class="guide-prose mt-10" data-docs-content>
     <!-- eslint-disable-next-line svelte/no-at-html-tags — our own shipped doc, rendered at build time -->
     {@html data.html}
   </article>
@@ -78,15 +78,6 @@
 
   .guide-prose :global(p) {
     margin-block: 0.75rem;
-  }
-
-  .guide-prose :global(a) {
-    color: var(--color-primary);
-    text-decoration: none;
-  }
-
-  .guide-prose :global(a:hover) {
-    text-decoration: underline;
   }
 
   .guide-prose :global(ul),

@@ -21,6 +21,10 @@
    * colour the playground field has on a component page (rooms-docs.css § the
    * stage-frame rules). A recipe page has one primary stage — its live demo —
    * and the stamp lives here so no page can forget it.
+   *
+   * `data-docs-content` is the same hook DocsLayout puts on its content column:
+   * under it, links in running text take the look of blocks' Link
+   * `variant="inline"` (app.css).
    */
   interface Props {
     meta: RecipeMeta;
@@ -32,7 +36,7 @@
 
 <SeoMeta title="{meta.title} Recipe" description={meta.description} />
 
-<div class="mx-auto max-w-6xl px-6 py-12" data-recipe-page>
+<div class="mx-auto max-w-6xl px-6 py-12" data-recipe-page data-docs-content>
   <RecipeHeader {meta} />
   {@render children()}
 </div>

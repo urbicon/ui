@@ -47,9 +47,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/tooltip')} class="text-primary hover:underline"
-              >Tooltip</a
-            >
+            <a href={resolve('/blocks/primitives/tooltip')}>Tooltip</a>
           </td>
           <td class="py-3 pr-4 align-top">
             A short hover/focus description tied to
@@ -59,9 +57,7 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/menu')} class="text-primary hover:underline"
-              >Menu</a
-            >
+            <a href={resolve('/blocks/primitives/menu')}>Menu</a>
           </td>
           <td class="py-3 pr-4 align-top">
             A list of selectable actions with arrow-key navigation.
@@ -70,13 +66,9 @@
         </tr>
         <tr>
           <td class="py-3 pr-4 align-top">
-            <a href={resolve('/blocks/primitives/dialog')} class="text-primary hover:underline"
-              >Dialog</a
-            >
+            <a href={resolve('/blocks/primitives/dialog')}>Dialog</a>
             /
-            <a href={resolve('/blocks/primitives/drawer')} class="text-primary hover:underline"
-              >Drawer</a
-            >
+            <a href={resolve('/blocks/primitives/drawer')}>Drawer</a>
           </td>
           <td class="py-3 pr-4 align-top"
             >A blocking, modal flow: confirmation, form, edge sheet.</td
@@ -236,7 +228,7 @@
 
     <p class="text-text-secondary text-sm leading-relaxed">
       This is one of five ways to restyle a block. See
-      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>
+      <a href={resolve('/customization')}>Customization</a>
       for <code class="text-text-primary">class</code>,
       <code class="text-text-primary">slotClasses</code>,
       <code class="text-text-primary">unstyled</code>, <code class="text-text-primary">preset</code>

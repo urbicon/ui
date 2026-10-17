@@ -52,9 +52,7 @@
         <code class="text-text-primary">role="dialog"</code> popover and is a
         <code class="text-text-primary">role="grid"</code> of day cells, with the same keyboard
         model as
-        <a href={resolve('/blocks/components/calendar')} class="text-primary hover:underline"
-          >Calendar</a
-        >.
+        <a href={resolve('/blocks/components/calendar')}>Calendar</a>.
       </p>
     </Note>
     <Note title="Keyboard Navigation">

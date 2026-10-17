@@ -259,7 +259,7 @@
               <!-- External documentation link; `resolve()` only applies to
                    internal SvelteKit routes. -->
               <a href={item.seeAlso} class={slot('link')} target="_blank" rel="noopener external">
-                <code class={slot('typeCode')}>{item.type}</code>
+                <code class={slot('linkCode')}>{item.type}</code>
               </a>
             {:else if item.seeAlso?.startsWith('/') || item.seeAlso?.startsWith('#')}
               <!-- Internal documentation target — a route-relative path
@@ -273,7 +273,7 @@
                    falls through to the type-segment branch instead of becoming a
                    broken link. -->
               <a href={item.seeAlso} class={slot('link')}>
-                <code class={slot('typeCode')}>{item.type}</code>
+                <code class={slot('linkCode')}>{item.type}</code>
               </a>
             {:else}
               <!-- Type names documented by a TypesReference on this page become in-page

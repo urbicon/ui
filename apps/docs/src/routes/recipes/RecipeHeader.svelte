@@ -49,9 +49,12 @@
       {#if i > 0}<span aria-hidden="true" class="text-text-quaternary select-none">·</span>{/if}
       <!-- No `?? '#'`: a name with no page is plain text, not a link that goes
            nowhere. `registry:lint` fails on an unresolvable name anyway, so
-           this branch is the honest rendering of a state the gate catches. -->
+           this branch is the honest rendering of a state the gate catches.
+           `data-plain`: a dot-separated link row, not a link in a sentence, so
+           the prose underline (app.css) stays off it. -->
       {#if href}
         <a
+          data-plain
           href={r(href)}
           class="text-text-secondary hover:text-primary-text underline-offset-4 transition-colors hover:underline"
           >{comp}</a

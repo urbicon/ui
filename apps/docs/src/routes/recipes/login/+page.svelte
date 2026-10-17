@@ -291,9 +291,7 @@
           <code class="text-text-primary">loading</code>, failure lands in a dismissible Alert,
           success replaces the form. For sign-in with the logic included — sessions, passkeys, the
           forms around them —
-          <a class="text-primary hover:underline" href={resolve('/recipes/auth-passkey-login')}
-            >Passkey Login</a
-          >
+          <a href={resolve('/recipes/auth-passkey-login')}>Passkey Login</a>
           renders <code class="text-text-primary">LoginPage</code> from
           <code class="text-text-primary">@urbicon-ui/auth</code>.
         </p>

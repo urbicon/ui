@@ -324,9 +324,7 @@ const system = [
     <p class="text-text-secondary mt-6 text-sm">
       Why an untrusted payload is safe to render, what the catalog rejects, and how the generated
       prompt stays in step with the validator: the
-      <a class="text-primary hover:underline" href={resolve('/blocks/components/a2-ui-view')}
-        >A2UIView</a
-      > page.
+      <a href={resolve('/blocks/components/a2-ui-view')}>A2UIView</a> page.
     </p>
   </Section>
 </RecipeShell>
