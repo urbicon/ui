@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Checkbox, Input, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Checkbox, Input, Link, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -351,14 +351,14 @@
           slotClasses.links
         )}
       >
-        <a href={forgotPasswordUrl} class={cls('text-text-link hover:underline')}>
+        <Link href={forgotPasswordUrl} variant="inline" {unstyled}>
           {t.auth.login.forgotPassword}
-        </a>
+        </Link>
         <span>
           {t.auth.login.noAccount}
-          <a href={registerUrl} class={cls('text-text-link hover:underline')}>
+          <Link href={registerUrl} variant="inline" {unstyled}>
             {t.auth.login.register}
-          </a>
+          </Link>
         </span>
       </div>
     {/if}

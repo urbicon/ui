@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Input, Link, getBlocksConfig } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
@@ -178,11 +178,13 @@
   {#if linksSnippet}
     {@render linksSnippet()}
   {:else if success}
-    <a
+    <Link
       href={loginUrl}
-      class={cls('text-text-link mt-4 inline-block text-sm hover:underline', slotClasses.links)}
+      variant="inline"
+      {unstyled}
+      class={cls('mt-4 inline-block text-sm', slotClasses.links)}
     >
       {t.auth.login.submit}
-    </a>
+    </Link>
   {/if}
 </AuthPageShell>
