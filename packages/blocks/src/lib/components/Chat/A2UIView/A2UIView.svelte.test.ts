@@ -7,6 +7,8 @@ import * as attacks from './__fixtures__/hostile/attacks';
 import A2UIView from './A2UIView.svelte';
 import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from './a2ui.types';
 import type { A2UIViewProps } from './index';
+import { urbiconA2uiCatalog } from './urbicon/a2ui-urbicon-catalog';
+import { URBICON_A2UI_CATALOG_ID } from './urbicon/a2ui-urbicon-registry';
 
 // DOM/interaction tests for the A2UI renderer. The processor + validator +
 // pointer engines have their own node suites (a2ui-*.test.ts); here we assert
@@ -251,6 +253,111 @@ describe('A2UIView — catalog rendering + actions', () => {
     const strong = document.querySelector('strong');
     expect(strong?.textContent).toBe('bold');
     expect(document.body.textContent).toContain('A bold claim');
+  });
+});
+
+// The consent gate the Basic-catalog prop set cannot express: Button.disabled is
+// Urbicon's, and `not` is the only way to say "disabled UNTIL agreed".
+describe('A2UIView — consent gate and surface requirements (Urbicon catalog)', () => {
+  const urbiconSurface = (id = 's'): Envelope => ({
+    version: V,
+    createSurface: { surfaceId: id, catalogId: URBICON_A2UI_CATALOG_ID }
+  });
+  const consentForm = (withCheckbox: boolean): unknown[] => [
+    {
+      id: 'root',
+      component: 'Column',
+      children: withCheckbox ? ['agree', 'book'] : ['book']
+    },
+    ...(withCheckbox
+      ? [
+          {
+            id: 'agree',
+            component: 'Checkbox',
+            label: 'I accept the cancellation policy',
+            value: { path: '/agreed' }
+          }
+        ]
+      : []),
+    {
+      id: 'book',
+      component: 'Button',
+      child: 'bookLabel',
+      action: { event: { name: 'book' } },
+      disabled: { call: 'not', args: { value: { path: '/agreed' } } }
+    },
+    { id: 'bookLabel', component: 'Text', text: 'Book' }
+  ];
+
+  it('keeps the Button disabled until the consent checkbox is ticked', async () => {
+    const user = userEvent.setup();
+    const actions: A2uiActionEvent[] = [];
+    const reported: A2uiValidationIssue[][] = [];
+    render({
+      catalogs: [urbiconA2uiCatalog],
+      // `/agreed` is never initialised: an unset path counts as false.
+      payload: [urbiconSurface(), comps(consentForm(true))],
+      onAction: (actionEvent) => actions.push(actionEvent),
+      onValidationError: (issues) => reported.push(issues)
+    });
+    const book = () => screen.getByRole('button', { name: /Book/ }) as HTMLButtonElement;
+    const consent = screen.getByLabelText('I accept the cancellation policy');
+
+    expect(book().disabled).toBe(true);
+    await user.click(book());
+    expect(actions).toHaveLength(0);
+
+    await user.click(consent);
+    flushSync();
+    expect(book().disabled).toBe(false);
+    await user.click(book());
+    expect(actions.map((a) => a.name)).toEqual(['book']);
+
+    await user.click(consent);
+    flushSync();
+    expect(book().disabled).toBe(true);
+    // A well-formed gate is no issue at all.
+    expect(reported.flat()).toEqual([]);
+  });
+
+  it('reports a missing required checkbox once the surface settles, and none when present', () => {
+    const surfaceRequirements = {
+      s: [{ component: 'Checkbox', path: '/agreed', description: 'consent' }]
+    };
+    const missing = (batches: A2uiValidationIssue[][]) =>
+      batches.flat().filter((i) => i.code === A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT);
+
+    const reports: A2uiValidationIssue[][] = [];
+    const props = render({
+      catalogs: [urbiconA2uiCatalog],
+      surfaceRequirements,
+      payload: [urbiconSurface(), comps(consentForm(false))],
+      streaming: true,
+      onValidationError: (issues) => reports.push(issues)
+    });
+    // Mid-stream the checkbox may simply not have arrived yet.
+    expect(missing(reports)).toEqual([]);
+
+    flushSync(() => {
+      props.streaming = false;
+    });
+    flushSync();
+    expect(missing(reports)).toHaveLength(1);
+    expect(missing(reports)[0]).toMatchObject({ severity: 'error', surfaceId: 's' });
+    // Reported through the issue channel only — the surface still renders.
+    expect(screen.getByRole('button', { name: /Book/ })).toBeTruthy();
+
+    dispose?.();
+    document.body.replaceChildren();
+    const presentReports: A2uiValidationIssue[][] = [];
+    render({
+      catalogs: [urbiconA2uiCatalog],
+      surfaceRequirements,
+      payload: [urbiconSurface(), comps(consentForm(true))],
+      onValidationError: (issues) => presentReports.push(issues)
+    });
+    // Present: nothing to report, so the issue-free render stays silent.
+    expect(presentReports).toEqual([]);
   });
 });
 

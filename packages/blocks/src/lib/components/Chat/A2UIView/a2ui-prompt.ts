@@ -13,13 +13,14 @@
  * shared-axis props, and adds catalog-specific don'ts — all gated on features
  * the Basic catalog does not have, so the default stays untouched.
  *
- * Deliberately excludes any TRANSPORT section (how envelopes reach the client)
- * and any data-schema section: those are app-specific and each app appends them
- * (the chat-demo appends its fenced `a2ui` protocol + `a2uiDataSchemaSection`).
+ * Deliberately excludes any TRANSPORT section (how envelopes reach the client),
+ * any data-schema section and any surface requirements: those are app-specific
+ * and each app appends them (`a2uiFencedTransportSection`,
+ * `a2uiDataSchemaSection`, `a2uiSurfaceRequirementsSection`).
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
-import type { A2uiComponentSpec, A2uiPropSpec } from './a2ui-registry';
+import { type A2uiComponentSpec, type A2uiPropSpec, acceptsLogicCall } from './a2ui-registry';
 
 /** Props documented once in the shared section rather than per component. */
 const COMMON_PROP_KEYS = new Set(['accessibility', 'weight']);
@@ -52,7 +53,7 @@ function collectSharedAxes(
   return axes;
 }
 
-function renderKind(spec: A2uiPropSpec): string {
+function renderKind(key: string, spec: A2uiPropSpec): string {
   const shared = sharedAxisOf(spec);
   if (shared) return `shared ${shared} (see Shared axes)`;
   switch (spec.kind) {
@@ -64,6 +65,8 @@ function renderKind(spec: A2uiPropSpec): string {
     case 'number':
       return spec.dynamic ? 'number literal or { path } binding' : 'number';
     case 'boolean':
+      if (acceptsLogicCall(key, spec))
+        return 'boolean literal, { path } binding or not/and/or call';
       return spec.dynamic ? 'boolean literal or { path } binding' : 'boolean';
     case 'stringList':
       return 'string array or { path } binding';
@@ -87,7 +90,7 @@ function renderKind(spec: A2uiPropSpec): string {
 function renderProp(key: string, spec: A2uiPropSpec): string {
   const flags: string[] = [];
   flags.push(spec.required ? 'required' : 'optional');
-  flags.push(renderKind(spec));
+  flags.push(renderKind(key, spec));
   if (spec.default !== undefined) flags.push(`default ${JSON.stringify(spec.default)}`);
   return `  - ${key} (${flags.join('; ')}): ${spec.description}`;
 }
@@ -160,6 +163,9 @@ export function a2uiSystemPrompt(options?: {
   const grouped = componentNames.some((name) => categoryOf(registry[name]) !== undefined);
   const hasRichText = 'RichText' in registry;
   const hasSelectArray = 'Select' in registry && registry.Select.props.value?.kind === 'stringList';
+  const hasLogicProps = componentNames.some((name) =>
+    Object.entries(registry[name].props).some(([key, spec]) => acceptsLogicCall(key, spec))
+  );
 
   const sections: string[] = [];
 
@@ -260,8 +266,19 @@ export function a2uiSystemPrompt(options?: {
       'immediately; bound text updates live. Update state with updateDataModel — omit',
       '"value" to DELETE the key at "path".',
       '',
-      'Function-call bindings ({ "call": ..., "args": ... }) are NOT supported and',
-      'resolve to nothing — do NOT use them. Use literals and { path } only.'
+      ...(hasLogicProps
+        ? [
+            'Function calls ({ "call", "args" }) resolve to nothing, with three exceptions',
+            'that compute a boolean, allowed only where a prop says "not/and/or call":',
+            '{ "call": "not", "args": { "value": B } } and',
+            '{ "call": "and" | "or", "args": { "values": [B, B, ...] } } (two or more B),',
+            'each B being true, false, a { path } binding or another such call. Only true',
+            'counts as true: a path not yet written is false, so "not" of it is true.'
+          ]
+        : [
+            'Function-call bindings ({ "call": ..., "args": ... }) are NOT supported and',
+            'resolve to nothing — do NOT use them. Use literals and { path } only.'
+          ])
     ].join('\n')
   );
 
@@ -321,7 +338,9 @@ export function a2uiSystemPrompt(options?: {
     '',
     '- Do NOT define children inline; reference them by id.',
     '- Do NOT use more than one "root".',
-    '- Do NOT use function-call bindings or local function-call actions.',
+    hasLogicProps
+      ? '- Do NOT use function calls other than not/and/or, nor local function-call actions.'
+      : '- Do NOT use function-call bindings or local function-call actions.',
     `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`
   ];
   if (hasRichText) {

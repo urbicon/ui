@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { A2UI_ISSUE_CODES } from './a2ui.types';
 import { a2uiSystemPrompt } from './a2ui-prompt';
 import {
   A2UI_CATALOG_ID,
@@ -6,6 +7,7 @@ import {
   A2UI_REGISTRY,
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
+import { a2uiSurfaceRequirementsSection } from './a2ui-requirements';
 
 const prompt = a2uiSystemPrompt();
 
@@ -42,6 +44,13 @@ describe('a2uiSystemPrompt', () => {
     expect(prompt.toLowerCase()).toContain('do not use local function-call actions');
   });
 
+  // Basic's one dynamic boolean is CheckBox.value, a two-way input the
+  // validator refuses a computed value on — so nothing would accept the form.
+  it('does not offer the logic functions where no prop accepts them', () => {
+    expect(prompt).not.toContain('"call": "not"');
+    expect(prompt).not.toContain('not/and/or');
+  });
+
   it('omits any transport section (app-specific)', () => {
     expect(prompt).not.toContain('```a2ui');
     expect(prompt).not.toContain('SSE');
@@ -54,6 +63,42 @@ describe('a2uiSystemPrompt', () => {
 
   it('warns against unsupported components', () => {
     for (const name of UNSUPPORTED_A2UI_COMPONENTS) expect(prompt).toContain(name);
+  });
+});
+
+describe('a2uiSurfaceRequirementsSection', () => {
+  const section = a2uiSurfaceRequirementsSection({
+    booking: [
+      { component: 'Checkbox', path: '/agreed', description: 'consent to the cancellation policy' },
+      { component: 'Button', prop: 'disabled', path: '/locked' },
+      { component: 'Divider' }
+    ],
+    chat: []
+  });
+
+  it('pins the surfaceId and lists each requirement in the words the issue uses', () => {
+    expect(section).toContain('## Required components');
+    expect(section).toContain('exactly the surfaceId');
+    expect(section).toContain('- Surface "booking" must contain:');
+    expect(section).toContain(
+      '  - a Checkbox with value bound to { "path": "/agreed" } (consent to the cancellation policy)'
+    );
+    expect(section).toContain('  - a Button with disabled bound to { "path": "/locked" }');
+    expect(section.endsWith('\n  - a Divider')).toBe(true);
+  });
+
+  it('names the error the model gets back for an omission', () => {
+    expect(section).toContain(A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT);
+  });
+
+  it('skips a surface with no requirements, and is empty without any', () => {
+    expect(section).not.toContain('"chat"');
+    expect(a2uiSurfaceRequirementsSection({})).toBe('');
+    expect(a2uiSurfaceRequirementsSection({ chat: [] })).toBe('');
+  });
+
+  it('is not part of the catalog prompt, which cannot see consumer requirements', () => {
+    expect(prompt).not.toContain('## Required components');
   });
 });
 

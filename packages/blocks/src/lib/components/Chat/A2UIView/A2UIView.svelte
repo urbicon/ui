@@ -29,6 +29,7 @@
     pendingLabel = 'Loading UI',
     catalogs: catalogsProp,
     dataSchema: dataSchemaProp,
+    surfaceRequirements: surfaceRequirementsProp,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -63,6 +64,7 @@
   const defaultIcons = iconsByCatalog.get(defaultCatalog.catalogId) ?? defaultCatalog.createIcons();
   // Init-fixed like the catalogs (validation config, not reactive UI state).
   const dataSchema = untrack(() => dataSchemaProp);
+  const surfaceRequirements = untrack(() => surfaceRequirementsProp);
 
   // ── Processor (plain, non-reactive) + version counter ────────────────────
   // The processor mutates plain Maps in place (the streaming-markdown engine
@@ -70,7 +72,7 @@
   // render tree derives from it, so reading it is a real subscription (unlike a
   // `void messages` proxy read). `processor`/`consumed` are plain lets: their
   // reassignment must NOT itself trigger reactivity — the bump does.
-  let processor: A2uiProcessor = createA2uiProcessor({ catalogs, dataSchema });
+  let processor: A2uiProcessor = createA2uiProcessor({ catalogs, dataSchema, surfaceRequirements });
   let consumed: unknown[] = [];
   let normalizeIssue = $state<A2uiValidationIssue | undefined>(undefined);
   let version = $state(0);
@@ -97,7 +99,7 @@
       const prefixMatches =
         envelopes.length >= consumed.length && consumed.every((env, i) => env === envelopes[i]);
       if (!prefixMatches) {
-        processor = createA2uiProcessor({ catalogs, dataSchema });
+        processor = createA2uiProcessor({ catalogs, dataSchema, surfaceRequirements });
         consumed = [];
         generation++;
       }

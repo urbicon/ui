@@ -55,6 +55,18 @@ export interface A2uiPropSpec {
   promptHidden?: boolean;
 }
 
+/**
+ * Whether a prop takes a logic call (`not`/`and`/`or`): a dynamic boolean the
+ * renderer only reads, such as `Button.disabled`. `value` is excluded because
+ * it is the prop both node dispatchers write user input back through
+ * (`valuePointer`), and a computed value gives that write nowhere to land.
+ * The validator and the prompt both ask this, so what the model is told it may
+ * write is what the validator accepts.
+ */
+export function acceptsLogicCall(key: string, spec: A2uiPropSpec): boolean {
+  return spec.kind === 'boolean' && spec.dynamic === true && key !== 'value';
+}
+
 export interface A2uiComponentSpec {
   /** Agent-facing description; emitted into the system prompt verbatim. */
   description: string;

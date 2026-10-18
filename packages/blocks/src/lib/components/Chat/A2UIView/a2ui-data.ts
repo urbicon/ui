@@ -222,11 +222,187 @@ export function deleteAtPointer(model: unknown, pointer: string): void {
   }
 }
 
+// ── Logic functions ──────────────────────────────────────────────────────────
+
+/**
+ * The only function calls the engine evaluates: the A2UI Basic catalog's logic
+ * functions. Each computes a boolean from its operands and executes nothing;
+ * every other `call` resolves to `undefined`.
+ */
+export const A2UI_LOGIC_FUNCTIONS: ReadonlySet<string> = new Set(['not', 'and', 'or']);
+
+/**
+ * How deep logic calls may nest (`not(and(…))` is two). Far beyond any real
+ * gate; it exists so a hostile payload cannot drive the validator and the
+ * resolver into unbounded recursion.
+ */
+export const A2UI_MAX_LOGIC_DEPTH = 8;
+
+/** Why a logic call is not evaluated — the code, where below the call, and what is wrong. */
+export interface A2uiLogicFault {
+  code: string;
+  /** JSON Pointer below the call object (`/args/values/1`); `''` is the call itself. */
+  at: string;
+  message: string;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** A `{ call }` object naming one of {@link A2UI_LOGIC_FUNCTIONS} — well-formed or not. */
+export function isLogicCall(value: unknown): value is Record<string, unknown> & { call: string } {
+  return (
+    isPlainRecord(value) && typeof value.call === 'string' && A2UI_LOGIC_FUNCTIONS.has(value.call)
+  );
+}
+
+const CALL_KEYS: ReadonlySet<string> = new Set(['call', 'args', 'returnType']);
+const NOT_ARG_KEYS: ReadonlySet<string> = new Set(['value']);
+const LIST_ARG_KEYS: ReadonlySet<string> = new Set(['values']);
+
+function unexpectedKey(
+  object: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+  at: string,
+  where: string
+): A2uiLogicFault | undefined {
+  for (const key of Object.keys(object)) {
+    if (allowed.has(key)) continue;
+    return {
+      code: PROTO_KEYS.has(key)
+        ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION
+        : A2UI_ISSUE_CODES.UNKNOWN_PROP,
+      at: `${at}/${key}`,
+      message: `Unexpected key "${key}" in ${where}`
+    };
+  }
+  return undefined;
+}
+
+function operandFault(operand: unknown, at: string, depth: number): A2uiLogicFault | undefined {
+  if (typeof operand === 'boolean') return undefined;
+  if (isPlainRecord(operand)) {
+    if (typeof operand.call === 'string') {
+      if (!A2UI_LOGIC_FUNCTIONS.has(operand.call)) {
+        return {
+          code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          at,
+          message: `Function "${operand.call}" is not supported inside a logic call (only not, and, or are)`
+        };
+      }
+      const nested = logicCallFault(operand, depth + 1);
+      return nested && { ...nested, at: `${at}${nested.at}` };
+    }
+    if (typeof operand.path === 'string') {
+      const { issue } = parsePointer(operand.path);
+      return issue && { code: issue.code, at: `${at}/path`, message: issue.message };
+    }
+  }
+  return {
+    code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+    at,
+    message: 'A logic operand must be true, false, a { path } binding or a not/and/or call'
+  };
+}
+
+/**
+ * The first structural fault of a logic call, or `undefined` when it is
+ * well-formed. The shape is the Basic catalog's: `not` takes `args.value`;
+ * `and`/`or` take `args.values`, an array of two or more; no other key on the
+ * call or its args; `returnType`, if present, is `"boolean"`. Each operand is a
+ * boolean literal, a `{ path }` binding or another logic call. The validator
+ * reports this fault and `resolveDynamic` refuses to evaluate on it, so the two
+ * read one definition of well-formed.
+ */
+export function logicCallFault(
+  call: Record<string, unknown>,
+  depth = 1
+): A2uiLogicFault | undefined {
+  const name = String(call.call);
+  if (depth > A2UI_MAX_LOGIC_DEPTH) {
+    return {
+      code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      at: '',
+      message: `Logic calls nest deeper than ${A2UI_MAX_LOGIC_DEPTH} levels`
+    };
+  }
+  const extra = unexpectedKey(call, CALL_KEYS, '', `the "${name}" call`);
+  if (extra) return extra;
+  if ('returnType' in call && call.returnType !== 'boolean') {
+    return {
+      code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      at: '/returnType',
+      message: `"${name}" returns a boolean; returnType must be "boolean" or absent`
+    };
+  }
+  const args = call.args;
+  const shape = name === 'not' ? '{ value }' : '{ values: [...] }';
+  if (!isPlainRecord(args)) {
+    return {
+      code: args === undefined ? A2UI_ISSUE_CODES.MISSING_FIELD : A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      at: '/args',
+      message: `"${name}" needs args ${shape}`
+    };
+  }
+  if (name === 'not') {
+    const extraArg = unexpectedKey(args, NOT_ARG_KEYS, '/args', '"not" args');
+    if (extraArg) return extraArg;
+    if (!('value' in args)) {
+      return {
+        code: A2UI_ISSUE_CODES.MISSING_FIELD,
+        at: '/args/value',
+        message: `"not" needs args.value`
+      };
+    }
+    return operandFault(args.value, '/args/value', depth);
+  }
+  const extraArg = unexpectedKey(args, LIST_ARG_KEYS, '/args', `"${name}" args`);
+  if (extraArg) return extraArg;
+  const values = args.values;
+  if (!Array.isArray(values) || values.length < 2) {
+    return {
+      code: values === undefined ? A2UI_ISSUE_CODES.MISSING_FIELD : A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      at: '/args/values',
+      message: `"${name}" needs args.values: an array of two or more operands`
+    };
+  }
+  for (let i = 0; i < values.length; i++) {
+    const fault = operandFault(values[i], `/args/values/${i}`, depth);
+    if (fault) return fault;
+  }
+  return undefined;
+}
+
+/**
+ * Evaluate a logic call {@link logicCallFault} has passed. Strict truthiness:
+ * an operand counts as true only when it IS the boolean `true`, so an unset
+ * path (`undefined`), `null`, a string or a number all count as false — and
+ * `not` of a path nobody has written yet is `true`.
+ */
+function evaluateLogic(
+  call: Record<string, unknown>,
+  model: unknown,
+  scopePrefix: string | undefined
+): boolean {
+  const args = call.args as Record<string, unknown>;
+  const operand = (value: unknown): boolean =>
+    isLogicCall(value)
+      ? evaluateLogic(value, model, scopePrefix)
+      : resolveDynamic(value, model, scopePrefix).value === true;
+  if (call.call === 'not') return !operand(args.value);
+  const values = args.values as unknown[];
+  return call.call === 'and' ? values.every(operand) : values.some(operand);
+}
+
 /**
  * Resolve a Dynamic value union to a concrete value.
  * - `{ path }` (data binding) → the pointed-at model value (relative paths are
  *   resolved against `scopePrefix`, the current template item).
- * - `{ call, ... }` (function call) → `undefined` + a warning (unsupported in v1).
+ * - `{ call: 'not' | 'and' | 'or', args }` → the boolean it computes (see
+ *   `evaluateLogic` for the truthiness rule); a malformed one → `undefined` + a
+ *   warning.
+ * - any other `{ call, ... }` → `undefined` + a warning (unsupported).
  * - anything else (string/number/boolean/array/plain object) → returned as-is.
  *
  * Never throws; unresolved bindings yield `undefined` for graceful rendering.
@@ -238,6 +414,21 @@ export function resolveDynamic(
 ): { value: unknown; issue?: A2uiValidationIssue } {
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
     const object = value as Record<string, unknown>;
+
+    if (isLogicCall(object)) {
+      const fault = logicCallFault(object);
+      if (fault) {
+        return {
+          value: undefined,
+          issue: {
+            severity: 'warning',
+            code: fault.code,
+            message: `Malformed "${object.call}" call resolved to undefined: ${fault.message}`
+          }
+        };
+      }
+      return { value: evaluateLogic(object, model, scopePrefix) };
+    }
 
     if (typeof object.call === 'string') {
       return {
