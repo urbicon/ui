@@ -25,6 +25,7 @@ describe('bin/urbicon.js', () => {
   // `exports` map; one that omits `./package.json` throws ERR_PACKAGE_PATH_NOT_EXPORTED
   // here, before the shim ever runs.
   it('resolves @urbicon-ui/design/package.json as a deep import', () => {
+    expect(process.versions.bun, 'Bun ignores `exports` — this case needs Node').toBeUndefined();
     expect(() => require.resolve('@urbicon-ui/design/package.json')).not.toThrow();
   });
 

@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Version bump + changelog + annotated tag (Conventional Commits -> git-cliff).
 # Managed by @urbicon/udx — push changes back via `udx sync`.
-# Bun-native (no node/npm required). Unified versioning: if a packages/ folder
+# Bun-native (the script itself calls no node/npm; the repo's own build/test
+# scripts it verifies with may). Unified versioning: if a packages/ folder
 # exists, all non-private sub-packages get the same version as the root package.
 #
 # Internal sibling deps (on workspace-owned packages) are handled as follows:
@@ -34,23 +35,27 @@ if ! git diff --quiet -- ':!bundle-size.baseline.json' || ! git diff --cached --
   exit 1
 fi
 
+# A release is the commit "${RELEASE_PREFIX}v<version>" plus the tag
+# "v<version>" (step 5); the tag guard below reads both back.
+RELEASE_PREFIX="chore: release "
+
 # git-cliff (step 4) rewrites the whole CHANGELOG.md from the history and tags
 # this clone holds: a release it cannot reach is dropped from the file, and one
-# whose tag is missing is folded into the release after it. The tag of the
-# current version bounds the new release, so a shallow clone and a missing
-# v$CURRENT are refused here, before the minutes of verification below. The tag
-# is only demanded once this script's own release commit for that version is in
-# the history — a first release has no tag to miss.
+# whose tag is missing is folded into the release after it. So a shallow clone,
+# and a release commit in the history whose tag is not in the clone, are
+# refused here, before the minutes of verification below. A first release has
+# no release commit yet, so no tag to miss.
 if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
   echo "Error: this clone is shallow — git-cliff would drop every release it cannot reach from CHANGELOG.md."
   echo "  Fix: git fetch --unshallow --tags"
   exit 1
 fi
-CURRENT=$(bun -e 'console.log(require("./package.json").version)')
-if [ -n "$(git log -1 --format=%h --grep="^chore: release v$CURRENT\$")" ] &&
-  ! git rev-parse -q --verify "refs/tags/v$CURRENT" >/dev/null; then
-  echo "Error: v$CURRENT was released from this history, but its tag is not in this clone —"
-  echo "  git-cliff would fold every release whose tag is missing into the next one."
+UNTAGGED=$(LC_ALL=C comm -23 \
+  <(git log --format=%s | sed -n "s/^${RELEASE_PREFIX}\(v[0-9][0-9.]*\)\$/\1/p" | LC_ALL=C sort -u) \
+  <(git tag -l 'v*' | LC_ALL=C sort -u))
+if [ -n "$UNTAGGED" ]; then
+  echo "Error: $(echo "$UNTAGGED" | wc -l | tr -d ' ') release commit(s) without their tag in this clone ($(echo "$UNTAGGED" | head -3 | paste -sd' ')…) —"
+  echo "  git-cliff would fold each of those releases into the one after it."
   echo "  Fix: git fetch --tags"
   exit 1
 fi
@@ -238,7 +243,7 @@ if ! git diff HEAD --quiet -- bundle-size.baseline.json 2>/dev/null; then
   git add bundle-size.baseline.json
   echo "Staged bundle-size.baseline.json (updated ahead of this bump)"
 fi
-git commit -m "chore: release v$VERSION" --no-verify
+git commit -m "${RELEASE_PREFIX}v$VERSION" --no-verify
 git tag -a "v$VERSION" -m "v$VERSION"
 
 trap - ERR INT TERM

@@ -515,11 +515,12 @@ const DIAG = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 const GLOBAL_DIAG = /^error (TS\d+): (.*)$/;
 
 async function tsc(p: Project): Promise<TscResult> {
-  // stdout goes to a file, not a pipe. Under `bun --bun` (root `bun run test`)
-  // the `node` on PATH is Bun, so tsc runs on Bun; `Bun.spawn`'s pipe is a
-  // socket that fills once this reader falls behind, and Bun drops what it
-  // still holds for it when tsc calls process.exit() — the tail of
-  // --listFiles, where the fence files are. A file never makes the writer wait.
+  // stdout goes to a file, not a pipe. When the `node` on PATH is Bun (a
+  // `bun --bun` ancestor, or no Node installed), tsc runs on Bun, which has no
+  // `process.stdout._handle` and so ignores tsc's `setBlocking()`: once this
+  // reader lags, Bun queues the rest of --listFiles and drops it at
+  // process.exit() — the tail, where the fence files are. A file never makes
+  // the writer wait.
   const stdoutFile = join(p.dir, 'tsc.stdout');
   const proc = Bun.spawn(['bunx', 'tsc', '-p', p.tsconfig, '--listFiles', '--pretty', 'false'], {
     cwd: DOCS_GEN,

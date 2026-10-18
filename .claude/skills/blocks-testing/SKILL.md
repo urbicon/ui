@@ -7,7 +7,7 @@ description: Test conventions for this repo (Vitest, node vs jsdom, mounting Sve
 
 - Framework: Vitest (in `blocks`, `table`, `docs`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`)
 - Type checks: `bun run check` or per-package `svelte-check`
-- Run a package's tests with `bun --filter='<pkg>' run test` — **`run` is mandatory**; bare `bun test` bypasses the Vitest config and produces fake failures. Every package's `test` script is the one-shot run CI calls, on the runtime it names (`vitest run` or `bunx --bun vitest run`); watch mode is `test:watch`.
+- Run a package's tests with `bun --filter='<pkg>' run test` — **`run` is mandatory**; bare `bun test` bypasses the Vitest config and produces fake failures. Every package's `test` script is the one-shot run CI calls, on the runtime it names (`vitest run` or `bunx --bun vitest run`); watch mode is `test:watch`, where a package defines one.
 
 ## Component / DOM tests (`blocks`)
 

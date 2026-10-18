@@ -202,53 +202,8 @@ jobs:
       # step because it costs a full gate run per case; the cheap half (fence
       # extraction, line mapping) is in the docs-gen vitest suite below.
       - run: bun test packages/docs-gen/scripts/examples-lint.test.ts
-      # One step per package, so each suite has its own result in the Actions
-      # UI. Every step runs that package's own `test` script, which names the
-      # runtime (`vitest run` on Node, `bunx --bun vitest run` on Bun); the root
-      # `bun run test` — what the release bump verifies — runs the same scripts
-      # one after another, so the command lives in one place.
-      - run: bun --filter='@urbicon-ui/blocks' run test
-      - run: bun --filter='@urbicon-ui/i18n' run test
-      - run: bun --filter='@urbicon-ui/docs-gen' run test
-      - name: Test auth
-        working-directory: packages/auth
-        run: bun run test
-      - name: Test table
-        working-directory: packages/table
-        run: bun run test
-      # design + design-engine were missing until 2026-07-31, which is how a
-      # severity change in design-engine's linter shipped a red `design` suite
-      # past a green CI run: `urbicon validate`'s own gate tests live in `design`
-      # and nothing here executed them. These two carry the design loop the
-      # project sells, so they belong in the same list as the rest.
-      - name: Test design-engine
-        working-directory: packages/design-engine
-        run: bun run test
-      - name: Test design
-        working-directory: packages/design
-        run: bun run test
-      - name: Test sv add-on
-        working-directory: packages/sv
-        run: bun run test
-      # The unscoped bin shim; spawns design's built `dist/cli.js` (build:ts above).
-      - name: Test urbicon
-        working-directory: packages/urbicon
-        run: bun run test
-      - name: Test docs
-        working-directory: packages/docs
-        run: bun run test
-      - name: Test sveltekit-utils
-        working-directory: packages/sveltekit-utils
-        run: bun run test
-      # The last two off the list, found by counting `"test"` scripts against
-      # this job (2026-08). docs-app carries the rules the docs lints are built
-      # on — the playground-lint rule table, the translation parity check, the
-      # theme-example checks — so its 132 tests guard the guards.
-      - name: Test docs-app
-        working-directory: apps/docs
-        run: bun run test
-      - name: Test design-content
-        working-directory: packages/design-content
+      # Which suites run, and on which runtime, comes from each package's own `test` script.
+      - name: Unit tests (every package's `test` script, one after another)
         run: bun run test
 
   e2e:
