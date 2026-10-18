@@ -76,7 +76,9 @@ Both ids take a nav entry, `{ id: 'api', title: 'API Reference' }` then `{ id: '
 and `sections:lint` checks both entries and their order. In English the labels are what the two
 headings say (`apiReferenceTitle`, `typesTitle`). The headings follow the reader's locale, under its
 own `lang`, while the nav is written per page in English — so in German the TOC says "API Reference"
-over a heading that says "API-Referenz", until #146 derives the TOC from the rendered sections. A component whose types need an introduction the table cannot
+over a heading that says "API-Referenz", until #146 derives the TOC from the rendered sections. The
+counts beside the headings ("22 Props") are localized too but carry no `lang` of their own, since
+`Section` takes `meta` as a string. A component whose types need an introduction the table cannot
 give passes `typesDescription` (`toast` does: which of its types a caller constructs).
 
 **The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and

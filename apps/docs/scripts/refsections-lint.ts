@@ -46,8 +46,9 @@ const ROUTES = join(dirname(fileURLToPath(import.meta.url)), '../src/routes');
 const COMPOSED: Record<string, string> = {
   '/blocks/components/guide':
     'family page — one API Reference section holds a prop table per Guide surface and per ' +
-    'controller/tour/step/event API under one Types section; every table renders through the ' +
-    "page's `propTable` snippet, which binds the one `types` list that Types section renders"
+    'controller/tour/step/event API under one Types section; the tables go through the ' +
+    "page's `propTable` snippet, which binds the one `types` list that Types section renders " +
+    '(a table written outside it, or a snippet that drops `types`, passes this gate)'
 };
 
 interface Node {
@@ -130,6 +131,7 @@ const composedSeen = new Set<string>();
 
 for (const page of pages) {
   const { route } = page;
+  if (route in COMPOSED) composedSeen.add(route);
   if (page.importsOwnApi && !page.hasApi) {
     errors.push(
       `${route}: imports './api' but no api.ts was generated for it, so its reference sections ` +
@@ -139,7 +141,6 @@ for (const page of pages) {
     continue;
   }
   if (route in COMPOSED) {
-    composedSeen.add(route);
     if (page.rendersReferenceSections) {
       errors.push(`${route}: renders <ReferenceSections> — drop its COMPOSED entry`);
     }
