@@ -7,6 +7,8 @@ import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
+import { A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
+import type { A2uiRequiredComponent, A2uiSurfaceRequirements } from './a2ui-requirements';
 import {
   type A2uiProcessor,
   type A2uiSurfaceState,
@@ -14,7 +16,7 @@ import {
   createA2uiProcessor,
   normalizeA2uiPayload
 } from './a2ui-validate';
-import { urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
+import { URBICON_A2UI_CATALOG_ID, urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -585,6 +587,543 @@ describe('A2UIView validator — hardening (review regressions)', () => {
       ])
     ]);
     expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.DUPLICATE_OPTION)).toBe(true);
+  });
+});
+
+// ── Logic functions and surface requirements (Urbicon catalog: Button.disabled) ──
+
+const V91 = 'v0.9.1';
+
+/** Apply one Urbicon surface built from `components`, with optional requirements. */
+function urbiconSurface(
+  components: unknown[],
+  options: { surfaceRequirements?: A2uiSurfaceRequirements; surfaceId?: string } = {}
+): A2uiProcessor {
+  const surfaceId = options.surfaceId ?? 's';
+  const proc = createA2uiProcessor({
+    catalogs: [urbiconA2uiCatalogSpec],
+    surfaceRequirements: options.surfaceRequirements
+  });
+  proc.apply({ version: V91, createSurface: { surfaceId, catalogId: URBICON_A2UI_CATALOG_ID } }, 0);
+  proc.apply({ version: V91, updateComponents: { surfaceId, components } }, 1);
+  return proc;
+}
+
+const not = (value: unknown) => ({ call: 'not', args: { value } });
+const and = (...values: unknown[]) => ({ call: 'and', args: { values } });
+const or = (...values: unknown[]) => ({ call: 'or', args: { values } });
+
+describe('logic-function bindings (not / and / or)', () => {
+  const gatedButton = (disabled: unknown): unknown[] => [
+    {
+      id: 'root',
+      component: 'Button',
+      child: 'label',
+      action: { event: { name: 'book' } },
+      disabled
+    },
+    { id: 'label', component: 'Text', text: 'Book' }
+  ];
+  const DISABLED = '/messages/1/updateComponents/components/0/disabled';
+  const storedDisabled = (proc: A2uiProcessor) =>
+    proc.surfaces.get('s')?.components.get('root')?.props.get('disabled');
+
+  it('stores a well-formed gate on Button.disabled without an issue', () => {
+    const gate = not({ path: '/agreed' });
+    const proc = urbiconSurface(gatedButton(gate));
+    expect(allIssues(proc)).toEqual([]);
+    expect(storedDisabled(proc)).toEqual(gate);
+  });
+
+  it('stores nested and / or, and the spec returnType', () => {
+    const gate = {
+      ...not(and({ path: '/agreed' }, or({ path: '/email' }, { path: '/phone' }))),
+      returnType: 'boolean'
+    };
+    const proc = urbiconSurface(gatedButton(gate));
+    expect(allIssues(proc)).toEqual([]);
+    expect(storedDisabled(proc)).toEqual(gate);
+  });
+
+  const malformed: Array<[string, unknown, string, string]> = [
+    ['no args', { call: 'not' }, A2UI_ISSUE_CODES.MISSING_FIELD, '/args'],
+    ['no operand', { call: 'not', args: {} }, A2UI_ISSUE_CODES.MISSING_FIELD, '/args/value'],
+    [
+      'an unknown arg key',
+      { call: 'not', args: { value: true, other: 1 } },
+      A2UI_ISSUE_CODES.UNKNOWN_PROP,
+      '/args/other'
+    ],
+    [
+      'an unknown key on the call',
+      { ...not(true), when: 'now' },
+      A2UI_ISSUE_CODES.UNKNOWN_PROP,
+      '/when'
+    ],
+    [
+      'a returnType other than boolean',
+      { ...not(true), returnType: 'string' },
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/returnType'
+    ],
+    ['one operand for and', and(true), A2UI_ISSUE_CODES.TYPE_MISMATCH, '/args/values'],
+    [
+      'values that are not an array',
+      { call: 'or', args: { values: true } },
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/args/values'
+    ],
+    ['a string operand', or(true, 'yes'), A2UI_ISSUE_CODES.TYPE_MISMATCH, '/args/values/1'],
+    [
+      'an unsupported function as an operand',
+      and(true, { call: 'required', args: { value: { path: '/name' } } }),
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/args/values/1'
+    ],
+    [
+      'a fault inside a nested call',
+      not(and(true, { path: '/agreed' }, or(false))),
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/args/value/args/values/2/args/values'
+    ],
+    [
+      'a poisoned operand path',
+      not({ path: '/__proto__/x' }),
+      A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+      '/args/value/path'
+    ],
+    [
+      'an own __proto__ arg key',
+      JSON.parse('{"call":"not","args":{"value":true,"__proto__":{"x":1}}}'),
+      A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+      '/args/__proto__'
+    ]
+  ];
+  for (const [name, gate, code, at] of malformed) {
+    it(`reports a gate with ${name} as ${code} at its own path, and holds it closed`, () => {
+      const proc = urbiconSurface(gatedButton(gate));
+      const issues = allIssues(proc);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]).toMatchObject({
+        severity: 'error',
+        code,
+        surfaceId: 's',
+        path: DISABLED + at
+      });
+      // Button.disabled's failsafe: a broken consent gate keeps the button disabled.
+      expect(storedDisabled(proc)).toBe(true);
+    });
+  }
+
+  it('holds a gate nested deeper than the limit closed', () => {
+    let gate: unknown = true;
+    for (let i = 0; i < A2UI_MAX_LOGIC_DEPTH + 1; i++) gate = not(gate);
+    const proc = urbiconSurface(gatedButton(gate));
+    expect(allIssues(proc).map((i) => [i.severity, i.code])).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH]
+    ]);
+    expect(storedDisabled(proc)).toBe(true);
+  });
+
+  it('caps the operands of one call tree, and holds a gate over the cap closed', () => {
+    const wide = (count: number) => or(...Array.from({ length: count }, () => false));
+    expect(allIssues(urbiconSurface(gatedButton(wide(A2UI_MAX_LOGIC_OPERANDS))))).toEqual([]);
+    const over = urbiconSurface(gatedButton(wide(A2UI_MAX_LOGIC_OPERANDS + 1)));
+    expect(allIssues(over).map((i) => [i.severity, i.code])).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH]
+    ]);
+    expect(storedDisabled(over)).toBe(true);
+    // Counted across the tree, not per call: two calls of 40 are 82 operands.
+    const nested = and(wide(40), wide(40));
+    expect(codes(allIssues(urbiconSurface(gatedButton(nested))))).toEqual(
+      new Set([A2UI_ISSUE_CODES.TYPE_MISMATCH])
+    );
+  });
+
+  it('holds a gate naming any other function closed, at the top as nested', () => {
+    // The shape of upstream's own button-gating example: `required` inside `and`.
+    const upstream = not(
+      and({ call: 'required', args: { value: { path: '/terms' } } }, { path: '/agreed' })
+    );
+    for (const gate of [{ call: 'required', args: { value: true } }, upstream]) {
+      const proc = urbiconSurface(gatedButton(gate));
+      const issues = allIssues(proc);
+      expect(issues.map((i) => i.severity)).toEqual(['error']);
+      expect(issues[0].message).toContain('"required"');
+      expect(storedDisabled(proc)).toBe(true);
+    }
+  });
+
+  it('holds the failsafe for any value a gate cannot use, not only a call', () => {
+    const unusable: Array<[unknown, string]> = [
+      ['true', A2UI_ISSUE_CODES.TYPE_MISMATCH],
+      [{ path: '/__proto__/x' }, A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION]
+    ];
+    for (const [value, code] of unusable) {
+      const proc = urbiconSurface(gatedButton(value));
+      const issues = allIssues(proc);
+      expect(issues.map((i) => [i.severity, i.code])).toEqual([['error', code]]);
+      expect(issues[0].message).toContain('"disabled" is held at true');
+      expect(storedDisabled(proc)).toBe(true);
+    }
+  });
+
+  it('leaves a usable value on a gate as written', () => {
+    for (const value of [false, { path: '/locked' }]) {
+      const proc = urbiconSurface(gatedButton(value));
+      expect(allIssues(proc)).toEqual([]);
+      expect(storedDisabled(proc)).toEqual(value);
+    }
+  });
+
+  it('keeps warning about any other function name outside a gate, as before', () => {
+    const proc = urbiconSurface([
+      { id: 'root', component: 'Text', text: { call: 'formatDate', args: {} } }
+    ]);
+    expect(allIssues(proc).map((i) => [i.severity, i.code])).toEqual([
+      ['warning', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED]
+    ]);
+  });
+
+  describe('in action.event.context', () => {
+    const withContext = (context: Record<string, unknown>) =>
+      urbiconSurface([
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'label',
+          action: { event: { name: 'go', context } }
+        },
+        { id: 'label', component: 'Text', text: 'Go' }
+      ]);
+    const CONTEXT = '/messages/1/updateComponents/components/0/action/event/context';
+    const storedAction = (proc: A2uiProcessor) =>
+      proc.surfaces.get('s')?.components.get('root')?.props.get('action');
+
+    it('accepts a well-formed call without an issue', () => {
+      expect(allIssues(withContext({ ok: not({ path: '/agreed' }) }))).toEqual([]);
+    });
+
+    it('reports a malformed call as an error and keeps the action', () => {
+      const proc = withContext({ ok: and(true) });
+      expect(allIssues(proc)).toEqual([
+        expect.objectContaining({
+          severity: 'error',
+          code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          path: `${CONTEXT}/ok/args/values`
+        })
+      ]);
+      expect(storedAction(proc)).toBeDefined();
+    });
+
+    it('warns about any other function, as a prop does', () => {
+      const proc = withContext({ when: { call: 'formatDate', args: {} } });
+      expect(allIssues(proc).map((i) => [i.severity, i.code, i.path])).toEqual([
+        ['warning', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED, `${CONTEXT}/when`]
+      ]);
+      expect(storedAction(proc)).toBeDefined();
+    });
+  });
+
+  it("refuses a logic call on an input's two-way value", () => {
+    const proc = urbiconSurface([
+      { id: 'root', component: 'Checkbox', label: 'All', value: not({ path: '/none' }) }
+    ]);
+    expect(allIssues(proc).find((i) => i.code === A2UI_ISSUE_CODES.TYPE_MISMATCH)).toMatchObject({
+      severity: 'error',
+      path: '/messages/1/updateComponents/components/0/value'
+    });
+  });
+
+  it('refuses a logic call in a prop that is not a boolean', () => {
+    const proc = urbiconSurface([{ id: 'root', component: 'Text', text: not(true) }]);
+    expect(allIssues(proc).find((i) => i.code === A2UI_ISSUE_CODES.TYPE_MISMATCH)).toMatchObject({
+      severity: 'error',
+      path: '/messages/1/updateComponents/components/0/text'
+    });
+  });
+
+  it('refuses a logic call as an option label', () => {
+    const proc = urbiconSurface([
+      {
+        id: 'root',
+        component: 'RadioGroup',
+        value: { path: '/pick' },
+        options: [
+          { label: not(true), value: 'a' },
+          { label: 'B', value: 'b' }
+        ]
+      }
+    ]);
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
+  });
+
+  it('is accepted nowhere in the Basic catalog, whose one dynamic boolean is a two-way value', () => {
+    const proc = applyAll([
+      { version: V91, createSurface: { surfaceId: 's', catalogId: 'x' } },
+      {
+        version: V91,
+        updateComponents: {
+          surfaceId: 's',
+          components: [{ id: 'root', component: 'CheckBox', label: 'All', value: not(true) }]
+        }
+      }
+    ]);
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
+  });
+});
+
+describe('surface requirements', () => {
+  const consent: A2uiSurfaceRequirements = {
+    booking: [{ component: 'Checkbox', path: '/agreed', description: 'consent to the policy' }]
+  };
+  const consentBox = (value: unknown = { path: '/agreed' }) => ({
+    id: 'agree',
+    component: 'Checkbox',
+    label: 'I agree',
+    value
+  });
+  /** A booking form whose root lists `children` after an intro, plus `extra` definitions. */
+  const form = (children: string[], ...extra: unknown[]): unknown[] => [
+    { id: 'root', component: 'Column', children: ['intro', ...children] },
+    { id: 'intro', component: 'Text', text: 'Book a stay' },
+    ...extra
+  ];
+  const missing = (issues: A2uiValidationIssue[]) =>
+    issues.filter((i) => i.code === A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT);
+  const booking = (components: unknown[], requirements = consent) =>
+    urbiconSurface(components, { surfaceRequirements: requirements, surfaceId: 'booking' });
+
+  it('reports a missing required component once, as an error, when the surface settles', () => {
+    expect(missing(allIssues(booking(form([]))))).toEqual([
+      {
+        severity: 'error',
+        code: A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
+        surfaceId: 'booking',
+        message:
+          'Surface "booking" must contain a Checkbox with value bound to { "path": "/agreed" } (consent to the policy); none renders from "root" (a fault chip does not count)'
+      }
+    ]);
+  });
+
+  it('stays silent mid-stream', () => {
+    expect(missing(allIssues(booking(form([])), true))).toEqual([]);
+  });
+
+  it('is met by a reachable component bound to the pointer', () => {
+    expect(allIssues(booking(form(['agree'], consentBox())))).toEqual([]);
+  });
+
+  it('does not count a component that is defined but never reached from root', () => {
+    expect(missing(allIssues(booking(form([], consentBox()))))).toHaveLength(1);
+  });
+
+  it('does not count one bound elsewhere, or holding a literal', () => {
+    const elsewhere = booking(form(['agree'], consentBox({ path: '/other' })));
+    expect(missing(allIssues(elsewhere))).toHaveLength(1);
+    expect(missing(allIssues(booking(form(['agree'], consentBox(false)))))).toHaveLength(1);
+  });
+
+  it('resolves a relative binding against its template item before matching', () => {
+    const rows = (pointer: string, withItem: boolean) => {
+      const proc = booking(
+        [
+          { id: 'root', component: 'Column', children: { componentId: 'agree', path: '/rows' } },
+          consentBox({ path: 'agreed' })
+        ],
+        { booking: [{ component: 'Checkbox', path: pointer }] }
+      );
+      if (withItem) {
+        proc.apply(
+          { version: V91, updateDataModel: { surfaceId: 'booking', value: { rows: [{}] } } },
+          2
+        );
+      }
+      return proc;
+    };
+    expect(missing(allIssues(rows('/rows/0/agreed', true)))).toEqual([]);
+    expect(missing(allIssues(rows('/agreed', true)))).toHaveLength(1);
+    // No item yet: the template renders nothing, so nothing meets the requirement.
+    expect(missing(allIssues(rows('/rows/0/agreed', false)))).toHaveLength(1);
+  });
+
+  it('matches by name alone without a path, and through a named prop', () => {
+    const withButton = form(
+      ['go'],
+      {
+        id: 'go',
+        component: 'Button',
+        child: 'goLabel',
+        action: { event: { name: 'go' } },
+        disabled: { path: '/locked' }
+      },
+      { id: 'goLabel', component: 'Text', text: 'Go' }
+    );
+    expect(allIssues(booking(withButton, { booking: [{ component: 'Button' }] }))).toEqual([]);
+    expect(
+      allIssues(
+        booking(withButton, {
+          booking: [{ component: 'Button', prop: 'disabled', path: '/locked' }]
+        })
+      )
+    ).toEqual([]);
+  });
+
+  // First come, first served would give b1 to the `/a` entry and leave
+  // `label → /l` with nothing; only b1 can meet that one.
+  it('matches entries to components as a whole, not first come first served', () => {
+    const proc = booking(
+      [
+        { id: 'root', component: 'Column', children: ['b1', 'b2'] },
+        { id: 'b1', component: 'Checkbox', label: { path: '/l' }, value: { path: '/a' } },
+        { id: 'b2', component: 'Checkbox', label: 'x', value: { path: '/a' } }
+      ],
+      {
+        booking: [
+          { component: 'Checkbox', path: '/a' },
+          { component: 'Checkbox', prop: 'label', path: '/l' }
+        ]
+      }
+    );
+    expect(allIssues(proc)).toEqual([]);
+  });
+
+  it('spends one rendered component on one requirement', () => {
+    const twoBoxes = {
+      booking: [
+        { component: 'Checkbox', description: 'privacy' },
+        { component: 'Checkbox', path: '/agreed', description: 'policy' }
+      ]
+    };
+    // One box: the bound entry takes it, so the name-only one is still missing.
+    const one = missing(allIssues(booking(form(['agree'], consentBox()), twoBoxes)));
+    expect(one.map((i) => i.message)).toEqual([expect.stringContaining('(privacy)')]);
+    const second = { ...consentBox({ path: '/privacy' }), id: 'privacy' };
+    expect(allIssues(booking(form(['privacy', 'agree'], consentBox(), second), twoBoxes))).toEqual(
+      []
+    );
+  });
+
+  it('reports each unmet requirement separately', () => {
+    const both = { booking: [{ component: 'Checkbox', path: '/agreed' }, { component: 'Button' }] };
+    expect(missing(allIssues(booking(form([]), both)))).toHaveLength(2);
+  });
+
+  it('leaves surfaces without an entry alone, including one named after an inherited member', () => {
+    for (const surfaceId of ['chat', 'toString', '__defineGetter__']) {
+      const proc = urbiconSurface(form([]), { surfaceRequirements: consent, surfaceId });
+      expect(missing(allIssues(proc))).toEqual([]);
+    }
+  });
+
+  it('reports only MISSING_ROOT for a settled surface without a root', () => {
+    const proc = booking([{ id: 'intro', component: 'Text', text: 'x' }]);
+    expect(allIssues(proc).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MISSING_ROOT]);
+  });
+
+  // The user sees a fault chip there, not a consent box.
+  it('does not count a component that renders as a fault chip', () => {
+    for (const label of [undefined, 42, not(true)]) {
+      const box = { id: 'agree', component: 'Checkbox', value: { path: '/agreed' }, label };
+      expect(missing(allIssues(booking(form(['agree'], box))))).toHaveLength(1);
+    }
+  });
+
+  it('tolerates a hand-built surface state without requirements', () => {
+    const surface = booking(form([])).surfaces.get('booking');
+    if (!surface) throw new Error('surface missing');
+    const { requirements: _dropped, ...handBuilt } = surface;
+    expect(collectGraphIssues(handBuilt)).toEqual([]);
+  });
+
+  describe('an entry the catalog can never meet', () => {
+    const unmeetable: Array<[string, A2uiRequiredComponent, string]> = [
+      ['a component the catalog lacks', { component: 'CheckBox' }, 'has no component "CheckBox"'],
+      [
+        'a prop the component does not declare',
+        { component: 'Checkbox', prop: 'checked', path: '/agreed' },
+        'declares no prop "checked"'
+      ],
+      [
+        'a prop that takes no binding',
+        { component: 'Text', prop: 'variant', path: '/style' },
+        'cannot be bound'
+      ],
+      ['a relative path', { component: 'Checkbox', path: 'agreed' }, 'is relative']
+    ];
+    for (const [name, requirement, reason] of unmeetable) {
+      it(`reports ${name} once, as INVALID_REQUIREMENT, and never asks the agent for it`, () => {
+        // Built the way the requirement asks, as a model following it would.
+        const proc = booking(
+          form(['agree'], { ...consentBox({ path: 'agreed' }), checked: { path: '/agreed' } }),
+          { booking: [requirement] }
+        );
+        const issues = allIssues(proc);
+        const invalid = issues.filter((i) => i.code === A2UI_ISSUE_CODES.INVALID_REQUIREMENT);
+        expect(invalid).toHaveLength(1);
+        expect(invalid[0]).toMatchObject({ severity: 'warning', surfaceId: 'booking' });
+        expect(invalid[0].message).toContain(reason);
+        expect(missing(issues)).toEqual([]);
+      });
+    }
+
+    it('keeps checking the entries beside it', () => {
+      const proc = booking(form([]), {
+        booking: [{ component: 'CheckBox' }, { component: 'Checkbox', path: '/agreed' }]
+      });
+      expect(codes(allIssues(proc))).toEqual(
+        new Set([A2UI_ISSUE_CODES.INVALID_REQUIREMENT, A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT])
+      );
+    });
+  });
+
+  // Which catalog a surface lands on is the agent's choice, and A2UIView always
+  // holds Basic first, as the default and fallback.
+  describe('when the agent picks a catalog that cannot hold the entry', () => {
+    const onCatalog = (catalogId: string, components: unknown[], requirements = consent) => {
+      const proc = createA2uiProcessor({
+        catalogs: [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec],
+        surfaceRequirements: requirements
+      });
+      proc.apply({ version: V91, createSurface: { surfaceId: 'booking', catalogId } }, 0);
+      proc.apply({ version: V91, updateComponents: { surfaceId: 'booking', components } }, 1);
+      return proc;
+    };
+    const noConsent = [
+      { id: 'root', component: 'Column', children: ['note'] },
+      { id: 'note', component: 'Text', text: 'Three nights in Cala' }
+    ];
+    const basicIds = [
+      basicA2uiCatalogSpec.catalogId,
+      'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
+      'urbicon-ui/urbicon-catalog/v2'
+    ];
+
+    for (const catalogId of basicIds) {
+      it(`keeps it checked on "${catalogId}" and names the catalog that can hold it`, () => {
+        const issues = allIssues(onCatalog(catalogId, noConsent));
+        expect(codes(issues).has(A2UI_ISSUE_CODES.INVALID_REQUIREMENT)).toBe(false);
+        const errors = issues.filter((i) => i.severity === 'error');
+        expect(errors.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT]);
+        expect(errors[0].message).toContain(
+          `create the surface with catalogId "${URBICON_A2UI_CATALOG_ID}"`
+        );
+      });
+    }
+
+    it('is met on the catalog that can hold it', () => {
+      const withConsent = [{ id: 'root', component: 'Column', children: ['agree'] }, consentBox()];
+      expect(allIssues(onCatalog(URBICON_A2UI_CATALOG_ID, withConsent))).toEqual([]);
+    });
+
+    it("is the consumer's mistake only when no catalog can hold it", () => {
+      const issues = allIssues(
+        onCatalog(URBICON_A2UI_CATALOG_ID, noConsent, { booking: [{ component: 'Consent' }] })
+      );
+      expect(issues.map((i) => [i.severity, i.code])).toEqual([
+        ['warning', A2UI_ISSUE_CODES.INVALID_REQUIREMENT]
+      ]);
+    });
   });
 });
 

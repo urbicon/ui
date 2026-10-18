@@ -23,7 +23,13 @@
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import type { A2uiActionEvent } from './a2ui.types';
-  import { A2UI_REGISTRY, A2UI_SVG_PATH_RE, ownEntry } from './a2ui-registry';
+  import {
+    A2UI_REGISTRY,
+    A2UI_SVG_PATH_RE,
+    A2UI_VALUE_PROP,
+    ownEntry,
+    rendersAsComponent
+  } from './a2ui-registry';
   import { dedupeOptions, splitDateTime } from './a2ui-node-common';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from './a2ui-render';
@@ -65,17 +71,9 @@
   const instance = $derived(node.instance);
   const nodeProps = $derived(instance?.props);
   const component = $derived(instance?.component ?? '');
-  const spec = $derived(ownEntry(A2UI_REGISTRY, component));
-
   // A component is a visible fault when it is unknown/unsupported or is missing
   // a required prop (the processor already emitted the reportable issue).
-  const missingRequired = $derived.by(() => {
-    if (!spec || !instance) return false;
-    for (const [key, propSpec] of Object.entries(spec.props)) {
-      if (propSpec.required && !instance.props.has(key)) return true;
-    }
-    return false;
-  });
+  const renders = $derived(instance ? rendersAsComponent(A2UI_REGISTRY, instance) : false);
 
   function raw(key: string): unknown {
     return nodeProps?.get(key);
@@ -274,13 +272,13 @@
 
   // ── Two-way inputs ──────────────────────────────────────────────────────
   function valuePointer(): string | undefined {
-    return bindingPointer(raw('value'), node.scopePrefix);
+    return bindingPointer(raw(A2UI_VALUE_PROP), node.scopePrefix);
   }
 
   const textValue = $derived.by(() => {
     const pointer = valuePointer();
-    if (pointer) return toInputString(resolved('value'));
-    return localText ?? toInputString(raw('value'));
+    if (pointer) return toInputString(resolved(A2UI_VALUE_PROP));
+    return localText ?? toInputString(raw(A2UI_VALUE_PROP));
   });
   function onTextInput(event: Event) {
     const target = event.currentTarget as HTMLInputElement | HTMLTextAreaElement;
@@ -291,8 +289,11 @@
 
   const boolValue = $derived.by(() => {
     const pointer = valuePointer();
-    if (pointer) return Boolean(resolved('value'));
-    return localBool ?? (typeof raw('value') === 'boolean' ? (raw('value') as boolean) : false);
+    if (pointer) return Boolean(resolved(A2UI_VALUE_PROP));
+    return (
+      localBool ??
+      (typeof raw(A2UI_VALUE_PROP) === 'boolean' ? (raw(A2UI_VALUE_PROP) as boolean) : false)
+    );
   });
   function onBoolChange(checked: boolean) {
     const pointer = valuePointer();
@@ -305,10 +306,13 @@
   const sliderValue = $derived.by(() => {
     const pointer = valuePointer();
     if (pointer) {
-      const value = resolved('value');
+      const value = resolved(A2UI_VALUE_PROP);
       return typeof value === 'number' && Number.isFinite(value) ? value : sliderMin;
     }
-    return localNum ?? (typeof raw('value') === 'number' ? (raw('value') as number) : sliderMin);
+    return (
+      localNum ??
+      (typeof raw(A2UI_VALUE_PROP) === 'number' ? (raw(A2UI_VALUE_PROP) as number) : sliderMin)
+    );
   });
   function onSliderChange(value: number | [number, number]) {
     const scalar = Array.isArray(value) ? value[0] : value;
@@ -319,8 +323,8 @@
 
   const choiceSelected = $derived.by(() => {
     const pointer = valuePointer();
-    if (pointer) return toStringArray(resolved('value'));
-    return localList ?? toStringArray(raw('value'));
+    if (pointer) return toStringArray(resolved(A2UI_VALUE_PROP));
+    return localList ?? toStringArray(raw(A2UI_VALUE_PROP));
   });
   // Dedupe by value (first wins): the validator warns on duplicates, but the
   // keyed `{#each}` below is on option.value — two equal keys throw Svelte's
@@ -475,7 +479,7 @@
   {:else}
     {@render faultChip(`${context.labels.unsupported}: ${node.id}`)}
   {/if}
-{:else if !spec || missingRequired}
+{:else if !renders}
   {@render faultChip(`${context.labels.unsupported}: ${component || node.id}`)}
 {:else if component === 'Column'}
   <!-- A plain <div> is role=generic, which forbids aria-label (axe

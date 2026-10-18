@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { A2UI_ISSUE_CODES } from './a2ui.types';
 import {
+  A2UI_MAX_LOGIC_DEPTH,
+  A2UI_MAX_LOGIC_OPERANDS,
   cloneData,
   deleteAtPointer,
   getAtPointer,
@@ -146,6 +148,98 @@ describe('resolveDynamic', () => {
     const result = resolveDynamic({ path: '/__proto__/x' }, model, undefined);
     expect(result.value).toBeUndefined();
     expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION);
+  });
+});
+
+// The Basic catalog's logic functions: the only calls the engine evaluates.
+describe('resolveDynamic — not / and / or', () => {
+  const model = {
+    agreed: true,
+    declined: false,
+    name: 'Ada',
+    zero: 0,
+    nothing: null,
+    items: [{ ok: true }, { ok: false }]
+  };
+  const not = (value: unknown) => ({ call: 'not', args: { value } });
+  const and = (...values: unknown[]) => ({ call: 'and', args: { values } });
+  const or = (...values: unknown[]) => ({ call: 'or', args: { values } });
+  const resolve = (value: unknown, scope?: string) => resolveDynamic(value, model, scope);
+
+  it('negates a bound boolean', () => {
+    expect(resolve(not({ path: '/agreed' }))).toEqual({ value: false });
+    expect(resolve(not({ path: '/declined' }))).toEqual({ value: true });
+  });
+
+  it('reads a path nobody has written as false, so "not" of it is true', () => {
+    // The consent gate before the checkbox is touched: disabled until agreed.
+    expect(resolve(not({ path: '/agreed-later' }))).toEqual({ value: true });
+  });
+
+  it('counts only the boolean true as true', () => {
+    for (const path of ['/name', '/zero', '/nothing', '/items']) {
+      expect(resolve(not({ path })).value).toBe(true);
+    }
+    expect(resolve(or({ path: '/name' }, { path: '/items' })).value).toBe(false);
+    expect(resolve(and(true, { path: '/name' })).value).toBe(false);
+  });
+
+  it('evaluates and / or over literals, paths and nested calls', () => {
+    expect(resolve(and(true, { path: '/agreed' })).value).toBe(true);
+    expect(resolve(and(true, { path: '/declined' })).value).toBe(false);
+    expect(resolve(or(false, { path: '/agreed' })).value).toBe(true);
+    expect(resolve(or(false, not({ path: '/agreed' }))).value).toBe(false);
+    expect(resolve(not(and({ path: '/agreed' }, or(false, true)))).value).toBe(false);
+  });
+
+  it('resolves a relative operand against the template item', () => {
+    expect(resolve(not({ path: 'ok' }), '/items/0').value).toBe(false);
+    expect(resolve(not({ path: 'ok' }), '/items/1').value).toBe(true);
+  });
+
+  it('accepts the spec returnType "boolean"', () => {
+    expect(resolve({ ...not(false), returnType: 'boolean' }).value).toBe(true);
+  });
+
+  it('resolves a malformed call to undefined with a warning, never a partial result', () => {
+    const malformed: unknown[] = [
+      { call: 'not' },
+      { call: 'not', args: {} },
+      { call: 'not', args: { value: true, extra: 1 } },
+      { call: 'not', args: { value: 'yes' } },
+      { call: 'not', args: { value: true }, returnType: 'string' },
+      { call: 'not', args: { value: true }, path: '/agreed' },
+      { call: 'not', args: { value: { path: '/__proto__/x' } } },
+      { call: 'and', args: { values: [true] } },
+      { call: 'or', args: { values: 'true' } },
+      and(true, { call: 'required', args: { value: { path: '/name' } } })
+    ];
+    for (const value of malformed) {
+      const result = resolve(value);
+      expect(result.value).toBeUndefined();
+      expect(result.issue?.severity).toBe('warning');
+    }
+  });
+
+  it(`evaluates ${A2UI_MAX_LOGIC_DEPTH} nested levels and refuses one more`, () => {
+    let nested: unknown = true;
+    for (let i = 0; i < A2UI_MAX_LOGIC_DEPTH; i++) nested = not(nested);
+    expect(resolve(nested).value).toBe(true);
+    expect(resolve(not(nested)).value).toBeUndefined();
+  });
+
+  it(`evaluates ${A2UI_MAX_LOGIC_OPERANDS} operands in one call tree and refuses one more`, () => {
+    const wide = or(...Array.from({ length: A2UI_MAX_LOGIC_OPERANDS }, () => false));
+    expect(resolve(wide).value).toBe(false);
+    // The `or` is itself the operand of `not`: 65 in all.
+    expect(resolve(not(wide)).value).toBeUndefined();
+  });
+
+  it('does not recurse into a hostile nesting depth', () => {
+    let nested: unknown = true;
+    for (let i = 0; i < 100_000; i++) nested = not(nested);
+    expect(() => resolve(nested)).not.toThrow();
+    expect(resolve(nested).value).toBeUndefined();
   });
 });
 

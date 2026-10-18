@@ -15,7 +15,7 @@ of its rules the protocol enforces rather than the renderer.
 | `a2uiFencedTransportSection()` | How envelopes travel: the agent writes prose and opens a ` ```a2ui ` fence. The prompt half of `A2uiStreamSplitter`. |
 | `A2uiStreamSplitter` | Turns a token stream into ordered message parts — text, and `a2ui` parts whose payload grows envelope by envelope. |
 | `A2uiSurfaceRouter` + `routeMessageParts()` | Delivers envelopes to the message that owns their surface, so an agent can patch a form it sent two turns ago. |
-| `A2UIView` | Renders one payload. Fail-loud and whitelist-only: unknown components, undeclared props and function-call bindings never reach the DOM. |
+| `A2UIView` | Renders one payload. Fail-loud and whitelist-only: unknown components and undeclared props never reach the DOM, and neither does a function-call binding — except the logic functions `not`, `and`, `or`, which evaluate to a boolean and execute nothing. |
 
 ```ts
 // Server — the system prompt, assembled from the shipped pieces.
@@ -92,6 +92,116 @@ Three rules follow, and the shipped prompt states all three:
 Set `sendDataModel: true` on `createSurface` and every action from that surface additionally carries
 the full data model (`A2uiActionEvent.dataModel`), read at click time. It is the antidote to an
 under-specified `action.context`.
+
+## Gating a control on the data model
+
+A binding resolves a pointer and nothing else, so `disabled: { "path": "/agreed" }` gates the wrong
+way round. A2UI's Basic catalog defines three logic functions for this, and they are the only
+function calls a binding may use:
+
+```jsonc
+{
+  "id": "book",
+  "component": "Button",
+  "child": "bookLabel",
+  "action": { "event": { "name": "book" } },
+  "disabled": { "call": "not", "args": { "value": { "path": "/agreed" } } }
+}
+```
+
+`not` takes `args.value`; `and` and `or` take `args.values`, two or more. Each operand is `true`,
+`false`, a `{ path }` binding or another of the three — never another function, such as the
+`required` that A2UI's own examples nest inside `and`.
+
+- **Only `true` counts as true.** An operand that is `undefined`, `null`, a string or a number counts
+  as false. A path nobody has written yet is therefore false, so the button above starts disabled
+  without the agent having to initialise `/agreed`. A plain `disabled: { "path": … }` reads
+  JavaScript truthiness instead (`"yes"` disables), and both lean closed for a consent gate: a stray
+  value disables the plain binding, and in `not(consent)` anything but a real `true` is no consent.
+- **Accepted only on a gate** — a boolean prop whose catalog entry says what it fails closed to:
+  `Button.disabled` in the Urbicon catalog. Not on an input's `value`, which records what the user
+  does and must stay a `{ path }`, and not on a string or number prop: both are a `TYPE_MISMATCH`
+  error, and the prop is dropped.
+- **A broken gate fails closed.** A value on `disabled` that cannot be used — a malformed call (an
+  unknown key, a single operand for `and`), one nested or branching past the engine's caps, one
+  naming any other function at the top or nested, a non-boolean literal such as `"true"`, a
+  poisoned path — is an error, and the button stays disabled until the agent replaces it.
+  Elsewhere, a function call other than these three resolves to nothing, with a
+  `FUNCTION_CALL_UNSUPPORTED` warning.
+- **`action.event.context` evaluates them too**, at click time, so the event carries the boolean. A
+  malformed one is an error, and its key travels as `undefined`: context has nothing to fail closed
+  to.
+- **A gate is a convenience, not a guarantee.** The agent is still the only validator: an action
+  can reach it with `/agreed` false, and it should not act on one.
+
+## Requiring a component on a surface
+
+The catalog says what a surface may contain. What one must contain — a consent box on the booking
+form — is your rule for that form, so you state it per `surfaceId`, and the same object goes to
+the view and to the prompt:
+
+<!-- typecheck -->
+
+```ts
+import {
+  type A2uiSurfaceRequirements,
+  a2uiFencedTransportSection,
+  a2uiSurfaceRequirementsSection,
+  a2uiSystemPrompt,
+  urbiconA2uiCatalogSpec
+} from '@urbicon-ui/blocks';
+
+export const BOOKING_REQUIREMENTS: A2uiSurfaceRequirements = {
+  booking: [{ component: 'Checkbox', path: '/agreed', description: 'consent to the policy' }]
+};
+
+// Server: tell the model before it builds. The model picks surfaceIds, so the section pins it.
+export const system = [
+  a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
+  a2uiSurfaceRequirementsSection(BOOKING_REQUIREMENTS, urbiconA2uiCatalogSpec),
+  a2uiFencedTransportSection()
+].join('\n\n');
+```
+
+```svelte
+<!-- Client: the same catalog and the same object. Missing components are reported once settled. -->
+<A2UIView
+  payload={part.payload}
+  streaming={message.status === 'streaming' || patchTargets.has(message.id)}
+  catalogs={[urbiconA2uiCatalog]}
+  surfaceRequirements={BOOKING_REQUIREMENTS}
+  onValidationError={(issues) => queueForAgent(issues)}
+/>
+```
+
+A requirement is met by a component of that name that is reachable from `root` and renders as
+itself. One defined but never referenced renders nothing, and one the catalog does not know or that
+lost a required prop renders as a fault chip — neither counts. With `path`, its `value` (or the prop
+named in `prop`) must also be a `{ path }` binding that resolves to that pointer, template scope
+included. One component meets one entry, so two `Checkbox` entries ask for two boxes; the entries
+are matched to your components as a whole, so an entry is missing only when no assignment of the
+rendered components could meet it.
+
+Each unmet requirement is one `MISSING_REQUIRED_COMPONENT` issue on `onValidationError`, and only
+once `streaming` is false: a surface arrives over several envelopes, and v0.9.1 has no message that
+marks one complete, so the end of the turn that built or patched it is the earliest point at which
+"missing" is true. It is an error so it travels the channel you relay, and the model can patch the
+surface; nothing is thrown, and the surface renders as it stands. A surface whose id has no entry is
+not checked. Without the view, `createA2uiProcessor({ surfaceRequirements })` plus
+`collectGraphIssues(surface)` reports the same issue on a server.
+
+Which catalog a surface is on is the model's choice, and `A2UIView` always holds the Basic catalog
+as its fallback — a surface created with Basic's id, an unknown one or the upstream catalog URL
+lands there. An entry that surface's catalog cannot hold (`Checkbox` is the Urbicon spelling,
+`CheckBox` the Basic one) is still checked: it fails as `MISSING_REQUIRED_COMPONENT`, and the
+message names the catalog the surface should have been created with. So that the model picks it in
+the first place, `a2uiSurfaceRequirementsSection` pins that catalogId next to the surfaceId
+whenever Basic cannot meet a surface's entries.
+
+An entry no catalog of the view can meet — a component none of them has, a prop the component does
+not declare, a relative `path` — is your mistake, not the model's. The view reports it once, as an
+`INVALID_REQUIREMENT` warning when the surface is created, and leaves it unchecked;
+`a2uiSurfaceRequirementsSection` leaves it out of the prompt, so the model is never asked for it.
 
 ## Options that come from fetched data
 

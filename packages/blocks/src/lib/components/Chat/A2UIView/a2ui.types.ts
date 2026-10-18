@@ -133,7 +133,11 @@ export const A2UI_ISSUE_CODES = {
   TEMPLATE_PATH_NOT_ARRAY: 'TEMPLATE_PATH_NOT_ARRAY',
   /** `weight` set on a component that is not a direct Row/Column child. */
   WEIGHT_CONTEXT: 'WEIGHT_CONTEXT',
-  /** A `{ call, args }` function-call binding — unsupported, resolves to `undefined`. */
+  /**
+   * A `{ call, args }` function call other than the logic functions `not`,
+   * `and`, `or` — unsupported. A warning where it resolves to `undefined`; an
+   * error on a gate (`Button.disabled`), which then holds its failsafe.
+   */
   FUNCTION_CALL_UNSUPPORTED: 'FUNCTION_CALL_UNSUPPORTED',
   /** An `Icon.name` string outside the mapped set — a fallback glyph is drawn. */
   ICON_UNMAPPED: 'ICON_UNMAPPED',
@@ -181,7 +185,28 @@ export const A2UI_ISSUE_CODES = {
    * agent is expected to fill it in with a later `updateDataModel`, and an empty
    * chooser mid-flow is normal.
    */
-  OPTIONS_NOT_A_LIST: 'OPTIONS_NOT_A_LIST'
+  OPTIONS_NOT_A_LIST: 'OPTIONS_NOT_A_LIST',
+  /**
+   * A component the consumer requires on this surface (`surfaceRequirements`,
+   * keyed by surfaceId) is not reachable from `root`, or renders only as a
+   * fault chip — also when the agent created the surface on a catalog that
+   * cannot hold it, and then the message names a catalog that can. An error,
+   * so it travels the channel that is relayed to the agent, which patches the
+   * surface. Only reported once the surface has
+   * settled (`streaming: false`): a surface arrives over several envelopes, and
+   * mid-stream every requirement would read as missing.
+   */
+  MISSING_REQUIRED_COMPONENT: 'MISSING_REQUIRED_COMPONENT',
+  /**
+   * A `surfaceRequirements` entry that no catalog the processor holds can ever
+   * meet — an unknown component, an undeclared prop or one that takes no
+   * `{ path }`, a relative path. The consumer's mistake, not the agent's (which
+   * catalog the agent picks cannot cause it), so it is a warning (logged, not
+   * relayed by the documented wiring),
+   * reported once at `createSurface`, and the entry is left unchecked: the agent
+   * is never asked for what it cannot build.
+   */
+  INVALID_REQUIREMENT: 'INVALID_REQUIREMENT'
 } as const;
 
 export type A2uiIssueCode = (typeof A2UI_ISSUE_CODES)[keyof typeof A2UI_ISSUE_CODES];

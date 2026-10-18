@@ -13,13 +13,46 @@
  * shared-axis props, and adds catalog-specific don'ts — all gated on features
  * the Basic catalog does not have, so the default stays untouched.
  *
- * Deliberately excludes any TRANSPORT section (how envelopes reach the client)
- * and any data-schema section: those are app-specific and each app appends them
- * (the chat-demo appends its fenced `a2ui` protocol + `a2uiDataSchemaSection`).
+ * Deliberately excludes any TRANSPORT section (how envelopes reach the client),
+ * any data-schema section and any surface requirements: those are app-specific
+ * and each app appends them (`a2uiFencedTransportSection`,
+ * `a2uiDataSchemaSection`, `a2uiSurfaceRequirementsSection`).
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
-import type { A2uiComponentSpec, A2uiPropSpec } from './a2ui-registry';
+import { A2UI_LOGIC_FUNCTION_ARGS, A2UI_LOGIC_FUNCTIONS } from './a2ui-data';
+import {
+  type A2uiComponentSpec,
+  type A2uiPropSpec,
+  acceptsLogicCall,
+  registryAcceptsLogicCall
+} from './a2ui-registry';
+
+/** The logic functions as the prompt names them: `not/and/or`. */
+const LOGIC_NAMES = [...A2UI_LOGIC_FUNCTIONS].join('/');
+const LOGIC_CALL = `${LOGIC_NAMES} call`;
+
+/**
+ * One call shape per distinct signature, the functions sharing it as `"call"`
+ * alternatives — `{ "call": "and" | "or", "args": { "values": [B, B, ...] } } (2 or more B)`.
+ */
+function logicCallShapes(): string[] {
+  const groups = new Map<string, { names: string[]; shape: string }>();
+  for (const name of A2UI_LOGIC_FUNCTIONS) {
+    const signature = A2UI_LOGIC_FUNCTION_ARGS[name];
+    const key = signature.arg === 'value' ? 'value' : `values:${signature.minItems}`;
+    const group = groups.get(key) ?? {
+      names: [],
+      shape:
+        signature.arg === 'value'
+          ? '"args": { "value": B } }'
+          : `"args": { "values": [B, B, ...] } } (${signature.minItems} or more B)`
+    };
+    group.names.push(JSON.stringify(name));
+    groups.set(key, group);
+  }
+  return [...groups.values()].map(({ names, shape }) => `{ "call": ${names.join(' | ')}, ${shape}`);
+}
 
 /** Props documented once in the shared section rather than per component. */
 const COMMON_PROP_KEYS = new Set(['accessibility', 'weight']);
@@ -64,6 +97,7 @@ function renderKind(spec: A2uiPropSpec): string {
     case 'number':
       return spec.dynamic ? 'number literal or { path } binding' : 'number';
     case 'boolean':
+      if (acceptsLogicCall(spec)) return `boolean literal, { path } binding or ${LOGIC_CALL}`;
       return spec.dynamic ? 'boolean literal or { path } binding' : 'boolean';
     case 'stringList':
       return 'string array or { path } binding';
@@ -89,7 +123,11 @@ function renderProp(key: string, spec: A2uiPropSpec): string {
   flags.push(spec.required ? 'required' : 'optional');
   flags.push(renderKind(spec));
   if (spec.default !== undefined) flags.push(`default ${JSON.stringify(spec.default)}`);
-  return `  - ${key} (${flags.join('; ')}): ${spec.description}`;
+  const failsafe =
+    typeof spec.failsafe === 'boolean'
+      ? ` A value that cannot be used (a malformed call, another function, a non-boolean) holds it at ${spec.failsafe}.`
+      : '';
+  return `  - ${key} (${flags.join('; ')}): ${spec.description}${failsafe}`;
 }
 
 function renderComponent(name: string, spec: A2uiComponentSpec, heading: string): string {
@@ -160,6 +198,7 @@ export function a2uiSystemPrompt(options?: {
   const grouped = componentNames.some((name) => categoryOf(registry[name]) !== undefined);
   const hasRichText = 'RichText' in registry;
   const hasSelectArray = 'Select' in registry && registry.Select.props.value?.kind === 'stringList';
+  const hasLogicProps = registryAcceptsLogicCall(registry);
 
   const sections: string[] = [];
 
@@ -260,8 +299,21 @@ export function a2uiSystemPrompt(options?: {
       'immediately; bound text updates live. Update state with updateDataModel — omit',
       '"value" to DELETE the key at "path".',
       '',
-      'Function-call bindings ({ "call": ..., "args": ... }) are NOT supported and',
-      'resolve to nothing — do NOT use them. Use literals and { path } only.'
+      ...(hasLogicProps
+        ? [
+            'Function calls ({ "call", "args" }) resolve to nothing, except these, which',
+            `compute a boolean and are allowed only where a prop says "${LOGIC_CALL}":`,
+            ...logicCallShapes().map(
+              (shape, i, all) => `${shape}${i < all.length - 1 ? ' and' : ','}`
+            ),
+            'each B being true, false, a { path } binding or another of these calls — never',
+            'another function such as "required". Only true counts as true: a path not yet',
+            'written is false, so "not" of it is true.'
+          ]
+        : [
+            'Function-call bindings ({ "call": ..., "args": ... }) are NOT supported and',
+            'resolve to nothing — do NOT use them. Use literals and { path } only.'
+          ])
     ].join('\n')
   );
 
@@ -321,7 +373,9 @@ export function a2uiSystemPrompt(options?: {
     '',
     '- Do NOT define children inline; reference them by id.',
     '- Do NOT use more than one "root".',
-    '- Do NOT use function-call bindings or local function-call actions.',
+    hasLogicProps
+      ? `- Do NOT use function calls other than ${LOGIC_NAMES}, nor local function-call actions.`
+      : '- Do NOT use function-call bindings or local function-call actions.',
     `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`
   ];
   if (hasRichText) {

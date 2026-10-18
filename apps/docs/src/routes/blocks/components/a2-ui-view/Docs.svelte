@@ -75,7 +75,8 @@ const system = [
       </InfoCard>
       <InfoCard title="Catalog-only">
         Unknown components, unknown props, prototype-pollution keys and function-call bindings are
-        rejected, never rendered.
+        rejected, never rendered — except the logic functions <code>not</code>, <code>and</code>,
+        <code>or</code>, which compute a boolean and execute nothing.
       </InfoCard>
       <InfoCard title="Errors are reported">
         Every rejection is reported as a spec-compatible issue through
@@ -89,7 +90,9 @@ const system = [
           The payload only references a catalog <em>you</em> control, so nothing in it executes. A
           component name the registry does not know renders a fault chip; a prop the registry does
           not declare is dropped before it reaches a Svelte component; a
-          <code>{'{ call }'}</code> function binding does nothing. The payload never reaches
+          <code>{'{ call }'}</code> function binding does nothing unless it is <code>not</code>,
+          <code>and</code> or <code>or</code>, which only combine booleans from the data model — how
+          a <code>disabled</code> waits for a consent box. The payload never reaches
           <code>{'{@html}'}</code>, a dynamic import, or a <code>restProps</code> spread.
         </p>
       </Note>
@@ -166,11 +169,12 @@ const system = [
         Never hand-roll the catalog description. <code>a2uiSystemPrompt()</code> renders the
         envelope rules, the component subset (props, required flags, enums), the binding forms (<code
           >{'{ path }'}</code
-        >
-        only; function calls are forbidden), the
+        >, plus <code>not</code>/<code>and</code>/<code>or</code> where a prop reads a boolean), the
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
-        the action rules, straight from the registry that validates the payload. It omits the
-        transport: how envelopes reach the client is app-specific, so append that yourself.
+        the action rules, straight from the registry that validates the payload. It omits what is
+        app-specific: how envelopes reach the client, and which components a surface must carry —
+        append <code>a2uiSurfaceRequirementsSection()</code> from the same object you pass as
+        <code>surfaceRequirements</code> and the catalog spec you prompt with.
       </p>
       <CodeExample title="System prompt" code={promptCode} language="ts" preview={false} />
     </div>

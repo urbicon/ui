@@ -2,6 +2,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
 import type { A2uiCatalog } from './a2ui-catalog';
+import type { A2uiSurfaceRequirements } from './a2ui-requirements';
 import type { A2uiDataSchema } from './a2ui-schema';
 import type { A2UIViewSlots } from './a2ui-view.variants';
 
@@ -13,8 +14,12 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * ever reach the DOM. Unknown components/props, prototype-pollution keys and
  * function-call bindings are rejected, never rendered, and reported through
  * `onValidationError` (spec-compatible issues a consumer can relay to the agent
- * as a `VALIDATION_FAILED` error). Inputs are two-way (typing writes into the
- * local data model; bound text updates live); actions dispatch a spec-exact
+ * as a `VALIDATION_FAILED` error) — except the A2UI logic functions `not`,
+ * `and`, `or`, which compute a boolean from the data model, execute nothing,
+ * and gate a prop such as the Urbicon catalog's `Button.disabled` ("disabled
+ * until /agreed"); a gate whose call cannot be evaluated fails closed.
+ * Inputs are two-way (typing writes into the local data model; bound text
+ * updates live); actions dispatch a spec-exact
  * `A2uiActionEvent`. Images and links are gated by the same strict-by-default
  * `urlPolicy` as StreamingMarkdown. It is NOT a default ChatMessage
  * renderer, so wire it in per surface via `partRenderers.a2ui` to keep it out of
@@ -23,7 +28,8 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * `createA2uiProcessor()`; never hand-roll either. Opt into the richer
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
  * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise), and
- * type-check the data model with an optional `dataSchema`. One view owns the
+ * type-check the data model with an optional `dataSchema`; require components
+ * on a surface (a consent box) with `surfaceRequirements`. One view owns the
  * surfaces of ONE payload; to let an agent patch a surface it sent in an earlier
  * chat turn (multi-step forms), route the later envelopes into that payload with
  * `A2uiSurfaceRouter`; never give a second view the same surfaceId.
@@ -61,8 +67,10 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
   payload: unknown;
   /**
    * While true, a reference to a not-yet-defined component renders a placeholder
-   * instead of a fault chip (mid-stream tolerance). Flip to false when the
-   * stream settles so dangling references become errors. @default false
+   * instead of a fault chip (mid-stream tolerance), and `MISSING_ROOT` and
+   * `MISSING_REQUIRED_COMPONENT` are held back. Flip to false when the stream
+   * settles so dangling references become errors and missing components are
+   * reported. @default false
    * @summary Whether a reference to a component that has not arrived yet is tolerated or an error.
    */
   streaming?: boolean;
@@ -105,6 +113,26 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * referentially stable.
    */
   dataSchema?: A2uiDataSchema;
+  /**
+   * Components a surface must contain, keyed by surfaceId — e.g.
+   * `{ booking: [{ component: 'Checkbox', path: '/agreed' }] }`. A requirement
+   * counts once a component of that name is reachable from `root` and renders
+   * as itself (not as a fault chip) and, with `path`, its `value` (or the named
+   * `prop`) is a `{ path }` binding that resolves to that pointer; one component
+   * meets one entry. Each one unmet is reported through `onValidationError` as a
+   * `MISSING_REQUIRED_COMPONENT` error once `streaming` is false (never while
+   * the surface is still arriving, never thrown) so the agent can patch the
+   * surface; when the agent picked a catalog that cannot hold the component,
+   * the message names one that can. An entry no catalog of the view can meet
+   * (unknown component, undeclared prop, relative path) is an
+   * `INVALID_REQUIREMENT` warning instead and is not checked. A surface without
+   * an entry is unaffected. The model picks surfaceIds, so put the same object
+   * in the prompt with `a2uiSurfaceRequirementsSection(requirements,
+   * catalogSpec)`, which pins the id. Resolved once at init — keep it
+   * referentially stable.
+   * @summary Which components each surface must contain, reported back to the agent when missing.
+   */
+  surfaceRequirements?: A2uiSurfaceRequirements;
 
   /** Extra classes merged onto the root element. */
   class?: string;
@@ -158,6 +186,12 @@ export {
   type A2uiPropSpec,
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
+export {
+  type A2uiRequiredComponent,
+  type A2uiSurfaceRequirement,
+  type A2uiSurfaceRequirements,
+  a2uiSurfaceRequirementsSection
+} from './a2ui-requirements';
 // ── Cross-message surface routing (keeps a surface patchable after its turn) ──
 export {
   type A2uiRoutePatch,

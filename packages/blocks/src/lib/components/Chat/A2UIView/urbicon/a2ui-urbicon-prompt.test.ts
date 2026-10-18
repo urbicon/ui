@@ -38,6 +38,24 @@ describe('Urbicon system prompt', () => {
     expect(prompt).toContain('`error` string prop');
   });
 
+  it('teaches the logic functions and the consent gate on Button.disabled', () => {
+    expect(prompt).toContain('{ "call": "not", "args": { "value": B } }');
+    expect(prompt).toContain('{ "call": "and" | "or", "args": { "values": [B, B, ...] } }');
+    expect(prompt).toContain('Only true');
+    expect(prompt).toContain(
+      '- disabled (optional; boolean literal, { path } binding or not/and/or call): '
+    );
+    expect(prompt).toContain('{ "call": "not", "args": { "value": { "path": "/agreed" } } }');
+    // Rendered from Button.disabled's failsafe, not written into its description.
+    expect(prompt).toContain('holds it at true.');
+    expect(prompt).toContain('(2 or more B)');
+    expect(prompt).toContain('function calls other than not/and/or');
+  });
+
+  it('does not offer the logic functions on a two-way input value', () => {
+    expect(prompt).not.toMatch(/- value \([^)]*not\/and\/or call\)/);
+  });
+
   it('omits any transport / data-schema section (app-specific)', () => {
     expect(prompt).not.toContain('```a2ui');
     expect(prompt).not.toContain('SSE');
