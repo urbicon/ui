@@ -106,13 +106,25 @@ export interface InputProps
   /** HTML autocomplete hint for browser autofill. */
   autoComplete?: string;
 
-  /** Key for persisting the input value to storage. */
+  /**
+   * Key for persisting the input value to storage. A stored value wins over
+   * `value` whenever one exists — an empty one too, so a field the user
+   * cleared comes back cleared after a reload. `value` is only the starting
+   * text while nothing is stored, and is written to storage then; a field left
+   * empty and untouched writes nothing. Changing this or another `persist*`
+   * prop at runtime moves the field to that entry by the same rule.
+   */
   persistKey?: string;
   /** Storage backend for persistence. @default 'localStorage' */
   persistStorage?: 'localStorage' | 'sessionStorage';
   /** Debounce interval (ms) for storage writes. @default 300 */
   persistDebounceMs?: number;
-  /** Version stamp included in the storage key. @default 1 */
+  /**
+   * Version stamp included in the storage key. Raising it deletes this key's
+   * entries under every lower version when the field starts persisting under
+   * it — nothing is carried over, so the stored text is lost by design.
+   * @default 1
+   */
   persistVersion?: number;
   /** Namespace (e.g. user id) to scope the persist key. */
   persistNamespace?: string;

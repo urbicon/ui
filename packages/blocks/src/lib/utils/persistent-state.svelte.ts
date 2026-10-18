@@ -1,4 +1,4 @@
-import { getStorage } from '#lib/internal/storage.js';
+import { getStorage, type StorageInterface } from '#lib/internal/storage.js';
 
 /**
  * Configuration for persistent state
@@ -10,18 +10,39 @@ export interface PersistentStateConfig<T> {
   serialize?: (value: T) => string;
   deserialize?: (value: string) => T;
   debounceMs?: number;
-  version?: number; // For schema migrations
+  /**
+   * Schema version, part of the storage key (`urbicon_<key>_v<version>`). On
+   * init, the entries this key holds under a lower version are deleted; nothing
+   * is read across or migrated, so raising it discards the stored value.
+   * @default 1
+   */
+  version?: number;
 }
 
 /**
- * Debounce utility for performance
+ * Delays `func` until `wait` ms pass without a new call. `flush()` runs the
+ * call still waiting at once; after it, nothing is left to run.
  */
-function debounce<T extends (...args: never[]) => void>(func: T, wait: number): T {
-  let timeout: ReturnType<typeof setTimeout>;
-  return ((...args: Parameters<T>) => {
+function debounce<A>(func: (arg: A) => void, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let pending: { arg: A } | null = null;
+
+  function flush() {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  }) as T;
+    if (pending === null) return;
+    const { arg } = pending;
+    pending = null;
+    func(arg);
+  }
+
+  return {
+    schedule(arg: A) {
+      pending = { arg };
+      clearTimeout(timeout);
+      timeout = setTimeout(flush, wait);
+    },
+    flush
+  };
 }
 
 /** Outcome of one storage read — the value plus whether it came from storage. */
@@ -50,6 +71,17 @@ interface LoadResult<T> {
  * Values must round-trip through the configured `serialize`/`deserialize`;
  * `Set`/`Map` do not under the `JSON.stringify` default (they serialize to
  * `{}`), so pass converting functions or store plain arrays/objects.
+ *
+ * The entry lives under `urbicon_<key>_v<version>`. On init, the entries the
+ * same key holds under a lower version (`_v1` up to `_v<version − 1>`) are
+ * deleted from the configured storage — not read, not migrated: a consumer who
+ * raises `version` loses the old value by design. Higher versions and every
+ * other key are left alone; at `version: 1` nothing is deleted.
+ *
+ * The auto-save belongs to whatever the state is created under — a component,
+ * an `$effect.root`, a `$derived` — and ends with it: a save still waiting out
+ * the debounce is written when that owner is destroyed (a `$derived`: when it
+ * re-evaluates), and nothing is written after.
  */
 export function createPersistentState<T>(config: PersistentStateConfig<T>) {
   const {
@@ -64,6 +96,8 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
 
   const storageKey = `urbicon_${key}_v${version}`;
   const storage = getStorage(storageType);
+
+  if (storage && version > 1) removeOlderVersions(storage);
 
   // Initialize state with stored value or default
   const initial = loadFromStorage();
@@ -90,6 +124,20 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
       return serialize(value);
     } catch {
       return null;
+    }
+  }
+
+  // Listed, not counted up to `version`: the number is the consumer's, and a
+  // date stamp (`20261018`) would make a loop over v1 … v(n − 1) twenty million
+  // removals on every init. Only a canonical positive integer below `version`
+  // as the whole rest of the name is one of ours — `urbicon_<key>_v2_v1` is the
+  // key `<key>_v2`. A refused removal leaves the entry where it was, unread.
+  function removeOlderVersions(target: StorageInterface): void {
+    const prefix = `urbicon_${key}_v`;
+    for (const candidate of target.keys()) {
+      if (!candidate.startsWith(prefix)) continue;
+      const suffix = candidate.slice(prefix.length);
+      if (/^[1-9]\d*$/.test(suffix) && Number(suffix) < version) target.removeItem(candidate);
     }
   }
 
@@ -152,13 +200,17 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
     }
   }
 
-  // Debounced save function for performance
   const debouncedSave = debounce(saveToStorage, debounceMs);
 
   // Auto-save when state changes
   $effect(() => {
-    debouncedSave(state.value);
+    debouncedSave.schedule(state.value);
   });
+
+  // No dependencies, so this never re-runs and its cleanup is the owner's
+  // teardown alone. Flushed rather than cancelled: the last change before an
+  // unmount is the user's too, and a timer left running would write after it.
+  $effect(() => debouncedSave.flush);
 
   return {
     get value() {
