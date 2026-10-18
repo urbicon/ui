@@ -119,11 +119,24 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
   // VARIANTS FILE DISCOVERY
   // ==========================================
 
+  /**
+   * `AvatarGroup` → `avatarGroup`, `QRCode` → `qrCode`, `A2UIView` → `a2uiView`:
+   * a leading acronym is lowercased as a whole, digits included, which is how
+   * this repo spells both its `xVariants` exports and (kebab-cased) their files.
+   * Lowering only the first letter yields `qRCode`, a name nothing declares.
+   */
+  private static camelName(componentName: string): string {
+    const acronym = componentName.match(/^[A-Z0-9]+(?=[A-Z][a-z])/)?.[0];
+    return acronym
+      ? acronym.toLowerCase() + componentName.slice(acronym.length)
+      : componentName.charAt(0).toLowerCase() + componentName.slice(1);
+  }
+
   private async findVariantsFile(input: VariantsExtractionInput): Promise<string | null> {
     const componentDir = path.dirname(input.componentPath);
     const componentName = input.componentName;
-    const kebab = componentName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-    const camel = componentName.charAt(0).toLowerCase() + componentName.slice(1);
+    const camel = VariantsExtractor.camelName(componentName);
+    const kebab = camel.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
     // Try common patterns for variants files. Authors are inconsistent
     // (some use lowercase, some camelCase, some kebab-case), so we
@@ -193,9 +206,10 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
     componentName: string
   ): ts.VariableDeclaration | null {
     // camelCase covers the repo convention for multi-word components
-    // (`segmentGroupVariants`, `guidePanelVariants`); for single-word names it
-    // coincides with the lowercase candidate.
-    const camel = componentName.charAt(0).toLowerCase() + componentName.slice(1);
+    // (`segmentGroupVariants`, `guidePanelVariants`) and acronym-led ones
+    // (`qrCodeVariants`); for single-word names it coincides with the
+    // lowercase candidate.
+    const camel = VariantsExtractor.camelName(componentName);
     const possibleNames = [
       `${componentName.toLowerCase()}Variants`,
       `${camel}Variants`,

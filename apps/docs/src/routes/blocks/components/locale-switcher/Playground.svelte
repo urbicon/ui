@@ -35,17 +35,6 @@
         ],
         defaultValue: 'outlined'
       },
-      size: {
-        type: 'dropdown',
-        label: 'Size',
-        items: [
-          { label: 'sm', value: 'sm' },
-          { label: 'md', value: 'md' },
-          { label: 'lg', value: 'lg' }
-        ],
-        defaultValue: 'sm'
-      },
-      disabled: { type: 'checkbox', label: 'Disabled', defaultValue: false },
       showFlag: { label: 'Show Flag', defaultValue: false }
     }
   });
