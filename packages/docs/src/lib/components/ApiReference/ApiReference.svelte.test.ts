@@ -116,4 +116,59 @@ describe('ApiReference', () => {
       expect(detail?.textContent).toContain(value);
     }
   });
+
+  it('shows a named type, linked, above the values it stands for', () => {
+    const target = render({
+      props: [
+        {
+          name: 'tier',
+          type: 'InteractiveTier',
+          values: ['commit', 'modify'],
+          namedType: true,
+          source: { type: 'direct', name: 'ToggleProps' }
+        },
+        {
+          name: 'placement',
+          type: 'Placement',
+          values: ['top', 'bottom'],
+          namedType: true,
+          seeAlso: '/blocks/primitives/popover#type-Placement',
+          source: { type: 'direct', name: 'PopoverProps' }
+        }
+      ],
+      types: [{ name: 'InteractiveTier' }]
+    });
+
+    const tier = target.querySelector('tr[id="prop-tier"]');
+    expect(tier?.querySelector('a[href="#type-InteractiveTier"]')?.textContent).toBe(
+      'InteractiveTier'
+    );
+    expect(tier?.textContent).toContain('commit');
+    expect(tier?.textContent).toContain('modify');
+
+    const placement = target.querySelector('tr[id="prop-placement"]');
+    const link = placement?.querySelector('a[href="/blocks/primitives/popover#type-Placement"]');
+    expect(link?.textContent?.trim()).toBe('Placement');
+    expect(placement?.textContent).toContain('bottom');
+  });
+
+  it('shows a written literal union as its values alone', () => {
+    // The control: the type text *is* the chips here, so it must not appear a
+    // second time — otherwise the test above would pass on a table that simply
+    // printed every type next to every chip list.
+    const target = render({
+      props: [
+        {
+          name: 'size',
+          type: "'sm' | 'md'",
+          values: ['sm', 'md'],
+          source: { type: 'direct', name: 'ThingProps' }
+        }
+      ]
+    });
+
+    const size = target.querySelector('tr[id="prop-size"]');
+    expect(size?.textContent).toContain('sm');
+    expect(size?.textContent).not.toContain("'sm' | 'md'");
+  });
 });

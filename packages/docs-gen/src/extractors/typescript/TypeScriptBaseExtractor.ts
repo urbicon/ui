@@ -480,38 +480,19 @@ export abstract class TypeScriptBaseExtractor<
    * checker for `K` is one question that covers every spelling, including the
    * ones nobody has written yet.
    *
-   * Null, never an empty set, when there is no answer to delegate to: this node
-   * is not in a program, or `K` is not a union of literals (an unresolved
-   * reference widens to `keyof any`). The caller then reads the written text
-   * instead — which recovers the literal keys, and only those: for `keyof U`
-   * the fallback does report a clause that filters nothing, and the
-   * `Omit<Interface, keyof *Variants>` branch keeps its own net for that.
-   *
-   * The precondition is this node's own binding, not that a package root was
-   * configured — a file outside the tsconfig's `include` has the latter without
-   * the former, and the checker then answers from a synthesised, unbound source
-   * file. Measured on such a fixture: `keyof GridCellState` yielded nothing,
-   * only the written `'view'` was suppressed, and `success` stayed true with no
-   * warning. Identity, not a path match, because a second parse of the same
-   * path is exactly the unbound case.
+   * Null, never an empty set, when there is no answer to delegate to: the
+   * checker has none for this node (`resolveTypeNodeLiterals`), or `K` is not a
+   * union of literals (an unresolved reference widens to `keyof any`). The
+   * caller then reads the written text instead — which recovers the literal
+   * keys, and only those: for `keyof U` the fallback does report a clause that
+   * filters nothing, and the `Omit<Interface, keyof *Variants>` branch keeps
+   * its own net for that.
    */
   protected resolveHeritageKeyLiterals(
     heritageType: ts.ExpressionWithTypeArguments
   ): Set<string> | null {
-    const sourceFile = heritageType.getSourceFile();
-    if (this.program.getSourceFile(sourceFile.fileName) !== sourceFile) return null;
-    const keyArg = heritageType.typeArguments?.[1];
-    if (!keyArg) return null;
-    try {
-      const literals = TypeScriptBaseExtractor.literalMembersOfType(
-        this.checker.getTypeFromTypeNode(keyArg)
-      );
-      return literals.length > 0 ? new Set(literals.map((l) => l.value)) : null;
-    } catch {
-      // The out-of-program case is the guard's above; what is left here is a
-      // type reference the checker cannot make sense of at all.
-      return null;
-    }
+    const keys = this.resolveTypeNodeLiterals(heritageType.typeArguments?.[1]);
+    return keys.length > 0 ? new Set(keys) : null;
   }
 
   /**
@@ -629,50 +610,63 @@ export abstract class TypeScriptBaseExtractor<
    * the checker finds all of them.
    *
    * `[]` for anything `literalMembersOfType` rejects — `boolean` among them, so
-   * a flag stays a flag — and whenever the node is not bound in this program,
-   * by the same identity guard as `resolveHeritageKeyLiterals`: single-file
-   * mode, or a file outside the tsconfig's `include`.
+   * a flag stays a flag — and whenever this node is not bound in the program.
+   * That precondition is the node's own binding, not that a package root was
+   * configured: a file outside the tsconfig's `include` has the latter without
+   * the former, and the checker then answers from a synthesised, unbound source
+   * file. Measured on such a fixture: `keyof GridCellState` yielded nothing,
+   * only the written `'view'` was suppressed, and `success` stayed true with no
+   * warning. Identity, not a path match, because a second parse of the same
+   * path is exactly the unbound case.
    */
   protected resolveTypeNodeLiterals(typeNode: ts.TypeNode | undefined): string[] {
     if (!typeNode) return [];
     const sourceFile = typeNode.getSourceFile();
     if (this.program.getSourceFile(sourceFile.fileName) !== sourceFile) return [];
+    let literals: Array<{ value: string; quoted: boolean }>;
     try {
-      const literals = TypeScriptBaseExtractor.literalMembersOfType(
+      literals = TypeScriptBaseExtractor.literalMembersOfType(
         this.checker.getTypeFromTypeNode(typeNode)
       );
-      return TypeScriptBaseExtractor.orderLiterals(
-        literals,
-        this.writtenLiteralOrder(typeNode, 0)
-      ).map((l) => l.value);
     } catch {
+      // The out-of-program case is the guard's above; what is left here is a
+      // type reference the checker cannot make sense of at all.
       return [];
     }
+    let written: string[] | null = null;
+    try {
+      written = this.writtenLiteralOrder(typeNode, 0);
+    } catch {
+      // An order it cannot read leaves the values sorted, never dropped.
+    }
+    return TypeScriptBaseExtractor.orderLiterals(literals, written).map((l) => l.value);
   }
 
   /**
    * Put checker-resolved literals in an order that depends on the source alone.
    *
    * The checker orders a union's members by internal type id — by which
-   * literal it happened to create first anywhere in the program — so the same
-   * `Placement` comes back as `top | right | …` or as `left | right | …`
-   * depending on what was asked before it. `written` is the order the source
-   * lists the values in (`writtenLiteralOrder`, `declaredLiteralOrder`); it is
-   * only a ranking, used when it names exactly the checker's set and nothing
-   * else. Without one the values are sorted: any fixed order beats the
-   * checker's.
+   * literal it happened to create first anywhere in the program, i.e. by what
+   * was asked before. With this ordering disabled, `ButtonVariants['variant']`
+   * came back as `ghost, text, filled, outlined` against the config's
+   * `filled, outlined, ghost, text`. `written` is the order the source lists
+   * the values in (`writtenLiteralOrder`, `declaredLiteralOrder`); it is only a
+   * ranking, used when it names exactly the checker's set and nothing else.
+   * Without one the values are sorted — numerically when all are numbers: any
+   * fixed order beats the checker's.
    */
-  private static orderLiterals<T extends { value: string }>(
+  private static orderLiterals<T extends { value: string; quoted: boolean }>(
     literals: T[],
     written: string[] | null
   ): T[] {
     if (literals.length === 0) return literals;
     const byValue = new Map(literals.map((l) => [l.value, l]));
     const order = written ? [...new Set(written)] : null;
+    const numeric = literals.every((l) => !l.quoted);
     const keys =
       order && order.length === byValue.size && order.every((v) => byValue.has(v))
         ? order
-        : [...byValue.keys()].sort();
+        : [...byValue.keys()].sort(numeric ? (a, b) => Number(a) - Number(b) : undefined);
     return keys.map((key) => byValue.get(key) as T);
   }
 
@@ -686,8 +680,10 @@ export abstract class TypeScriptBaseExtractor<
    * contribute nothing, as in `literalMembersOfType`.
    */
   private writtenLiteralOrder(node: ts.TypeNode, depth: number): string[] | null {
-    // Only a cycle reaches this bound: `type A = B; type B = A` is a compile
-    // error, and extraction does not stop at compile errors.
+    // Nesting depth: one level per alias hop, `NonNullable`, union, template
+    // span and key read on the way down. Past the bound the walk gives up and
+    // the values are sorted instead — which is also what stops an alias cycle
+    // (a compile error, but extraction does not stop at compile errors).
     if (depth > 8) return null;
     if (ts.isParenthesizedTypeNode(node)) return this.writtenLiteralOrder(node.type, depth);
     if (node.kind === ts.SyntaxKind.UndefinedKeyword) return [];

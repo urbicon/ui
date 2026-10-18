@@ -6,11 +6,8 @@ import type { PropInfo } from '../src/types';
 
 /**
  * A prop's `values` are the literals its type stands for as the checker sees
- * it, not only the ones written at the declaration. `intent?: ComponentIntent`
- * (`(typeof INTENTS)[number]`) and `variant?: ButtonVariants['variant']` (an
- * axis of `VariantProps<typeof buttonVariants>`) list no literal where they are
- * used, so the API table showed an opaque name and every playground knob for
- * them needed a hand-written option list.
+ * it, in the order the source lists them — not only the literals written at
+ * the declaration, and not in the checker's order.
  */
 
 const PKG = path.join(import.meta.dirname, 'fixtures', 'cross-file-pkg');
@@ -88,6 +85,12 @@ describe('PropsExtractor — values the written type does not list (program-back
     expect(letter?.values).toEqual(['a', 'b', 'c']);
   });
 
+  it('sorts numbers as numbers', async () => {
+    // As strings, `10` would sort before `2`.
+    const { count } = await propsOf('Resolvy');
+    expect(count?.values).toEqual(['1', '2', '10']);
+  });
+
   it('leaves a boolean a flag and a non-literal type without values', async () => {
     const { flag, label } = await propsOf('Resolvy');
     // `boolean` is `true | false` to the checker; a dropdown would be wrong.
@@ -100,6 +103,12 @@ describe('PropsExtractor — values the written type does not list (program-back
     // written `'auto'` is still the one value a reader can pick by name.
     const { height } = await propsOf('Resolvy');
     expect(height?.values).toEqual(['auto']);
+  });
+
+  it('adds the literals a written union names through an alias', async () => {
+    // Reading the node finds `'auto'` and stops; the alias holds the rest.
+    const { mixed } = await propsOf('Resolvy');
+    expect(mixed?.values).toEqual(['auto', 'zeta', 'alpha']);
   });
 
   it('orders a picked tv() axis by its config, not by the checker', async () => {

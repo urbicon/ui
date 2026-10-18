@@ -597,13 +597,14 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       examples = this.extractJSDocExamples(member);
     }
 
-    // The literals written at the declaration first: a written union that mixes
-    // literals with a non-literal member (`number | 'auto'`) keeps the literals
-    // it lists, which the checker — all-or-nothing — would drop. Only a type
-    // that lists none here goes to the checker (`ComponentIntent`,
-    // `ButtonVariants['variant']`, `Placement`).
-    const written = member.type ? this.extractUnionValues(member.type) : [];
-    const values = written.length > 0 ? written : this.resolveTypeNodeLiterals(member.type);
+    // The checker first: it sees every literal a type stands for, including the
+    // ones a written union names through an alias (`'auto' | ComponentSize`),
+    // which reading the node would miss. It answers all-or-nothing, so a union
+    // with a non-literal member (`number | 'auto'`) falls back to the literals
+    // written at the declaration — as does single-file mode, with no checker.
+    const resolved = this.resolveTypeNodeLiterals(member.type);
+    const values =
+      resolved.length > 0 ? resolved : member.type ? this.extractUnionValues(member.type) : [];
 
     const prop: PropInfo = {
       name: propName,

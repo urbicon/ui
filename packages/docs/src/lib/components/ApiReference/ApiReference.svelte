@@ -40,6 +40,8 @@
       seen[prop.name] = {
         ...winner,
         values: winner.type === 'boolean' ? undefined : (winner.values ?? donor.values),
+        // The flag describes the values above, so it comes from whichever side gave them.
+        namedType: winner.values ? winner.namedType : donor.namedType,
         defaultValue: winner.defaultValue ?? donor.defaultValue,
         description: winner.description || donor.description
       };
@@ -176,6 +178,59 @@
   }
 </script>
 
+{#snippet valueChips(values: string[])}
+  <div class={slot('typeChips')}>
+    <!-- Keyed on value+index: a literal union may legitimately repeat a value.
+         Capped at INLINE_VALUES — a union with a dozen members made the
+         cell as tall as the clamped description next to it. The full
+         list is in the expanded row. -->
+    {#each values.slice(0, INLINE_VALUES) as val, i (`${val}-${i}`)}
+      <span class={slot('typeChip')}>{val}</span>
+    {/each}
+    {#if values.length > INLINE_VALUES}
+      <span class={slot('placeholder')}>
+        {dt('moreValues', { count: values.length - INLINE_VALUES })}
+      </span>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet typeExpression(item: ApiProp)}
+  {#if item.seeAlso?.startsWith('http')}
+    <!-- External documentation link; `resolve()` only applies to
+         internal SvelteKit routes. -->
+    <a href={item.seeAlso} class={slot('link')} target="_blank" rel="noopener external">
+      <code class={slot('linkCode')}>{item.type}</code>
+    </a>
+  {:else if item.seeAlso?.startsWith('/') || item.seeAlso?.startsWith('#')}
+    <!-- Internal documentation target — a route-relative path
+         (`/blocks/primitives/button#variants`, `…#type-Foo`, `…#api`,
+         `/customization/tokens#colors`) or a bare `#fragment`. Rendered
+         as a same-origin link wrapping the whole type, visually mirroring
+         the external branch above (no target/rel). `resolve()` on route
+         paths is the caller's responsibility — `packages/docs` has no
+         `$app/*` import. A non-navigable `@see` value (e.g. a bare
+         `HTMLButtonAttributes.value`) is neither `/` nor `#`, so it
+         falls through to the type-segment branch instead of becoming a
+         broken link. -->
+    <a href={item.seeAlso} class={slot('link')}>
+      <code class={slot('linkCode')}>{item.type}</code>
+    </a>
+  {:else}
+    <!-- Type names documented by a TypesReference on this page become in-page
+         links; every other token stays plain text. Written tight (no newlines
+         between segments) so the expression renders without stray whitespace. -->
+    {@const segments = typeSegments(item.type)}
+    <code class={slot('typeCode')}
+      >{#each segments as segment, i (`${segment.text}-${i}`)}{#if segment.linked}<a
+            href="#type-{segment.text}"
+            class={slot('typeLink')}
+            onclick={(e) => handleTypeLinkClick(e, segment.text)}>{segment.text}</a
+          >{:else}{segment.text}{/if}{/each}</code
+    >
+  {/if}
+{/snippet}
+
 {#if sortedProps.length === 0}
   <InfoCard intent="warning" title={dt('noApiProperties')}>
     <p>{dt('noApiPropertiesBody')}</p>
@@ -239,55 +294,19 @@
             {/if}
           </div>
         {:else if column.id === 'type'}
-          {#if item.values?.length}
-            <div class={slot('typeChips')}>
-              <!-- Keyed on value+index: a literal union may legitimately repeat a value.
-                   Capped at INLINE_VALUES — a union with a dozen members made the
-                   cell as tall as the clamped description next to it. The full
-                   list is in the expanded row. -->
-              {#each item.values.slice(0, INLINE_VALUES) as val, i (`${val}-${i}`)}
-                <span class={slot('typeChip')}>{val}</span>
-              {/each}
-              {#if item.values.length > INLINE_VALUES}
-                <span class={slot('placeholder')}>
-                  {dt('moreValues', { count: item.values.length - INLINE_VALUES })}
-                </span>
-              {/if}
+          {#if item.values?.length && !item.namedType}
+            <!-- `type` spells these values itself, so the chips stand in for it. -->
+            {@render valueChips(item.values)}
+          {:else if item.type && item.values?.length}
+            <!-- A named type (`ComponentIntent`, `ButtonVariants['variant']`) over the
+                 values it stands for: the name is what the source and the Types
+                 section say, and where its link goes; the chips are what it accepts. -->
+            <div class={slot('typeNamed')}>
+              {@render typeExpression(item)}
+              {@render valueChips(item.values)}
             </div>
           {:else if item.type}
-            {#if item.seeAlso?.startsWith('http')}
-              <!-- External documentation link; `resolve()` only applies to
-                   internal SvelteKit routes. -->
-              <a href={item.seeAlso} class={slot('link')} target="_blank" rel="noopener external">
-                <code class={slot('linkCode')}>{item.type}</code>
-              </a>
-            {:else if item.seeAlso?.startsWith('/') || item.seeAlso?.startsWith('#')}
-              <!-- Internal documentation target — a route-relative path
-                   (`/blocks/primitives/button#variants`, `…#type-Foo`, `…#api`,
-                   `/customization/tokens#colors`) or a bare `#fragment`. Rendered
-                   as a same-origin link wrapping the whole type, visually mirroring
-                   the external branch above (no target/rel). `resolve()` on route
-                   paths is the caller's responsibility — `packages/docs` has no
-                   `$app/*` import. A non-navigable `@see` value (e.g. a bare
-                   `HTMLButtonAttributes.value`) is neither `/` nor `#`, so it
-                   falls through to the type-segment branch instead of becoming a
-                   broken link. -->
-              <a href={item.seeAlso} class={slot('link')}>
-                <code class={slot('linkCode')}>{item.type}</code>
-              </a>
-            {:else}
-              <!-- Type names documented by a TypesReference on this page become in-page
-                   links; every other token stays plain text. Written tight (no newlines
-                   between segments) so the expression renders without stray whitespace. -->
-              {@const segments = typeSegments(item.type)}
-              <code class={slot('typeCode')}
-                >{#each segments as segment, i (`${segment.text}-${i}`)}{#if segment.linked}<a
-                      href="#type-{segment.text}"
-                      class={slot('typeLink')}
-                      onclick={(e) => handleTypeLinkClick(e, segment.text)}>{segment.text}</a
-                    >{:else}{segment.text}{/if}{/each}</code
-              >
-            {/if}
+            {@render typeExpression(item)}
           {:else}
             <span class={slot('placeholder')}>—</span>
           {/if}

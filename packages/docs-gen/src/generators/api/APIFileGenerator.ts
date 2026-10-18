@@ -180,6 +180,8 @@ export class APIFileGenerator {
     lines.push('  deprecated?: DeprecationInfo;');
     lines.push('  experimental?: boolean;');
     lines.push('  values?: string[];');
+    // The type names `values` instead of listing them; see shared-types `PropInfo`.
+    lines.push('  namedType?: boolean;');
     // `seeAlso` = navigable target (URL / route path / fragment) → rendered as
     // a link. `seeAlsoRefs` = prose `@see` references (bare type/member names)
     // → rendered as literal text. See shared-types `PropInfo`.

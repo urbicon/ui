@@ -14,6 +14,7 @@ import type {
   GeneratedOutput
 } from '../../types';
 import type { LLMGuideConfig, LLMOutputConfig } from '../../types/configuration';
+import { formatPropType } from '../../utils/prop-type';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
 
@@ -47,24 +48,10 @@ function renderPropRow(prop: PropInfo, resolvesProvider: boolean): string {
     const provider = resolvesProvider ? ` ${PROVIDER_BELOW_INSTANCE}` : '';
     desc = `${lead}${CLASS_OVER_SLOT_CLASSES}${provider}`;
   }
-  return `| ${prop.name} | ${renderPropType(prop)} | ${required} | ${def} | ${desc} |`;
-}
-
-/**
- * The Type cell. A type named somewhere else (`ComponentIntent`,
- * `ButtonVariants['variant']`) is followed by the literals docs-gen resolved it
- * to: an agent reads this row instead of the definition, and the name alone
- * does not say what the prop accepts. A type that already spells its literals
- * (`'sm' | 'md'`, `number | 'auto'`) stands as written.
- */
-function renderPropType(prop: PropInfo): string {
-  const type = `\`${prop.type}\``;
-  if (!prop.values?.length) return type;
-  const spelled = new Set(
-    prop.type.split('|').map((member) => member.trim().replace(/^(['"])(.*)\1$/, '$2'))
-  );
-  if (prop.values.every((value) => spelled.has(value))) return type;
-  return `${type} (${prop.values.join(', ')})`;
+  // A named type carries its values: an agent reads this row instead of the
+  // definition, and `ComponentIntent` alone does not say what the prop accepts.
+  const type = formatPropType(prop, (t) => `\`${t}\``);
+  return `| ${prop.name} | ${type} | ${required} | ${def} | ${desc} |`;
 }
 
 /**

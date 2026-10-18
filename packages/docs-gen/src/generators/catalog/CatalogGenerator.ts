@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { noJsDocDescription } from '../../extractors/typescript/TypeScriptBaseExtractor';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
+import { formatPropType } from '../../utils/prop-type';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
 
@@ -54,7 +55,11 @@ export interface ComponentCatalogEntry {
    * prints — distinct from `keyProps.length`, which caps at eight.
    */
   propCount: number;
-  /** Non-primitive prop types (objects, arrays, unions) — omits string/boolean/number */
+  /**
+   * Non-primitive prop types (objects, arrays, unions) — omits string/boolean/number.
+   * A type that only names its values carries them, as the llm.txt Api row
+   * does: `"intent": "ComponentIntent (primary, secondary, …)"`.
+   */
   keyPropTypes: Record<string, string>;
   /**
    * The hand-written JSDoc of the component's own (direct) props, by name. What
@@ -237,7 +242,7 @@ export class CatalogGenerator {
       if (!baseType || PRIMITIVE_TYPES.has(baseType)) continue;
       // Keep compound types, arrays, generics, unions with non-primitives
       if (/^(string|boolean|number)(\s*\|\s*(string|boolean|number))*$/.test(baseType)) continue;
-      keyPropTypes[p.name] = baseType;
+      keyPropTypes[p.name] = formatPropType({ ...p, type: baseType });
     }
 
     // What each of the component's own props says — the hand-written JSDoc of

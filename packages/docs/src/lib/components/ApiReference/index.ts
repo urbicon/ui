@@ -23,6 +23,13 @@ export interface ApiProp {
   seeAlsoRefs?: string[];
   values?: string[];
   /**
+   * `type` names its `values` instead of listing them (`ComponentIntent`,
+   * `ButtonVariants['variant']`): the Type column shows the type, linked where
+   * it can be, above the value chips. Without it a prop with `values` shows the
+   * chips alone — its type spells them already. Set by docs-gen.
+   */
+  namedType?: boolean;
+  /**
    * `@deprecated` on the prop's JSDoc. The message carries the replacement and
    * is the whole point of the tag — a badge alone would say "don't", not "use
    * what instead", so it renders in the expanded row as well.

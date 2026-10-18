@@ -26,7 +26,7 @@
     pick: ['label', 'placement', 'intent', 'size', 'showDelay', 'hideDelay', 'arrow', 'disabled'],
     overrides: {
       label: { defaultValue: 'Helpful hint' },
-      // Eine Auswahl aus den zwölf `Placement`-Werten: die vier Seiten plus die
+      // Eine Auswahl aus den `Placement`-Werten: die vier Seiten plus die
       // Ausrichtungen, die man an einem Tooltip auch wirklich unterscheiden kann.
       placement: {
         items: [

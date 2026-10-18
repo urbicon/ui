@@ -8,10 +8,9 @@ import type { ControlDefinition, ControlOption } from '@urbicon-ui/shared-types/
 export interface DerivableComponentData {
   variants?: Array<{ name: string; values: string[]; defaultValue?: string }>;
   /**
-   * `values` are the literals docs-gen's type checker resolved the prop's type
-   * to — through a named alias (`size: ComponentSize`) or a variant axis read
-   * by key (`ButtonVariants['variant']`) alike. No `values` means the type is
-   * not a literal union, not that it went unresolved.
+   * `values` are the literals the prop's type stands for, as docs-gen resolved
+   * them — through a named alias (`size: ComponentSize`) or a variant axis read
+   * by key (`ButtonVariants['variant']`) alike.
    */
   props?: Array<{ name: string; type?: string; values?: string[]; defaultValue?: string }>;
 }

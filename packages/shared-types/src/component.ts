@@ -110,6 +110,14 @@ export interface PropInfo {
   /** Values */
   values?: string[];
   /**
+   * `type` names its {@link PropInfo.values} instead of listing them —
+   * `ComponentIntent`, `ButtonVariants['variant']`, `'auto' | ComponentSize` —
+   * so a renderer shows the type and the values together. Absent when `type`
+   * spells every value itself (`'sm' | 'md'`, `number | 'auto'`) or there are
+   * no values. docs-gen sets it from one rule for every surface it feeds.
+   */
+  namedType?: boolean;
+  /**
    * A **navigable** `@see` target: an absolute URL, a route-relative path
    * (`/blocks/primitives/button#variants`) or a bare fragment (`#type-Foo`).
    * Renderers turn this into a link on the prop's type. Set either from a

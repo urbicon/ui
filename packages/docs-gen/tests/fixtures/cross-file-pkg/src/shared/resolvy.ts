@@ -23,11 +23,31 @@ export type Tone = (typeof TONES)[number];
  * checker create them in that order, which is the order it then reports every
  * union over them in.
  */
-export type ReversedLiterals = 'quiet' | 'loud' | 'calm' | 'lg' | 'md' | 'sm';
+export type ReversedLiterals =
+  | 'quiet'
+  | 'loud'
+  | 'calm'
+  | 'lg'
+  | 'md'
+  | 'sm'
+  | 'inline'
+  | 'stacked'
+  | 'bottom-end'
+  | 'bottom-start'
+  | 'top-end'
+  | 'top-start'
+  | 'bottom'
+  | 'top'
+  | 'alpha'
+  | 'zeta'
+  | 'auto';
 
 type Side = 'top' | 'bottom';
 type Align = 'start' | 'end';
 export type Spot = Side | `${Side}-${Align}`;
+
+/** Two literals a written union names through an alias. */
+export type Letters = 'zeta' | 'alpha';
 
 export type Flag = boolean;
 export type Label = string;

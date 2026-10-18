@@ -1,4 +1,12 @@
-import type { Flag, Label, ResolvyBaseProps, ScaleVariants, Spot, Tone } from '../shared/resolvy';
+import type {
+  Flag,
+  Label,
+  Letters,
+  ResolvyBaseProps,
+  ScaleVariants,
+  Spot,
+  Tone
+} from '../shared/resolvy';
 
 /**
  * @description Fixture component whose props take their values from types declared elsewhere.
@@ -23,6 +31,10 @@ export interface ResolvyProps {
   label?: Label;
   /** A written union that mixes a literal with a non-literal. */
   height?: number | 'auto';
+  /** A written literal next to an alias that holds the rest. */
+  mixed?: 'auto' | Letters;
+  /** Numbers, through a conditional type: the source fixes no order. */
+  count?: Exclude<10 | 2 | 1 | 99, 99>;
 }
 
 /**

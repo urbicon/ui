@@ -32,7 +32,7 @@
   const controls = deriveControls(componentData, {
     pick: ['size', 'offsetDistance', 'syncWidth', 'placement'],
     overrides: {
-      // Eine Auswahl aus den zwölf `Placement`-Werten: die vier Seiten plus die
+      // Eine Auswahl aus den `Placement`-Werten: die vier Seiten plus die
       // Ausrichtungen oben und unten.
       placement: {
         items: [
