@@ -263,7 +263,8 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     version: V,
     createSurface: { surfaceId: id, catalogId: URBICON_A2UI_CATALOG_ID }
   });
-  const consentForm = (withCheckbox: boolean): unknown[] => [
+  const agreedGate = { call: 'not', args: { value: { path: '/agreed' } } };
+  const consentForm = (withCheckbox: boolean, disabled: unknown = agreedGate): unknown[] => [
     {
       id: 'root',
       component: 'Column',
@@ -284,7 +285,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
       component: 'Button',
       child: 'bookLabel',
       action: { event: { name: 'book' } },
-      disabled: { call: 'not', args: { value: { path: '/agreed' } } }
+      disabled
     },
     { id: 'bookLabel', component: 'Text', text: 'Book' }
   ];
@@ -318,6 +319,60 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     expect(book().disabled).toBe(true);
     // A well-formed gate is no issue at all.
     expect(reported.flat()).toEqual([]);
+  });
+
+  it('keeps the Button disabled when its gate cannot be evaluated, and says why', async () => {
+    const user = userEvent.setup();
+    const reported: A2uiValidationIssue[][] = [];
+    // Upstream's own button-gating example nests `required` inside `and`.
+    const upstreamShaped = {
+      call: 'not',
+      args: {
+        value: {
+          call: 'and',
+          args: {
+            values: [{ call: 'required', args: { value: { path: '/name' } } }, { path: '/agreed' }]
+          }
+        }
+      }
+    };
+    render({
+      catalogs: [urbiconA2uiCatalog],
+      payload: [urbiconSurface(), comps(consentForm(true, upstreamShaped))],
+      onValidationError: (issues) => reported.push(issues)
+    });
+    const book = () => screen.getByRole('button', { name: /Book/ }) as HTMLButtonElement;
+
+    expect(book().disabled).toBe(true);
+    await user.click(screen.getByLabelText('I accept the cancellation policy'));
+    flushSync();
+    expect(book().disabled).toBe(true);
+    expect(reported.flat()).toEqual([
+      expect.objectContaining({ severity: 'error', code: A2UI_ISSUE_CODES.TYPE_MISMATCH })
+    ]);
+  });
+
+  it('reads a bound disabled as strictly as a logic call: only true disables', () => {
+    for (const [held, disabled] of [
+      [true, true],
+      ['yes', false],
+      [1, false]
+    ] as const) {
+      render({
+        catalogs: [urbiconA2uiCatalog],
+        payload: [
+          urbiconSurface(),
+          data({ locked: held }),
+          comps(consentForm(false, { path: '/locked' }))
+        ]
+      });
+      expect((screen.getByRole('button', { name: /Book/ }) as HTMLButtonElement).disabled).toBe(
+        disabled
+      );
+      dispose?.();
+      dispose = undefined;
+      document.body.replaceChildren();
+    }
   });
 
   it('reports a missing required checkbox once the surface settles, and none when present', () => {

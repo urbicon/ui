@@ -8,6 +8,7 @@ import {
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
 import { a2uiSurfaceRequirementsSection } from './a2ui-requirements';
+import { urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
 
 const prompt = a2uiSystemPrompt();
 
@@ -44,8 +45,7 @@ describe('a2uiSystemPrompt', () => {
     expect(prompt.toLowerCase()).toContain('do not use local function-call actions');
   });
 
-  // Basic's one dynamic boolean is CheckBox.value, a two-way input the
-  // validator refuses a computed value on — so nothing would accept the form.
+  // No Basic prop declares a failsafe, so nothing would accept the form.
   it('does not offer the logic functions where no prop accepts them', () => {
     expect(prompt).not.toContain('"call": "not"');
     expect(prompt).not.toContain('not/and/or');
@@ -67,24 +67,44 @@ describe('a2uiSystemPrompt', () => {
 });
 
 describe('a2uiSurfaceRequirementsSection', () => {
-  const section = a2uiSurfaceRequirementsSection({
-    booking: [
-      { component: 'Checkbox', path: '/agreed', description: 'consent to the cancellation policy' },
-      { component: 'Button', prop: 'disabled', path: '/locked' },
-      { component: 'Divider' }
-    ],
-    chat: []
-  });
+  const section = a2uiSurfaceRequirementsSection(
+    {
+      booking: [
+        {
+          component: 'Checkbox',
+          path: '/agreed',
+          description: 'consent to the cancellation policy'
+        },
+        { component: 'Button', prop: 'disabled', path: '/locked' },
+        // Never meetable on this catalog — left out rather than asked for.
+        { component: 'CheckBox' },
+        { component: 'Checkbox', prop: 'checked', path: '/agreed' },
+        { component: 'Checkbox', path: 'agreed' },
+        { component: 'Separator' }
+      ],
+      unmeetable: [{ component: 'Modal' }],
+      chat: []
+    },
+    urbiconA2uiCatalogSpec
+  );
 
   it('pins the surfaceId and lists each requirement in the words the issue uses', () => {
     expect(section).toContain('## Required components');
-    expect(section).toContain('exactly the surfaceId');
+    expect(section).toContain('use exactly');
+    expect(section).toContain('the surfaceId listed');
     expect(section).toContain('- Surface "booking" must contain:');
     expect(section).toContain(
       '  - a Checkbox with value bound to { "path": "/agreed" } (consent to the cancellation policy)'
     );
     expect(section).toContain('  - a Button with disabled bound to { "path": "/locked" }');
-    expect(section.endsWith('\n  - a Divider')).toBe(true);
+    expect(section.endsWith('\n  - a Separator')).toBe(true);
+  });
+
+  it('leaves out what the catalog can never meet, and a surface left with nothing', () => {
+    expect(section).not.toContain('CheckBox');
+    expect(section).not.toContain('checked');
+    expect(section).not.toContain('"agreed"');
+    expect(section).not.toContain('"unmeetable"');
   });
 
   it('names the error the model gets back for an omission', () => {
@@ -93,8 +113,8 @@ describe('a2uiSurfaceRequirementsSection', () => {
 
   it('skips a surface with no requirements, and is empty without any', () => {
     expect(section).not.toContain('"chat"');
-    expect(a2uiSurfaceRequirementsSection({})).toBe('');
-    expect(a2uiSurfaceRequirementsSection({ chat: [] })).toBe('');
+    expect(a2uiSurfaceRequirementsSection({}, urbiconA2uiCatalogSpec)).toBe('');
+    expect(a2uiSurfaceRequirementsSection({ chat: [] }, urbiconA2uiCatalogSpec)).toBe('');
   });
 
   it('is not part of the catalog prompt, which cannot see consumer requirements', () => {

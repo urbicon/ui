@@ -53,24 +53,64 @@ export interface A2uiPropSpec {
    * with a degraded fallback (e.g. ChoicePicker `displayStyle`/`filterable`).
    */
   promptHidden?: boolean;
+  /**
+   * Dynamic `boolean` only: opts the prop into the logic functions
+   * (`not`/`and`/`or`) and names the value it is held at while its function call
+   * cannot be evaluated — malformed, over a cap, or a function the engine does
+   * not run. Pick the value that fails closed: `true` for `disabled`, so a
+   * broken consent gate keeps its button disabled instead of enabling it. A
+   * prop without one refuses a logic call, because a gate with no closed state
+   * could only fail open.
+   */
+  failsafe?: boolean;
 }
 
 /**
- * Whether a prop takes a logic call (`not`/`and`/`or`): a dynamic boolean the
- * renderer only reads, such as `Button.disabled`. `value` is excluded because
- * it is the prop both node dispatchers write user input back through
- * (`valuePointer`), and a computed value gives that write nowhere to land.
- * The validator and the prompt both ask this, so what the model is told it may
- * write is what the validator accepts.
+ * The prop through which an input binds what the user enters. Both node
+ * dispatchers write user input back through it, and a surface requirement's
+ * `path` is matched against it unless the requirement names another prop.
  */
-export function acceptsLogicCall(key: string, spec: A2uiPropSpec): boolean {
-  return spec.kind === 'boolean' && spec.dynamic === true && key !== 'value';
+export const A2UI_VALUE_PROP = 'value';
+
+/**
+ * Whether a prop takes a logic call: a dynamic boolean that declares its
+ * `failsafe`. The validator and the prompt both ask this, so what the model is
+ * told it may write is what the validator accepts.
+ */
+export function acceptsLogicCall(spec: A2uiPropSpec): boolean {
+  return spec.kind === 'boolean' && spec.dynamic === true && typeof spec.failsafe === 'boolean';
 }
 
 export interface A2uiComponentSpec {
   /** Agent-facing description; emitted into the system prompt verbatim. */
   description: string;
   props: Record<string, A2uiPropSpec>;
+}
+
+/** Whether any prop of any component in `registry` takes a logic call. */
+export function registryAcceptsLogicCall(
+  registry: Readonly<Record<string, A2uiComponentSpec>>
+): boolean {
+  return Object.values(registry).some((spec) => Object.values(spec.props).some(acceptsLogicCall));
+}
+
+/**
+ * Whether a stored component instance renders as its component rather than as a
+ * fault chip: the registry knows the component, and every required prop
+ * survived validation. Both node dispatchers draw the chip when this is false,
+ * and a surface requirement counts only an instance for which it is true — a
+ * chip is no consent box.
+ */
+export function rendersAsComponent(
+  registry: Readonly<Record<string, A2uiComponentSpec>>,
+  instance: { component: string; props: ReadonlyMap<string, unknown> }
+): boolean {
+  const spec = ownEntry(registry, instance.component);
+  if (!spec) return false;
+  for (const [key, propSpec] of Object.entries(spec.props)) {
+    if (propSpec.required && !instance.props.has(key)) return false;
+  }
+  return true;
 }
 
 /** Opaque catalog identifier this subset advertises in `createSurface`. */

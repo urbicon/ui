@@ -174,7 +174,7 @@ const system = [
         the action rules, straight from the registry that validates the payload. It omits what is
         app-specific: how envelopes reach the client, and which components a surface must carry —
         append <code>a2uiSurfaceRequirementsSection()</code> from the same object you pass as
-        <code>surfaceRequirements</code>.
+        <code>surfaceRequirements</code> and the catalog spec you prompt with.
       </p>
       <CodeExample title="System prompt" code={promptCode} language="ts" preview={false} />
     </div>

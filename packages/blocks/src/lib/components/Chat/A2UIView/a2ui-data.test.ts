@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { A2UI_ISSUE_CODES } from './a2ui.types';
 import {
   A2UI_MAX_LOGIC_DEPTH,
+  A2UI_MAX_LOGIC_OPERANDS,
   cloneData,
   deleteAtPointer,
   getAtPointer,
@@ -225,6 +226,13 @@ describe('resolveDynamic — not / and / or', () => {
     for (let i = 0; i < A2UI_MAX_LOGIC_DEPTH; i++) nested = not(nested);
     expect(resolve(nested).value).toBe(true);
     expect(resolve(not(nested)).value).toBeUndefined();
+  });
+
+  it(`evaluates ${A2UI_MAX_LOGIC_OPERANDS} operands in one call tree and refuses one more`, () => {
+    const wide = or(...Array.from({ length: A2UI_MAX_LOGIC_OPERANDS }, () => false));
+    expect(resolve(wide).value).toBe(false);
+    // The `or` is itself the operand of `not`: 65 in all.
+    expect(resolve(not(wide)).value).toBeUndefined();
   });
 
   it('does not recurse into a hostile nesting depth', () => {

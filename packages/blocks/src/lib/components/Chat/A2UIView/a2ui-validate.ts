@@ -24,6 +24,8 @@
 import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec, resolveCatalog } from './a2ui-catalog';
 import {
+  A2UI_LOGIC_FUNCTION_NAMES,
+  type A2uiLogicFault,
   cloneData,
   deleteAtPointer,
   getAtPointer,
@@ -42,7 +44,8 @@ import {
   type A2uiRequiredComponent,
   type A2uiSurfaceRequirements,
   describeRequirement,
-  meetsRequirement
+  meetsRequirement,
+  requirementFault
 } from './a2ui-requirements';
 import { type A2uiDataSchema, validateSchemaWrite } from './a2ui-schema';
 
@@ -63,7 +66,11 @@ const MAX_COMPONENTS_PER_UPDATE = 1024;
 export interface A2uiComponentInstance {
   id: string;
   component: string;
-  /** Only registry-declared props; the raw payload values (dynamics resolved at render). */
+  /**
+   * Only registry-declared props; the raw payload values (dynamics resolved at
+   * render), except a gate whose call cannot be evaluated, which holds its
+   * `failsafe`.
+   */
   props: ReadonlyMap<string, unknown>;
   /** Index of the envelope that last defined this component. */
   sourceIndex: number;
@@ -89,11 +96,12 @@ export interface A2uiSurfaceState {
    */
   sendDataModel: boolean;
   /**
-   * The components this surface must contain — its entry in the processor's
-   * `surfaceRequirements`, copied at `createSurface` (empty without one).
-   * `collectGraphIssues` checks them against the settled tree.
+   * The components this surface must contain — the entries of the processor's
+   * `surfaceRequirements` for its id that its catalog can meet, taken at
+   * `createSurface`. `collectGraphIssues` checks them against the settled tree;
+   * absent means none.
    */
-  requirements: readonly A2uiRequiredComponent[];
+  requirements?: readonly A2uiRequiredComponent[];
 }
 
 export interface A2uiProcessor {
@@ -123,10 +131,12 @@ export interface A2uiProcessorOptions {
    * Components a surface must contain, keyed by surfaceId — the consumer's rule
    * for one form (a consent box on `booking`), not the catalog's, so a surface
    * without an entry is unaffected. `collectGraphIssues` reports each one not
-   * reachable from `root` as a `MISSING_REQUIRED_COMPONENT` error, and only when
-   * called with `streaming: false` (its default). Tell the model with
-   * `a2uiSurfaceRequirementsSection(sameObject)`: the model chooses surfaceIds,
-   * and the section pins the ones listed here.
+   * rendered from `root` as a `MISSING_REQUIRED_COMPONENT` error, and only when
+   * called with `streaming: false` (its default). An entry the surface's catalog
+   * can never meet is an `INVALID_REQUIREMENT` warning at `createSurface` and is
+   * not checked. Tell the model with `a2uiSurfaceRequirementsSection(sameObject,
+   * catalog)`: the model chooses surfaceIds, and the section pins the ones
+   * listed here.
    */
   surfaceRequirements?: A2uiSurfaceRequirements;
 }
@@ -160,9 +170,9 @@ function isDataBinding(value: unknown): boolean {
 function isFunctionCall(value: unknown): boolean {
   return isPlainObject(value) && typeof value.call === 'string';
 }
-// A logic call is no ref here: it computes a boolean, so outside a prop that
-// `acceptsLogicCall` it must be refused rather than stored as "resolves to
-// nothing" — `resolveDynamic` would evaluate it into a "true" label.
+// A logic call is no ref here. Stored outside a prop that takes one, it would
+// leave the prop silently empty — every text path renders a boolean as no text —
+// so it is refused instead, which gives the agent an error to act on.
 function isDynamicRef(value: unknown): boolean {
   return isDataBinding(value) || (isFunctionCall(value) && !isLogicCall(value));
 }
@@ -197,7 +207,7 @@ function dynamicRefIssues(value: unknown, path: string, surfaceId: string): A2ui
       issue(
         'warning',
         A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
-        `Function call "${String(call)}" is not supported; it resolves to nothing (only not, and, or are evaluated)`,
+        `Function-call binding "${String(call)}" is not supported; it resolves to nothing`,
         { surfaceId, path }
       )
     ];
@@ -227,6 +237,8 @@ function dynamicRefIssues(value: unknown, path: string, surfaceId: string): A2ui
 interface PropResult {
   store: boolean;
   issues: A2uiValidationIssue[];
+  /** Stored in place of the payload's value — a gate's `failsafe`. */
+  substitute?: { value: unknown };
 }
 
 function validateProp(
@@ -244,8 +256,11 @@ function validateProp(
     return { store: false, issues };
   };
 
-  if (spec.dynamic && isLogicCall(value)) {
-    return validateLogicProp(componentName, key, spec, value, path, surfaceId);
+  if (spec.dynamic && isFunctionCall(value)) {
+    const call = value as Record<string, unknown>;
+    if (acceptsLogicCall(spec))
+      return validateGate(componentName, key, spec, call, path, surfaceId);
+    if (isLogicCall(call)) return refuseLogicCall(componentName, key, spec, call, path, surfaceId);
   }
 
   switch (spec.kind) {
@@ -338,36 +353,67 @@ function validateProp(
 }
 
 /**
- * A `not`/`and`/`or` call in a dynamic prop. Stored only where the prop takes
- * one (`acceptsLogicCall`) and the call is well-formed (`logicCallFault`, the
- * definition `resolveDynamic` evaluates by). A malformed gate is dropped, not
- * half-evaluated: an optional `disabled` then falls back to enabled, and the
- * error tells the agent why.
+ * A function call on a gate — a prop that takes a logic call and declares the
+ * `failsafe` it fails closed to. A well-formed logic call (`logicCallFault`,
+ * the definition `resolveDynamic` evaluates by) is stored as written. Anything
+ * else — malformed, over a cap, or a function the engine does not run, such as
+ * the `required` upstream's own examples nest inside `and` — is stored as the
+ * failsafe, so a broken consent gate keeps its button disabled, and the error
+ * tells the agent what to replace.
  */
-function validateLogicProp(
+function validateGate(
   componentName: string,
   key: string,
   spec: A2uiPropSpec,
-  value: Record<string, unknown>,
+  call: Record<string, unknown>,
   path: string,
   surfaceId: string
 ): PropResult {
-  const call = String(value.call);
-  const refuse = (code: string, detail: string, at = ''): PropResult => ({
+  const fault: A2uiLogicFault | undefined = isLogicCall(call)
+    ? logicCallFault(call)
+    : {
+        code: A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
+        at: '',
+        message: `function "${String(call.call)}" is not supported (only ${A2UI_LOGIC_FUNCTION_NAMES} are evaluated)`
+      };
+  if (!fault) return { store: true, issues: [] };
+  return {
+    store: true,
+    substitute: { value: spec.failsafe },
+    issues: [
+      issue(
+        'error',
+        fault.code,
+        `"${key}" on ${componentName}: ${fault.message}; it is held at ${String(spec.failsafe)} until the call is fixed`,
+        { surfaceId, path: `${path}${fault.at}` }
+      )
+    ]
+  };
+}
+
+/** A logic call on a dynamic prop that takes none — refused, so the agent hears why. */
+function refuseLogicCall(
+  componentName: string,
+  key: string,
+  spec: A2uiPropSpec,
+  call: Record<string, unknown>,
+  path: string,
+  surfaceId: string
+): PropResult {
+  const name = String(call.call);
+  return {
     store: false,
-    issues: [issue('error', code, detail, { surfaceId, path: `${path}${at}` })]
-  });
-  if (!acceptsLogicCall(key, spec)) {
-    return refuse(
-      A2UI_ISSUE_CODES.TYPE_MISMATCH,
-      spec.kind === 'boolean'
-        ? `"${key}" on ${componentName} records the user's input, so bind it with { path }; a computed "${call}" cannot be written back`
-        : `"${key}" on ${componentName} is not a boolean prop, but "${call}" computes a boolean`
-    );
-  }
-  const fault = logicCallFault(value);
-  if (fault) return refuse(fault.code, `"${key}" on ${componentName}: ${fault.message}`, fault.at);
-  return { store: true, issues: [] };
+    issues: [
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.TYPE_MISMATCH,
+        spec.kind === 'boolean'
+          ? `"${key}" on ${componentName} takes a boolean or a { path } binding, not a "${name}" call`
+          : `"${key}" on ${componentName} is not a boolean prop, but "${name}" computes a boolean`,
+        { surfaceId, path }
+      )
+    ]
+  };
 }
 
 function validateChildList(
@@ -459,6 +505,33 @@ function validateLabeledChildren(
   return { store: true, issues };
 }
 
+/**
+ * Faults of one `action.event.context` value. Context is resolved at click
+ * time and never stored as a prop, so a fault cannot fail closed — the key is
+ * sent as `undefined` — and is reported for the agent to fix: a malformed logic
+ * call as an error, any other function call or a poisoned path as a prop's
+ * would be.
+ */
+function contextValueIssues(
+  componentName: string,
+  contextKey: string,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): A2uiValidationIssue[] {
+  if (!isLogicCall(value)) return dynamicRefIssues(value, path, surfaceId);
+  const fault = logicCallFault(value);
+  if (!fault) return [];
+  return [
+    issue(
+      'error',
+      fault.code,
+      `action context "${contextKey}" on ${componentName}: ${fault.message}; it is sent as undefined`,
+      { surfaceId, path: `${path}${fault.at}` }
+    )
+  ];
+}
+
 function validateAction(
   componentName: string,
   key: string,
@@ -483,6 +556,7 @@ function validateAction(
   }
   if (isPlainObject(value.event)) {
     const event = value.event;
+    const valueIssues: A2uiValidationIssue[] = [];
     if (typeof event.name !== 'string') {
       issues.push(
         issue(
@@ -512,7 +586,8 @@ function validateAction(
         );
         return { store: false, issues };
       }
-      for (const contextKey of Object.keys(event.context)) {
+      const context = event.context as Record<string, unknown>;
+      for (const contextKey of Object.keys(context)) {
         if (PROTO_KEYS.has(contextKey)) {
           issues.push(
             issue(
@@ -522,12 +597,24 @@ function validateAction(
               { surfaceId, path: `${path}/event/context/${contextKey}` }
             )
           );
+          continue;
+        }
+        for (const valueIssue of contextValueIssues(
+          componentName,
+          contextKey,
+          context[contextKey],
+          `${path}/event/context/${contextKey}`,
+          surfaceId
+        )) {
+          valueIssues.push(valueIssue);
         }
       }
     }
     // Store even with a context-key error: the renderer builds context on a
     // null-prototype object, so the flagged key is inert. The error still relays.
-    return { store: issues.every((i) => i.code !== A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION), issues };
+    // A faulty context VALUE never decides this: it only travels as `undefined`.
+    const store = issues.every((i) => i.code !== A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION);
+    return { store, issues: [...issues, ...valueIssues] };
   }
   if (isPlainObject(value.functionCall)) {
     if (typeof value.functionCall.call === 'string') return { store: true, issues };
@@ -818,7 +905,7 @@ function validateComponent(
       catalog.iconNames
     );
     for (const propIssue of result.issues) surface.issues.push(propIssue);
-    if (result.store) props.set(key, comp[key]);
+    if (result.store) props.set(key, result.substitute ? result.substitute.value : comp[key]);
   }
 
   for (const [key, propSpec] of Object.entries(spec.props)) {
@@ -892,6 +979,31 @@ function createProcessor(
   const globalIssues: A2uiValidationIssue[] = [];
   const defaultCatalog = catalogs[0];
 
+  // Runs once the catalog is resolved: whether a requirement can be met at all
+  // depends on the catalog the surface was created on.
+  function applyRequirements(surface: A2uiSurfaceState): void {
+    // The key is payload text, so an own entry only (`toString` must miss).
+    const requested = ownEntry(surfaceRequirements, surface.surfaceId);
+    if (!Array.isArray(requested) || requested.length === 0) return;
+    const met: A2uiRequiredComponent[] = [];
+    for (const requirement of requested) {
+      const fault = requirementFault(requirement, surface.catalog);
+      if (fault === undefined) {
+        met.push(requirement);
+        continue;
+      }
+      surface.issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.INVALID_REQUIREMENT,
+          `surfaceRequirements for "${surface.surfaceId}" ask for ${describeRequirement(requirement)}, which can never be met: ${fault}; it is not checked`,
+          { surfaceId: surface.surfaceId }
+        )
+      );
+    }
+    surface.requirements = met;
+  }
+
   function handleCreateSurface(env: Record<string, unknown>, base: string): void {
     const cs = env.createSurface;
     if (!isPlainObject(cs)) {
@@ -943,9 +1055,7 @@ function createProcessor(
       dataModel: undefined,
       issues: [],
       catalog: defaultCatalog,
-      sendDataModel: false,
-      // The key is payload text, so an own entry only (`toString` must miss).
-      requirements: ownEntry(surfaceRequirements, surfaceId) ?? []
+      sendDataModel: false
     };
     surfaces.set(surfaceId, surface);
 
@@ -973,6 +1083,7 @@ function createProcessor(
         );
       }
     }
+    applyRequirements(surface);
     if ('theme' in cs) {
       surface.issues.push(
         issue('warning', A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED, 'theme is ignored', {
@@ -1313,8 +1424,8 @@ export interface GraphIssueOptions {
  * Walk the component graph from `root` and collect structural faults that only
  * exist once components are assembled: cycles, excessive depth/nodes, dangling
  * child references, non-array template paths, mis-placed `weight` and — on a
- * settled surface only — every `requirements` entry no reachable component
- * meets. A surface without a `root` reports at most `MISSING_ROOT`.
+ * settled surface only — every `requirements` entry no component rendered
+ * from `root` meets. A surface without a `root` reports at most `MISSING_ROOT`.
  *
  * NOTE — contract extension. The design's published `a2ui-validate.ts` surface
  * is `createA2uiProcessor` + `normalizeA2uiPayload`. This function is an
@@ -1347,8 +1458,15 @@ export function collectGraphIssues(
 
   const reportedDangling = new Set<string>();
   // Mid-stream every requirement would read as missing — the surface arrives
-  // over several envelopes — so they are checked on the settled tree only.
-  const unmet: A2uiRequiredComponent[] = streaming ? [] : [...surface.requirements];
+  // over several envelopes — so they are checked on the settled tree only. One
+  // rendered component meets one entry, so two Checkbox entries ask for two;
+  // entries with a `path` are tried first, so a box bound to /agreed is not
+  // spent on a name-only entry another box could meet.
+  const unmet: A2uiRequiredComponent[] = streaming
+    ? []
+    : [...(surface.requirements ?? [])].sort(
+        (a, b) => Number(b.path !== undefined) - Number(a.path !== undefined)
+      );
   let nodeCount = 0;
   let overflowReported = false;
   let aborted = false;
@@ -1470,9 +1588,10 @@ export function collectGraphIssues(
       return;
     }
 
-    for (let i = unmet.length - 1; i >= 0; i--) {
-      if (meetsRequirement(unmet[i], comp, scopePrefix)) unmet.splice(i, 1);
-    }
+    const met = unmet.findIndex((requirement) =>
+      meetsRequirement(requirement, comp, scopePrefix, registry)
+    );
+    if (met !== -1) unmet.splice(met, 1);
 
     // A bound `options` list is only checkable once it resolves — the envelope
     // validator saw a { path }, not a list. Silent while the path is still
@@ -1534,7 +1653,7 @@ export function collectGraphIssues(
       issue(
         'error',
         A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
-        `Surface "${surfaceId}" must contain ${describeRequirement(requirement)}; none is reachable from "root"`,
+        `Surface "${surfaceId}" must contain ${describeRequirement(requirement)}; none renders from "root" (a fault chip does not count)`,
         { surfaceId }
       )
     );

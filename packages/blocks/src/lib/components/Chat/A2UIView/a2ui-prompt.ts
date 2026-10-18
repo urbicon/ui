@@ -20,7 +20,25 @@
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
-import { type A2uiComponentSpec, type A2uiPropSpec, acceptsLogicCall } from './a2ui-registry';
+import { A2UI_LOGIC_FUNCTION_ARGS, A2UI_LOGIC_FUNCTIONS } from './a2ui-data';
+import {
+  type A2uiComponentSpec,
+  type A2uiPropSpec,
+  acceptsLogicCall,
+  registryAcceptsLogicCall
+} from './a2ui-registry';
+
+/** The logic functions as the prompt names them: `not/and/or`. */
+const LOGIC_NAMES = [...A2UI_LOGIC_FUNCTIONS].join('/');
+const LOGIC_CALL = `${LOGIC_NAMES} call`;
+
+/** The functions taking `arg`, as the prompt's `"call"` alternatives: `"and" | "or"`. */
+function logicCallNames(arg: 'value' | 'values'): string {
+  return [...A2UI_LOGIC_FUNCTIONS]
+    .filter((name) => A2UI_LOGIC_FUNCTION_ARGS[name] === arg)
+    .map((name) => JSON.stringify(name))
+    .join(' | ');
+}
 
 /** Props documented once in the shared section rather than per component. */
 const COMMON_PROP_KEYS = new Set(['accessibility', 'weight']);
@@ -53,7 +71,7 @@ function collectSharedAxes(
   return axes;
 }
 
-function renderKind(key: string, spec: A2uiPropSpec): string {
+function renderKind(spec: A2uiPropSpec): string {
   const shared = sharedAxisOf(spec);
   if (shared) return `shared ${shared} (see Shared axes)`;
   switch (spec.kind) {
@@ -65,8 +83,7 @@ function renderKind(key: string, spec: A2uiPropSpec): string {
     case 'number':
       return spec.dynamic ? 'number literal or { path } binding' : 'number';
     case 'boolean':
-      if (acceptsLogicCall(key, spec))
-        return 'boolean literal, { path } binding or not/and/or call';
+      if (acceptsLogicCall(spec)) return `boolean literal, { path } binding or ${LOGIC_CALL}`;
       return spec.dynamic ? 'boolean literal or { path } binding' : 'boolean';
     case 'stringList':
       return 'string array or { path } binding';
@@ -90,7 +107,7 @@ function renderKind(key: string, spec: A2uiPropSpec): string {
 function renderProp(key: string, spec: A2uiPropSpec): string {
   const flags: string[] = [];
   flags.push(spec.required ? 'required' : 'optional');
-  flags.push(renderKind(key, spec));
+  flags.push(renderKind(spec));
   if (spec.default !== undefined) flags.push(`default ${JSON.stringify(spec.default)}`);
   return `  - ${key} (${flags.join('; ')}): ${spec.description}`;
 }
@@ -163,9 +180,7 @@ export function a2uiSystemPrompt(options?: {
   const grouped = componentNames.some((name) => categoryOf(registry[name]) !== undefined);
   const hasRichText = 'RichText' in registry;
   const hasSelectArray = 'Select' in registry && registry.Select.props.value?.kind === 'stringList';
-  const hasLogicProps = componentNames.some((name) =>
-    Object.entries(registry[name].props).some(([key, spec]) => acceptsLogicCall(key, spec))
-  );
+  const hasLogicProps = registryAcceptsLogicCall(registry);
 
   const sections: string[] = [];
 
@@ -268,12 +283,13 @@ export function a2uiSystemPrompt(options?: {
       '',
       ...(hasLogicProps
         ? [
-            'Function calls ({ "call", "args" }) resolve to nothing, with three exceptions',
-            'that compute a boolean, allowed only where a prop says "not/and/or call":',
-            '{ "call": "not", "args": { "value": B } } and',
-            '{ "call": "and" | "or", "args": { "values": [B, B, ...] } } (two or more B),',
-            'each B being true, false, a { path } binding or another such call. Only true',
-            'counts as true: a path not yet written is false, so "not" of it is true.'
+            'Function calls ({ "call", "args" }) resolve to nothing, except these, which',
+            `compute a boolean and are allowed only where a prop says "${LOGIC_CALL}":`,
+            `{ "call": ${logicCallNames('value')}, "args": { "value": B } } and`,
+            `{ "call": ${logicCallNames('values')}, "args": { "values": [B, B, ...] } } (two or more B),`,
+            'each B being true, false, a { path } binding or another of these calls — never',
+            'another function such as "required". Only true counts as true: a path not yet',
+            'written is false, so "not" of it is true.'
           ]
         : [
             'Function-call bindings ({ "call": ..., "args": ... }) are NOT supported and',
@@ -339,7 +355,7 @@ export function a2uiSystemPrompt(options?: {
     '- Do NOT define children inline; reference them by id.',
     '- Do NOT use more than one "root".',
     hasLogicProps
-      ? '- Do NOT use function calls other than not/and/or, nor local function-call actions.'
+      ? `- Do NOT use function calls other than ${LOGIC_NAMES}, nor local function-call actions.`
       : '- Do NOT use function-call bindings or local function-call actions.',
     `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`
   ];

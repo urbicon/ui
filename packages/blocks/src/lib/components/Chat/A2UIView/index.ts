@@ -16,7 +16,8 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * `onValidationError` (spec-compatible issues a consumer can relay to the agent
  * as a `VALIDATION_FAILED` error) — except the A2UI logic functions `not`,
  * `and`, `or`, which compute a boolean from the data model, execute nothing,
- * and gate a prop such as `Button.disabled` ("disabled until /agreed").
+ * and gate a prop such as the Urbicon catalog's `Button.disabled` ("disabled
+ * until /agreed"); a gate whose call cannot be evaluated fails closed.
  * Inputs are two-way (typing writes into the local data model; bound text
  * updates live); actions dispatch a spec-exact
  * `A2uiActionEvent`. Images and links are gated by the same strict-by-default
@@ -66,8 +67,10 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
   payload: unknown;
   /**
    * While true, a reference to a not-yet-defined component renders a placeholder
-   * instead of a fault chip (mid-stream tolerance). Flip to false when the
-   * stream settles so dangling references become errors. @default false
+   * instead of a fault chip (mid-stream tolerance), and `MISSING_ROOT` and
+   * `MISSING_REQUIRED_COMPONENT` are held back. Flip to false when the stream
+   * settles so dangling references become errors and missing components are
+   * reported. @default false
    * @summary Whether a reference to a component that has not arrived yet is tolerated or an error.
    */
   streaming?: boolean;
@@ -113,15 +116,18 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
   /**
    * Components a surface must contain, keyed by surfaceId — e.g.
    * `{ booking: [{ component: 'Checkbox', path: '/agreed' }] }`. A requirement
-   * counts once a component of that name is reachable from `root` and, with
-   * `path`, its `value` (or the named `prop`) is a `{ path }` binding that
-   * resolves to that pointer. Each one unmet is reported through
-   * `onValidationError` as a `MISSING_REQUIRED_COMPONENT` error once
-   * `streaming` is false — never while the surface is still arriving, never
-   * thrown — so the agent can patch the surface. A surface without an entry is
-   * unaffected. The model picks surfaceIds, so put the same object in the
-   * prompt with `a2uiSurfaceRequirementsSection`, which pins the id. Resolved
-   * once at init — keep it referentially stable.
+   * counts once a component of that name is reachable from `root` and renders
+   * as itself (not as a fault chip) and, with `path`, its `value` (or the named
+   * `prop`) is a `{ path }` binding that resolves to that pointer; one component
+   * meets one entry. Each one unmet is reported through `onValidationError` as a
+   * `MISSING_REQUIRED_COMPONENT` error once `streaming` is false — never while
+   * the surface is still arriving, never thrown — so the agent can patch the
+   * surface. An entry the surface's catalog can never meet (unknown component,
+   * undeclared prop, relative path) is an `INVALID_REQUIREMENT` warning instead
+   * and is not checked. A surface without an entry is unaffected. The model
+   * picks surfaceIds, so put the same object in the prompt with
+   * `a2uiSurfaceRequirementsSection(requirements, catalogSpec)`, which pins the
+   * id. Resolved once at init — keep it referentially stable.
    * @summary Which components each surface must contain, reported back to the agent when missing.
    */
   surfaceRequirements?: A2uiSurfaceRequirements;

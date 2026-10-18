@@ -225,18 +225,36 @@ export function deleteAtPointer(model: unknown, pointer: string): void {
 // ── Logic functions ──────────────────────────────────────────────────────────
 
 /**
- * The only function calls the engine evaluates: the A2UI Basic catalog's logic
- * functions. Each computes a boolean from its operands and executes nothing;
- * every other `call` resolves to `undefined`.
+ * The only function calls the engine evaluates — the A2UI Basic catalog's logic
+ * functions — each with the one arg it takes: `not` a single operand
+ * (`args.value`), `and`/`or` a list of two or more (`args.values`). Each
+ * computes a boolean and executes nothing; every other `call` resolves to
+ * `undefined`. The validator, the resolver and the prompt all read this table.
  */
-export const A2UI_LOGIC_FUNCTIONS: ReadonlySet<string> = new Set(['not', 'and', 'or']);
+export const A2UI_LOGIC_FUNCTION_ARGS: Readonly<Record<string, 'value' | 'values'>> = Object.freeze(
+  Object.assign(Object.create(null) as Record<string, 'value' | 'values'>, {
+    not: 'value',
+    and: 'values',
+    or: 'values'
+  })
+);
+
+/** The names of {@link A2UI_LOGIC_FUNCTION_ARGS}. */
+export const A2UI_LOGIC_FUNCTIONS: ReadonlySet<string> = new Set(
+  Object.keys(A2UI_LOGIC_FUNCTION_ARGS)
+);
+
+/** The names as a reader sees them in a message: `not, and, or`. */
+export const A2UI_LOGIC_FUNCTION_NAMES = [...A2UI_LOGIC_FUNCTIONS].join(', ');
 
 /**
- * How deep logic calls may nest (`not(and(…))` is two). Far beyond any real
- * gate; it exists so a hostile payload cannot drive the validator and the
- * resolver into unbounded recursion.
+ * How deep logic calls may nest (`not(and(…))` is two), and how many operands
+ * one call tree may hold in all. Generous for any gate; they exist because the
+ * tree is re-evaluated on every render, and a hostile payload must neither
+ * recurse without bound nor make each keystroke walk a list of thousands.
  */
 export const A2UI_MAX_LOGIC_DEPTH = 8;
+export const A2UI_MAX_LOGIC_OPERANDS = 64;
 
 /** Why a logic call is not evaluated — the code, where below the call, and what is wrong. */
 export interface A2uiLogicFault {
@@ -258,8 +276,6 @@ export function isLogicCall(value: unknown): value is Record<string, unknown> & 
 }
 
 const CALL_KEYS: ReadonlySet<string> = new Set(['call', 'args', 'returnType']);
-const NOT_ARG_KEYS: ReadonlySet<string> = new Set(['value']);
-const LIST_ARG_KEYS: ReadonlySet<string> = new Set(['values']);
 
 function unexpectedKey(
   object: Record<string, unknown>,
@@ -280,7 +296,25 @@ function unexpectedKey(
   return undefined;
 }
 
-function operandFault(operand: unknown, at: string, depth: number): A2uiLogicFault | undefined {
+/** Operands counted so far across one call tree (see {@link A2UI_MAX_LOGIC_OPERANDS}). */
+interface OperandBudget {
+  used: number;
+}
+
+function operandFault(
+  operand: unknown,
+  at: string,
+  depth: number,
+  budget: OperandBudget
+): A2uiLogicFault | undefined {
+  budget.used++;
+  if (budget.used > A2UI_MAX_LOGIC_OPERANDS) {
+    return {
+      code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      at,
+      message: `A logic call holds more than ${A2UI_MAX_LOGIC_OPERANDS} operands in all`
+    };
+  }
   if (typeof operand === 'boolean') return undefined;
   if (isPlainRecord(operand)) {
     if (typeof operand.call === 'string') {
@@ -288,10 +322,10 @@ function operandFault(operand: unknown, at: string, depth: number): A2uiLogicFau
         return {
           code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
           at,
-          message: `Function "${operand.call}" is not supported inside a logic call (only not, and, or are)`
+          message: `Function "${operand.call}" is not supported inside a logic call (only ${A2UI_LOGIC_FUNCTION_NAMES} are)`
         };
       }
-      const nested = logicCallFault(operand, depth + 1);
+      const nested = callFault(operand, depth + 1, budget);
       return nested && { ...nested, at: `${at}${nested.at}` };
     }
     if (typeof operand.path === 'string') {
@@ -302,24 +336,17 @@ function operandFault(operand: unknown, at: string, depth: number): A2uiLogicFau
   return {
     code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
     at,
-    message: 'A logic operand must be true, false, a { path } binding or a not/and/or call'
+    message: `A logic operand must be true, false, a { path } binding or one of ${A2UI_LOGIC_FUNCTION_NAMES}`
   };
 }
 
-/**
- * The first structural fault of a logic call, or `undefined` when it is
- * well-formed. The shape is the Basic catalog's: `not` takes `args.value`;
- * `and`/`or` take `args.values`, an array of two or more; no other key on the
- * call or its args; `returnType`, if present, is `"boolean"`. Each operand is a
- * boolean literal, a `{ path }` binding or another logic call. The validator
- * reports this fault and `resolveDynamic` refuses to evaluate on it, so the two
- * read one definition of well-formed.
- */
-export function logicCallFault(
+function callFault(
   call: Record<string, unknown>,
-  depth = 1
+  depth: number,
+  budget: OperandBudget
 ): A2uiLogicFault | undefined {
   const name = String(call.call);
+  const arg = A2UI_LOGIC_FUNCTION_ARGS[name];
   if (depth > A2UI_MAX_LOGIC_DEPTH) {
     return {
       code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
@@ -337,7 +364,7 @@ export function logicCallFault(
     };
   }
   const args = call.args;
-  const shape = name === 'not' ? '{ value }' : '{ values: [...] }';
+  const shape = arg === 'value' ? '{ value }' : '{ values: [...] }';
   if (!isPlainRecord(args)) {
     return {
       code: args === undefined ? A2UI_ISSUE_CODES.MISSING_FIELD : A2UI_ISSUE_CODES.TYPE_MISMATCH,
@@ -345,20 +372,18 @@ export function logicCallFault(
       message: `"${name}" needs args ${shape}`
     };
   }
-  if (name === 'not') {
-    const extraArg = unexpectedKey(args, NOT_ARG_KEYS, '/args', '"not" args');
-    if (extraArg) return extraArg;
+  const extraArg = unexpectedKey(args, new Set([arg]), '/args', `"${name}" args`);
+  if (extraArg) return extraArg;
+  if (arg === 'value') {
     if (!('value' in args)) {
       return {
         code: A2UI_ISSUE_CODES.MISSING_FIELD,
         at: '/args/value',
-        message: `"not" needs args.value`
+        message: `"${name}" needs args.value`
       };
     }
-    return operandFault(args.value, '/args/value', depth);
+    return operandFault(args.value, '/args/value', depth, budget);
   }
-  const extraArg = unexpectedKey(args, LIST_ARG_KEYS, '/args', `"${name}" args`);
-  if (extraArg) return extraArg;
   const values = args.values;
   if (!Array.isArray(values) || values.length < 2) {
     return {
@@ -368,10 +393,23 @@ export function logicCallFault(
     };
   }
   for (let i = 0; i < values.length; i++) {
-    const fault = operandFault(values[i], `/args/values/${i}`, depth);
+    const fault = operandFault(values[i], `/args/values/${i}`, depth, budget);
     if (fault) return fault;
   }
   return undefined;
+}
+
+/**
+ * The first structural fault of a logic call, or `undefined` when it is
+ * well-formed. The shape is the Basic catalog's (see
+ * {@link A2UI_LOGIC_FUNCTION_ARGS}); no other key on the call or its args;
+ * `returnType`, if present, is `"boolean"`. Each operand is a boolean literal, a
+ * `{ path }` binding or another logic call, within the depth and operand caps.
+ * The validator reports this fault and `resolveDynamic` refuses to evaluate on
+ * it, so the two read one definition of well-formed.
+ */
+export function logicCallFault(call: Record<string, unknown>): A2uiLogicFault | undefined {
+  return callFault(call, 1, { used: 0 });
 }
 
 /**

@@ -135,7 +135,8 @@ export const A2UI_ISSUE_CODES = {
   WEIGHT_CONTEXT: 'WEIGHT_CONTEXT',
   /**
    * A `{ call, args }` function call other than the logic functions `not`,
-   * `and`, `or` — unsupported, resolves to `undefined`.
+   * `and`, `or` — unsupported. A warning where it resolves to `undefined`; an
+   * error on a gate (`Button.disabled`), which then holds its failsafe.
    */
   FUNCTION_CALL_UNSUPPORTED: 'FUNCTION_CALL_UNSUPPORTED',
   /** An `Icon.name` string outside the mapped set — a fallback glyph is drawn. */
@@ -187,13 +188,22 @@ export const A2UI_ISSUE_CODES = {
   OPTIONS_NOT_A_LIST: 'OPTIONS_NOT_A_LIST',
   /**
    * A component the consumer requires on this surface (`surfaceRequirements`,
-   * keyed by surfaceId) is not reachable from `root`. An error, so it travels
-   * the channel that is relayed to the agent, which patches the surface. Only
-   * reported once the surface has settled (`streaming: false`): a surface
-   * arrives over several envelopes, and mid-stream every requirement would
-   * read as missing.
+   * keyed by surfaceId) is not reachable from `root`, or renders only as a
+   * fault chip. An error, so it travels the channel that is relayed to the
+   * agent, which patches the surface. Only reported once the surface has
+   * settled (`streaming: false`): a surface arrives over several envelopes, and
+   * mid-stream every requirement would read as missing.
    */
-  MISSING_REQUIRED_COMPONENT: 'MISSING_REQUIRED_COMPONENT'
+  MISSING_REQUIRED_COMPONENT: 'MISSING_REQUIRED_COMPONENT',
+  /**
+   * A `surfaceRequirements` entry that can never be met on the catalog this
+   * surface was created on — an unknown component, an undeclared prop or one
+   * that takes no `{ path }`, a relative path. The consumer's mistake, not the
+   * agent's, so it is a warning (logged, not relayed by the documented wiring),
+   * reported once at `createSurface`, and the entry is left unchecked: the agent
+   * is never asked for what it cannot build.
+   */
+  INVALID_REQUIREMENT: 'INVALID_REQUIREMENT'
 } as const;
 
 export type A2uiIssueCode = (typeof A2UI_ISSUE_CODES)[keyof typeof A2UI_ISSUE_CODES];

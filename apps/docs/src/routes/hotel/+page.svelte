@@ -297,11 +297,10 @@
           </span>
         </div>
 
-        <!-- Not a checkbox inside the generated form, although the form could
-             now gate its button on one (`disabled: not /agreed`): it would
-             appear only once the form is built, so it would never reach anyone
-             who does not play the recording. Stated in the frame instead:
-             always there, never optional. -->
+        <!-- Not a checkbox inside the generated form: that appears only once
+             the form is built, so it would never reach anyone who does not play
+             the recording. Stated in the frame instead: always there, never
+             optional. -->
         <p
           class="rounded-modify border-warning/30 bg-warning-subtle text-warning-emphasis mb-4 border px-3 py-2 text-xs"
         >
