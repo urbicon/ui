@@ -98,9 +98,10 @@ from the page's own `componentData`, so the type names the API table links alway
 the Types table. Never wire `<ApiReference types=…>` and `<TypesReference>` by hand on a component
 page: the two copies of `types` are each silent without the other. The nav lists both ids
 (`{ id: 'api', title: 'API Reference' }`, `{ id: 'types', title: 'Types' }`); `sections:lint`
-checks it, and `refsections:lint` that every page with an `api.ts` renders the component. A family
-page that documents several components under one Types section (`/blocks/components/guide`) is the
-one exception and composes the two tables itself.
+checks it, and `refsections:lint` that every component page renders the component. A family page
+that documents several components under one Types section (`/blocks/components/guide`) is the one
+exception: it composes the two tables itself, with every prop table rendered through one local
+snippet that binds the page's single `types`, so no table can be written without them.
 
 ## Playground stages: cap the width of form controls
 

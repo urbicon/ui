@@ -126,6 +126,20 @@ describe('ReferenceSections', () => {
     expect(header?.querySelector('p')).toBeNull();
   });
 
+  it('tags both localized headings with the locale they render in', () => {
+    // The headings come from the docs locale while the prose around them has a
+    // language of its own (`lang="en"` on this site's article column), so each
+    // heading declares its own. No provider here: the base locale.
+    const target = render({ componentData: DATA });
+
+    for (const id of ['api', 'types']) {
+      const tagged = target.querySelector(`#${id}-title [lang]`);
+      expect(tagged?.getAttribute('lang'), `#${id} heading`).toBe('en');
+    }
+    expect(target.querySelector('#api-title')?.textContent).toContain('API Reference');
+    expect(target.querySelector('#types-title')?.textContent).toContain('Types');
+  });
+
   it('puts a typesDescription under the Types heading', () => {
     const target = render({
       componentData: DATA,

@@ -17,11 +17,13 @@ export const typesReferenceVariants = tv({
     // Count + filter line above the table: the API table's stats line, spread
     // to carry the checkbox on the right.
     toolbar: [api.stats(), 'justify-between'],
-    // The checkbox keeps its own `xs` size and its 44px pointer target; the
-    // label takes the line's quiet colour, and the negative margin lets the
-    // target overhang the line instead of making the line 44px tall — the API
-    // table's stats line, which this one stands in for, is 16px.
-    filterLabel: ['text-text-tertiary', '-my-3'],
+    // The checkbox keeps its own `xs` size and its pointer target (Checkbox's
+    // `control`: `min-h-11`); the label takes the line's quiet colour, and the
+    // negative margin lets the target overhang the line instead of making it
+    // `h-11` tall. `min-h-11` minus `-my-3.5` twice is `h-4`, the `text-xs`
+    // line of the API table's stats, so both tables start the same distance
+    // below their headings.
+    filterLabel: ['text-text-tertiary', '-my-3.5'],
     // --- cells: a type's name, kind, category and use count read the way the
     // API table's prop name, type and default do ---------------------------
     nameCode: [api.nameCode()],

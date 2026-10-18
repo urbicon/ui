@@ -67,13 +67,16 @@ API table is a link only when the Types table below it carries that type — and
 makes that hold. Wired by hand it is two copies of `componentData?.types`, each silent without the
 other: without `types=` on `<ApiReference>` every type name renders as plain text, and without a
 `<TypesReference>` the links point at a section that does not exist. `bun run refsections:lint` checks
-that every page with an `api.ts` renders the component. A page that documents several components
-under one Types section (`/blocks/components/guide`) composes `ApiReference` and `TypesReference`
-itself, and is listed in that script's `COMPOSED`.
+that every component page renders the component. A page that documents several components under one
+Types section (`/blocks/components/guide`) composes `ApiReference` and `TypesReference` itself, binds
+`types` once through a local snippet every prop table renders through, and is listed in that script's
+`COMPOSED`.
 
-Both ids take a nav entry, `{ id: 'api', title: 'API Reference' }` then `{ id: 'types', title: 'Types' }`
-— the labels are what the two headings say (`apiReferenceTitle`, `typesTitle`), and `sections:lint`
-checks both entries and their order. A component whose types need an introduction the table cannot
+Both ids take a nav entry, `{ id: 'api', title: 'API Reference' }` then `{ id: 'types', title: 'Types' }`,
+and `sections:lint` checks both entries and their order. In English the labels are what the two
+headings say (`apiReferenceTitle`, `typesTitle`). The headings follow the reader's locale, under its
+own `lang`, while the nav is written per page in English — so in German the TOC says "API Reference"
+over a heading that says "API-Referenz", until #146 derives the TOC from the rendered sections. A component whose types need an introduction the table cannot
 give passes `typesDescription` (`toast` does: which of its types a caller constructs).
 
 **The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and

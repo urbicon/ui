@@ -86,14 +86,16 @@ export interface TypesReferenceProps
 
   /**
    * Section heading text. There is no literal default to quote: it falls back
-   * to the localized `typesTitle` — "Types" in English, "Typen" in German.
+   * to the localized `typesTitle` — "Types" in English, "Typen" in German —
+   * tagged with that locale's `lang`, so it is announced in its own language
+   * inside prose written in another. A title you pass renders as given.
    */
   title?: string;
 
   /**
    * Descriptive text below the title. Unset, it falls back to the localized
-   * `typesDescription` ("Local type definitions used by this component."); an
-   * empty string renders no subtitle at all.
+   * `typesDescription` ("Local type definitions used by this component."),
+   * tagged with its locale's `lang`; an empty string renders no subtitle at all.
    */
   description?: string;
 
@@ -120,9 +122,11 @@ export interface TypesReferenceProps
   marker?: string | boolean;
 
   /**
-   * Right-aligned counter in the section header, e.g. `"27 types"` — the same
-   * slot the API Reference section uses for its prop count. Unset by default;
-   * the toolbar above the table already states the count of what is visible.
+   * Right-aligned counter in the section header — the slot the API Reference
+   * section uses for its prop count. Unset, it is the localized count of
+   * `types` ("27 types"), the same number the toolbar above the table shows:
+   * both count the types the component has, not the rows a filter leaves on
+   * screen. An empty string shows none.
    */
   meta?: string;
 

@@ -128,10 +128,12 @@ jobs:
       # a TOC link that scrolls nowhere, a section unreachable from the TOC,
       # and a nav whose order disagrees with the page under it.
       - run: bun run sections:lint
-      # Every page with a generated api.ts renders <ReferenceSections>, the one
-      # component that draws its API and Types tables from one componentData. A
-      # page without it documents neither, and nothing else on it says so.
-      # Reads the generated api.ts, so it needs the build:ts above.
+      # Every component page renders <ReferenceSections>, the one component that
+      # draws its API and Types tables from one componentData. Dropping it alone
+      # already fails sections:lint (dead `api`/`types` nav entries); this
+      # catches the page that drops the nav entries too. Presence only, not
+      # reachability or binding. A page importing './api' with no generated
+      # api.ts fails, so it needs the build:ts above.
       - run: bun run refsections:lint
       # The 2-4 CodeExample budget per component page. It lived only as prose in
       # DocsPageGuide.md until 2026-08 and the corpus had drifted to 17 pages

@@ -1,10 +1,11 @@
 <script lang="ts">
   import { ApiReference, Section, TypesReference } from '#lib';
-  import { useDocsI18n } from '#lib/i18n/index.js';
+  import { useDocsI18n, useDocsLocale } from '#lib/i18n/index.js';
   import { deduplicateProps } from '../ApiReference/reference-table.js';
   import type { ReferenceSectionsProps } from './index.js';
 
   const dt = useDocsI18n();
+  const docsLocale = useDocsLocale();
 
   let { componentData, typesDescription }: ReferenceSectionsProps = $props();
 
@@ -18,10 +19,14 @@
   const propCount = $derived(deduplicateProps(apiProps).length);
 </script>
 
+<!-- `dt` text inside a page whose prose has a language of its own: the heading
+     carries the locale it is actually in, as TypesReference's does. -->
+{#snippet apiTitle()}<span lang={docsLocale()}>{dt('apiReferenceTitle')}</span>{/snippet}
+
 <Section
   marker
   id="api"
-  title={dt('apiReferenceTitle')}
+  titleSnippet={apiTitle}
   intent="secondary"
   meta={dt('propsCount', { count: propCount })}
 >
@@ -30,9 +35,5 @@
 
 <!-- `description` is passed even when unset: TypesReference falls back to a
      localized subtitle for `undefined`, and the API Reference heading above
-     carries none. -->
-<TypesReference
-  {types}
-  meta={dt('typesCount', { count: types.length })}
-  description={typesDescription ?? ''}
-/>
+     carries none. The count beside the heading is TypesReference's own. -->
+<TypesReference {types} description={typesDescription ?? ''} />

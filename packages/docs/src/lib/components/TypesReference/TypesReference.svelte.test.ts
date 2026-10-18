@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { mount, unmount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { TypesReferenceProps } from './index.js';
 import TypesReference from './TypesReference.svelte';
@@ -91,5 +91,93 @@ describe('TypesReference', () => {
     // component page — must not have to know that.
     const target = render({ types: TYPES });
     expect(target.querySelector('section')?.id).toBe('types');
+  });
+
+  const USED: TypesReferenceProps['types'] = [
+    {
+      name: 'CalendarView',
+      type: 'type',
+      definition: "'month' | 'week'",
+      usedByProps: [
+        { component: 'Calendar', propName: 'view', source: 'direct' },
+        { component: 'Calendar', propName: 'views', source: 'direct' }
+      ]
+    },
+    { name: 'CalendarProps', type: 'interface', definition: 'view?: CalendarView;' },
+    { name: 'CalendarSlots', type: 'type', definition: "'root'" }
+  ];
+
+  it('counts the same types in the heading and the toolbar, filtered or not', () => {
+    // The API Reference counts its props, not the rows its search leaves; both
+    // of its counts stay put. "Only referenced" hides two rows here and must not
+    // make the toolbar disagree with the heading above it.
+    const target = render({ types: USED });
+    const counts = () => [
+      target.querySelector('header')?.textContent?.match(/\d+ types/)?.[0],
+      target.querySelector('section > div [class*="justify-between"] > span')?.textContent?.trim()
+    ];
+
+    expect(counts()).toEqual(['3 types', '3 types']);
+    target.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
+    flushSync();
+    expect(
+      target.querySelectorAll('[data-table-layout=desktop] tbody tr[id^="type-"]')
+    ).toHaveLength(1);
+    expect(counts()).toEqual(['3 types', '3 types']);
+  });
+
+  it('keeps each "Used by" comma on its link', () => {
+    // The line is a wrapping flex row; a bare ", " between two links is a flex
+    // item of its own, set off by the gap on both sides ("view , views").
+    const target = render({ types: USED });
+    target
+      .querySelector<HTMLElement>('[data-table-layout=desktop] tr[id^="type-CalendarView-"]')
+      ?.click();
+    flushSync();
+
+    const links = [
+      ...target.querySelectorAll(
+        '[data-table-layout=desktop] #type-CalendarView a[href="#api-reference"]'
+      )
+    ];
+    expect(links.map((a) => a.parentElement?.textContent)).toEqual([
+      'Calendar.view,',
+      'Calendar.views'
+    ]);
+    const line = links[0]?.parentElement?.parentElement;
+    const looseText = [...(line?.childNodes ?? [])].filter(
+      (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.includes(',')
+    );
+    expect(looseText).toHaveLength(0);
+  });
+
+  it('lists a prop declared in two sources as one user', () => {
+    // The generated list names `mint` once as a direct prop and once as a tv()
+    // axis. Keyed on as given, opening the row throws `each_key_duplicate`.
+    const target = render({
+      types: [
+        {
+          name: 'MintProp',
+          type: 'type',
+          definition: 'MintName | MintConfig',
+          usedByProps: [
+            { component: 'NumberInput', propName: 'mint', source: 'direct' },
+            { component: 'NumberInput', propName: 'mint', source: 'variant' }
+          ]
+        }
+      ]
+    });
+    const row = target.querySelector<HTMLElement>(
+      '[data-table-layout=desktop] tr[id^="type-MintProp-"]'
+    );
+
+    expect(row?.textContent).toContain('1');
+    expect(row?.textContent).not.toContain('2');
+    row?.click();
+    flushSync();
+    const links = target.querySelectorAll(
+      '[data-table-layout=desktop] #type-MintProp a[href="#api-reference"]'
+    );
+    expect([...links].map((a) => a.textContent)).toEqual(['NumberInput.mint']);
   });
 });

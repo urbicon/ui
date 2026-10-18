@@ -2,27 +2,34 @@
 /**
  * refsections-lint — every component page renders its reference sections.
  *
- * A route directory holding a generated `api.ts` and a `+page.svelte` is a
- * component page, and it documents the component's props and types with
+ * A component page documents its component's props and types with
  * `<ReferenceSections {componentData} />` from `@urbicon-ui/docs`. That
  * component reads `componentData` once for both tables, so whether the API
- * table's type links and the Types section agree is not a question any more.
- * What is left is whether the page renders them at all — and a page without
- * them is silent, because nothing else on it refers to either section.
+ * table's type links and the Types section agree is not a question any more;
+ * what is left is whether the page renders them. Dropping the component alone
+ * is caught already — `sections:lint` reports the page's `api` and `types` nav
+ * entries as dead. What reaches no other gate is a page that drops the nav
+ * entries with it: no API table, no Types section, and a table of contents
+ * that agrees with the page about both being gone.
  *
- * Asked of the Svelte parser, not of a regex: every `.svelte` file in the route
- * directory is parsed with `svelte/compiler`, and the page counts when one of
- * them renders the name its own script imports `ReferenceSections` from
- * `@urbicon-ui/docs` under. Markup quoted in a `code={`…`}` sample is an
- * expression to the parser, not an element, so a sample showing the tag does
- * not count.
+ * What this checks is presence, not reachability or binding. The tag inside
+ * `{#if false}`, inside a snippet nothing renders, inside a `<CodeExample>`
+ * demo, or fed `componentData={{}}` passes. Those are deliberate edits, not
+ * the slip of forgetting the component.
  *
- * A directory with an `api.ts` and no page is `registry:lint`'s concern
- * (`PAGELESS`), not this script's.
+ * Which directories are component pages is asked of two sources, so neither
+ * can shrink the set alone:
+ *   - tracked source: a directory whose `.svelte` files import from `'./api'`;
+ *   - generated output: a directory holding an `api.ts` and a `+page.svelte`.
+ * A page that imports `'./api'` while no `api.ts` was generated is an error,
+ * so a partial `docs:gen` fails here instead of shrinking what is checked. A
+ * directory with an `api.ts` and no page is `registry:lint`'s (`PAGELESS`).
  *
- * Reads the generated `api.ts` files, so run `bun run docs:gen:all` first.
+ * Both questions — what a file imports, what it renders — go to the Svelte
+ * parser, not a regex: markup and imports quoted in a `code={`…`}` sample are
+ * strings to the parser, so a sample showing them does not count.
  *
- * Run: `bun run refsections:lint`
+ * Run: `bun run refsections:lint` (after `bun run docs:gen:all`)
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -39,11 +46,9 @@ const ROUTES = join(dirname(fileURLToPath(import.meta.url)), '../src/routes');
 const COMPOSED: Record<string, string> = {
   '/blocks/components/guide':
     'family page — one API Reference section holds a prop table per Guide surface and per ' +
-    'controller/tour/step/event API, all linking into the one Types section below them'
+    'controller/tour/step/event API under one Types section; every table renders through the ' +
+    "page's `propTable` snippet, which binds the one `types` list that Types section renders"
 };
-
-/** A generated tree this small means `docs:gen:all` has not run, not a clean one. */
-const MIN_PAGES = 90;
 
 interface Node {
   type?: string;
@@ -51,11 +56,20 @@ interface Node {
   [key: string]: unknown;
 }
 
+const OWN_API = /^\.\/api(\.js|\.ts)?$/;
+
+/** The `import` declarations of a file's instance and module scripts. */
+function imports(ast: Node): Node[] {
+  return [ast.instance, ast.module]
+    .flatMap(
+      (script) => ((script as Node | null)?.content as { body?: Node[] } | undefined)?.body ?? []
+    )
+    .filter((statement) => statement.type === 'ImportDeclaration');
+}
+
 /** The local name a file imports `ReferenceSections` from `@urbicon-ui/docs` under. */
-function importedAs(ast: Node): string | null {
-  const body = ((ast.instance as Node | null)?.content as { body?: Node[] } | undefined)?.body;
-  for (const statement of body ?? []) {
-    if (statement.type !== 'ImportDeclaration') continue;
+function referenceSectionsAs(ast: Node): string | null {
+  for (const statement of imports(ast)) {
     if ((statement.source as Node).value !== '@urbicon-ui/docs') continue;
     for (const spec of statement.specifiers as Node[]) {
       if (spec.type === 'ImportSpecifier' && (spec.imported as Node).name === 'ReferenceSections') {
@@ -75,41 +89,65 @@ function renders(node: unknown, name: string): boolean {
   return Object.entries(n).some(([key, value]) => key !== 'parent' && renders(value, name));
 }
 
-function rendersReferenceSections(file: string): boolean {
-  const ast = parse(readFileSync(file, 'utf8'), { modern: true }) as unknown as Node;
-  const local = importedAs(ast);
-  return local !== null && renders(ast.fragment, local);
+interface Page {
+  route: string;
+  importsOwnApi: boolean;
+  hasApi: boolean;
+  rendersReferenceSections: boolean;
 }
 
-function componentPages(dir: string, out: string[]): void {
+function read(dir: string): Page {
+  let importsOwnApi = false;
+  let rendersReferenceSections = false;
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.svelte'))) {
+    const ast = parse(readFileSync(join(dir, file), 'utf8'), { modern: true }) as unknown as Node;
+    importsOwnApi ||= imports(ast).some((i) => OWN_API.test(String((i.source as Node).value)));
+    const local = referenceSectionsAs(ast);
+    rendersReferenceSections ||= local !== null && renders(ast.fragment, local);
+  }
+  return {
+    route: dir.slice(ROUTES.length),
+    importsOwnApi,
+    hasApi: existsSync(join(dir, 'api.ts')),
+    rendersReferenceSections
+  };
+}
+
+function pageDirs(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir).sort()) {
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) componentPages(path, out);
+    if (statSync(path).isDirectory()) pageDirs(path, out);
   }
-  if (existsSync(join(dir, 'api.ts')) && existsSync(join(dir, '+page.svelte'))) out.push(dir);
+  if (existsSync(join(dir, '+page.svelte'))) out.push(dir);
 }
 
-const pages: string[] = [];
-componentPages(ROUTES, pages);
+const dirs: string[] = [];
+pageDirs(ROUTES, dirs);
+const pages = dirs.map(read).filter((p) => p.importsOwnApi || p.hasApi);
 
 const errors: string[] = [];
 const composedSeen = new Set<string>();
 
-for (const dir of pages) {
-  const route = dir.slice(ROUTES.length);
-  const files = readdirSync(dir).filter((f) => f.endsWith('.svelte'));
-  const rendered = files.some((f) => rendersReferenceSections(join(dir, f)));
-
+for (const page of pages) {
+  const { route } = page;
+  if (page.importsOwnApi && !page.hasApi) {
+    errors.push(
+      `${route}: imports './api' but no api.ts was generated for it, so its reference sections ` +
+        'cannot be checked. Run `bun run docs:gen:all`; if it still lacks one, the component ' +
+        'dropped out of the catalog.'
+    );
+    continue;
+  }
   if (route in COMPOSED) {
     composedSeen.add(route);
-    if (rendered) {
+    if (page.rendersReferenceSections) {
       errors.push(`${route}: renders <ReferenceSections> — drop its COMPOSED entry`);
     }
     continue;
   }
-  if (!rendered) {
+  if (!page.rendersReferenceSections) {
     errors.push(
-      `${route}: has a generated api.ts and renders no <ReferenceSections>, so its props and ` +
+      `${route}: is a component page and renders no <ReferenceSections>, so its props and ` +
         `types are documented nowhere. Add \`<ReferenceSections {componentData} />\` with ` +
         `\`componentData\` from './api', or list the page in COMPOSED with the reason.`
     );
@@ -122,12 +160,8 @@ for (const route of Object.keys(COMPOSED)) {
   }
 }
 
-if (pages.length < MIN_PAGES) {
-  console.error(
-    `refsections-lint: only ${pages.length} component pages found (floor ${MIN_PAGES}) — the ` +
-      'generated api.ts files are missing. Run `bun run docs:gen:all`.'
-  );
-  process.exit(1);
+if (pages.length === 0) {
+  errors.push(`no component page under ${ROUTES} — did the routes move?`);
 }
 
 if (errors.length > 0) {
