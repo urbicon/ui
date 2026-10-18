@@ -1,5 +1,4 @@
 import type { ControlDefinition, ControlOption } from '@urbicon-ui/shared-types/playground';
-import { extractLiteralValues } from '../TypesReference';
 
 /**
  * The slice of a generated `api.ts` that control derivation needs. Structural,
@@ -8,13 +7,13 @@ import { extractLiteralValues } from '../TypesReference';
  */
 export interface DerivableComponentData {
   variants?: Array<{ name: string; values: string[]; defaultValue?: string }>;
-  props?: Array<{ name: string; type?: string; values?: string[]; defaultValue?: string }>;
   /**
-   * Local type definitions the component's props refer to. Used to resolve a
-   * named alias (`size: ComponentSize`) to its literal values — the extractor
-   * records the alias but not what it stands for.
+   * `values` are the literals docs-gen's type checker resolved the prop's type
+   * to — through a named alias (`size: ComponentSize`) or a variant axis read
+   * by key (`ButtonVariants['variant']`) alike. No `values` means the type is
+   * not a literal union, not that it went unresolved.
    */
-  types?: Array<{ name: string; definition?: string }>;
+  props?: Array<{ name: string; type?: string; values?: string[]; defaultValue?: string }>;
 }
 
 /** Per-key adjustments merged onto a derived control. */
@@ -124,28 +123,6 @@ function parseDefault(raw: string | undefined): unknown {
 }
 
 /**
- * Values of a prop whose type is a named alias (`size: ComponentSize`).
- *
- * The extractor records the alias, not the union behind it, so `values` stays
- * empty and the prop looks underivable. The definition is right there in
- * `types[]` though — resolving it locally beats waiting for the extractor.
- *
- * Two shapes stay unresolvable and need an `override`: computed unions
- * (`(typeof INTENTS)[number]`) and indexed variant access
- * (`ButtonVariants['variant']`). Both are open in #42.
- */
-function resolveAliasValues(
-  type: string | undefined,
-  types: DerivableComponentData['types']
-): string[] | null {
-  if (!type || !types?.length) return null;
-  const alias = types.find((t) => t.name === type.trim());
-  if (!alias?.definition) return null;
-  const values = extractLiteralValues(alias.definition);
-  return values.length > 1 ? values : null;
-}
-
-/**
  * Builds playground controls from the component's generated API data, so the
  * knobs a reader sees are the values the component actually accepts.
  *
@@ -186,7 +163,6 @@ export function deriveControls(
     const override = overrides[key];
     const variant = variants.get(key);
     const prop = props.get(key);
-    const aliasValues = prop?.values?.length ? null : resolveAliasValues(prop?.type, data.types);
 
     let base: ControlDefinition | null = null;
 
@@ -216,8 +192,8 @@ export function deriveControls(
             items: toItems(variant.values),
             defaultValue: variant.defaultValue ?? variant.values[0]
           };
-    } else if (prop?.values?.length || aliasValues) {
-      const values = (prop?.values?.length ? prop.values : aliasValues) as string[];
+    } else if (prop?.values?.length) {
+      const values = prop.values;
       base = {
         type: 'dropdown',
         key,
@@ -250,7 +226,7 @@ export function deriveControls(
 
     if (!base) {
       // An override may carry the whole definition for props whose type the
-      // extractor could not resolve (`ButtonVariants['size']`, `MintProp`, …).
+      // extractor could not resolve to literals (`MintProp`, a callback, …).
       // `componentDefault: undefined` is set deliberately, not forgotten: the
       // key has to *exist* so the code generator knows the component has no
       // default here and must print the value (see `computeOmittableDefaults`).

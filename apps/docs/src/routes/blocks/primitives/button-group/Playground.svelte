@@ -53,31 +53,6 @@
         ],
         defaultValue: 'none'
       },
-      variant: {
-        type: 'dropdown',
-        label: 'Variant',
-        items: [
-          { label: 'outlined', value: 'outlined' },
-          { label: 'filled', value: 'filled' },
-          { label: 'ghost', value: 'ghost' },
-          { label: 'text', value: 'text' }
-        ],
-        defaultValue: 'outlined'
-      },
-      intent: {
-        type: 'dropdown',
-        label: 'Intent',
-        items: [
-          { label: 'neutral', value: 'neutral' },
-          { label: 'primary', value: 'primary' },
-          { label: 'secondary', value: 'secondary' },
-          { label: 'success', value: 'success' },
-          { label: 'warning', value: 'warning' },
-          { label: 'danger', value: 'danger' }
-        ],
-        defaultValue: 'neutral'
-      },
-      size: { defaultValue: 'md' },
       selection: { defaultValue: 'single' },
       connected: { type: 'checkbox', defaultValue: true },
       // `defaultValue: undefined` statt des abgeleiteten `'commit'`: der

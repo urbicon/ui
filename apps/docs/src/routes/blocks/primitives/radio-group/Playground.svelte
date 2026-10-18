@@ -23,43 +23,7 @@
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
   const controls = deriveControls(componentData, {
-    pick: ['orientation', 'disabled', 'required', 'variant', 'intent', 'size', 'error'],
-    overrides: {
-      variant: {
-        type: 'dropdown',
-        label: 'Variant',
-        items: [
-          { label: 'outlined', value: 'outlined' },
-          { label: 'filled', value: 'filled' },
-          { label: 'ghost', value: 'ghost' }
-        ],
-        defaultValue: 'outlined'
-      },
-      intent: {
-        type: 'dropdown',
-        label: 'Intent',
-        items: [
-          { label: 'primary', value: 'primary' },
-          { label: 'secondary', value: 'secondary' },
-          { label: 'success', value: 'success' },
-          { label: 'warning', value: 'warning' },
-          { label: 'danger', value: 'danger' },
-          { label: 'neutral', value: 'neutral' }
-        ],
-        defaultValue: 'primary'
-      },
-      size: {
-        type: 'dropdown',
-        label: 'Size',
-        items: [
-          { label: 'xs', value: 'xs' },
-          { label: 'sm', value: 'sm' },
-          { label: 'md', value: 'md' },
-          { label: 'lg', value: 'lg' }
-        ],
-        defaultValue: 'md'
-      }
-    }
+    pick: ['orientation', 'disabled', 'required', 'variant', 'intent', 'size', 'error']
   });
 </script>
 

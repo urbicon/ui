@@ -137,14 +137,11 @@ describe('deriveControls', () => {
     expect(c.items?.map((i) => i.value)).toEqual(['justify', 'center', 'left']);
   });
 
-  it('resolves a named type alias to its values via types[]', () => {
-    // The extractor records `size: ComponentSize` without values; the union
-    // itself sits in types[].
+  it('derives a named type from the values the extractor recorded', () => {
+    // docs-gen resolves `size: ComponentSize` to its literals; the alias name
+    // itself is never read here.
     const [size] = deriveControls(
-      {
-        props: [{ name: 'size', type: 'ComponentSize' }],
-        types: [{ name: 'ComponentSize', definition: "'xs' | 'sm' | 'md' | 'lg' | 'xl'" }]
-      },
+      { props: [{ name: 'size', type: 'ComponentSize', values: ['xs', 'sm', 'md', 'lg', 'xl'] }] },
       { pick: ['size'] }
     );
 
@@ -152,18 +149,12 @@ describe('deriveControls', () => {
     expect(size.items?.map((i) => i.value)).toEqual(['xs', 'sm', 'md', 'lg', 'xl']);
   });
 
-  it('ignores an alias that holds no literal union', () => {
-    // `(typeof INTENTS)[number]` and `VariantProps<typeof x>` carry no literals —
-    // they need an explicit override rather than a wrong guess.
+  it('does not guess at a named type that arrives without values', () => {
+    // No `values` means the type is not a literal union (`MintProp` is open) —
+    // it needs an explicit override rather than a wrong guess.
     expect(() =>
-      deriveControls(
-        {
-          props: [{ name: 'intent', type: 'ComponentIntent' }],
-          types: [{ name: 'ComponentIntent', definition: '(typeof INTENTS)[number]' }]
-        },
-        { pick: ['intent'] }
-      )
-    ).toThrow(/intent/);
+      deriveControls({ props: [{ name: 'mint', type: 'MintProp' }] }, { pick: ['mint'] })
+    ).toThrow(/mint/);
   });
 
   it('parses the source literal in defaultValue instead of passing it through', () => {
@@ -171,11 +162,15 @@ describe('deriveControls', () => {
     const controls = deriveControls(
       {
         props: [
-          { name: 'view', type: 'PlannerView', defaultValue: "'week'" },
+          {
+            name: 'view',
+            type: 'PlannerView',
+            values: ['week', 'month', 'range'],
+            defaultValue: "'week'"
+          },
           { name: 'open', type: 'boolean', defaultValue: 'true' },
           { name: 'height', type: 'number', defaultValue: '320' }
-        ],
-        types: [{ name: 'PlannerView', definition: "'week' | 'month' | 'range'" }]
+        ]
       },
       { pick: ['view', 'open', 'height'] }
     );

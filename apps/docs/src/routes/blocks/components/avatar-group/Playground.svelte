@@ -41,17 +41,6 @@
   const controls = deriveControls(componentData, {
     pick: ['max', 'spacing', 'size'],
     overrides: {
-      size: {
-        type: 'dropdown',
-        label: 'Size',
-        items: [
-          { label: 'sm', value: 'sm' },
-          { label: 'md', value: 'md' },
-          { label: 'lg', value: 'lg' },
-          { label: 'xl', value: 'xl' }
-        ],
-        defaultValue: 'md'
-      },
       max: {
         type: 'dropdown',
         items: [

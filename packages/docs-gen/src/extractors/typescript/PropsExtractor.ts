@@ -597,8 +597,13 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       examples = this.extractJSDocExamples(member);
     }
 
-    // Extract union values for enum-like types
-    const values = member.type ? this.extractUnionValues(member.type) : undefined;
+    // The literals written at the declaration first: a written union that mixes
+    // literals with a non-literal member (`number | 'auto'`) keeps the literals
+    // it lists, which the checker — all-or-nothing — would drop. Only a type
+    // that lists none here goes to the checker (`ComponentIntent`,
+    // `ButtonVariants['variant']`, `Placement`).
+    const written = member.type ? this.extractUnionValues(member.type) : [];
+    const values = written.length > 0 ? written : this.resolveTypeNodeLiterals(member.type);
 
     const prop: PropInfo = {
       name: propName,
