@@ -55,16 +55,15 @@ export interface LocaleSwitcherProps
   mint?: SelectSingleProps<string>['mint'];
 
   /**
-   * Control size, forwarded to the inner Select — `sm` here, where Select's own
-   * default is `md`.
+   * Control size, forwarded to the inner Select.
    * @default 'sm'
    */
   size?: SelectSingleProps<string>['size'];
 
   /**
    * Text shown while the active locale is not among `locales`, in place of the
-   * localized default ("Select language..."). While a locale loads, the
-   * localized loading text is shown instead.
+   * localized default. While a locale loads, the localized loading text is
+   * shown instead.
    */
   placeholder?: string;
 

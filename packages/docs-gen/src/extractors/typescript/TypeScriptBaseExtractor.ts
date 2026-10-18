@@ -483,11 +483,10 @@ export abstract class TypeScriptBaseExtractor<
    * or an llm.txt list item renders it verbatim.
    */
   protected heritageClauseLabel(heritageType: ts.ExpressionWithTypeArguments): string {
-    return TypeScriptBaseExtractor.clausePrinter.printNode(
-      ts.EmitHint.Unspecified,
-      heritageType,
-      heritageType.getSourceFile()
-    );
+    // The printer breaks a type literal across lines however it was written.
+    return TypeScriptBaseExtractor.clausePrinter
+      .printNode(ts.EmitHint.Unspecified, heritageType, heritageType.getSourceFile())
+      .replace(/\s+/g, ' ');
   }
 
   /**
