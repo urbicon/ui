@@ -215,9 +215,7 @@
     return typeof resolvedUrl === 'string' ? resolvedUrl : undefined;
   });
   const buttonUsable = $derived(actionEvent !== undefined || openUrlArg !== undefined);
-  // Strict, as a logic call is: only `true` disables, so a bound path that holds
-  // a string or number reads the same either way the gate is written.
-  const buttonDisabled = $derived(!buttonUsable || resolved('disabled') === true);
+  const buttonDisabled = $derived(!buttonUsable || Boolean(resolved('disabled')));
 
   function dispatchButton() {
     if (actionEvent !== undefined) {

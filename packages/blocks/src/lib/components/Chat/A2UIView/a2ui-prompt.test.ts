@@ -92,7 +92,9 @@ describe('a2uiSurfaceRequirementsSection', () => {
     expect(section).toContain('## Required components');
     expect(section).toContain('use exactly');
     expect(section).toContain('the surfaceId listed');
-    expect(section).toContain('- Surface "booking" must contain:');
+    expect(section).toContain(
+      `- Surface "booking", created with catalogId "${urbiconA2uiCatalogSpec.catalogId}", must contain:`
+    );
     expect(section).toContain(
       '  - a Checkbox with value bound to { "path": "/agreed" } (consent to the cancellation policy)'
     );
@@ -105,6 +107,17 @@ describe('a2uiSurfaceRequirementsSection', () => {
     expect(section).not.toContain('checked');
     expect(section).not.toContain('"agreed"');
     expect(section).not.toContain('"unmeetable"');
+  });
+
+  // A surface the model creates on Basic — the view's fallback, upstream's
+  // default — could never hold an Urbicon Checkbox.
+  it('pins the catalogId only where the Basic catalog cannot meet the entries', () => {
+    const both = a2uiSurfaceRequirementsSection(
+      { notes: [{ component: 'Text' }] },
+      urbiconA2uiCatalogSpec
+    );
+    expect(both).toContain('- Surface "notes" must contain:');
+    expect(both).not.toContain('created with catalogId');
   });
 
   it('names the error the model gets back for an omission', () => {

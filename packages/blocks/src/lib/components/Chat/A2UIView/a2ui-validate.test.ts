@@ -754,6 +754,28 @@ describe('logic-function bindings (not / and / or)', () => {
     }
   });
 
+  it('holds the failsafe for any value a gate cannot use, not only a call', () => {
+    const unusable: Array<[unknown, string]> = [
+      ['true', A2UI_ISSUE_CODES.TYPE_MISMATCH],
+      [{ path: '/__proto__/x' }, A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION]
+    ];
+    for (const [value, code] of unusable) {
+      const proc = urbiconSurface(gatedButton(value));
+      const issues = allIssues(proc);
+      expect(issues.map((i) => [i.severity, i.code])).toEqual([['error', code]]);
+      expect(issues[0].message).toContain('"disabled" is held at true');
+      expect(storedDisabled(proc)).toBe(true);
+    }
+  });
+
+  it('leaves a usable value on a gate as written', () => {
+    for (const value of [false, { path: '/locked' }]) {
+      const proc = urbiconSurface(gatedButton(value));
+      expect(allIssues(proc)).toEqual([]);
+      expect(storedDisabled(proc)).toEqual(value);
+    }
+  });
+
   it('keeps warning about any other function name outside a gate, as before', () => {
     const proc = urbiconSurface([
       { id: 'root', component: 'Text', text: { call: 'formatDate', args: {} } }
@@ -947,6 +969,25 @@ describe('surface requirements', () => {
     ).toEqual([]);
   });
 
+  // First come, first served would give b1 to the `/a` entry and leave
+  // `label → /l` with nothing; only b1 can meet that one.
+  it('matches entries to components as a whole, not first come first served', () => {
+    const proc = booking(
+      [
+        { id: 'root', component: 'Column', children: ['b1', 'b2'] },
+        { id: 'b1', component: 'Checkbox', label: { path: '/l' }, value: { path: '/a' } },
+        { id: 'b2', component: 'Checkbox', label: 'x', value: { path: '/a' } }
+      ],
+      {
+        booking: [
+          { component: 'Checkbox', path: '/a' },
+          { component: 'Checkbox', prop: 'label', path: '/l' }
+        ]
+      }
+    );
+    expect(allIssues(proc)).toEqual([]);
+  });
+
   it('spends one rendered component on one requirement', () => {
     const twoBoxes = {
       booking: [
@@ -1033,6 +1074,55 @@ describe('surface requirements', () => {
       expect(codes(allIssues(proc))).toEqual(
         new Set([A2UI_ISSUE_CODES.INVALID_REQUIREMENT, A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT])
       );
+    });
+  });
+
+  // Which catalog a surface lands on is the agent's choice, and A2UIView always
+  // holds Basic first, as the default and fallback.
+  describe('when the agent picks a catalog that cannot hold the entry', () => {
+    const onCatalog = (catalogId: string, components: unknown[], requirements = consent) => {
+      const proc = createA2uiProcessor({
+        catalogs: [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec],
+        surfaceRequirements: requirements
+      });
+      proc.apply({ version: V91, createSurface: { surfaceId: 'booking', catalogId } }, 0);
+      proc.apply({ version: V91, updateComponents: { surfaceId: 'booking', components } }, 1);
+      return proc;
+    };
+    const noConsent = [
+      { id: 'root', component: 'Column', children: ['note'] },
+      { id: 'note', component: 'Text', text: 'Three nights in Cala' }
+    ];
+    const basicIds = [
+      basicA2uiCatalogSpec.catalogId,
+      'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
+      'urbicon-ui/urbicon-catalog/v2'
+    ];
+
+    for (const catalogId of basicIds) {
+      it(`keeps it checked on "${catalogId}" and names the catalog that can hold it`, () => {
+        const issues = allIssues(onCatalog(catalogId, noConsent));
+        expect(codes(issues).has(A2UI_ISSUE_CODES.INVALID_REQUIREMENT)).toBe(false);
+        const errors = issues.filter((i) => i.severity === 'error');
+        expect(errors.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT]);
+        expect(errors[0].message).toContain(
+          `create the surface with catalogId "${URBICON_A2UI_CATALOG_ID}"`
+        );
+      });
+    }
+
+    it('is met on the catalog that can hold it', () => {
+      const withConsent = [{ id: 'root', component: 'Column', children: ['agree'] }, consentBox()];
+      expect(allIssues(onCatalog(URBICON_A2UI_CATALOG_ID, withConsent))).toEqual([]);
+    });
+
+    it("is the consumer's mistake only when no catalog can hold it", () => {
+      const issues = allIssues(
+        onCatalog(URBICON_A2UI_CATALOG_ID, noConsent, { booking: [{ component: 'Consent' }] })
+      );
+      expect(issues.map((i) => [i.severity, i.code])).toEqual([
+        ['warning', A2UI_ISSUE_CODES.INVALID_REQUIREMENT]
+      ]);
     });
   });
 });

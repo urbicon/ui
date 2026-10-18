@@ -411,7 +411,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         dynamic: true,
         failsafe: true,
         description:
-          'Whether the button is disabled. To keep it disabled until a Checkbox bound to /agreed is ticked: { "call": "not", "args": { "value": { "path": "/agreed" } } }. A call that cannot be evaluated keeps the button disabled.'
+          'Whether the button is disabled. To keep it disabled until a Checkbox bound to /agreed is ticked: { "call": "not", "args": { "value": { "path": "/agreed" } } }.'
       }
     })
   },

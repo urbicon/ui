@@ -120,14 +120,16 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * as itself (not as a fault chip) and, with `path`, its `value` (or the named
    * `prop`) is a `{ path }` binding that resolves to that pointer; one component
    * meets one entry. Each one unmet is reported through `onValidationError` as a
-   * `MISSING_REQUIRED_COMPONENT` error once `streaming` is false — never while
-   * the surface is still arriving, never thrown — so the agent can patch the
-   * surface. An entry the surface's catalog can never meet (unknown component,
-   * undeclared prop, relative path) is an `INVALID_REQUIREMENT` warning instead
-   * and is not checked. A surface without an entry is unaffected. The model
-   * picks surfaceIds, so put the same object in the prompt with
-   * `a2uiSurfaceRequirementsSection(requirements, catalogSpec)`, which pins the
-   * id. Resolved once at init — keep it referentially stable.
+   * `MISSING_REQUIRED_COMPONENT` error once `streaming` is false (never while
+   * the surface is still arriving, never thrown) so the agent can patch the
+   * surface; when the agent picked a catalog that cannot hold the component,
+   * the message names one that can. An entry no catalog of the view can meet
+   * (unknown component, undeclared prop, relative path) is an
+   * `INVALID_REQUIREMENT` warning instead and is not checked. A surface without
+   * an entry is unaffected. The model picks surfaceIds, so put the same object
+   * in the prompt with `a2uiSurfaceRequirementsSection(requirements,
+   * catalogSpec)`, which pins the id. Resolved once at init — keep it
+   * referentially stable.
    * @summary Which components each surface must contain, reported back to the agent when missing.
    */
   surfaceRequirements?: A2uiSurfaceRequirements;
@@ -186,6 +188,7 @@ export {
 } from './a2ui-registry';
 export {
   type A2uiRequiredComponent,
+  type A2uiSurfaceRequirement,
   type A2uiSurfaceRequirements,
   a2uiSurfaceRequirementsSection
 } from './a2ui-requirements';

@@ -189,17 +189,20 @@ export const A2UI_ISSUE_CODES = {
   /**
    * A component the consumer requires on this surface (`surfaceRequirements`,
    * keyed by surfaceId) is not reachable from `root`, or renders only as a
-   * fault chip. An error, so it travels the channel that is relayed to the
-   * agent, which patches the surface. Only reported once the surface has
+   * fault chip — also when the agent created the surface on a catalog that
+   * cannot hold it, and then the message names a catalog that can. An error,
+   * so it travels the channel that is relayed to the agent, which patches the
+   * surface. Only reported once the surface has
    * settled (`streaming: false`): a surface arrives over several envelopes, and
    * mid-stream every requirement would read as missing.
    */
   MISSING_REQUIRED_COMPONENT: 'MISSING_REQUIRED_COMPONENT',
   /**
-   * A `surfaceRequirements` entry that can never be met on the catalog this
-   * surface was created on — an unknown component, an undeclared prop or one
-   * that takes no `{ path }`, a relative path. The consumer's mistake, not the
-   * agent's, so it is a warning (logged, not relayed by the documented wiring),
+   * A `surfaceRequirements` entry that no catalog the processor holds can ever
+   * meet — an unknown component, an undeclared prop or one that takes no
+   * `{ path }`, a relative path. The consumer's mistake, not the agent's (which
+   * catalog the agent picks cannot cause it), so it is a warning (logged, not
+   * relayed by the documented wiring),
    * reported once at `createSurface`, and the entry is left unchecked: the agent
    * is never asked for what it cannot build.
    */

@@ -224,18 +224,20 @@ export function deleteAtPointer(model: unknown, pointer: string): void {
 
 // ── Logic functions ──────────────────────────────────────────────────────────
 
+/** What one logic function takes: a single operand, or a list of at least `minItems`. */
+export type A2uiLogicSignature = { arg: 'value' } | { arg: 'values'; minItems: number };
+
 /**
  * The only function calls the engine evaluates — the A2UI Basic catalog's logic
- * functions — each with the one arg it takes: `not` a single operand
- * (`args.value`), `and`/`or` a list of two or more (`args.values`). Each
- * computes a boolean and executes nothing; every other `call` resolves to
+ * functions — each with the one arg it takes, as that catalog declares it.
+ * Each computes a boolean and executes nothing; every other `call` resolves to
  * `undefined`. The validator, the resolver and the prompt all read this table.
  */
-export const A2UI_LOGIC_FUNCTION_ARGS: Readonly<Record<string, 'value' | 'values'>> = Object.freeze(
-  Object.assign(Object.create(null) as Record<string, 'value' | 'values'>, {
-    not: 'value',
-    and: 'values',
-    or: 'values'
+export const A2UI_LOGIC_FUNCTION_ARGS: Readonly<Record<string, A2uiLogicSignature>> = Object.freeze(
+  Object.assign(Object.create(null) as Record<string, A2uiLogicSignature>, {
+    not: { arg: 'value' },
+    and: { arg: 'values', minItems: 2 },
+    or: { arg: 'values', minItems: 2 }
   })
 );
 
@@ -346,7 +348,8 @@ function callFault(
   budget: OperandBudget
 ): A2uiLogicFault | undefined {
   const name = String(call.call);
-  const arg = A2UI_LOGIC_FUNCTION_ARGS[name];
+  const signature = A2UI_LOGIC_FUNCTION_ARGS[name];
+  const arg = signature.arg;
   if (depth > A2UI_MAX_LOGIC_DEPTH) {
     return {
       code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
@@ -374,7 +377,7 @@ function callFault(
   }
   const extraArg = unexpectedKey(args, new Set([arg]), '/args', `"${name}" args`);
   if (extraArg) return extraArg;
-  if (arg === 'value') {
+  if (signature.arg === 'value') {
     if (!('value' in args)) {
       return {
         code: A2UI_ISSUE_CODES.MISSING_FIELD,
@@ -385,11 +388,11 @@ function callFault(
     return operandFault(args.value, '/args/value', depth, budget);
   }
   const values = args.values;
-  if (!Array.isArray(values) || values.length < 2) {
+  if (!Array.isArray(values) || values.length < signature.minItems) {
     return {
       code: values === undefined ? A2UI_ISSUE_CODES.MISSING_FIELD : A2UI_ISSUE_CODES.TYPE_MISMATCH,
       at: '/args/values',
-      message: `"${name}" needs args.values: an array of two or more operands`
+      message: `"${name}" needs args.values: an array of ${signature.minItems} or more operands`
     };
   }
   for (let i = 0; i < values.length; i++) {

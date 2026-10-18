@@ -32,12 +32,26 @@ import {
 const LOGIC_NAMES = [...A2UI_LOGIC_FUNCTIONS].join('/');
 const LOGIC_CALL = `${LOGIC_NAMES} call`;
 
-/** The functions taking `arg`, as the prompt's `"call"` alternatives: `"and" | "or"`. */
-function logicCallNames(arg: 'value' | 'values'): string {
-  return [...A2UI_LOGIC_FUNCTIONS]
-    .filter((name) => A2UI_LOGIC_FUNCTION_ARGS[name] === arg)
-    .map((name) => JSON.stringify(name))
-    .join(' | ');
+/**
+ * One call shape per distinct signature, the functions sharing it as `"call"`
+ * alternatives — `{ "call": "and" | "or", "args": { "values": [B, B, ...] } } (2 or more B)`.
+ */
+function logicCallShapes(): string[] {
+  const groups = new Map<string, { names: string[]; shape: string }>();
+  for (const name of A2UI_LOGIC_FUNCTIONS) {
+    const signature = A2UI_LOGIC_FUNCTION_ARGS[name];
+    const key = signature.arg === 'value' ? 'value' : `values:${signature.minItems}`;
+    const group = groups.get(key) ?? {
+      names: [],
+      shape:
+        signature.arg === 'value'
+          ? '"args": { "value": B } }'
+          : `"args": { "values": [B, B, ...] } } (${signature.minItems} or more B)`
+    };
+    group.names.push(JSON.stringify(name));
+    groups.set(key, group);
+  }
+  return [...groups.values()].map(({ names, shape }) => `{ "call": ${names.join(' | ')}, ${shape}`);
 }
 
 /** Props documented once in the shared section rather than per component. */
@@ -109,7 +123,11 @@ function renderProp(key: string, spec: A2uiPropSpec): string {
   flags.push(spec.required ? 'required' : 'optional');
   flags.push(renderKind(spec));
   if (spec.default !== undefined) flags.push(`default ${JSON.stringify(spec.default)}`);
-  return `  - ${key} (${flags.join('; ')}): ${spec.description}`;
+  const failsafe =
+    typeof spec.failsafe === 'boolean'
+      ? ` A value that cannot be used (a malformed call, another function, a non-boolean) holds it at ${spec.failsafe}.`
+      : '';
+  return `  - ${key} (${flags.join('; ')}): ${spec.description}${failsafe}`;
 }
 
 function renderComponent(name: string, spec: A2uiComponentSpec, heading: string): string {
@@ -285,8 +303,9 @@ export function a2uiSystemPrompt(options?: {
         ? [
             'Function calls ({ "call", "args" }) resolve to nothing, except these, which',
             `compute a boolean and are allowed only where a prop says "${LOGIC_CALL}":`,
-            `{ "call": ${logicCallNames('value')}, "args": { "value": B } } and`,
-            `{ "call": ${logicCallNames('values')}, "args": { "values": [B, B, ...] } } (two or more B),`,
+            ...logicCallShapes().map(
+              (shape, i, all) => `${shape}${i < all.length - 1 ? ' and' : ','}`
+            ),
             'each B being true, false, a { path } binding or another of these calls — never',
             'another function such as "required". Only true counts as true: a path not yet',
             'written is false, so "not" of it is true.'

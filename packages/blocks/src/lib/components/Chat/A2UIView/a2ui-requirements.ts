@@ -6,14 +6,14 @@
  * the same catalog needs no checkbox.
  *
  * Three readers share the one object a consumer writes, so they cannot drift:
- * the processor (checks a surface's entries against its catalog at
+ * the processor (checks a surface's entries against its catalogs at
  * `createSurface`), `collectGraphIssues` (reports each one missing from the
  * settled tree) and `a2uiSurfaceRequirementsSection` (tells the model before it
  * builds). Pure TS, no Svelte — a server building the prompt or validating a
  * payload has no DOM.
  */
 
-import type { A2uiCatalogSpec } from './a2ui-catalog';
+import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
 import {
   A2UI_VALUE_PROP,
   type A2uiComponentSpec,
@@ -52,6 +52,17 @@ export interface A2uiRequiredComponent {
 
 /** `surfaceId` → the components that surface must contain. */
 export type A2uiSurfaceRequirements = Readonly<Record<string, readonly A2uiRequiredComponent[]>>;
+
+/**
+ * A requirement as a surface checks it. `catalogId` is set when the catalog the
+ * agent created the surface on cannot meet it but another configured catalog
+ * can: the agent chose the wrong catalog, and the missing-component error names
+ * the right one.
+ */
+export interface A2uiSurfaceRequirement {
+  requirement: A2uiRequiredComponent;
+  catalogId?: string;
+}
 
 function boundProp(requirement: A2uiRequiredComponent): string {
   return requirement.prop ?? A2UI_VALUE_PROP;
@@ -117,7 +128,11 @@ export function describeRequirement(requirement: A2uiRequiredComponent): string 
  * `INVALID_REQUIREMENT`. Returns `''` when no surface has a requirement left.
  *
  * The requirement is keyed by a surfaceId the MODEL chooses, so the section
- * pins it: the model is told to use exactly that id for that surface.
+ * pins it: the model is told to use exactly that id for that surface. Where
+ * the Basic catalog — the one every A2UIView falls back to, and the one
+ * upstream's examples name — cannot meet a surface's entries, it pins
+ * `catalog`'s id the same way, since a surface created on Basic could never
+ * contain them.
  */
 export function a2uiSurfaceRequirementsSection(
   requirements: A2uiSurfaceRequirements,
@@ -135,13 +150,18 @@ export function a2uiSurfaceRequirementsSection(
     '## Required components',
     '',
     'These surfaces have a fixed contract. When you build one of them, use exactly',
-    'the surfaceId listed, and by the time your reply ends its tree must contain',
-    'every component listed for it, reachable from "root". A missing one comes back',
-    'to you as a MISSING_REQUIRED_COMPONENT error; answer it by patching that surface.',
+    'the surfaceId listed (and the catalogId, where one is given), and by the time',
+    'your reply ends its tree must contain every component listed for it, reachable',
+    'from "root". A missing one comes back to you as a MISSING_REQUIRED_COMPONENT',
+    'error; answer it by patching that surface.',
     ''
   ];
   for (const [surfaceId, list] of entries) {
-    lines.push(`- Surface "${surfaceId}" must contain:`);
+    const needsCatalog = list.some(
+      (requirement) => requirementFault(requirement, basicA2uiCatalogSpec) !== undefined
+    );
+    const created = needsCatalog ? `, created with catalogId "${catalog.catalogId}",` : '';
+    lines.push(`- Surface "${surfaceId}"${created} must contain:`);
     for (const requirement of list) lines.push(`  - ${describeRequirement(requirement)}`);
   }
   return lines.join('\n');

@@ -352,11 +352,15 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     ]);
   });
 
-  it('reads a bound disabled as strictly as a logic call: only true disables', () => {
+  // A plain binding reads truthiness, as it always has: a stray value disables.
+  it('reads a plainly bound disabled by truthiness', () => {
     for (const [held, disabled] of [
       [true, true],
-      ['yes', false],
-      [1, false]
+      ['yes', true],
+      [1, true],
+      ['false', true],
+      [false, false],
+      [undefined, false]
     ] as const) {
       render({
         catalogs: [urbiconA2uiCatalog],
@@ -373,6 +377,50 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
       dispose = undefined;
       document.body.replaceChildren();
     }
+  });
+
+  it('reports a consent box the agent cannot hold on the catalog it picked, as one relayed error', () => {
+    // Exactly the documented wiring; the agent names upstream's Basic catalog URL,
+    // which the view does not know, so the surface falls back to Basic — where no
+    // Urbicon `Checkbox` can exist.
+    const reports: A2uiValidationIssue[][] = [];
+    const props = render({
+      catalogs: [urbiconA2uiCatalog],
+      surfaceRequirements: {
+        booking: [{ component: 'Checkbox', path: '/agreed', description: 'consent' }]
+      },
+      streaming: true,
+      payload: [
+        {
+          version: V,
+          createSurface: {
+            surfaceId: 'booking',
+            catalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json'
+          }
+        },
+        comps(
+          [
+            { id: 'root', component: 'Column', children: ['note'] },
+            { id: 'note', component: 'Text', text: 'Three nights in Cala' }
+          ],
+          'booking'
+        )
+      ],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    flushSync(() => {
+      props.streaming = false;
+    });
+    flushSync();
+
+    const errors = (reports.at(-1) ?? []).filter((i) => i.severity === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({
+      code: A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
+      surfaceId: 'booking'
+    });
+    expect(errors[0].message).toContain(`catalogId "${URBICON_A2UI_CATALOG_ID}"`);
+    expect(reports.flat().some((i) => i.code === A2UI_ISSUE_CODES.INVALID_REQUIREMENT)).toBe(false);
   });
 
   it('reports a missing required checkbox once the surface settles, and none when present', () => {

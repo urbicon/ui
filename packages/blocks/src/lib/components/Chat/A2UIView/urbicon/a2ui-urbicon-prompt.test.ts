@@ -46,6 +46,9 @@ describe('Urbicon system prompt', () => {
       '- disabled (optional; boolean literal, { path } binding or not/and/or call): '
     );
     expect(prompt).toContain('{ "call": "not", "args": { "value": { "path": "/agreed" } } }');
+    // Rendered from Button.disabled's failsafe, not written into its description.
+    expect(prompt).toContain('holds it at true.');
+    expect(prompt).toContain('(2 or more B)');
     expect(prompt).toContain('function calls other than not/and/or');
   });
 

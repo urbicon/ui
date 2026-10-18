@@ -41,7 +41,7 @@ import {
   ownEntry
 } from './a2ui-registry';
 import {
-  type A2uiRequiredComponent,
+  type A2uiSurfaceRequirement,
   type A2uiSurfaceRequirements,
   describeRequirement,
   meetsRequirement,
@@ -97,11 +97,11 @@ export interface A2uiSurfaceState {
   sendDataModel: boolean;
   /**
    * The components this surface must contain — the entries of the processor's
-   * `surfaceRequirements` for its id that its catalog can meet, taken at
-   * `createSurface`. `collectGraphIssues` checks them against the settled tree;
-   * absent means none.
+   * `surfaceRequirements` for its id that some configured catalog can meet,
+   * taken at `createSurface`. `collectGraphIssues` checks them against the
+   * settled tree; absent means none.
    */
-  requirements?: readonly A2uiRequiredComponent[];
+  requirements?: readonly A2uiSurfaceRequirement[];
 }
 
 export interface A2uiProcessor {
@@ -132,9 +132,10 @@ export interface A2uiProcessorOptions {
    * for one form (a consent box on `booking`), not the catalog's, so a surface
    * without an entry is unaffected. `collectGraphIssues` reports each one not
    * rendered from `root` as a `MISSING_REQUIRED_COMPONENT` error, and only when
-   * called with `streaming: false` (its default). An entry the surface's catalog
-   * can never meet is an `INVALID_REQUIREMENT` warning at `createSurface` and is
-   * not checked. Tell the model with `a2uiSurfaceRequirementsSection(sameObject,
+   * called with `streaming: false` (its default) — also when the agent created
+   * the surface on a catalog that cannot meet it, and then the error names one
+   * that can. An entry no configured catalog can meet is an
+   * `INVALID_REQUIREMENT` warning at `createSurface` and is not checked. Tell the model with `a2uiSurfaceRequirementsSection(sameObject,
    * catalog)`: the model chooses surfaceIds, and the section pins the ones
    * listed here.
    */
@@ -241,7 +242,35 @@ interface PropResult {
   substitute?: { value: unknown };
 }
 
+/**
+ * Validate one prop. A prop with a `failsafe` (a gate such as `disabled`) never
+ * falls back to its default when its value cannot be used — a wrong type, a
+ * poisoned path, a call the engine cannot evaluate: it holds the failsafe, and
+ * each error says so, so a broken consent gate keeps its button disabled.
+ */
 function validateProp(
+  componentName: string,
+  key: string,
+  spec: A2uiPropSpec,
+  value: unknown,
+  path: string,
+  surfaceId: string,
+  iconNames: readonly string[]
+): PropResult {
+  const result = validatePropValue(componentName, key, spec, value, path, surfaceId, iconNames);
+  if (typeof spec.failsafe !== 'boolean') return result;
+  if (result.store && result.issues.every((i) => i.severity !== 'error')) return result;
+  const held = `; "${key}" is held at ${spec.failsafe} until it is fixed`;
+  return {
+    store: true,
+    substitute: { value: spec.failsafe },
+    issues: result.issues.map((i) =>
+      i.severity === 'error' ? { ...i, message: `${i.message}${held}` } : i
+    )
+  };
+}
+
+function validatePropValue(
   componentName: string,
   key: string,
   spec: A2uiPropSpec,
@@ -258,8 +287,7 @@ function validateProp(
 
   if (spec.dynamic && isFunctionCall(value)) {
     const call = value as Record<string, unknown>;
-    if (acceptsLogicCall(spec))
-      return validateGate(componentName, key, spec, call, path, surfaceId);
+    if (acceptsLogicCall(spec)) return validateGate(componentName, key, call, path, surfaceId);
     if (isLogicCall(call)) return refuseLogicCall(componentName, key, spec, call, path, surfaceId);
   }
 
@@ -357,14 +385,12 @@ function validateProp(
  * `failsafe` it fails closed to. A well-formed logic call (`logicCallFault`,
  * the definition `resolveDynamic` evaluates by) is stored as written. Anything
  * else — malformed, over a cap, or a function the engine does not run, such as
- * the `required` upstream's own examples nest inside `and` — is stored as the
- * failsafe, so a broken consent gate keeps its button disabled, and the error
- * tells the agent what to replace.
+ * the `required` upstream's own examples nest inside `and` — is refused, and
+ * `validateProp` holds the failsafe in its place.
  */
 function validateGate(
   componentName: string,
   key: string,
-  spec: A2uiPropSpec,
   call: Record<string, unknown>,
   path: string,
   surfaceId: string
@@ -378,15 +404,12 @@ function validateGate(
       };
   if (!fault) return { store: true, issues: [] };
   return {
-    store: true,
-    substitute: { value: spec.failsafe },
+    store: false,
     issues: [
-      issue(
-        'error',
-        fault.code,
-        `"${key}" on ${componentName}: ${fault.message}; it is held at ${String(spec.failsafe)} until the call is fixed`,
-        { surfaceId, path: `${path}${fault.at}` }
-      )
+      issue('error', fault.code, `"${key}" on ${componentName}: ${fault.message}`, {
+        surfaceId,
+        path: `${path}${fault.at}`
+      })
     ]
   };
 }
@@ -979,29 +1002,36 @@ function createProcessor(
   const globalIssues: A2uiValidationIssue[] = [];
   const defaultCatalog = catalogs[0];
 
-  // Runs once the catalog is resolved: whether a requirement can be met at all
-  // depends on the catalog the surface was created on.
+  // Runs once the catalog is resolved. Which catalog the surface is on is the
+  // AGENT's choice, so an entry only that catalog cannot meet stays checked —
+  // and fails as the agent's error, naming a catalog that can meet it. Only an
+  // entry no configured catalog can meet is the consumer's mistake.
   function applyRequirements(surface: A2uiSurfaceState): void {
     // The key is payload text, so an own entry only (`toString` must miss).
     const requested = ownEntry(surfaceRequirements, surface.surfaceId);
     if (!Array.isArray(requested) || requested.length === 0) return;
-    const met: A2uiRequiredComponent[] = [];
+    const checked: A2uiSurfaceRequirement[] = [];
     for (const requirement of requested) {
       const fault = requirementFault(requirement, surface.catalog);
       if (fault === undefined) {
-        met.push(requirement);
+        checked.push({ requirement });
+        continue;
+      }
+      const able = catalogs.find((catalog) => requirementFault(requirement, catalog) === undefined);
+      if (able) {
+        checked.push({ requirement, catalogId: able.catalogId });
         continue;
       }
       surface.issues.push(
         issue(
           'warning',
           A2UI_ISSUE_CODES.INVALID_REQUIREMENT,
-          `surfaceRequirements for "${surface.surfaceId}" ask for ${describeRequirement(requirement)}, which can never be met: ${fault}; it is not checked`,
+          `surfaceRequirements for "${surface.surfaceId}" ask for ${describeRequirement(requirement)}, which no configured catalog can meet (${fault}); it is not checked`,
           { surfaceId: surface.surfaceId }
         )
       );
     }
-    surface.requirements = met;
+    surface.requirements = checked;
   }
 
   function handleCreateSurface(env: Record<string, unknown>, base: string): void {
@@ -1421,6 +1451,35 @@ export interface GraphIssueOptions {
 }
 
 /**
+ * Which requirements a maximum matching of requirements to rendered components
+ * meets — one component meets one entry, so two Checkbox entries ask for two.
+ * `candidates[r]` lists the components requirement `r` could use. Augmenting
+ * paths (Kuhn), so the number left missing is the fewest any assignment
+ * leaves. Requirements are tried in `order`; where the count is the same
+ * either way, an earlier one stays met.
+ */
+function matchRequirements(candidates: readonly number[][], order: readonly number[]): Set<number> {
+  const owner = new Map<number, number>();
+  const assign = (requirement: number, seen: Set<number>): boolean => {
+    for (const component of candidates[requirement]) {
+      if (seen.has(component)) continue;
+      seen.add(component);
+      const holder = owner.get(component);
+      if (holder === undefined || assign(holder, seen)) {
+        owner.set(component, requirement);
+        return true;
+      }
+    }
+    return false;
+  };
+  const matched = new Set<number>();
+  for (const requirement of order) {
+    if (assign(requirement, new Set())) matched.add(requirement);
+  }
+  return matched;
+}
+
+/**
  * Walk the component graph from `root` and collect structural faults that only
  * exist once components are assembled: cycles, excessive depth/nodes, dangling
  * child references, non-array template paths, mis-placed `weight` and — on a
@@ -1458,15 +1517,12 @@ export function collectGraphIssues(
 
   const reportedDangling = new Set<string>();
   // Mid-stream every requirement would read as missing — the surface arrives
-  // over several envelopes — so they are checked on the settled tree only. One
-  // rendered component meets one entry, so two Checkbox entries ask for two;
-  // entries with a `path` are tried first, so a box bound to /agreed is not
-  // spent on a name-only entry another box could meet.
-  const unmet: A2uiRequiredComponent[] = streaming
-    ? []
-    : [...(surface.requirements ?? [])].sort(
-        (a, b) => Number(b.path !== undefined) - Number(a.path !== undefined)
-      );
+  // over several envelopes — so they are checked on the settled tree only.
+  const required = streaming ? [] : (surface.requirements ?? []);
+  // For each requirement, the rendered components (numbered in visit order)
+  // that could meet it; matched after the walk.
+  const candidates: number[][] = required.map(() => []);
+  let renderedCount = 0;
   let nodeCount = 0;
   let overflowReported = false;
   let aborted = false;
@@ -1588,10 +1644,14 @@ export function collectGraphIssues(
       return;
     }
 
-    const met = unmet.findIndex((requirement) =>
-      meetsRequirement(requirement, comp, scopePrefix, registry)
-    );
-    if (met !== -1) unmet.splice(met, 1);
+    if (required.length > 0) {
+      const rendered = renderedCount++;
+      required.forEach((entry, index) => {
+        if (meetsRequirement(entry.requirement, comp, scopePrefix, registry)) {
+          candidates[index].push(rendered);
+        }
+      });
+    }
 
     // A bound `options` list is only checkable once it resolves — the envelope
     // validator saw a { path }, not a list. Silent while the path is still
@@ -1648,15 +1708,29 @@ export function collectGraphIssues(
   };
 
   visit('root', 0, new Set(), null, undefined);
-  for (const requirement of unmet) {
+  // Bound entries first: a box bound to /agreed counts as the consent box, and a
+  // name-only entry it could also meet is the one reported missing.
+  const order = required
+    .map((_, index) => index)
+    .sort(
+      (a, b) =>
+        Number(required[b].requirement.path !== undefined) -
+        Number(required[a].requirement.path !== undefined)
+    );
+  const matched = matchRequirements(candidates, order);
+  required.forEach((entry, index) => {
+    if (matched.has(index)) return;
+    const elsewhere = entry.catalogId
+      ? `; this surface's catalog "${surface.catalog.catalogId}" cannot hold it, so create the surface with catalogId "${entry.catalogId}"`
+      : '';
     issues.push(
       issue(
         'error',
         A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
-        `Surface "${surfaceId}" must contain ${describeRequirement(requirement)}; none renders from "root" (a fault chip does not count)`,
+        `Surface "${surfaceId}" must contain ${describeRequirement(entry.requirement)}; none renders from "root" (a fault chip does not count)${elsewhere}`,
         { surfaceId }
       )
     );
-  }
+  });
   return issues;
 }
