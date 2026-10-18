@@ -5,8 +5,8 @@
  */
 
 /**
- * The three methods either caller uses. Narrower than the DOM `Storage`, and
- * both mutators differ from it: they report whether the change reached storage,
+ * The methods the callers use. Narrower than the DOM `Storage`, and both
+ * mutators differ from it: they report whether the change reached storage,
  * because `createPersistentState` keeps a mirror of what is stored and may not
  * advance it over an operation storage refused — in either direction. A refused
  * removal leaves the old entry in place, which the next `reload()` would read
@@ -22,6 +22,13 @@ export interface StorageInterface {
 
   /** `true` when the entry is gone. */
   removeItem(key: string): boolean;
+
+  /**
+   * Every key storage holds, or `[]` when it cannot list them — a storage
+   * without `key`/`length` still reads and writes, so listing is no condition
+   * for getting a handle.
+   */
+  keys(): string[];
 }
 
 /**
@@ -92,6 +99,18 @@ export function getStorage(type: 'localStorage' | 'sessionStorage'): StorageInte
         return true;
       } catch {
         return false;
+      }
+    },
+    keys() {
+      try {
+        const keys: string[] = [];
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (key !== null) keys.push(key);
+        }
+        return keys;
+      } catch {
+        return [];
       }
     }
   };

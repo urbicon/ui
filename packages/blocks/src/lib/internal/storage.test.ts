@@ -109,4 +109,29 @@ describe('getStorage', () => {
     // not retire it — same contract as a refused write, other direction.
     expect(handle?.removeItem('k')).toBe(false);
   });
+
+  it('lists the keys storage holds', () => {
+    installMemoryStorage('localStorage', { a: '1', b: '2' });
+    expect(getStorage('localStorage')?.keys()).toEqual(['a', 'b']);
+  });
+
+  it('lists nothing, and still hands out a handle, when storage cannot list', () => {
+    installStorage({
+      value: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+        get length() {
+          throw new DOMException('denied', 'SecurityError');
+        }
+      }
+    });
+    expect(getStorage('localStorage')?.keys()).toEqual([]);
+
+    // A length and no `key` method.
+    installStorage({
+      value: { getItem: () => null, setItem: () => {}, removeItem: () => {}, length: 1 }
+    });
+    expect(getStorage('localStorage')?.keys()).toEqual([]);
+  });
 });

@@ -2,6 +2,7 @@
 import { fireEvent, screen } from '@testing-library/dom';
 import { type ComponentProps, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { installMemoryStorage, restoreStorage } from '../../../../../../scripts/vitest-storage';
 import CurrencyInput from './CurrencyInput.svelte';
 
 // Interaction layer for CurrencyInput — the parse/format contract the variant tests can't reach.
@@ -399,6 +400,34 @@ describe('CurrencyInput (writes that are not keystrokes)', () => {
 // COMPONENT-API-CONVENTIONS § Common props. The rest travels through Input to
 // its `<input>`, as on NumberInput; the two handlers CurrencyInput attaches
 // itself compose with a consumer's (internal first) instead of replacing them.
+describe('CurrencyInput (persistKey)', () => {
+  afterEach(() => {
+    // Unmounting flushes a pending save into the installed storage.
+    dispose?.();
+    dispose = undefined;
+    restoreStorage();
+  });
+
+  it('a restored entry takes the amount with the text, over the value it mounts with', async () => {
+    installMemoryStorage('localStorage', { urbicon_price_v1: '"9.99"' });
+    const onValueChange = vi.fn();
+    renderCurrency({
+      value: 123456,
+      locale: 'en-US',
+      name: 'price',
+      persistKey: 'price',
+      onValueChange
+    });
+    await settle();
+
+    expect(input().value).toBe('9.99');
+    expect(onValueChange).toHaveBeenLastCalledWith(999);
+    expect(
+      document.querySelector<HTMLInputElement>('input[type="hidden"][name="price"]')?.value
+    ).toBe('999');
+  });
+});
+
 describe('CurrencyInput (restProps)', () => {
   it('passes an unmodelled attribute through to the input', () => {
     renderCurrency({ locale: 'en-US', 'data-testid': 'price', autocomplete: 'off' });

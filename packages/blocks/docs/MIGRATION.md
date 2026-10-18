@@ -11,6 +11,55 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.32.0
+
+### A persisted `Input` restores what is stored, over `value` too
+
+With `persistKey`, the stored text now wins over the `value` the field mounts with whenever there
+is an entry, an empty one included: a field the user cleared comes back empty after a reload. While
+nothing is stored, that `value` is the starting text and is written to storage. Before, a non-empty
+`value` beat any stored text, an empty one too, and overwrote it.
+
+- **A field you prefill from data shows what is stored after a reload.**
+  `<Input persistKey="note" value={record.note} />` stores `record.note` on its first mount, and
+  every later mount restores that entry, with the user's edits, over the `record.note` it mounts
+  with. If your data must win, drop `persistKey`, or remove the entry when the data changes: it is
+  `urbicon_<persistKey>_v<persistVersion>`, with `:<persistNamespace>` after the key when you pass
+  one.
+- **Only the `value` at mount yields.** A `value` that changes while the field is mounted, such as
+  a record that loads after the first render, replaces the field's text and overwrites the entry,
+  as before. Loaded that way, the field shows the stored text until the record arrives, then the
+  record's.
+- **Entries an untouched field wrote up to 8.31 now count as cleared.** Until now a field that
+  mounted empty wrote `""` without anyone typing, and such an entry now beats the `value` the field
+  mounts with. Raise `persistVersion` (from the default `1` to `2`) to drop them: the next mount
+  under each key deletes its older versions, every v1 entry under that key, the text users really
+  typed as well as the stale `""`. An untouched field no longer writes anything.
+- **Changing a `persist*` prop at runtime switches the field to the new entry.** A stored text
+  there replaces the field's. An empty entry stays empty until the next edit: the text on screen,
+  another user's after a `persistNamespace` switch, is not carried into it. A write still waiting
+  out `persistDebounceMs` lands under the old key at the switch. A `persistKey` that first arrives
+  after mount is no switch: the field starts persisting as at mount, its current text included.
+- **`NumberInput` moves its number with the restored text.** It sets `value`, the hidden `name`
+  input and `aria-valuenow`, and calls `onValueChange` as the field mounts; before, a field that
+  mounted empty showed the stored text while the number stayed `null`. A `<form>` reset now moves
+  the number too.
+
+### `createPersistentState` deletes the entries of older versions
+
+On init, `createPersistentState({ key, version })` removes the entries the same key holds under a
+lower version, `urbicon_<key>_v1` up to `urbicon_<key>_v<version - 1>`, from the storage it is
+configured with. Nothing is read across: a raised `version` starts from `defaultValue`, and the old
+value is gone instead of left behind. Higher versions and other keys stay; `version: 1`, the
+default, deletes nothing. `Input`'s `persistVersion` goes through the same path.
+
+If you carry values from one version to the next yourself, read the old entry before the state for
+the new version is created.
+
+```sh
+rg -n -e 'persistKey' -e 'persistVersion' -e 'createPersistentState\(' src
+```
+
 ## 8.30.0
 
 ### `CommandPalette` resets its query when it has closed, not when it opens

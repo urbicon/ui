@@ -381,3 +381,205 @@ describe('hostile storage', () => {
     cleanup();
   });
 });
+
+describe('older versions', () => {
+  it('deletes the entries this key wrote under a lower version, and nothing else', () => {
+    const storage = installMemoryStorage('localStorage', {
+      urbicon_ps_ver_v1: '"one"',
+      urbicon_ps_ver_v2: '"two"',
+      urbicon_ps_ver_v3: '"three"',
+      urbicon_ps_ver_v4: '"four"',
+      // The key `ps_ver_v2` at version 1: this key's prefix, but not one of its versions.
+      urbicon_ps_ver_v2_v1: '"other key"',
+      urbicon_ps_ver_v1_draft: '"not a version"',
+      urbicon_other_v1: '"other key"',
+      ps_ver_v1: '"not ours"'
+    });
+
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_ver', defaultValue: '', version: 3 })
+    );
+
+    expect(storage.getItem('urbicon_ps_ver_v1')).toBe(null);
+    expect(storage.getItem('urbicon_ps_ver_v2')).toBe(null);
+    // Nothing is read across: the current version's own entry is the value.
+    expect(result.value).toBe('three');
+    expect(storage.getItem('urbicon_ps_ver_v3')).toBe('"three"');
+    expect(storage.getItem('urbicon_ps_ver_v4')).toBe('"four"');
+    expect(storage.getItem('urbicon_ps_ver_v2_v1')).toBe('"other key"');
+    expect(storage.getItem('urbicon_ps_ver_v1_draft')).toBe('"not a version"');
+    expect(storage.getItem('urbicon_other_v1')).toBe('"other key"');
+    expect(storage.getItem('ps_ver_v1')).toBe('"not ours"');
+    cleanup();
+  });
+
+  it('starts from the default when only an older version is stored', () => {
+    const storage = installMemoryStorage('localStorage', { urbicon_ps_bump_v1: '"old"' });
+
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_bump', defaultValue: 'fresh', version: 2 })
+    );
+
+    expect(result.value).toBe('fresh');
+    expect(result.hasStoredValue).toBe(false);
+    expect(storage.getItem('urbicon_ps_bump_v1')).toBe(null);
+    cleanup();
+  });
+
+  it('removes nothing at version 1', () => {
+    const storage = installMemoryStorage('localStorage', { urbicon_ps_one_v1: '"kept"' });
+    const removeItem = vi.spyOn(storage, 'removeItem');
+
+    const { cleanup } = withRoot(() => createPersistentState({ key: 'ps_one', defaultValue: '' }));
+
+    expect(removeItem).not.toHaveBeenCalled();
+    expect(storage.getItem('urbicon_ps_one_v1')).toBe('"kept"');
+    cleanup();
+  });
+
+  it('deletes from the configured backend only', () => {
+    const local = installMemoryStorage('localStorage', { urbicon_ps_area_v1: '"local"' });
+    const session = installMemoryStorage('sessionStorage', { urbicon_ps_area_v1: '"session"' });
+
+    const { cleanup } = withRoot(() =>
+      createPersistentState({
+        key: 'ps_area',
+        defaultValue: '',
+        version: 2,
+        storage: 'sessionStorage'
+      })
+    );
+
+    expect(session.getItem('urbicon_ps_area_v1')).toBe(null);
+    expect(local.getItem('urbicon_ps_area_v1')).toBe('"local"');
+    cleanup();
+  });
+
+  it('does not throw out of init when storage refuses the removal', () => {
+    const storage = createMemoryStorage({
+      urbicon_ps_refused_v1: '"old"',
+      urbicon_ps_refused_v2: '"current"'
+    });
+    storage.removeItem = () => {
+      throw new DOMException('denied', 'SecurityError');
+    };
+    installStorage({ value: storage });
+
+    let state: { value: string } | undefined;
+    let cleanup = () => {};
+    expect(() => {
+      ({ result: state, cleanup } = withRoot(() =>
+        createPersistentState({ key: 'ps_refused', defaultValue: '', version: 2 })
+      ));
+    }).not.toThrow();
+
+    expect(state?.value).toBe('current');
+    expect(storage.getItem('urbicon_ps_refused_v1')).toBe('"old"');
+    cleanup();
+  });
+
+  it('does not throw out of init when storage cannot list its keys', () => {
+    const storage = createMemoryStorage({ urbicon_ps_unlisted_v2: '"current"' });
+    Object.defineProperty(storage, 'length', {
+      get() {
+        throw new DOMException('denied', 'SecurityError');
+      }
+    });
+    installStorage({ value: storage });
+
+    let state: { value: string } | undefined;
+    let cleanup = () => {};
+    expect(() => {
+      ({ result: state, cleanup } = withRoot(() =>
+        createPersistentState({ key: 'ps_unlisted', defaultValue: '', version: 2 })
+      ));
+    }).not.toThrow();
+
+    expect(state?.value).toBe('current');
+    cleanup();
+  });
+});
+
+describe('teardown', () => {
+  it('writes a save still pending when its owner is destroyed, and nothing after', () => {
+    const storage = installMemoryStorage();
+    const setItem = vi.spyOn(storage, 'setItem');
+
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_teardown', defaultValue: '' })
+    );
+    result.value = 'typed';
+    flushSync();
+    expect(storage.getItem('urbicon_ps_teardown_v1')).toBe(null);
+
+    cleanup();
+    expect(storage.getItem('urbicon_ps_teardown_v1')).toBe('"typed"');
+
+    vi.advanceTimersByTime(1000);
+    expect(setItem).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not restore a reset value when the owner is destroyed in the same tick', () => {
+    const storage = installMemoryStorage();
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_reset_teardown', defaultValue: '' })
+    );
+    result.value = 'typed';
+    flushSync();
+
+    result.reset();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_ps_reset_teardown_v1')).toBe(null);
+    expect(result.hasStoredValue).toBe(false);
+  });
+
+  it('does not write a save from before reload() over what it read', () => {
+    const storage = installMemoryStorage();
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_reload_teardown', defaultValue: '' })
+    );
+    result.value = 'typed';
+    flushSync();
+
+    // Another tab wrote meanwhile; this one reloads, then unmounts.
+    storage.setItem('urbicon_ps_reload_teardown_v1', '"elsewhere"');
+    result.reload();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(result.value).toBe('elsewhere');
+    expect(storage.getItem('urbicon_ps_reload_teardown_v1')).toBe('"elsewhere"');
+  });
+
+  it('does not write an older save after forceSave()', () => {
+    const storage = installMemoryStorage();
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_force_teardown', defaultValue: '' })
+    );
+    result.value = 'a';
+    flushSync();
+    // The auto-save has not re-run for 'b' yet; 'a' is the save still waiting.
+    result.value = 'b';
+    result.forceSave();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_ps_force_teardown_v1')).toBe('"b"');
+  });
+
+  it('writes nothing on teardown for an untouched instance', () => {
+    const storage = installMemoryStorage();
+    const setItem = vi.spyOn(storage, 'setItem');
+
+    const { cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_teardown_idle', defaultValue: '' })
+    );
+    flushSync();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(setItem).not.toHaveBeenCalled();
+  });
+});

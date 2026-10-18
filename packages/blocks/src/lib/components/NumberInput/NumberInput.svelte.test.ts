@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { screen } from '@testing-library/dom';
+import { fireEvent, screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { installMemoryStorage, restoreStorage } from '../../../../../../scripts/vitest-storage';
 import type { NumberInputProps } from './index';
 import NumberInput from './NumberInput.svelte';
 
@@ -254,5 +255,68 @@ describe('NumberInput (restProps)', () => {
 
     expect(onwheel).toHaveBeenCalledOnce();
     expect(onValueChange).toHaveBeenLastCalledWith(6);
+  });
+});
+
+describe('NumberInput (writes that are not keystrokes)', () => {
+  // A restored `persistKey` entry and a form reset write the bound text without
+  // an `input` event — the number has to follow the text, or the field shows
+  // one number and submits another.
+  afterEach(() => {
+    // Unmounting flushes a pending save into the installed storage.
+    dispose?.();
+    dispose = undefined;
+    vi.useRealTimers();
+    restoreStorage();
+  });
+
+  it('moves the number with a restored entry, not only the text', () => {
+    vi.useFakeTimers();
+    const storage = installMemoryStorage('localStorage', { urbicon_qty_v1: '"7"' });
+    const onValueChange = vi.fn();
+    render({ persistKey: 'qty', value: 5, name: 'qty', onValueChange });
+
+    const hidden = document.querySelector('input[type="hidden"]') as HTMLInputElement;
+    expect(spin().value).toBe('7');
+    expect(spin().getAttribute('aria-valuenow')).toBe('7');
+    expect(hidden.value).toBe('7');
+    expect(onValueChange).toHaveBeenLastCalledWith(7);
+
+    // The stepper steps from the restored number, and that is what is stored.
+    fireEvent.click(steppers()[0]);
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(spin().value).toBe('8');
+    expect(storage.getItem('urbicon_qty_v1')).toBe('"8"');
+  });
+
+  it('moves the number with a form reset', async () => {
+    const form = document.createElement('form');
+    document.body.append(form);
+    const onValueChange = vi.fn();
+    const instance = mount(NumberInput, {
+      target: form,
+      props: { value: 5, name: 'qty', onValueChange } as NumberInputProps
+    });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    spin().value = '12';
+    fireEvent.input(spin());
+    flushSync();
+    expect(onValueChange).toHaveBeenLastCalledWith(12);
+
+    form.reset();
+    // Svelte applies a reset one microtask after the event.
+    await Promise.resolve();
+    flushSync();
+
+    // A field mounted on the client has no `value` attribute to reset to, so it
+    // empties — and the number with it.
+    const hidden = document.querySelector('input[type="hidden"]') as HTMLInputElement;
+    expect(spin().value).toBe('');
+    expect(spin().hasAttribute('aria-valuenow')).toBe(false);
+    expect(hidden.value).toBe('');
+    expect(onValueChange).toHaveBeenLastCalledWith(null);
   });
 });

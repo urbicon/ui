@@ -61,38 +61,68 @@
 
   let inputRef = $state<HTMLInputElement>();
 
-  let persisted: ReturnType<typeof createPersistentState<string | null>> | null = null;
+  // A new instance whenever a persist prop changes. Effects created while a
+  // `$derived` evaluates are owned by it: Svelte destroys them before it
+  // re-evaluates and with the component, so the replaced instance's auto-save
+  // ends (and flushes) instead of running on beside the new one.
+  const persisted = $derived(
+    persistKey
+      ? createPersistentState<string>({
+          key: [persistKey, persistNamespace].filter(Boolean).join(':'),
+          defaultValue: '',
+          storage: persistStorage,
+          debounceMs: persistDebounceMs,
+          version: persistVersion,
+          // Throws on anything but a string: an entry that fails to load reads
+          // as absent, so junk never wins over `value` the way a stored value does.
+          deserialize: (s) => {
+            const parsed: unknown = JSON.parse(s);
+            if (typeof parsed !== 'string') throw new TypeError('not a string');
+            return parsed;
+          }
+        })
+      : null
+  );
+
+  // The instance the field has been reconciled with. On an instance's first
+  // run the stored value wins whenever one exists — `''` too, a field the user
+  // cleared. With nothing stored, the text is written only for the field's
+  // first instance (at mount, or when `persistKey` first arrives), where it is
+  // the field's own text; on a switch from one entry to another it is what the
+  // previous entry left on screen (another user's, under `persistNamespace`),
+  // so the new entry waits for an edit. Every later run writes the field
+  // through. `persisted` is read first and on every run: a derived nothing
+  // reads freezes the effects it owns.
+  let reconciled: typeof persisted = null;
+
+  // What Svelte's own `bind:value` hands the binding of a number-like input —
+  // a number, `null` for an empty field — decided off the element's `type`, as
+  // Svelte decides it. A string here would reach `bind:value={age}` as "7".
+  function fromStored(text: string): unknown {
+    const type = inputRef?.type;
+    if (type !== 'number' && type !== 'range') return text;
+    return text === '' ? null : +text;
+  }
 
   $effect(() => {
-    if (!persistKey) {
-      persisted = null;
-      return;
-    }
-    const key = [persistKey, persistNamespace].filter(Boolean).join(':');
-    persisted = createPersistentState<string | null>({
-      key,
-      defaultValue: '',
-      storage: persistStorage,
-      debounceMs: persistDebounceMs,
-      version: persistVersion,
-      serialize: (v) => JSON.stringify(v ?? ''),
-      deserialize: (s) => {
-        try {
-          const parsed = JSON.parse(s);
-          return typeof parsed === 'string' ? parsed : '';
-        } catch {
-          return '';
-        }
+    const store = persisted;
+    // `value` is read past the guard only, so a field without `persistKey` does not depend on it.
+    if (!store) return;
+    // `type="number"` binds a number; stored as one, it would fail the string
+    // check above on every later load.
+    const text = typeof value === 'string' ? value : value == null ? '' : String(value);
+    if (store !== reconciled) {
+      const first = reconciled === null;
+      reconciled = store;
+      if (store.hasStoredValue) {
+        value = fromStored(store.value);
+        return;
       }
-    });
-  });
-
-  $effect(() => {
-    if (!persisted) return;
-    if (!value) {
-      const fromStore = persisted.value as unknown as string | null;
-      if (fromStore) value = fromStore;
+      // An entry for '' would read as a cleared field and beat the consumer's
+      // `value` on every later mount.
+      if (!first || text === '') return;
     }
+    store.value = text;
   });
 
   const shouldShowClear = $derived(clearable && !!value && !disabled && !readonly);
@@ -173,7 +203,6 @@
   function handleClear() {
     if (disabled || readonly) return;
     value = '';
-    if (persisted) persisted.value = '';
     onClear?.();
     inputRef?.focus();
   }
@@ -195,10 +224,6 @@
     // own handler is hardcoded on the element, so without this it would swallow it.
     userOnKeydown?.(event);
   }
-
-  $effect(() => {
-    if (persisted) persisted.value = (value as unknown as string) ?? '';
-  });
 </script>
 
 <div
