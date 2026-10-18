@@ -158,8 +158,9 @@ export class APIFileGenerator {
       // type rather than importing `PropInfo`, so a field missing from this line
       // type-errors at the call site even though the value is emitted. `values`
       // is the same story for members resolved out of a `Pick<…>` clause, whose
-      // literal unions the extractor now carries into the inheritance entry.
-      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; summary?: string; values?: string[]; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; seeAlsoRefs?: string[]; examples?: PropExample[] }"
+      // literal unions the extractor now carries into the inheritance entry, and
+      // `namedType` for the flag `processProp` sets on those members as on any prop.
+      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; summary?: string; values?: string[]; namedType?: boolean; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; seeAlsoRefs?: string[]; examples?: PropExample[] }"
     );
     lines.push(
       'export interface InheritanceInfo { typeName: string; source: string; url?: string; props: InheritanceProp[] }'

@@ -22,12 +22,7 @@ export interface ApiProp {
    */
   seeAlsoRefs?: string[];
   values?: string[];
-  /**
-   * `type` names its `values` instead of listing them (`ComponentIntent`,
-   * `ButtonVariants['variant']`): the Type column shows the type, linked where
-   * it can be, above the value chips. Without it a prop with `values` shows the
-   * chips alone — its type spells them already. Set by docs-gen.
-   */
+  /** `type` names its `values` (`ComponentIntent`): the Type column shows both, not chips alone. */
   namedType?: boolean;
   /**
    * `@deprecated` on the prop's JSDoc. The message carries the replacement and

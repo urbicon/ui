@@ -16,6 +16,7 @@ function makeEntry(
     variants: [],
     keyProps: [],
     keyPropTypes: {},
+    keyPropValues: {},
     slots: [],
     hasExamples: false,
     relatedComponents: [],

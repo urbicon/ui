@@ -1,96 +1,22 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import type {
+  ComponentCatalogEntry,
+  ComponentCatalogPropDoc
+} from '@urbicon-ui/design-engine/search';
 import { noJsDocDescription } from '../../extractors/typescript/TypeScriptBaseExtractor';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
-import { formatPropType } from '../../utils/prop-type';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
 
-/** The hand-written JSDoc of one prop, split the way the source splits it. */
-export interface ComponentCatalogPropDoc {
-  /** The contract — may run to a paragraph. */
-  description?: string;
-  /** The prop's `@summary`: the one line a playground shows beside the knob. Rare by design. */
-  summary?: string;
-}
-
-export interface ComponentCatalogEntry {
-  name: string;
-  slug: string;
-  package: string;
-  group: 'primitives' | 'components' | 'core';
-  /** The long form: the contract an agent reads. */
-  description: string;
-  /**
-   * The short form: one sentence for a human, under the component's name.
-   * Absent while a component still has no `@summary` — consumers fall back to
-   * `description`, which is what the landing page did before the split.
-   */
-  summary?: string;
-  /**
-   * Editorial maturity. Extracted per component since forever, but dropped on
-   * the way into this catalog until 2026-07-27 — which is why the landing
-   * page carried a hand-written list of beta components that named four of
-   * the thirty-eight.
-   */
-  stability?: 'experimental' | 'beta' | 'stable' | 'deprecated';
-  tags: string[];
-  import: string;
-  llmTxtPath: string;
-  variants: {
-    name: string;
-    values: string[];
-    default?: string;
-    /**
-     * What a value means, keyed by value — the JSDoc block above the value in
-     * the tv() config (VariantsExtractor). Only values that carry one; absent
-     * when none does.
-     */
-    valueDescriptions?: Record<string, string>;
-  }[];
-  keyProps: string[];
-  /**
-   * Size of the component's own API: direct + variant props, inherited HTML
-   * attributes excluded. Mirrors `stats.totalProps`, the number each doc page
-   * prints — distinct from `keyProps.length`, which caps at eight.
-   */
-  propCount: number;
-  /**
-   * Non-primitive prop types (objects, arrays, unions) — omits string/boolean/number.
-   * A type that only names its values carries them, as the llm.txt Api row
-   * does: `"intent": "ComponentIntent (primary, secondary, …)"`.
-   */
-  keyPropTypes: Record<string, string>;
-  /**
-   * The hand-written JSDoc of the component's own (direct) props, by name. What
-   * lets discovery reach a component through what a prop says — "dense settings
-   * rows" lives in Toggle's `variant` prop, not in its description. Absent when
-   * no direct prop carries JSDoc.
-   */
-  propDocs?: Record<string, ComponentCatalogPropDoc>;
-  slots: string[];
-  hasExamples: boolean;
-  relatedComponents: string[];
-}
-
-export interface RecipeEntry {
-  id: string;
-  title: string;
-  description: string;
-  components: string[];
-  code: string;
-  features: string[];
-  /** Layer-4 composition pattern this recipe instantiates (e.g. "dashboard"). Cross-links to `urbicon pattern`. */
-  pattern?: string;
-}
-
-export interface ComponentCatalog {
-  generated: string;
-  version: string;
-  components: ComponentCatalogEntry[];
-  recipes: RecipeEntry[];
-  tags: string[];
-}
+// The schema is design-engine's: the type `urbicon find` and `get-component`
+// read the catalog with, so what is written here is checked against it.
+export type {
+  ComponentCatalog,
+  ComponentCatalogEntry,
+  ComponentCatalogPropDoc,
+  RecipeEntry
+} from '@urbicon-ui/design-engine/search';
 
 /**
  * The `@urbicon-ui/docs` components: the furniture documentation pages are
@@ -235,6 +161,9 @@ export class CatalogGenerator {
       'MintProp'
     ]);
     const keyPropTypes: Record<string, string> = {};
+    // The prop's own `values` — what llm.txt prints beside a named type — kept
+    // apart from the type, so `keyPropTypes` stays valid TypeScript.
+    const keyPropValues: Record<string, string[]> = {};
     for (const p of directProps) {
       if (p.name.startsWith('...')) continue;
       if (STYLE_OVERRIDE_PROPS.has(p.name)) continue;
@@ -242,7 +171,8 @@ export class CatalogGenerator {
       if (!baseType || PRIMITIVE_TYPES.has(baseType)) continue;
       // Keep compound types, arrays, generics, unions with non-primitives
       if (/^(string|boolean|number)(\s*\|\s*(string|boolean|number))*$/.test(baseType)) continue;
-      keyPropTypes[p.name] = formatPropType({ ...p, type: baseType });
+      keyPropTypes[p.name] = baseType;
+      if (p.values?.length) keyPropValues[p.name] = p.values;
     }
 
     // What each of the component's own props says — the hand-written JSDoc of
@@ -285,6 +215,7 @@ export class CatalogGenerator {
       keyProps,
       propCount,
       keyPropTypes,
+      keyPropValues,
       ...(Object.keys(propDocs).length > 0 ? { propDocs } : {}),
       slots,
       hasExamples: compApi.examples.length > 0,

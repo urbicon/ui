@@ -13,9 +13,10 @@ import { typeSpellsValues } from '../src/utils/prop-type';
 
 // ---------------------------------------------------------------------------
 // A prop whose type names its values (`ComponentIntent`) instead of spelling
-// them (`'sm' | 'md'`) is shown together with them on every agent surface — the
-// llm.txt Api row and the catalog's `keyPropTypes` — and flagged for the docs
-// site's API table. One rule decides it, once, in APIDataGenerator.
+// them (`'sm' | 'md'`) reaches every agent surface with them — the llm.txt Api
+// row prints them beside the type, the catalog carries them in `keyPropValues`
+// — and is flagged for the docs site's API table. One rule decides the flag,
+// once, in APIDataGenerator.
 // ---------------------------------------------------------------------------
 
 const NO_STATS = { totalProps: 0, directProps: 0, variantProps: 0, inheritedProps: 0 };
@@ -128,7 +129,7 @@ describe('agent surfaces show a named type with its values', () => {
     expect(content).toContain('| label | `string` | no |');
   });
 
-  it("in the catalog's keyPropTypes, worded as in the llm.txt row", async () => {
+  it('in the catalog, as data beside a keyPropTypes that stays a type expression', async () => {
     await new CatalogGenerator('@urbicon-ui/blocks', root).generate(
       [enriched],
       await apiData(PROPS)
@@ -138,11 +139,19 @@ describe('agent surfaces show a named type with its values', () => {
     ) as ComponentCatalogEntry[];
 
     expect(entry?.keyPropTypes).toEqual({
-      intent: 'ComponentIntent (primary, neutral)',
-      variant: "ButtonVariants['variant'] (filled, outlined)",
-      mixed: "'auto' | ComponentSize (auto, sm, md)",
+      intent: 'ComponentIntent',
+      variant: "ButtonVariants['variant']",
+      mixed: "'auto' | ComponentSize",
       size: "'sm' | 'md'",
       height: "number | 'auto'"
+    });
+    // Every valued key prop, named type or not — the values llm.txt prints.
+    expect(entry?.keyPropValues).toEqual({
+      intent: ['primary', 'neutral'],
+      variant: ['filled', 'outlined'],
+      mixed: ['auto', 'sm', 'md'],
+      size: ['sm', 'md'],
+      height: ['auto']
     });
   });
 });

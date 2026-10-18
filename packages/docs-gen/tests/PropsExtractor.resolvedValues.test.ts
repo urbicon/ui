@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { PropsExtractor } from '../src/extractors/typescript/PropsExtractor';
 import type { PropInfo } from '../src/types';
 
@@ -36,13 +36,15 @@ async function propsOf(
   opts: { configPath?: string } = { configPath: CONFIG }
 ): Promise<Record<string, PropInfo>> {
   const extractor = new PropsExtractor(opts.configPath ? { configPath: opts.configPath } : {});
-  if (opts.configPath) createLiteralsInReverse(extractor);
   const result = await extractor.extract({ filePath: RESOLVY, componentName });
   expect(result.success).toBe(true);
   return Object.fromEntries((result.data ?? []).map((p) => [p.name, p]));
 }
 
 describe('PropsExtractor — values the written type does not list (program-backed)', () => {
+  // Builds and checks the fixture program every test below shares — the one slow step.
+  beforeAll(() => createLiteralsInReverse(new PropsExtractor({ configPath: CONFIG })), 120_000);
+
   it('resolves a computed union over a const tuple, in tuple order', async () => {
     const { tone } = await propsOf('Resolvy');
     expect(tone?.values).toEqual(['calm', 'loud', 'quiet']);
