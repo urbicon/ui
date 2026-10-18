@@ -39,7 +39,7 @@ kept**: the repo is canon, memory holds only what has no home in it yet.
 
 Reference integrity of AGENTS.md and every `.claude/skills/*/SKILL.md`: each
 `bun run <script>` exists in a `package.json`, each path exists, each named constant
-(`PLACEHOLDERS`, `NO_PAGE`, `BUCKET_PATTERNS`, …) is still in the script said to
+(`PLACEHOLDERS`, `COMPOSED`, `BUCKET_PATTERNS`, …) is still in the script said to
 hold it. `bun run docs:refs:check` is the gate for this; grep by hand for
 whatever it does not cover — the last pass found a deleted constant still cited,
 two wrong package names, and a hook described as local that exists only in the

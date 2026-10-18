@@ -128,13 +128,11 @@ jobs:
       # a TOC link that scrolls nowhere, a section unreachable from the TOC,
       # and a nav whose order disagrees with the page under it.
       - run: bun run sections:lint
-      # A component page documents its types in two hand-written halves —
-      # `<TypesReference>` and `types=` on `<ApiReference>` — and each half
-      # fails silently alone: without the prop every type name in the API table
-      # is dead text, without the section every link it emits points at a
-      # section that does not exist. Reads the generated api.ts, so it needs the
-      # build:ts above. NOT `types:guard` (declaration emit, in `typecheck`).
-      - run: bun run typesref:lint
+      # Every page with a generated api.ts renders <ReferenceSections>, the one
+      # component that draws its API and Types tables from one componentData. A
+      # page without it documents neither, and nothing else on it says so.
+      # Reads the generated api.ts, so it needs the build:ts above.
+      - run: bun run refsections:lint
       # The 2-4 CodeExample budget per component page. It lived only as prose in
       # DocsPageGuide.md until 2026-08 and the corpus had drifted to 17 pages
       # over the ceiling and 2 under the floor. Reads nothing generated, so it

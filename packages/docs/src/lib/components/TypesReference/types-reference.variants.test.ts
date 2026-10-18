@@ -14,6 +14,10 @@ describe('typesReferenceVariants', () => {
       'expandedPanel',
       'toolbar',
       'filterLabel',
+      'nameCode',
+      'kindCode',
+      'categoryCode',
+      'usedByCount',
       'codeBlock',
       'documentation',
       'documentationClamped',
@@ -50,7 +54,7 @@ describe('typesReferenceVariants', () => {
     expect(styles.codeBlock()).toContain('text-text-primary');
     expect(styles.literalBadge()).toContain('bg-surface-quiet');
     expect(styles.literalBadge()).toContain('text-text-secondary');
-    expect(styles.usedBySection()).toContain('text-text-secondary');
+    expect(styles.usedBySection()).toContain('text-text-tertiary');
   });
 
   it('styles its links as blocks Link variant="inline"', () => {
@@ -90,16 +94,24 @@ describe('typesReferenceVariants', () => {
       const styles = typesReferenceVariants({ size: 'sm' });
 
       expect(styles.codeBlock()).toContain('p-2');
-      expect(styles.codeBlock()).toContain('text-xs');
+      expect(styles.codeBlock()).toContain('text-2xs');
       expect(styles.literalBadge()).toContain('text-3xs');
     });
 
-    it('md has default layout', () => {
+    it("md is the API table's own expanded panel", () => {
+      // The default every component page renders: a row of either table opens
+      // onto the same code block, prose and footnotes.
       const styles = typesReferenceVariants({ size: 'md' });
+      const api = apiReferenceVariants();
 
-      expect(styles.codeBlock()).toContain('p-3');
-      expect(styles.codeBlock()).toContain('text-[13px]');
-      expect(styles.literalBadge()).toContain('text-2xs');
+      expect(styles.expandedPanel()).toBe(api.expandedPanel());
+      expect(styles.codeBlock()).toBe(api.signature());
+      expect(styles.documentation()).toBe(api.description());
+      expect(styles.literalValues()).toBe(api.valuesSection());
+      expect(styles.literalBadge()).toBe(api.typeChip());
+      expect(styles.usedBySection()).toBe(api.sourceSection());
+      expect(styles.seeAlsoSection()).toBe(api.seeAlsoRefs());
+      expect(styles.seeAlsoRef()).toBe(api.seeAlsoRef());
     });
 
     it('lg has spacious layout', () => {
@@ -165,6 +177,19 @@ describe('typesReferenceVariants', () => {
     expect(styles.stack()).toContain('gap-3');
     expect(api.base()).toContain('gap-3');
     expect(styles.stack()).not.toMatch(/\b(border|shadow|rounded-contain|bg-surface-elevated)/);
+  });
+
+  it("renders its cells with the API table's cell classes", () => {
+    // A type's name reads as a prop's name, its kind as a prop's type, its
+    // category and use count as a prop's default.
+    const styles = typesReferenceVariants({ size: 'md' });
+    const api = apiReferenceVariants();
+
+    expect(styles.nameCode()).toBe(api.nameCode());
+    expect(styles.kindCode()).toBe(api.typeCode());
+    expect(styles.categoryCode()).toBe(api.defaultCode());
+    expect(styles.usedByCount()).toBe(api.defaultCode());
+    expect(styles.placeholder()).toBe(api.placeholder());
   });
 
   it('clamps its description column exactly like ApiReference', () => {

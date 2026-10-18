@@ -1,11 +1,10 @@
 <script lang="ts">
   import SeoMeta from '#lib/SeoMeta.svelte';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section,
-    TypesReference
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -56,28 +55,10 @@
 
   <CustomDocs />
 
-  <Section
-    marker
-    id="api"
-    title="API Reference"
-    intent="secondary"
-    meta={`${componentData?.stats?.totalProps ?? 0} props`}
-  >
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
-
-  <Section marker id="types" title="Types">
-    <!-- The wrapping Section owns `types` — that is the TOC anchor. The
-         component renders its own `id="types"` by default (it is one half of
-         the anchor pair ApiReference jumps to), so on this page, the only one
-         that nests the two, it needs its own. -->
-    <TypesReference
-      id="types-table"
-      types={componentData?.types ?? []}
-      title="Store & Type Definitions"
-      description="Types for the toaster store API. ToastInput defines what you pass to toaster.add(). The shorthand methods accept ToastShorthandOpts."
-    />
-  </Section>
+  <ReferenceSections
+    {componentData}
+    typesDescription="Types for the toaster store API. ToastInput defines what you pass to toaster.add(). The shorthand methods accept ToastShorthandOpts."
+  />
 
   <Section marker id="installation" title="Installation">
     <CodeExample

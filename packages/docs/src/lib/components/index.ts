@@ -75,6 +75,8 @@ export {
   serializeValue
 } from './PlaygroundConfigurator';
 export { playgroundConfiguratorVariants } from './PlaygroundConfigurator/playground-configurator.variants';
+export type { ReferenceSectionsData, ReferenceSectionsProps } from './ReferenceSections';
+export { ReferenceSections } from './ReferenceSections';
 export type { SectionProps, SectionSlots, SectionVariantProps } from './Section';
 export { Section, sectionVariants } from './Section';
 // Export all types from each component

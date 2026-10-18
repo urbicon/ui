@@ -2,11 +2,10 @@
   import SeoMeta from '#lib/SeoMeta.svelte';
   import { asset } from '$app/paths';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section,
-    TypesReference
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
@@ -68,13 +67,9 @@
 
   <CustomDocs />
 
-  <Section id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
+  <ReferenceSections {componentData} />
 
-  <TypesReference types={componentData?.types ?? []} />
-
-  <Section id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { ChartFrame } from '@urbicon-ui/blocks';`}

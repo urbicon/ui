@@ -71,11 +71,12 @@ export interface TypesReferenceProps
   extends Omit<TypesReferenceVariantProps, 'size'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /**
-   * Density of the expanded panel — code block, badges, footnotes. It does not
-   * reach the heading (that is `<Section intent="secondary">`, pinned so the
-   * types section reads as a sibling of the API Reference above it) nor the
-   * table rows (pinned to `sm`, so both reference tables on a page share one
-   * row rhythm).
+   * Density of the expanded panel — code block, badges, footnotes. `md` is the
+   * `ApiReference` panel's own density, so on a component page both tables
+   * disclose a row alike. It does not reach the heading (that is
+   * `<Section intent="secondary">`, pinned so the types section reads as a
+   * sibling of the API Reference above it) nor the table rows (pinned to `sm`,
+   * so both reference tables on a page share one row rhythm).
    * @default 'md'
    */
   size?: 'sm' | 'md' | 'lg';
@@ -89,7 +90,11 @@ export interface TypesReferenceProps
    */
   title?: string;
 
-  /** Descriptive text below the title. */
+  /**
+   * Descriptive text below the title. Unset, it falls back to the localized
+   * `typesDescription` ("Local type definitions used by this component."); an
+   * empty string renders no subtitle at all.
+   */
   description?: string;
 
   /**

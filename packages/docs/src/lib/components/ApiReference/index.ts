@@ -60,7 +60,8 @@ export interface ApiReferenceProps
   props: ApiProp[];
   /**
    * Type entries rendered by a `TypesReference` **on the same page** — pass the same
-   * array you pass to `<TypesReference types={…} />`.
+   * array you pass to `<TypesReference types={…} />`, or render both tables through
+   * `ReferenceSections`, which takes the array once for the two of them.
    *
    * Type names in the Type column that exactly match an entry become in-page links to
    * it. Omit this (the default) and the column stays plain text: linking is opt-in

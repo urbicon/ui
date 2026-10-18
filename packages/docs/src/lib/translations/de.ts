@@ -12,6 +12,7 @@ export default {
   playgroundSubtitle: '',
 
   // API Reference
+  apiReferenceTitle: 'API-Referenz',
   // Zählwerte in der Statuszeile. So formuliert, dass eine Fassung für jede
   // Anzahl passt — die Laufzeit interpoliert, wählt aber keinen Plural.
   propsCount: '{{count}} Props',

@@ -171,12 +171,22 @@ await Bun.write(
     .join('\n')
 );
 
+const tmpOf = (file: string): string => file.replace(/\.ts$/, '.__variants_lint_tmp.ts');
+// A config may compose a sibling config by relative import (TypesReference's
+// slots call `apiReferenceVariants()`). The sibling is imported as its own
+// rewritten copy, so its `@urbicon-ui/blocks` import reaches the shim as well;
+// the original file would load the real package index, which imports `.svelte`.
+const SIBLING_CONFIG = /(from\s+['"])(\.{1,2}\/[^'"]*\.variants)(?:\.js|\.ts)?(['"])/g;
+
 try {
+  // Every copy is written before the first import, so a sibling's copy exists
+  // by the time an importer resolves it.
   for (const file of files) {
     const src = await Bun.file(file).text();
     let rewritten = src
       .replaceAll("'#lib/utils/variants.js'", `'${ENGINE}'`)
-      .replaceAll("'@urbicon-ui/blocks'", `'${BLOCKS_SHIM}'`);
+      .replaceAll("'@urbicon-ui/blocks'", `'${BLOCKS_SHIM}'`)
+      .replace(SIBLING_CONFIG, '$1$2.__variants_lint_tmp.ts$3');
     // A blocks config may pull shared style fragments from other #lib modules
     // (e.g. internal/field-chrome). The engine alias above is already resolved;
     // point any remaining #lib import at the real blocks lib dir so the temp
@@ -184,10 +194,11 @@ try {
     if (file.includes('/packages/blocks/')) {
       rewritten = rewritten.replaceAll("'#lib/", `'${BLOCKS_LIB}/`);
     }
-    const tmp = file.replace(/\.ts$/, '.__variants_lint_tmp.ts');
-    await Bun.write(tmp, rewritten);
+    await Bun.write(tmpOf(file), rewritten);
+  }
+  for (const file of files) {
     try {
-      const mod = await import(tmp);
+      const mod = await import(tmpOf(file));
       for (const [name, value] of Object.entries(mod)) {
         if (typeof value === 'function' && 'config' in value) {
           loaded.push({
@@ -200,11 +211,13 @@ try {
       }
     } catch (e) {
       fileErrors.push(`${file.replace(`${REPO}/`, '')}: ${e instanceof Error ? e.message : e}`);
-    } finally {
-      await unlink(tmp).catch(() => console.warn(`⚠ could not remove temp file ${tmp}`));
     }
   }
 } finally {
+  for (const file of files) {
+    const tmp = tmpOf(file);
+    await unlink(tmp).catch(() => console.warn(`⚠ could not remove temp file ${tmp}`));
+  }
   await rm(SHIM_DIR, { recursive: true, force: true });
 }
 

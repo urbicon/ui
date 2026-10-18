@@ -7,6 +7,7 @@
   import { tokenizeTypeExpression } from '#lib/utils/type-links.js';
   import { type ApiReferenceSlots, apiReferenceVariants } from './apireference.variants';
   import type { ApiReferenceProps, ApiProp } from './index.js';
+  import { deduplicateProps, SEARCH_ABOVE_ROWS } from './reference-table.js';
 
   const dt = useDocsI18n();
 
@@ -19,36 +20,6 @@
     slotClasses = {},
     ...restProps
   }: ApiReferenceProps = $props();
-
-  const SOURCE_PRIORITY: Record<string, number> = { direct: 3, variant: 2, inherited: 1 };
-
-  function deduplicateProps(raw: ApiProp[]): ApiProp[] {
-    const seen: Record<string, ApiProp> = {};
-
-    for (const prop of raw) {
-      const existing = seen[prop.name];
-      if (!existing) {
-        seen[prop.name] = { ...prop };
-        continue;
-      }
-
-      const existingP = SOURCE_PRIORITY[existing.source?.type ?? ''] ?? 0;
-      const newP = SOURCE_PRIORITY[prop.source?.type ?? ''] ?? 0;
-
-      const [winner, donor] = newP > existingP ? [prop, existing] : [existing, prop];
-
-      seen[prop.name] = {
-        ...winner,
-        values: winner.type === 'boolean' ? undefined : (winner.values ?? donor.values),
-        // The flag describes the values above, so it comes from whichever side gave them.
-        namedType: winner.values ? winner.namedType : donor.namedType,
-        defaultValue: winner.defaultValue ?? donor.defaultValue,
-        description: winner.description || donor.description
-      };
-    }
-
-    return Object.values(seen);
-  }
 
   const sortedProps = $derived.by(() =>
     deduplicateProps(props).sort((a, b) => {
@@ -258,7 +229,7 @@
       items={tableItems}
       {columns}
       viewDefaults={{ pageSize: 999 }}
-      enableSmartFilter={sortedProps.length > 6}
+      enableSmartFilter={sortedProps.length > SEARCH_ABOVE_ROWS}
       searchPlaceholder={dt('filterProperties')}
       searchDebounceMs={200}
       noDataText={dt('noMatchingProperties')}

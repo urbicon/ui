@@ -4,6 +4,7 @@
   import { InlineCode, Section } from '#lib';
   import { useDocsI18n } from '#lib/i18n/index.js';
   import { revealTableRow } from '#lib/utils/cross-reference.js';
+  import { SEARCH_ABOVE_ROWS } from '../ApiReference/reference-table.js';
   import { typesReferenceVariants } from './types-reference.variants';
   import { extractLiteralValues } from './index.js';
   import type { TypesReferenceProps } from './index.js';
@@ -50,17 +51,34 @@
 
   // `$derived`, not a plain const: the titles come from the locale, so a
   // language switch has to rebuild the column set (same reason as ApiReference).
+  //
+  // Every column carries its own `cell`: the default cell renders plain body
+  // text, and these columns read as the API table's do — the name as its prop
+  // name, the kind as its type, category and use count as its default.
   const columns: Column[] = $derived([
     {
       accessor: 'name',
       title: dt('typeName'),
       sortable: true,
       searchable: true,
-      minWidth: '160px'
+      minWidth: '160px',
+      cell: nameCell
     },
-    { accessor: 'kind', title: dt('typeKind'), sortable: true, minWidth: '100px' },
-    { accessor: 'category', title: dt('typeCategory'), sortable: true, minWidth: '120px' },
-    { accessor: 'usedBy', title: dt('typeUsedBy'), sortable: true, minWidth: '120px' },
+    { accessor: 'kind', title: dt('typeKind'), sortable: true, minWidth: '100px', cell: kindCell },
+    {
+      accessor: 'category',
+      title: dt('typeCategory'),
+      sortable: true,
+      minWidth: '120px',
+      cell: categoryCell
+    },
+    {
+      accessor: 'usedBy',
+      title: dt('typeUsedBy'),
+      sortable: true,
+      minWidth: '120px',
+      cell: usedByCell
+    },
     // `width` DOES reach the DOM on the standard render path — not through
     // `columnTrackGroup` (that `<colgroup>` is virtualised-only, and this
     // table's is indeed empty), but through `TableHead`, which writes
@@ -125,6 +143,30 @@
     });
   }
 </script>
+
+{#snippet nameCell(_item: Record<string, unknown>, value: unknown)}
+  <code class={slot('nameCode')}>{value}</code>
+{/snippet}
+
+{#snippet kindCell(_item: Record<string, unknown>, value: unknown)}
+  <code class={slot('kindCode')}>{value}</code>
+{/snippet}
+
+<!-- `<code>`, the element the API table's default value uses: a host
+     stylesheet that sizes `code` (the docs site's `app.css` does, unlayered,
+     over `text-xs`) then sizes both columns alike. -->
+{#snippet categoryCell(_item: Record<string, unknown>, value: unknown)}
+  <code class={slot('categoryCode')}>{value}</code>
+{/snippet}
+
+<!-- No prop uses the type: the dash the API table shows for "no default". -->
+{#snippet usedByCell(_item: Record<string, unknown>, value: unknown)}
+  {#if Number(value) > 0}
+    <code class={slot('usedByCount')}>{value}</code>
+  {:else}
+    <span class={slot('placeholder')}>—</span>
+  {/if}
+{/snippet}
 
 <!-- The description column's cell. Two jobs the default cell cannot do: clamp
      the prose to two lines (see the column note above), and render the
@@ -191,7 +233,7 @@
         items={filteredItems}
         {columns}
         viewDefaults={{ pageSize: 999 }}
-        enableSmartFilter={false}
+        enableSmartFilter={tableItems.length > SEARCH_ABOVE_ROWS}
         searchPlaceholder={dt('searchTypes')}
         size="sm"
       >

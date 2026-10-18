@@ -1,15 +1,14 @@
 <script lang="ts">
   import SeoMeta from '#lib/SeoMeta.svelte';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    PlaygroundConfigurator,
-    Section,
     InfoCard as InfoCardComponent,
     Note,
     NoteList,
-    TypesReference
+    PlaygroundConfigurator,
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
@@ -147,17 +146,7 @@
     </NoteList>
   </Section>
 
-  <Section
-    marker
-    id="api"
-    title="API Reference"
-    subtitle="Complete list of component properties and their configurations"
-    intent="secondary"
-  >
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
-
-  <TypesReference types={componentData?.types ?? []} />
+  <ReferenceSections {componentData} />
 
   <Section marker id="installation" title="Installation">
     <CodeExample

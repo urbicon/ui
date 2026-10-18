@@ -129,12 +129,28 @@ const COMPONENT_ANCHORS: Record<string, string> = {
   ApiReference: 'api-reference'
 };
 
+/**
+ * Docs components that render whole page sections, in this order, so a page
+ * names neither id in its own source. Verified against the component markup:
+ *   ReferenceSections.svelte → `<Section id="api">`, then the TypesReference
+ *   (`<section id="types">`)
+ * Their ids count as sections at the tag's position and as anchors. Knowledge
+ * this script has to keep by hand until the TOC is derived from the sections a
+ * page actually renders (#146).
+ */
+const COMPONENT_SECTIONS: Record<string, readonly string[]> = {
+  ReferenceSections: ['api', 'types']
+};
+
 /** Every id a TOC link can legitimately target. */
 function anchorIds(src: string): Set<string> {
   const clean = blankQuotedMarkup(src);
   const ids = new Set([...clean.matchAll(/\bid=["']([^"'{}]+)["']/g)].map((m) => m[1]));
   for (const [component, anchor] of Object.entries(COMPONENT_ANCHORS)) {
     if (new RegExp(`<${component}\\b`).test(clean)) ids.add(anchor);
+  }
+  for (const [component, sections] of Object.entries(COMPONENT_SECTIONS)) {
+    if (new RegExp(`<${component}\\b`).test(clean)) for (const id of sections) ids.add(id);
   }
   return ids;
 }
@@ -209,6 +225,14 @@ function sectionIds(src: string, tags: readonly string[]): string[] {
   const found = [...clean.matchAll(tag)]
     .map((m) => ({ id: m[2].match(/\bid=["']([^"']+)["']/)?.[1], at: m.index ?? 0 }))
     .filter((e): e is { id: string; at: number } => e.id !== undefined);
+  // A component's sections sit at its tag, one offset apart so they keep their
+  // order and stay distinct positions for the `{#if}` branch test below.
+  for (const [component, sections] of Object.entries(COMPONENT_SECTIONS)) {
+    for (const m of clean.matchAll(new RegExp(`<${component}\\b`, 'g'))) {
+      for (const [i, id] of sections.entries()) found.push({ id, at: (m.index ?? 0) + i });
+    }
+  }
+  found.sort((a, b) => a.at - b.at);
 
   const blocks = ifBranches(clean);
   const byId = new Map<string, number[]>();
