@@ -23,6 +23,20 @@ export interface ResolvedHeritageMember {
   values: string[];
   /** Rendered type, in the same spelling the rest of the pipeline emits. */
   type: string;
+  /**
+   * Every declaration lies outside the documented package's sources — a
+   * DOM-attribute bag (`svelte/elements`, lib.dom) or another package's type.
+   * False for a member with no declaration at all: nothing says where it is from.
+   */
+  outsidePackage: boolean;
+  /**
+   * `declaration`'s own type is the type this clause gives the member, so the
+   * written spelling is true here. False wherever the clause changed it: an
+   * instantiated generic (`SelectOption<T>` read as `SelectOption<string>`), a
+   * mapped type whose values are not its source's (`{ [K in keyof T]?: Box<T[K]> }`,
+   * a tv() axis mapped from its config).
+   */
+  writtenTypeHolds: boolean;
 }
 
 /**
@@ -460,6 +474,21 @@ export abstract class TypeScriptBaseExtractor<
     return baseArg ? baseArg.getText().trim() : null;
   }
 
+  private static readonly clausePrinter = ts.createPrinter({ removeComments: true });
+
+  /**
+   * A heritage clause as one line without comments, the way the printer spells
+   * it: `Omit<SelectSingleProps<string>, 'options' | 'groups' | …>`. The written
+   * text keeps the author's line breaks and `//` notes, and a "Declared in" cell
+   * or an llm.txt list item renders it verbatim.
+   */
+  protected heritageClauseLabel(heritageType: ts.ExpressionWithTypeArguments): string {
+    // The printer breaks a type literal across lines however it was written.
+    return TypeScriptBaseExtractor.clausePrinter
+      .printNode(ts.EmitHint.Unspecified, heritageType, heritageType.getSourceFile())
+      .replace(/\s+/g, ' ');
+  }
+
   /**
    * The key argument of a key-filtering heritage clause (`Pick<B, K>` /
    * `Omit<B, K>`) as written — `'a' | 'b'`, `keyof XVariants`, …
@@ -518,8 +547,8 @@ export abstract class TypeScriptBaseExtractor<
   }
 
   /**
-   * Expand a heritage clause the syntactic paths cannot name — `Pick<X, K>`
-   * above all — into its members, via the shared program's checker.
+   * Expand a key-filtering heritage clause — `Pick<X, K>`, or `Omit<X, K>` over
+   * an interface — into its members, via the shared program's checker.
    *
    * This is the only route that sees through a tv() variant alias: the five
    * members of `Pick<ButtonProps, 'variant' | 'intent' | 'size' | 'tier' |
@@ -542,8 +571,18 @@ export abstract class TypeScriptBaseExtractor<
       if (!type) return null;
       const members: ResolvedHeritageMember[] = [];
       for (const symbol of this.checker.getPropertiesOfType(type)) {
-        const declaration = symbol.declarations?.find(ts.isPropertySignature) ?? null;
+        const declarations = symbol.declarations ?? [];
+        const declaration = declarations.find(ts.isPropertySignature) ?? null;
         const propertyType = this.checker.getTypeOfSymbolAtLocation(symbol, heritageType);
+        // Type identity, not structural equality: the checker interns a type
+        // once, so the same type reached through an unchanged mapping is the same
+        // object, and an instantiation or a changed mapping is a different one.
+        const declaredSymbol = declaration
+          ? this.checker.getSymbolAtLocation(declaration.name)
+          : undefined;
+        const writtenTypeHolds =
+          declaredSymbol !== undefined &&
+          this.checker.getTypeOfSymbol(declaredSymbol) === propertyType;
         const literals = TypeScriptBaseExtractor.orderLiterals(
           TypeScriptBaseExtractor.literalMembersOfType(propertyType),
           this.declaredLiteralOrder(symbol, 0)
@@ -559,10 +598,16 @@ export abstract class TypeScriptBaseExtractor<
           type:
             literals.length > 0
               ? literals.map((l) => (l.quoted ? `'${l.value}'` : l.value)).join(' | ')
-              : this.checker
-                  .typeToString(propertyType)
-                  .replace(/\s*\|\s*undefined$/, '')
-                  .trim()
+              : TypeScriptBaseExtractor.unwrapEnclosingParens(
+                  this.checker
+                    .typeToString(propertyType)
+                    .replace(/\s*\|\s*undefined$/, '')
+                    .trim()
+                ),
+          outsidePackage:
+            declarations.length > 0 &&
+            declarations.every((d) => !this.isInPackageSources(d.getSourceFile())),
+          writtenTypeHolds
         });
       }
       return members.length > 0 ? members : null;
@@ -570,6 +615,23 @@ export abstract class TypeScriptBaseExtractor<
       // Node not part of this program, or an unresolvable type reference.
       return null;
     }
+  }
+
+  /**
+   * `((item: T) => string)` → `(item: T) => string`. The checker parenthesises
+   * a function type that is one member of a union; once `| undefined` is cut
+   * off, the parens enclose the whole type and are not part of its spelling.
+   * A group that closes before the end (`(a: A) => (B)`) is left as it is.
+   */
+  private static unwrapEnclosingParens(text: string): string {
+    if (!text.startsWith('(') || !text.endsWith(')')) return text;
+    let depth = 0;
+    for (let i = 0; i < text.length - 1; i++) {
+      if (text[i] === '(') depth++;
+      else if (text[i] === ')') depth--;
+      if (depth === 0) return text;
+    }
+    return text.slice(1, -1);
   }
 
   /**
