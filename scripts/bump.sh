@@ -34,6 +34,27 @@ if ! git diff --quiet -- ':!bundle-size.baseline.json' || ! git diff --cached --
   exit 1
 fi
 
+# git-cliff (step 4) rewrites the whole CHANGELOG.md from the history and tags
+# this clone holds: a release it cannot reach is dropped from the file, and one
+# whose tag is missing is folded into the release after it. The tag of the
+# current version bounds the new release, so a shallow clone and a missing
+# v$CURRENT are refused here, before the minutes of verification below. The tag
+# is only demanded once this script's own release commit for that version is in
+# the history — a first release has no tag to miss.
+if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+  echo "Error: this clone is shallow — git-cliff would drop every release it cannot reach from CHANGELOG.md."
+  echo "  Fix: git fetch --unshallow --tags"
+  exit 1
+fi
+CURRENT=$(bun -e 'console.log(require("./package.json").version)')
+if [ -n "$(git log -1 --format=%h --grep="^chore: release v$CURRENT\$")" ] &&
+  ! git rev-parse -q --verify "refs/tags/v$CURRENT" >/dev/null; then
+  echo "Error: v$CURRENT was released from this history, but its tag is not in this clone —"
+  echo "  git-cliff would fold every release whose tag is missing into the next one."
+  echo "  Fix: git fetch --tags"
+  exit 1
+fi
+
 has_script() { bun -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)" 2>/dev/null; }
 
 # The baseline is hand-refreshed, so growth is a judgement, not a bug — gate

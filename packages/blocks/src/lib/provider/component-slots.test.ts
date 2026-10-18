@@ -50,6 +50,8 @@ describe('a component resolves under the name it is exported as', () => {
     expect(nameless).toEqual([]);
   });
 
+  // Loads every component module through the real barrel by design, so its
+  // timeout is sized for a cold transform cache, not vitest's 5 s default.
   it('and that name is the one the barrel exports it under', async () => {
     const named = (await exportedComponents()).filter((c) => c.providerName !== null);
     const mismatched = named
@@ -61,5 +63,5 @@ describe('a component resolves under the name it is exported as', () => {
     // is vacuous for a component the glob above found and this one dropped.
     const callers = files.filter(([, s]) => PROVIDER_NAME.test(stripComments(s))).length;
     expect(named.length).toBe(callers);
-  });
+  }, 60_000);
 });

@@ -114,6 +114,8 @@ describe('and takes no name out of anything that is not code', () => {
 });
 
 describe('end to end, on the real component sources', () => {
+  // Loads every component module through the real barrel by design, so its
+  // timeout is sized for a cold transform cache, not vitest's 5 s default.
   it('gives each wrapper the vocabulary of what it wraps, and nothing else', async () => {
     const components = await exportedComponents();
     const find = (name: string) => components.find((entry) => entry.exportName === name);
@@ -140,5 +142,5 @@ describe('end to end, on the real component sources', () => {
           'a widened vocabulary, which every sweep that reads it will accept in silence'
       ).toEqual([]);
     }
-  });
+  }, 60_000);
 });
