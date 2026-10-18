@@ -410,7 +410,7 @@ It gates (exit 1) on parity errors + used-but-undefined; unused keys and hardcod
 ```bash
 bun --filter='@urbicon-ui/i18n' run dev        # svelte-package watch
 bun --filter='@urbicon-ui/i18n' run build      # svelte-package
-bun --filter='@urbicon-ui/i18n' run test:run   # vitest
+bun --filter='@urbicon-ui/i18n' run test       # vitest
 ```
 
 ## Related

@@ -95,7 +95,7 @@
     "clean-all": "bun --bun --filter='*' run clean-all && rm -rf node_modules && rm bun.lock",
     "format": "biome format --write .",
     "lint": "biome check .",
-    "test": "bun --bun --filter='*' run test",
+    "test": "bun run --filter='*' --sequential --no-exit-on-error test",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "i18n:check": "bun --filter='@urbicon-ui/i18n' run build && bun packages/design/src/cli/index.ts i18n audit packages/blocks/src packages/table/src packages/docs/src --translations packages/blocks/src/lib/translations,packages/table/src/lib/translations,packages/docs/src/lib/translations",

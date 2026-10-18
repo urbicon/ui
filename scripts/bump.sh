@@ -207,7 +207,12 @@ PKG_FILES=$(bun -e '
 # 3. Update the lockfile
 bun install --silent
 
-# 4. Generate changelog
+# 4. Generate changelog. git-cliff (2.13) caches each commit's changed files
+#    under <git dir>/git-cliff-core for `include_paths` and never revisits an
+#    entry: one written while the clone was shallow holds the boundary commit's
+#    whole tree, so after `git fetch --unshallow` that commit still passes the
+#    path filter. Dropping the cache costs one cold run.
+rm -rf "$(git rev-parse --git-dir)/git-cliff-core"
 bunx git-cliff --tag "v$VERSION" --output CHANGELOG.md
 
 # 5. Stage exactly the touched files (never `git add -A`).

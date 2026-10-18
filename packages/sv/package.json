@@ -36,8 +36,8 @@
   "scripts": {
     "build": "bun build ./src/index.ts --target node --format esm --external sv --outfile dist/index.mjs",
     "check": "tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "bunx --bun vitest run",
+    "test:watch": "bunx --bun vitest"
   },
   "peerDependencies": {
     "sv": "^1.1.1"

@@ -74,8 +74,8 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "format": "biome format --write . && prettier --write \"**/*.svelte\"",
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "svelte": "./dist/index.js",
   "type": "module",

@@ -48,7 +48,7 @@ table applies without exception.
 
 ## What the bump scripts do
 
-`scripts/bump.sh` refuses a dirty tree (`bundle-size.baseline.json` is the one file allowed to be modified). Before any of the steps below, it runs the build/test verification (skippable together via `BUMP_SKIP_VERIFY=1`) and then `bun run size --check` against `bundle-size.baseline.json`, aborting the bump on unexplained bundle growth until the baseline is updated deliberately. The script is Bun-native and needs no node/npm.
+`scripts/bump.sh` refuses a dirty tree (`bundle-size.baseline.json` is the one file allowed to be modified), a shallow clone, and a clone that holds the current version's release commit but not its tag — git-cliff rebuilds the whole changelog from the history and tags it can see, so either would drop or merge past releases (it prints the `git fetch` that fixes it). Before any of the steps below, it runs the build/test verification (skippable together via `BUMP_SKIP_VERIFY=1`) and then `bun run size --check` against `bundle-size.baseline.json`, aborting the bump on unexplained bundle growth until the baseline is updated deliberately. The script is Bun-native and needs no node/npm.
 
 1. Computes the next version from the root `package.json` and the bump level, and writes it there (`bun -e`)
 2. Sets every non-private `package.json` under `packages/` to the same version, and rewrites an explicit semver range on a bumped sibling to `^<major>.0.0` — `workspace:` ranges stay untouched

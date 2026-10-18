@@ -104,11 +104,6 @@ squash merges into `main`.
 - **Commitlint rejects a subject that starts with a capital** (`subject-case`),
   which a component name at the front of the subject triggers — write "the
   CommandPalette owns…", not "CommandPalette owns…".
-- **The bump's `bun run test` runs every package suite concurrently**
-  (`bun --bun --filter='*' run test`); the docs-gen suite rewrites the
-  design-content bundle (its CLI test runs the real `all` assembly) that
-  design-engine's `catalog.test.ts` reads, so the two can race. Re-run once;
-  CI runs the suites sequentially and does not race.
 
 ## Cleanup — a named final step, per merged PR
 

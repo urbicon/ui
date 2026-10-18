@@ -36,8 +36,8 @@
   "scripts": {
     "build": "echo 'no build needed — Bun runs TypeScript directly'",
     "check": "tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "bunx --bun vitest run",
+    "test:watch": "bunx --bun vitest"
   },
   "devDependencies": {
     "typescript": "catalog:",

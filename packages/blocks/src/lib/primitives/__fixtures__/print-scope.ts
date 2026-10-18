@@ -11,7 +11,7 @@
  * Svelte derives the scope class from the component's path **relative to
  * `process.cwd()`**: `Spinner.svelte` compiles to `.svelte-1mebawt` from
  * `packages/blocks` and to `.svelte-4txqe8` from the repo root
- * (`bun --filter='@urbicon-ui/blocks' run test:run` runs from the former,
+ * (`bun --filter='@urbicon-ui/blocks' run test` runs from the former,
  * which is also vite's `root`, so the class here is the class the bundler put
  * on the mounted element). Nothing about that agreement is silent: should the
  * runner's cwd ever stop matching the bundler's root, the caller's positive
