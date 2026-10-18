@@ -22,6 +22,8 @@ export interface ApiProp {
    */
   seeAlsoRefs?: string[];
   values?: string[];
+  /** `type` names its `values` (`ComponentIntent`): the Type column shows both, not chips alone. */
+  namedType?: boolean;
   /**
    * `@deprecated` on the prop's JSDoc. The message carries the replacement and
    * is the whole point of the tag — a badge alone would say "don't", not "use

@@ -32,8 +32,12 @@ export interface ComponentCatalogEntry {
   group: 'primitives' | 'components' | 'core' | 'auth';
   /** The long form — the `@description` of the *Props interface; the contract an agent reads. */
   description: string;
-  /** The one human sentence — `@summary`. Absent while a component still has none. */
+  /**
+   * The one human sentence — `@summary`. Absent while a component still has none;
+   * fall back to `description`.
+   */
   summary?: string;
+  /** Editorial maturity, from `@stability`. */
   stability?: 'experimental' | 'beta' | 'stable' | 'deprecated';
   tags: string[];
   import: string;
@@ -43,7 +47,22 @@ export interface ComponentCatalogEntry {
   keyProps: string[];
   /** Direct + variant props, inherited HTML attributes excluded; `keyProps.length` caps at eight. */
   propCount?: number;
+  /**
+   * The type of each direct or variant prop, by name — as declared, minus a
+   * trailing `| undefined`: `ComponentIntent`, `'sm' | 'md'`,
+   * `(value: string) => void`. Plain `string`/`boolean`/`number` (and unions of
+   * only those), `Snippet`, `MintProp` and the style-override props are left out.
+   * A type expression and nothing else, so it parses and pastes as TypeScript;
+   * what a named type stands for is in `keyPropValues`.
+   */
   keyPropTypes: Record<string, string>;
+  /**
+   * The literal values of each `keyPropTypes` entry that has any, by name — for
+   * `ComponentIntent` as for a written `'sm' | 'md'`. A union that mixes literals
+   * with a non-literal (`number | 'auto'`) lists its literals only. The same values
+   * the component's `llm.txt` Api row prints beside a named type.
+   */
+  keyPropValues: Record<string, string[]>;
   /**
    * The hand-written JSDoc of the component's own (direct) props, by name. What
    * lets discovery reach a component through what a prop says — "dense settings

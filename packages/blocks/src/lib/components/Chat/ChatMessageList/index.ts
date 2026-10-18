@@ -54,7 +54,10 @@ export interface ChatMessageListProps extends Omit<HTMLAttributes<HTMLDivElement
   urlPolicy?: MarkdownUrlPolicy;
   /** Part-renderer overrides handed to every default ChatMessage. */
   partRenderers?: ChatMessageProps['partRenderers'];
-  /** Message layout handed to every default ChatMessage. */
+  /**
+   * Message layout handed to every default ChatMessage.
+   * @default 'bubble'
+   */
   layout?: ChatMessageProps['layout'];
   /** Message density handed to every default ChatMessage. */
   density?: ChatMessageProps['density'];

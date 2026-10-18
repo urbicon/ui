@@ -14,6 +14,7 @@ import type {
   GeneratedOutput
 } from '../../types';
 import type { LLMGuideConfig, LLMOutputConfig } from '../../types/configuration';
+import { formatPropType } from '../../utils/prop-type';
 import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
 
@@ -47,7 +48,10 @@ function renderPropRow(prop: PropInfo, resolvesProvider: boolean): string {
     const provider = resolvesProvider ? ` ${PROVIDER_BELOW_INSTANCE}` : '';
     desc = `${lead}${CLASS_OVER_SLOT_CLASSES}${provider}`;
   }
-  return `| ${prop.name} | \`${prop.type}\` | ${required} | ${def} | ${desc} |`;
+  // A named type carries its values: an agent reads this row instead of the
+  // definition, and `ComponentIntent` alone does not say what the prop accepts.
+  const type = formatPropType(prop, (t) => `\`${t}\``);
+  return `| ${prop.name} | ${type} | ${required} | ${def} | ${desc} |`;
 }
 
 /**

@@ -32,9 +32,9 @@
   const controls = deriveControls(componentData, {
     pick: ['size', 'offsetDistance', 'syncWidth', 'placement'],
     overrides: {
+      // Eine Auswahl aus den `Placement`-Werten: die vier Seiten plus die
+      // Ausrichtungen oben und unten.
       placement: {
-        type: 'dropdown',
-        label: 'Placement',
         items: [
           { label: 'top', value: 'top' },
           { label: 'top-start', value: 'top-start' },
@@ -44,8 +44,7 @@
           { label: 'bottom-end', value: 'bottom-end' },
           { label: 'left', value: 'left' },
           { label: 'right', value: 'right' }
-        ],
-        defaultValue: 'bottom-start'
+        ]
       },
       offsetDistance: {
         type: 'slider',

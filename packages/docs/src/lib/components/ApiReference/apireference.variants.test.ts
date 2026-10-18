@@ -11,6 +11,7 @@ describe('apiReferenceVariants', () => {
       'requiredCount',
       'nameCell',
       'typeChips',
+      'typeNamed',
       'nameCode',
       'deprecatedCode',
       'spreadCode',

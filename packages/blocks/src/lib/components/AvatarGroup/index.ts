@@ -27,7 +27,10 @@ export interface AvatarGroupProps
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   /** The avatars to stack. Each entry is a full set of Avatar props (src, name, status, …). */
   items: AvatarProps[];
-  /** Shared size applied to every avatar and the overflow chip. One of xs, sm, md (default), lg, xl, 2xl. */
+  /**
+   * Shared size applied to every avatar and the overflow chip.
+   * @default 'md'
+   */
   size?: AvatarProps['size'];
   /**
    * Maximum avatars to render. When `items` exceeds it, `max - 1` avatars are shown plus a

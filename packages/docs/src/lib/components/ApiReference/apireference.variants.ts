@@ -16,6 +16,8 @@ export const apiReferenceVariants = tv({
     nameCell: ['flex flex-wrap items-center gap-1.5'],
     // Wrapper around the literal-value chips in the Type column.
     typeChips: ['flex flex-wrap gap-1'],
+    // A named type stacked over the value chips it stands for.
+    typeNamed: ['flex flex-col items-start gap-1'],
     nameCode: ['font-mono text-xs font-semibold text-text-primary'],
     // A deprecated prop's name, struck through — the convention every editor and
     // API reference already uses, so it reads before the badge next to it does.

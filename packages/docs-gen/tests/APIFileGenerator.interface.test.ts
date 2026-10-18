@@ -112,6 +112,7 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
             description: 'Visual variant.',
             summary: 'Visual variant.',
             values: ['filled', 'ghost'],
+            namedType: true,
             source: { type: 'inherited', name: 'ButtonProps' },
             seeAlso: 'https://example.test/button',
             seeAlsoRefs: ['ButtonProps'],
@@ -141,6 +142,7 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
     };
     const emittedFields = Object.keys(parsed.inheritance[0].props[0]);
     expect(emittedFields).toContain('values');
+    expect(emittedFields).toContain('namedType');
     for (const field of emittedFields) {
       expect(declared, `InheritanceProp is missing "${field}"`).toContain(field);
     }

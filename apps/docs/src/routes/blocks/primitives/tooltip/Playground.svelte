@@ -26,12 +26,9 @@
     pick: ['label', 'placement', 'intent', 'size', 'showDelay', 'hideDelay', 'arrow', 'disabled'],
     overrides: {
       label: { defaultValue: 'Helpful hint' },
-      // `Placement` ist `Side | `${Side}-${Alignment}`` — ein Template-Literal,
-      // aus dem sich keine Werte lesen lassen. Dieselbe kuratierte Auswahl wie
-      // im Popover-Playground: die vier Seiten plus die Ausrichtungen, die man
-      // an einem Tooltip auch wirklich unterscheiden kann.
+      // Eine Auswahl aus den `Placement`-Werten: die vier Seiten plus die
+      // Ausrichtungen, die man an einem Tooltip auch wirklich unterscheiden kann.
       placement: {
-        type: 'dropdown',
         items: [
           { label: 'top', value: 'top' },
           { label: 'top-start', value: 'top-start' },
@@ -39,8 +36,7 @@
           { label: 'bottom', value: 'bottom' },
           { label: 'left', value: 'left' },
           { label: 'right', value: 'right' }
-        ],
-        defaultValue: 'top'
+        ]
       },
       showDelay: { type: 'slider', label: 'Show Delay (ms)', min: 0, max: 1000, step: 50 },
       hideDelay: { type: 'slider', label: 'Hide Delay (ms)', min: 0, max: 500, step: 50 },

@@ -27,16 +27,13 @@
     pick: ['title', 'description', 'confirmLabel', 'cancelLabel', 'intent'],
     overrides: {
       intent: {
-        type: 'dropdown',
-        label: 'Intent',
         items: [
           { label: 'danger', value: 'danger' },
           { label: 'warning', value: 'warning' },
           { label: 'primary', value: 'primary' },
           { label: 'success', value: 'success' },
           { label: 'neutral', value: 'neutral' }
-        ],
-        defaultValue: 'danger'
+        ]
       },
       title: { defaultValue: 'Delete project?' },
       description: { defaultValue: 'This cannot be undone.' },

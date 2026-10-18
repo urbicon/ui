@@ -63,43 +63,9 @@
         ],
         defaultValue: 'none'
       },
-      variant: {
-        type: 'dropdown',
-        label: 'Trigger Variant',
-        items: [
-          { label: 'outlined', value: 'outlined' },
-          { label: 'filled', value: 'filled' },
-          { label: 'ghost', value: 'ghost' },
-          { label: 'text', value: 'text' }
-        ],
-        defaultValue: 'outlined'
-      },
-      intent: {
-        type: 'dropdown',
-        label: 'Trigger Intent',
-        items: [
-          { label: 'neutral', value: 'neutral' },
-          { label: 'primary', value: 'primary' },
-          { label: 'secondary', value: 'secondary' },
-          { label: 'success', value: 'success' },
-          { label: 'warning', value: 'warning' },
-          { label: 'danger', value: 'danger' }
-        ],
-        defaultValue: 'neutral'
-      },
-      size: {
-        type: 'dropdown',
-        label: 'Trigger Size',
-        items: [
-          { label: '2xs', value: '2xs' },
-          { label: 'xs', value: 'xs' },
-          { label: 'sm', value: 'sm' },
-          { label: 'md', value: 'md' },
-          { label: 'lg', value: 'lg' },
-          { label: 'xl', value: 'xl' }
-        ],
-        defaultValue: 'md'
-      },
+      variant: { label: 'Trigger Variant' },
+      intent: { label: 'Trigger Intent' },
+      size: { label: 'Trigger Size' },
       itemSize: {
         label: 'Item Size',
         items: [

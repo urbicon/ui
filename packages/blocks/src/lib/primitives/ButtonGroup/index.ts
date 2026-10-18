@@ -58,11 +58,20 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, '
   orientation?: ButtonGroupOrientation;
   /** Visually connect buttons (overlapping borders, shared rounding). When `false`, buttons are spaced with a small gap. */
   connected?: boolean;
-  /** Size propagated to child Buttons (the group value wins over a Button's own `size`). */
+  /**
+   * Size propagated to child Buttons (the group value wins over a Button's own `size`).
+   * @default 'md'
+   */
   size?: ComponentSize;
-  /** Semantic colour propagated to child Buttons. */
+  /**
+   * Semantic colour propagated to child Buttons.
+   * @default 'neutral'
+   */
   intent?: ComponentIntent;
-  /** Visual weight propagated to child Buttons. */
+  /**
+   * Visual weight propagated to child Buttons.
+   * @default 'outlined'
+   */
   variant?: ButtonVariants['variant'];
   /**
    * Semantic radius tier propagated to child Buttons. `commit` → pill caps for

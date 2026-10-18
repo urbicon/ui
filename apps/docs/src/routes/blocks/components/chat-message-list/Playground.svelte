@@ -71,20 +71,7 @@
     ];
   }
 
-  const controls = deriveControls(componentData, {
-    pick: ['layout'],
-    overrides: {
-      layout: {
-        type: 'dropdown',
-        label: 'Layout',
-        items: [
-          { label: 'bubble', value: 'bubble' },
-          { label: 'plain', value: 'plain' }
-        ],
-        defaultValue: 'bubble'
-      }
-    }
-  });
+  const controls = deriveControls(componentData, { pick: ['layout'] });
 </script>
 
 <PlaygroundConfigurator

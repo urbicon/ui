@@ -56,6 +56,7 @@ export interface PopoverProps
    * Where the popover appears relative to the trigger. All standard
    * `Placement` values (side plus optional `-start`/`-end` alignment) are
    * supported.
+   * @default 'bottom-start'
    * @summary Which side of the trigger the popover opens on, and how it aligns there.
    */
   placement?: Placement;

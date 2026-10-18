@@ -480,38 +480,19 @@ export abstract class TypeScriptBaseExtractor<
    * checker for `K` is one question that covers every spelling, including the
    * ones nobody has written yet.
    *
-   * Null, never an empty set, when there is no answer to delegate to: this node
-   * is not in a program, or `K` is not a union of literals (an unresolved
-   * reference widens to `keyof any`). The caller then reads the written text
-   * instead — which recovers the literal keys, and only those: for `keyof U`
-   * the fallback does report a clause that filters nothing, and the
-   * `Omit<Interface, keyof *Variants>` branch keeps its own net for that.
-   *
-   * The precondition is this node's own binding, not that a package root was
-   * configured — a file outside the tsconfig's `include` has the latter without
-   * the former, and the checker then answers from a synthesised, unbound source
-   * file. Measured on such a fixture: `keyof GridCellState` yielded nothing,
-   * only the written `'view'` was suppressed, and `success` stayed true with no
-   * warning. Identity, not a path match, because a second parse of the same
-   * path is exactly the unbound case.
+   * Null, never an empty set, when there is no answer to delegate to: the
+   * checker has none for this node (`resolveTypeNodeLiterals`), or `K` is not a
+   * union of literals (an unresolved reference widens to `keyof any`). The
+   * caller then reads the written text instead — which recovers the literal
+   * keys, and only those: for `keyof U` the fallback does report a clause that
+   * filters nothing, and the `Omit<Interface, keyof *Variants>` branch keeps
+   * its own net for that.
    */
   protected resolveHeritageKeyLiterals(
     heritageType: ts.ExpressionWithTypeArguments
   ): Set<string> | null {
-    const sourceFile = heritageType.getSourceFile();
-    if (this.program.getSourceFile(sourceFile.fileName) !== sourceFile) return null;
-    const keyArg = heritageType.typeArguments?.[1];
-    if (!keyArg) return null;
-    try {
-      const literals = TypeScriptBaseExtractor.literalMembersOfType(
-        this.checker.getTypeFromTypeNode(keyArg)
-      );
-      return literals.length > 0 ? new Set(literals.map((l) => l.value)) : null;
-    } catch {
-      // The out-of-program case is the guard's above; what is left here is a
-      // type reference the checker cannot make sense of at all.
-      return null;
-    }
+    const keys = this.resolveTypeNodeLiterals(heritageType.typeArguments?.[1]);
+    return keys.length > 0 ? new Set(keys) : null;
   }
 
   /**
@@ -563,7 +544,10 @@ export abstract class TypeScriptBaseExtractor<
       for (const symbol of this.checker.getPropertiesOfType(type)) {
         const declaration = symbol.declarations?.find(ts.isPropertySignature) ?? null;
         const propertyType = this.checker.getTypeOfSymbolAtLocation(symbol, heritageType);
-        const literals = TypeScriptBaseExtractor.literalMembersOfType(propertyType);
+        const literals = TypeScriptBaseExtractor.orderLiterals(
+          TypeScriptBaseExtractor.literalMembersOfType(propertyType),
+          this.declaredLiteralOrder(symbol, 0)
+        );
         members.push({
           name: symbol.name,
           declaration,
@@ -595,8 +579,8 @@ export abstract class TypeScriptBaseExtractor<
    * `[]` for anything that is not a pure literal union: a `boolean` prop must
    * not be reported as the enumerable two-value union `true | false`, which is
    * how TypeScript represents it internally — that would turn every boolean
-   * into a dropdown. tv() axes keyed `{ true: …, false: … }` are unaffected:
-   * `VariantProps` maps them to the *string* literals `'true' | 'false'`.
+   * into a dropdown. A tv() axis keyed `{ true: …, false: … }` arrives as
+   * `boolean` too (blocks' `VariantPropType` maps it so) and stays a flag.
    */
   private static literalMembersOfType(type: ts.Type): Array<{ value: string; quoted: boolean }> {
     const parts = type.isUnion() ? type.types : [type];
@@ -614,6 +598,186 @@ export abstract class TypeScriptBaseExtractor<
       return [];
     }
     return literals;
+  }
+
+  /**
+   * The literal values a declared type stands for, as the checker resolves it.
+   *
+   * The written type often names its values somewhere else: `ComponentIntent`
+   * is `(typeof INTENTS)[number]`, `ButtonVariants['variant']` is an axis of an
+   * instantiated `VariantProps<typeof buttonVariants>`, `Placement` a template
+   * literal over two unions. Reading literals off the node finds none of them;
+   * the checker finds all of them.
+   *
+   * `[]` for anything `literalMembersOfType` rejects — `boolean` among them, so
+   * a flag stays a flag — and whenever this node is not bound in the program.
+   * That precondition is the node's own binding, not that a package root was
+   * configured: a file outside the tsconfig's `include` has the latter without
+   * the former, and the checker then answers from a synthesised, unbound source
+   * file. Measured on such a fixture: `keyof GridCellState` yielded nothing,
+   * only the written `'view'` was suppressed, and `success` stayed true with no
+   * warning. Identity, not a path match, because a second parse of the same
+   * path is exactly the unbound case.
+   */
+  protected resolveTypeNodeLiterals(typeNode: ts.TypeNode | undefined): string[] {
+    if (!typeNode) return [];
+    const sourceFile = typeNode.getSourceFile();
+    if (this.program.getSourceFile(sourceFile.fileName) !== sourceFile) return [];
+    let literals: Array<{ value: string; quoted: boolean }>;
+    try {
+      literals = TypeScriptBaseExtractor.literalMembersOfType(
+        this.checker.getTypeFromTypeNode(typeNode)
+      );
+    } catch {
+      // The out-of-program case is the guard's above; what is left here is a
+      // type reference the checker cannot make sense of at all.
+      return [];
+    }
+    let written: string[] | null = null;
+    try {
+      written = this.writtenLiteralOrder(typeNode, 0);
+    } catch {
+      // An order it cannot read leaves the values sorted, never dropped.
+    }
+    return TypeScriptBaseExtractor.orderLiterals(literals, written).map((l) => l.value);
+  }
+
+  /**
+   * Put checker-resolved literals in an order that depends on the source alone.
+   *
+   * The checker orders a union's members by internal type id — by which
+   * literal it happened to create first anywhere in the program, i.e. by what
+   * was asked before. With this ordering disabled, `ButtonVariants['variant']`
+   * came back as `ghost, text, filled, outlined` against the config's
+   * `filled, outlined, ghost, text`. `written` is the order the source lists
+   * the values in (`writtenLiteralOrder`, `declaredLiteralOrder`); it is only a
+   * ranking, used when it names exactly the checker's set and nothing else.
+   * Without one the values are sorted — numerically when all are numbers: any
+   * fixed order beats the checker's.
+   */
+  private static orderLiterals<T extends { value: string; quoted: boolean }>(
+    literals: T[],
+    written: string[] | null
+  ): T[] {
+    if (literals.length === 0) return literals;
+    const byValue = new Map(literals.map((l) => [l.value, l]));
+    const order = written ? [...new Set(written)] : null;
+    const numeric = literals.every((l) => !l.quoted);
+    const keys =
+      order && order.length === byValue.size && order.every((v) => byValue.has(v))
+        ? order
+        : [...byValue.keys()].sort(numeric ? (a, b) => Number(a) - Number(b) : undefined);
+    return keys.map((key) => byValue.get(key) as T);
+  }
+
+  /**
+   * The values a type node lists, in the order it lists them, following what
+   * the source spells out: literal unions, aliases of them (across files), a
+   * `const` tuple indexed by `number`, a member read by key (`XProps['size']`,
+   * `XVariants['size']`), `NonNullable<…>` and template literals over any of
+   * these. Null for every other shape — a mapped or conditional type, a
+   * generic — whose order the source does not fix. `undefined` and `null`
+   * contribute nothing, as in `literalMembersOfType`.
+   */
+  private writtenLiteralOrder(node: ts.TypeNode, depth: number): string[] | null {
+    // Nesting depth: one level per alias hop, `NonNullable`, union, template
+    // span and key read on the way down. Past the bound the walk gives up and
+    // the values are sorted instead — which is also what stops an alias cycle
+    // (a compile error, but extraction does not stop at compile errors).
+    if (depth > 8) return null;
+    if (ts.isParenthesizedTypeNode(node)) return this.writtenLiteralOrder(node.type, depth);
+    if (node.kind === ts.SyntaxKind.UndefinedKeyword) return [];
+    if (ts.isLiteralTypeNode(node)) {
+      if (node.literal.kind === ts.SyntaxKind.NullKeyword) return [];
+      if (ts.isStringLiteral(node.literal) || ts.isNumericLiteral(node.literal)) {
+        return [node.literal.text];
+      }
+      return null;
+    }
+    if (ts.isUnionTypeNode(node)) {
+      const values: string[] = [];
+      for (const member of node.types) {
+        const part = this.writtenLiteralOrder(member, depth + 1);
+        if (!part) return null;
+        values.push(...part);
+      }
+      return values;
+    }
+    if (ts.isTemplateLiteralTypeNode(node)) {
+      let values = [node.head.text];
+      for (const span of node.templateSpans) {
+        const part = this.writtenLiteralOrder(span.type, depth + 1);
+        if (!part) return null;
+        values = values.flatMap((prefix) => part.map((v) => `${prefix}${v}${span.literal.text}`));
+      }
+      return values;
+    }
+    if (ts.isTypeReferenceNode(node)) {
+      const [argument] = node.typeArguments ?? [];
+      if (
+        argument &&
+        node.typeArguments?.length === 1 &&
+        node.typeName.getText() === 'NonNullable'
+      ) {
+        return this.writtenLiteralOrder(argument, depth + 1);
+      }
+      if (node.typeArguments) return null;
+      const alias = this.resolveCrossFileDeclaration(node.typeName);
+      if (!alias || !ts.isTypeAliasDeclaration(alias) || alias.typeParameters) return null;
+      return this.writtenLiteralOrder(alias.type, depth + 1);
+    }
+    if (ts.isIndexedAccessTypeNode(node)) {
+      const owner = this.checker.getTypeFromTypeNode(node.objectType);
+      if (node.indexType.kind === ts.SyntaxKind.NumberKeyword) {
+        if (!this.checker.isTupleType(owner)) return null;
+        const values: string[] = [];
+        for (const element of this.checker.getTypeArguments(owner as ts.TypeReference)) {
+          if (element.isStringLiteral()) values.push(element.value);
+          else if (element.isNumberLiteral()) values.push(String(element.value));
+          else return null;
+        }
+        return values;
+      }
+      const key = node.indexType;
+      if (!ts.isLiteralTypeNode(key) || !ts.isStringLiteral(key.literal)) return null;
+      const member = this.checker.getPropertyOfType(owner, key.literal.text);
+      return member ? this.declaredLiteralOrder(member, depth + 1) : null;
+    }
+    return null;
+  }
+
+  /**
+   * The order a member's own declaration lists its values in: the type of a
+   * `PropertySignature`, or — for a tv() axis, whose symbol points back at the
+   * config it was mapped from — the keys of the config object, which are the
+   * axis' values. The keys are a ranking only (`orderLiterals` checks them
+   * against the checker's set), so a mapped type whose values are not its
+   * source's keys falls back to sorting rather than to a wrong order.
+   */
+  private declaredLiteralOrder(member: ts.Symbol, depth: number): string[] | null {
+    for (const declaration of member.declarations ?? []) {
+      if (ts.isPropertySignature(declaration) && declaration.type) {
+        return this.writtenLiteralOrder(declaration.type, depth);
+      }
+      if (
+        ts.isPropertyAssignment(declaration) &&
+        ts.isObjectLiteralExpression(declaration.initializer)
+      ) {
+        const keys: string[] = [];
+        for (const property of declaration.initializer.properties) {
+          const name = property.name;
+          if (
+            !name ||
+            !(ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name))
+          ) {
+            return null;
+          }
+          keys.push(name.text);
+        }
+        return keys;
+      }
+    }
+    return null;
   }
 
   /**

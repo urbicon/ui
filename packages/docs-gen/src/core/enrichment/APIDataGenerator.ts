@@ -15,6 +15,7 @@ import type {
   TypeDefinition,
   TypeUsedByRef
 } from '../../types';
+import { typeSpellsValues } from '../../utils/prop-type';
 import { repoRelativePackageDir, repoRelativePackagePath } from '../../utils/repo-path';
 import { toSlug } from '../../utils/slug';
 
@@ -443,6 +444,14 @@ export class APIDataGenerator {
     // These strings ship in llm.txt, llms-full.txt and the component catalog.
     if (!processedProp.description) {
       processedProp.description = this.enhancePropertyDescription(prop, component);
+    }
+
+    // Once, here, for every surface downstream — see `typeSpellsValues`.
+    if (
+      processedProp.values?.length &&
+      !typeSpellsValues(processedProp.type, processedProp.values)
+    ) {
+      processedProp.namedType = true;
     }
 
     // Add seeAlso for known types/components if not provided via JSDoc
