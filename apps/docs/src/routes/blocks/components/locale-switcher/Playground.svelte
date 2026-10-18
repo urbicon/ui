@@ -45,7 +45,6 @@
         ],
         defaultValue: 'sm'
       },
-      disabled: { type: 'checkbox', label: 'Disabled', defaultValue: false },
       showFlag: { label: 'Show Flag', defaultValue: false }
     }
   });

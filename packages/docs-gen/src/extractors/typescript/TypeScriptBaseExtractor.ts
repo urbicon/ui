@@ -23,6 +23,12 @@ export interface ResolvedHeritageMember {
   values: string[];
   /** Rendered type, in the same spelling the rest of the pipeline emits. */
   type: string;
+  /**
+   * Every declaration lies outside the documented package's sources — a
+   * DOM-attribute bag (`svelte/elements`, lib.dom) or another package's type.
+   * False for a member with no declaration at all: nothing says where it is from.
+   */
+  outsidePackage: boolean;
 }
 
 /**
@@ -518,8 +524,9 @@ export abstract class TypeScriptBaseExtractor<
   }
 
   /**
-   * Expand a heritage clause the syntactic paths cannot name — `Pick<X, K>`
-   * above all — into its members, via the shared program's checker.
+   * Expand a heritage clause the syntactic paths cannot name — `Pick<X, K>`,
+   * and `Omit<X, K>` whose `X` inherits members of its own — into its members,
+   * via the shared program's checker.
    *
    * This is the only route that sees through a tv() variant alias: the five
    * members of `Pick<ButtonProps, 'variant' | 'intent' | 'size' | 'tier' |
@@ -542,7 +549,8 @@ export abstract class TypeScriptBaseExtractor<
       if (!type) return null;
       const members: ResolvedHeritageMember[] = [];
       for (const symbol of this.checker.getPropertiesOfType(type)) {
-        const declaration = symbol.declarations?.find(ts.isPropertySignature) ?? null;
+        const declarations = symbol.declarations ?? [];
+        const declaration = declarations.find(ts.isPropertySignature) ?? null;
         const propertyType = this.checker.getTypeOfSymbolAtLocation(symbol, heritageType);
         const literals = TypeScriptBaseExtractor.orderLiterals(
           TypeScriptBaseExtractor.literalMembersOfType(propertyType),
@@ -562,7 +570,10 @@ export abstract class TypeScriptBaseExtractor<
               : this.checker
                   .typeToString(propertyType)
                   .replace(/\s*\|\s*undefined$/, '')
-                  .trim()
+                  .trim(),
+          outsidePackage:
+            declarations.length > 0 &&
+            declarations.every((d) => !this.isInPackageSources(d.getSourceFile()))
         });
       }
       return members.length > 0 ? members : null;

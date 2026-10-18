@@ -516,10 +516,14 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     if (propsInterface.heritageClauses) {
       console.log(`🔍 Processing ${propsInterface.heritageClauses.length} heritage clauses...`);
 
+      // A name the interface declares itself is the declaration the type keeps;
+      // nothing downstream dedupes by name, so an inherited copy would be a
+      // second row.
+      const declared = new Set(props.map((p) => p.name));
       for (const heritageClause of propsInterface.heritageClauses) {
         for (const heritageType of heritageClause.types) {
           const inheritedProps = await this.extractInheritedProps(heritageType, sourceFile);
-          props.push(...inheritedProps);
+          props.push(...inheritedProps.filter((p) => !declared.has(p.name)));
         }
       }
     }
@@ -767,13 +771,16 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
         return result;
       }
 
-      // Local interface Omit pattern, e.g., Omit<MenuSpecificProps, keyof MenuVariants>;
-      // cross-file fallback for imported bases, e.g. Omit<InputProps, 'type' | …>
-      // (resolved from the package sources via the shared program).
+      // Interface base, local (Omit<MenuSpecificProps, keyof MenuVariants>) or
+      // imported from the package sources (Omit<InputProps, 'type' | …>).
       const baseInterface =
         this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
       if (baseInterface) {
-        // Extract props from the base interface
+        const resolved = this.resolveHeritageMembersViaChecker(heritageType);
+        if (resolved) return this.propsFromOmittedInterface(resolved, baseType, fullType);
+
+        // No checker answer (single-file mode): the base's own members minus the
+        // omitted keys. What the base inherits stays unread without one.
         const extracted = this.extractPropsFromLocalInterface(baseInterface, baseType);
         // Blacklist: the checker's answer for the keys argument wherever it has
         // one, the written literals otherwise. The `keyof *Variants` special
@@ -798,6 +805,49 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     }
 
     return [];
+  }
+
+  /**
+   * The members of `Omit<Interface, K>` as the checker resolves the clause.
+   *
+   * The base's declared members alone stop one level short of the type: in
+   * `Omit<SelectSingleProps<string>, …>` everything `SelectSingleProps` takes
+   * from `SelectBaseProps` — `variant`, `size`, `disabled`, `placeholder` — is a
+   * member of the clause and of no declaration the base itself holds.
+   *
+   * Two exclusions, the same the other heritage routes make:
+   *  - a member declared only outside the package belongs to a DOM-attribute
+   *    bag (`svelte/elements`, lib.dom) or a foreign type, never a prop row;
+   *  - a key that is one of the component's own tv() axes defers to that axis,
+   *    as in the Pick route.
+   *
+   * An interface member keeps the spelling a directly inherited member has
+   * (`extractPropFromMember`: the type as written, its JSDoc and `@default`).
+   * Anything else — a tv() axis, whose declaration is the config it was mapped
+   * from — takes the checker's type through `propFromResolvedMember`.
+   */
+  private propsFromOmittedInterface(
+    members: ResolvedHeritageMember[],
+    baseType: string,
+    fullType: string
+  ): PropInfo[] {
+    const props: PropInfo[] = [];
+    for (const member of members) {
+      if (member.outsidePackage || this.currentVariantKeys.includes(member.name)) continue;
+      const declaration = member.declaration;
+      if (declaration && ts.isInterfaceDeclaration(declaration.parent)) {
+        const documented = this.extractPropFromMember(declaration);
+        if (!documented) continue; // a private `_name`
+        props.push({
+          ...documented,
+          required: !member.optional,
+          source: { type: 'inherited', name: fullType }
+        });
+        continue;
+      }
+      props.push(this.propFromResolvedMember(member, baseType, fullType));
+    }
+    return props;
   }
 
   /**
