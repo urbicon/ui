@@ -86,25 +86,33 @@
 
   // The instance the field has been reconciled with. On an instance's first
   // run the stored value wins whenever one exists — `''` too, a field the user
-  // cleared — and the field's own text is written only when nothing is stored;
-  // every later run writes the field through. `persisted` is read first and on
-  // every run: a derived nothing reads freezes the effects it owns.
+  // cleared. With nothing stored, the text is written only on the run at
+  // mount, where it is the consumer's starting `value`; after a persist-prop
+  // switch it is what the previous entry left on screen (another user's, under
+  // `persistNamespace`), so the new entry waits for an edit. Every later run
+  // writes the field through. `persisted` is read first and on every run: a
+  // derived nothing reads freezes the effects it owns.
   let reconciled: typeof persisted = null;
+  let mounted = false;
 
   $effect(() => {
     const store = persisted;
+    const atMount = !mounted;
+    mounted = true;
     // `value` is read past the guard only, so a field without `persistKey` does not depend on it.
     if (!store) return;
-    const text = (value as string | null | undefined) ?? '';
+    // `type="number"` binds a number; stored as one, it would fail the string
+    // check above on every later load.
+    const text = typeof value === 'string' ? value : value == null ? '' : String(value);
     if (store !== reconciled) {
       reconciled = store;
       if (store.hasStoredValue) {
         value = store.value;
         return;
       }
-      // Writing '' would create an entry for the default, and a stored '' beats
-      // the consumer's `value` on every later mount.
-      if (text === '') return;
+      // An entry for '' would read as a cleared field and beat the consumer's
+      // `value` on every later mount.
+      if (!atMount || text === '') return;
     }
     store.value = text;
   });

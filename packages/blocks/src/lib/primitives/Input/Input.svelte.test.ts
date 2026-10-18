@@ -320,10 +320,7 @@ describe('Input (persistence)', () => {
 
   it('switches to the new key at runtime and leaves the old one alone', () => {
     const { storage, writes } = recordingStorage({ urbicon_b_v1: '"from b"' });
-    const props = $state<Partial<InputProps>>({ persistKey: 'a' });
-    const instance = mount(Input, { target: document.body, props: props as InputProps });
-    dispose = () => unmount(instance);
-    flushSync();
+    const props = renderLive({ persistKey: 'a' });
 
     // Typed under `a` and still inside the debounce when the key changes.
     typeText('typed in a');
@@ -343,6 +340,83 @@ describe('Input (persistence)', () => {
     // the replaced instance, no write routed to it.
     expect(writes).toEqual([['urbicon_b_v1', '"typed in b"']]);
     expect(storage.getItem('urbicon_a_v1')).toBe('"typed in a"');
+  });
+
+  /** Mounts with reactive props, so a test can change them while mounted. */
+  function renderLive(initial: Partial<InputProps>) {
+    const props = $state<Partial<InputProps>>(initial);
+    const instance = mount(Input, { target: document.body, props: props as InputProps });
+    dispose = () => unmount(instance);
+    flushSync();
+    return props;
+  }
+
+  it('carries no text into an empty entry on a namespace switch', () => {
+    const { storage, writes } = recordingStorage();
+    const props = renderLive({ persistKey: 'note', persistNamespace: 'alice' });
+    typeText('alice secret');
+    vi.advanceTimersByTime(1000);
+    expect(storage.getItem('urbicon_note:alice_v1')).toBe('"alice secret"');
+
+    writes.length = 0;
+    props.persistNamespace = 'bob';
+    flushSync();
+    vi.advanceTimersByTime(1000);
+
+    // The text on screen is Alice's, not a starting value Bob was given.
+    expect(writes).toEqual([]);
+    expect(storage.getItem('urbicon_note:bob_v1')).toBe(null);
+
+    // Bob's own edit is his and is stored.
+    typeText('bob note');
+    vi.advanceTimersByTime(1000);
+    expect(writes).toEqual([['urbicon_note:bob_v1', '"bob note"']]);
+  });
+
+  it('carries nothing into a version raised at runtime', () => {
+    const { storage } = recordingStorage();
+    const props = renderLive({ persistKey: 'note' });
+    typeText('v1 text');
+    vi.advanceTimersByTime(1000);
+
+    props.persistVersion = 2;
+    flushSync();
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_note_v1')).toBe(null);
+    expect(storage.getItem('urbicon_note_v2')).toBe(null);
+    expect(input().value).toBe('v1 text');
+  });
+
+  it('stores a value the consumer changes while mounted, over what was restored', () => {
+    const { storage } = recordingStorage({ urbicon_note_v1: '"mine"' });
+    const props = renderLive({ persistKey: 'note', value: 'Hallo' });
+    expect(input().value).toBe('mine');
+
+    // Only the value at mount yields to storage; a later one is a new write.
+    props.value = 'from the server';
+    flushSync();
+    vi.advanceTimersByTime(1000);
+
+    expect(input().value).toBe('from the server');
+    expect(storage.getItem('urbicon_note_v1')).toBe('"from the server"');
+  });
+
+  it('stores a number field as text and restores it without a load warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { storage } = recordingStorage();
+    renderInput({ persistKey: 'qty', type: 'number' });
+    const field = () => document.querySelector('input') as HTMLInputElement;
+
+    field().value = '7';
+    fireEvent.input(field());
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(storage.getItem('urbicon_qty_v1')).toBe('"7"');
+
+    remount({ persistKey: 'qty', type: 'number' });
+    expect(field().value).toBe('7');
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('lets the consumer value win over an entry that is not a stored string', () => {

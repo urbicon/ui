@@ -160,14 +160,22 @@
     commit(clampValue(roundTo(value + dir * step, decimals)));
   }
 
-  function handleInput(event: Event) {
-    const raw = (event.currentTarget as HTMLInputElement).value;
+  // Every write to the field's text, a keystroke or not: Input restoring a
+  // `persistKey` entry or a `<form>` reset writes the bound text without an
+  // `input` event, and left to `handleInput` alone the field would show one
+  // number while `value`, `aria-valuenow` and the hidden `name` input held
+  // another.
+  function acceptText(raw: string) {
     const parsed = parseNumber(raw);
     if (parsed !== value) {
       value = parsed;
       onValueChange?.(parsed);
     }
     display = raw; // keep the raw text; clamp/format happens on blur
+  }
+
+  function handleInput(event: Event) {
+    acceptText((event.currentTarget as HTMLInputElement).value);
   }
 
   function handleFocus() {
@@ -250,7 +258,7 @@
   aria-valuenow={value ?? undefined}
   aria-valuemin={min}
   aria-valuemax={max}
-  value={display}
+  bind:value={() => display, acceptText}
   oninput={composeHandlers(handleInput, oninputProp)}
   onfocus={composeHandlers(handleFocus, onfocusProp)}
   onblur={composeHandlers(handleBlur, onblurProp)}

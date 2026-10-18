@@ -108,11 +108,15 @@ export interface InputProps
 
   /**
    * Key for persisting the input value to storage. A stored value wins over
-   * `value` whenever one exists — an empty one too, so a field the user
-   * cleared comes back cleared after a reload. `value` is only the starting
-   * text while nothing is stored, and is written to storage then; a field left
-   * empty and untouched writes nothing. Changing this or another `persist*`
-   * prop at runtime moves the field to that entry by the same rule.
+   * the `value` the field mounts with whenever one exists — an empty one too,
+   * so a field the user cleared comes back cleared after a reload. While
+   * nothing is stored, that `value` is the starting text and is written to
+   * storage; a field that mounts empty writes nothing until it is edited. A
+   * `value` changed while the field is mounted replaces its text and is
+   * stored. Changing this or another `persist*` prop at runtime moves the
+   * field to that entry: a stored text replaces the field's, and an empty
+   * entry stays empty until the next edit — the text on screen is not carried
+   * into it.
    */
   persistKey?: string;
   /** Storage backend for persistence. @default 'localStorage' */

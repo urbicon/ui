@@ -21,18 +21,22 @@ export interface PersistentStateConfig<T> {
 
 /**
  * Delays `func` until `wait` ms pass without a new call. `flush()` runs the
- * call still waiting at once; after it, nothing is left to run.
+ * call still waiting at once, `cancel()` drops it; after either, nothing is
+ * left to run.
  */
 function debounce<A>(func: (arg: A) => void, wait: number) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let pending: { arg: A } | null = null;
 
-  function flush() {
+  function cancel() {
     clearTimeout(timeout);
-    if (pending === null) return;
-    const { arg } = pending;
     pending = null;
-    func(arg);
+  }
+
+  function flush() {
+    const waiting = pending;
+    cancel();
+    if (waiting !== null) func(waiting.arg);
   }
 
   return {
@@ -41,7 +45,8 @@ function debounce<A>(func: (arg: A) => void, wait: number) {
       clearTimeout(timeout);
       timeout = setTimeout(flush, wait);
     },
-    flush
+    flush,
+    cancel
   };
 }
 
@@ -79,9 +84,13 @@ interface LoadResult<T> {
  * other key are left alone; at `version: 1` nothing is deleted.
  *
  * The auto-save belongs to whatever the state is created under — a component,
- * an `$effect.root`, a `$derived` — and ends with it: a save still waiting out
- * the debounce is written when that owner is destroyed (a `$derived`: when it
- * re-evaluates), and nothing is written after.
+ * an `$effect.root`, or a `$derived` created inside one of those (in a
+ * `$derived` that is not, Svelte throws `effect_in_unowned_derived`) — and ends
+ * with it: a save still waiting out the debounce is written when that owner is
+ * destroyed (a `$derived`: when it re-evaluates), and nothing is written after.
+ * Keep a `$derived` owner read while the state is in use: once it loses its
+ * last reader, Svelte runs that flush early, and the destroy no longer does.
+ * `reset()` and `reload()` drop a save still waiting instead.
  */
 export function createPersistentState<T>(config: PersistentStateConfig<T>) {
   const {
@@ -207,9 +216,11 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
     debouncedSave.schedule(state.value);
   });
 
-  // No dependencies, so this never re-runs and its cleanup is the owner's
-  // teardown alone. Flushed rather than cancelled: the last change before an
-  // unmount is the user's too, and a timer left running would write after it.
+  // No dependencies, so this never re-runs on a change. Its cleanup runs when
+  // the owner is destroyed — and, for a `$derived` owner, also when the derived
+  // loses its last reader: Svelte then runs the cleanups of the effects it owns
+  // early. Flushed rather than cancelled: the last change before an unmount is
+  // the user's too, and a timer left running would write after it.
   $effect(() => debouncedSave.flush);
 
   return {
@@ -244,6 +255,10 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
      * clear is lost, visibly to this instance and to nobody else.
      */
     reset() {
+      // A save of the pre-reset value still waiting out the debounce would
+      // otherwise land after the reset — at the latest when the owner's
+      // teardown flushes it — and restore what was just cleared.
+      debouncedSave.cancel();
       state.value = defaultValue;
       // Retire the mirror only once the entry is actually gone. A refused
       // removal leaves the old value in storage, and claiming "nothing stored"
@@ -263,12 +278,16 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
      * was never written to and still holds its default.
      */
     forceSave() {
+      // The waiting save holds a value no newer than this one.
+      debouncedSave.cancel();
       saveToStorage(state.value);
     },
     /**
-     * Reload from storage
+     * Reload from storage. A save still waiting out the debounce is dropped,
+     * not written over what was just read.
      */
     reload() {
+      debouncedSave.cancel();
       const next = loadFromStorage();
       state.value = next.value;
       state.hasStored = next.stored;

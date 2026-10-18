@@ -519,6 +519,56 @@ describe('teardown', () => {
     expect(setItem).toHaveBeenCalledTimes(1);
   });
 
+  it('does not restore a reset value when the owner is destroyed in the same tick', () => {
+    const storage = installMemoryStorage();
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_reset_teardown', defaultValue: '' })
+    );
+    result.value = 'typed';
+    flushSync();
+
+    result.reset();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_ps_reset_teardown_v1')).toBe(null);
+    expect(result.hasStoredValue).toBe(false);
+  });
+
+  it('does not write a save from before reload() over what it read', () => {
+    const storage = installMemoryStorage();
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_reload_teardown', defaultValue: '' })
+    );
+    result.value = 'typed';
+    flushSync();
+
+    // Another tab wrote meanwhile; this one reloads, then unmounts.
+    storage.setItem('urbicon_ps_reload_teardown_v1', '"elsewhere"');
+    result.reload();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(result.value).toBe('elsewhere');
+    expect(storage.getItem('urbicon_ps_reload_teardown_v1')).toBe('"elsewhere"');
+  });
+
+  it('does not write an older save after forceSave()', () => {
+    const storage = installMemoryStorage();
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_force_teardown', defaultValue: '' })
+    );
+    result.value = 'a';
+    flushSync();
+    // The auto-save has not re-run for 'b' yet; 'a' is the save still waiting.
+    result.value = 'b';
+    result.forceSave();
+    cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_ps_force_teardown_v1')).toBe('"b"');
+  });
+
   it('writes nothing on teardown for an untouched instance', () => {
     const storage = installMemoryStorage();
     const setItem = vi.spyOn(storage, 'setItem');
