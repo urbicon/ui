@@ -419,6 +419,69 @@ describe('Input (persistence)', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  /** Mounts with `bind:value` semantics: the field writes back into `bound.value`. */
+  function renderBound(props: Partial<InputProps>, initial: unknown = undefined) {
+    const bound = { value: initial };
+    const instance = mount(Input, {
+      target: document.body,
+      props: {
+        ...props,
+        get value() {
+          return bound.value;
+        },
+        set value(next: unknown) {
+          bound.value = next;
+        }
+      } as InputProps
+    });
+    dispose = () => unmount(instance);
+    flushSync();
+    return bound;
+  }
+
+  it('restores a number-like field to its binding as a number, the way bind:value does', () => {
+    recordingStorage({ urbicon_age_v1: '"7"', urbicon_cleared_v1: '""', urbicon_level_v1: '"30"' });
+
+    const age = renderBound({ persistKey: 'age', type: 'number' }, 5);
+    expect(age.value).toBe(7);
+    expect(typeof age.value).toBe('number');
+
+    dispose?.();
+    document.body.replaceChildren();
+    // An emptied number field binds `null`, never `''`.
+    const cleared = renderBound({ persistKey: 'cleared', type: 'number' }, 5);
+    expect(cleared.value).toBe(null);
+
+    dispose?.();
+    document.body.replaceChildren();
+    const level = renderBound({ persistKey: 'level', type: 'range' }, 50);
+    expect(level.value).toBe(30);
+
+    dispose?.();
+    document.body.replaceChildren();
+    // A text field keeps the stored text as it is.
+    const text = renderBound({ persistKey: 'age' }, 'x');
+    expect(text.value).toBe('7');
+  });
+
+  it('starts persisting when persistKey first arrives after mount, with the current text', () => {
+    const { storage, writes } = recordingStorage();
+    const props = renderLive({});
+    typeText('typed before the key');
+
+    props.persistKey = 'late';
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(storage.getItem('urbicon_late_v1')).toBe('"typed before the key"');
+
+    // A later switch is still a switch: nothing is carried into `other`.
+    writes.length = 0;
+    props.persistKey = 'other';
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(writes).toEqual([]);
+  });
+
   it('lets the consumer value win over an entry that is not a stored string', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     recordingStorage({ urbicon_junk_v1: '{not json', urbicon_number_v1: '5' });

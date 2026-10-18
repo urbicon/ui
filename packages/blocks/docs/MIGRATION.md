@@ -33,11 +33,13 @@ nothing is stored, that `value` is the starting text and is written to storage. 
 - **Entries an untouched field wrote up to 8.31 now count as cleared.** Until now a field that
   mounted empty wrote `""` without anyone typing, and such an entry now beats the `value` the field
   mounts with. Raise `persistVersion` (from the default `1` to `2`) to drop them: the next mount
-  under each key deletes its older versions. An untouched field no longer writes anything.
+  under each key deletes its older versions, every v1 entry under that key, the text users really
+  typed as well as the stale `""`. An untouched field no longer writes anything.
 - **Changing a `persist*` prop at runtime switches the field to the new entry.** A stored text
   there replaces the field's. An empty entry stays empty until the next edit: the text on screen,
   another user's after a `persistNamespace` switch, is not carried into it. A write still waiting
-  out `persistDebounceMs` lands under the old key at the switch.
+  out `persistDebounceMs` lands under the old key at the switch. A `persistKey` that first arrives
+  after mount is no switch: the field starts persisting as at mount, its current text included.
 - **`NumberInput` moves its number with the restored text.** It sets `value`, the hidden `name`
   input and `aria-valuenow`, and calls `onValueChange` as the field mounts; before, a field that
   mounted empty showed the stored text while the number stayed `null`. A `<form>` reset now moves

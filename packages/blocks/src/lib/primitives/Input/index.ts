@@ -107,16 +107,18 @@ export interface InputProps
   autoComplete?: string;
 
   /**
-   * Key for persisting the input value to storage. A stored value wins over
-   * the `value` the field mounts with whenever one exists — an empty one too,
-   * so a field the user cleared comes back cleared after a reload. While
-   * nothing is stored, that `value` is the starting text and is written to
-   * storage; a field that mounts empty writes nothing until it is edited. A
-   * `value` changed while the field is mounted replaces its text and is
-   * stored. Changing this or another `persist*` prop at runtime moves the
-   * field to that entry: a stored text replaces the field's, and an empty
-   * entry stays empty until the next edit — the text on screen is not carried
-   * into it.
+   * Key for persisting the input value to storage. When the field starts
+   * persisting — at mount, or when this key first arrives later — a stored
+   * value wins over the field's text whenever one exists, an empty one too, so
+   * a field the user cleared comes back cleared after a reload. While nothing
+   * is stored, the field's text at that point (at mount, the `value` it mounts
+   * with) is the starting text and is written to storage; an empty field
+   * writes nothing until it is edited. A `value` changed while persisting
+   * replaces the text and is stored. Moving to another entry at runtime — a
+   * changed key, `persistNamespace` or `persistVersion` — restores what that
+   * entry holds, and an empty entry stays empty until the next edit: the text
+   * on screen is not carried into it. On `type="number"` and `type="range"` a
+   * restored entry reaches `bind:value` as a number, `null` when empty.
    */
   persistKey?: string;
   /** Storage backend for persistence. @default 'localStorage' */

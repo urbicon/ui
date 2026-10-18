@@ -86,33 +86,41 @@
 
   // The instance the field has been reconciled with. On an instance's first
   // run the stored value wins whenever one exists — `''` too, a field the user
-  // cleared. With nothing stored, the text is written only on the run at
-  // mount, where it is the consumer's starting `value`; after a persist-prop
-  // switch it is what the previous entry left on screen (another user's, under
-  // `persistNamespace`), so the new entry waits for an edit. Every later run
-  // writes the field through. `persisted` is read first and on every run: a
-  // derived nothing reads freezes the effects it owns.
+  // cleared. With nothing stored, the text is written only for the field's
+  // first instance (at mount, or when `persistKey` first arrives), where it is
+  // the field's own text; on a switch from one entry to another it is what the
+  // previous entry left on screen (another user's, under `persistNamespace`),
+  // so the new entry waits for an edit. Every later run writes the field
+  // through. `persisted` is read first and on every run: a derived nothing
+  // reads freezes the effects it owns.
   let reconciled: typeof persisted = null;
-  let mounted = false;
+
+  // What Svelte's own `bind:value` hands the binding of a number-like input —
+  // a number, `null` for an empty field — decided off the element's `type`, as
+  // Svelte decides it. A string here would reach `bind:value={age}` as "7".
+  function fromStored(text: string): unknown {
+    const type = inputRef?.type;
+    if (type !== 'number' && type !== 'range') return text;
+    return text === '' ? null : +text;
+  }
 
   $effect(() => {
     const store = persisted;
-    const atMount = !mounted;
-    mounted = true;
     // `value` is read past the guard only, so a field without `persistKey` does not depend on it.
     if (!store) return;
     // `type="number"` binds a number; stored as one, it would fail the string
     // check above on every later load.
     const text = typeof value === 'string' ? value : value == null ? '' : String(value);
     if (store !== reconciled) {
+      const first = reconciled === null;
       reconciled = store;
       if (store.hasStoredValue) {
-        value = store.value;
+        value = fromStored(store.value);
         return;
       }
       // An entry for '' would read as a cleared field and beat the consumer's
       // `value` on every later mount.
-      if (!atMount || text === '') return;
+      if (!first || text === '') return;
     }
     store.value = text;
   });
