@@ -55,6 +55,20 @@ export interface LocaleSwitcherProps
   mint?: SelectSingleProps<string>['mint'];
 
   /**
+   * Control size, forwarded to the inner Select — `sm` here, where Select's own
+   * default is `md`.
+   * @default 'sm'
+   */
+  size?: SelectSingleProps<string>['size'];
+
+  /**
+   * Text shown while the active locale is not among `locales`, in place of the
+   * localized default ("Select language..."). While a locale loads, the
+   * localized loading text is shown instead.
+   */
+  placeholder?: string;
+
+  /**
    * Apply a named preset registered via `<BlocksProvider presets={{ LocaleSwitcher: {...} }}>`.
    * Resolved against the **`LocaleSwitcher`** key, not `Select`: a preset written
    * for the locale picker would otherwise style every select under the provider.

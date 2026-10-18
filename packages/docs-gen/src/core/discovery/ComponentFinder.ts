@@ -508,14 +508,17 @@ export class ComponentFinder {
         const componentFileNameLower = componentName.toLowerCase();
 
         return allFiles.filter((file) => {
-          const relativePath = path.relative(baseDir, file);
           const fileName = path.basename(file);
+          // The directory the file sits in, not any ancestor: a family folder
+          // shares its name with one member (`components/Chat/Chat/`), and every
+          // sibling's file (`Chat/A2UIView/a2ui-view.variants.ts`) lies below it.
+          const dirName = path.basename(path.dirname(file));
 
           return (
             // File is in component directory (PascalCase): src/lib/primitives/Button/...
-            relativePath.includes(`/${componentDirName}/`) ||
+            dirName === componentDirName ||
             // File is in component directory (lowercase): src/lib/primitives/button/...
-            relativePath.includes(`/${componentFileNameLower}/`) ||
+            dirName === componentFileNameLower ||
             // File matches component name pattern: button.variants.ts
             fileName.startsWith(`${componentFileNameLower}.`) ||
             // File matches component name pattern: Button.variants.ts

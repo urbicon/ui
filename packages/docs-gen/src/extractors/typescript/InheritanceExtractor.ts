@@ -197,6 +197,7 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
     sourceFile: ts.SourceFile
   ): InheritanceInfo {
     const fullType = heritageType.getText();
+    const clause = this.heritageClauseLabel(heritageType);
     console.log(`✂️ Handling Omit pattern: ${fullType}`);
 
     // Parse Omit<BaseType, Keys> pattern
@@ -249,14 +250,14 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
           if (!ts.isPropertySignature(member)) continue;
           const prop = this.extractPropFromMember(member);
           if (!prop || omitted.has(prop.name)) continue;
-          prop.source = { type: 'inherited', name: fullType };
+          prop.source = { type: 'inherited', name: clause };
           props.push(prop);
         }
       }
     }
 
     return {
-      typeName: fullType,
+      typeName: clause,
       source: 'omit-pattern',
       props,
       ...(url ? { url } : {})
@@ -277,8 +278,8 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
     heritageType: ts.ExpressionWithTypeArguments,
     sourceFile: ts.SourceFile
   ): InheritanceInfo {
-    const fullType = heritageType.getText();
-    console.log(`🎯 Handling Pick pattern: ${fullType}`);
+    const clause = this.heritageClauseLabel(heritageType);
+    console.log(`🎯 Handling Pick pattern: ${clause}`);
 
     const baseType = this.heritageBaseTypeText(heritageType) ?? '';
     const pickedKeys = new Set(this.parseOmittedKeys(this.heritageKeyArgText(heritageType)));
@@ -289,7 +290,7 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
     // stay public. `handleOmitPattern` leaves `Omit<XVariants, …>` empty for the
     // same reason — listing them here would show every picked axis twice.
     if (/Variants$|VariantProps$/.test(baseType)) {
-      return { typeName: fullType, source: 'pick-pattern', props };
+      return { typeName: clause, source: 'pick-pattern', props };
     }
 
     const resolved = this.resolveHeritageMembersViaChecker(heritageType);
@@ -307,7 +308,7 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
           type: member.type,
           required: !member.optional,
           ...(member.values.length > 0 ? { values: member.values } : {}),
-          source: { type: 'inherited', name: fullType }
+          source: { type: 'inherited', name: clause }
         });
       }
     } else {
@@ -317,12 +318,12 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
         if (!ts.isPropertySignature(member)) continue;
         const prop = this.extractPropFromMember(member);
         if (!prop || !pickedKeys.has(prop.name)) continue;
-        prop.source = { type: 'inherited', name: fullType };
+        prop.source = { type: 'inherited', name: clause };
         props.push(prop);
       }
     }
 
-    return { typeName: fullType, source: 'pick-pattern', props };
+    return { typeName: clause, source: 'pick-pattern', props };
   }
 
   private handleHTMLAttributes(typeName: string): InheritanceInfo {

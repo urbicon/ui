@@ -33,12 +33,38 @@ export interface FrameBaseProps extends Omit<FrameVariants, 'state'>, Partial<AR
   mint?: string;
 }
 
+/** Row spacing of the option list. */
+export type FrameDensity = 'compact' | 'cosy';
+
 /** The SelectSingleProps<T> position: generic, and a plain `extends` of the base. */
 export interface FrameSingleProps<T = string> extends FrameBaseProps {
   /** Currently chosen value. */
   value?: T | null;
+  /** Value shown while nothing is chosen. */
+  fallback?: T | null;
+  /** Fires when the option list opens or closes. */
+  onOpen?: (open: boolean) => void;
+  /** Fires with the value a reader picks. */
+  onPick?: (value: T) => void;
+  /** Row spacing. */
+  density?: FrameDensity;
   /** Indicator rendered next to each option. */
   indicator?: 'check' | 'none';
   /** Label above the frame. */
   label?: string;
+}
+
+type Box<T> = { boxed: T };
+/** A mapping that changes every member's type. */
+type Boxed<T> = { [K in keyof T]?: Box<T[K]> };
+
+interface FrameMetrics {
+  /** Width in pixels. */
+  width?: number;
+}
+
+/** A base whose members reach it through `Boxed`, typed `Box<…>` rather than as written. */
+export interface BoxedFrameProps extends Boxed<FrameMetrics> {
+  /** Internal flag. */
+  internal?: boolean;
 }
