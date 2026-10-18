@@ -515,17 +515,21 @@ const DIAG = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 const GLOBAL_DIAG = /^error (TS\d+): (.*)$/;
 
 async function tsc(p: Project): Promise<TscResult> {
+  // stdout goes to a file, not a pipe. When the `node` on PATH is Bun (a
+  // `bun --bun` ancestor, or no Node installed), tsc runs on Bun, which has no
+  // `process.stdout._handle` and so ignores tsc's `setBlocking()`: once this
+  // reader lags, Bun queues the rest of --listFiles and drops it at
+  // process.exit() — the tail, where the fence files are. A file never makes
+  // the writer wait.
+  const stdoutFile = join(p.dir, 'tsc.stdout');
   const proc = Bun.spawn(['bunx', 'tsc', '-p', p.tsconfig, '--listFiles', '--pretty', 'false'], {
     cwd: DOCS_GEN,
-    stdout: 'pipe',
+    stdout: Bun.file(stdoutFile),
     stderr: 'pipe'
   });
-  const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text()
-  ]);
-  const exitCode = await proc.exited;
+  const [stderr, exitCode] = await Promise.all([new Response(proc.stderr).text(), proc.exited]);
   if (stderr.trim()) throw new Error(`tsc failed to start:\n${stderr}`);
+  const stdout = readFileSync(stdoutFile, 'utf8');
 
   const listed = new Set<string>();
   const diagnostics: Diagnostic[] = [];

@@ -202,59 +202,9 @@ jobs:
       # step because it costs a full gate run per case; the cheap half (fence
       # extraction, line mapping) is in the docs-gen vitest suite below.
       - run: bun test packages/docs-gen/scripts/examples-lint.test.ts
-      - run: bun --filter='@urbicon-ui/blocks' run test:run
-      - run: bun --filter='@urbicon-ui/i18n' run test:run
-      - run: bun --filter='@urbicon-ui/docs-gen' run test
-      - name: Test auth
-        working-directory: packages/auth
-        run: bunx --bun vitest run
-      - name: Test table
-        working-directory: packages/table
-        run: bunx --bun vitest run
-      # design + design-engine were missing until 2026-07-31, which is how a
-      # severity change in design-engine's linter shipped a red `design` suite
-      # past a green CI run: `urbicon validate`'s own gate tests live in `design`
-      # and nothing here executed them. These two carry the design loop the
-      # project sells, so they belong in the same list as the rest.
-      - name: Test design-engine
-        working-directory: packages/design-engine
-        run: bunx --bun vitest run
-      - name: Test design
-        working-directory: packages/design
-        run: bunx --bun vitest run
-      - name: Test sv add-on
-        working-directory: packages/sv
-        run: bunx --bun vitest run
-      # The unscoped bin shim; spawns design's built `dist/cli.js` (build:ts above).
-      # No `--bun`: the shim's loader is Node's, and Bun's resolver does not enforce
-      # `exports` on `package.json`, so under Bun the exports-map case passes vacuously.
-      - name: Test urbicon
-        working-directory: packages/urbicon
-        run: bunx vitest run
-      - name: Test docs
-        working-directory: packages/docs
-        run: bunx --bun vitest run
-      - name: Test sveltekit-utils
-        working-directory: packages/sveltekit-utils
-        run: bunx --bun vitest run
-      # The last two off the list, found by counting `"test"` scripts against
-      # this job (2026-08). docs-app carries the rules the docs lints are built
-      # on — the playground-lint rule table, the translation parity check, the
-      # theme-example checks — so its 132 tests guard the guards.
-      # `svelte-kit sync` first: apps/docs/tsconfig.json extends `$app/tsconfig`,
-      # which the sync generates into `node_modules/$app/`. Vitest's transform
-      # reads that tsconfig, so without the sync every one of the ten test files
-      # dies with `[TSCONFIG_ERROR] Tsconfig not found` before a single assertion
-      # runs. It passes locally only because a previous dev/build run left the
-      # generated file lying around — a clean checkout has none.
-      - name: Test docs-app
-        working-directory: apps/docs
-        run: |
-          bunx --bun svelte-kit sync
-          bunx --bun vitest run
-      - name: Test design-content
-        working-directory: packages/design-content
-        run: bunx --bun vitest run
+      # Which suites run, and on which runtime, comes from each package's own `test` script.
+      - name: Unit tests (every package's `test` script, one after another)
+        run: bun run test
 
   e2e:
     # Independent of `build` — each job installs + builds its own workspace, so

@@ -15,15 +15,17 @@ const run = (bin: string, ...args: string[]) =>
 
 /**
  * Needs `packages/design/dist/cli.js` — `bun run build:packages` first. Runs under
- * Node, never `vitest --bun`: `process.execPath` spawns the shim and `createRequire`
- * resolves with the host's resolver, and Bun's does not enforce `exports` on
- * `package.json` — the exports-map case below passes vacuously under Bun.
+ * Node, never `vitest --bun` — hence the plain `vitest run` in this package's `test`
+ * script: `process.execPath` spawns the shim and `createRequire` resolves with the
+ * host's resolver, and Bun's does not enforce `exports` on `package.json` — the
+ * exports-map case below passes vacuously under Bun.
  */
 describe('bin/urbicon.js', () => {
   // A deep import of design's package.json is what the shim rests on. Design has no
   // `exports` map; one that omits `./package.json` throws ERR_PACKAGE_PATH_NOT_EXPORTED
   // here, before the shim ever runs.
   it('resolves @urbicon-ui/design/package.json as a deep import', () => {
+    expect(process.versions.bun, 'Bun ignores `exports` — this case needs Node').toBeUndefined();
     expect(() => require.resolve('@urbicon-ui/design/package.json')).not.toThrow();
   });
 

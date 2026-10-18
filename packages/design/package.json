@@ -35,8 +35,8 @@
     "dev": "bun run --watch src/cli/index.ts",
     "start": "bun run src/cli/index.ts",
     "check": "tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "bunx --bun vitest run",
+    "test:watch": "bunx --bun vitest"
   },
   "dependencies": {
     "@urbicon-ui/design-content": "workspace:*",

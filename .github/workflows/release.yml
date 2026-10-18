@@ -92,16 +92,10 @@ jobs:
       - name: Type check
         run: bun run check
 
+      # Every package's own `test` script, one after another: the run the
+      # release bump verifies, with the runtime each script names.
       - name: Run unit tests
-        run: |
-          bun --filter='@urbicon-ui/blocks' run test:run
-          bun --filter='@urbicon-ui/i18n' run test:run
-          bun --filter='@urbicon-ui/docs-gen' run test
-          (cd packages/auth && bunx --bun vitest run)
-          (cd packages/table && bunx --bun vitest run)
-          (cd packages/docs && bunx --bun vitest run)
-          (cd packages/sveltekit-utils && bunx --bun vitest run)
-          (cd packages/sv && bunx --bun vitest run)
+        run: bun run test
 
       # A tag points at a commit that goes through CI as well — through its PR,
       # or through `push: main`. Running the same 120 tests again on the same

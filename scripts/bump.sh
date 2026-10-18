@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Version bump + changelog + annotated tag (Conventional Commits -> git-cliff).
 # Managed by @urbicon/udx — push changes back via `udx sync`.
-# Bun-native (no node/npm required). Unified versioning: if a packages/ folder
+# Bun-native (the script itself calls no node/npm; the repo's own build/test
+# scripts it verifies with may). Unified versioning: if a packages/ folder
 # exists, all non-private sub-packages get the same version as the root package.
 #
 # Internal sibling deps (on workspace-owned packages) are handled as follows:
@@ -31,6 +32,31 @@ fi
 # commit rather than block it (see step 5).
 if ! git diff --quiet -- ':!bundle-size.baseline.json' || ! git diff --cached --quiet -- ':!bundle-size.baseline.json'; then
   echo "Error: working tree has uncommitted changes. Commit or stash first."
+  exit 1
+fi
+
+# A release is the commit "${RELEASE_PREFIX}v<version>" plus the tag
+# "v<version>" (step 5); the tag guard below reads both back.
+RELEASE_PREFIX="chore: release "
+
+# git-cliff (step 4) rewrites the whole CHANGELOG.md from the history and tags
+# this clone holds: a release it cannot reach is dropped from the file, and one
+# whose tag is missing is folded into the release after it. So a shallow clone,
+# and a release commit in the history whose tag is not in the clone, are
+# refused here, before the minutes of verification below. A first release has
+# no release commit yet, so no tag to miss.
+if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+  echo "Error: this clone is shallow — git-cliff would drop every release it cannot reach from CHANGELOG.md."
+  echo "  Fix: git fetch --unshallow --tags"
+  exit 1
+fi
+UNTAGGED=$(LC_ALL=C comm -23 \
+  <(git log --format=%s | sed -n "s/^${RELEASE_PREFIX}\(v[0-9][0-9.]*\)\$/\1/p" | LC_ALL=C sort -u) \
+  <(git tag -l 'v*' | LC_ALL=C sort -u))
+if [ -n "$UNTAGGED" ]; then
+  echo "Error: $(echo "$UNTAGGED" | wc -l | tr -d ' ') release commit(s) without their tag in this clone ($(echo "$UNTAGGED" | head -3 | paste -sd' ')…) —"
+  echo "  git-cliff would fold each of those releases into the one after it."
+  echo "  Fix: git fetch --tags"
   exit 1
 fi
 
@@ -186,7 +212,12 @@ PKG_FILES=$(bun -e '
 # 3. Update the lockfile
 bun install --silent
 
-# 4. Generate changelog
+# 4. Generate changelog. git-cliff (2.13) caches each commit's changed files
+#    under <git dir>/git-cliff-core for `include_paths` and never revisits an
+#    entry: one written while the clone was shallow holds the boundary commit's
+#    whole tree, so after `git fetch --unshallow` that commit still passes the
+#    path filter. Dropping the cache costs one cold run.
+rm -rf "$(git rev-parse --git-dir)/git-cliff-core"
 bunx git-cliff --tag "v$VERSION" --output CHANGELOG.md
 
 # 5. Stage exactly the touched files (never `git add -A`).
@@ -212,7 +243,7 @@ if ! git diff HEAD --quiet -- bundle-size.baseline.json 2>/dev/null; then
   git add bundle-size.baseline.json
   echo "Staged bundle-size.baseline.json (updated ahead of this bump)"
 fi
-git commit -m "chore: release v$VERSION" --no-verify
+git commit -m "${RELEASE_PREFIX}v$VERSION" --no-verify
 git tag -a "v$VERSION" -m "v$VERSION"
 
 trap - ERR INT TERM

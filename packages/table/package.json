@@ -28,8 +28,8 @@
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
     "package": "svelte-kit sync && svelte-package && bun ../../scripts/complete-esm-specifiers.ts dist",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "bunx --bun vitest run",
+    "test:watch": "bunx --bun vitest"
   },
   "files": [
     "LICENSE",
