@@ -185,7 +185,9 @@ export class SectionRegistry {
    * section is placed, not when it registers: Svelte creates an incoming branch
    * before it outros the outgoing one, so at registration a section on its way
    * out still holds the id. By the time the newcomer is placed, one without an
-   * outro is gone and one with an outro is `leaving`.
+   * outro is gone, and one under an outro on itself or an ancestor is `leaving`.
+   * An outro elsewhere in the leaving branch (`|global`, a sibling) is not seen,
+   * so such a swap can warn once; a repeat under a consumer's `inert` is missed.
    */
   warnOnSharedId(entry: RegisteredSection): void {
     if (!entry.element || leaving(entry.element)) return;

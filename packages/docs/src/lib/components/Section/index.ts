@@ -35,7 +35,8 @@ export interface SectionProps
    * Inside a `DocsLayout` the heading is also the section's entry in the
    * table of contents: the layout lists every section that has a title, in
    * render order. A section without one is left out, and the titled sections
-   * inside it are listed at its level.
+   * inside it are listed at its level. Whether a section is a level is decided
+   * when it first renders; a title it gains or loses later does not change it.
    */
   title?: string;
 

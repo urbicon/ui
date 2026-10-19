@@ -137,8 +137,7 @@ describe('two sections with one id', () => {
   // The rail and the strip key their entries by id, and Svelte throws
   // `each_key_duplicate` on a repeated key in production as well as in
   // development, taking the page down. The server renders the repeat without a
-  // word, so the prerender stays green. Each case below threw before the TOC
-  // listed an id once.
+  // word, so the prerender stays green.
 
   it('a page that repeats an id lists it once, and says so in development', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -184,7 +183,7 @@ describe('two sections with one id', () => {
 describe('a section without a heading', () => {
   it('leaves the titled sections inside it in the list and the count', () => {
     // It has no entry to hang child entries under, so it starts no level of
-    // its own; before, the sections in it registered into one and were lost.
+    // its own.
     const target = renderEdge({ shape: 'headless' });
 
     expect(railHrefs(target)).toEqual(['#intro', '#grouped-a', '#grouped-b', '#end']);
