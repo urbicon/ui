@@ -58,8 +58,9 @@ const PUBLIC_ROUTES_OPTION: RouteListOption = {
  * `null` when it does not decode — Kit answers such a request `400` and
  * resolves no route for it. `event.url.pathname` keeps the escapes, so
  * without this a predicate guarding `/admin` would read `/%61dmin` as public
- * while Kit serves the `/admin` route for it. It is that first step only: Kit
- * then strips `paths.base` and applies `reroute`, and this does neither.
+ * while Kit serves the `/admin` route for it. Kit runs `reroute` on the
+ * undecoded URL before this step and strips `paths.base` after it; this does
+ * neither.
  * `%25` is split out so an escaped escape stays one. Kit's own function
  * (`decode_pathname`) is outside its exports map, hence restated;
  * `handle.test.ts` compares the two over Kit's.
@@ -76,6 +77,8 @@ export function decodePathname(pathname: string): string | null {
  * Whether the guard refuses a request with the JSON `401` rather than the
  * login redirect: its pathname, decoded, is under `/api/`, so `/%61pi/…` is
  * answered like `/api/…`. A pathname that does not decode is read as sent.
+ * It is the address, not the route: under `paths.base` or behind a `reroute`
+ * an API route is refused with the redirect.
  */
 export const isApiPath = (pathname: string): boolean =>
   (decodePathname(pathname) ?? pathname).startsWith('/api/');
