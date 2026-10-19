@@ -70,7 +70,7 @@
     },
     {
       id: 'l3',
-      title: 'Altbau with herringbone floors',
+      title: 'Pre-war flat with herringbone floors',
       neighborhood: 'Prenzlauer Berg',
       type: 'apartment',
       rent: 2200,
@@ -79,7 +79,7 @@
     },
     {
       id: 'l4',
-      title: 'Garden house on a quiet Hof',
+      title: 'Garden house off a quiet courtyard',
       neighborhood: 'Pankow',
       type: 'house',
       rent: 2650,

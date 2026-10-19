@@ -22,9 +22,9 @@
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
   const playgroundItems: CompositionItem[] = [
-    { label: 'Anteil A', value: 60, intent: 'primary' },
-    { label: 'Anteil B', value: 30, intent: 'success' },
-    { label: 'Anteil C', value: 10, intent: 'warning' }
+    { label: 'Share A', value: 60, intent: 'primary' },
+    { label: 'Share B', value: 30, intent: 'success' },
+    { label: 'Share C', value: 10, intent: 'warning' }
   ];
 
   const controls = deriveControls(componentData, {

@@ -3,7 +3,7 @@
   import { CompositionBar, Kbd, type CompositionItem } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
-    new Intl.NumberFormat('de-DE', {
+    new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,

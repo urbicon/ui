@@ -72,13 +72,13 @@
        open on keyboard focus, which the Button gives the icon triggers for free. -->
   <p class="text-text-primary text-sm">
     System efficiency is reported via the
-    <Tooltip label={glossary.jaz.text}>
+    <Tooltip label={glossary.spf.text}>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <span
         tabindex="0"
         class="text-primary border-primary/40 inline-flex cursor-help items-baseline gap-0.5 border-b border-dotted"
       >
-        Jahresarbeitszahl
+        seasonal performance factor
         <InfoCircleIcon class="h-3 w-3" />
       </span>
     </Tooltip> and values of 3.0 or higher count as energy-efficient.
@@ -93,8 +93,8 @@
         <th class="py-2 pr-4 font-medium">Apartment</th>
         <th class="py-2 pr-4 font-medium">
           <span class="inline-flex items-center gap-1">
-            WMZ reading
-            <HelpTooltip term={glossary.wmz.term} text={glossary.wmz.text} />
+            Heat meter reading
+            <HelpTooltip term={glossary.heatMeter.term} text={glossary.heatMeter.text} />
           </span>
         </th>
         <th class="py-2 font-medium">Consumption</th>
@@ -170,13 +170,13 @@
 
           <p class="text-text-primary text-sm">
             System efficiency is reported via the
-            <Tooltip label={glossary.jaz.text}>
+            <Tooltip label={glossary.spf.text}>
               <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
               <span
                 tabindex="0"
                 class="text-primary border-primary/40 inline-flex cursor-help items-baseline gap-0.5 border-b border-dotted"
               >
-                Jahresarbeitszahl
+                seasonal performance factor
                 <InfoCircleIcon class="h-3 w-3" />
               </span>
             </Tooltip> and values of 3.0 or higher count as energy-efficient.
@@ -191,8 +191,8 @@
                 <th class="py-2 pr-4 font-medium">Apartment</th>
                 <th class="py-2 pr-4 font-medium">
                   <span class="inline-flex items-center gap-1">
-                    WMZ reading
-                    <HelpTooltip term={glossary.wmz.term} text={glossary.wmz.text} />
+                    Heat meter reading
+                    <HelpTooltip term={glossary.heatMeter.term} text={glossary.heatMeter.text} />
                   </span>
                 </th>
                 <th class="py-2 font-medium">Consumption</th>

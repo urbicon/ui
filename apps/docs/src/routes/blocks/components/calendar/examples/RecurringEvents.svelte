@@ -38,7 +38,7 @@
       recurrence: { frequency: 'weekly', byDay: [2, 4] }
     },
     {
-      id: 'restmuell',
+      id: 'general-waste',
       title: 'General waste',
       start: new Date(2026, 2, 4),
       categoryId: 'waste',

@@ -49,7 +49,7 @@
 {#snippet salaryCell(_item: unknown, value: unknown)}
   <div class="text-right">
     <span class="text-text-primary text-sm font-semibold tabular-nums">
-      {(value as number)?.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+      {(value as number)?.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}
     </span>
     {#if (value as number) > 130000}
       <span class="bg-success ml-1.5 inline-block h-1.5 w-1.5 rounded-full"></span>
@@ -175,7 +175,7 @@
 {#snippet salaryCell(item: Employee, value: unknown)}
   <div class="text-right">
     <span class="text-sm font-semibold tabular-nums">
-      {Number(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+      {Number(value).toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}
     </span>
     {#if Number(value) > 130000}
       <span class="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-success"></span>

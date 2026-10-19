@@ -3,8 +3,8 @@
   import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';
 
   const categories: DateCategory[] = [
-    { id: 'conf', label: 'Konferenz', color: '#8b5cf6' },
-    { id: 'vacation', label: 'Urlaub', color: '#06b6d4' },
+    { id: 'conf', label: 'Conference', color: '#8b5cf6' },
+    { id: 'vacation', label: 'Vacation', color: '#06b6d4' },
     { id: 'sprint', label: 'Sprint', color: '#f97316' },
     { id: 'deadline', label: 'Deadline', color: '#ef4444' }
   ];

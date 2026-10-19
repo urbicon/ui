@@ -3,7 +3,7 @@
   import { Kbd, Sankey, type SankeyLink, type SankeyNode } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
-    new Intl.NumberFormat('de-DE', {
+    new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,
@@ -119,7 +119,7 @@
         <Sankey
           nodes={salaryNodes}
           links={salaryLinks}
-          formatValue={(v) => `${v.toLocaleString('de-DE')} €`}
+          formatValue={(v) => `€${v.toLocaleString('en-US')}`}
           height={400}
         />
       </div>
