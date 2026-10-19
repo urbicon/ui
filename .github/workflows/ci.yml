@@ -88,7 +88,7 @@ jobs:
       - run: bun run check
 
   gates:
-    # Separate from `typecheck` although both start with `build:ts`: these four
+    # Separate from `typecheck` although both start with `build:ts`: these
     # gates are the slow half (examples:lint alone runs two svelte-check passes
     # per package), and a type error should surface without waiting behind
     # them. Duplicating the build across jobs is the established trade-off here
@@ -228,8 +228,8 @@ jobs:
     # when the value equals the project's. By default every slice holds the
     # same test COUNT, not the same duration. `a11y-dark.spec.ts` and
     # `a11y.spec.ts` come first, and their route scans are the heaviest block
-    # of tests in the suite, so an equal-count shard 1 is nothing but scans and
-    # the slowest shard. Another shard shrinks every slice, but the scans stay
+    # of tests in the suite, so an equal-count shard 1 is scans plus the serial
+    # auth group, and the slowest shard. Another shard shrinks every slice, but the scans stay
     # at the front; no shard count spreads them evenly. PWTEST_SHARD_WEIGHTS on
     # the Playwright step below sizes the slices unequally instead.
     #
@@ -305,24 +305,22 @@ jobs:
           # Switches the reporter to `blob`, the only format `merge-reports`
           # can recombine. See playwright.config.ts.
           PLAYWRIGHT_BLOB_REPORT: '1'
-          # Slice sizes in tests, one weight per shard. Playwright scales them to
-          # the current test count and the slices still partition the suite, so
-          # every test runs in exactly one shard. Shard 1 holds only scans and
-          # gets the fewest. Derived from the equal-count split: each shard's
-          # `Run bunx playwright test` step on the slower of the two runner
-          # speeds GitHub hands out (441 / 218 / 221 / 160 s, from
-          # `curl -s https://api.github.com/repos/urbicon/ui/actions/runs/<id>/jobs`),
-          # spread over the tests each held, then cut so every slice carries a
-          # quarter of the total. A new test moves the boundaries in proportion,
-          # so the balance drifts rather than breaks — re-derive when one shard's
-          # step runs well past the others.
+          # Slice sizes in tests, one weight per shard; Playwright refuses a count
+          # that differs from `--shard`'s total. It scales them to the current
+          # test count and the slices still partition the suite, so every test
+          # runs in exactly one shard. Shard 1 holds only scans and gets the
+          # fewest. A new test moves the boundaries in proportion, so the balance
+          # drifts rather than breaks: re-derive when one shard's `Run bunx
+          # playwright test` step runs well past the others. How these were
+          # derived: `git log -S PWTEST_SHARD_WEIGHTS -- .github/workflows/ci.yml`.
           # `PWTEST_SHARD_WEIGHTS=46:62:97:123 bunx playwright test --list --shard=1/4`
           # shows what a slice holds.
           #
           # Undocumented: Playwright 1.62.1 reads it in lib/cli/testActions.js
           # and its sharding guide never names it. A version that drops it falls
-          # back to equal counts without a word — nothing is skipped, shard 1
-          # just runs long again, so that is where to look after a bump.
+          # back to equal counts without a word; nothing is skipped, shard 1 just
+          # runs long again. After a bump, `PWTEST_SHARD_WEIGHTS=0:0:0:1 bunx
+          # playwright test --list --shard=1/4` must list 0 tests.
           PWTEST_SHARD_WEIGHTS: '46:62:97:123'
 
       - uses: actions/upload-artifact@v7
