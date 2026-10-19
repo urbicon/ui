@@ -1,11 +1,10 @@
 <script lang="ts">
   import SeoMeta from '#lib/SeoMeta.svelte';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section,
-    TypesReference
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import Playground from './Playground.svelte';
@@ -130,7 +129,7 @@ ${scriptClose}
     <Playground />
   </Section>
 
-  <Section id="column-factories" title="Column Factories">
+  <Section marker id="column-factories" title="Column Factories">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         <code class="text-text-primary">TableColumns</code> builds a column with the cell component,
@@ -176,7 +175,7 @@ ${scriptClose}
     </div>
   </Section>
 
-  <Section id="next" title="Where to go next">
+  <Section marker id="next" title="Where to go next">
     <div class="space-y-4">
       <p class="text-text-secondary text-sm">
         <strong class="text-text-primary">Who does the work.</strong> A few hundred rows sort,
@@ -216,13 +215,9 @@ ${scriptClose}
     </div>
   </Section>
 
-  <Section id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
+  <ReferenceSections {componentData} />
 
-  <TypesReference types={componentData?.types ?? []} />
-
-  <Section id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { Table, TableColumns } from '@urbicon-ui/table';`}

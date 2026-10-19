@@ -85,21 +85,24 @@ bun run docs:scaffold <ComponentName> --group primitives|components
 
 Full guide for building component documentation pages: [docs/DocsPageGuide.md](../../../docs/DocsPageGuide.md).
 
-## The Types section: both halves, same source
+## The API and Types sections: one component, one binding
 
-A component page owes its types **two** lines, and each is silent without the other — no `types=`
-on `<ApiReference>` means every type name in the API table renders as unlinked text, and no
-`<TypesReference>` means the `#type-<Name>` links it emits point at a section that does not exist:
+A component page ends its reference part with one line, between the custom docs and Installation:
 
 ```svelte
-<ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-...
-<TypesReference types={componentData?.types ?? []} />
+<ReferenceSections {componentData} />
 ```
 
-Both must read the **same** `componentData`. `bun run typesref:lint` enforces it and rejects
-anything that is not that expression — `types={[]}`, `componentData?.props ?? []` (the copy-paste
-slip from the line above) and a second module's `types` are all reported, not counted.
+It renders the numbered API Reference section (`id="api"`) and the Types section (`id="types"`)
+from the page's own `componentData`, so the type names the API table links always have a row in
+the Types table. Never wire `<ApiReference types=…>` and `<TypesReference>` by hand on a component
+page: the two copies of `types` are each silent without the other. The nav lists both ids
+(`{ id: 'api', title: 'API Reference' }`, `{ id: 'types', title: 'Types' }`); `sections:lint`
+checks it, and `refsections:lint` that every component page renders the component. A family page
+that documents several components under one Types section (`/blocks/components/guide`) is the one
+exception: it composes the two tables itself, with every prop table rendered through one local
+snippet that binds the page's single `types` — keep new tables inside that snippet, since no
+gate checks the binding there.
 
 ## Playground stages: cap the width of form controls
 

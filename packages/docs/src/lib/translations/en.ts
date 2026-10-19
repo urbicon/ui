@@ -12,6 +12,7 @@ export default {
   playgroundSubtitle: '',
 
   // API Reference
+  apiReferenceTitle: 'API Reference',
   // Counts in the stats line. Phrased so one wording fits any count — the
   // runtime interpolates but has no plural selection.
   propsCount: '{{count}} props',

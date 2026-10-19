@@ -18,10 +18,10 @@
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
     "playgrounds:lint": "bun run scripts/playgrounds-lint.ts",
     "preview": "vite preview",
+    "refsections:lint": "bun scripts/refsections-lint.ts",
     "registry:lint": "bun run scripts/registry-lint.ts",
     "sections:lint": "bun scripts/sections-lint.ts",
-    "test": "bunx --bun svelte-kit sync && bunx --bun vitest run",
-    "typesref:lint": "bun scripts/typesref-lint.ts"
+    "test": "bunx --bun svelte-kit sync && bunx --bun vitest run"
   },
   "dependencies": {
     "@fontsource-variable/schibsted-grotesk": "^5.3.0",

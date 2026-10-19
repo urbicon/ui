@@ -39,25 +39,21 @@
 
     <CodeExample
       title="A page's API section"
-      description="What the section looks like on every component page: the generated props, inside a Section with a secondary intent so reference content reads differently from guide content. `types=` and the TypesReference below it are one feature — the prop is what turns a type name in the Type column into a link, and the section is what the link points at."
+      description="On a component page the table comes from `ReferenceSections`: it renders the API Reference section around this table and the Types section below it, both from the one `componentData` you pass, so every type name in the Type column links to a row that exists. Compose `ApiReference` and `TypesReference` yourself only for a page that documents several components under one Types section."
       language="svelte"
       code={`<script lang="ts">
-  import { ApiReference, Section, TypesReference } from '@urbicon-ui/docs';
+  import { ReferenceSections } from '@urbicon-ui/docs';
   import { componentData } from './api';
 <\/script>
 
-<Section marker id="api" title="API Reference" intent="secondary">
-  <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-</Section>
-
-<TypesReference types={componentData?.types ?? []} />`}
+<ReferenceSections {componentData} />`}
     >
       <ApiReference props={sampleProps} />
     </CodeExample>
 
     <CodeExample
       title="Notes the generator cannot know"
-      description="The usageNotes snippet renders above the table — for editorial guidance that belongs to the API as a whole rather than to any single prop."
+      description="The usageNotes snippet renders below the table — for editorial guidance that belongs to the API as a whole rather than to any single prop."
       language="svelte"
       preview={false}
       code={`<ApiReference props={componentData.props} slotClasses={{ stats: 'hidden' }}>

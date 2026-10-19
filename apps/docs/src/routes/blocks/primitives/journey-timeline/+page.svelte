@@ -1,11 +1,10 @@
 <script lang="ts">
   import { asset, resolve } from '$app/paths';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section,
-    TypesReference
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
@@ -77,17 +76,7 @@
 
   <CustomDocs />
 
-  <Section
-    marker
-    id="api"
-    title="API Reference"
-    intent="secondary"
-    meta={`${componentData?.stats?.totalProps ?? 0} props`}
-  >
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
-
-  <TypesReference types={componentData?.types ?? []} />
+  <ReferenceSections {componentData} />
 
   <Section marker id="installation" title="Installation">
     <CodeExample

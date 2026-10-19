@@ -76,6 +76,7 @@ export default defineConfig({
 | `CodePanel`              | Shared code-display primitive: Shiki highlighting, collapsible panel, auto line numbers, copy button        |
 | `ApiReference`           | Structured props table (rendered via `@urbicon-ui/table`) with source/required badges and opt-in type links |
 | `TypesReference`         | Expandable type definitions with literal-value badges and cross-links to the API reference                  |
+| `ReferenceSections`      | A component page's API Reference and Types sections, both tables fed from one generated `componentData`     |
 | `PlaygroundConfigurator` | Interactive prop playground: live preview, control panel, generated code                                    |
 | `InfoCard`               | Memo-style callout card for notes and tips; renders as a link when `href` is set                            |
 
@@ -83,7 +84,7 @@ Also exported: `CodeVisibilityStore` (+ context helpers) for a page-global expan
 
 ## Styling
 
-`ApiReference`, `CodeExample`, `CodePanel`, `DocsLayout`, `PlaygroundConfigurator`, `TableOfContents`, and `TypesReference` support `unstyled` + per-slot `slotClasses`, following the [blocks styling conventions](https://github.com/urbicon/ui/blob/main/packages/blocks/README.md). `Section` and `InfoCard` are styled via variant props and `class`. All components accept `class` on the root element.
+`ApiReference`, `CodeExample`, `CodePanel`, `DocsLayout`, `PlaygroundConfigurator`, `TableOfContents`, and `TypesReference` support `unstyled` + per-slot `slotClasses`, following the [blocks styling conventions](https://github.com/urbicon/ui/blob/main/packages/blocks/README.md). `Section` and `InfoCard` are styled via variant props and `class`. All components accept `class` on the root element, except `ReferenceSections`, which renders two sections and no element of its own and takes no styling props — to restyle that part of a page, compose `Section`, `ApiReference` and `TypesReference` yourself.
 
 ## i18n
 

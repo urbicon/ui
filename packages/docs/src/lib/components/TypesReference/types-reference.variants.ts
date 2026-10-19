@@ -1,88 +1,79 @@
-import { linkVariants, type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
+import { apiReferenceVariants } from '../ApiReference/apireference.variants';
 
-// blocks' Link `variant="inline"` — called, not copied, so the reference tables
-// carry the same link as the library and the docs prose.
-const inlineLink = linkVariants({ variant: 'inline', active: false }).base();
+// ApiReference's slots, called rather than copied. The two tables sit under
+// each other on every component page and read as one widget only while every
+// cell, chip and footnote shares its classes, so a slot below that names
+// `api.<slot>()` IS that slot of the API table. What this config adds of its
+// own is the "only referenced" filter, the empty state and the `size` axis.
+const api = apiReferenceVariants();
 
 export const typesReferenceVariants = tv({
   slots: {
     // Everything above the toolbar — the `<section>`, the heading, the
-    // description, the header margin — belongs to `<Section>` now. What is left
-    // here is the section's body: flat and frameless, the shape ApiReference
-    // has. The elevated `<Card>` this used to sit in made the lower of two
-    // stacked reference tables read as a separate widget. `gap-3` is
-    // ApiReference's `base` gap, so the toolbar sits the same distance above
-    // its table in both.
-    stack: ['flex flex-col gap-3'],
-    expandedPanel: [],
-    // Count + filter line above the table. Mirrors ApiReference's `stats` slot
-    // token for token: same line, same place, same job — reading as one thing
-    // is the point. No padding of its own: the card that justified it is gone.
-    toolbar: ['flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary'],
-    // The checkbox keeps its own `xs` size; this only stops the label from
-    // inheriting a colour louder than the line it sits in.
-    filterLabel: ['text-text-tertiary'],
-    codeBlock: ['bg-surface-quiet text-text-primary', 'overflow-x-auto rounded-contain font-mono'],
-    documentation: ['text-text-secondary'],
+    // description, the header margin — belongs to `<Section>`.
+    stack: [api.base()],
+    expandedPanel: [api.expandedPanel()],
+    // Count + filter line above the table: the API table's stats line, spread
+    // to carry the checkbox on the right.
+    toolbar: [api.stats(), 'justify-between'],
+    // The checkbox keeps its own `xs` size and its pointer target (Checkbox's
+    // `control`: `min-h-11`); the label takes the line's quiet colour, and the
+    // negative margin lets the target overhang the line instead of making it
+    // `h-11` tall. `min-h-11` minus `-my-3.5` twice is `h-4`, the `text-xs`
+    // line of the API table's stats, so both tables start the same distance
+    // below their headings.
+    filterLabel: ['text-text-tertiary', '-my-3.5'],
+    // --- cells: a type's name, kind, category and use count read the way the
+    // API table's prop name, type and default do ---------------------------
+    nameCode: [api.nameCode()],
+    kindCode: [api.typeCode()],
+    categoryCode: [api.defaultCode()],
+    usedByCount: [api.defaultCode()],
+    documentation: [api.description()],
     // In-row clamp, on its own slot: `documentation` also styles the full text
     // in the expanded row, and folded into one the disclosure would show the
-    // same two lines the cell already showed. ApiReference splits it the same
-    // way.
-    documentationClamped: ['line-clamp-2'],
-    // Em dash for an undocumented type — ApiReference's `placeholder`.
-    placeholder: ['text-text-tertiary'],
-    literalValues: ['mt-2 flex flex-wrap gap-1'],
-    // literalBadge without a border, just a quiet tint.
-    literalBadge: [
-      'bg-surface-quiet text-text-secondary',
-      'inline-flex items-center rounded-modify font-medium'
-    ],
-    // "+N more" after the capped literal badges — was an inline class string.
-    moreValues: ['text-text-tertiary text-2xs'],
-    usedBySection: ['text-text-secondary mt-2'],
-    usedByLink: [inlineLink],
+    // same two lines the cell already showed.
+    documentationClamped: [api.descriptionClamped()],
+    placeholder: [api.placeholder()],
+    // --- expanded row: the type's definition where the API table prints the
+    // prop's declaration, then the prose, then the footnotes ---------------
+    codeBlock: [api.signature()],
+    literalValues: [api.valuesSection()],
+    literalBadge: [api.typeChip()],
+    // "+N more" after the capped literal badges.
+    moreValues: [api.placeholder()],
+    usedBySection: [api.sourceSection()],
+    usedByLink: [api.sourceLink()],
     // `@see` on the type declaration. Same two roles as in ApiReference: a
     // navigable target becomes a real link, a bare sibling-type name stays a
     // quiet footnote chip — a link there would have nowhere to point.
-    seeAlsoSection: ['mt-2 flex flex-wrap items-center gap-1 text-text-tertiary'],
-    seeAlsoRef: [
-      'inline-flex items-center rounded-modify',
-      'bg-surface-quiet px-1.5 py-0.5 font-mono leading-none text-text-secondary'
-    ],
-    seeAlsoLink: [inlineLink],
-    // Empty state when the "only referenced" filter matches nothing — was an
-    // inline class string on the markup.
+    seeAlsoSection: [api.seeAlsoRefs()],
+    seeAlsoRef: [api.seeAlsoRef()],
+    seeAlsoLink: [api.link()],
+    // Empty state when the "only referenced" filter matches nothing.
     emptyText: ['text-text-tertiary py-6 text-center text-sm'],
-    highlightRing: ['ring-2 ring-primary/50']
+    highlightRing: [api.highlightRing()]
   },
-  // The `size` axis is the density of what this component still owns: the table
-  // body and the expanded panel. It reaches neither the heading (that is
-  // `<Section intent="secondary">`, pinned so the types section reads as a
-  // sibling of the API section above it) nor the table's own rows (pinned to
-  // `sm` so they match ApiReference's — see the component).
+  // The density of the expanded panel. `md` adds nothing: it is the API
+  // table's own panel. It reaches neither the heading (`<Section>`) nor the
+  // rows (pinned to `sm`, the API table's, in the component).
   variants: {
     size: {
       sm: {
-        codeBlock: 'p-2 text-xs',
+        codeBlock: 'p-2 text-2xs',
         documentation: 'text-xs',
-        literalBadge: 'px-1.5 py-px text-3xs',
-        usedBySection: 'text-xs',
+        literalBadge: 'text-3xs',
+        usedBySection: 'text-3xs',
         seeAlsoSection: 'text-3xs',
         seeAlsoRef: 'text-3xs'
       },
-      md: {
-        codeBlock: 'p-3 text-[13px]',
-        documentation: 'text-sm',
-        literalBadge: 'px-2 py-[2px] text-2xs',
-        usedBySection: 'text-sm',
-        seeAlsoSection: 'text-2xs',
-        seeAlsoRef: 'text-2xs'
-      },
+      md: {},
       lg: {
         codeBlock: 'p-4 text-sm',
-        documentation: 'text-sm',
-        literalBadge: 'px-2.5 py-0.5 text-xs',
-        usedBySection: 'text-sm',
+        documentation: 'text-base',
+        literalBadge: 'text-xs',
+        usedBySection: 'text-xs',
         seeAlsoSection: 'text-xs',
         seeAlsoRef: 'text-xs'
       }

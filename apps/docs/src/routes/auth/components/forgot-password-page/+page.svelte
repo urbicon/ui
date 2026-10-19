@@ -1,13 +1,12 @@
 <script lang="ts">
   import SeoMeta from '#lib/SeoMeta.svelte';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
     Note,
     NoteList,
-    Section,
-    TypesReference
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '#lib/component-links.js';
@@ -86,11 +85,7 @@
     </NoteList>
   </Section>
 
-  <Section marker id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
-
-  <TypesReference types={componentData?.types ?? []} />
+  <ReferenceSections {componentData} />
 
   <Section marker id="installation" title="Installation">
     <CodeExample

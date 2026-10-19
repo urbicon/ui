@@ -2,13 +2,15 @@
   import { Checkbox } from '@urbicon-ui/blocks';
   import { Table, type Column } from '@urbicon-ui/table';
   import { InlineCode, Section } from '#lib';
-  import { useDocsI18n } from '#lib/i18n/index.js';
+  import { useDocsI18n, useDocsLocale } from '#lib/i18n/index.js';
   import { revealTableRow } from '#lib/utils/cross-reference.js';
+  import { SEARCH_ABOVE_ROWS } from '../ApiReference/reference-table.js';
   import { typesReferenceVariants } from './types-reference.variants';
   import { extractLiteralValues } from './index.js';
-  import type { TypesReferenceProps } from './index.js';
+  import type { LocalTypeDef, TypeUsedByRef, TypesReferenceProps } from './index.js';
 
   const dt = useDocsI18n();
+  const docsLocale = useDocsLocale();
 
   let {
     types = [],
@@ -35,9 +37,16 @@
 
   const styles = $derived(typesReferenceVariants({ size }));
 
-  // Locale-backed defaults; a consumer prop always wins.
-  const headingTitle = $derived(title ?? dt('typesTitle'));
-  const headingDescription = $derived(description ?? dt('typesDescription'));
+  // Locale-backed defaults; a consumer prop always wins. A default is `dt` text
+  // and renders under the docs locale's `lang` (the title/subtitle snippets);
+  // a consumer's string is in the page's own language and renders as given.
+  //
+  // The count is the types the component has, not the rows on screen: the API
+  // Reference above counts its props the same way, and its search narrows the
+  // rows without changing either of its counts. So the heading and the toolbar
+  // always agree, whatever "Only referenced" or the search hides.
+  const typesCount = $derived(dt('typesCount', { count: types.length }));
+  const headingMeta = $derived(meta ?? typesCount);
 
   type SlotName = keyof NonNullable<TypesReferenceProps['slotClasses']>;
   function slot(name: SlotName) {
@@ -50,17 +59,34 @@
 
   // `$derived`, not a plain const: the titles come from the locale, so a
   // language switch has to rebuild the column set (same reason as ApiReference).
+  //
+  // Every column carries its own `cell`: the default cell renders plain body
+  // text, and these columns read as the API table's do — the name as its prop
+  // name, the kind as its type, category and use count as its default.
   const columns: Column[] = $derived([
     {
       accessor: 'name',
       title: dt('typeName'),
       sortable: true,
       searchable: true,
-      minWidth: '160px'
+      minWidth: '160px',
+      cell: nameCell
     },
-    { accessor: 'kind', title: dt('typeKind'), sortable: true, minWidth: '100px' },
-    { accessor: 'category', title: dt('typeCategory'), sortable: true, minWidth: '120px' },
-    { accessor: 'usedBy', title: dt('typeUsedBy'), sortable: true, minWidth: '120px' },
+    { accessor: 'kind', title: dt('typeKind'), sortable: true, minWidth: '100px', cell: kindCell },
+    {
+      accessor: 'category',
+      title: dt('typeCategory'),
+      sortable: true,
+      minWidth: '120px',
+      cell: categoryCell
+    },
+    {
+      accessor: 'usedBy',
+      title: dt('typeUsedBy'),
+      sortable: true,
+      minWidth: '120px',
+      cell: usedByCell
+    },
     // `width` DOES reach the DOM on the standard render path — not through
     // `columnTrackGroup` (that `<colgroup>` is virtualised-only, and this
     // table's is indeed empty), but through `TableHead`, which writes
@@ -83,6 +109,21 @@
     }
   ]);
 
+  /**
+   * The props that use a type, one entry per prop. The generated list names a
+   * prop once per source it is declared in (a tv() axis that is also a direct
+   * prop arrives twice), so the raw list repeats it: counted, it overstates the
+   * column; keyed on, it throws `each_key_duplicate` and takes the page down.
+   */
+  function usersOf(t: LocalTypeDef): TypeUsedByRef[] {
+    const byProp = new Map<string, TypeUsedByRef>();
+    for (const u of Array.isArray(t.usedByProps) ? t.usedByProps : []) {
+      const key = `${u.component}.${u.propName}`;
+      if (!byProp.has(key)) byProp.set(key, u);
+    }
+    return [...byProp.values()];
+  }
+
   const tableItems = $derived.by(() =>
     (types || []).map((t, index) => ({
       id: `type-${t.name}-${index}`,
@@ -95,7 +136,7 @@
           : t.name.match(/Variants?$/)
             ? dt('categoryVariant')
             : dt('categoryHelper')),
-      usedBy: Array.isArray(t.usedByProps) ? String(t.usedByProps.length) : '0',
+      usedBy: String(usersOf(t).length),
       documentation: t.documentation || ''
     }))
   );
@@ -126,6 +167,30 @@
   }
 </script>
 
+{#snippet nameCell(_item: Record<string, unknown>, value: unknown)}
+  <code class={slot('nameCode')}>{value}</code>
+{/snippet}
+
+{#snippet kindCell(_item: Record<string, unknown>, value: unknown)}
+  <code class={slot('kindCode')}>{value}</code>
+{/snippet}
+
+<!-- `<code>`, the element the API table's default value uses: a host
+     stylesheet that sizes `code` (the docs site's `app.css` does, unlayered,
+     over `text-xs`) then sizes both columns alike. -->
+{#snippet categoryCell(_item: Record<string, unknown>, value: unknown)}
+  <code class={slot('categoryCode')}>{value}</code>
+{/snippet}
+
+<!-- No prop uses the type: the dash the API table shows for "no default". -->
+{#snippet usedByCell(_item: Record<string, unknown>, value: unknown)}
+  {#if Number(value) > 0}
+    <code class={slot('usedByCount')}>{value}</code>
+  {:else}
+    <span class={slot('placeholder')}>—</span>
+  {/if}
+{/snippet}
+
 <!-- The description column's cell. Two jobs the default cell cannot do: clamp
      the prose to two lines (see the column note above), and render the
      inline markdown the JSDoc is written with (`InlineCode`) — `slotClasses`
@@ -154,19 +219,24 @@
      heading id from it (`{id}-title`), so a page rendering more than one
      instance renames both halves at once — which is what makes the old
      instance-local `$props.id()` unnecessary. -->
+{#snippet localizedTitle()}<span lang={docsLocale()}>{dt('typesTitle')}</span>{/snippet}
+{#snippet localizedSubtitle()}<span lang={docsLocale()}>{dt('typesDescription')}</span>{/snippet}
+
 <Section
   {id}
   {marker}
-  {meta}
-  title={headingTitle}
-  subtitle={headingDescription}
+  meta={headingMeta}
+  {title}
+  titleSnippet={title == null ? localizedTitle : undefined}
+  subtitle={description}
+  subtitleSnippet={description == null ? localizedSubtitle : undefined}
   intent="secondary"
   class={className}
   {...restProps}
 >
   <div class={slot('stack')}>
     <div class={slot('toolbar')}>
-      <span>{dt('typesCount', { count: filteredItems.length })}</span>
+      <span>{typesCount}</span>
       <Checkbox
         class={slot('filterLabel')}
         size="xs"
@@ -191,7 +261,7 @@
         items={filteredItems}
         {columns}
         viewDefaults={{ pageSize: 999 }}
-        enableSmartFilter={false}
+        enableSmartFilter={tableItems.length > SEARCH_ABOVE_ROWS}
         searchPlaceholder={dt('searchTypes')}
         size="sm"
       >
@@ -203,7 +273,7 @@
                 ? `type ${t.name} = ${t.definition}`
                 : `${t.type} ${t.name} {\n${t.definition}\n}`}
             {@const values = t.type === 'type' ? extractLiteralValues(t.definition) : []}
-            {@const usedBy = Array.isArray(t.usedByProps) ? t.usedByProps : []}
+            {@const usedBy = usersOf(t)}
 
             <div id={`type-${t.name}`} class={slot('expandedPanel')}>
               <pre class={slot('codeBlock')}><code>{code}</code></pre>
@@ -251,13 +321,19 @@
               {#if usedBy.length > 0}
                 <div class={slot('usedBySection')}>
                   {dt('usedByLabel')}
+                  <!-- Link and comma in one flex item: the section is the API
+                       table's footnote line, a wrapping flex row, and a bare
+                       ", " between two links would be an item of its own with
+                       the gap on both sides of it. -->
                   {#each usedBy as u, i (`${u.component}.${u.propName}`)}
-                    <a
-                      href="#api-reference"
-                      class={slot('usedByLink')}
-                      onclick={(e) => scrollToApiProp(e, `prop-${u.propName}`)}
-                      >{u.component}.{u.propName}</a
-                    >{i < usedBy.length - 1 ? ', ' : ''}
+                    <span
+                      ><a
+                        href="#api-reference"
+                        class={slot('usedByLink')}
+                        onclick={(e) => scrollToApiProp(e, `prop-${u.propName}`)}
+                        >{u.component}.{u.propName}</a
+                      >{i < usedBy.length - 1 ? ',' : ''}</span
+                    >
                   {/each}
                 </div>
               {/if}

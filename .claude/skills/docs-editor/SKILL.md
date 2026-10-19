@@ -109,7 +109,7 @@ Before a measurement becomes a component bug, rule out the rig:
 
 `bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run sections:lint`,
 `registry:lint`, and `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path> --craft-floor 70`
-(`urbicon validate`, which lints the page's own markup). On a component page, also `typesref:lint`
+(`urbicon validate`, which lints the page's own markup). On a component page, also `refsections:lint`
 and `examples:budget`; after a JSDoc change, also `summary:lint` and `playgrounds:lint`. This is the
 docs-page subset of the `gates` job in `.github/workflows/ci.yml`; run the whole job list before
 reporting.

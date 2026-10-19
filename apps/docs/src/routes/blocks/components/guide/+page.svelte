@@ -2,6 +2,7 @@
   import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     ApiReference,
+    type ApiProp,
     CodeExample,
     DocsLayout as DocsPageLayout,
     InfoCard,
@@ -32,14 +33,11 @@
     relatedComponents: ['Dialog', 'Drawer', 'Popover', 'Tooltip']
   });
 
-  // Per-surface API tables, fed from each surface's generated api.ts (same JSDoc
-  // source the component catalog and llm.txt are built from).
-  //
-  // Every `<ApiReference>` below gets the SAME `types` list — `guide/api.ts`'s,
-  // which is what the page's one `<TypesReference>` renders. `ApiReference`
-  // links a prop's type only when that name is in its own `types`, and these
-  // tables were handed none, so those names rendered as plain text while the
-  // section documenting them sat further down the same page (#141).
+  // Every prop table renders through the `propTable` snippet, which binds this
+  // one `types` list — `guide/api.ts`'s, the list the page's one
+  // `<TypesReference>` renders. `ApiReference` links a prop's type only when the
+  // name is in its own `types`, so a table written without it would show plain
+  // text; the snippet leaves no table to write that way.
   //
   // Measured, not assumed: 11 type segments across the eight surface tables and
   // 9 across the hand-written ones become in-page links. Notably NOT among them
@@ -53,6 +51,10 @@
   //
   // Passing a surface its *own* api.ts types instead would break the links that
   // do work: they would point at rows this page does not render.
+  const types = componentData?.types ?? [];
+
+  // Per-surface API tables, fed from each surface's generated api.ts (same JSDoc
+  // source the component catalog and llm.txt are built from).
   const surfaces = [
     {
       data: providerData,
@@ -237,6 +239,10 @@
   ];
 </script>
 
+{#snippet propTable(props: ApiProp[])}
+  <ApiReference {props} {types} />
+{/snippet}
+
 <SeoMeta
   title="Guide Component"
   description="A bidirectional in-app help system: a non-modal help panel, contextual hints, UI↔guide links, and an opt-in guided tour — over one headless engine."
@@ -279,7 +285,7 @@
         <p class="text-text-secondary mb-4 text-sm">
           Mount once inside <code>GuideProvider</code>; renders nothing until a tour starts.
         </p>
-        <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
+        {@render propTable(componentData?.props ?? [])}
       </div>
 
       <div>
@@ -287,7 +293,7 @@
         <p class="text-text-secondary mb-4 text-sm">
           The headless engine. Create one and pass it to the provider for programmatic control.
         </p>
-        <ApiReference props={controllerApi} types={componentData?.types ?? []} />
+        {@render propTable(controllerApi)}
       </div>
 
       <div>
@@ -295,31 +301,34 @@
         <p class="text-text-secondary mb-4 text-sm">
           The tour definition you pass to <code>startTour</code> — lives in your app, not the library.
         </p>
-        <ApiReference props={tourApi} types={componentData?.types ?? []} />
+        {@render propTable(tourApi)}
       </div>
 
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">GuideStep</h3>
-        <ApiReference props={stepApi} types={componentData?.types ?? []} />
+        {@render propTable(stepApi)}
       </div>
 
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">GuideStepEvent / GuideEndEvent</h3>
         <p class="text-text-secondary mb-4 text-sm">The payloads passed to the analytics hooks.</p>
-        <ApiReference props={eventApi} types={componentData?.types ?? []} />
+        {@render propTable(eventApi)}
       </div>
 
       {#each surfaces as surface (surface.data.name)}
         <div>
           <h3 class="text-text-primary mb-1 text-lg font-semibold">{surface.data.name}</h3>
           <p class="text-text-secondary mb-4 text-sm">{surface.blurb}</p>
-          <ApiReference props={surface.data.props ?? []} types={componentData?.types ?? []} />
+          {@render propTable(surface.data.props ?? [])}
         </div>
       {/each}
     </div>
   </Section>
 
-  <TypesReference types={componentData?.types ?? []} />
+  <!-- Headed like every other component page's Types section: the count
+       TypesReference gives by default, and no subtitle (ReferenceSections passes
+       the same empty `description`). -->
+  <TypesReference {types} description="" />
 
   <Section marker id="installation" title="Installation">
     <CodeExample

@@ -71,11 +71,12 @@ export interface TypesReferenceProps
   extends Omit<TypesReferenceVariantProps, 'size'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /**
-   * Density of the expanded panel — code block, badges, footnotes. It does not
-   * reach the heading (that is `<Section intent="secondary">`, pinned so the
-   * types section reads as a sibling of the API Reference above it) nor the
-   * table rows (pinned to `sm`, so both reference tables on a page share one
-   * row rhythm).
+   * Density of the expanded panel — code block, badges, footnotes. `md` is the
+   * `ApiReference` panel's own density, so on a component page both tables
+   * disclose a row alike. It does not reach the heading (that is
+   * `<Section intent="secondary">`, pinned so the types section reads as a
+   * sibling of the API Reference above it) nor the table rows (pinned to `sm`,
+   * so both reference tables on a page share one row rhythm).
    * @default 'md'
    */
   size?: 'sm' | 'md' | 'lg';
@@ -85,11 +86,17 @@ export interface TypesReferenceProps
 
   /**
    * Section heading text. There is no literal default to quote: it falls back
-   * to the localized `typesTitle` — "Types" in English, "Typen" in German.
+   * to the localized `typesTitle` — "Types" in English, "Typen" in German —
+   * tagged with that locale's `lang`, so it is announced in its own language
+   * inside prose written in another. A title you pass renders as given.
    */
   title?: string;
 
-  /** Descriptive text below the title. */
+  /**
+   * Descriptive text below the title. Unset, it falls back to the localized
+   * `typesDescription` ("Local type definitions used by this component."),
+   * tagged with its locale's `lang`; an empty string renders no subtitle at all.
+   */
   description?: string;
 
   /**
@@ -115,9 +122,11 @@ export interface TypesReferenceProps
   marker?: string | boolean;
 
   /**
-   * Right-aligned counter in the section header, e.g. `"27 types"` — the same
-   * slot the API Reference section uses for its prop count. Unset by default;
-   * the toolbar above the table already states the count of what is visible.
+   * Right-aligned counter in the section header — the slot the API Reference
+   * section uses for its prop count. Unset, it is the localized count of
+   * `types` ("27 types"), the same number the toolbar above the table shows:
+   * both count the types the component has, not the rows a filter leaves on
+   * screen. An empty string shows none.
    */
   meta?: string;
 

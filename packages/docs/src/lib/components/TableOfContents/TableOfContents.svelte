@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { useDocsI18n, getDocsLocales } from '#lib/i18n/index.js';
-  import { useI18n, BASE_LOCALE } from '@urbicon-ui/i18n';
+  import { useDocsI18n, useDocsLocale } from '#lib/i18n/index.js';
   import { CodeIcon, EyeOffIcon, resolveClassChain } from '@urbicon-ui/blocks';
   import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
   import { ScrollSpy } from '#lib/stores/scroll-spy.svelte.js';
@@ -8,7 +7,7 @@
   import type { TableOfContentsProps } from './index.js';
 
   const dt = useDocsI18n();
-  const i18n = useI18n();
+  const docsLocale = useDocsLocale();
 
   // The kickers ("On this page", "Related", "Code", the code-toggle label) render
   // through `dt`, so `lang` tags ONLY those spans — never the whole aside. The
@@ -18,7 +17,7 @@
   // falls back to the base locale for any locale the docs package doesn't
   // translate, so declare the locale the kickers are ACTUALLY in. No provider →
   // base locale, which matches the untranslated default strings.
-  const tocLocale = $derived(getDocsLocales().includes(i18n.locale) ? i18n.locale : BASE_LOCALE);
+  const tocLocale = $derived(docsLocale());
 
   let {
     title,

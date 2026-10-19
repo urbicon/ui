@@ -420,11 +420,10 @@ export class DocsGeneratorCLI {
     const pageSvelte = `<script lang="ts">
   import { asset, resolve } from '$app/paths';
   import {
-    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    Section,
-    TypesReference
+    ReferenceSections,
+    Section
   } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
@@ -467,13 +466,9 @@ export class DocsGeneratorCLI {
 
   <CustomDocs />
 
-  <Section id="api" title="API Reference" intent="secondary">
-    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
-  </Section>
+  <ReferenceSections {componentData} />
 
-  <TypesReference types={componentData?.types ?? []} />
-
-  <Section id="installation" title="Installation">
+  <Section marker id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={\`import { ${name} } from '@urbicon-ui/blocks';\`}
@@ -558,21 +553,21 @@ export class DocsGeneratorCLI {
 </script>
 
 <!-- ─── Examples ─── -->
-<Section id="examples" title="Examples">
+<Section marker id="examples" title="Examples">
   <div class="space-y-8">
     <!-- TODO: Add examples -->
   </div>
 </Section>
 
 <!-- ─── Customization ─── -->
-<Section id="customization" title="Customization">
+<Section marker id="customization" title="Customization">
   <div class="space-y-4">
     <!-- TODO: Add customization examples -->
   </div>
 </Section>
 
 <!-- ─── Accessibility ─── -->
-<Section id="accessibility" title="Accessibility">
+<Section marker id="accessibility" title="Accessibility">
   <div class="prose prose-sm">
     <!-- TODO: Document accessibility features -->
   </div>
