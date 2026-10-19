@@ -214,12 +214,14 @@
   <NoteList>
     <Note>
       {#snippet titleSnippet()}
-        SVG with role="img"
+        SVG with role="group"
       {/snippet}
       <p>
-        The SVG has <code class="text-text-primary">role="img"</code> with an
-        <code class="text-text-primary">aria-label</code> that lists every connection ("Source → Target:
-        value"). A screen reader announces the diagram in a single block.
+        The SVG is a named <code class="text-text-primary">role="group"</code> whose
+        <code class="text-text-primary">aria-label</code> lists every connection ("Source → Target:
+        value"). Each node and link inside is a focusable button named by its labels; a group rather
+        than <code class="text-text-primary">role="img"</code>, which would hide those buttons from
+        assistive technology.
       </p>
     </Note>
     <Note title="Table fallback">
