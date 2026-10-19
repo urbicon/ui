@@ -1,5 +1,6 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
+import EdgeHarness from './__fixtures__/EdgeHarness.svelte';
 import RegistryHarness from './__fixtures__/RegistryHarness.svelte';
 
 /**
@@ -113,5 +114,23 @@ describe('section registry — server render', () => {
     expect(html).not.toContain('data-docs-toc');
     // The two stages still count for themselves.
     expect(Object.keys(markers(html)).sort()).toEqual(['example-demo', 'stage-demo']);
+  });
+
+  it('lists a repeated id once, as the browser does, so hydration keeps the rail', () => {
+    const html = render(EdgeHarness, { props: { s: { shape: 'repeat' } } }).body;
+
+    expect(rail(html).map((entry) => entry.href)).toEqual(['#examples', '#usage']);
+  });
+
+  it('lists the titled sections inside a section without a heading at its level', () => {
+    const html = render(EdgeHarness, { props: { s: { shape: 'headless' } } }).body;
+
+    expect(rail(html).map((entry) => entry.href)).toEqual([
+      '#intro',
+      '#grouped-a',
+      '#grouped-b',
+      '#end'
+    ]);
+    expect(markers(html)).toEqual({ intro: '01', 'grouped-a': '02', 'grouped-b': '03', end: '04' });
   });
 });

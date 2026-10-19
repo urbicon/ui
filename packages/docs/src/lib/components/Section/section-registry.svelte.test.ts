@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
+import { type Component, createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import EdgeHarness, { type EdgeState } from './__fixtures__/EdgeHarness.svelte';
 import RegistryHarness from './__fixtures__/RegistryHarness.svelte';
 import { SectionRegistry } from './section-registry.svelte.js';
 
@@ -19,16 +20,24 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function render(props: { showCustomization?: boolean; withoutLayout?: boolean }) {
+function mountHarness<P extends Record<string, unknown>>(harness: Component<P>, props: P) {
   const target = document.createElement('div');
   document.body.appendChild(target);
-  const component = mount(RegistryHarness, { target, props });
+  const component = mount(harness, { target, props });
   cleanup = () => {
     unmount(component);
     target.remove();
   };
   flushSync();
   return target;
+}
+
+function render(props: { showCustomization?: boolean; withoutLayout?: boolean }) {
+  return mountHarness(RegistryHarness, props);
+}
+
+function renderEdge(s: EdgeState) {
+  return mountHarness(EdgeHarness, { s });
 }
 
 function railHrefs(target: HTMLElement): (string | null)[] {
@@ -121,6 +130,70 @@ describe('section registry — in the browser', () => {
     expect(target.querySelector('section#examples')).not.toBeNull();
     expect(target.querySelector('aside[data-docs-toc]')).toBeNull();
     expect(Object.keys(markers(target)).sort()).toEqual(['example-demo', 'stage-demo']);
+  });
+});
+
+describe('two sections with one id', () => {
+  // The rail and the strip key their entries by id, and Svelte throws
+  // `each_key_duplicate` on a repeated key in production as well as in
+  // development, taking the page down. The server renders the repeat without a
+  // word, so the prerender stays green. Each case below threw before the TOC
+  // listed an id once.
+
+  it('a page that repeats an id lists it once, and says so in development', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const target = renderEdge({ shape: 'repeat' });
+
+    expect(railHrefs(target)).toEqual(['#examples', '#usage']);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('"examples"');
+  });
+
+  it('a page swap whose outro still plays lists each id once, without a warning', () => {
+    // A layout that outlives its pages and fades the old one out. jsdom's
+    // `animate` stub never finishes, which holds the outro at its midpoint:
+    // both pages render, and both have `examples` and `api`.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const s = $state<EdgeState>({ shape: 'swap', page: 'a' });
+    const target = renderEdge(s);
+
+    s.page = 'b';
+    flushSync();
+
+    expect(target.querySelectorAll('section#examples')).toHaveLength(2);
+    expect(railHrefs(target)).toEqual(['#overview', '#examples', '#api', '#installation']);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('{#if} branches that share an id and slide list it once, without a warning', () => {
+    // The shape the old sections lint allowed on purpose: the branches exclude
+    // each other, but the leaving one renders until its outro ends.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const s = $state<EdgeState>({ shape: 'branches', flag: true });
+    const target = renderEdge(s);
+
+    s.flag = false;
+    flushSync();
+
+    expect(target.querySelectorAll('section#mode')).toHaveLength(2);
+    expect(railHrefs(target)).toEqual(['#intro', '#mode', '#end']);
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('a section without a heading', () => {
+  it('leaves the titled sections inside it in the list and the count', () => {
+    // It has no entry to hang child entries under, so it starts no level of
+    // its own; before, the sections in it registered into one and were lost.
+    const target = renderEdge({ shape: 'headless' });
+
+    expect(railHrefs(target)).toEqual(['#intro', '#grouped-a', '#grouped-b', '#end']);
+    expect(markers(target)).toEqual({
+      intro: '01',
+      'grouped-a': '02',
+      'grouped-b': '03',
+      end: '04'
+    });
   });
 });
 

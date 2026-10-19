@@ -88,8 +88,11 @@ export const docsLayoutVariants = tv({
     stickyToc: [
       'ml-2 hidden min-w-0 items-center max-lg:group-has-[>div>[data-docs-toc]]/docs:flex'
     ],
+    // The button shows the active section's label and the links list them;
+    // labels are heading markup, so inline `code` takes the surrounding colour
+    // here as in TableOfContents.
     stickyTocButton: [
-      'flex items-center gap-1.5 rounded-modify px-2 py-0.5',
+      'flex items-center gap-1.5 rounded-modify px-2 py-0.5 [&_code]:text-inherit',
       'text-primary-text bg-primary-subtle hover:bg-primary-subtle/80',
       'text-xs font-medium whitespace-nowrap',
       'transition-colors duration-(--blocks-duration-fast)',
@@ -97,7 +100,7 @@ export const docsLayoutVariants = tv({
     ],
     stickyTocNav: ['flex max-h-[60vh] min-w-56 flex-col overflow-y-auto py-1'],
     stickyTocLink: [
-      'px-3 py-1.5 text-sm text-text-tertiary',
+      'px-3 py-1.5 text-sm text-text-tertiary [&_code]:text-inherit',
       'transition-colors duration-(--blocks-duration-fast)',
       'hover:text-text-primary hover:bg-surface-hover',
       'aria-[current]:text-primary-text aria-[current]:font-medium',

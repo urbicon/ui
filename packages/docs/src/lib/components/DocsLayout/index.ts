@@ -24,8 +24,8 @@ export interface BreadcrumbItem {
  *
  * The table of contents is the page's own outline: every `<Section>` with a
  * title registers with the layout as it renders, and the TOC lists them in
- * render order under their headings. A section nested in another becomes a
- * child entry; one shown inside a `CodeExample` or `PlaygroundConfigurator`
+ * render order under their headings. A section nested in a titled one becomes
+ * a child entry; one shown inside a `CodeExample` or `PlaygroundConfigurator`
  * stage stays out.
  *
  * @example

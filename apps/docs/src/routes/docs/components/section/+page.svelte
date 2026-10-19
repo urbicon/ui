@@ -144,9 +144,10 @@
         <p>
           With <code>marker</code> the section takes the next number in its page, and its title becomes
           its entry in the table of contents: the layout lists the titled sections in the order they render.
-          Insert a section and everything after it renumbers itself. A section nested inside another becomes
-          a child entry and takes no number, and one shown in a code example or a playground counts within
-          that stage, never in the page.
+          Insert a section and everything after it renumbers itself. A section nested inside a titled
+          one becomes a child entry and takes no number; inside an untitled one it counts as if the wrapper
+          were not there. One shown in a code example or a playground counts within that stage, never
+          in the page.
         </p>
       </Note>
     </NoteList>

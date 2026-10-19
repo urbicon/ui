@@ -312,7 +312,10 @@
             empty at this point. The rail renders after them, and `stickyToc`
             shows the control only while the layout holds that rail
             (`data-docs-toc`), so an empty popover never hides behind a list
-            icon that promises navigation, on the server or in the browser.
+            icon that promises navigation. The button is server markup, but
+            the popover opens and lists the sections only with JavaScript:
+            without it there is the rail from `lg` up and no table of contents
+            below.
 
             That rule is `max-lg:` against TableOfContents' `max-lg:hidden`:
             Tailwind's two halves of ONE named breakpoint, so exactly one of the

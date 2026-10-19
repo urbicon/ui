@@ -82,7 +82,9 @@ give passes `typesDescription` (`toast` does: which of its types a caller constr
 renders them; a section revealed later by an `{#if}` takes its place among them, and the numbers
 after it move up. A `<Section>` inside a `CodeExample` or a `PlaygroundConfigurator` is that stage's
 subject: it never reaches the page's TOC, and a numbered one counts from `01` within its stage. A
-section nested in another `<Section>` becomes a child entry of it and takes no number.
+section nested in a titled `<Section>` becomes a child entry of it and takes no number; one inside
+a `<Section>` without a title is listed and numbered at that section's level, as if it were not there.
+Two sections that share an id are listed once, under the first; a page should not have them.
 
 ## Examples Strategy
 

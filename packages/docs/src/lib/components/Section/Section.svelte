@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { type SectionSlots, sectionVariants } from './section.variants';
   import type { SectionProps } from './index.js';
   import { Badge, resolveClassChain } from '@urbicon-ui/blocks';
@@ -79,7 +79,10 @@
     }
   });
   if (registration) {
-    setSectionRegistry(registration.children);
+    // Only a section with a heading has an entry to hang child entries under;
+    // without one it stays transparent and its sections register a level up.
+    // Read once: a context is set during init or not at all.
+    if (untrack(() => hasHeading)) setSectionRegistry(registration.children);
     onDestroy(() => registration.unregister());
   }
 
@@ -91,7 +94,7 @@
 
   /** In the document from here on, the entry sorts by where the section sits. */
   function placeEntry(node: Element) {
-    if (registration) registration.element = node;
+    registration?.place(node);
   }
 </script>
 

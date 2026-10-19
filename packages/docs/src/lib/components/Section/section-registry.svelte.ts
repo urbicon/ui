@@ -1,5 +1,5 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
-import type { Snippet } from 'svelte';
+import { type Snippet, untrack } from 'svelte';
 import { SvelteSet } from 'svelte/reactivity';
 import type { TocNavigationItem } from '../TableOfContents/index.js';
 
@@ -19,8 +19,10 @@ import type { TocNavigationItem } from '../TableOfContents/index.js';
  * - `CodeExample` and `PlaygroundConfigurator` start one for their stage, so a
  *   `<Section>` shown as a demo is numbered inside its stage and never reaches
  *   the page's table of contents.
- * - Every registered `<Section>` starts one for its own subtree: a section
- *   nested in another becomes a child entry of it and takes no number.
+ * - Every registered `<Section>` with a heading starts one for its own
+ *   subtree: a section nested in it becomes a child entry and takes no number.
+ *   A section without a heading starts none, so the sections it wraps belong
+ *   to the level above it; it has no entry they could be the children of.
  *
  * A `<Section>` with no registry above it registers nowhere and renders no
  * marker.
@@ -88,9 +90,31 @@ export class RegisteredSection {
     return this.#registry.numberOf(this);
   }
 
+  /**
+   * Records the rendered `<section>` once it is in the document. Untracked:
+   * the caller is an attachment's effect, which must not re-run whenever
+   * another section registers.
+   */
+  place(element: Element): void {
+    this.element = element;
+    if (import.meta.env?.DEV) untrack(() => this.#registry.warnOnSharedId(this));
+  }
+
   unregister(): void {
     this.#registry.remove(this);
   }
+}
+
+/**
+ * Whether an outro is taking `element` off the page: Svelte sets `inert` on the
+ * element a running outro animates (`transitions.js`, `out()`), and restores it
+ * if the outro is reversed.
+ */
+function leaving(element: Element): boolean {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    if ((node as HTMLElement).inert) return true;
+  }
+  return false;
 }
 
 /** `a` before `b` when `a` comes first in the document; entries not yet in it come last. */
@@ -133,19 +157,48 @@ export class SectionRegistry {
     return position === -1 ? undefined : position + 1;
   }
 
-  /** The table of contents: every section with a heading, labelled by it. */
+  /**
+   * The table of contents: every section with a heading, labelled by it, and
+   * each id once, the first in document order. The rail and the strip key their
+   * entries by id, and a repeated key throws `each_key_duplicate` in the
+   * browser, taking the page down. Two sections share an id when a page repeats
+   * one, and for as long as an outro plays: an `{#if}` swap or a page
+   * transition keeps the leaving section rendered beside the one replacing it.
+   */
   get toc(): TocNavigationItem[] {
-    return this.sections.flatMap((section) =>
-      section.heading
-        ? [
-            {
-              id: section.id,
-              title: section.heading,
-              children: section.children.toc.map(({ id, title }) => ({ id, title }))
-            }
-          ]
-        : []
+    const listed = new Set<string>();
+    return this.sections.flatMap((section) => {
+      if (!section.heading || listed.has(section.id)) return [];
+      listed.add(section.id);
+      return [
+        {
+          id: section.id,
+          title: section.heading,
+          children: section.children.toc.map(({ id, title }) => ({ id, title }))
+        }
+      ];
+    });
+  }
+
+  /**
+   * Dev only: says so when two sections on screen share an id. Asked when a
+   * section is placed, not when it registers: Svelte creates an incoming branch
+   * before it outros the outgoing one, so at registration a section on its way
+   * out still holds the id. By the time the newcomer is placed, one without an
+   * outro is gone and one with an outro is `leaving`.
+   */
+  warnOnSharedId(entry: RegisteredSection): void {
+    if (!entry.element || leaving(entry.element)) return;
+    const twin = [...this.#entries].some(
+      (other) =>
+        other !== entry && other.id === entry.id && other.element && !leaving(other.element)
     );
+    if (twin) {
+      console.warn(
+        `[@urbicon-ui/docs] Two sections share the id "${entry.id}". The table of contents ` +
+          `lists the first, and #${entry.id} can reach only one of them.`
+      );
+    }
   }
 }
 
