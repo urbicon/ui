@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.32.0](https://github.com/urbicon/ui/compare/v8.31.0...v8.32.0) - 2026-10-19
+
+### Breaking Changes
+- **docs-gen**: Resolve prop values through the type checker ([#553](https://github.com/urbicon/ui/issues/553))
+> **BREAKING:** @urbicon-ui/docs deriveControls no longer reads types[]; DerivableComponentData drops its types field.
+- **blocks**: Let a stored input value win and drop old persist versions ([#555](https://github.com/urbicon/ui/issues/555))
+- **docs**: Derive the table of contents and markers from the sections ([#561](https://github.com/urbicon/ui/issues/561))
+> **BREAKING:** DocsLayout drops navigation: the TOC lists every titled Section it renders, and a titleSnippet also renders inside its TOC link; Section and TypesReference marker are boolean only; TocNavigationItem.title is string | Snippet.
+- **blocks**: Name sankey links by label, let locale place percent sign ([#562](https://github.com/urbicon/ui/issues/562))
+> **BREAKING:** generated percent text and Sankey link names change (MIGRATION.md, 8.32.0)
+
+### Bug Fixes
+- Run CI's suites in the bump and refuse a clone git-cliff misreads ([#554](https://github.com/urbicon/ui/issues/554))
+- **docs-gen**: Follow omit heritage and fix variants-file discovery ([#557](https://github.com/urbicon/ui/issues/557))
+
+### CI/CD
+- Move the examples-lint control to gates and weight the e2e shards ([#563](https://github.com/urbicon/ui/issues/563))
+
+### Features
+- **blocks**: Evaluate a2ui not/and/or and check required components ([#556](https://github.com/urbicon/ui/issues/556))
+- **docs**: Render a page's api and types tables from one binding ([#558](https://github.com/urbicon/ui/issues/558))
+- **auth**: Accept a predicate for publicRoutes ([#559](https://github.com/urbicon/ui/issues/559))
+
 ## [8.31.0](https://github.com/urbicon/ui/compare/v8.30.0...v8.31.0) - 2026-10-17
 
 ### Breaking Changes
@@ -96,11 +119,6 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - Move the platform to SvelteKit 3, sv 1 and Vitest 5 ([#505](https://github.com/urbicon/ui/issues/505))
 > **BREAKING:** requires SvelteKit 3, Node 22.17, Svelte 5.57.1 (AUTH.md, Upgrade note SvelteKit 3)
 > **BREAKING:** tests importing @urbicon-ui/auth/server need the sveltekit() plugin in Vitest
-
-## [8.26.1](https://github.com/urbicon/ui/compare/v8.26.0...v8.26.1) - 2026-10-04
-
-### Features
-- **docs-app**: The inventory stays a table below 1420px and clears the header bar
 
 ## [8.26.0](https://github.com/urbicon/ui/compare/v8.25.0...v8.26.0) - 2026-09-24
 
