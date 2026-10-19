@@ -4,12 +4,13 @@ import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Sankey from './Sankey.svelte';
 
-// Interaction contract of the Sankey wrapper — the two things the variant tests
-// can't see: (1) the chart root is a named group (role="img" would flatten the
-// interactive role="button" paths/nodes out of the accessibility tree) and
+// Interaction contract of the Sankey wrapper — the three things the variant
+// tests can't see: (1) the chart root is a named group (role="img" would flatten
+// the interactive role="button" paths/nodes out of the accessibility tree),
 // (2) a consumer-provided onmousemove is forwarded alongside the internal
-// tooltip tracker instead of clobbering it via the restProps spread. Repo
-// stack: svelte's own mount/unmount, @testing-library/dom, native matchers.
+// tooltip tracker instead of clobbering it via the restProps spread, and (3) a
+// link's accessible name uses the node labels, not the ids. Repo stack:
+// svelte's own mount/unmount, @testing-library/dom, native matchers.
 
 let dispose: (() => void) | undefined;
 
@@ -67,5 +68,11 @@ describe('Sankey (component interaction)', () => {
     expect(tooltip?.style.top).toBe('58px');
     // Consumer handler was forwarded, not clobbered by the internal one.
     expect(onmousemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('names each link by its node labels, like the nodes and the summary', () => {
+    renderSankey({ formatValue: (v) => String(v) });
+    const link = document.querySelector('path[role="button"]');
+    expect(link?.getAttribute('aria-label')).toBe('Gas → Heating: 100');
   });
 });

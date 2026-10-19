@@ -47,7 +47,7 @@
       </div>
       <div>
         <span class="text-xs text-text-tertiary">Salary</span>
-        <p class="text-sm">{item.salary.toLocaleString()} \u20AC</p>
+        <p class="text-sm">\u20AC{item.salary.toLocaleString('en-US')}</p>
       </div>
       <div>
         <span class="text-xs text-text-tertiary">Projects</span>
@@ -73,7 +73,7 @@
             <div>
               <span class="text-text-tertiary text-xs">Salary</span>
               <p class="text-text-primary text-sm">
-                {item.salary.toLocaleString()} &euro;
+                &euro;{item.salary.toLocaleString('en-US')}
               </p>
             </div>
             <div>

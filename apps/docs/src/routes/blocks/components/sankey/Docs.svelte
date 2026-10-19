@@ -13,47 +13,47 @@
   // 5-stage heating cost Sankey: sources → pot → heating/hot water → units
   const heatingNodes: SankeyNode[] = [
     { id: 'gas', label: 'Gas bill', intent: 'primary' },
-    { id: 'wp', label: 'Heat pump electricity', intent: 'secondary' },
-    { id: 'wartung', label: 'Maintenance', intent: 'success' },
-    { id: 'schorn', label: 'Chimney sweep', intent: 'warning' },
-    { id: 'topf', label: 'Heating cost pot', intent: 'neutral' },
-    { id: 'heiz', label: 'Heating', intent: 'primary' },
-    { id: 'ww', label: 'Hot water', intent: 'secondary' },
-    { id: 'we4', label: 'Unit 4', intent: 'neutral' },
-    { id: 'we4a', label: 'Unit 4A', intent: 'neutral' }
+    { id: 'heatPump', label: 'Heat pump electricity', intent: 'secondary' },
+    { id: 'maintenance', label: 'Maintenance', intent: 'success' },
+    { id: 'chimney', label: 'Chimney sweep', intent: 'warning' },
+    { id: 'pot', label: 'Heating cost pot', intent: 'neutral' },
+    { id: 'heating', label: 'Heating', intent: 'primary' },
+    { id: 'hotWater', label: 'Hot water', intent: 'secondary' },
+    { id: 'unit4', label: 'Unit 4', intent: 'neutral' },
+    { id: 'unit4a', label: 'Unit 4A', intent: 'neutral' }
   ];
 
   const heatingLinks: SankeyLink[] = [
-    { source: 'gas', target: 'topf', value: 220609 },
-    { source: 'wp', target: 'topf', value: 112731 },
-    { source: 'wartung', target: 'topf', value: 36102 },
-    { source: 'schorn', target: 'topf', value: 12800 },
-    { source: 'topf', target: 'heiz', value: 310503 },
-    { source: 'topf', target: 'ww', value: 71739 },
-    { source: 'heiz', target: 'we4', value: 185547 },
-    { source: 'heiz', target: 'we4a', value: 124956 },
-    { source: 'ww', target: 'we4', value: 39477 },
-    { source: 'ww', target: 'we4a', value: 32262 }
+    { source: 'gas', target: 'pot', value: 220609 },
+    { source: 'heatPump', target: 'pot', value: 112731 },
+    { source: 'maintenance', target: 'pot', value: 36102 },
+    { source: 'chimney', target: 'pot', value: 12800 },
+    { source: 'pot', target: 'heating', value: 310503 },
+    { source: 'pot', target: 'hotWater', value: 71739 },
+    { source: 'heating', target: 'unit4', value: 185547 },
+    { source: 'heating', target: 'unit4a', value: 124956 },
+    { source: 'hotWater', target: 'unit4', value: 39477 },
+    { source: 'hotWater', target: 'unit4a', value: 32262 }
   ];
 
   const salaryNodes: SankeyNode[] = [
-    { id: 'brutto', label: 'Gross salary', intent: 'primary' },
-    { id: 'lst', label: 'Income tax', intent: 'danger' },
-    { id: 'sv', label: 'Social contributions', intent: 'warning' },
-    { id: 'kv', label: 'Health insurance', intent: 'warning' },
-    { id: 'rv', label: 'Pension insurance', intent: 'warning' },
-    { id: 'av', label: 'Unemployment ins.', intent: 'warning' },
-    { id: 'pv', label: 'Long-term care', intent: 'warning' },
-    { id: 'netto', label: 'Net pay', intent: 'success' }
+    { id: 'gross', label: 'Gross salary', intent: 'primary' },
+    { id: 'incomeTax', label: 'Income tax', intent: 'danger' },
+    { id: 'social', label: 'Social contributions', intent: 'warning' },
+    { id: 'health', label: 'Health insurance', intent: 'warning' },
+    { id: 'pension', label: 'Pension insurance', intent: 'warning' },
+    { id: 'unemployment', label: 'Unemployment ins.', intent: 'warning' },
+    { id: 'care', label: 'Long-term care', intent: 'warning' },
+    { id: 'net', label: 'Net pay', intent: 'success' }
   ];
   const salaryLinks: SankeyLink[] = [
-    { source: 'brutto', target: 'lst', value: 850 },
-    { source: 'brutto', target: 'sv', value: 1080 },
-    { source: 'sv', target: 'kv', value: 360 },
-    { source: 'sv', target: 'rv', value: 480 },
-    { source: 'sv', target: 'av', value: 90 },
-    { source: 'sv', target: 'pv', value: 150 },
-    { source: 'brutto', target: 'netto', value: 2570 }
+    { source: 'gross', target: 'incomeTax', value: 850 },
+    { source: 'gross', target: 'social', value: 1080 },
+    { source: 'social', target: 'health', value: 360 },
+    { source: 'social', target: 'pension', value: 480 },
+    { source: 'social', target: 'unemployment', value: 90 },
+    { source: 'social', target: 'care', value: 150 },
+    { source: 'gross', target: 'net', value: 2570 }
   ];
 
   const minimalNodes: SankeyNode[] = [
@@ -161,7 +161,7 @@
         <Sankey
           nodes={minimalNodes}
           links={minimalLinks}
-          formatValue={(v) => `${v} %`}
+          formatValue={(v) => `${v}%`}
           height={140}
           nodeWidth={16}
           nodePadding={10}

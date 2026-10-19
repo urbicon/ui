@@ -37,7 +37,7 @@
         Consumption share
       </span>
       <HelpTooltip term={glossary['heizkv-7'].term} text={glossary['heizkv-7'].text} />
-      <span class="text-text-tertiary ml-auto text-sm tabular-nums">{consumptionShare} %</span>
+      <span class="text-text-tertiary ml-auto text-sm tabular-nums">{consumptionShare}%</span>
     </div>
     <Slider
       min={0}
@@ -94,7 +94,7 @@
         <th class="py-2 pr-4 font-medium">
           <span class="inline-flex items-center gap-1">
             Heat meter reading
-            <HelpTooltip term={glossary.heatMeter.term} text={glossary.heatMeter.text} />
+            <HelpTooltip term={glossary['heat-meter'].term} text={glossary['heat-meter'].text} />
           </span>
         </th>
         <th class="py-2 font-medium">Consumption</th>
@@ -136,7 +136,7 @@
               </span>
               <HelpTooltip term={glossary['heizkv-7'].term} text={glossary['heizkv-7'].text} />
               <span class="text-text-tertiary ml-auto text-sm tabular-nums"
-                >{consumptionShare} %</span
+                >{consumptionShare}%</span
               >
             </div>
             <Slider
@@ -192,7 +192,10 @@
                 <th class="py-2 pr-4 font-medium">
                   <span class="inline-flex items-center gap-1">
                     Heat meter reading
-                    <HelpTooltip term={glossary.heatMeter.term} text={glossary.heatMeter.text} />
+                    <HelpTooltip
+                      term={glossary['heat-meter'].term}
+                      text={glossary['heat-meter'].text}
+                    />
                   </span>
                 </th>
                 <th class="py-2 font-medium">Consumption</th>

@@ -77,7 +77,7 @@
           formatValue={formatEur}
           size="lg"
           showTotal
-          totalLabel="Expected 5.000,00 €"
+          totalLabel="Expected €5,000.00"
         />
       </div>
     </CodeExample>
@@ -91,8 +91,8 @@
       <div class="w-full max-w-xl">
         <CompositionBar
           items={tokenItems}
-          formatValue={(v) => `${v} %`}
-          formatPercent={(p) => `${Math.round(p)} %`}
+          formatValue={(v) => `${v}%`}
+          formatPercent={(p) => `${Math.round(p)}%`}
           size="lg"
           legendPlacement="bottom"
         />
@@ -115,7 +115,7 @@
           {#snippet tooltip(item, percent)}
             <span class="block font-medium">{item.label}</span>
             <span class="text-text-tertiary text-2xs block tabular-nums">
-              {formatEur(item.value)} · {Math.round(percent)} %
+              {formatEur(item.value)} · {Math.round(percent)}%
             </span>
             {#if item.intent === 'warning'}
               <span class="text-warning text-3xs mt-1 block tracking-wide uppercase">
@@ -140,8 +140,8 @@
         </header>
         <CompositionBar
           items={tokenItems}
-          formatValue={(v) => `${v} %`}
-          formatPercent={(p) => `${Math.round(p)} %`}
+          formatValue={(v) => `${v}%`}
+          formatPercent={(p) => `${Math.round(p)}%`}
           size="sm"
           legendPlacement="bottom"
         />

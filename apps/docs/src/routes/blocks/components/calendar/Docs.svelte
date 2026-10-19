@@ -57,7 +57,7 @@ const categories: CalendarEventCategory[] = [
   { id: 'deadline', label: 'Deadline', color: '#ef4444' }
 ];
 
-<Calendar {events} {categories} showLegend showWeekNumbers />`;
+<Calendar {events} {categories} locale="de-DE" showLegend showWeekNumbers />`;
 
   // Three of the four examples below group several demos under one heading (nine
   // headings was more than anyone reads). Where the demos differ only by a prop,
@@ -68,12 +68,20 @@ const categories: CalendarEventCategory[] = [
   view="week"
   {events}
   {categories}
+  locale="de-DE"
   timeGridStartHour={8}
   timeGridEndHour={18}
   timeGridInterval={30}
 />
 
-<Calendar view="year" views={['month', 'year']} {events} {categories} defaultYear={2026} />
+<Calendar
+  view="year"
+  views={['month', 'year']}
+  {events}
+  {categories}
+  locale="de-DE"
+  defaultYear={2026}
+/>
 
 <!-- The agenda counts its days from the reference date, so this lists three
      weeks starting on 10 March — and agendaDays={1} beside a defaultDate is
@@ -82,6 +90,7 @@ const categories: CalendarEventCategory[] = [
   view="agenda"
   {events}
   {categories}
+  locale="de-DE"
   agendaDays={21}
   defaultDate={new Date(2026, 2, 10)}
 />`;
@@ -118,7 +127,7 @@ const categories: CalendarEventCategory[] = [
   <div class="space-y-10">
     <CodeExample
       title="Events in a month view"
-      description="The month grid is the default. An event can cover a single day, span consecutive days, or repeat on a schedule; the calendar expands a recurrence rule into its occurrences, so you define it once. Clicking a day opens its detail list."
+      description="The month grid is the default. An event can cover a single day, span consecutive days, or repeat on a schedule; the calendar expands a recurrence rule into its occurrences, so you define it once. Clicking a day opens its detail list, and these demos pin `locale` to `de-DE` to show the German month and weekday names."
       code={eventShapesCode}
     >
       <div class="space-y-10">
@@ -130,7 +139,7 @@ const categories: CalendarEventCategory[] = [
 
     <CodeExample
       title="Week, year and agenda views"
-      description="Same component, same events, one prop. Pick week with a time grid when the hour matters, year when the question is distribution across months, and agenda when the reader wants a list rather than a grid. The agenda's window runs `agendaDays` days from the reference date and its arrows step that whole window, so a one-day list is `agendaDays=&#123;1&#125;` beside a `defaultDate`. The snippet shows only what differs between the three."
+      description="Same component, same events, one prop. Pick week with a time grid when the hour matters, year when the question is distribution across months, and agenda when the reader wants a list rather than a grid. The agenda's window runs `agendaDays` days from the reference date and its arrows step that whole window, so a one-day list is `agendaDays=&#123;1&#125;` beside a `defaultDate`. The snippet shows what differs between the three, plus the `locale` all three pin to `de-DE` for German day and month names."
       code={viewsCode}
     >
       <div class="space-y-10">

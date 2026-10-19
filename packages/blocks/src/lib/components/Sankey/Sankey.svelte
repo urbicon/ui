@@ -298,7 +298,7 @@
           <path
             tabindex="0"
             role="button"
-            aria-label={`${link.source.id} → ${link.target.id}: ${fmtValue(link.value)}`}
+            aria-label={`${nodeLabelById(link.source.id)} → ${nodeLabelById(link.target.id)}: ${fmtValue(link.value)}`}
             class={unstyled
               ? (slotClasses?.link ?? '')
               : styles.link({

@@ -1052,7 +1052,7 @@
                                 type="button"
                                 class={['house', house === h.name && 'on']}
                                 aria-pressed={house === h.name}
-                                aria-label={`${h.name}, ${h.city} — ${h.load} % booked`}
+                                aria-label={`${h.name}, ${h.city} — ${h.load}% booked`}
                                 onclick={() => (house = house === h.name ? null : h.name)}
                               >
                                 <span class="blk" data-blk="Progress">
@@ -1061,7 +1061,7 @@
                                     label={h.name}
                                     showValue
                                     size="sm"
-                                    formatValue={(v) => `${v} %`}
+                                    formatValue={(v) => `${v}%`}
                                   />
                                 </span>
                               </button>
@@ -1079,7 +1079,7 @@
                               size="sm"
                               showLegend
                               showPercentages={false}
-                              formatValue={(v) => `${v} %`}
+                              formatValue={(v) => `${v}%`}
                               legendPlacement="bottom"
                             />
                           </div>

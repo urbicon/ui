@@ -4,7 +4,7 @@
   const reasoning: ChatReasoningPart = {
     type: 'reasoning',
     durationMs: 3000,
-    text: 'Kurz abgewogen: `Toast` für die Bestätigung, kein `Dialog` — die Aktion ist nicht destruktiv.'
+    text: 'Briefly weighed: a `Toast` for the confirmation, not a `Dialog`, since the action is not destructive.'
   };
 
   // formatDuration receives whole seconds; thinkingLabel / reasoningLabel cover

@@ -54,7 +54,7 @@
     showEventList
     showLegend
     showWeekNumbers
-    locale="en-US"
+    locale="de-DE"
     defaultMonth={2}
     defaultYear={2026}
     showViewSwitcher={false}

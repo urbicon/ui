@@ -117,7 +117,7 @@
   ];
   const isFullBleed = $derived(isLanding || CONTAINED_SCROLL_PAGES.includes(page.url.pathname));
 
-  // Color Rooms accent per page ("Farbe = Familie"). A component page wears the
+  // Color Rooms accent per page ("colour = family"). A component page wears the
   // channel of its component FAMILY — the same colour the landing's index row
   // shows for it; everything else (overviews, /recipes, /icons, …) falls back to
   // its product AREA. Both tables are generated from the docs-gen catalogues

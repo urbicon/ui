@@ -140,7 +140,7 @@ toaster.clear();`}
       title="Document Editor"
       description="Fire the toast from the same handler that does the work, and pass the result into the description."
       code={`<Button onclick={() => toaster.success('Saved', {
-  description: 'Draft saved at ' + new Date().toLocaleTimeString()
+  description: 'Draft saved at ' + new Date().toLocaleTimeString('en-US')
 })}>Save Draft</Button>`}
       previewClass="flex justify-center py-4"
     >
@@ -167,7 +167,7 @@ toaster.clear();`}
             intent="primary"
             onclick={() =>
               toaster.success('Saved', {
-                description: 'Draft saved at ' + new Date().toLocaleTimeString()
+                description: 'Draft saved at ' + new Date().toLocaleTimeString('en-US')
               })}
           >
             Save Draft

@@ -85,7 +85,7 @@
     {categories}
     showLegend
     agendaDays={21}
-    locale="en-US"
+    locale="de-DE"
     defaultDate={new Date(2026, 2, 10)}
   />
 </div>
