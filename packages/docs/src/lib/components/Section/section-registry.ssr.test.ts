@@ -17,8 +17,8 @@ function serverHtml(props: { showCustomization?: boolean; withoutLayout?: boolea
 /** Text content: tags and Svelte's hydration comments dropped, whitespace collapsed. */
 const textOf = (html: string) =>
   html
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<[^>]+>/g, '')
+    .split(/<!--[\s\S]*?-->|<[^>]+>/)
+    .join('')
     .replace(/\s+/g, ' ')
     .trim();
 
