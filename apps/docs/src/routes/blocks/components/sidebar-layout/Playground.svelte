@@ -120,8 +120,8 @@
           sits underneath the rail. Below 1024px the rail becomes an overlay and this column reflows
           to full width.
         </p>
-        <!-- `collapsible` blendet die Leiste auf allen Viewports aus; ohne einen
-             Öffner im Inhalt wäre der Modus in der Vorschau eine Sackgasse. -->
+        <!-- `collapsible` hides the rail on every viewport; without an opener in the
+             content, the mode is a dead end. -->
         {#if values.mode === 'collapsible' && !open}
           <button class="text-primary mt-4 text-sm hover:underline" onclick={() => (open = true)}>
             Show sidebar

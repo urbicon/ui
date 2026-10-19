@@ -91,11 +91,11 @@
         validRange={[50, 100]}
         recommendedRange={[60, 80]}
         showValue
-        formatValue={(v) => `${v} %`}
+        formatValue={(v) => `${v}%`}
         rangeStatusText={{
           insideRecommended: 'Billing-regulation standard (recommended)',
           insideValidOnly: 'Compliant with the billing regulation, but outside the recommendation',
-          outsideValid: 'Billing-regulation violation: at least 50 % must be consumption-based'
+          outsideValid: 'Billing-regulation violation: at least 50% must be consumption-based'
         }}
       />
       <Slider

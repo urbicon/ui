@@ -18,7 +18,7 @@
 @import '@urbicon-ui/blocks/style/index.css';
 @import './lib/style/rooms-docs.css';   /* Schibsted, cream paper, room accent */`;
 
-  const roomAccentExample = `// apps/docs/src/routes/+layout.svelte — "Farbe = Familie"
+  const roomAccentExample = `// apps/docs/src/routes/+layout.svelte — "colour = family"
 // the page's component family picks the channel, the product area is only the
 // fallback; the layout stamps the NAME, never a colour
 const room = $derived(channelNameForRoute(page.url.pathname));

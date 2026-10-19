@@ -19,17 +19,17 @@
     {
       id: '2',
       title: 'Dentist',
-      start: new Date(2026, 2, 11),
-      categoryId: 'health',
-      helperText: '10:00 AM'
+      start: new Date(2026, 2, 11, 10, 0),
+      allDay: false,
+      categoryId: 'health'
     },
     { id: '3', title: 'Code Review', start: new Date(2026, 2, 11), categoryId: 'work' },
     {
       id: '4',
       title: 'Yoga class',
-      start: new Date(2026, 2, 12),
-      categoryId: 'health',
-      helperText: '6:00 PM'
+      start: new Date(2026, 2, 12, 18, 0),
+      allDay: false,
+      categoryId: 'health'
     },
     {
       id: '5',
@@ -48,9 +48,9 @@
     {
       id: '8',
       title: 'Parent-teacher night',
-      start: new Date(2026, 2, 18),
-      categoryId: 'personal',
-      helperText: '7:30 PM'
+      start: new Date(2026, 2, 18, 19, 30),
+      allDay: false,
+      categoryId: 'personal'
     },
     {
       id: '9',
@@ -69,9 +69,9 @@
     {
       id: '11',
       title: 'Morning run',
-      start: new Date(2026, 2, 22),
-      categoryId: 'health',
-      helperText: '7:00 AM'
+      start: new Date(2026, 2, 22, 7, 0),
+      allDay: false,
+      categoryId: 'health'
     },
     { id: '12', title: 'Quarterly report', start: new Date(2026, 2, 25), categoryId: 'work' }
   ];
@@ -85,7 +85,7 @@
     {categories}
     showLegend
     agendaDays={21}
-    locale="en-US"
+    locale="de-DE"
     defaultDate={new Date(2026, 2, 10)}
   />
 </div>

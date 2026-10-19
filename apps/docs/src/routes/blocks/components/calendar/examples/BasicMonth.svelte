@@ -20,9 +20,9 @@
     {
       id: '2',
       title: 'Dentist',
-      start: new Date(2026, 2, 4),
-      categoryId: 'health',
-      helperText: '10:00 AM'
+      start: new Date(2026, 2, 4, 10, 0),
+      allDay: false,
+      categoryId: 'health'
     },
     { id: '3', title: 'Design Review', start: new Date(2026, 2, 5), categoryId: 'meeting' },
     {
@@ -56,9 +56,9 @@
     {
       id: '14',
       title: 'Checkup',
-      start: new Date(2026, 2, 26),
-      categoryId: 'health',
-      helperText: '2:30 PM'
+      start: new Date(2026, 2, 26, 14, 30),
+      allDay: false,
+      categoryId: 'health'
     },
     { id: '15', title: 'Quarterly report', start: new Date(2026, 2, 31), categoryId: 'deadline' }
   ];

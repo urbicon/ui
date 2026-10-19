@@ -19,7 +19,7 @@
   const trace: TraceNode = {
     label: 'Heating costs unit 4',
     value: '€1,855.47',
-    formula: 'heating cost pool · WMZ_unit4 / WMZ_total',
+    formula: 'heating cost pool · meter_unit4 / meter_total',
     children: [
       {
         label: 'Heating cost pool',
@@ -56,17 +56,21 @@
           {
             label: 'Hot-water share',
             value: '18.77%',
-            formula: '2.5 · (V_ww · (60 − 10)) / Q_total'
+            formula: '2.5 · (V_hw · (60 − 10)) / Q_total'
           }
         ]
       },
       {
-        label: 'WMZ share unit 4',
+        label: 'Heat meter share unit 4',
         value: '59.76%',
         formula: 'heat meter consumption / Σ of all units',
         children: [
-          { label: 'WMZ unit 4', value: '12,450 kWh', reference: 'Meter reading 2024-12-31' },
-          { label: 'WMZ total', value: '20,838 kWh' }
+          {
+            label: 'Heat meter unit 4',
+            value: '12,450 kWh',
+            reference: 'Meter reading 2024-12-31'
+          },
+          { label: 'Heat meter total', value: '20,838 kWh' }
         ]
       }
     ]
@@ -92,7 +96,7 @@
   const trace: TraceNode = {
     label: 'Heating costs unit 4',
     value: '€1,855.47',
-    formula: 'heating cost pool · WMZ_unit4 / WMZ_total',
+    formula: 'heating cost pool · meter_unit4 / meter_total',
     children: [
       {
         label: 'Heating cost pool',
@@ -101,12 +105,16 @@
         children: [/* … the fuel and maintenance receipts, and the hot-water split … */]
       },
       {
-        label: 'WMZ share unit 4',
+        label: 'Heat meter share unit 4',
         value: '59.76%',
         formula: 'heat meter consumption / Σ of all units',
         children: [
-          { label: 'WMZ unit 4', value: '12,450 kWh', reference: 'Meter reading 2024-12-31' },
-          { label: 'WMZ total', value: '20,838 kWh' }
+          {
+            label: 'Heat meter unit 4',
+            value: '12,450 kWh',
+            reference: 'Meter reading 2024-12-31'
+          },
+          { label: 'Heat meter total', value: '20,838 kWh' }
         ]
       }
     ]

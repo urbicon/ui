@@ -32,13 +32,13 @@
     {
       id: 'yoga',
       title: 'Yoga',
-      start: new Date(2026, 2, 3),
+      start: new Date(2026, 2, 3, 18, 0),
+      allDay: false,
       categoryId: 'sport',
-      helperText: '6:00 PM',
       recurrence: { frequency: 'weekly', byDay: [2, 4] }
     },
     {
-      id: 'restmuell',
+      id: 'general-waste',
       title: 'General waste',
       start: new Date(2026, 2, 4),
       categoryId: 'waste',
@@ -54,7 +54,7 @@
     showEventList
     showLegend
     showWeekNumbers
-    locale="en-US"
+    locale="de-DE"
     defaultMonth={2}
     defaultYear={2026}
     showViewSwitcher={false}

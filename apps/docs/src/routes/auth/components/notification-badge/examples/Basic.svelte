@@ -9,9 +9,9 @@
 <div class="flex items-center gap-6">
   <div class="relative">
     <span class="text-text-secondary text-sm">Notifications</span>
-    <!-- Bewusst kein `alert()`: Das Beispiel läuft auch außerhalb der
-         Doku-Seite (Landing-Hero), und ein Browser-Dialog blockiert dort alles
-         andere. Die Rückmeldung steht daneben. -->
+    <!-- No `alert()`: this example also runs outside the docs page (in the
+         landing hero), where a browser dialog would block everything else. The
+         feedback renders beside the badge instead. -->
     <NotificationBadge {count} onclick={() => (lastClick = count)} />
   </div>
 

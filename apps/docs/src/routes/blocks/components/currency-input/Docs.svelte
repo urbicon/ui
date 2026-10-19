@@ -82,7 +82,7 @@
     <p>
       <code>CurrencyInput</code> stores values in <strong>minor units</strong> (cents) so summing,
       sorting, and persisting amounts stay free of floating-point drift. When integrating with an
-      API or datastore that uses major-unit floats (e.g. <code>1234.56</code> for €1.234,56), use
+      API or datastore that uses major-unit floats (e.g. <code>1234.56</code> for €1,234.56), use
       the exported <code>centsToMajor</code> / <code>majorToCents</code> helpers at the boundary, and
       keep the in-memory value in cents.
     </p>

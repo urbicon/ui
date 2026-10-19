@@ -186,7 +186,7 @@
             <span class="text-text-primary text-sm font-semibold">All systems operational</span>
           </div>
           <p class="text-text-tertiary mb-3 text-xs leading-relaxed">
-            Last checked 2 min ago. Uptime 99.98 % over 30 days.
+            Last checked 2 min ago. Uptime 99.98% over 30 days.
           </p>
           <Button
             variant="ghost"
