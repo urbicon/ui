@@ -20,11 +20,12 @@
 </script>
 
 <script lang="ts">
-  // A chart mounted under a request-scoped i18n state, so a test reads the
-  // strings a chart translates itself — the data-table headers, the names of
-  // unnamed series — in a locale other than the base one. The caller registers
-  // the bundle first (`registerMarkedLocale`): `fr` has no loader, so without it
-  // every string resolves to English.
+  // A chart mounted under a request-scoped i18n state, so a test reads what a
+  // chart translates or formats itself — the data-table headers, the names of
+  // unnamed series, the default percent of CompositionBar and Sankey — in a
+  // locale other than the base one. A string needs its bundle registered first
+  // (`registerMarkedLocale`): `fr` has no loader, so without it every string
+  // resolves to English. Number formatting reads only the locale and needs none.
   import { provideI18n } from '@urbicon-ui/i18n';
   import type { Component } from 'svelte';
 
@@ -36,7 +37,8 @@
     locale: Locale;
     // `any`: Component checks its props parameter contravariantly, so
     // `Component<BarChartProps>` is no `Component<Record<string, unknown>>`
-    // and no one concrete type takes all four charts. The caller types `props`.
+    // and no one concrete type takes every chart hosted here. The caller types
+    // `props`.
     chart: Component<any>;
     props: Record<string, unknown>;
   } = $props();

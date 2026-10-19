@@ -62,6 +62,9 @@ describe('CompositionBar (default percent format)', () => {
   it('writes the percent sign the way the active locale does', () => {
     renderBar({ items: shares });
     expect(segmentLabels()).toEqual(['Gas: 60 (60.0%)', 'Power: 40 (40.0%)']);
+    expect(document.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe(
+      'Composition: 100 (2 shares) — Gas 60.0%, Power 40.0%'
+    );
   });
 
   it('follows a non-base locale', () => {

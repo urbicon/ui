@@ -2,7 +2,7 @@
   import { useBlocksI18n } from '#lib';
   import { useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { percentFormatter } from '#lib/internal/charts/utils.js';
+  import { percentFormatter } from '#lib/internal/percent.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
   import { compositionBarVariants, type CompositionBarVariants } from './composition-bar.variants';

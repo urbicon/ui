@@ -3,7 +3,7 @@ import { screen } from '@testing-library/dom';
 import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
+import ProgressLocaleHarness from './__fixtures__/ProgressLocaleHarness.svelte';
 import type { ProgressProps } from './index';
 import Progress from './Progress.svelte';
 
@@ -23,10 +23,7 @@ afterEach(() => {
 
 function render(props: ProgressProps, locale?: Locale) {
   const instance = locale
-    ? mount(ChartLocaleHost, {
-        target: document.body,
-        props: { locale, chart: Progress, props: { ...props } }
-      })
+    ? mount(ProgressLocaleHarness, { target: document.body, props: { ...props, locale } })
     : mount(Progress, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();

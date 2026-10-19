@@ -8,7 +8,7 @@
     type SankeyLaidOutLink,
     type SankeyLaidOutNode
   } from '#lib/internal/sankey/layout.js';
-  import { percentFormatter } from '#lib/internal/charts/utils.js';
+  import { percentFormatter } from '#lib/internal/percent.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type {
     SankeyProps,

@@ -74,7 +74,8 @@ export interface CompositionBarProps
 
   /**
    * Format function for percentages, which arrive on a 0–100 scale. Default: 1 fraction
-   * digit, with the sign placed by the active locale (`12.3%` in English, `12,3 %` in German).
+   * digit, with the sign placed by the active locale (`12.3%` in English, `12,3 %` with a
+   * no-break space in German).
    */
   formatPercent?: (percent: number) => string;
 
