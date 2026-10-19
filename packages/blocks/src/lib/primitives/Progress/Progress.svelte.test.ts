@@ -2,7 +2,7 @@
 import { screen } from '@testing-library/dom';
 import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import ProgressLocaleHarness from './__fixtures__/ProgressLocaleHarness.svelte';
 import type { ProgressProps } from './index';
 import Progress from './Progress.svelte';
@@ -19,12 +19,14 @@ afterEach(() => {
   dispose?.();
   dispose = undefined;
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 function render(props: ProgressProps, locale?: Locale) {
-  const instance = locale
-    ? mount(ProgressLocaleHarness, { target: document.body, props: { ...props, locale } })
-    : mount(Progress, { target: document.body, props });
+  const instance =
+    locale !== undefined
+      ? mount(ProgressLocaleHarness, { target: document.body, props: { ...props, locale } })
+      : mount(Progress, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();
 }
@@ -76,5 +78,12 @@ describe('Progress (value text)', () => {
   it('writes the percent sign the way the active locale does', () => {
     render({ value: 65, showValue: true }, 'de');
     expect(screen.getByRole('progressbar').textContent?.trim()).toBe('65\u00a0%');
+  });
+
+  // A provider does not validate its locale; `Intl` throws on these two.
+  it.each(['de_DE', ''])('renders in English under the provider locale %j', (locale) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render({ value: 65, showValue: true }, locale as Locale);
+    expect(screen.getByRole('progressbar').textContent?.trim()).toBe('65%');
   });
 });

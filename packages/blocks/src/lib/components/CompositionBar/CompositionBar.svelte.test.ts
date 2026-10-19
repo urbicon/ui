@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { Locale } from '@urbicon-ui/i18n';
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import CompositionBar from './CompositionBar.svelte';
 
@@ -17,15 +17,17 @@ afterEach(() => {
   dispose?.();
   dispose = undefined;
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 function renderBar(props: ComponentProps<typeof CompositionBar>, locale?: Locale) {
-  const instance = locale
-    ? mount(ChartLocaleHost, {
-        target: document.body,
-        props: { locale, chart: CompositionBar, props: { ...props } }
-      })
-    : mount(CompositionBar, { target: document.body, props });
+  const instance =
+    locale !== undefined
+      ? mount(ChartLocaleHost, {
+          target: document.body,
+          props: { locale, chart: CompositionBar, props: { ...props } }
+        })
+      : mount(CompositionBar, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();
 }
@@ -70,5 +72,12 @@ describe('CompositionBar (default percent format)', () => {
   it('follows a non-base locale', () => {
     renderBar({ items: shares }, 'de');
     expect(segmentLabels()).toEqual(['Gas: 60 (60,0\u00a0%)', 'Power: 40 (40,0\u00a0%)']);
+  });
+
+  // A provider does not validate its locale; `Intl` throws on these two.
+  it.each(['de_DE', ''])('renders in English under the provider locale %j', (locale) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderBar({ items: shares }, locale as Locale);
+    expect(segmentLabels()).toEqual(['Gas: 60 (60.0%)', 'Power: 40 (40.0%)']);
   });
 });

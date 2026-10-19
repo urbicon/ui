@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { useI18n } from '@urbicon-ui/i18n';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { percentFormatter } from '#lib/internal/percent.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -133,7 +133,9 @@
     return result;
   });
 
-  const defaultPercentFmt = $derived(percentFormatter(i18n.locale, 1));
+  const defaultPercentFmt = $derived(
+    percentFormatter(resolveDateLocale(undefined, i18n.locale), 1)
+  );
 
   const fmtValue = (v: number) => (formatValue ? formatValue(v) : v.toString());
   const fmtPercent = (p: number) => (formatPercent ? formatPercent(p) : defaultPercentFmt(p));

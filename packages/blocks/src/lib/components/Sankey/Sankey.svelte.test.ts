@@ -21,6 +21,7 @@ afterEach(() => {
   dispose?.();
   dispose = undefined;
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 const nodes = [
@@ -31,12 +32,13 @@ const links = [{ source: 'gas', target: 'heat', value: 100 }];
 
 function renderSankey(props: Partial<ComponentProps<typeof Sankey>> = {}, locale?: Locale) {
   const merged = { nodes, links, ...props };
-  const instance = locale
-    ? mount(ChartLocaleHost, {
-        target: document.body,
-        props: { locale, chart: Sankey, props: merged }
-      })
-    : mount(Sankey, { target: document.body, props: merged });
+  const instance =
+    locale !== undefined
+      ? mount(ChartLocaleHost, {
+          target: document.body,
+          props: { locale, chart: Sankey, props: merged }
+        })
+      : mount(Sankey, { target: document.body, props: merged });
   dispose = () => unmount(instance);
   flushSync();
 }
@@ -99,5 +101,12 @@ describe('Sankey (default percent format)', () => {
   it('follows a non-base locale', () => {
     renderSankey({}, 'de');
     expect(linkTooltipText()).toContain('· 100,0\u00a0%');
+  });
+
+  // A provider does not validate its locale; `Intl` throws on these two.
+  it.each(['de_DE', ''])('renders in English under the provider locale %j', (locale) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderSankey({}, locale as Locale);
+    expect(linkTooltipText()).toContain('· 100.0%');
   });
 });

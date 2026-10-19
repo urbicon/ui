@@ -79,22 +79,31 @@ The `CompositionBar` string is part of its generated names: each segment's, `Gas
 and the screen-reader table. The `Progress` string is its value text.
 
 A test or snapshot that matches the generated text needs the new string; in German, French and
-Spanish, match the space as ` ` (or `\s`). A `formatPercent` or `formatValue` you pass is
-unaffected, and passing one keeps the old output — the `Progress` one below for the default `min`
-of 0:
+Spanish, match the space as `\u00a0` (or `\s`). A `formatPercent` or `formatValue` you pass is
+unaffected, and passing one keeps the old output in the provider's locale — the `Progress` one
+below for the default `min` of 0, with `0%` for an empty range as before:
 
 ```svelte
 <script lang="ts">
-  const share = new Intl.NumberFormat('de', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  import { useI18n } from '@urbicon-ui/i18n';
+
+  const i18n = useI18n();
+  const share = $derived(
+    new Intl.NumberFormat(i18n.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  );
 </script>
 
 <CompositionBar {items} formatPercent={(p) => `${share.format(p)} %`} />
-<Progress {value} showValue formatValue={(v, max) => `${Math.round((v / max) * 100)}%`} />
+<Progress
+  {value}
+  showValue
+  formatValue={(v, max) => `${max > 0 ? Math.round((v / max) * 100) : 0}%`}
+/>
 ```
 
 ```sh
 rg -n '[0-9] %' src e2e tests
-rg -n -g '*.{test,spec}.*' "[0-9]%['\"\`]" src e2e tests
+rg -n -g '*.{test,spec}.*' '[0-9]%' src e2e tests
 ```
 
 ### A `Sankey` link is named by its nodes' labels
@@ -107,7 +116,7 @@ the chart's summary already did. With `{ id: 'gas', label: 'Gas' }` and
 A test that finds a link by its name needs the labels.
 
 ```sh
-rg -n ' → ' src e2e tests
+rg -n -g '*.{test,spec}.*' '\S → \S+: ' src e2e tests
 ```
 
 ## 8.30.0
