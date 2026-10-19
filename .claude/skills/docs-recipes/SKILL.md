@@ -96,9 +96,9 @@ A component page ends its reference part with one line, between the custom docs 
 It renders the numbered API Reference section (`id="api"`) and the Types section (`id="types"`)
 from the page's own `componentData`, so the type names the API table links always have a row in
 the Types table. Never wire `<ApiReference types=…>` and `<TypesReference>` by hand on a component
-page: the two copies of `types` are each silent without the other. The nav lists both ids
-(`{ id: 'api', title: 'API Reference' }`, `{ id: 'types', title: 'Types' }`); `sections:lint`
-checks it, and `refsections:lint` that every component page renders the component. A family page
+page: the two copies of `types` are each silent without the other. Both sections reach the table
+of contents on their own, since `DocsLayout` lists every titled section a page renders;
+`refsections:lint` checks that every component page renders the component. A family page
 that documents several components under one Types section (`/blocks/components/guide`) is the one
 exception: it composes the two tables itself, with every prop table rendered through one local
 snippet that binds the page's single `types` — keep new tables inside that snippet, since no

@@ -40,8 +40,13 @@
   import { extractChildMarkup } from './extract-markup.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
   import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
+  import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
 
   const dt = useDocsI18n();
+
+  // A `<Section>` on the stage is the playground's subject, not a section of
+  // the page: it registers here, numbers from 01, and stays out of the page's TOC.
+  provideSectionRegistry();
 
   let {
     title = dt('interactivePlayground', {}),

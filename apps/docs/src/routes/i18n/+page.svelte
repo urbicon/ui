@@ -3,15 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, InfoCard, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'overview', title: 'Overview' },
-    { id: 'architecture', title: 'Architecture' },
-    { id: 'quick-start', title: 'Quick Start' },
-    { id: 'guides', title: 'Guides' },
-    { id: 'api', title: 'API Surface' },
-    { id: 'locales', title: 'Supported Locales' }
-  ];
-
   const providerCode =
     `<!-- +layout.svelte — mount ONE provider at the app root -->
 <` +
@@ -74,7 +65,6 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
   description="SSR-correct, package-scoped, type-safe internationalization for Svelte 5. A request-scoped locale lives in context (never a module-global singleton), reactive translations come from runes, and every Urbicon package plugs into one shared registry — all with zero runtime dependencies."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
 >
   <Section id="overview" title="Overview" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">

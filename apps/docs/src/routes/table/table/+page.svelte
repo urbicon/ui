@@ -70,15 +70,6 @@ ${scriptClose}
   enableSmartFilter={false}
 />`;
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'column-factories', title: 'Column Factories' },
-    { id: 'next', title: 'Where to go next' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   // `TableColumns` is a value export, so no generated Types entry carries it —
   // this list is the only documentation the nine factories have, and it is
   // therefore worth keeping against `packages/table/src/lib/factories/
@@ -119,7 +110,6 @@ ${scriptClose}
   showToc={true}
   stability={componentData?.stability}
   breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
-  {navigation}
 >
   <!-- The former "Full Setup" box is gone: it held a second, hand-maintained
        copy of the columns and the data as text, which neither reflected the

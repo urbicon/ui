@@ -14,12 +14,12 @@
   <div class="flex flex-col gap-6">
     <CodeExample
       title="A numbered section"
-      description="The everyday shape: an editorial marker, a title, a subtitle, and an id the table of contents can point at. On a page you write `marker` bare and the page counts — the literal is here because a demo section sits inside another section, and a nested one claims no number."
+      description="The everyday shape: an editorial marker, a title, a subtitle, and an id the table of contents points at. `marker` asks for a number and the page hands out the next one; this example's stage counts like a page of its own, so the section here is the first."
       isolate
     >
       <Section
         id="demo-basic"
-        marker="01"
+        marker
         headingLevel={4}
         title="Customization"
         subtitle="slotClasses, preset and unstyled"

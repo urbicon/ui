@@ -3,16 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'why', title: 'Why namespaces' },
-    { id: 'create', title: 'createPackageI18n' },
-    { id: 'hook', title: 'The hook pattern' },
-    { id: 'resolution', title: 'Resolution order' },
-    { id: 't-component', title: 'The <T> component' },
-    { id: 'own-package', title: 'Your own package' },
-    { id: 'validate', title: 'Parity validation' }
-  ];
-
   const returnMembers = [
     [
       'useTranslate',
@@ -113,7 +103,6 @@ it('en/de key parity', () => {
   description="Each package registers its own namespaced keys into one shared registry, then exposes a typed hook. Your app can do the same."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="why" title="Why namespaces">

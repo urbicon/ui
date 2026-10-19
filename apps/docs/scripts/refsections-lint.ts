@@ -6,11 +6,10 @@
  * `<ReferenceSections {componentData} />` from `@urbicon-ui/docs`. That
  * component reads `componentData` once for both tables, so whether the API
  * table's type links and the Types section agree is not a question any more;
- * what is left is whether the page renders them. Dropping the component alone
- * is caught already — `sections:lint` reports the page's `api` and `types` nav
- * entries as dead. What reaches no other gate is a page that drops the nav
- * entries with it: no API table, no Types section, and a table of contents
- * that agrees with the page about both being gone.
+ * what is left is whether the page renders them. Nothing else asks: the table
+ * of contents is built from the sections a page renders, so a page that drops
+ * the component loses both entries with it — no API table, no Types section,
+ * and a table of contents that agrees with the page about both being gone.
  *
  * What this checks is presence, not reachability or binding. The tag inside
  * `{#if false}`, inside a snippet nothing renders, inside a `<CodeExample>`

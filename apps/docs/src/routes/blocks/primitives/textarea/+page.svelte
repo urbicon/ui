@@ -13,16 +13,6 @@
   import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta title="Textarea Component" description="A multi-line text field." />
@@ -32,7 +22,6 @@
   description="A multi-line text field."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }

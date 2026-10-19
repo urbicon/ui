@@ -109,17 +109,15 @@ export interface TypesReferenceProps
   id?: string;
 
   /**
-   * Editorial marker before the heading. `true` (the default) claims the
-   * page's next section number — the same automatic numbering every other
-   * `<Section marker>` on the page uses, so inserting or removing a section
-   * renumbers this one too. A string numbers it by hand; `false` leaves it
-   * unstamped.
+   * Number the section, like `<Section marker>`: its position among the
+   * numbered sections of the page, so inserting or removing a section
+   * renumbers this one too. `false` leaves it unstamped.
    *
-   * An instance rendered inside another section (a playground stage, a code
-   * example) never claims a number, whatever this says.
+   * Inside a `CodeExample` or `PlaygroundConfigurator` stage the count is the
+   * stage's own, which starts at 01.
    * @default true
    */
-  marker?: string | boolean;
+  marker?: boolean;
 
   /**
    * Right-aligned counter in the section header — the slot the API Reference

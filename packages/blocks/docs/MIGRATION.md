@@ -60,6 +60,65 @@ the new version is created.
 rg -n -e 'persistKey' -e 'persistVersion' -e 'createPersistentState\(' src
 ```
 
+### `CompositionBar`, `Sankey` and `Progress` let the locale write the percent sign
+
+Without `formatPercent`, `CompositionBar` and the `Sankey` tooltip wrote a share as the locale's
+number, a plain space and `%`, in every locale. Without `formatValue`, `Progress` wrote `%` right
+after the rounded number, in every locale. All three now let the active locale write the sign and
+any space before it. The digits are the same as before.
+
+- **`CompositionBar` and the `Sankey` tooltip:** `57.7 %` → `57.7%` in English, `57,7 %` →
+  `57,7%` in Italian and Dutch. German, French and Spanish keep the space, now a no-break space
+  (U+00A0): `57,7 %` reads the same, but no longer equals a string typed with a plain space.
+- **`Progress`:** `65%` → `65 %` with a no-break space in German, French and Spanish. English,
+  Italian and Dutch keep `65%`.
+
+The `CompositionBar` string is part of its generated names: each segment's, `Gas: 60 (60.0 %)` →
+`Gas: 60 (60.0%)`, the bar's, `Composition: 100 (2 shares) — Gas 60.0 %, Power 40.0 %` →
+`Composition: 100 (2 shares) — Gas 60.0%, Power 40.0%`, and those of the legend, the rest segment
+and the screen-reader table. The `Progress` string is its value text.
+
+A test or snapshot that matches the generated text needs the new string; in German, French and
+Spanish, match the space as `\u00a0` (or `\s`). A `formatPercent` or `formatValue` you pass is
+unaffected, and passing one keeps the old output in the provider's locale — the `Progress` one
+below for the default `min` of 0, with `0%` for an empty range as before:
+
+```svelte
+<script lang="ts">
+  import { useI18n } from '@urbicon-ui/i18n';
+
+  const i18n = useI18n();
+  const share = $derived(
+    new Intl.NumberFormat(i18n.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  );
+</script>
+
+<CompositionBar {items} formatPercent={(p) => `${share.format(p)} %`} />
+<Progress
+  {value}
+  showValue
+  formatValue={(v, max) => `${max > 0 ? Math.round((v / max) * 100) : 0}%`}
+/>
+```
+
+```sh
+rg -n '[0-9] %' src e2e tests
+rg -n -g '*.{test,spec}.*' '[0-9]%' src e2e tests
+```
+
+### A `Sankey` link is named by its nodes' labels
+
+A link's generated name used the `id`s of its nodes; it now uses their `label`s, as the nodes and
+the chart's summary already did. With `{ id: 'gas', label: 'Gas' }` and
+`{ id: 'heat', label: 'Heating' }`, `gas → heat: 100` → `Gas → Heating: 100`. A link drawn by your
+`linkContent` snippet is unaffected.
+
+A test that finds a link by its name needs the labels.
+
+```sh
+rg -n -g '*.{test,spec}.*' '\S → \S+: ' src e2e tests
+```
+
 ## 8.30.0
 
 ### `CommandPalette` resets its query when it has closed, not when it opens

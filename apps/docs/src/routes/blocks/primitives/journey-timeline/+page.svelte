@@ -16,18 +16,6 @@
 
   // A utility-billing run — the issue's driving consumer, as a chronicle.
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'statuses', title: 'Statuses' },
-    { id: 'when-to-use', title: 'vs. Stepper / Tab' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   function codeGenerator(vals: Record<string, unknown>): string {
     const defaults: Record<string, unknown> = {
       orientation: 'vertical',
@@ -65,7 +53,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

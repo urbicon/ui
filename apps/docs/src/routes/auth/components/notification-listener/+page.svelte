@@ -19,14 +19,6 @@
   import basicCode from './examples/Basic.svelte?raw';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'usage', title: 'Usage' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta
@@ -43,7 +35,6 @@
     { label: 'Auth', href: resolve('/auth') },
     { label: 'Components', href: resolve('/auth') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

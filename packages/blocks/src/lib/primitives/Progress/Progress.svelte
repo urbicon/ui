@@ -1,11 +1,14 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { useBlocksI18n } from '#lib';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
+  import { percentFormatter } from '#lib/internal/percent.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ProgressProps } from './index';
   import { progressVariants, type ProgressVariants } from './progress.variants';
 
   const bt = useBlocksI18n();
+  const i18n = useI18n();
 
   const theme = useThemeProps('Progress', () => preset);
 
@@ -38,10 +41,11 @@
   const clampedValue = $derived(value !== undefined ? Math.min(Math.max(value, min), max) : 0);
   const percentage = $derived(max - min > 0 ? ((clampedValue - min) / (max - min)) * 100 : 0);
 
+  const defaultFormat = $derived(percentFormatter(resolveDateLocale(undefined, i18n.locale), 0));
   // The text reads off the same `percentage` the fill is drawn from, so an empty range
   // (`max <= min`) shows the 0% its fill shows.
   const displayValue = $derived(
-    formatValue ? formatValue(clampedValue, max) : `${Math.round(percentage)}%`
+    formatValue ? formatValue(clampedValue, max) : defaultFormat(percentage)
   );
 
   // Variant props feed both the tv() style computation and the slot-class

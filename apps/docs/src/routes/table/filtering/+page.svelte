@@ -6,13 +6,6 @@
   import { resolve } from '$app/paths';
   import { employees, basicColumns, scriptOpen, scriptClose, type Employee } from '../_data';
 
-  const navigation = [
-    { id: 'filtering', title: 'Smart Filter Bar' },
-    { id: 'tools-sheet', title: 'Narrow Bar & Tools Sheet' },
-    { id: 'filter-operators', title: 'Filter Operators' },
-    { id: 'external-search', title: 'Search from Outside' }
-  ];
-
   // ── External-search demo ───────────────────────────────────────────────────
   //
   // The view belongs to this page, so the search setting is ours to write.
@@ -199,7 +192,6 @@ ${scriptClose}
   title="Filtering & Search"
   description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus an external search field wired through the table's view."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
-  {navigation}
   showToc={true}
 >
   <Section id="filtering" title="Smart Filter Bar">

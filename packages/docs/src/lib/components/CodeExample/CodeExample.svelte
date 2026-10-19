@@ -4,10 +4,15 @@
   import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
   import { resolveClassChain } from '@urbicon-ui/blocks';
   import CodePanel from '../CodePanel/CodePanel.svelte';
+  import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
   import { type CodeExampleSlots, codeExampleVariants } from './codeexample.variants';
   import type { CodeExampleProps } from './index.js';
 
   const dt = useDocsI18n();
+
+  // A `<Section>` in the preview is the example's subject, not a section of the
+  // page: it registers here, numbers from 01, and stays out of the page's TOC.
+  provideSectionRegistry();
 
   let {
     title,

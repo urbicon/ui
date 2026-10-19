@@ -432,16 +432,6 @@ export class DocsGeneratorCLI {
   import { buildRelatedLinks } from '#lib/component-links.js';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta title="${name} Component" />
@@ -455,7 +445,6 @@ export class DocsGeneratorCLI {
     { label: 'Blocks', href: resolve('/blocks') },
     { label: '${group === 'primitives' ? 'Primitives' : 'Components'}', href: resolve('/blocks/${group}') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

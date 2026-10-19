@@ -17,15 +17,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const description =
     'Sticky sidebar navigation that tracks scroll position and highlights the active section. Hidden on mobile — DocsLayout provides the collapsible alternative there.';
 </script>
@@ -37,7 +28,6 @@
   {description}
   maxWidth="lg"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
@@ -117,13 +107,16 @@
           with a keyboard.
         </p>
       </Note>
-      <Note title="Only the kickers are tagged with a language">
+      <Note title="Each label keeps the language it is written in">
         <p>
           "On this page", "Related" and the toggle label come from the docs translations and carry a <code
             >lang</code
-          > of their own; the entry labels do not, because they are the page's section titles and are
-          written in the content language. Tagging the whole aside would declare those titles as the chrome
-          locale — a worse mismatch than the three kicker words it would fix.
+          >
+          of their own. The entry labels are the page's section headings and keep the heading's language:
+          under <code>DocsLayout</code> a localized heading such as "API Reference" brings its
+          <code>lang</code> into its entry, and the rest stay in the content language. Tagging the whole
+          aside would declare those titles as the chrome locale — a worse mismatch than the three kicker
+          words it would fix.
         </p>
       </Note>
       <Note title="Hidden below the sidebar breakpoint">
