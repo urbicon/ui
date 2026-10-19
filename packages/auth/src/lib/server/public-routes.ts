@@ -16,6 +16,14 @@ import type { AuthLogger } from '../types.js';
 export type PublicRoute = string | { path: string; exact: true };
 
 /**
+ * A handle's `publicRoutes`: a list of {@link PublicRoute} entries, under
+ * which what the list names is public and everything else guarded — or a
+ * predicate over the pathname, under which a route is public only when it
+ * returns the literal `true`.
+ */
+export type PublicRoutes = readonly PublicRoute[] | ((pathname: string) => boolean);
+
+/**
  * Which option a route list came from — what the construction-time messages
  * name, so a typo in `csrf.exempt` is not reported against `publicRoutes`.
  */
@@ -42,9 +50,55 @@ const PUBLIC_ROUTES_OPTION: RouteListOption = {
 };
 
 /**
- * Compile a route list into the predicate both handles guard with — and the
- * one `csrf.exempt` matches with — so the three cannot drift in how they read
- * an entry.
+ * The decoding SvelteKit applies to a pathname before it matches a route.
+ * `event.url.pathname` keeps the escapes, so a predicate guarding `/admin`
+ * would otherwise read `/%61dmin` as public while Kit serves the `/admin`
+ * route for it. `%25` is split out so an escaped escape stays one, and a
+ * malformed escape throws `URIError`. Kit's own function (`decode_pathname`)
+ * is outside its exports map, hence restated; `handle.test.ts` compares the
+ * two over Kit's.
+ */
+const decodePathname = (pathname: string): string =>
+  pathname.split('%25').map(decodeURI).join('%25');
+
+/**
+ * The predicate form of a route option, gated on a literal `true`: a Promise
+ * (an async predicate) is truthy whatever it settles to, so read by truthiness
+ * it would open every route it is asked about. A throw leaves the route
+ * guarded and is logged, since the only other trace of it is a login redirect
+ * on a page meant to be public. A pathname that does not decode resolves no
+ * route — SvelteKit answers it `400` — so it stays guarded without asking.
+ */
+function gatePredicate(
+  predicate: (pathname: string) => boolean,
+  logger: AuthLogger,
+  name: string
+): (pathname: string) => boolean {
+  return (pathname) => {
+    let routed: string;
+    try {
+      routed = decodePathname(pathname);
+    } catch {
+      return false;
+    }
+    try {
+      return predicate(routed) === true;
+    } catch (err) {
+      logger.error(
+        `[auth] ${name} predicate threw for ${JSON.stringify(routed)} — the route stays guarded.`,
+        err
+      );
+      return false;
+    }
+  };
+}
+
+/**
+ * Compile a route option into the predicate both handles guard with — and the
+ * one `csrf.exempt` matches its list with — so the three cannot drift in how
+ * they read an entry. A predicate is gated, not checked: nothing about it is
+ * knowable at construction, so it gets neither the shape checks nor the
+ * bare-`'/'` verdict below ({@link gatePredicate}).
  *
  * Refuses, at construction, a path that does not start with `/`: `''` is the
  * silent fail-open twin of `'/'` (`startsWith('')` holds for every pathname,
@@ -54,18 +108,19 @@ const PUBLIC_ROUTES_OPTION: RouteListOption = {
  * A bare `'/'` prefix matches every pathname, so the option is off for the
  * whole app, and the entry is the natural misspelling of "my landing page is
  * public". The verdict is the option's: `publicRoutes` warns — once, here,
- * not per request — because a fully public site that mounts the handle only
- * for session hydration (`locals.user` on every page) is a legitimate
- * configuration and this is its only spelling; `csrf.exempt` refuses it,
- * because nothing would be left on and `() => true` is its deliberate
- * spelling. An option can also veto single entries (`refuse`), in this same
- * loop.
+ * not per request — rather than refusing, because a fully public site that
+ * mounts the handle only for session hydration (`locals.user` on every page)
+ * is a legitimate configuration; `csrf.exempt` refuses it, because nothing
+ * would be left on. For both, `() => true` is the deliberate spelling, and a
+ * predicate is never warned about. An option can also veto single entries
+ * (`refuse`), in this same loop.
  */
 export function compilePublicRoutes(
-  routes: readonly PublicRoute[],
+  routes: PublicRoutes,
   logger: AuthLogger,
   option: RouteListOption = PUBLIC_ROUTES_OPTION
 ): (pathname: string) => boolean {
+  if (typeof routes === 'function') return gatePredicate(routes, logger, option.name);
   let bareSlashSeen = false;
   // Snapshot: the caller keeps its array, and a later push into it must not
   // silently widen the guard.

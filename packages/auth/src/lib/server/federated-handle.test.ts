@@ -726,6 +726,33 @@ describe('createFederatedAuthHandle — route guard', () => {
     expect(quiet.warn).not.toHaveBeenCalled();
   });
 
+  it('takes the predicate form, as the IdP handle does: public on a literal true only', async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const logger = mockLogger();
+    const status = async (publicRoutes: (pathname: string) => boolean, path: string) => {
+      const handle = createFederatedAuthHandle(handleOptions({ logger, publicRoutes }));
+      return (await handle({ event: asEvent(createMockEvent({ path })), resolve: ok() })).status;
+    };
+    const defaultPublic = (pathname: string) => !pathname.startsWith('/admin');
+    expect(await status(defaultPublic, '/blog')).toBe(200);
+    expect(await status(defaultPublic, '/admin/users')).toBe(401);
+    expect(await status(defaultPublic, '/%61dmin/users'), 'decoded as Kit routes it').toBe(401);
+    for (const loose of [async () => true, () => 1]) {
+      const publicRoutes = loose as unknown as (pathname: string) => boolean;
+      expect(await status(publicRoutes, '/blog'), String(loose)).toBe(401);
+    }
+    const boom = new Error('predicate boom');
+    const throwing = () => {
+      throw boom;
+    };
+    expect(await status(throwing, '/blog')).toBe(401);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('publicRoutes predicate threw'),
+      boom
+    );
+    expect(logger.warn, 'a predicate states its intent').not.toHaveBeenCalled();
+  });
+
   it('defaults to a fully guarded app (empty publicRoutes) with a JSON 401 when no loginUrl is set', async () => {
     stubJwksFetch(() => jwksDocumentFor(idpJwt()));
     const handle = createFederatedAuthHandle(handleOptions());

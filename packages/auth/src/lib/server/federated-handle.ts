@@ -18,7 +18,7 @@ import { base64UrlDecodeString } from './encoding.js';
 import { authError } from './handlers/errors.js';
 import { BASE64URL_REGEX, es256Verify, MAX_TOKEN_LENGTH, SESSION_TOKEN_PURPOSE } from './jwt.js';
 import { shieldLogger } from './logger.js';
-import { compilePublicRoutes, type PublicRoute } from './public-routes.js';
+import { compilePublicRoutes, type PublicRoute, type PublicRoutes } from './public-routes.js';
 
 /**
  * The identity a verified IdP token proves — and NOTHING more. Deliberately
@@ -100,12 +100,16 @@ export interface FederatedAuthHandleOptions<TUser> {
    * pathname alone (see {@link PublicRoute}); a bare `'/'` prefix exempts the
    * whole app and is warned about at construction. A list held in a variable
    * first needs `as const` or the annotation `PublicRoute[]`, or TypeScript
-   * widens `exact: true` to `boolean`; an inline list needs nothing. Defaults
-   * to `[]` — the whole app requires a resolved user — because unlike the IdP
-   * this app serves no login/register pages of its own; list your genuinely
-   * public pages explicitly.
+   * widens `exact: true` to `boolean`; an inline list needs nothing. Or a
+   * predicate over the pathname for an app that is public by default —
+   * `(pathname) => !pathname.startsWith('/admin')` — under which a route is
+   * public only on a literal `true`, a throw is logged to `logger` and leaves
+   * the route guarded (`AuthHandleOptions.publicRoutes` has the full
+   * contract). Defaults to `[]` — the whole app requires a resolved user —
+   * because unlike the IdP this app serves no login/register pages of its
+   * own; list your genuinely public pages explicitly.
    */
-  publicRoutes?: readonly PublicRoute[];
+  publicRoutes?: PublicRoutes;
   /**
    * Where to send an unauthenticated browser request (302) — typically the
    * IdP's login page, absolute URL. Deliberately used verbatim: no
@@ -126,7 +130,10 @@ export interface FederatedAuthHandleOptions<TUser> {
    * @default false
    */
   allowUnauthenticatedRemote?: boolean;
-  /** Log sink for the JWKS fail-closed warnings. @default console */
+  /**
+   * Log sink for the JWKS fail-closed warnings, the bare-`'/'` warning and a
+   * throwing `publicRoutes` predicate. @default console
+   */
   logger?: AuthLogger;
 }
 

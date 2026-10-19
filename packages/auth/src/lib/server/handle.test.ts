@@ -143,7 +143,7 @@ describe('createAuthHandle', () => {
     };
 
     const unauthenticated = async (options: {
-      publicRoutes?: readonly PublicRoute[];
+      publicRoutes?: AuthHandleOptions['publicRoutes'];
       path: string;
       method?: string;
     }) =>
@@ -348,6 +348,166 @@ describe('createAuthHandle', () => {
       // The entry the replacement trap turns on. Every prose mention of it in
       // README/AUTH.md is only as true as this line.
       expect(DEFAULT_PUBLIC_ROUTES).toContain('/api/auth/');
+    });
+
+    describe('the predicate form', () => {
+      /** A public site with one protected area — the shape a list cannot spell. */
+      const defaultPublic = (pathname: string) =>
+        !pathname.startsWith('/admin') && !pathname.startsWith('/api/admin');
+
+      it('makes a route public on true and guards it on false', async () => {
+        // An unknown address resolves (to the app's 404), not to the login page.
+        for (const path of ['/', '/blog/first-post', '/no-such-page', '/auth/login']) {
+          expect(await unauthenticated({ publicRoutes: defaultPublic, path }), path).toBe(
+            'passed-through'
+          );
+        }
+        expect(
+          await unauthenticated({
+            publicRoutes: defaultPublic,
+            path: '/api/auth/login',
+            method: 'POST'
+          })
+        ).toBe('passed-through');
+        expect(await unauthenticated({ publicRoutes: defaultPublic, path: '/admin' })).toBe(
+          'redirect-302'
+        );
+        expect(await unauthenticated({ publicRoutes: defaultPublic, path: '/admin/users' })).toBe(
+          'redirect-302'
+        );
+        expect(
+          await unauthenticated({ publicRoutes: defaultPublic, path: '/api/admin/secrets' })
+        ).toBe('status-401');
+      });
+
+      it('opens a route only on a literal true — a Promise or a truthy non-boolean stays guarded', async () => {
+        // A Promise is truthy whatever it settles to, so `async () => false`
+        // read by truthiness would publish the very route it rejects.
+        const loose = [async () => true, async () => false, () => 1, () => 'true', () => ({})];
+        for (const predicate of loose) {
+          const publicRoutes = predicate as unknown as (pathname: string) => boolean;
+          expect(await unauthenticated({ publicRoutes, path: '/blog' }), String(predicate)).toBe(
+            'redirect-302'
+          );
+          expect(
+            await unauthenticated({ publicRoutes, path: '/api/blog' }),
+            String(predicate)
+          ).toBe('status-401');
+        }
+      });
+
+      it('keeps the route guarded when the predicate throws, and logs the throw', async () => {
+        const logger = { warn: vi.fn(), error: vi.fn() };
+        const boom = new Error('predicate boom');
+        const handle = createAuthHandle({
+          config: { ...config, logger },
+          repos: createMockRepos(),
+          publicRoutes: () => {
+            throw boom;
+          }
+        });
+        // `drive` reports a throw out of the hook as `redirect-undefined`, so
+        // these also show the predicate's throw does not fail the request.
+        expect(await drive(handle, '/blog')).toBe('redirect-302');
+        expect(await drive(handle, '/api/blog')).toBe('status-401');
+        expect(logger.error).toHaveBeenCalledTimes(2);
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('publicRoutes predicate threw'),
+          boom
+        );
+      });
+
+      it('gets no construction warning, even when it makes every route public', () => {
+        const logger = { warn: vi.fn(), error: vi.fn() };
+        const build = (publicRoutes: AuthHandleOptions['publicRoutes']) =>
+          createAuthHandle({
+            config: { ...config, logger },
+            repos: createMockRepos(),
+            publicRoutes
+          });
+        build(() => true);
+        build(defaultPublic);
+        expect(logger.warn).not.toHaveBeenCalled();
+        // Positive control: the list spelling of `() => true` warns, on the same sink.
+        build(['/']);
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+      });
+
+      it('is consulted only when its answer decides', async () => {
+        const publicRoutes = vi.fn((_pathname: string) => true);
+        const handle = createAuthHandle({ config, repos: createMockRepos(), publicRoutes });
+        const session = await createSessionToken(
+          { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+          config.jwt
+        );
+        const signedIn = createMockEvent({ path: '/admin', sessionCookie: session });
+        const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+        await handle({ event: asEvent(signedIn), resolve });
+        expect(resolve).toHaveBeenCalledTimes(1);
+        // A remote call's pathname is client-controlled: the remote
+        // default-deny stands, and a predicate saying `true` cannot open it.
+        const remote = createMockEvent({ path: '/blog', isRemoteRequest: true });
+        expect((await handle({ event: asEvent(remote), resolve: vi.fn() })).status).toBe(401);
+        expect(publicRoutes).not.toHaveBeenCalled();
+        // Positive control: an unauthenticated page request does ask it.
+        expect(await drive(handle, '/blog')).toBe('passed-through');
+        expect(publicRoutes).toHaveBeenCalledWith('/blog');
+      });
+
+      it('reads the pathname SvelteKit routes by, so a percent-escape cannot step around it', async () => {
+        // event.url.pathname keeps the escape; SvelteKit decodes it before
+        // matching, so this request is served by the /admin route.
+        expect(new URL('http://localhost:3000/%61dmin/users').pathname).toBe('/%61dmin/users');
+        expect(await unauthenticated({ publicRoutes: defaultPublic, path: '/%61dmin/users' })).toBe(
+          'redirect-302'
+        );
+        expect(
+          await unauthenticated({ publicRoutes: defaultPublic, path: '/api/%61dmin/secrets' })
+        ).toBe('status-401');
+        // A pathname that does not decode resolves no route (SvelteKit answers
+        // it 400), so nothing public is behind it: guarded, predicate unasked.
+        const asked = vi.fn((_pathname: string) => true);
+        expect(await unauthenticated({ publicRoutes: asked, path: '/%E0%A4%A' })).toBe(
+          'redirect-302'
+        );
+        expect(asked).not.toHaveBeenCalled();
+      });
+
+      it('decodes the pathname exactly as SvelteKit does', async () => {
+        // The oracle is Kit's own decode_pathname, outside its exports map —
+        // reached the way the cookie-runtime oracle in this file reaches its
+        // file, so a release that moves it fails here at import.
+        const kitPackageJson = createRequire(import.meta.url).resolve('@sveltejs/kit/package.json');
+        const { decode_pathname } = (await import(
+          /* @vite-ignore */
+          new URL('./src/utils/url.js', pathToFileURL(kitPackageJson)).href
+        )) as { decode_pathname: (pathname: string) => string };
+        const seen: string[] = [];
+        const handle = createAuthHandle({
+          config,
+          repos: createMockRepos(),
+          publicRoutes: (pathname) => {
+            seen.push(pathname);
+            return true;
+          }
+        });
+        // An unreserved escape, an escaped slash, an escaped escape, UTF-8, a
+        // space, and nothing to decode.
+        for (const path of [
+          '/%61dmin',
+          '/admin%2Fusers',
+          '/%2561dmin',
+          '/caf%C3%A9',
+          '/a%20b',
+          '/plain'
+        ]) {
+          seen.length = 0;
+          await drive(handle, path);
+          expect(seen, path).toEqual([
+            decode_pathname(new URL(`http://localhost:3000${path}`).pathname)
+          ]);
+        }
+      });
     });
   });
 
