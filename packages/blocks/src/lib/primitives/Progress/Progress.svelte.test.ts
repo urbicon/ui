@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
+import type { Locale } from '@urbicon-ui/i18n';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import type { ProgressProps } from './index';
 import Progress from './Progress.svelte';
 
@@ -19,8 +21,13 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function render(props: ProgressProps) {
-  const instance = mount(Progress, { target: document.body, props });
+function render(props: ProgressProps, locale?: Locale) {
+  const instance = locale
+    ? mount(ChartLocaleHost, {
+        target: document.body,
+        props: { locale, chart: Progress, props: { ...props } }
+      })
+    : mount(Progress, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();
 }
@@ -67,5 +74,10 @@ describe('Progress (value text)', () => {
   it('reads an empty range as 0%, as its fill does', () => {
     render({ value: 5, min: 5, max: 5, showValue: true });
     expect(screen.getByRole('progressbar').textContent?.trim()).toBe('0%');
+  });
+
+  it('writes the percent sign the way the active locale does', () => {
+    render({ value: 65, showValue: true }, 'de');
+    expect(screen.getByRole('progressbar').textContent?.trim()).toBe('65\u00a0%');
   });
 });

@@ -8,6 +8,7 @@
     type SankeyLaidOutLink,
     type SankeyLaidOutNode
   } from '#lib/internal/sankey/layout.js';
+  import { percentFormatter } from '#lib/internal/charts/utils.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type {
     SankeyProps,
@@ -150,14 +151,7 @@
     return false;
   }
 
-  function defaultPercentFmt(p: number) {
-    return (
-      new Intl.NumberFormat(i18n.locale, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1
-      }).format(p) + ' %'
-    );
-  }
+  const defaultPercentFmt = $derived(percentFormatter(i18n.locale, 1));
   const fmtValue = (v: number) => (formatValue ? formatValue(v) : v.toString());
   const fmtPercent = (p: number) => (formatPercent ? formatPercent(p) : defaultPercentFmt(p));
 
@@ -298,7 +292,7 @@
           <path
             tabindex="0"
             role="button"
-            aria-label={`${link.source.id} → ${link.target.id}: ${fmtValue(link.value)}`}
+            aria-label={`${nodeLabelById(link.source.id)} → ${nodeLabelById(link.target.id)}: ${fmtValue(link.value)}`}
             class={unstyled
               ? (slotClasses?.link ?? '')
               : styles.link({

@@ -51,7 +51,8 @@ export interface ProgressProps
    * Format function for the displayed value. Receives the clamped value and `max`, not `min`
    * — a formatter for a range that does not start at 0 has to know `min` itself. Without
    * one, the value shows as the rounded percentage of the `min`–`max` range the fill draws,
-   * 0% for an empty range.
+   * 0% for an empty range, with the sign placed by the active locale (`65%` in English,
+   * `65 %` in German).
    */
   formatValue?: (value: number, max: number) => string;
 
