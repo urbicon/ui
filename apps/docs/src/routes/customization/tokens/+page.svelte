@@ -19,15 +19,6 @@
   const description =
     'The tokens the library ships, layer by layer: color ramps, spacing, typography, radius, motion and depth. Look values up here; write and switch themes on the Themes page.';
 
-  const navigation = [
-    { id: 'architecture', title: 'Token Architecture' },
-    { id: 'colors', title: 'Color System' },
-    { id: 'spacing', title: 'Spacing Scale' },
-    { id: 'typography', title: 'Typography Scale' },
-    { id: 'radius', title: 'Border Radius' },
-    { id: 'interaction', title: 'Motion & Depth' }
-  ];
-
   const colorTokenExample = `@theme {
   /* Foundation Colors (oklch for better perception) */
   --color-neutral-50: oklch(0.965 0.006 240);
@@ -188,7 +179,6 @@
   title="Token Reference"
   {description}
   maxWidth="2xl"
-  {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >

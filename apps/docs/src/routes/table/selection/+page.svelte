@@ -12,12 +12,6 @@
   import { resolve } from '$app/paths';
   import { employees, basicColumns, scriptClose } from '../_data';
 
-  const navigation = [
-    { id: 'modes', title: 'Selection Modes' },
-    { id: 'row-clicks', title: 'Selecting by Row Click' },
-    { id: 'controlled', title: 'Controlled Selection' }
-  ];
-
   // The snippets declare typed state, which only compiles in a `lang="ts"`
   // block — the same pair the other table pages use.
   const scriptOpenTs = '<' + 'script lang="ts">';
@@ -70,7 +64,6 @@ ${scriptClose}
   title="Row Selection"
   description="Checkbox selection for one row or many, with a select-all across every filtered page. The table owns the selected set until you pass selectedIds."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
-  {navigation}
   showToc={true}
 >
   <Section id="modes" title="Selection Modes">

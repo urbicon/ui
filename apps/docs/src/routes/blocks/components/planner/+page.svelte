@@ -11,16 +11,6 @@
   import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { Planner } from '@urbicon-ui/blocks';
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta
@@ -38,7 +28,6 @@
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }
   ]}
-  {navigation}
 >
   <Section id="playground" title="Playground" intent="primary">
     <Playground />

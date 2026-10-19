@@ -8,15 +8,6 @@
   import { resolve } from '$app/paths';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
-  const navigation = [
-    { id: 'what', title: 'What it is' },
-    { id: 'rooms', title: 'The Rooms' },
-    { id: 'tokens', title: 'Token Catalogue' },
-    { id: 'activation', title: 'How It Is Wired Up' },
-    { id: 'modes', title: 'Light & Dark' },
-    { id: 'override', title: 'Override Recipes' }
-  ];
-
   const activationExample = `<!-- apps/docs/src/app.html — Color Rooms is the shipped default -->
 <html lang="en" class="docs-rooms">
   <head>…</head>
@@ -98,7 +89,6 @@ export const ROUTE_CHANNEL = {
 <DocsPageLayout
   title="Color Rooms"
   description="A case study in scoped theming: the token-only overlay that drives the look of this docs site. Schibsted Grotesk on warm cream paper, with the accent set to the component family the page documents. Activated via a single root class; everything else is CSS custom properties."
-  {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >

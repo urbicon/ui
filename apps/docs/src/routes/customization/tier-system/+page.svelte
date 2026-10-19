@@ -4,14 +4,6 @@
   import { Badge, Button, Checkbox, SegmentGroup, SegmentItem, Toolbar } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
-  const navigation = [
-    { id: 'three-tiers', title: 'Three Tiers' },
-    { id: 'tier-aware-components', title: 'Tier-aware Components' },
-    { id: 'context-cascade', title: 'Context Cascade' },
-    { id: 'override-pathway', title: 'Override Pathway' },
-    { id: 'bridge', title: 'Bridge Token' }
-  ];
-
   let demoTier = $state<'commit' | 'modify'>('commit');
   let commitOverride = $state('9999px');
 
@@ -62,7 +54,6 @@
 <DocsPageLayout
   title="Radius Tiers"
   description="A semantic vocabulary for border-radius. Three tiers (commit, modify, contain) let components, brand themes, and inline overrides speak the same language without anyone reaching for a raw pixel value."
-  {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >

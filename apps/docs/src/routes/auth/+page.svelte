@@ -3,15 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, InfoCard, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'overview', title: 'Overview' },
-    { id: 'architecture', title: 'Architecture' },
-    { id: 'pages', title: 'Auth Pages' },
-    { id: 'management', title: 'Management' },
-    { id: 'notifications', title: 'Notifications' },
-    { id: 'setup', title: 'Setup Guide' }
-  ];
-
   const depsCode = `// src/lib/server/auth.ts
 import { createAuthDeps } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
@@ -131,7 +122,6 @@ export const POST = createForgotPasswordHandler(authDeps);
   description="Authentication, user management, and notifications for a SvelteKit app: password and passkey login, sessions, registration with invitation gates, password reset, two-factor, and push. No runtime dependencies; sessions, passwords, passkeys and push all run on the Web Crypto API."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
 >
   <Section id="overview" title="Overview" titleHidden intent="primary">
     <p class="text-text-secondary mb-4">

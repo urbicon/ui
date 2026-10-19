@@ -15,17 +15,6 @@
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'concept', title: 'How it works' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'integration', title: 'Integration' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta
@@ -42,7 +31,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Components', href: resolve('/blocks/components') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

@@ -13,17 +13,6 @@
   import { buildRelatedLinks } from '#lib/component-links.js';
   import { QRCode } from '@urbicon-ui/blocks';
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'auth-2fa', title: '2FA & auth' },
-    { id: 'encoding', title: 'Encoding & errors' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta
@@ -40,7 +29,6 @@
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

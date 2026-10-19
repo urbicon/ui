@@ -14,16 +14,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const DESC =
     'A calendar popover for picking a start and end date, for travel dates, a booking window, or a reporting period. It builds on DatePicker: same sizes, variants, constraints, and locale handling.';
 </script>
@@ -39,7 +29,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Components', href: resolve('/blocks/components') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

@@ -20,13 +20,6 @@
   const columnsPath = `'./columns'`;
   const viewPath = `'./view-defaults'`;
 
-  const navigation = [
-    { id: 'decision', title: 'Who does the work' },
-    { id: 'load', title: 'Rows from a SvelteKit load' },
-    { id: 'observe', title: 'Without the URL' },
-    { id: 'controls', title: 'What changes for the reader' }
-  ];
-
   const codeShape = `<Table {columns} source={{ processing: 'server', items, total }} />`;
 
   const codeLoad = `// view-defaults.ts — one declaration, read by both halves
@@ -107,7 +100,6 @@ ${scriptClose}
 <DocsPageLayout
   title="Server Processing"
   description="Your backend sorts, filters and pages. You hand the table one page of rows at a time, and every control becomes a request."
-  {navigation}
   showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >

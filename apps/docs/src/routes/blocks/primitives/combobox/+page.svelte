@@ -13,18 +13,6 @@
   import { buildRelatedLinks } from '#lib/component-links.js';
   import { asset, resolve } from '$app/paths';
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'free-text', title: 'Free Text' },
-    { id: 'async-search', title: 'Async Search' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta
@@ -41,7 +29,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

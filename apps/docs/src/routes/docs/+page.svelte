@@ -51,13 +51,6 @@
     .map(toCard)
     .sort(byName);
 
-  const navigation = [
-    { id: 'overview', title: 'Overview' },
-    { id: 'anatomy', title: 'Page Anatomy' },
-    { id: 'content-blocks', title: 'Content Blocks' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const usageCode =
     `<script lang="ts">
   import { DocsLayout, Section, CodeExample, ReferenceSections } from '@urbicon-ui/docs';
@@ -65,8 +58,8 @@
 <` +
     `/script>
 
-<DocsLayout title="Button" description="…" navigation={[…]}>
-  <Section id="examples" title="Examples">
+<DocsLayout title="Button" description="…" showToc>
+  <Section marker id="examples" title="Examples">
     <CodeExample title="Basic">
       <Button>Click me</Button>
     </CodeExample>
@@ -85,7 +78,6 @@
   description="The documentation kit this site is built with — layout shell, code examples, playgrounds, and generated API tables."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
 >
   <Section id="overview" title="Overview">
     <p class="text-text-secondary text-sm leading-relaxed">

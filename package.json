@@ -122,7 +122,6 @@
     "examples:lint": "bun run packages/docs-gen/scripts/examples-lint.ts",
     "docs:fences:lint": "bun run packages/docs-gen/scripts/doc-fences-lint.ts",
     "examples:budget": "bun --filter='@urbicon-ui/docs-app' run examples:budget",
-    "sections:lint": "bun --filter='@urbicon-ui/docs-app' run sections:lint",
     "refsections:lint": "bun --filter='@urbicon-ui/docs-app' run refsections:lint"
   },
   "devDependencies": {

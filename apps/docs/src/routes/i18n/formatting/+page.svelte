@@ -4,12 +4,6 @@
   import { useI18n } from '@urbicon-ui/i18n';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'plurals', title: 'Pluralization' },
-    { id: 'formatters', title: 'Formatters' },
-    { id: 'demo', title: 'Live demo' }
-  ];
-
   // Real i18n hook — the docs app mounts a provider at its root, so these
   // formatters resolve against the active site locale and re-render on a switch.
   const i18n = useI18n();
@@ -71,7 +65,6 @@
   description="Pluralization and number/date formatting go through the platform Intl APIs — correct for any BCP-47 locale, with no bundled CLDR data."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="plurals" title="Pluralization">

@@ -18,16 +18,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'usage', title: 'Usage Notes' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const description =
     'Code example card with live preview, syntax highlighting, copy-to-clipboard, and a collapsible code panel.';
 </script>
@@ -39,7 +29,6 @@
   {description}
   maxWidth="lg"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}

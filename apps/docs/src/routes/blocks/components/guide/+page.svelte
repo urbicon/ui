@@ -78,21 +78,6 @@
     { data: beaconData, blurb: 'Waiting, pulsing hotspot that starts an opt-in tour.' }
   ];
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'setup', title: 'Setup' },
-    { id: 'panel', title: 'Help panel' },
-    { id: 'hint', title: 'Contextual hints' },
-    { id: 'tour', title: 'Guided tour' },
-    { id: 'analytics', title: 'Analytics' },
-    { id: 'namespace', title: 'data-guide namespace' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   // ── Hand-authored API tables for the engine + tour-definition surface that docs-gen
   //    cannot reach (it only extracts local *Props interfaces, not imported utils types). ──
 
@@ -257,7 +242,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Components', href: resolve('/blocks/components') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

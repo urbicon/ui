@@ -14,15 +14,6 @@
   import { asset, resolve } from '$app/paths';
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   type ToolState = ChatToolCallPart['state'];
 
   // Build a representative tool-call part for the chosen lifecycle state — a
@@ -52,7 +43,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Components', href: resolve('/blocks/components') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

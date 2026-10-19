@@ -15,14 +15,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'examples', title: 'Examples' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const description =
     'Structured API reference table — renders prop names, types, defaults, and descriptions with source and required badges.';
 </script>
@@ -34,7 +26,6 @@
   {description}
   maxWidth="lg"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}

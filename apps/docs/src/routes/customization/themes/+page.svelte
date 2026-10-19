@@ -17,15 +17,6 @@
   const description =
     'Swap palettes with a single CSS import: each theme re-colors the primary and secondary accents and the neutral chassis. The four colored themes match the chassis to the accent’s temperature; Neutral strips it to grey.';
 
-  const navigation = [
-    { id: 'preview', title: 'Live Preview' },
-    { id: 'usage', title: 'Usage' },
-    { id: 'create', title: 'Write Your Own Theme' },
-    { id: 'type', title: 'Typography' },
-    { id: 'scoped', title: 'Scoped Themes' },
-    { id: 'dark-mode', title: 'Dark Mode' }
-  ];
-
   const themes = [
     {
       name: 'Ocean',
@@ -180,7 +171,6 @@ html.add('dark');             // force dark; add('light') forces light`;
   title="Themes"
   {description}
   maxWidth="xl"
-  {navigation}
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <p class="text-text-secondary mb-6 leading-relaxed">

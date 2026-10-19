@@ -16,13 +16,6 @@
   // parser only looks for the closing tag); the closer comes from `_data`.
   const scriptOpenTs = '<' + 'script lang="ts">';
 
-  const navigation = [
-    { id: 'overview', title: 'Letting the table fetch' },
-    { id: 'demo', title: 'Demo' },
-    { id: 'params', title: 'From the view to your parameters' },
-    { id: 'limits', title: 'What it will not do' }
-  ];
-
   const codeManaged = `${scriptOpenTs}
   import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
 
@@ -85,7 +78,6 @@ function toParams(view: TableViewSnapshot) {
 <DocsPageLayout
   title="Query Function"
   description="Give source a query function and the table calls your backend itself, whenever the reader sorts, filters or pages."
-  {navigation}
   showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >

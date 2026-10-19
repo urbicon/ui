@@ -21,12 +21,6 @@
   const columnsPath = `'./columns'`;
   const dataPath = `'./data'`;
 
-  const navigation = [
-    { id: 'rows', title: 'Hand over the rows' },
-    { id: 'fetching', title: 'While the rows are loading' },
-    { id: 'handover', title: 'When the browser runs out' }
-  ];
-
   // The very columns the example below renders — one declaration, so the
   // snippet and the live table cannot drift apart.
   const demoColumns: Column<Employee>[] = [
@@ -87,7 +81,6 @@ ${scriptClose}
 <DocsPageLayout
   title="Client Processing"
   description="The table sorts, filters, searches and pages your rows in the browser. Pass an array, and every control on the page works."
-  {navigation}
   showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >

@@ -16,15 +16,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const description =
     'Card of short titled notes separated by rules — the accessibility block of a documentation page.';
 </script>
@@ -36,7 +27,6 @@
   {description}
   maxWidth="lg"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}

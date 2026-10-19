@@ -14,17 +14,6 @@
   import { asset, resolve } from '$app/paths';
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'vertical', title: 'Vertical Stepper' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   function codeGenerator(vals: Record<string, unknown>): string {
     const defaults: Record<string, unknown> = {
       orientation: 'horizontal',
@@ -73,7 +62,6 @@
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

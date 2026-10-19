@@ -20,7 +20,6 @@
     "preview": "vite preview",
     "refsections:lint": "bun scripts/refsections-lint.ts",
     "registry:lint": "bun run scripts/registry-lint.ts",
-    "sections:lint": "bun scripts/sections-lint.ts",
     "test": "bunx --bun svelte-kit sync && bunx --bun vitest run"
   },
   "dependencies": {

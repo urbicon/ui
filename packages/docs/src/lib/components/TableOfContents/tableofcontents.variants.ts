@@ -23,8 +23,11 @@ export const tableOfContentsVariants = tv({
     // rendered via ::before on the active link: the rooms block-cursor
     // signature (favicon, sidebar wordmark), not the editorial pipe.
     nav: ['flex flex-col'],
+    // A label can be a section heading's own markup (`DocsLayout` passes it):
+    // inline `code` there takes the link's colour, so a heading that tints its
+    // code does not paint the entry in the active colour while it is inactive.
     link: [
-      'relative py-1.5 pl-4 text-sm',
+      'relative py-1.5 pl-4 text-sm [&_code]:text-inherit',
       'transition-colors duration-(--blocks-duration-fast)',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
@@ -38,7 +41,7 @@ export const tableOfContentsVariants = tv({
     ],
     linkInactive: ['text-text-tertiary hover:text-text-secondary'],
     childLink: [
-      'relative py-1 pl-8 text-xs',
+      'relative py-1 pl-8 text-xs [&_code]:text-inherit',
       'transition-colors duration-(--blocks-duration-fast)',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],

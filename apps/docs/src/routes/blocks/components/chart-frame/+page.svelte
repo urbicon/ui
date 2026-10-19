@@ -14,16 +14,6 @@
   import { ChartFrame } from '@urbicon-ui/blocks';
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'when-to-use', title: 'When to use' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   // Demo data for the playground mark.
 
   // ChartFrame's substance is the `children` snippet, not its props — so the
@@ -56,7 +46,6 @@
     { label: 'Blocks', href: '/blocks' },
     { label: 'Components', href: '/blocks/components' }
   ]}
-  {navigation}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}

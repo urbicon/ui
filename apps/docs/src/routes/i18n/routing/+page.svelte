@@ -4,16 +4,6 @@
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
 
-  const navigation = [
-    { id: 'overview', title: 'Why routing lives here' },
-    { id: 'reroute', title: 'Map URLs → routes' },
-    { id: 'resolve', title: 'Read the locale' },
-    { id: 'switch', title: 'Switch via the switcher' },
-    { id: 'links', title: 'Locale-aware links' },
-    { id: 'seo', title: 'hreflang & canonical' },
-    { id: 'variants', title: 'Variants' }
-  ];
-
   const rerouteCode = `// src/hooks.ts — a universal hook: runs on both server and client, before
 // 'handle'. It maps the visible URL to an internal route, so the locale prefix
 // stays OUT of your route tree (/blocks/button, not /[lang]/blocks/button).
@@ -134,7 +124,6 @@ export function localizeHref(path, locale) {
   description="Carry the locale in the URL (/de/blocks/button) and switch it from the built-in LocaleSwitcher. The package deliberately doesn't own routing — it gives you the onLocaleChange seam; SvelteKit's reroute hook does the rest."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="overview" title="Why routing lives here" titleHidden intent="primary">
