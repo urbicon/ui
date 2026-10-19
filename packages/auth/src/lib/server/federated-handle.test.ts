@@ -79,6 +79,8 @@ function createMockEvent(options: {
   sessionCookie?: string;
   cookieName?: string;
   isRemoteRequest?: boolean;
+  /** The route SvelteKit resolved; defaults to the path. */
+  routeId?: string | null;
 }) {
   const cookieStore = new Map<string, string>();
   if (options.sessionCookie) {
@@ -99,7 +101,7 @@ function createMockEvent(options: {
     _cookieStore: cookieStore,
     locals: {} as Record<string, unknown>,
     params: {},
-    route: { id: options.path },
+    route: { id: options.routeId === undefined ? options.path : options.routeId },
     isDataRequest: false,
     isSubRequest: false,
     isRemoteRequest: options.isRemoteRequest ?? false,
@@ -726,6 +728,41 @@ describe('createFederatedAuthHandle — route guard', () => {
     expect(quiet.warn).not.toHaveBeenCalled();
   });
 
+  it('takes the predicate form, as the IdP handle does: public on a literal true only', async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const logger = mockLogger();
+    type Predicate = (pathname: string, event: RequestEvent) => boolean;
+    const status = async (publicRoutes: Predicate, path: string, routeId?: string | null) => {
+      const handle = createFederatedAuthHandle(handleOptions({ logger, publicRoutes }));
+      const event = createMockEvent({ path, routeId });
+      return (await handle({ event: asEvent(event), resolve: ok() })).status;
+    };
+    const defaultPublic = (pathname: string) => !pathname.startsWith('/admin');
+    expect(await status(defaultPublic, '/blog')).toBe(200);
+    expect(await status(defaultPublic, '/admin/users')).toBe(401);
+    expect(await status(defaultPublic, '/%61dmin/users'), 'decoded').toBe(401);
+    // The event is the second argument, so a route group guards under paths.base.
+    // This package has no routes, so its generated RouteId is `never`.
+    const resolvedRoute = (event: RequestEvent): string | null => event.route.id;
+    const byGroup: Predicate = (_, event) => !resolvedRoute(event)?.includes('/(admin)');
+    expect(await status(byGroup, '/app/admin', '/(admin)/admin')).toBe(401);
+    expect(await status(byGroup, '/app/blog', '/blog')).toBe(200);
+    for (const loose of [async () => true, () => 1]) {
+      const publicRoutes = loose as unknown as (pathname: string) => boolean;
+      expect(await status(publicRoutes, '/blog'), String(loose)).toBe(401);
+    }
+    const boom = new Error('predicate boom');
+    const throwing = () => {
+      throw boom;
+    };
+    expect(await status(throwing, '/blog')).toBe(401);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('publicRoutes predicate threw'),
+      boom
+    );
+    expect(logger.warn, 'a predicate states its intent').not.toHaveBeenCalled();
+  });
+
   it('defaults to a fully guarded app (empty publicRoutes) with a JSON 401 when no loginUrl is set', async () => {
     stubJwksFetch(() => jwksDocumentFor(idpJwt()));
     const handle = createFederatedAuthHandle(handleOptions());
@@ -742,6 +779,16 @@ describe('createFederatedAuthHandle — route guard', () => {
       handleOptions({ loginUrl: 'https://idp.test/auth/login' })
     );
     const event = createMockEvent({ path: '/api/data' });
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status).toBe(401);
+  });
+
+  it('answers an escaped /api/ address with the JSON 401 even when loginUrl is set', async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const handle = createFederatedAuthHandle(
+      handleOptions({ loginUrl: 'https://idp.test/auth/login' })
+    );
+    const event = createMockEvent({ path: '/%61pi/data' });
     const response = await handle({ event: asEvent(event), resolve: vi.fn() });
     expect(response.status).toBe(401);
   });

@@ -8,24 +8,35 @@ import { ensureCsrfCookie, validateCsrf } from './csrf.js';
 import { assertAuthConfigValid } from './deps.js';
 import { authError } from './handlers/errors.js';
 import { shieldLogger } from './logger.js';
-import { compilePublicRoutes, type PublicRoute, type RouteListOption } from './public-routes.js';
+import {
+  compilePublicRoutes,
+  isApiPath,
+  type PublicRoute,
+  type PublicRoutes,
+  predicateMatched,
+  type RouteListOption,
+  reportOnce
+} from './public-routes.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
 import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
 
-export type { PublicRoute } from './public-routes.js';
+export type { PublicRoute, PublicRoutes } from './public-routes.js';
 
 export interface AuthHandleOptions<R extends string = string> {
   config: AuthConfig<R>;
   repos: Repositories<R>;
   /**
-   * Routes exempt from the auth guard. A string entry is a pathname
-   * **prefix** (`startsWith`); `{ path, exact: true }` exempts that pathname
-   * alone (see {@link PublicRoute}).
+   * Routes exempt from the auth guard: a list of what is public, or a
+   * predicate for an app that is public by default.
    *
-   * **The list REPLACES the defaults; it does not extend them.** The defaults
-   * are {@link DEFAULT_PUBLIC_ROUTES}, exported so an app that only wants to
-   * add its own public pages can spread them:
+   * In the list, a string entry is a pathname **prefix** (`startsWith`);
+   * `{ path, exact: true }` exempts that pathname alone (see
+   * {@link PublicRoute}).
+   *
+   * **The option REPLACES the defaults; it does not extend them.** The
+   * defaults are {@link DEFAULT_PUBLIC_ROUTES}, exported so an app that only
+   * wants to add its own public pages can spread them:
    * `[...DEFAULT_PUBLIC_ROUTES, '/pricing']`.
    *
    * Dropping `'/api/auth/'` locks out the app's own sign-in: every auth
@@ -45,9 +56,36 @@ export interface AuthHandleOptions<R extends string = string> {
    * Read once, at construction: mutating the array afterwards does not move
    * the guard.
    *
+   * The predicate names what is public by returning `true`, so a site with
+   * one protected area is a single handle. Decide on the route, not the
+   * address: with every protected page and endpoint in a route group,
+   * `src/routes/(admin)/…`, the predicate
+   * `(_, event) => !event.route.id?.includes('/(admin)')` holds whatever
+   * address reaches those routes — under `paths.base`, through a `reroute`
+   * hook, behind a parameter prefix (`[[lang]]/(admin)/…`) or with
+   * percent-escapes. SvelteKit resolves the route before the hook runs.
+   * `event.route.id` is `null` when no route matches; the request then ends
+   * at SvelteKit's 404 page, which renders through the root layout alone, so
+   * the example lets it through — prefix `event.route.id !== null &&` to send
+   * an unknown address to the login page instead.
+   *
+   * The first argument is the address: `event.url.pathname`, decoded as
+   * SvelteKit decodes it (`/%61dmin` arrives as `/admin`), but with
+   * `paths.base` still in it and before any `reroute` hook — and
+   * `src/routes/[[lang]]/admin` serves `/de/admin`, which
+   * `startsWith('/admin')` misses. A pathname test has to spell all of that
+   * out itself; under `base: '/app'`, `!pathname.startsWith('/app/admin')`.
+   *
+   * Only a literal `true` makes a route public: an async predicate (a
+   * Promise), a truthy non-boolean and a throw all leave it guarded. A
+   * throw, a Promise and its rejection are each logged once per handle,
+   * through `config.logger`. The predicate is asked per request, and only
+   * for an unauthenticated request that is not a remote-function call; it
+   * gets no construction warning, because it states its intent.
+   *
    * @default DEFAULT_PUBLIC_ROUTES
    */
-  publicRoutes?: readonly PublicRoute[];
+  publicRoutes?: PublicRoutes;
   /**
    * Allow unauthenticated SvelteKit Remote Functions
    * (`kit.experimental.remoteFunctions`) to pass the route guard.
@@ -107,7 +145,8 @@ export interface AuthHandleOptions<R extends string = string> {
      * spelling. Or a synchronous predicate over the event for callers a path
      * does not identify — `(e) => e.request.headers.has('x-cron-secret')`.
      * Only a literal `true` exempts, so an async predicate (a Promise) and a
-     * truthy non-boolean exempt nothing; a throw fails the request.
+     * truthy non-boolean exempt nothing — a Promise and its rejection are
+     * logged once — and a throw fails the request.
      * Remote-function requests are never exempt on either transport — their
      * pathname is client-controlled and their transport is
      * cookie-authenticated by construction — and the predicate is not
@@ -152,17 +191,21 @@ const CSRF_EXEMPT_OPTION: RouteListOption = {
 
 /**
  * `csrf.exempt` as one predicate over the event. The list form goes through
- * the same compiler as `publicRoutes`; the function form is gated on a
- * literal `true` so that a Promise — an async predicate — exempts nothing.
+ * the same compiler as `publicRoutes`; the function form is read like
+ * `publicRoutes`' ({@link predicateMatched}), so a Promise exempts nothing
+ * and its rejection is caught. A synchronous throw is left to fail the
+ * request, as documented on the option.
  */
 function compileCsrfExempt(
   exempt: NonNullable<AuthHandleOptions['csrf']>['exempt'],
   logger: AuthLogger
 ): (event: RequestEvent) => boolean {
   if (exempt === undefined) return () => false;
-  if (typeof exempt === 'function') return (event) => exempt(event) === true;
-  const matches = compilePublicRoutes(exempt, logger, CSRF_EXEMPT_OPTION);
-  return (event) => matches(event.url.pathname);
+  if (typeof exempt === 'function') {
+    const report = reportOnce(logger);
+    return (event) => predicateMatched(exempt(event), CSRF_EXEMPT_OPTION.name, report);
+  }
+  return compilePublicRoutes(exempt, logger, CSRF_EXEMPT_OPTION);
 }
 
 /**
@@ -425,12 +468,11 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       }
     } else {
       // 3b. Path-based guard for normal requests: redirect unauthenticated
-      // users to login (401 for API routes).
-      const isPublic = isPublicPath(event.url.pathname);
-      const isApiRoute = event.url.pathname.startsWith('/api/');
-
-      if (!user && !isPublic) {
-        if (isApiRoute) {
+      // users to login (401 for API routes). The match runs only when its
+      // answer decides, so a consumer predicate is not asked for a signed-in
+      // request.
+      if (!user && !isPublicPath(event)) {
+        if (isApiPath(event.url.pathname)) {
           return jsonUnauthorized(setCookie);
         }
         // Preserve the deep link: append the requested path so the login flow

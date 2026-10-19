@@ -47,7 +47,12 @@ export const handle = createAuthHandle({
   // publicRoutes REPLACES the defaults, so spread them in — without that the
   // /api/auth/* endpoints below lose their exemption and login answers 401.
   // A string is a startsWith prefix ('/' alone would exempt the whole app);
-  // the exact form publishes one pathname — here the landing page.
+  // the exact form publishes one pathname — here the landing page. A site
+  // that is public except for one area passes a predicate instead, public
+  // only on a literal true. With the protected routes in a route group,
+  // src/routes/(admin)/…, decide on the resolved route, not the address,
+  // which still carries paths.base and precedes any reroute:
+  //   publicRoutes: (_, event) => !event.route.id?.includes('/(admin)')
   publicRoutes: [...DEFAULT_PUBLIC_ROUTES, { path: '/', exact: true }, '/pricing']
 });`;
 

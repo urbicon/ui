@@ -71,6 +71,8 @@ function createMockEvent(options: {
   refreshCookieName?: string;
   isRemoteRequest?: boolean;
   headers?: Record<string, string>;
+  /** The route SvelteKit resolved; defaults to the path, `null` is "no route matched". */
+  routeId?: string | null;
 }) {
   const headers = new Headers(options.headers);
   if (options.origin) headers.set('origin', options.origin);
@@ -91,7 +93,7 @@ function createMockEvent(options: {
     _written: written,
     locals: {} as Record<string, unknown>,
     params: {},
-    route: { id: options.path },
+    route: { id: options.routeId === undefined ? options.path : options.routeId },
     isDataRequest: false,
     isSubRequest: false,
     isRemoteRequest: options.isRemoteRequest ?? false,
@@ -127,12 +129,18 @@ describe('createAuthHandle', () => {
 
   describe('publicRoutes', () => {
     /** Drive a handle with an unauthenticated request; report what the guard did. */
-    const drive = async (handle: Handle, path: string, method?: string) => {
+    const drive = async (
+      handle: Handle,
+      path: string,
+      method?: string,
+      routeId?: string | null
+    ) => {
       const resolve = vi.fn().mockResolvedValue(new Response('OK'));
       const event = createMockEvent({
         path,
         method,
-        origin: method && method !== 'GET' ? 'http://localhost:3000' : undefined
+        origin: method && method !== 'GET' ? 'http://localhost:3000' : undefined,
+        routeId
       });
       try {
         const response = await handle({ event: asEvent(event), resolve });
@@ -143,7 +151,7 @@ describe('createAuthHandle', () => {
     };
 
     const unauthenticated = async (options: {
-      publicRoutes?: readonly PublicRoute[];
+      publicRoutes?: AuthHandleOptions['publicRoutes'];
       path: string;
       method?: string;
     }) =>
@@ -341,6 +349,14 @@ describe('createAuthHandle', () => {
       expect(await drive(later, '/dashboard')).toBe('passed-through');
     });
 
+    it('answers an escaped /api/ address with the JSON 401, like /api/ itself', async () => {
+      expect(await unauthenticated({ path: '/%61pi/admin' })).toBe('status-401');
+      expect(await unauthenticated({ publicRoutes: [], path: '/%61pi/admin' })).toBe('status-401');
+      // An address that does not decode is read as sent.
+      expect(await unauthenticated({ publicRoutes: [], path: '/api/%E0%A4%A' })).toBe('status-401');
+      expect(await unauthenticated({ publicRoutes: [], path: '/%E0%A4%A' })).toBe('redirect-302');
+    });
+
     it('rejects mutation of DEFAULT_PUBLIC_ROUTES', () => {
       // Exported, and one array backs every handle that omits the option, so a
       // push into it would widen the guard for all of them at once.
@@ -348,6 +364,258 @@ describe('createAuthHandle', () => {
       // The entry the replacement trap turns on. Every prose mention of it in
       // README/AUTH.md is only as true as this line.
       expect(DEFAULT_PUBLIC_ROUTES).toContain('/api/auth/');
+    });
+
+    describe('the predicate form', () => {
+      /** A public site with one protected area — the shape a list cannot spell. */
+      const defaultPublic = (pathname: string) =>
+        !pathname.startsWith('/admin') && !pathname.startsWith('/api/admin');
+
+      it('makes a route public on true and guards it on false', async () => {
+        // An unknown address resolves (to the app's 404), not to the login page.
+        for (const path of ['/', '/blog/first-post', '/no-such-page', '/auth/login']) {
+          expect(await unauthenticated({ publicRoutes: defaultPublic, path }), path).toBe(
+            'passed-through'
+          );
+        }
+        expect(
+          await unauthenticated({
+            publicRoutes: defaultPublic,
+            path: '/api/auth/login',
+            method: 'POST'
+          })
+        ).toBe('passed-through');
+        expect(await unauthenticated({ publicRoutes: defaultPublic, path: '/admin' })).toBe(
+          'redirect-302'
+        );
+        expect(await unauthenticated({ publicRoutes: defaultPublic, path: '/admin/users' })).toBe(
+          'redirect-302'
+        );
+        expect(
+          await unauthenticated({ publicRoutes: defaultPublic, path: '/api/admin/secrets' })
+        ).toBe('status-401');
+      });
+
+      it('opens a route only on a literal true — a Promise or a truthy non-boolean stays guarded', async () => {
+        // A Promise is truthy whatever it settles to, so `async () => false`
+        // read by truthiness would publish the very route it rejects.
+        const loose = [async () => true, async () => false, () => 1, () => 'true', () => ({})];
+        for (const predicate of loose) {
+          const publicRoutes = predicate as unknown as (pathname: string) => boolean;
+          expect(await unauthenticated({ publicRoutes, path: '/blog' }), String(predicate)).toBe(
+            'redirect-302'
+          );
+          expect(
+            await unauthenticated({ publicRoutes, path: '/api/blog' }),
+            String(predicate)
+          ).toBe('status-401');
+        }
+      });
+
+      it('keeps the route guarded when the predicate throws, and reports the throw once', async () => {
+        const logger = { warn: vi.fn(), error: vi.fn() };
+        const boom = new Error('predicate boom');
+        const build = () =>
+          createAuthHandle({
+            config: { ...config, logger },
+            repos: createMockRepos(),
+            publicRoutes: () => {
+              throw boom;
+            }
+          });
+        const handle = build();
+        // `drive` reports a throw out of the hook as `redirect-undefined`, so
+        // these also show the predicate's throw does not fail the request.
+        expect(await drive(handle, '/blog')).toBe('redirect-302');
+        expect(await drive(handle, '/api/blog')).toBe('status-401');
+        expect(await drive(handle, '/%E2%80%A8%E2%80%AE')).toBe('redirect-302');
+        expect(logger.error).toHaveBeenCalledTimes(1);
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('publicRoutes predicate threw'),
+          boom
+        );
+        // The line carries nothing the client sent.
+        expect(logger.error.mock.calls[0]?.[0]).not.toContain('/blog');
+        // Once per handle: a second handle reports its own first throw.
+        await drive(build(), '/blog');
+        expect(logger.error).toHaveBeenCalledTimes(2);
+      });
+
+      it("catches an async predicate's rejection, and reports the Promise and the rejection once each", async () => {
+        const logger = { warn: vi.fn(), error: vi.fn() };
+        const reason = new Error('async predicate rejected');
+        const rejecting = async () => {
+          throw reason;
+        };
+        const handle = createAuthHandle({
+          config: { ...config, logger },
+          repos: createMockRepos(),
+          publicRoutes: rejecting as unknown as (pathname: string) => boolean
+        });
+        expect(await drive(handle, '/blog')).toBe('redirect-302');
+        expect(await drive(handle, '/api/blog')).toBe('status-401');
+        // Let the rejections settle inside this test: left unhandled, they
+        // fail the run (and end a Node process).
+        await new Promise((settle) => setTimeout(settle, 0));
+        expect(logger.error).toHaveBeenCalledTimes(2);
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('publicRoutes predicate returned a Promise.')
+        );
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('publicRoutes predicate returned a Promise that rejected'),
+          reason
+        );
+      });
+
+      it('gets no construction warning, even when it makes every route public', () => {
+        const logger = { warn: vi.fn(), error: vi.fn() };
+        const build = (publicRoutes: AuthHandleOptions['publicRoutes']) =>
+          createAuthHandle({
+            config: { ...config, logger },
+            repos: createMockRepos(),
+            publicRoutes
+          });
+        build(() => true);
+        build(defaultPublic);
+        expect(logger.warn).not.toHaveBeenCalled();
+        // Positive control: the list spelling of `() => true` warns, on the same sink.
+        build(['/']);
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+      });
+
+      it('is consulted only when its answer decides', async () => {
+        const publicRoutes = vi.fn((_pathname: string, _event: RequestEvent) => true);
+        const handle = createAuthHandle({ config, repos: createMockRepos(), publicRoutes });
+        const session = await createSessionToken(
+          { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+          config.jwt
+        );
+        const signedIn = createMockEvent({ path: '/admin', sessionCookie: session });
+        const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+        await handle({ event: asEvent(signedIn), resolve });
+        expect(resolve).toHaveBeenCalledTimes(1);
+        // A remote call's pathname is client-controlled: the remote
+        // default-deny stands, and a predicate saying `true` cannot open it.
+        const remote = createMockEvent({ path: '/blog', isRemoteRequest: true });
+        expect((await handle({ event: asEvent(remote), resolve: vi.fn() })).status).toBe(401);
+        expect(publicRoutes).not.toHaveBeenCalled();
+        // Positive control: an unauthenticated page request does ask it.
+        expect(await drive(handle, '/blog')).toBe('passed-through');
+        expect(publicRoutes.mock.calls[0]?.[0]).toBe('/blog');
+      });
+
+      it('is handed the request event the hook received', async () => {
+        const seen: RequestEvent[] = [];
+        const handle = createAuthHandle({
+          config,
+          repos: createMockRepos(),
+          publicRoutes: (_, received) => {
+            seen.push(received);
+            return true;
+          }
+        });
+        const event = createMockEvent({ path: '/blog' });
+        await handle({
+          event: asEvent(event),
+          resolve: vi.fn().mockResolvedValue(new Response('OK'))
+        });
+        expect(seen).toHaveLength(1);
+        expect(seen[0]).toBe(asEvent(event));
+      });
+
+      it('guards a route group by event.route.id, whatever address reached it', async () => {
+        // Route ids as SvelteKit 3 resolves them before the hook runs: the
+        // address keeps paths.base, a reroute's source and a parameter
+        // prefix, the route id has none of them.
+        // This package has no routes, so its generated RouteId is `never`; an
+        // app's is the union of its route ids.
+        const resolvedRoute = (event: RequestEvent): string | null => event.route.id;
+        const byGroup = (_: string, event: RequestEvent) =>
+          !resolvedRoute(event)?.includes('/(admin)');
+        const handle = createAuthHandle({
+          config,
+          repos: createMockRepos(),
+          publicRoutes: byGroup
+        });
+        const page = '/[[lang=locale]]/(admin)/admin';
+        const addresses: Array<[string, string | null, string]> = [
+          ['/app/admin', page, 'redirect-302'], // paths.base '/app'
+          ['/de/admin', page, 'redirect-302'], // the [[lang]] prefix
+          ['/%61dmin', page, 'redirect-302'], // an escape
+          ['/api/admin', '/(admin)/api/admin', 'status-401'],
+          ['/app/blog', '/blog', 'passed-through'],
+          // No route matched: SvelteKit's 404, rendered through the root
+          // layout alone — nothing of the group is behind it.
+          ['/admin/nope', null, 'passed-through']
+        ];
+        for (const [path, routeId, expected] of addresses) {
+          expect(await drive(handle, path, undefined, routeId), path).toBe(expected);
+        }
+        // Positive control: the address-based spelling lets the base and the
+        // prefixed address through — why the docs lead with the route id.
+        const byAddress = createAuthHandle({
+          config,
+          repos: createMockRepos(),
+          publicRoutes: defaultPublic
+        });
+        expect(await drive(byAddress, '/app/admin', undefined, page)).toBe('passed-through');
+        expect(await drive(byAddress, '/de/admin', undefined, page)).toBe('passed-through');
+      });
+
+      it('decodes the pathname, so a percent-escape cannot step around it', async () => {
+        // event.url.pathname keeps the escape; SvelteKit decodes it before
+        // matching, so this request is served by the /admin route.
+        expect(new URL('http://localhost:3000/%61dmin/users').pathname).toBe('/%61dmin/users');
+        expect(await unauthenticated({ publicRoutes: defaultPublic, path: '/%61dmin/users' })).toBe(
+          'redirect-302'
+        );
+        expect(
+          await unauthenticated({ publicRoutes: defaultPublic, path: '/api/%61dmin/secrets' })
+        ).toBe('status-401');
+        // A pathname that does not decode resolves no route (SvelteKit answers
+        // it 400), so nothing public is behind it: guarded, predicate unasked.
+        const asked = vi.fn((_pathname: string) => true);
+        expect(await unauthenticated({ publicRoutes: asked, path: '/%E0%A4%A' })).toBe(
+          'redirect-302'
+        );
+        expect(asked).not.toHaveBeenCalled();
+      });
+
+      it('decodes the pathname exactly as SvelteKit does', async () => {
+        // The oracle is Kit's own decode_pathname, outside its exports map —
+        // reached the way the cookie-runtime oracle in this file reaches its
+        // file, so a release that moves it fails here at import.
+        const kitPackageJson = createRequire(import.meta.url).resolve('@sveltejs/kit/package.json');
+        const { decode_pathname } = (await import(
+          /* @vite-ignore */
+          new URL('./src/utils/url.js', pathToFileURL(kitPackageJson)).href
+        )) as { decode_pathname: (pathname: string) => string };
+        const seen: string[] = [];
+        const handle = createAuthHandle({
+          config,
+          repos: createMockRepos(),
+          publicRoutes: (pathname) => {
+            seen.push(pathname);
+            return true;
+          }
+        });
+        // An unreserved escape, an escaped slash, an escaped escape, UTF-8, a
+        // space, and nothing to decode.
+        for (const path of [
+          '/%61dmin',
+          '/admin%2Fusers',
+          '/%2561dmin',
+          '/caf%C3%A9',
+          '/a%20b',
+          '/plain'
+        ]) {
+          seen.length = 0;
+          await drive(handle, path);
+          expect(seen, path).toEqual([
+            decode_pathname(new URL(`http://localhost:3000${path}`).pathname)
+          ]);
+        }
+      });
     });
   });
 
@@ -1569,6 +1837,30 @@ describe('createAuthHandle — csrf.exempt (cookieless machine routes)', () => {
       expect((await handle({ event: asEvent(event), resolve })).status).toBe(403);
       expect(resolve).not.toHaveBeenCalled();
     }
+  });
+
+  it("catches an async predicate's rejection, and reports the Promise and the rejection once each", async () => {
+    const reason = new Error('async exempt rejected');
+    const rejecting = async () => {
+      throw reason;
+    };
+    const { handle, logger } = build(rejecting as unknown as (event: RequestEvent) => boolean);
+    for (const path of ['/api/cron/nightly', '/api/cron/hourly']) {
+      const resolve = ok();
+      expect((await handle({ event: asEvent(machinePost(path)), resolve })).status).toBe(403);
+      expect(resolve).not.toHaveBeenCalled();
+    }
+    // Let the rejections settle inside this test: left unhandled, they fail
+    // the run (and end a Node process).
+    await new Promise((settle) => setTimeout(settle, 0));
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('csrf.exempt predicate returned a Promise.')
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('csrf.exempt predicate returned a Promise that rejected'),
+      reason
+    );
+    expect(logger.error).toHaveBeenCalledTimes(2);
   });
 
   it('a page action named "remote" (empty ?/remote) on an exempt path stays exempt', async () => {
