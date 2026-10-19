@@ -10,9 +10,12 @@ import { authError } from './handlers/errors.js';
 import { shieldLogger } from './logger.js';
 import {
   compilePublicRoutes,
+  isApiPath,
   type PublicRoute,
   type PublicRoutes,
-  type RouteListOption
+  predicateMatched,
+  type RouteListOption,
+  reportOnce
 } from './public-routes.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
@@ -25,7 +28,7 @@ export interface AuthHandleOptions<R extends string = string> {
   repos: Repositories<R>;
   /**
    * Routes exempt from the auth guard: a list of what is public, or a
-   * predicate over the pathname for an app that is public by default.
+   * predicate for an app that is public by default.
    *
    * In the list, a string entry is a pathname **prefix** (`startsWith`);
    * `{ path, exact: true }` exempts that pathname alone (see
@@ -54,17 +57,31 @@ export interface AuthHandleOptions<R extends string = string> {
    * the guard.
    *
    * The predicate names what is public by returning `true`, so a site with
-   * one protected area is a single handle:
-   * `(pathname) => !pathname.startsWith('/admin')`. Only a literal `true`
-   * makes a route public: an async predicate (a Promise), a truthy
-   * non-boolean and a throw all leave it guarded, and a throw is logged
-   * through `config.logger`. It receives the pathname decoded as SvelteKit
-   * decodes it to pick a route — `/%61dmin` arrives as `/admin` — but a
-   * `reroute` hook changes which route is resolved, not this, so a predicate
-   * must also guard every pathname your `reroute` maps into a protected area.
-   * It is asked per request, and only for an unauthenticated request that is
-   * not a remote-function call; it gets no construction warning, because it
-   * states its intent.
+   * one protected area is a single handle. Decide on the route, not the
+   * address: with every protected page and endpoint in a route group,
+   * `src/routes/(admin)/…`, the predicate
+   * `(_, event) => !event.route.id?.includes('/(admin)')` holds whatever
+   * address reaches those routes — under `paths.base`, through a `reroute`
+   * hook, behind a parameter prefix (`[[lang]]/(admin)/…`) or with
+   * percent-escapes. SvelteKit resolves the route before the hook runs.
+   * `event.route.id` is `null` when no route matches; the request then ends
+   * at SvelteKit's 404 page, which renders through the root layout alone, so
+   * the example lets it through — prefix `event.route.id !== null &&` to send
+   * an unknown address to the login page instead.
+   *
+   * The first argument is the address: `event.url.pathname`, decoded as
+   * SvelteKit decodes it (`/%61dmin` arrives as `/admin`), but with
+   * `paths.base` still in it and before any `reroute` hook — and
+   * `src/routes/[[lang]]/admin` serves `/de/admin`, which
+   * `startsWith('/admin')` misses. A pathname test has to spell all of that
+   * out itself; under `base: '/app'`, `!pathname.startsWith('/app/admin')`.
+   *
+   * Only a literal `true` makes a route public: an async predicate (a
+   * Promise), a truthy non-boolean and a throw all leave it guarded. A
+   * throw, a Promise and its rejection are each logged once per handle,
+   * through `config.logger`. The predicate is asked per request, and only
+   * for an unauthenticated request that is not a remote-function call; it
+   * gets no construction warning, because it states its intent.
    *
    * @default DEFAULT_PUBLIC_ROUTES
    */
@@ -128,7 +145,8 @@ export interface AuthHandleOptions<R extends string = string> {
      * spelling. Or a synchronous predicate over the event for callers a path
      * does not identify — `(e) => e.request.headers.has('x-cron-secret')`.
      * Only a literal `true` exempts, so an async predicate (a Promise) and a
-     * truthy non-boolean exempt nothing; a throw fails the request.
+     * truthy non-boolean exempt nothing — a Promise and its rejection are
+     * logged once — and a throw fails the request.
      * Remote-function requests are never exempt on either transport — their
      * pathname is client-controlled and their transport is
      * cookie-authenticated by construction — and the predicate is not
@@ -173,17 +191,21 @@ const CSRF_EXEMPT_OPTION: RouteListOption = {
 
 /**
  * `csrf.exempt` as one predicate over the event. The list form goes through
- * the same compiler as `publicRoutes`; the function form is gated on a
- * literal `true` so that a Promise — an async predicate — exempts nothing.
+ * the same compiler as `publicRoutes`; the function form is read like
+ * `publicRoutes`' ({@link predicateMatched}), so a Promise exempts nothing
+ * and its rejection is caught. A synchronous throw is left to fail the
+ * request, as documented on the option.
  */
 function compileCsrfExempt(
   exempt: NonNullable<AuthHandleOptions['csrf']>['exempt'],
   logger: AuthLogger
 ): (event: RequestEvent) => boolean {
   if (exempt === undefined) return () => false;
-  if (typeof exempt === 'function') return (event) => exempt(event) === true;
-  const matches = compilePublicRoutes(exempt, logger, CSRF_EXEMPT_OPTION);
-  return (event) => matches(event.url.pathname);
+  if (typeof exempt === 'function') {
+    const report = reportOnce(logger);
+    return (event) => predicateMatched(exempt(event), CSRF_EXEMPT_OPTION.name, report);
+  }
+  return compilePublicRoutes(exempt, logger, CSRF_EXEMPT_OPTION);
 }
 
 /**
@@ -449,8 +471,8 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       // users to login (401 for API routes). The match runs only when its
       // answer decides, so a consumer predicate is not asked for a signed-in
       // request.
-      if (!user && !isPublicPath(event.url.pathname)) {
-        if (event.url.pathname.startsWith('/api/')) {
+      if (!user && !isPublicPath(event)) {
+        if (isApiPath(event.url.pathname)) {
           return jsonUnauthorized(setCookie);
         }
         // Preserve the deep link: append the requested path so the login flow

@@ -18,7 +18,12 @@ import { base64UrlDecodeString } from './encoding.js';
 import { authError } from './handlers/errors.js';
 import { BASE64URL_REGEX, es256Verify, MAX_TOKEN_LENGTH, SESSION_TOKEN_PURPOSE } from './jwt.js';
 import { shieldLogger } from './logger.js';
-import { compilePublicRoutes, type PublicRoute, type PublicRoutes } from './public-routes.js';
+import {
+  compilePublicRoutes,
+  isApiPath,
+  type PublicRoute,
+  type PublicRoutes
+} from './public-routes.js';
 
 /**
  * The identity a verified IdP token proves — and NOTHING more. Deliberately
@@ -101,13 +106,15 @@ export interface FederatedAuthHandleOptions<TUser> {
    * whole app and is warned about at construction. A list held in a variable
    * first needs `as const` or the annotation `PublicRoute[]`, or TypeScript
    * widens `exact: true` to `boolean`; an inline list needs nothing. Or a
-   * predicate over the pathname for an app that is public by default —
-   * `(pathname) => !pathname.startsWith('/admin')` — under which a route is
-   * public only on a literal `true`, a throw is logged to `logger` and leaves
-   * the route guarded (`AuthHandleOptions.publicRoutes` has the full
-   * contract). Defaults to `[]` — the whole app requires a resolved user —
-   * because unlike the IdP this app serves no login/register pages of its
-   * own; list your genuinely public pages explicitly.
+   * predicate for an app that is public by default, given the decoded
+   * pathname and the event — `(_, event) =>
+   * !event.route.id?.includes('/(admin)')` guards a route group whatever
+   * address reaches it — under which a route is public only on a literal
+   * `true`, and a throw, a Promise or its rejection is logged once to
+   * `logger` and leaves the route guarded (`AuthHandleOptions.publicRoutes`
+   * has the full contract). Defaults to `[]` — the whole app requires a
+   * resolved user — because unlike the IdP this app serves no login/register
+   * pages of its own; list your genuinely public pages explicitly.
    */
   publicRoutes?: PublicRoutes;
   /**
@@ -132,7 +139,7 @@ export interface FederatedAuthHandleOptions<TUser> {
   allowUnauthenticatedRemote?: boolean;
   /**
    * Log sink for the JWKS fail-closed warnings, the bare-`'/'` warning and a
-   * throwing `publicRoutes` predicate. @default console
+   * `publicRoutes` predicate that throws or returns a Promise. @default console
    */
   logger?: AuthLogger;
 }
@@ -529,8 +536,8 @@ export function createFederatedAuthHandle<TUser>(
         return authError('not_authenticated');
       }
     } else {
-      if (!user && !isPublicPath(event.url.pathname)) {
-        if (!loginUrl || event.url.pathname.startsWith('/api/')) {
+      if (!user && !isPublicPath(event)) {
+        if (!loginUrl || isApiPath(event.url.pathname)) {
           return authError('not_authenticated');
         }
         // Verbatim, no redirectTo — see FederatedAuthHandleOptions.loginUrl.
