@@ -1,7 +1,8 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { useI18n } from '@urbicon-ui/i18n';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { percentFormatter } from '#lib/internal/percent.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
   import { compositionBarVariants, type CompositionBarVariants } from './composition-bar.variants';
@@ -132,8 +133,9 @@
     return result;
   });
 
-  const defaultPercentFmt = (p: number) =>
-    `${new Intl.NumberFormat(i18n.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(p)} %`;
+  const defaultPercentFmt = $derived(
+    percentFormatter(resolveDateLocale(undefined, i18n.locale), 1)
+  );
 
   const fmtValue = (v: number) => (formatValue ? formatValue(v) : v.toString());
   const fmtPercent = (p: number) => (formatPercent ? formatPercent(p) : defaultPercentFmt(p));
@@ -204,7 +206,7 @@
     }
   }
 
-  // ARIA summary: "Composition: 382,242 (4 shares) — Gas 57.7 %, Power 29.5 %, ..."
+  // ARIA summary: "Composition: 382,242 (4 shares) — Gas 57.7%, Power 29.5%, ..."
   const ariaSummary = $derived.by(() => {
     const totalText = fmtValue(scaleBase);
     const parts = items

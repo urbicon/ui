@@ -1,15 +1,19 @@
 // @vitest-environment jsdom
 import { fireEvent } from '@testing-library/dom';
+import type { Locale } from '@urbicon-ui/i18n';
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import Sankey from './Sankey.svelte';
 
-// Interaction contract of the Sankey wrapper — the two things the variant tests
+// Interaction contract of the Sankey wrapper — the things the variant tests
 // can't see: (1) the chart root is a named group (role="img" would flatten the
-// interactive role="button" paths/nodes out of the accessibility tree) and
+// interactive role="button" paths/nodes out of the accessibility tree),
 // (2) a consumer-provided onmousemove is forwarded alongside the internal
-// tooltip tracker instead of clobbering it via the restProps spread. Repo
-// stack: svelte's own mount/unmount, @testing-library/dom, native matchers.
+// tooltip tracker instead of clobbering it via the restProps spread, (3) a
+// link's accessible name uses the node labels, not the ids, and (4) the
+// tooltip's default percent follows the active locale. Repo stack: svelte's
+// own mount/unmount, @testing-library/dom, native matchers.
 
 let dispose: (() => void) | undefined;
 
@@ -17,6 +21,7 @@ afterEach(() => {
   dispose?.();
   dispose = undefined;
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 const nodes = [
@@ -25,13 +30,24 @@ const nodes = [
 ];
 const links = [{ source: 'gas', target: 'heat', value: 100 }];
 
-function renderSankey(props: Partial<ComponentProps<typeof Sankey>> = {}) {
-  const instance = mount(Sankey, {
-    target: document.body,
-    props: { nodes, links, ...props }
-  });
+function renderSankey(props: Partial<ComponentProps<typeof Sankey>> = {}, locale?: Locale) {
+  const merged = { nodes, links, ...props };
+  const instance =
+    locale !== undefined
+      ? mount(ChartLocaleHost, {
+          target: document.body,
+          props: { locale, chart: Sankey, props: merged }
+        })
+      : mount(Sankey, { target: document.body, props: merged });
   dispose = () => unmount(instance);
   flushSync();
+}
+
+/** Hovers the first link and returns the tooltip's text. */
+function linkTooltipText() {
+  fireEvent.mouseEnter(document.querySelector('path[role="button"]')!);
+  flushSync();
+  return document.querySelector<HTMLElement>('[data-visible="true"]')?.textContent ?? '';
 }
 
 describe('Sankey (component interaction)', () => {
@@ -67,5 +83,30 @@ describe('Sankey (component interaction)', () => {
     expect(tooltip?.style.top).toBe('58px');
     // Consumer handler was forwarded, not clobbered by the internal one.
     expect(onmousemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('names each link by its node labels, like the nodes and the summary', () => {
+    renderSankey({ formatValue: (v) => String(v) });
+    const link = document.querySelector('path[role="button"]');
+    expect(link?.getAttribute('aria-label')).toBe('Gas → Heating: 100');
+  });
+});
+
+describe('Sankey (default percent format)', () => {
+  it('writes the tooltip percent the way the active locale does', () => {
+    renderSankey();
+    expect(linkTooltipText()).toContain('· 100.0%');
+  });
+
+  it('follows a non-base locale', () => {
+    renderSankey({}, 'de');
+    expect(linkTooltipText()).toContain('· 100,0\u00a0%');
+  });
+
+  // A provider does not validate its locale; `Intl` throws on these two.
+  it.each(['de_DE', ''])('renders in English under the provider locale %j', (locale) => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderSankey({}, locale as Locale);
+    expect(linkTooltipText()).toContain('· 100.0%');
   });
 });
