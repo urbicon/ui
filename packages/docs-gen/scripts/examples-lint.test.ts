@@ -14,9 +14,11 @@ import { fileURLToPath } from 'node:url';
  * back red at its DOCUMENT line, and a fence that compiles comes back green
  * with the corpus named in the report.
  *
- * It runs the whole gate, so it costs a full gate run per case (~30 s each) and
- * is a Bun-test step of its own rather than part of the docs-gen vitest suite,
- * the way `scripts/consumer-css-check.test.ts` is. The cheap half — which
+ * It runs the whole gate, so it costs a full gate run per case — eight
+ * svelte-check passes, 2.5 min for both cases on a 4-core box (`time bun test
+ * packages/docs-gen/scripts/examples-lint.test.ts`) — and is a Bun-test step of
+ * its own rather than part of the docs-gen vitest suite, the way
+ * `scripts/consumer-css-check.test.ts` is. The cheap half — which
  * fences a document yields, and the line arithmetic — is unit-tested in
  * `tests/pattern-fences.test.ts`. Needs the workspace packages built.
  */
