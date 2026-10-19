@@ -48,7 +48,11 @@ const events: CalendarEvent[] = [
     title: 'Sprint review',
     start: new Date(2026, 2, 6),
     recurrence: { frequency: 'weekly', interval: 2, byDay: [5] }
-  }
+  },
+
+  // At a time: allDay: false, and the event list prints the clock in the
+  // calendar's locale ahead of the title.
+  { id: '5', title: 'Checkup', start: new Date(2026, 2, 26, 14, 30), allDay: false }
 ];
 
 // A category colours its events' dots and labels the legend. \`color\` takes
@@ -127,7 +131,7 @@ const categories: CalendarEventCategory[] = [
   <div class="space-y-10">
     <CodeExample
       title="Events in a month view"
-      description="The month grid is the default. An event can cover a single day, span consecutive days, or repeat on a schedule; the calendar expands a recurrence rule into its occurrences, so you define it once. Clicking a day opens its detail list, and these demos pin `locale` to `de-DE` to show the German month and weekday names."
+      description="The month grid is the default. An event can cover a single day, span consecutive days, or repeat on a schedule; the calendar expands a recurrence rule into its occurrences, so you define it once. Clicking a day opens its detail list, and these demos pin `locale` to `de-DE` to show German month names, weekdays and clock times."
       code={eventShapesCode}
     >
       <div class="space-y-10">

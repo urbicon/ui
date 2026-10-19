@@ -32,9 +32,9 @@
     {
       id: 'yoga',
       title: 'Yoga',
-      start: new Date(2026, 2, 3),
+      start: new Date(2026, 2, 3, 18, 0),
+      allDay: false,
       categoryId: 'sport',
-      helperText: '6:00 PM',
       recurrence: { frequency: 'weekly', byDay: [2, 4] }
     },
     {
