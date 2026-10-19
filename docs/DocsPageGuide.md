@@ -14,7 +14,7 @@ apps/docs/src/routes/blocks/primitives/[component]/
 The `+page.svelte` / `Docs.svelte` split is intentional: the page defines the shell (playground, API reference, installation), while `Docs.svelte` holds the editorial content (examples, explanations). This keeps the page lean and the content independently editable.
 
 **`bun run docs:scaffold` is the source for a new blocks page.** It writes both files with the
-section ids, navigation shape and generated-Playground wiring; run it, then fill in its `TODO`
+section ids and the generated-Playground wiring; run it, then fill in its `TODO`
 comments. The templates below show that same shape filled in to match the Button reference page,
 since scaffold's own raw output ships as comments rather than finished content.
 
@@ -27,32 +27,31 @@ since scaffold's own raw output ships as comments rather than finished content.
 | #   | Section                                       | Required | Source         | `marker` | Enforced by |
 | --- | --------------------------------------------- | -------- | -------------- | -------- | ----------- |
 | 1   | Playground                                    | yes      | `+page.svelte` | —        | editorial — no gate checks its presence |
-| 2   | Examples                                      | yes      | `Docs.svelte`  | bare     | `examples:budget` (a `NO_EXAMPLES` entry excuses its absence) |
-| 3+  | Component-specific (e.g. Mint, Customization) | optional | `Docs.svelte`  | bare     | editorial |
-| N-2 | Accessibility                                 | yes      | `Docs.svelte`  | bare     | editorial — no gate checks its presence |
+| 2   | Examples                                      | yes      | `Docs.svelte`  | yes      | `examples:budget` (a `NO_EXAMPLES` entry excuses its absence) |
+| 3+  | Component-specific (e.g. Mint, Customization) | optional | `Docs.svelte`  | yes      | editorial |
+| N-2 | Accessibility                                 | yes      | `Docs.svelte`  | yes      | editorial — no gate checks its presence |
 | N-1 | API Reference, Types                          | yes      | `+page.svelte` | built in | `refsections:lint` (one `<ReferenceSections>` renders both) |
-| N   | Installation                                  | yes      | `+page.svelte` | bare     | editorial — no gate checks its presence |
+| N   | Installation                                  | yes      | `+page.svelte` | yes      | editorial — no gate checks its presence |
 
 Installation always comes last – experienced users rarely need it, and new users will read through anyway.
 
-`bun run sections:lint` is a different check from the "Enforced by" column above: it never asks
-whether a particular section exists, only whether the page's `navigation` array agrees with the
-`<Section id>`s actually rendered — a dead nav entry, an unlisted section, or the two in different
-orders. Whether *this* section belongs on *this* page is an editorial call the table above states,
-not something any gate verifies.
+**The table of contents is the page's sections, not a list beside them.** Every `<Section>` registers
+with `DocsLayout` as it renders, and the layout lists the ones with a title, in render order across
+both files, each under its own heading. There is nothing to keep in step: a section you add is listed,
+one you remove is gone, and a reordering moves its entry with it. Whether *this* section belongs on
+*this* page is an editorial call the table above states, not something any gate verifies.
 
-**Pass `marker` bare (`<Section marker …>`) and the page numbers the titled sections for you,
-continuously across both files, in render order — still rendered as two digits, exactly like the
-hand-written form it replaced.** The Playground carries no `marker` at all, so numbering starts at
-Examples and runs through `Docs.svelte`, picking back up in `+page.svelte` for API Reference, Types
-and Installation (Button: `01` on Examples through `07` on Installation). A string literal still wins,
-for the rare page that must number by hand (see the `marker` prop's JSDoc in
-`packages/docs/src/lib/components/Section/index.ts`). A marker is editorial, not structural —
-nothing reads its value.
+**`marker` numbers a section: `<Section marker …>`, and the number is its position among the
+numbered sections, continuously across both files, in render order, as two digits.** The Playground
+carries no `marker`, so numbering starts at Examples and runs through `Docs.svelte`, picking back up
+in `+page.svelte` for API Reference, Types and Installation (Button: `01` on Examples through `07` on
+Installation). There is no hand-written number to pass. A marker is editorial, not structural — the
+TOC lists unnumbered sections too.
 
 The Playground does carry a **title**, though. Add `titleHidden` to keep the heading in the outline
 and in the screen-reader layer while the stage speaks for itself visually, or show it — either is
-fine. Dropping the title is not: the TOC entry then points at a section with no heading.
+fine. Dropping the title is not: the section then has no heading and no entry in the table of
+contents.
 
 **Intent is set on two sections and left off the rest** — `playground` takes `intent="primary"`,
 `api` takes `intent="secondary"` (`ReferenceSections` sets it, and its Types section matches). Examples, Customization, Accessibility and Installation pass none
@@ -72,20 +71,18 @@ Types section (`/blocks/components/guide`) composes `ApiReference` and `TypesRef
 `types` once through a local snippet every prop table renders through, and is listed in that script's
 `COMPOSED`.
 
-Both ids take a nav entry, `{ id: 'api', title: 'API Reference' }` then `{ id: 'types', title: 'Types' }`,
-and `sections:lint` checks both entries and their order. In English the labels are what the two
-headings say (`apiReferenceTitle`, `typesTitle`). The headings follow the reader's locale, under its
-own `lang`, while the nav is written per page in English — so in German the TOC says "API Reference"
-over a heading that says "API-Referenz", until #146 derives the TOC from the rendered sections. The
+Both sections reach the table of contents under their headings (`apiReferenceTitle`, `typesTitle`).
+The headings follow the reader's locale, under its own `lang`, and their entries are the headings,
+`lang` included — in German the TOC says "API-Referenz" over a heading that says "API-Referenz". The
 counts beside the headings ("22 Props") are localized too but carry no `lang` of their own, since
 `Section` takes `meta` as a string. A component whose types need an introduction the table cannot
 give passes `typesDescription` (`toast` does: which of its types a caller constructs).
 
-**The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and
-nothing sorts by one; the TOC renders the `navigation` array as given, and the page renders its
-sections as written. The two are checked against each other by `bun run sections:lint`, which
-fails on a nav entry that resolves to nothing, on a section missing from the nav, and on the two
-being in different sequences.
+**The rendered order is the order you write.** The TOC lists the sections in the order the page
+renders them; a section revealed later by an `{#if}` takes its place among them, and the numbers
+after it move up. A `<Section>` inside a `CodeExample` or a `PlaygroundConfigurator` is that stage's
+subject: it never reaches the page's TOC, and a numbered one counts from `01` within its stage. A
+section nested in another `<Section>` becomes a child entry of it and takes no number.
 
 ## Examples Strategy
 
@@ -197,16 +194,6 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   import { asset, resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    // ...component-specific sections...
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta title="ComponentName Component" description="Short, concise description." />
@@ -216,7 +203,6 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   description="Short, concise description."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }
@@ -232,7 +218,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   </Section>
 
   <!-- 2–N-2. Custom Docs (Examples, Accessibility, …) — each Section passes
-       bare `marker` and is numbered in render order (Section Order above). -->
+       `marker` and is numbered in render order (Section Order above). -->
   <CustomDocs />
 
   <!-- N-1. API Reference and Types — one component, both sections, one binding. -->
@@ -516,11 +502,11 @@ prose without DocsLayout puts the attribute on its prose column, not on the whol
 ## Checklist for New/Updated Pages
 
 - [ ] `+page.svelte`: `breadcrumbs` prop with `resolve()` links (not a snippet, not a hand-rolled row)
-- [ ] `+page.svelte`: `navigation` array matching the sections — `bun run sections:lint` is green
+- [ ] Every section the table of contents should list has a `title` (the Playground's may be `titleHidden`)
 - [ ] `+page.svelte`: `<SeoMeta title description />` — the hero-length and tone rule is [EDITORIAL.md](EDITORIAL.md) § Page shape (item 1); identical text in `SeoMeta` and `DocsPageLayout`; longer orientation sits in a section below, not the hero
 - [ ] `+page.svelte`: `stability` / `sourceHref` / `related` wired from `componentData`
 - [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`, in `Playground.svelte` if it is more than a handful of controls
-- [ ] `+page.svelte`: `<ReferenceSections {componentData} />` after the custom docs, with `componentData` from the page's own `./api` — `bun run refsections:lint` is green — and the `api` + `types` nav entries
+- [ ] `+page.svelte`: `<ReferenceSections {componentData} />` after the custom docs, with `componentData` from the page's own `./api` — `bun run refsections:lint` is green
 - [ ] `+page.svelte`: Installation section at the end, `preview={false}` on the import example
 - [ ] `+page.svelte`: llm.txt link (prev/next comes from the layout — never add `<PrevNextNav>` per page)
 - [ ] `Docs.svelte`: no `docsConfig` export (route files are not read by docs-gen)
@@ -528,7 +514,7 @@ prose without DocsLayout puts the attribute on its prose column, not on the whol
 - [ ] `Docs.svelte`: Accessibility section present
 - [ ] `Docs.svelte`: Only semantic tokens, no hardcoded colors
 - [ ] `Docs.svelte`: No `dark:` prefixes
-- [ ] Markers are passed bare (`marker`) and number themselves continuously across both files in render order; reach for a string literal only when a page must pin a number by hand
+- [ ] Every section after the Playground passes `marker`; the numbers run continuously across both files in render order
 - [ ] The component is registered in `#lib/component-links` — `bun run registry:lint` is green
 - [ ] `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path>` is clean
 - [ ] Page visually verified in dark mode

@@ -12,13 +12,6 @@
   import { resolve } from '$app/paths';
   import { basicColumns, scriptClose, scriptOpen } from '../_data';
 
-  const navigation = [
-    { id: 'states', title: 'Empty, loading and error states' },
-    { id: 'slots', title: 'Style slot overrides' },
-    { id: 'provider', title: 'Presets and provider defaults' },
-    { id: 'persistence', title: 'What the table remembers' }
-  ];
-
   const codeEmptyState = `${scriptOpen}
   import { Table } from '@urbicon-ui/table';
   import { SearchIcon } from '@urbicon-ui/blocks';
@@ -108,7 +101,6 @@ ${scriptClose}
   title="Customization"
   description="Empty states, style slot overrides, presets, and state persistence."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
-  {navigation}
   showToc={true}
 >
   <!-- Four topics, so four titled sections and a nav — the rule the sibling

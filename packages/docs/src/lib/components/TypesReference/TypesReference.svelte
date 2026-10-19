@@ -21,10 +21,7 @@
     // heading id from. A page rendering more than one instance passes its own.
     id = 'types',
     // Numbered by default: the types section is a section of the page, listed
-    // in its table of contents beside the marked ones, and it was the only one
-    // without a stamp. `true` claims the page's next number only when this
-    // instance is at page level — the three the types-reference docs page
-    // renders inside stages ask for nothing.
+    // in its table of contents beside the marked ones.
     marker = true,
     meta,
     size = 'md',

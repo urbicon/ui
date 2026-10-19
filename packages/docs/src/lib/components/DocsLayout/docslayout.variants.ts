@@ -36,7 +36,7 @@ export const docsLayoutVariants = tv({
     //                    section's last line to show through, which is how it
     //                    looked when this carried +1.5rem.
     container: [
-      'min-h-screen bg-surface-base',
+      'group/docs min-h-screen bg-surface-base',
       '[--docs-gutter:1.5rem] lg:[--docs-gutter:2.5rem]',
       '[--docs-column:60rem] [--docs-rail-gap:4rem] [--docs-toc-w:13rem]',
       '[--docs-shell:calc(var(--docs-column)+var(--docs-rail-gap)+var(--docs-toc-w)+2*var(--docs-gutter))]',
@@ -78,10 +78,16 @@ export const docsLayoutVariants = tv({
     stickyBar: ['sticky top-[var(--sidebar-layout-header-h,0rem)] z-(--z-sticky) bg-surface-base'],
     stickyBarInner: ['mx-auto px-6'],
 
-    // The sticky bar's table of contents. `lg:hidden` is the exact complement
+    // The sticky bar's table of contents. Shown below `lg`, the exact complement
     // of TableOfContents' `max-lg:hidden` rail — one named breakpoint, two
-    // halves, so there is no width with both controls or neither.
-    stickyToc: ['ml-2 flex min-w-0 items-center lg:hidden'],
+    // halves, so there is no width with both controls or neither — and only
+    // while `container` holds the rail (`wrapper` > `[data-docs-toc]`): the
+    // strip renders before the sections register, the rail after them, so this
+    // is the one place both the server and the browser know whether the page
+    // has anything to list.
+    stickyToc: [
+      'ml-2 hidden min-w-0 items-center max-lg:group-has-[>div>[data-docs-toc]]/docs:flex'
+    ],
     stickyTocButton: [
       'flex items-center gap-1.5 rounded-modify px-2 py-0.5',
       'text-primary-text bg-primary-subtle hover:bg-primary-subtle/80',

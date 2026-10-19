@@ -35,7 +35,7 @@ imitated verbatim; pointers do not.
   between props.
 - Information must not drop. Misplaced facts move; they are not cut.
 - Gates before reporting: prettier on the page, `bun --filter='@urbicon-ui/docs-app' run
-  sections:lint`. No commits, no staging.
+  examples:budget`. No commits, no staging.
 
 ## Migration (existing page)
 
@@ -50,7 +50,7 @@ imitated verbatim; pointers do not.
 
 JSDoc first (`component-metadata`), then `bun run docs:gen:all` (creates the page's `api.ts`),
 then the writer — plus the `docs-recipes` skill for section structure and the three registrations
-(`registry:lint` enforces them) — then the `docs-editor` pass. Gates: `sections:lint`,
-`examples:budget`, `registry:lint`, `refsections:lint`, and after JSDoc changes `summary:lint` /
+(`registry:lint` enforces them) — then the `docs-editor` pass. Gates: `examples:budget`,
+`registry:lint`, `refsections:lint`, and after JSDoc changes `summary:lint` /
 `playgrounds:lint` — the full list a component page must satisfy is the `gates` job in
 `.github/workflows/ci.yml`.

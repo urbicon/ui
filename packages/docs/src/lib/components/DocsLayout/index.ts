@@ -22,6 +22,12 @@ export interface BreadcrumbItem {
  * Anchor jumps land clear of it: the strip publishes its height, and every
  * `<Section>` reads the resulting `--docs-anchor-offset` as its scroll margin.
  *
+ * The table of contents is the page's own outline: every `<Section>` with a
+ * title registers with the layout as it renders, and the TOC lists them in
+ * render order under their headings. A section nested in another becomes a
+ * child entry; one shown inside a `CodeExample` or `PlaygroundConfigurator`
+ * stage stays out.
+ *
  * @example
  * ```svelte
  * <DocsLayout
@@ -32,9 +38,8 @@ export interface BreadcrumbItem {
  *     { label: 'Primitives', href: '/blocks/primitives' }
  *   ]}
  *   showToc
- *   navigation={nav}
  * >
- *   <Section id="examples">...</Section>
+ *   <Section marker id="examples" title="Examples">...</Section>
  * </DocsLayout>
  * ```
  * @summary Page shell for documentation, with a hero header, breadcrumb strip, table of contents and content column.
@@ -47,17 +52,13 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
   /** Short description rendered below the title. */
   description?: string;
   /**
-   * Show a table of contents: the sticky rail on desktop, a popover in the
-   * pinned strip below `lg`. Both halves follow this one prop, so switching it
-   * off leaves neither behind. Needs `navigation` to have entries.
+   * Show a table of contents built from the page's titled `<Section>`s: the
+   * sticky rail on desktop, a popover in the pinned strip below `lg`. Both
+   * halves follow this one prop, so switching it off leaves neither behind;
+   * a page without a titled section shows neither.
    * @default false
    */
   showToc?: boolean;
-  /**
-   * Navigation items for the table of contents (nested children supported).
-   * @default []
-   */
-  navigation?: TocNavigationItem[];
   /**
    * Structured breadcrumb trail (ancestors only, title is appended
    * automatically). A top-level page needs none — the strip then shows the

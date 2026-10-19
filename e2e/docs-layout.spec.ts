@@ -356,3 +356,85 @@ test.describe('Anchor jumps clear the pinned chrome', () => {
     });
   }
 });
+
+/**
+ * The table of contents is the page's titled sections, which register while
+ * they render: the server has the whole list only after the content, which is
+ * why the rail renders there. Read once as the server sent it (no JavaScript,
+ * which is also what a reader without it gets) and once hydrated, where the
+ * server's rail and markers have to be kept rather than discarded and redrawn.
+ */
+async function outline(page: Page) {
+  return page.evaluate(() => {
+    const sections = [...document.querySelectorAll('[data-docs-content] section[id]')].filter(
+      (s) => !s.closest('[data-docs-stage]') && !s.parentElement?.closest('section[id]')
+    );
+    const headings = sections.flatMap((s) => {
+      const heading = document.getElementById(`${s.id}-title`);
+      if (!heading) return [];
+      const stamp = heading.firstElementChild?.textContent?.trim() ?? '';
+      const marker = /^\d+$/.test(stamp) ? stamp : null;
+      const text = heading.textContent?.trim() ?? '';
+      return [{ id: s.id, label: (marker ? text.slice(marker.length) : text).trim(), marker }];
+    });
+    // The first nav is the page's sections; a second one lists related pages.
+    const rail = [...document.querySelectorAll('aside[data-docs-toc] nav:first-of-type a')].map(
+      (a) => ({
+        id: a.getAttribute('href')?.slice(1),
+        label: a.textContent?.trim()
+      })
+    );
+    return { headings, rail };
+  });
+}
+
+function expectOutline({ headings, rail }: Awaited<ReturnType<typeof outline>>) {
+  expect(rail.length, 'the page renders a table of contents').toBeGreaterThan(2);
+  expect(rail).toEqual(headings.map(({ id, label }) => ({ id, label })));
+  const markers = headings.flatMap((h) => (h.marker ? [h.marker] : []));
+  expect(markers).toEqual(markers.map((_, i) => String(i + 1).padStart(2, '0')));
+}
+
+test.describe('The table of contents is the page outline, on the server and hydrated', () => {
+  test.describe('without JavaScript', () => {
+    test.use({ javaScriptEnabled: false });
+
+    test('the server sends every titled section, under its heading, numbered in order', async ({
+      page
+    }) => {
+      await page.goto(URL);
+      expectOutline(await outline(page));
+    });
+  });
+
+  test('hydration keeps the server rail and markers', async ({ page }) => {
+    // A mismatched `{#if}` hydrates silently: Svelte drops the server nodes and
+    // redraws them, and the result reads the same. Counting removals from the
+    // rail and the headings is what tells the two apart; the parent is read
+    // from the mutation because a removed node no longer has one.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __outlineRemovals: number };
+      w.__outlineRemovals = 0;
+      new MutationObserver((records) => {
+        for (const r of records) {
+          if (!(r.target instanceof Element)) continue;
+          const watched = r.target.closest('aside[data-docs-toc], [id$="-title"]');
+          for (const n of r.removedNodes) {
+            const rail = 'aside[data-docs-toc]';
+            const holds = n instanceof Element && (n.matches(rail) || n.querySelector(rail));
+            if ((watched || holds) && n.nodeType !== Node.COMMENT_NODE) w.__outlineRemovals++;
+          }
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await page.goto(URL);
+    await page.waitForSelector('html[data-hydrated]');
+
+    expectOutline(await outline(page));
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __outlineRemovals: number }).__outlineRemovals
+      )
+    ).toBe(0);
+  });
+});

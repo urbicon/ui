@@ -11,13 +11,6 @@
   import { scriptClose, scriptOpen } from '../_data';
   import UrlStateDemo from './UrlStateDemo.svelte';
 
-  const navigation = [
-    { id: 'url-sync', title: 'View State in the URL' },
-    { id: 'phases', title: 'Defaults, URL, Storage' },
-    { id: 'between-visits', title: 'Keeping It Between Visits' },
-    { id: 'server', title: 'What the Server Renders' }
-  ];
-
   const codeUrlSync = `${scriptOpen}
   import { createTableView, Table } from '@urbicon-ui/table';
   import { bindViewToUrl } from '@urbicon-ui/sveltekit-utils/url.svelte';
@@ -71,7 +64,6 @@ export const load = async ({ url }) => {
   title="URL State & Persistence"
   description="Write the table's view state to the URL, so a view can be reloaded, shared as a link and read by the server. Plus what localStorage keeps on top of it."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
-  {navigation}
   showToc={true}
 >
   <Section id="url-sync" title="View State in the URL">

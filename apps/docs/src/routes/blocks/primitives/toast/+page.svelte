@@ -13,17 +13,6 @@
   import { asset, resolve } from '$app/paths';
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'store-api', title: 'Store API' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   // Der `<Toaster />` steht jetzt im Playground (mit dessen `placement`-Regler
   // verdrahtet), damit er in jede Einbettung mitreist — der Landing-Hero hatte
   // sonst einen Knopf ohne Wirkung. Der frühere Seiten-`placement`-Zustand ist
@@ -40,7 +29,6 @@
   description="Non-blocking notifications triggered via a global store."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[
     { label: 'Blocks', href: resolve('/blocks') },
     { label: 'Primitives', href: resolve('/blocks/primitives') }

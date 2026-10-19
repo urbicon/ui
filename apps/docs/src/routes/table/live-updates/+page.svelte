@@ -57,14 +57,6 @@ ${scriptClose}
   {/snippet}
 </Table>`;
 
-  const navigation = [
-    { id: 'overview', title: 'Overview' },
-    { id: 'demo', title: 'Demo' },
-    { id: 'enable', title: 'Enabling live updates' },
-    { id: 'merge-semantics', title: 'Buffer & merge semantics' },
-    { id: 'auto-apply', title: 'Auto-apply on navigation' }
-  ];
-
   const codeAutoApply = `<Table
   {items}
   {columns}
@@ -81,7 +73,6 @@ ${scriptClose}
 <DocsPageLayout
   title="Live Updates"
   description="Non-disruptive real-time data updates with buffering and user-controlled application."
-  {navigation}
   showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >

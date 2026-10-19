@@ -5,12 +5,6 @@
   import { resolve } from '$app/paths';
   import { employees, basicColumns, type Employee } from '../_data';
 
-  const navigation = [
-    { id: 'sorting-grouping', title: 'Sorting & Grouping' },
-    { id: 'summaries', title: 'Summaries' },
-    { id: 'header-menu', title: 'Header Menu' }
-  ];
-
   const summaryColumns: Column<Employee>[] = [
     { accessor: 'name', title: 'Name', sortable: true },
     { accessor: 'department', title: 'Department', sortable: true, groupable: true },
@@ -58,7 +52,6 @@
   title="Sorting, Grouping & Summaries"
   description="Sort by clicking column headers, group rows by any groupable column, and aggregate numeric columns with summary rows."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
-  {navigation}
   showToc={true}
 >
   <Section id="sorting-grouping" title="Sorting & Grouping">

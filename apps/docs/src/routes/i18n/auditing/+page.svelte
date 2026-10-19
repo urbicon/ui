@@ -3,14 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'overview', title: 'Three layers' },
-    { id: 'parity', title: 'Parity & quality' },
-    { id: 'runtime', title: 'Runtime misses' },
-    { id: 'scanning', title: 'Unused & hardcoded' },
-    { id: 'ci', title: 'CI integration' }
-  ];
-
   const parityCode = `// translations.test.ts — pure, deterministic, zero false positives.
 import { auditTranslations } from '@urbicon-ui/i18n';
 import { appTranslations } from '#lib/i18n.js'; // { en: { … }, de: { … } }
@@ -72,7 +64,6 @@ const report = findUnusedKeys(collectDeepKeys(enBundle), scan, {
   description="Three complementary layers catch i18n problems before they ship: a data-level parity audit you assert in a test, a runtime sink that flags raw-key renders, and a source scan for unused keys and hardcoded strings. The first two are dependency-free; the scanner and CLI front them for whole-project checks."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="overview" title="Three layers" titleHidden intent="primary">

@@ -12,7 +12,7 @@
 
     <CodeExample
       title="Basic page"
-      description="Title, description, and a ToC driven by the navigation array — each entry's id must match a Section id."
+      description="Title, description, and a ToC built from the page's own sections: every titled Section is listed under its heading, in the order it renders, with no list to keep beside it."
       language="svelte"
       preview={false}
       code={`<DocsLayout
@@ -20,13 +20,9 @@
   description="Status and labels"
   maxWidth="lg"
   showToc
-  navigation={[
-    { id: 'examples', title: 'Examples' },
-    { id: 'api', title: 'API Reference' }
-  ]}
 >
-  <Section id="examples" title="Examples">...</Section>
-  <Section id="api" title="API Reference">...</Section>
+  <Section marker id="examples" title="Examples">...</Section>
+  <Section marker id="api" title="API Reference">...</Section>
 </DocsLayout>`}
     />
 
@@ -45,7 +41,6 @@
   stability="stable"
   sourceHref="https://example.com/blob/main/Combobox.svelte"
   showToc
-  navigation={nav}
 >
   <Section id="playground" title="Playground">...</Section>
 </DocsLayout>`}

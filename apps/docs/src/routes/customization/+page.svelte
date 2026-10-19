@@ -5,14 +5,6 @@
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { classCaveat, precedenceChain } from '#lib/customization-data.js';
 
-  const navigation = [
-    { id: 'ladder', title: 'Which tool do I use?' },
-    { id: 'class-trap', title: 'The class Root-Slot Trap' },
-    { id: 'themes', title: 'Theming' },
-    { id: 'defaults', title: 'Defaults & Unstyled Mode' },
-    { id: 'deep-dives', title: 'Deep Dives' }
-  ];
-
   // The decision table (narrow → broad). Each row answers one concrete
   // "I want to…" goal so consumers stop guessing which tool to reach for.
   const ladder = [
@@ -102,7 +94,6 @@
 <DocsPageLayout
   title="Customization"
   description="Every component can be restyled from the outside. Start with the narrowest tool that solves your problem: class and slotClasses change one instance, BlocksProvider changes every instance, unstyled drops the library's styling and hands you the markup."
-  {navigation}
   showToc
   breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
 >

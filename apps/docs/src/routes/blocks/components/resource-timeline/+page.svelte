@@ -13,16 +13,6 @@
   import { componentData } from './api';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'customization', title: 'Customization' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
 </script>
 
 <SeoMeta
@@ -42,7 +32,6 @@
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
-  {navigation}
 >
   <Section id="playground" title="Playground" intent="primary">
     <Playground />

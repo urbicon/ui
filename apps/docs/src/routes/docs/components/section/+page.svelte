@@ -17,15 +17,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'examples', title: 'Examples' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const description =
     'Anchored content section with an editorial marker, title, subtitle and badges — the grid every documentation page is built on.';
 </script>
@@ -37,7 +28,6 @@
   {description}
   maxWidth="lg"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
@@ -152,10 +142,11 @@
       </Note>
       <Note title="The page counts, not you">
         <p>
-          Write <code>marker</code> without a value and the section takes the next number in its page.
-          Insert a section and everything after it renumbers itself; a section nested inside another never
-          takes a number, so a demo inside a stage stays unstamped. A string still wins where a page numbers
-          by hand.
+          With <code>marker</code> the section takes the next number in its page, and its title becomes
+          its entry in the table of contents: the layout lists the titled sections in the order they render.
+          Insert a section and everything after it renumbers itself. A section nested inside another becomes
+          a child entry and takes no number, and one shown in a code example or a playground counts within
+          that stage, never in the page.
         </p>
       </Note>
     </NoteList>

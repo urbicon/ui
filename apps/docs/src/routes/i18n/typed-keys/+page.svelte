@@ -3,14 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'inference', title: 'Key inference' },
-    { id: 'params', title: 'Param inference' },
-    { id: 'parity', title: 'Eager vs lazy parity' },
-    { id: 'utils', title: 'Deep-key utilities' },
-    { id: 'deprecated', title: 'Deprecations' }
-  ];
-
   const inferCode = `const en = {
   dialog: { close: 'Close' },
   greeting: 'Hello {{name}}'
@@ -70,7 +62,6 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
   description="Keys and their parameters flow from the base bundle (en by default) straight into the hook's t — typos and missing params are compile errors, not runtime surprises."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="inference" title="Key inference">

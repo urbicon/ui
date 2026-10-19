@@ -34,15 +34,10 @@ Import the stylesheets after Tailwind, blocks first — none of them imports Tai
 <script lang="ts">
   import { Button } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout, Section } from '@urbicon-ui/docs';
-
-  const navigation = [
-    { id: 'usage', title: 'Usage' },
-    { id: 'api', title: 'API' }
-  ];
 </script>
 
-<DocsLayout title="Button" description="Triggers an action." showToc {navigation}>
-  <Section id="usage" title="Usage">
+<DocsLayout title="Button" description="Triggers an action." showToc>
+  <Section marker id="usage" title="Usage">
     <CodeExample title="Basic" language="svelte" code={`<Button intent="primary">Save</Button>`}>
       <Button intent="primary">Save</Button>
     </CodeExample>
@@ -50,7 +45,7 @@ Import the stylesheets after Tailwind, blocks first — none of them imports Tai
 </DocsLayout>
 ```
 
-`DocsLayout` renders the page header (optionally with `breadcrumbs`, a `stability` badge, and a `sourceHref` link), a sticky scrollspy table of contents on desktop, and a collapsible ToC fallback on mobile. `Section` ids are the navigation anchors.
+`DocsLayout` renders the page header (optionally with `breadcrumbs`, a `stability` badge, and a `sourceHref` link), a sticky scrollspy table of contents on desktop, and a collapsible ToC fallback on mobile. The table of contents is built from the page's own sections: every titled `Section` is listed under its heading, in the order it renders, and its `id` is the anchor. `marker` numbers a section by its position among the numbered ones.
 
 ### Vite plugin — no duplicated example code
 

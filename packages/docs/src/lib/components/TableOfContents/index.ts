@@ -1,3 +1,4 @@
+import type { Snippet } from 'svelte';
 import type { TableOfContentsSlots, TableOfContentsVariantProps } from './tableofcontents.variants';
 
 export interface RelatedLink {
@@ -6,24 +7,20 @@ export interface RelatedLink {
 }
 
 /**
- * One page section in the on-this-page nav — shared by TableOfContents and
- * DocsLayout so both speak the same navigation shape (the layout hands the
- * array through to the TOC).
- */
-/**
- * A single entry in the table of contents.
+ * A single entry in the table of contents. The list renders in array order.
  *
- * The list renders in array order. There is deliberately no `order` field: one
- * existed until 2026-08, was never read by anything, and 119 pages maintained
- * it — 660 entries — the Button reference page had drifted to `api: 7` / `installation: 6`
- * while rendering them the other way round, and nobody noticed because nothing
- * sorts. Order the array; that is the order.
+ * `DocsLayout` builds these from the sections its page renders; a standalone
+ * TableOfContents takes them as written.
  */
 export interface TocNavigationItem {
   id: string;
-  title: string;
+  /**
+   * The entry's label: plain text, or a snippet when the label carries markup
+   * or a `lang` of its own (`DocsLayout` passes each section's heading).
+   */
+  title: string | Snippet;
   href?: string;
-  children?: Array<{ id: string; title: string; href?: string }>;
+  children?: Array<{ id: string; title: string | Snippet; href?: string }>;
 }
 
 /**

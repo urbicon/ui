@@ -17,18 +17,6 @@
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const navigation = [
-    { id: 'playground', title: 'Playground' },
-    { id: 'control-types', title: 'Control Types' },
-    { id: 'conditional', title: 'Conditional Controls' },
-    { id: 'code-gen', title: 'Code Generation' },
-    { id: 'prop-docs', title: 'PropDocs & Variants' },
-    { id: 'accessibility', title: 'Accessibility' },
-    { id: 'api', title: 'API Reference' },
-    { id: 'types', title: 'Types' },
-    { id: 'installation', title: 'Installation' }
-  ];
-
   const description =
     'Live component playground pairing a preview stage with prop controls and a generated snippet.';
 </script>
@@ -40,7 +28,6 @@
   {description}
   maxWidth="lg"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}

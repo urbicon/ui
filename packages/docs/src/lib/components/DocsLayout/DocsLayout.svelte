@@ -4,25 +4,24 @@
     setCodeVisibilityContext
   } from '#lib/stores/code-visibility.svelte.js';
   import { ScrollSpy } from '#lib/stores/scroll-spy.svelte.js';
+  import type { Snippet } from 'svelte';
   import { Breadcrumb, ListIcon, Popover, resolveClassChain } from '@urbicon-ui/blocks';
   import { useDocsI18n } from '#lib/i18n/index.js';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
-  import { createSectionNumbering } from '../Section/section-numbering.svelte.js';
+  import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
   import { docsLayoutVariants } from './docslayout.variants';
   import { getPageNav } from './page-nav';
   import type { DocsLayoutProps } from './index.js';
 
   const dt = useDocsI18n();
 
-  // One counter per page, so a `<Section marker>` gets its number from where it
-  // sits rather than from a literal someone kept in step by hand. See
-  // `section-numbering.svelte.ts` for what claims a number and what does not.
-  createSectionNumbering();
+  // The page's sections register here; the table of contents and their
+  // markers are read from it. See `section-registry.svelte.ts`.
+  const sections = provideSectionRegistry();
 
   let {
     title,
     description,
-    navigation = [],
     breadcrumbs,
     stability,
     sourceHref,
@@ -83,9 +82,6 @@
     title ? [...(breadcrumbs ?? []), { label: title }] : (breadcrumbs ?? [])
   );
 
-  /** The mobile half of `showToc` — the desktop rail's exact complement. */
-  const showMobileToc = $derived(showToc && navigation.length > 0);
-
   // The strip renders whenever there is something to put in it — a trail, a
   // source link, or the mobile TOC. It used to be gated on `breadcrumbs`
   // specifically, which split the layout in two: pages that passed ancestors
@@ -102,7 +98,7 @@
   // strip on the trail alone would have made both silently inert for a page
   // passing neither `title` nor `breadcrumbs` — no page in this repo, but a
   // published component cannot assume its own repo is the whole audience.
-  const showStickyBar = $derived(breadcrumbTrail.length > 0 || sourceHref != null || showMobileToc);
+  const showStickyBar = $derived(breadcrumbTrail.length > 0 || sourceHref != null || showToc);
 
   let headerEl: HTMLElement | undefined = $state();
   let scrolledPastHeader = $state(false);
@@ -110,18 +106,19 @@
   // ONE scrollspy for the whole layout: the sticky-bar badge and the TOC
   // marker read the same instance (the active id is passed down to the TOC
   // below), so the two can never disagree. Ids include nested children so a
-  // TOC child entry can be the active one.
+  // TOC child entry can be the active one. Only the browser reads this; the
+  // server's `spy.active` returns before asking for ids.
   const navIds = $derived(
-    navigation.flatMap((n) => [n.id, ...(n.children?.map((c) => c.id) ?? [])])
+    sections.toc.flatMap((n) => [n.id, ...(n.children?.map((c) => c.id) ?? [])])
   );
   const spy = new ScrollSpy(() => navIds);
   // Reading `spy.active` is what starts the scroll listener, so the read is
   // gated on someone consuming the result: the strip's section badge or the
   // rail's marker. With the strip now rendering for every page that has a
   // title, this is true nearly everywhere — the gate earns its keep only for a
-  // layout used as a bare shell, and costs nothing when `navigation` is empty
-  // (zero ids to measure per frame).
-  const spyConsumed = $derived(showStickyBar || showMobileToc);
+  // layout used as a bare shell, and costs nothing on a page without titled
+  // sections (zero ids to measure per frame).
+  const spyConsumed = $derived(showStickyBar || showToc);
   // Read the getter EXACTLY once per frame and pass this derived on — including
   // to the TOC below. `spy.active` is not a stored value: every read walks the
   // id list calling `getBoundingClientRect`, which forces layout. The markup
@@ -135,11 +132,10 @@
   // so the two never disagree.
   const activeTopSection = $derived.by(() => {
     if (!activeSection) return undefined;
-    return navigation.find(
+    return sections.toc.find(
       (n) => n.id === activeSection || n.children?.some((c) => c.id === activeSection)
     );
   });
-  const activeSectionTitle = $derived(activeTopSection?.title ?? '');
 
   // Separate $effect for the hero observer: reactive to `showStickyBar` and
   // `headerEl` — when a navigation changes what the strip has to show, the
@@ -180,6 +176,10 @@
   H1 so it acts as a *modifier* of the title, not a header-line of
   its own that steals vertical room.
 -->
+{#snippet tocLabel(label: string | Snippet)}
+  {#if typeof label === 'string'}{label}{:else}{@render label()}{/if}
+{/snippet}
+
 {#snippet stabilityStamp()}
   {#if stability && stability !== 'stable'}
     {@const stabilityIntent =
@@ -301,23 +301,20 @@
           />
 
           <!--
-            The section control. It was a scrollspy *badge* — a link to the
-            section you are already in, which is the one section nobody needs a
-            link to. It is the page's table of contents now, and since the page
-            toolbar's inline mobile TOC was deleted it is the ONLY one below the
-            rail's breakpoint — for every page, not just those passing
-            breadcrumbs. Measured 2026-08-07, when the split still existed: 124
-            of the 127 pages with a `navigation` array rendered no page
-            navigation at all down there.
+            The section control: the page's table of contents below the rail's
+            breakpoint, where it is the only one.
 
             Gated on `showToc`, same as the rail: the prop's contract is "a
             sticky ToC on desktop and a collapsible one on mobile", so a page
-            that switches it off must not keep the mobile half. Passing
-            `navigation` alone (for the scrollspy badge) is a real case and used
-            to be one gate short. The `navigation.length` half keeps an empty
-            popover from hiding behind a list icon that promises navigation.
+            that switches it off must not keep the mobile half. Whether there is
+            anything to list is not asked here: the strip renders before the
+            page's sections register, so on the server the registry is still
+            empty at this point. The rail renders after them, and `stickyToc`
+            shows the control only while the layout holds that rail
+            (`data-docs-toc`), so an empty popover never hides behind a list
+            icon that promises navigation, on the server or in the browser.
 
-            The gate is `lg:hidden` against TableOfContents' `max-lg:hidden`:
+            That rule is `max-lg:` against TableOfContents' `max-lg:hidden`:
             Tailwind's two halves of ONE named breakpoint, so exactly one of the
             two is on at every width and no literal can drift from its partner.
             Whether `lg` is the right place for that boundary is a separate
@@ -328,7 +325,7 @@
             there (the icon), and the active section's title expands in beside
             it once the hero is scrolled past.
           -->
-          {#if showMobileToc}
+          {#if showToc}
             <div class={slot('stickyToc')}>
               <Popover bind:open={stickyTocOpen} placement="bottom-start">
                 {#snippet trigger()}
@@ -342,17 +339,21 @@
                     <ListIcon class="size-3.5 shrink-0" aria-hidden="true" />
                     <span
                       class="overflow-hidden transition-[max-width,opacity] duration-300 ease-out {scrolledPastHeader &&
-                      activeSectionTitle
+                      activeTopSection
                         ? 'max-w-40 opacity-100'
                         : 'max-w-0 opacity-0'}"
                       style="transition-delay: {scrolledPastHeader ? '80ms' : '0ms'}"
                     >
-                      <span class="block truncate whitespace-nowrap">{activeSectionTitle}</span>
+                      <span class="block truncate whitespace-nowrap"
+                        >{#if activeTopSection}{@render tocLabel(activeTopSection.title)}{/if}</span
+                      >
                     </span>
                   </button>
                 {/snippet}
+                <!-- Popover content mounts on open, in the browser, once every
+                     section has registered. -->
                 <nav class={slot('stickyTocNav')} aria-label={dt('tocOnThisPage')}>
-                  {#each navigation as item (item.id)}
+                  {#each sections.toc as item (item.id)}
                     <a
                       href={`#${item.id}`}
                       class={slot('stickyTocLink')}
@@ -361,7 +362,7 @@
                         : undefined}
                       onclick={() => (stickyTocOpen = false)}
                     >
-                      {item.title}
+                      {@render tocLabel(item.title)}
                     </a>
                   {/each}
                 </nav>
@@ -409,8 +410,21 @@
       </div>
     </div>
 
-    {#if showToc && navigation.length > 0}
-      <TableOfContents {navigation} {related} {showCodeToggle} position="right" {activeSection} />
+    <!-- After the content, and placed beside it by `wrapper`'s flex: the
+         sections register as they render, so this is the first point at which
+         the server has all of them. Before the content it would serialise an
+         empty list. -->
+    {#if showToc}
+      {@const toc = sections.toc}
+      {#if toc.length > 0}
+        <TableOfContents
+          navigation={toc}
+          {related}
+          {showCodeToggle}
+          position="right"
+          {activeSection}
+        />
+      {/if}
     {/if}
   </div>
 </div>

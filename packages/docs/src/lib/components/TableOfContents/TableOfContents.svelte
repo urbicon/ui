@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { useDocsI18n, useDocsLocale } from '#lib/i18n/index.js';
   import { CodeIcon, EyeOffIcon, resolveClassChain } from '@urbicon-ui/blocks';
   import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
@@ -11,8 +12,9 @@
 
   // The kickers ("On this page", "Related", "Code", the code-toggle label) render
   // through `dt`, so `lang` tags ONLY those spans — never the whole aside. The
-  // nav-link labels are the page's own section titles (content language, English
-  // on this docs site); tagging the aside would mislabel them as the chrome
+  // nav-link labels are the page's own section headings, in the content
+  // language unless a heading declares its own (a localized one carries its
+  // `lang` into the label); tagging the aside would mislabel them as the chrome
   // locale, a worse WCAG 3.1.2 miss than the few kicker words it fixes. `dt`
   // falls back to the base locale for any locale the docs package doesn't
   // translate, so declare the locale the kickers are ACTUALLY in. No provider →
@@ -96,9 +98,19 @@
   }
 </script>
 
+{#snippet entryLabel(label: string | Snippet)}
+  {#if typeof label === 'string'}{label}{:else}{@render label()}{/if}
+{/snippet}
+
 <!-- Named landmark: a docs page carries several <aside>s (every InfoCard is
-     one), and ARIA needs same-type landmarks to be tellable apart. -->
-<aside class={resolveClassChain(slot('aside'), className)} aria-label={dt('tocLandmarkLabel')}>
+     one), and ARIA needs same-type landmarks to be tellable apart.
+     `data-docs-toc` is part of the data-docs-* contract: DocsLayout's strip
+     shows its own TOC control only while its rail exists. -->
+<aside
+  class={resolveClassChain(slot('aside'), className)}
+  aria-label={dt('tocLandmarkLabel')}
+  data-docs-toc
+>
   <p class={slot('title')}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
          `//` prefix) — only styled when the host page sets `.docs-rooms`. The
@@ -118,7 +130,7 @@
         aria-current={isActive ? 'location' : undefined}
         class={[slot('link'), slot(isActive ? 'linkActive' : 'linkInactive')]}
       >
-        {item.label}
+        {@render entryLabel(item.label)}
       </a>
 
       {#if showChildren}
@@ -132,7 +144,7 @@
               slot(childIsActive ? 'childLinkActive' : 'childLinkInactive')
             ]}
           >
-            {child.label}
+            {@render entryLabel(child.label)}
           </a>
         {/each}
       {/if}

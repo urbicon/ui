@@ -39,8 +39,8 @@ if (typeof window !== 'undefined') {
 
   // `DocsLayout` watches its hero with an IntersectionObserver to know when the
   // breadcrumb strip has to take over the title. jsdom ships none, and the
-  // section-numbering suite mounts a layout through
-  // `Section/__fixtures__/NumberingHarness.svelte` — the only route by which a
+  // section-registry suite mounts a layout through
+  // `Section/__fixtures__/RegistryHarness.svelte` — the only route by which a
   // test reaches this component, which is why a grep for `mount(DocsLayout)`
   // finds nothing and removing this stub still turns the run red.
   //

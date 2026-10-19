@@ -3,17 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'provider', title: 'I18nProvider' },
-    { id: 'use-i18n', title: 'useI18n()' },
-    { id: 'contract', title: 'Read / Write' },
-    { id: 'switching', title: 'Switching & Persistence' },
-    { id: 'root-layout', title: 'Root-Layout Chrome' },
-    { id: 'ssr', title: 'SSR Resolution' },
-    { id: 'errors', title: 'Error Handling' },
-    { id: 'coexistence', title: 'Coexistence' }
-  ];
-
   const providerProps = [
     [
       'locale',
@@ -183,7 +172,6 @@ configureI18n({
   description="Mount one provider, read through useI18n(), and resolve the locale per request so server and client agree."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="provider" title="I18nProvider">

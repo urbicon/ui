@@ -3,13 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
-  const navigation = [
-    { id: 'when', title: 'When to use it' },
-    { id: 'loaders', title: 'Registering loaders' },
-    { id: 'lifecycle', title: 'Load lifecycle' },
-    { id: 'tradeoffs', title: 'Trade-offs' }
-  ];
-
   const loadersCode = `export const blocksI18n = createPackageI18n(
   'blocks',
   { en }, // eager base — stays in the initial bundle, is the fallback
@@ -44,7 +37,6 @@
   description="By default a package registers all its locale bundles eagerly. Opt into code-splitting to keep non-base languages out of the initial bundle until they're activated."
   maxWidth="2xl"
   showToc={true}
-  {navigation}
   breadcrumbs={[{ label: 'Localization', href: resolve('/i18n') }]}
 >
   <Section id="when" title="When to use it">

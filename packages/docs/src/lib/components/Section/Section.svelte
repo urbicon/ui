@@ -1,18 +1,14 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { type SectionSlots, sectionVariants } from './section.variants';
   import type { SectionProps } from './index.js';
   import { Badge, resolveClassChain } from '@urbicon-ui/blocks';
-  import {
-    isInsideSection,
-    markInsideSection,
-    useSectionNumbering
-  } from './section-numbering.svelte.js';
+  import { getSectionRegistry, setSectionRegistry } from './section-registry.svelte.js';
 
   let {
     id,
     title,
-    marker,
+    marker = false,
     meta,
     titleHidden = false,
     subtitle,
@@ -30,35 +26,6 @@
     slotClasses = {},
     ...restProps
   }: SectionProps = $props();
-
-  // Numbering, in this order and at the top level on purpose:
-  //   1. read whether a section already encloses this one — AFTER
-  //      `markInsideSection()` the component would read its own value;
-  //   2. mark the subtree, so nested sections see it;
-  //   3. claim a number, but only for `marker` passed bare and only at page
-  //      level. A nested section (a `<TypesReference>` inside a playground
-  //      stage) asks for no number, so the count stays the page's.
-  // Claiming happens once, during init, so the number is the section's render
-  // position on the server and in the browser alike.
-  const nestedInSection = isInsideSection();
-  markInsideSection();
-  const numbering = useSectionNumbering();
-  // `untrack` because reading the initial value is the point, not an oversight:
-  // a number claimed once must not move when the props object is re-read. Both
-  // inputs are fixed per instance anyway — a page does not swap a section's id
-  // or turn its marker on midway.
-  const claimedNumber = untrack(() =>
-    marker === true && !nestedInSection && numbering ? numbering.claim(id) : undefined
-  );
-
-  /** Two digits, like the hand-written markers this replaced. */
-  const resolvedMarker = $derived(
-    typeof marker === 'string'
-      ? marker
-      : claimedNumber === undefined
-        ? undefined
-        : String(claimedNumber).padStart(2, '0')
-  );
 
   // Generate TV classes
   const styles = $derived(sectionVariants({ size, intent, centered }));
@@ -95,13 +62,52 @@
   });
 
   const headingId = $derived.by(() => `${id}-title`);
+
+  // Registered during init, not in an effect: the server renders the table of
+  // contents from what registered, and effects do not run there. Init runs in a
+  // branch effect, where the write is allowed while the page renders. Getters,
+  // so the entry follows the props. See `section-registry.svelte.ts`.
+  const registration = getSectionRegistry()?.register({
+    get id() {
+      return id;
+    },
+    get heading() {
+      return hasHeading ? headingContent : undefined;
+    },
+    get marker() {
+      return marker;
+    }
+  });
+  if (registration) {
+    setSectionRegistry(registration.children);
+    onDestroy(() => registration.unregister());
+  }
+
+  /** Two digits; the number is the section's position among the numbered ones. */
+  const resolvedMarker = $derived.by(() => {
+    const number = registration?.number;
+    return number === undefined ? undefined : String(number).padStart(2, '0');
+  });
+
+  /** In the document from here on, the entry sorts by where the section sits. */
+  function placeEntry(node: Element) {
+    if (registration) registration.element = node;
+  }
 </script>
+
+<!-- The heading's content, and the table of contents' label for this section:
+     one snippet, so the entry says what the heading says, `lang` included.
+     Snippet takes precedence over prop. -->
+{#snippet headingContent()}
+  {#if titleSnippet}{@render titleSnippet()}{:else}{title}{/if}
+{/snippet}
 
 <section
   {...restProps}
   {id}
   class={resolveClassChain(slot('root'), className)}
   aria-labelledby={hasHeading ? headingId : undefined}
+  {@attach placeEntry}
 >
   <!-- Header Section (only rendered if there's content). Under `titleHidden`
        the whole header goes into the screen-reader layer: `sr-only` is
@@ -110,16 +116,10 @@
   {#if hasHeader}
     <header class={[titleHidden ? 'sr-only' : slot('header')]}>
       <div class={slot('headerRow')}>
-        <!-- Title: Snippet takes precedence over prop -->
-        {#if titleSnippet}
+        {#if hasHeading}
           <svelte:element this={headingTag} id={headingId} class={slot('title')}>
             {#if resolvedMarker}<span class={slot('marker')}>{resolvedMarker}</span>{/if}
-            {@render titleSnippet()}
-          </svelte:element>
-        {:else if title}
-          <svelte:element this={headingTag} id={headingId} class={slot('title')}>
-            {#if resolvedMarker}<span class={slot('marker')}>{resolvedMarker}</span>{/if}
-            {title}
+            {@render headingContent()}
           </svelte:element>
         {/if}
 

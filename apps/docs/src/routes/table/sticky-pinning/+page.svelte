@@ -11,15 +11,6 @@
 
   const stickyProp = $derived(stickyMode === 'false' ? false : stickyMode);
 
-  const navigation = [
-    { id: 'overview', title: 'Overview' },
-    { id: 'playground', title: 'Playground' },
-    { id: 'modes', title: 'Modes' },
-    { id: 'custom-toolbar', title: 'Custom toolbar' },
-    { id: 'contained-scroll', title: 'Contained scroll' },
-    { id: 'caveats', title: 'Caveats' }
-  ];
-
   // Generate enough rows so the user has something to scroll through
   const manyEmployees = $derived([
     ...employees,
@@ -37,7 +28,6 @@
 <DocsPageLayout
   title="Sticky Pinning"
   description="Pin the toolbar, column header, and group header to the top of the scroll ancestor on long lists. Keeps context visible while scrolling through hundreds of rows."
-  {navigation}
   showToc={true}
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >

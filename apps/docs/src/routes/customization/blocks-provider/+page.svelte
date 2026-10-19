@@ -17,17 +17,6 @@
   const description =
     'One context provider for app-wide styling: underline every field with the shipped variant, round every Card, register a named stat-card look, add a border only on variant="outlined", or strip all default styles and bring your own.';
 
-  const navigation = [
-    { id: 'global-defaults', title: 'Global Defaults' },
-    { id: 'theme-props', title: 'Theme Props' },
-    { id: 'merge-behavior', title: 'Merge Behavior' },
-    { id: 'presets', title: 'Presets' },
-    { id: 'conditional-overrides', title: 'Conditional Defaults' },
-    { id: 'unstyled-mode', title: 'Unstyled Mode' },
-    { id: 'props', title: 'Props' },
-    { id: 'slot-names', title: 'Slot Names' }
-  ];
-
   const basicExample =
     `<!-- src/routes/+layout.svelte -->
 <scr` +
@@ -140,7 +129,6 @@ slotClasses?: {
 <DocsPageLayout
   title="BlocksProvider"
   {description}
-  {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >

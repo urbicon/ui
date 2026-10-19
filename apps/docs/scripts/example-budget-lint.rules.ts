@@ -32,8 +32,7 @@ export function blankQuotedMarkup(src: string): string {
  * Every local name `Section` is imported under on this page.
  *
  * Matching by shape ("every alias ends in Section") misses `SectionComponent`
- * and mis-counts `MenuSection`; reading the import is the actual answer. Same
- * reasoning as `sections-lint.ts`, which learned it the hard way.
+ * and mis-counts `MenuSection`; reading the import is the actual answer.
  */
 export function sectionTags(src: string): string[] {
   const names = new Set(['Section']);

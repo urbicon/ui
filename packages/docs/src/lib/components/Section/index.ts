@@ -23,7 +23,7 @@ export interface SectionProps
   extends SectionVariantProps,
     Omit<HTMLAttributes<HTMLElement>, 'children' | 'title'> {
   /**
-   * Section ID for navigation anchors
+   * Section ID: the anchor the table of contents links to.
    */
   id: string;
 
@@ -31,25 +31,24 @@ export interface SectionProps
    * Title text. Renders as the section heading — this is deliberately **not**
    * the native `title` tooltip attribute, which is why it is omitted from the
    * inherited `HTMLAttributes`.
+   *
+   * Inside a `DocsLayout` the heading is also the section's entry in the
+   * table of contents: the layout lists every section that has a title, in
+   * render order, so a section without one is left out.
    */
   title?: string;
 
   /**
-   * Editorial marker before the title — a quieter monospace stamp.
+   * Number the section: a two-digit monospace stamp before the title.
    *
-   * Pass it bare (`<Section marker …>`) and the page numbers the section for
-   * you: sections that ask for a marker are counted in render order within the
-   * enclosing `DocsLayout`, so inserting one renumbers the rest by itself.
-   * A section nested inside another never claims a number, which is what keeps
-   * a `<TypesReference>` inside a playground stage unnumbered while the same
-   * component at page level is numbered.
-   *
-   * A string still wins, for the rare page that numbers by hand. Prefer the
-   * bare form: the hand-written literals were wrong on four pages
-   * (a duplicate `04`, two skipped numbers, one page starting at `02`) and
-   * nothing reported it.
+   * The number is the section's position among the sections that ask for one,
+   * in render order within the enclosing `DocsLayout` (or demo stage), so
+   * inserting a section renumbers the ones after it. A section nested inside
+   * another takes no number, and neither does one without a heading or outside
+   * a layout.
+   * @default false
    */
-  marker?: string | boolean;
+  marker?: boolean;
 
   /**
    * Optional right-aligned monospace meta information in the title row
@@ -110,7 +109,9 @@ export interface SectionProps
 
   // === SNIPPETS ===
   /**
-   * Custom title snippet (overrides title prop)
+   * Custom title snippet (overrides title prop). Inside a `DocsLayout` it also
+   * renders as the section's label in the table of contents, inside a link, so
+   * it must carry no `id` and nothing interactive.
    */
   titleSnippet?: Snippet;
 

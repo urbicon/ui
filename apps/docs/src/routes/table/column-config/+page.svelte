@@ -5,11 +5,6 @@
   import { resolve } from '$app/paths';
   import { employees, richColumns, type Employee } from '../_data';
 
-  const navigation = [
-    { id: 'column-config', title: 'Column Properties' },
-    { id: 'column-visibility', title: 'Column Visibility' }
-  ];
-
   // How the six per-column flags relate — which is page material, not per-prop
   // material: three of them fall back to another flag, and a reader deciding
   // what to declare needs them side by side. The per-flag contract is the JSDoc
@@ -80,7 +75,6 @@
   title="Column Configuration"
   description="Column properties that control width and alignment, sorting, filtering, grouping, summaries, visibility, and what reaches the mobile card."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
-  {navigation}
   showToc={true}
 >
   <Section id="column-config" title="Column Properties">
