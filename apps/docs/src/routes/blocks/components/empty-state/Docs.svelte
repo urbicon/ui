@@ -125,7 +125,8 @@
         The title renders as an <code>&lt;h3&gt;</code> by default, the rank for an empty state
         inside a titled section or card. Elsewhere, set <code>headingLevel</code> to the rank that
         continues the page's outline: <code>2</code> directly under the page's
-        <code>&lt;h1&gt;</code>. The rank never changes how the title looks.
+        <code>&lt;h1&gt;</code>. The title is styled by class, not by tag, so the rank changes none
+        of its own styling.
       </p>
     </Note>
   </NoteList>

@@ -5,16 +5,20 @@
   createPasswordPolicyHandler, so the default `policyPath` request would 404 and
   the preview would show the single default rule. The displayed snippet stays
   Basic.svelte (the real-world usage, which reads the policy off the endpoint).
-  `headingLevel` continues this page's outline below the example's h3 title.
+  `headingLevel` continues the host's outline: 4 below the doc page's example
+  title (h3), 3 from Playground.svelte, which stages it under the landing
+  hero's h2.
 -->
 <script lang="ts">
   import { RegisterPage } from '@urbicon-ui/auth';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
+
+  let { headingLevel = 4 }: { headingLevel?: 1 | 2 | 3 | 4 | 5 | 6 } = $props();
 </script>
 
 <RegisterPage
-  headingLevel={4}
+  {headingLevel}
   token=""
   onSuccess={() => goto(resolve('/'))}
   loginUrl={resolve('/auth/components/login-page')}
