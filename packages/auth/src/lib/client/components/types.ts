@@ -19,7 +19,7 @@ export interface AuthPageSlotClasses {
   root?: string;
   /** Card container around the form. */
   card?: string;
-  /** Page heading (h1). */
+  /** Page heading (`h1` unless `headingLevel` says otherwise). */
   title?: string;
   /** Form element wrapping all fields. */
   form?: string;

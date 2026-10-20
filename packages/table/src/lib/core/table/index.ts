@@ -686,8 +686,8 @@ export interface TableProps<T = TableItem> {
    * card list, each group's header and the total summary — a group's own
    * summary renders one level below its header. `h3` fits a table inside a
    * titled section; pass the rank that continues the embedding page's outline,
-   * `2` directly under the page's `h1`. The styling is class-driven, so the
-   * level never changes how anything looks. A custom `emptyState`,
+   * `2` directly under the page's `h1`. The headings are styled by class, not
+   * by tag, so the level changes none of the component's own styling. A custom `emptyState`,
    * `loadingState` or `errorState` snippet sets its own rank.
    * @default 3
    */

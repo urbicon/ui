@@ -38,8 +38,8 @@ export interface SessionManagerProps {
    * Heading level of the component's title, clamped to 1..6. `h2` fits a
    * component placed directly on a page under its `h1`; pass the rank that
    * continues the embedding page's outline where it sits deeper — inside a
-   * titled card, tab or popover. The styling is class-driven, so the level
-   * never changes how it looks.
+   * titled card, tab or popover. The title is styled by class, not by tag,
+   * so the level changes none of the component's own styling.
    * @default 2
    */
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;

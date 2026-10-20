@@ -44,7 +44,7 @@ export interface VerifyEmailPageProps {
    * Heading level of the page title, clamped to 1..6. `h1` fits a page that is
    * its own route; pass a lower rank where the surrounding layout already owns
    * the `h1` — a docs page, a dialog, a tab of a settings screen. The title
-   * styling is class-driven, so the level never changes how it looks.
+   * is styled by class, not by tag, so the level changes none of the component's own styling.
    * @default 1
    */
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
