@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { clippingBoundary } from './floating';
 
 // jsdom has no layout: every box is placed by hand, and `getComputedStyle`
-// reads the inline styles set below. The top layer cannot be built here — jsdom
-// knows no `:popover-open` — so that path is the e2e suite's.
+// reads the inline styles set below — overflow as longhands, because jsdom does
+// not expand the `overflow` shorthand the way a browser computes it. jsdom
+// opens no top layer either; `inTopLayer` stands one in by answering `:modal`.
 
 const VIEWPORT = { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
 
@@ -31,6 +32,15 @@ function el(style: string, rect?: { left: number; top: number; width: number; he
   return node;
 }
 
+/** An element `inTopLayer` reads as open in the top layer, as a modal dialog would be. */
+function topLayer(style: string) {
+  const node = el(style);
+  const matches = node.matches.bind(node);
+  node.matches = ((selector: string) =>
+    selector === ':modal' || matches(selector)) as typeof node.matches;
+  return node;
+}
+
 /** Nests each element in the next one, innermost first, and mounts the outermost. */
 function nest(...chain: HTMLElement[]) {
   for (let i = 0; i < chain.length - 1; i++) chain[i + 1].appendChild(chain[i]);
@@ -48,7 +58,10 @@ describe('clippingBoundary', () => {
   });
 
   it('is the padding box of a scroll box that holds the containing block', () => {
-    const panel = nest(el('position: absolute'), el('overflow-y: auto; position: relative', BOX));
+    const panel = nest(
+      el('position: absolute'),
+      el('overflow-x: auto; overflow-y: auto; position: relative', BOX)
+    );
     expect(clippingBoundary(panel)).toEqual(BOX_EDGES);
   });
 
@@ -56,7 +69,7 @@ describe('clippingBoundary', () => {
     const panel = nest(
       el('position: absolute'),
       el('position: relative'),
-      el('overflow: auto', BOX)
+      el('overflow-x: auto; overflow-y: auto', BOX)
     );
     expect(clippingBoundary(panel)).toEqual(BOX_EDGES);
   });
@@ -64,19 +77,25 @@ describe('clippingBoundary', () => {
   it('lets an absolute panel escape a scroll box below its positioned ancestor', () => {
     const panel = nest(
       el('position: absolute'),
-      el('overflow: auto', BOX),
+      el('overflow-x: auto; overflow-y: auto', BOX),
       el('position: relative')
     );
     expect(clippingBoundary(panel)).toEqual(VIEWPORT);
   });
 
   it('lets a fixed panel escape every scroll box', () => {
-    const panel = nest(el('position: fixed'), el('overflow: auto; position: relative', BOX));
+    const panel = nest(
+      el('position: fixed'),
+      el('overflow-x: auto; overflow-y: auto; position: relative', BOX)
+    );
     expect(clippingBoundary(panel)).toEqual(VIEWPORT);
   });
 
   it('clips a fixed panel whose containing block is a transformed scroll box', () => {
-    const panel = nest(el('position: fixed'), el('overflow: auto; transform: scale(1)', BOX));
+    const panel = nest(
+      el('position: fixed'),
+      el('overflow-x: auto; overflow-y: auto; transform: scale(1)', BOX)
+    );
     expect(clippingBoundary(panel)).toEqual(BOX_EDGES);
   });
 
@@ -86,7 +105,7 @@ describe('clippingBoundary', () => {
     const panel = nest(
       el('position: absolute'),
       el('position: absolute'),
-      el('overflow: auto', BOX),
+      el('overflow-x: auto; overflow-y: auto', BOX),
       el('position: relative')
     );
     expect(clippingBoundary(panel)).toEqual(VIEWPORT);
@@ -95,14 +114,68 @@ describe('clippingBoundary', () => {
   it('intersects nested scroll boxes and the viewport', () => {
     const panel = nest(
       el('position: absolute'),
-      el('overflow: auto; position: relative', { left: 0, top: 650, width: 500, height: 400 }),
-      el('overflow: hidden', { left: 100, top: 0, width: 2000, height: 2000 })
+      el('overflow-x: auto; overflow-y: auto; position: relative', {
+        left: 0,
+        top: 650,
+        width: 500,
+        height: 400
+      }),
+      el('overflow-x: hidden; overflow-y: hidden', { left: 100, top: 0, width: 2000, height: 2000 })
     );
     expect(clippingBoundary(panel)).toEqual({
       left: 100,
       top: 650,
       right: 500,
       bottom: VIEWPORT.bottom
+    });
+  });
+
+  it('lets a fixed panel inside a top-layer dialog escape a transformed box around the dialog', () => {
+    // A Dialog declared inside the Sidebar: its aside is transformed and clips,
+    // but the dialog is laid out against the viewport and so is its fixed panel.
+    const panel = nest(
+      el('position: fixed'),
+      topLayer('position: fixed'),
+      el('overflow-x: hidden; overflow-y: hidden; transform: translateX(0)', BOX)
+    );
+    expect(clippingBoundary(panel)).toEqual(VIEWPORT);
+  });
+
+  it('positive control: without the top layer the transformed box clips the fixed panel', () => {
+    const panel = nest(
+      el('position: fixed'),
+      el('position: fixed'),
+      el('overflow-x: hidden; overflow-y: hidden; transform: translateX(0)', BOX)
+    );
+    expect(clippingBoundary(panel)).toEqual(BOX_EDGES);
+  });
+
+  it('does not take a size container for the containing block of a fixed panel', () => {
+    const panel = nest(
+      el('position: fixed'),
+      el('container-type: inline-size'),
+      el('overflow-x: hidden; overflow-y: hidden', BOX)
+    );
+    expect(clippingBoundary(panel)).toEqual(VIEWPORT);
+  });
+
+  it('takes content-visibility and preserve-3d for containing blocks of a fixed panel', () => {
+    for (const containing of ['content-visibility: auto', 'transform-style: preserve-3d']) {
+      const panel = nest(
+        el('position: fixed'),
+        el(`overflow-x: hidden; overflow-y: hidden; ${containing}`, BOX)
+      );
+      expect(clippingBoundary(panel), containing).toEqual(BOX_EDGES);
+      document.body.replaceChildren();
+    }
+  });
+
+  it('narrows only the axis an overflow-x: clip box clips', () => {
+    const panel = nest(el('position: absolute'), el('overflow-x: clip; position: relative', BOX));
+    expect(clippingBoundary(panel)).toEqual({
+      ...VIEWPORT,
+      left: BOX_EDGES.left,
+      right: BOX_EDGES.right
     });
   });
 
