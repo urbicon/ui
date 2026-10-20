@@ -1,18 +1,23 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 // An in-place panel (`usePortal={false}`) inside a scroll box is cut off at the
 // box's edge however much room the viewport has. `flip`, `shift` and `size`
 // measure against that edge (`clippingBoundary` in utils/floating.ts); before,
 // they measured against the viewport alone, and the last operator select of the
 // filter popover opened downward into the box's edge with three of its four
-// options unreachable (#93). jsdom has no layout, so this is where the geometry
-// is asserted.
+// options unreachable (#93). The other cases are the ones the boundary must NOT
+// narrow: a top-layer listbox, and fixed listboxes inside a modal dialog that
+// sits in a transformed, clipping box or holds a size container. jsdom has no
+// layout, so this is where the geometry is asserted.
 
 const FIXTURE_URL = '/test-fixtures/floating-clip';
 
-async function open(page: Page, name: string) {
+async function gotoFixture(page: Page) {
   await page.goto(FIXTURE_URL, { waitUntil: 'load' });
   await page.getByTestId('floating-clip-fixture').waitFor();
+}
+
+async function open(page: Page, name: string) {
   const trigger = page.getByRole('combobox', { name });
   await trigger.click();
   const listbox = page.getByRole('listbox');
@@ -31,12 +36,25 @@ async function reachableOptions(page: Page): Promise<boolean[]> {
   );
 }
 
-test.describe('floating panel inside a scroll box', () => {
-  test.use({ viewport: { width: 1000, height: 900 } });
+/** Below the trigger and aligned with it — where the list opens with room to spare. */
+async function expectBelowAndAligned(trigger: Locator, listbox: Locator) {
+  await expect
+    .poll(async () => {
+      const t = await trigger.boundingBox();
+      const l = await listbox.boundingBox();
+      if (!t || !l) return null;
+      return { below: l.y >= t.y + t.height - 1, aligned: Math.abs(l.x - t.x) <= 1 };
+    })
+    .toEqual({ below: true, aligned: true });
+}
+
+test.describe('floating panel inside a clipping box', () => {
+  test.use({ viewport: { width: 1200, height: 900 } });
 
   test('a trigger at the box bottom flips its list up, every option reachable', async ({
     page
   }) => {
+    await gotoFixture(page);
     const { trigger, listbox } = await open(page, 'Last');
 
     await expect
@@ -50,15 +68,41 @@ test.describe('floating panel inside a scroll box', () => {
   });
 
   test('positive control: a trigger with room below still opens downward', async ({ page }) => {
+    await gotoFixture(page);
     const { trigger, listbox } = await open(page, 'First');
 
-    await expect
-      .poll(async () => {
-        const t = await trigger.boundingBox();
-        const l = await listbox.boundingBox();
-        return t && l ? l.y >= t.y + t.height - 1 : null;
-      })
-      .toBe(true);
+    await expectBelowAndAligned(trigger, listbox);
+    expect(await reachableOptions(page)).toEqual([true, true, true, true]);
+  });
+
+  test('a top-layer listbox is not narrowed by the box it was declared in', async ({ page }) => {
+    await gotoFixture(page);
+    const { trigger, listbox } = await open(page, 'Portalled');
+
+    await expectBelowAndAligned(trigger, listbox);
+    expect(await reachableOptions(page)).toEqual([true, true, true, true]);
+  });
+
+  test('a dialog escapes the transformed box around it, and its listbox stays on its trigger', async ({
+    page
+  }) => {
+    await gotoFixture(page);
+    await page.getByRole('button', { name: 'Open dialog' }).click();
+    await page.getByRole('dialog', { name: 'Clip fixture dialog' }).waitFor();
+    const { trigger, listbox } = await open(page, 'In dialog');
+
+    await expectBelowAndAligned(trigger, listbox);
+  });
+
+  test('a size container does not hold a fixed listbox inside its clipping box', async ({
+    page
+  }) => {
+    await gotoFixture(page);
+    await page.getByRole('button', { name: 'Open dialog' }).click();
+    await page.getByRole('dialog', { name: 'Clip fixture dialog' }).waitFor();
+    const { trigger, listbox } = await open(page, 'In container');
+
+    await expectBelowAndAligned(trigger, listbox);
     expect(await reachableOptions(page)).toEqual([true, true, true, true]);
   });
 });

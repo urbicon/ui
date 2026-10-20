@@ -34,7 +34,7 @@ export interface FloatingPanelOptions {
   placement?: () => Placement;
   /** Main-axis gap between anchor and panel, in px. @default 4 */
   offsetDistance?: () => number;
-  /** Viewport padding kept by the shift middleware, in px. @default 8 */
+  /** Padding the shift middleware keeps from the boundary edge, in px. @default 8 */
   shiftPadding?: () => number;
   /** Clamp the panel width to exactly the anchor width. @default false */
   syncWidth?: () => boolean;

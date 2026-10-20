@@ -200,8 +200,9 @@ function viewportToLocal(
   };
 }
 
-// Anything but `visible` clips; `overflow-x: hidden` alone already computes the
-// other axis to `auto`, so the axes are read off one test.
+// Anything but `visible` clips its axis. The axes are read one by one:
+// `overflow-x: clip` leaves `overflow-y: visible`, unlike `hidden`, which
+// computes a `visible` partner to `auto`.
 const CLIPPING_OVERFLOW = /auto|scroll|overlay|hidden|clip/;
 
 function matchesSafely(el: Element, selector: string): boolean {
@@ -213,10 +214,15 @@ function matchesSafely(el: Element, selector: string): boolean {
   }
 }
 
+function inTopLayer(el: Element): boolean {
+  return matchesSafely(el, ':popover-open') || matchesSafely(el, ':modal');
+}
+
 /**
  * Whether `style` makes its element the containing block of positioned
  * descendants on its own, with no `position` of its own needed — the list
- * `position: fixed` escapes everything but.
+ * `position: fixed` escapes everything but. `container-type` is not on it:
+ * it does not contain a fixed child (measured in Chromium).
  */
 function establishesContainingBlock(style: CSSStyleDeclaration): boolean {
   const transformLike = [
@@ -230,9 +236,10 @@ function establishesContainingBlock(style: CSSStyleDeclaration): boolean {
   ];
   return (
     transformLike.some((value) => !!value && value !== 'none') ||
+    style.transformStyle === 'preserve-3d' ||
     /layout|paint|strict|content/.test(style.contain ?? '') ||
-    /transform|translate|rotate|scale|perspective|filter/.test(style.willChange ?? '') ||
-    (!!style.containerType && style.containerType !== 'normal')
+    /auto|hidden/.test(style.contentVisibility ?? '') ||
+    /transform|translate|rotate|scale|perspective|filter/.test(style.willChange ?? '')
   );
 }
 
@@ -243,14 +250,17 @@ function establishesContainingBlock(style: CSSStyleDeclaration): boolean {
  */
 function containingBlockOf(el: Element, position: string): Element | null | undefined {
   if (position !== 'absolute' && position !== 'fixed') return undefined;
-  // The top layer is positioned against the viewport whatever the ancestors say.
-  if (matchesSafely(el, ':popover-open') || matchesSafely(el, ':modal')) return null;
+  // The top layer is laid out against the viewport whatever its ancestors say,
+  // and so is anything inside it that nothing in between contains: an ancestor
+  // outside a modal dialog does not contain the dialog's fixed descendants.
+  if (inTopLayer(el)) return null;
   const root = el.ownerDocument;
   for (let node = el.parentElement; node; node = node.parentElement) {
     if (node === root.body || node === root.documentElement) return null;
     const style = getComputedStyle(node);
     if (establishesContainingBlock(style)) return node;
     if (position === 'absolute' && style.position !== 'static') return node;
+    if (inTopLayer(node)) return null;
   }
   return null;
 }
@@ -264,8 +274,10 @@ function containingBlockOf(el: Element, position: string): Element | null | unde
  *
  * An ancestor clips an out-of-flow element only from its containing block up:
  * `position: absolute` is not clipped by a scroll box that sits between it and
- * its positioned ancestor, and `fixed` or the top layer by none at all. The walk
- * therefore jumps from every out-of-flow box straight to its containing block.
+ * its positioned ancestor, the top layer by none at all, and `fixed` by none
+ * below the nearest transformed (filtered, contained…) ancestor — or below the
+ * top-layer element it sits in. The walk therefore jumps from every out-of-flow
+ * box straight to its containing block.
  * `body` and `html` are not consulted — the viewport stands for them, and a
  * scroll lock's `overflow: hidden` on either hides nothing that is on screen.
  *
@@ -289,18 +301,20 @@ export function clippingBoundary(floating: HTMLElement): Boundary {
     if (escapeTo !== undefined && node !== escapeTo) continue;
 
     const style = getComputedStyle(node);
-    if (
-      CLIPPING_OVERFLOW.test(style.overflow + style.overflowX + style.overflowY) &&
-      style.display !== 'inline' &&
-      style.display !== 'contents'
-    ) {
+    const clipsX = CLIPPING_OVERFLOW.test(style.overflowX);
+    const clipsY = CLIPPING_OVERFLOW.test(style.overflowY);
+    if ((clipsX || clipsY) && style.display !== 'inline' && style.display !== 'contents') {
       const box = node.getBoundingClientRect();
       const left = box.left + node.clientLeft;
       const top = box.top + node.clientTop;
-      boundary.left = Math.max(boundary.left, left);
-      boundary.top = Math.max(boundary.top, top);
-      boundary.right = Math.min(boundary.right, left + node.clientWidth);
-      boundary.bottom = Math.min(boundary.bottom, top + node.clientHeight);
+      if (clipsX) {
+        boundary.left = Math.max(boundary.left, left);
+        boundary.right = Math.min(boundary.right, left + node.clientWidth);
+      }
+      if (clipsY) {
+        boundary.top = Math.max(boundary.top, top);
+        boundary.bottom = Math.min(boundary.bottom, top + node.clientHeight);
+      }
     }
     escapeTo = containingBlockOf(node, style.position);
   }

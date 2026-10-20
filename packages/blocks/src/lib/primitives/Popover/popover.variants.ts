@@ -43,7 +43,8 @@ export const popoverVariants = tv({
     popoverMotion,
     // `calc(100dvh-4rem)` is the static design cap; Floating UI's `size`
     // middleware (via useFloatingPanel) narrows it to the room actually left
-    // between the anchor and the visual viewport edge through
+    // between the anchor and the visual viewport edge (or the edge of a scroll
+    // box that clips an in-place panel) through
     // `--blocks-overlay-available-height`, so the panel shrinks above the iOS
     // keyboard and recovers when it closes. The var falls back to 100dvh when
     // unset (SSR / no JS), leaving the design cap in charge.

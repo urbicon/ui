@@ -88,7 +88,7 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 
 ### Floating UI Integration
 
-- **Combobox / Select**: `computePosition` with `flip()`, `shift()`, `offset()`, `size()`. `size()` caps the listbox to the room left between the anchor and the (visual) viewport edge via `--blocks-overlay-available-height`; the design cap `max-h-[min(15rem,…)]` stays the upper bound, so the panel never overflows above the keyboard.
+- **Combobox / Select**: `computePosition` with `flip()`, `shift()`, `offset()`, `size()`. `size()` caps the listbox to the room left between the anchor and the (visual) viewport edge — or, for an in-place panel, the edge of the scroll box that clips it — via `--blocks-overlay-available-height`; the design cap `max-h-[min(15rem,…)]` stays the upper bound, so the panel never overflows above the keyboard.
 - **Popover**: `overflow-y-auto` + `max-h-[calc(100dvh-4rem)]` for long content.
 - **Menu / Tooltip**: Already positioned via Popover's Floating UI.
 

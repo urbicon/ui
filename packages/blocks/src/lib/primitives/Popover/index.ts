@@ -62,7 +62,10 @@ export interface PopoverProps
   placement?: Placement;
   /** Gap in px between the trigger edge and the popover. */
   offsetDistance?: number;
-  /** Minimum px padding from viewport edges when the popover shifts to stay visible. */
+  /**
+   * Minimum px padding the popover keeps from the edge it shifts against to stay
+   * visible: the viewport, or the scroll box that clips an in-flow popover.
+   */
   shiftPadding?: number;
   /**
    * Match the popover width to the trigger width. Useful for
@@ -81,8 +84,9 @@ export interface PopoverProps
    * surface (Dialog, Drawer, another Popover) — nested top-layer rendering
    * stacks unpredictably across browsers and stealing focus from the parent
    * surface is usually unwanted. In-flow mode positions the panel absolutely
-   * relative to the trigger's offset parent; a scroll box around it clips it,
-   * so the panel flips, shifts and caps its height to stay inside that box.
+   * relative to the trigger's offset parent; a scroll box that holds the offset
+   * parent clips it, so the panel flips, shifts and caps its height to stay
+   * inside that box.
    * @default true
    */
   usePortal?: boolean;
