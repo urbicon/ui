@@ -5,6 +5,7 @@
   reveals demo backup codes. No real TOTP verification happens. The `qr` snippet
   is intentionally omitted, so the zero-dep manual-entry fallback is shown.
   The displayed snippet stays Basic.svelte (the real server-backed usage).
+  `headingLevel` continues this page's outline below the example's h3 title.
 -->
 <script lang="ts">
   import { TwoFactorManager } from '@urbicon-ui/auth';
@@ -13,4 +14,9 @@
   const demoFetch = createTwoFactorDemoFetcher();
 </script>
 
-<TwoFactorManager user={demoAuthUser} apiPath="/api/auth/account/2fa" fetcher={demoFetch} />
+<TwoFactorManager
+  headingLevel={4}
+  user={demoAuthUser}
+  apiPath="/api/auth/account/2fa"
+  fetcher={demoFetch}
+/>

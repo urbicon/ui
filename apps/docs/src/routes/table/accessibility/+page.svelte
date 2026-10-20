@@ -37,7 +37,11 @@
         <code class="text-text-primary">ariaLabel</code>: on a page with more than one table, that
         is what tells them apart. Sortable headers carry
         <code class="text-text-primary">aria-sort</code>, so the current direction is read out when
-        the reader arrives at the header.
+        the reader arrives at the header. The headings the table renders itself — the empty, loading
+        and error titles, and the card list's group headers and summaries — take their rank from
+        <code class="text-text-primary">headingLevel</code> (default
+        <code class="text-text-primary">3</code>): set it to the rank that continues your page's
+        outline.
       </p>
     </Note>
     <Note headingLevel={2} title="Keyboard Navigation">

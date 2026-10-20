@@ -61,11 +61,12 @@
 
     <CodeExample
       title="Embedded inside a Card"
-      description="Use density='compact' when the EmptyState sits inside a container like a Card or a table body, where the default density would be too tall for the parent."
+      description="Use density='compact' when the EmptyState sits inside a container like a Card or a table body, where the default density would be too tall for the parent. headingLevel={4} nests its title under the card's own h3."
       code={`<Card variant="outlined" padding="md">
   <h3 class="text-text-primary mb-3 text-sm font-semibold">Recent activity</h3>
   <EmptyState
     density="compact"
+    headingLevel={4}
     icon={SearchIcon}
     title="Nothing here yet"
     description="New events will show up as they happen."
@@ -77,6 +78,7 @@
         <h3 class="text-text-primary mb-3 text-sm font-semibold">Recent activity</h3>
         <EmptyState
           density="compact"
+          headingLevel={4}
           icon={SearchIcon}
           title="Nothing here yet"
           description="New events will show up as they happen."
@@ -118,10 +120,12 @@
         The decorative icon is hidden from screen readers via its built-in <code>aria-hidden</code>.
       </p>
     </Note>
-    <Note title="The title is an h3">
+    <Note title="The title takes the rank you give it">
       <p>
-        The title renders as an <code>&lt;h3&gt;</code>, so it nests under your page's
-        <code>&lt;h1&gt;</code> in the heading hierarchy.
+        The title renders as an <code>&lt;h3&gt;</code> by default, the rank for an empty state
+        inside a titled section or card. Elsewhere, set <code>headingLevel</code> to the rank that
+        continues the page's outline: <code>2</code> directly under the page's
+        <code>&lt;h1&gt;</code>. The rank never changes how the title looks.
       </p>
     </Note>
   </NoteList>
