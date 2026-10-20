@@ -1,5 +1,6 @@
 <!-- Block-node dispatcher for StreamingMarkdown. Internal — not exported. -->
 <script lang="ts">
+  import { headingTag } from '#lib/utils/heading.js';
   import CodeBlock from '../CodeBlock/CodeBlock.svelte';
   import type { BlockNode } from '../markdown/types';
   import type { MdRenderContext } from './md-context';
@@ -10,8 +11,8 @@
 
   const uid = $props.id();
 
-  const headingTag = $derived(
-    block.kind === 'heading' ? `h${Math.min(6, block.level - 1 + ctx.headingLevelStart)}` : 'h2'
+  const tag = $derived(
+    block.kind === 'heading' ? headingTag(block.level - 1 + ctx.headingLevelStart) : 'h2'
   );
 
   function alignClass(align: 'left' | 'center' | 'right' | null): string {
@@ -24,7 +25,7 @@
 {#if block.kind === 'paragraph'}
   <p class={ctx.classes.paragraph}><MdInline nodes={block.children} {ctx} /></p>
 {:else if block.kind === 'heading'}
-  <svelte:element this={headingTag} class={ctx.classes[`heading${block.level}`]}
+  <svelte:element this={tag} class={ctx.classes[`heading${block.level}`]}
     ><MdInline nodes={block.children} {ctx} /></svelte:element
   >
 {:else if block.kind === 'code-block'}

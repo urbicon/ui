@@ -16,4 +16,11 @@ describe('headingTag', () => {
   it('drops a fraction instead of emitting a non-heading tag', () => {
     expect(headingTag(2.5)).toBe('h2');
   });
+
+  it('reads a level that is no number as the deepest rank, never as h1', () => {
+    expect(headingTag(Number.NaN)).toBe('h6');
+    expect(headingTag(undefined as unknown as number)).toBe('h6');
+    expect(headingTag(Number.POSITIVE_INFINITY)).toBe('h6');
+    expect(headingTag(Number.NEGATIVE_INFINITY)).toBe('h1');
+  });
 });
