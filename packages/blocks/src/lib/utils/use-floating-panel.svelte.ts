@@ -83,7 +83,9 @@ export interface FloatingPanelState {
  * in-place panel always paints above later positioned siblings.
  *
  * The Floating-UI `size` middleware feeds the room actually left between the
- * anchor and the (visual) viewport edge into `--blocks-overlay-available-height`.
+ * anchor and the edge the panel can be seen to — the (visual) viewport, or the
+ * scroll box an in-place panel is clipped by — into
+ * `--blocks-overlay-available-height`.
  * Variants cap height via `max-h-[min(<design-cap>,var(--…,100dvh))]`, so the
  * static design cap stays in CSS and the panel only ever shrinks to fit — and
  * recovers once room is restored (e.g. the iOS keyboard closes).
@@ -207,8 +209,9 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
           floatingSize({
             apply({ availableHeight, rects }) {
               // Cap the panel to the room actually left between the anchor and
-              // the (visual) viewport edge — decisive on iOS, where the
-              // keyboard shrinks the visualViewport. Exposed as a CSS var that
+              // the edge it can be seen to — the (visual) viewport, decisive on
+              // iOS where the keyboard shrinks it, or the scroll box an in-place
+              // panel is clipped by. Exposed as a CSS var that
               // the variant feeds into `max-h-[min(<cap>,var(--…))]`, so the
               // design token stays the upper bound while this tracks the live
               // available height (and recovers when room is restored).
