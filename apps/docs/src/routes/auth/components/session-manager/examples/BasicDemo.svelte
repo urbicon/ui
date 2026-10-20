@@ -3,6 +3,7 @@
   runs against a mocked demo API via the `fetcher` prop.
   Signing a session out (or "sign out others") updates the mocked list.
   The displayed snippet stays Basic.svelte (the real server-backed usage).
+  `headingLevel` continues this page's outline below the example's h3 title.
 -->
 <script lang="ts">
   import { SessionManager } from '@urbicon-ui/auth';
@@ -11,4 +12,4 @@
   const demoFetch = createSessionDemoFetcher();
 </script>
 
-<SessionManager apiPath="/api/auth/sessions" fetcher={demoFetch} />
+<SessionManager headingLevel={4} apiPath="/api/auth/sessions" fetcher={demoFetch} />

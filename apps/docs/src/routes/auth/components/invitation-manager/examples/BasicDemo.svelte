@@ -2,6 +2,7 @@
   Preview-only wrapper: the docs site has no auth backend, so the live preview
   runs against a mocked demo API via the `fetcher` prop.
   The displayed snippet stays Basic.svelte (the real server-backed usage).
+  `headingLevel` continues this page's outline below the example's h3 title.
 -->
 <script lang="ts">
   import { InvitationManager } from '@urbicon-ui/auth';
@@ -15,4 +16,4 @@
   const demoFetch = createInvitationDemoFetcher();
 </script>
 
-<InvitationManager {roles} fetcher={demoFetch} />
+<InvitationManager headingLevel={4} {roles} fetcher={demoFetch} />
