@@ -60,6 +60,14 @@ export interface ResetPasswordPageProps {
   footer?: Snippet;
   /** Replaces the link area below the form. */
   links?: Snippet;
+  /**
+   * Heading level of the page title, clamped to 1..6. `h1` fits a page that is
+   * its own route; pass a lower rank where the surrounding layout already owns
+   * the `h1` — a docs page, a dialog, a tab of a settings screen. The title
+   * styling is class-driven, so the level never changes how it looks.
+   * @default 1
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. Keys: `root`, `card`, `title`, `form`, `field`, `requirements`, `submit`, `error`, `success`, `links`. */
