@@ -187,8 +187,8 @@ All components use `@urbicon-ui/blocks` primitives and support:
 - **`headingLevel`** — the rank of the component's title, clamped to 1..6: `h1` on the five
   pages, `h2` on the six managers, whose section headings sit one below. Pass the rank that
   continues the embedding page's outline wherever the component is not its own route or does
-  not sit directly under the page's `h1`; the styling is class-driven, so it never changes
-  how anything looks.
+  not sit directly under the page's `h1`. The headings are styled by class, not by tag, so the
+  level changes none of the components' own styling.
 - **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc. The tokens
   come from the consumer's blocks stylesheet; this package's own
   `@urbicon-ui/auth/style/index.css` adds only the Tailwind `@source` for its components.
