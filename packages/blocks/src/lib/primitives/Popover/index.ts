@@ -81,7 +81,8 @@ export interface PopoverProps
    * surface (Dialog, Drawer, another Popover) — nested top-layer rendering
    * stacks unpredictably across browsers and stealing focus from the parent
    * surface is usually unwanted. In-flow mode positions the panel absolutely
-   * relative to the trigger's offset parent.
+   * relative to the trigger's offset parent; a scroll box around it clips it,
+   * so the panel flips, shifts and caps its height to stay inside that box.
    * @default true
    */
   usePortal?: boolean;
