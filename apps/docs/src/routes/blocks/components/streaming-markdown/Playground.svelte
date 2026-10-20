@@ -87,9 +87,9 @@ if (tokens > 0) { tokens--; allow(); } else reject();
     overrides: {
       streaming: { label: 'Streaming cursor', defaultValue: true },
       // 2, weil die Demo mit `##` beginnt: Das wird h3 unter dem h2 der
-      // Sektion. Aus der Gliederung hält keine Zahl eine Überschrift heraus —
-      // 3 machte daraus ein h4 und übersprang einen Rang. Als Regler steht die
-      // Zahl im Schnipsel, und der Leser sieht, dass es eine Stellschraube ist.
+      // Sektion. Aus der Gliederung hält keine Zahl eine Überschrift heraus,
+      // eine zu hohe überspringt nur einen Rang. Als Regler steht die Zahl im
+      // Schnipsel, und der Leser sieht, dass es eine Stellschraube ist.
       headingLevelStart: { label: 'Heading level start', defaultValue: 2 }
     }
   });
