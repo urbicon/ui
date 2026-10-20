@@ -7,6 +7,7 @@
   } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import {
+    headingTag,
     resolveIcon,
     DatabaseIcon as DatabaseIconDefault,
     InboxIcon as InboxIconDefault,
@@ -21,6 +22,8 @@
 
   export type EmptyStateProps = {
     message?: string;
+    /** Heading level of the message, clamped to 1..6. @default 3 */
+    headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
     description?: string;
     icon?: string;
     actionText?: string;
@@ -34,6 +37,7 @@
 
   let {
     message = undefined,
+    headingLevel = 3,
     description = undefined,
     icon = undefined,
     actionText = undefined,
@@ -116,9 +120,9 @@
       {/if}
 
       <div class={styles.content()}>
-        <h3 class={styles.title()}>
+        <svelte:element this={headingTag(headingLevel)} class={styles.title()}>
           {displayMessage}
-        </h3>
+        </svelte:element>
 
         {#if description}
           <p class={styles.description()}>

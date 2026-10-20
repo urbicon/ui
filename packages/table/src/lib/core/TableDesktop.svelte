@@ -42,6 +42,7 @@
     loadingText = '',
     errorText = '',
     noDataText = '',
+    headingLevel = 3 as 1 | 2 | 3 | 4 | 5 | 6,
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
     virtualized = false,
     // The resolved `fit="viewport"` mode, as `Table.svelte` derived it for
@@ -668,7 +669,7 @@
   {#if emptyState}
     {@render emptyState()}
   {:else}
-    <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
+    <EmptyState message={noDataText} {headingLevel} {size} colSpan={totalColSpan} />
   {/if}
 {/snippet}
 
@@ -833,7 +834,7 @@
           {#if loadingState}
             {@render loadingState()}
           {:else}
-            <LoadingState text={loadingText} {size} colSpan={totalColSpan} />
+            <LoadingState text={loadingText} {headingLevel} {size} colSpan={totalColSpan} />
           {/if}
         {:else if bodyMode.kind === 'error'}
           {#if errorState}
@@ -842,6 +843,7 @@
             <ErrorState
               title={errorText}
               message={bodyMode.message}
+              {headingLevel}
               {size}
               colSpan={totalColSpan}
             />

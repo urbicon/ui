@@ -118,9 +118,9 @@
   class={menuStyles.base()}
 >
   <div class={menuStyles.header()}>
-    <h3 class={menuStyles.title()}>
+    <h2 class={menuStyles.title()}>
       {tt('filter.menu.addFilter')}
-    </h3>
+    </h2>
     <Button
       variant="ghost"
       size="xs"
