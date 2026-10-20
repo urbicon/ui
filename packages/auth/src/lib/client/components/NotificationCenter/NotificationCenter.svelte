@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Button, getBlocksConfig, resolveClassChain, Separator } from '@urbicon-ui/blocks';
+  import {
+    Button,
+    getBlocksConfig,
+    headingTag,
+    resolveClassChain,
+    Separator
+  } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import type { NotificationCenterProps } from './index.js';
@@ -12,6 +18,7 @@
     onDelete,
     onNotificationClick,
     item: itemSnippet,
+    headingLevel = 2,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -61,7 +68,11 @@
 
 <div class={cls('flex flex-col', resolveClassChain(slotClasses.root, className))}>
   <div class={cls('flex items-center justify-between px-4 py-3', slotClasses.header)}>
-    <h2 class={cls('text-text-primary text-base font-semibold')}>{t.notifications.center.title}</h2>
+    <svelte:element
+      this={headingTag(headingLevel)}
+      class={cls('text-text-primary text-base font-semibold')}
+      >{t.notifications.center.title}</svelte:element
+    >
     {#if unreadCount > 0}
       <Button variant="ghost" size="sm" onclick={() => onMarkAllAsRead?.()} {unstyled}>
         {t.notifications.center.markAllRead}

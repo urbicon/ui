@@ -30,6 +30,7 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
+    headingLevel = 1,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -134,6 +135,7 @@
   title={t.auth.register.title}
   {error}
   header={headerSnippet}
+  {headingLevel}
   {unstyled}
   {slotClasses}
   class={className}

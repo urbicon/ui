@@ -3,6 +3,7 @@
     Badge,
     Button,
     getBlocksConfig,
+    headingTag,
     resolveClassChain,
     Separator,
     Spinner
@@ -20,6 +21,7 @@
     apiPath = '/api/auth/sessions',
     csrf,
     fetcher,
+    headingLevel = 2,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -161,9 +163,12 @@
 
 <div class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}>
   <div class={cls('flex items-center justify-between gap-4')}>
-    <h2 class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}>
+    <svelte:element
+      this={headingTag(headingLevel)}
+      class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}
+    >
       {t.sessions.title}
-    </h2>
+    </svelte:element>
     {#if otherCount > 0}
       <Button
         variant="outlined"

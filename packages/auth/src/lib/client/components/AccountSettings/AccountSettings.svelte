@@ -3,6 +3,7 @@
     Button,
     ConfirmDialog,
     getBlocksConfig,
+    headingTag,
     Input,
     resolveClassChain,
     Separator
@@ -33,6 +34,7 @@
     passwordPolicy,
     policyPath = '/api/auth/password-policy',
     showRequirements = true,
+    headingLevel = 2,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -211,15 +213,21 @@
 
 {#if user}
   <div class={cls('flex flex-col gap-8', resolveClassChain(slotClasses.root, className))}>
-    <h2 class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}>
+    <svelte:element
+      this={headingTag(headingLevel)}
+      class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}
+    >
       {t.account.title}
-    </h2>
+    </svelte:element>
 
     <!-- Profile -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={saveProfile}>
-      <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
+      <svelte:element
+        this={headingTag(headingLevel + 1)}
+        class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
+      >
         {t.account.profile.title}
-      </h3>
+      </svelte:element>
       <Input
         label={t.account.profile.name}
         bind:value={name}
@@ -246,9 +254,12 @@
 
     <!-- Email -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={changeEmail}>
-      <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
+      <svelte:element
+        this={headingTag(headingLevel + 1)}
+        class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
+      >
         {t.account.email.title}
-      </h3>
+      </svelte:element>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
         {t.account.email.current}:
         <span class={cls('text-text-secondary')}>{currentEmail}</span>
@@ -290,9 +301,12 @@
 
     <!-- Password -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={changePassword}>
-      <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
+      <svelte:element
+        this={headingTag(headingLevel + 1)}
+        class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
+      >
         {t.account.password.title}
-      </h3>
+      </svelte:element>
       <Input
         label={t.account.password.currentPassword}
         type="password"
@@ -345,12 +359,13 @@
       aria-labelledby={dangerTitleId}
       class={cls('flex flex-col gap-3', resolveClassChain(slotClasses.section, slotClasses.danger))}
     >
-      <h3
+      <svelte:element
+        this={headingTag(headingLevel + 1)}
         id={dangerTitleId}
         class={cls('text-danger-text text-sm font-semibold', slotClasses.sectionTitle)}
       >
         {t.account.delete.title}
-      </h3>
+      </svelte:element>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
         {t.account.delete.description}
       </p>

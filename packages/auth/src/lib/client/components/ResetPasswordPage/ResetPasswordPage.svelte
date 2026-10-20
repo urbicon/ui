@@ -27,6 +27,7 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
+    headingLevel = 1,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -116,6 +117,7 @@
   {error}
   success={success ? t.auth.resetPassword.success : ''}
   header={headerSnippet}
+  {headingLevel}
   {unstyled}
   {slotClasses}
   class={className}

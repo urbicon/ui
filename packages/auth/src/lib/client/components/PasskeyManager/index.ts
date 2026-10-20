@@ -29,6 +29,15 @@ export interface PasskeyManagerProps {
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
+  /**
+   * Heading level of the component's title, clamped to 1..6. `h2` fits a
+   * component placed directly on a page under its `h1`; pass the rank that
+   * continues the embedding page's outline where it sits deeper — inside a
+   * titled card, tab or popover. The styling is class-driven, so the level
+   * never changes how it looks.
+   * @default 2
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
