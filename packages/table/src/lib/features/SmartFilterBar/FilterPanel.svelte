@@ -291,9 +291,9 @@
 
       <div class={styles.section()}>
         <div class="flex items-center justify-between">
-          <h4 class={styles.sectionTitle()}>
+          <h3 class={styles.sectionTitle()}>
             {option.label}
-          </h4>
+          </h3>
         </div>
 
         <div class="space-y-2">
