@@ -21,8 +21,8 @@ exactly `true`, as well as while its `disabled` says so. Until now `checks` was 
 `IGNORED_PROP` warning, and the button stayed enabled.
 
 - **A button that was always clickable can now start disabled.** A rule bound to a path nobody has
-  written, `{ "condition": { "path": "/agreed" } }` before the box is ticked, fails until the user
-  sets it to `true`.
+  written, `{ "condition": { "path": "/agreed" }, "message": "Accept the policy" }` before the box
+  is ticked, fails until the user sets it to `true`.
 - **A rule the engine cannot evaluate keeps the button disabled**, with an error on
   `onValidationError` where there was a warning: a condition calling `required`, `email` or any
   function other than `not`, `and` and `or` — upstream's own button example among them — and a

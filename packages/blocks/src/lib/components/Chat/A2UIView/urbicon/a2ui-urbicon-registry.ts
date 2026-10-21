@@ -117,8 +117,8 @@ export const UNSUPPORTED_URBICON_A2UI_COMPONENTS: ReadonlySet<string> = new Set(
 
 /**
  * Props recognised anywhere but intentionally ignored (validation warning only,
- * dropped before render) — `checks` only on a component without a gate, so not
- * on `Button`, whose `disabled` it feeds (see `A2UI_CHECKS_PROP`).
+ * dropped before render) — `checks` except on `Button`, whose `disabled` reads
+ * it (`readsChecks`).
  */
 export const URBICON_A2UI_IGNORED_PROPS: ReadonlySet<string> = new Set([
   'checks',
@@ -414,6 +414,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'boolean',
         dynamic: true,
         failsafe: true,
+        readsChecks: true,
         description:
           'Whether the button is disabled. To keep it disabled until a Checkbox bound to /agreed is ticked: { "call": "not", "args": { "value": { "path": "/agreed" } } }.'
       }

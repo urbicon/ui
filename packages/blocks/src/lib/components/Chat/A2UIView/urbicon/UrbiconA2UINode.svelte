@@ -217,7 +217,7 @@
     return typeof resolvedUrl === 'string' ? resolvedUrl : undefined;
   });
   const buttonUsable = $derived(actionEvent !== undefined || openUrlArg !== undefined);
-  // `checks` is part of the `disabled` gate: a failing rule holds it at its failsafe.
+  // `disabled` reads `checks` (`readsChecks`): a failing rule holds it at its failsafe.
   const buttonDisabled = $derived(
     !buttonUsable ||
       Boolean(resolved('disabled')) ||

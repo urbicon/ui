@@ -476,6 +476,29 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
       ]);
     });
 
+    it('reads a relative condition against its own template item', () => {
+      render({
+        catalogs: [urbiconA2uiCatalog],
+        payload: [
+          urbiconSurface(),
+          data({ rows: [{ ok: true }, { ok: false }, { ok: 'true' }] }),
+          comps([
+            { id: 'root', component: 'List', children: { componentId: 'row', path: '/rows' } },
+            {
+              id: 'row',
+              component: 'Button',
+              child: 'rowLabel',
+              action: { event: { name: 'pick' } },
+              checks: [{ condition: { path: 'ok' }, message: 'Not available' }]
+            },
+            { id: 'rowLabel', component: 'Text', text: 'Pick' }
+          ])
+        ]
+      });
+      const rows = screen.getAllByRole('button', { name: 'Pick' }) as HTMLButtonElement[];
+      expect(rows.map((button) => button.disabled)).toEqual([false, true, true]);
+    });
+
     it('disables while either disabled or checks asks for it', async () => {
       const user = userEvent.setup();
       for (const [locked, ticked, expected] of [

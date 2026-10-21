@@ -132,15 +132,15 @@ function calls a binding may use:
   malformed one is an error, and its key travels as `undefined`: context has nothing to fail closed
   to.
 - **`checks` gates the button too.** A2UI's own form of this gate is a list of rules on the Button,
-  `"checks": [{ "condition": { "path": "/agreed" }, "message": "…" }]`. On a component with a gate,
-  the Urbicon `Button`, the button is disabled while any condition is not exactly `true` — read
-  like an operand, so the path above passes only once `/agreed` is `true` — or while `disabled`
-  asks for it. A list the engine cannot evaluate is an error and holds `disabled` at `true`: a rule
-  other than `{ condition, message }`, more rules than a call may hold operands, or a condition
-  `disabled` would refuse, `required` and `email` among them. `required` stays out on purpose:
-  upstream counts `false` as a value, so it would pass for a box the user unticked. The `message`
-  is not rendered. On a component without a gate, which includes every Basic component, `checks` is
-  ignored with an `IGNORED_PROP` warning.
+  `"checks": [{ "condition": { "path": "/agreed" }, "message": "…" }]`. Today only the Urbicon
+  `Button` evaluates `checks`: the button is disabled while any condition is not exactly `true` —
+  read like an operand, so the path above passes only once `/agreed` is `true` — or while
+  `disabled` asks for it. A list the engine cannot evaluate is an error and holds `disabled` at
+  `true`: a rule other than `{ condition, message }`, a list holding more operands than one call
+  may when counted as an `and` over its conditions, or a condition `disabled` would refuse,
+  `required` and `email` among them. `required` stays out on purpose: upstream counts `false` as a
+  value, so it would pass for a box the user unticked. The `message` is not rendered. Every other
+  component, every Basic one included, ignores `checks` with an `IGNORED_PROP` warning.
 - **A gate is a convenience, not a guarantee.** The agent is still the only validator: an action
   can reach it with `/agreed` false, and it should not act on one.
 

@@ -40,8 +40,9 @@ export type { A2uiComponentSpec, A2uiPropKind, A2uiPropSpec };
 
 /**
  * Context passed to a per-component post-validation check. `props` is the
- * already-validated (registry-declared, stored) prop map for the component;
- * `base` is its payload path (`/messages/<i>/updateComponents/components/<j>`).
+ * already-validated (registry-declared, stored) prop map for the component —
+ * plus `checks` where a gate reads it (`A2uiPropSpec.readsChecks`); `base` is its
+ * payload path (`/messages/<i>/updateComponents/components/<j>`).
  */
 export interface A2uiComponentCheckContext {
   id: string;
@@ -73,7 +74,10 @@ export interface A2uiCatalogSpec {
   iconNames: readonly string[];
   /** Real catalog components deliberately not rendered (error chip, not "unknown"). */
   unsupportedComponents: ReadonlySet<string>;
-  /** Props recognised anywhere but dropped before render (validation warning only). */
+  /**
+   * Props recognised anywhere but dropped before render (validation warning
+   * only) — `checks` not where a gate reads it (`A2uiPropSpec.readsChecks`).
+   */
   ignoredProps: ReadonlySet<string>;
   /** Component names whose DIRECT children may carry a `weight` (flex-grow). */
   flexContainers: ReadonlySet<string>;
