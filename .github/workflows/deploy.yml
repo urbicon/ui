@@ -37,7 +37,8 @@ on:
     types: [completed]
   # The manual path, and deliberately so: dismantling buny removed
   # `sudo buny deploy ui`, which was the way to push the site without a code
-  # change. This replaces it — it redeploys the newest green CI run on main.
+  # change. This replaces it — it redeploys the newest green CI run on main,
+  # provided npm has the version that run carries (see the `decide` step).
   workflow_dispatch:
 
 permissions:
@@ -112,7 +113,11 @@ jobs:
           # `urbicon` is the package the publish uploads last
           # (scripts/release-packages.mjs), and the upload stops at its first
           # failure — so a release that failed half-way counts as unpublished.
-          # 404 is the one answer that means "not yet"; any other is no answer,
+          #
+          # npm answers 404 for a version not published yet, and just the same
+          # for a package it does not hold at all: a renamed `urbicon` would
+          # make every deploy step aside, green. So a 404 means "not yet" only
+          # while `urbicon@latest` answers 200. Any other answer is no answer,
           # and the run fails rather than deploy on it.
           if [ "$SRC_WORKFLOW" = "CI" ]; then
             version=$(gh api "repos/$REPO/contents/package.json?ref=$SRC_SHA" \
@@ -126,17 +131,29 @@ jobs:
               echo "::error::package.json at $SRC_SHA has no X.Y.Z version: '$version'"
               exit 1
             fi
-            npm_status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 \
-              "https://registry.npmjs.org/urbicon/$version") || true
-            case "$npm_status" in
+            # The body goes to a file: with `-o /dev/null`, the curl on
+            # ubuntu-latest (8.5) cannot truncate it for a retry, exits 23
+            # ("Failed to truncate file", silent under -s) and prints no
+            # status code at all.
+            npm_status() {
+              curl -sS -o "$RUNNER_TEMP/npm-answer" -w '%{http_code}' --max-time 20 --retry 2 \
+                "https://registry.npmjs.org/urbicon/$1" || true
+            }
+            status=$(npm_status "$version")
+            case "$status" in
               200) ;;
               404)
+                latest=$(npm_status latest)
+                if [ "$latest" != "200" ]; then
+                  echo "::error::npm has no urbicon@$version, and urbicon@latest answered '$latest' — is the package still published under that name?"
+                  exit 1
+                fi
                 echo "::notice::v$version is not on npm yet — the site waits for the Release run that publishes it."
                 echo "proceed=false" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               *)
-                echo "::error::npm answered '$npm_status' for urbicon@$version — not deploying on an unknown publish state."
+                echo "::error::npm answered '$status' for urbicon@$version — not deploying on an unknown publish state."
                 exit 1
                 ;;
             esac
