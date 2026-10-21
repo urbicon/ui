@@ -183,6 +183,18 @@ describe('computeSankeyLayout', () => {
     expect(result.links[0].target.id).toBe('b');
   });
 
+  it('gives each link its input position, which a dropped link before it skips', () => {
+    const result = computeSankeyLayout(
+      [{ id: 'a' }, { id: 'b' }],
+      [
+        { source: 'a', target: 'unknown', value: 25 },
+        { source: 'a', target: 'b', value: 50 }
+      ],
+      { width: 400, height: 200 }
+    );
+    expect(result.links.map((l) => l.index)).toEqual([1]);
+  });
+
   it('warns and skips self-loops', () => {
     const original = console.warn;
     let warned = false;

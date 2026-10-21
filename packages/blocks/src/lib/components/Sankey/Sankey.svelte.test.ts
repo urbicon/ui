@@ -11,8 +11,9 @@ import Sankey from './Sankey.svelte';
 // interactive role="button" paths/nodes out of the accessibility tree),
 // (2) a consumer-provided onmousemove is forwarded alongside the internal
 // tooltip tracker instead of clobbering it via the restProps spread, (3) a
-// link's accessible name uses the node labels, not the ids, and (4) the
-// tooltip's default percent follows the active locale. Repo stack: svelte's
+// link's accessible name uses the node labels, not the ids, (4) the
+// tooltip's default percent follows the active locale, and (5) links are told
+// apart by their input position, not by their node ids. Repo stack: svelte's
 // own mount/unmount, @testing-library/dom, native matchers.
 
 let dispose: (() => void) | undefined;
@@ -89,6 +90,58 @@ describe('Sankey (component interaction)', () => {
     renderSankey({ formatValue: (v) => String(v) });
     const link = document.querySelector('path[role="button"]');
     expect(link?.getAttribute('aria-label')).toBe('Gas → Heating: 100');
+  });
+});
+
+describe('Sankey (link identity)', () => {
+  const labelledById = (...ids: string[]) => ids.map((id) => ({ id, label: id }));
+  const tableRows = () =>
+    [...document.querySelectorAll('tbody tr')].map((row) =>
+      [...row.querySelectorAll('td')].map((cell) => cell.textContent?.trim())
+    );
+
+  it('draws and lists two parallel links between the same nodes', () => {
+    renderSankey({
+      links: [
+        { source: 'gas', target: 'heat', value: 30 },
+        { source: 'gas', target: 'heat', value: 70 }
+      ],
+      formatValue: (v) => String(v)
+    });
+    expect(document.querySelectorAll('path[role="button"]')).toHaveLength(2);
+    expect(tableRows()).toEqual([
+      ['Gas', 'Heating', '30'],
+      ['Gas', 'Heating', '70']
+    ]);
+  });
+
+  it('keeps links apart whose ids read alike once joined with a dash', () => {
+    renderSankey({
+      nodes: labelledById('a-b', 'c', 'a', 'b-c'),
+      links: [
+        { source: 'a-b', target: 'c', value: 10 },
+        { source: 'a', target: 'b-c', value: 20 }
+      ],
+      formatValue: (v) => String(v)
+    });
+    expect(document.querySelectorAll('path[role="button"]')).toHaveLength(2);
+    expect(tableRows()).toEqual([
+      ['a-b', 'c', '10'],
+      ['a', 'b-c', '20']
+    ]);
+  });
+
+  it('colours a link by its own intent when a link before it is dropped', () => {
+    renderSankey({
+      nodes: labelledById('a', 'b'),
+      links: [
+        { source: 'a', target: 'missing', value: 5 },
+        { source: 'a', target: 'b', value: 10, intent: 'danger' }
+      ]
+    });
+    const paths = document.querySelectorAll('path[role="button"]');
+    expect(paths).toHaveLength(1);
+    expect(paths[0].classList.contains('stroke-danger')).toBe(true);
   });
 });
 
