@@ -13,12 +13,14 @@ name: Deploy
 #   Release  a `v*` tag. Runs INSTEAD of CI (ci.yml has no tag trigger), and
 #            publishes to npm before this workflow gets its turn.
 #
-# `bump` pushes the commit and the tag together, so both pipelines start at
-# once on the same SHA. If this workflow simply followed CI, the docs site
-# would go live while `npm publish` was still running — and a failed publish
-# would leave the site advertising a version that does not exist. So on a CI
-# trigger it first asks whether a Release run exists for this SHA and, if one
-# does, steps aside for it. See the `decide` step.
+# The site shows the version in the root package.json, so it must not go live
+# before that version is on npm: a publish that then failed would leave it
+# advertising a version that does not exist. The tag that starts the publish
+# can arrive together with the release commit (`git push --follow-tags`), long
+# after it (the commit landed through a PR), or never — and CI on that commit
+# waits for none of it. So on a CI trigger the `decide` step asks npm whether
+# the version is published and, if it is not, leaves the deploy to the Release
+# run.
 #
 # WHAT IT SHIPS. Artefacts built by the run that just went green, downloaded by
 # id — never a rebuild. What reaches the server is byte-for-byte the tree the
@@ -39,9 +41,10 @@ on:
   workflow_dispatch:
 
 permissions:
+  # Reads package.json at the SHA being deployed (the npm check).
   contents: read
-  # Reads the triggering run's artefacts and queries sibling runs for the tag
-  # check. Read-only.
+  # Reads the triggering run's artefacts, and lists CI runs for the manual
+  # path. Read-only.
   actions: read
 
 # Deploys must not overlap: two rsyncs into the same tree, or a symlink moved
@@ -102,22 +105,41 @@ jobs:
             exit 1
           fi
 
-          # A CI run on a commit that also has a Release run must stand down:
-          # the tag path publishes to npm first and deploys afterwards. Asking
-          # for the sibling run (rather than listing tags) is the same evidence
-          # release.yml already uses, and it is one request.
+          # A CI run deploys only a version npm already has (see the header).
+          # The version is read at this SHA, so a commit merged after an
+          # unpublished release commit waits as well.
           #
-          # The race this could have — CI finishing before the Release run is
-          # registered — cannot happen in practice: `git push --follow-tags`
-          # creates both runs in the same instant, and CI takes minutes.
+          # `urbicon` is the package the publish uploads last
+          # (scripts/release-packages.mjs), and the upload stops at its first
+          # failure — so a release that failed half-way counts as unpublished.
+          # 404 is the one answer that means "not yet"; any other is no answer,
+          # and the run fails rather than deploy on it.
           if [ "$SRC_WORKFLOW" = "CI" ]; then
-            releases=$(gh api "repos/$REPO/actions/runs?head_sha=$SRC_SHA&per_page=100" \
-              --jq '[.workflow_runs[] | select(.name == "Release")] | length')
-            if [ "$releases" -gt 0 ]; then
-              echo "::notice::$SRC_SHA carries a release tag — leaving the deploy to the Release run."
-              echo "proceed=false" >> "$GITHUB_OUTPUT"
-              exit 0
+            version=$(gh api "repos/$REPO/contents/package.json?ref=$SRC_SHA" \
+              --jq '.content | @base64d | fromjson | .version') || {
+              echo "::error::Could not read package.json at $SRC_SHA."
+              exit 1
+            }
+            # Pasted into a URL below. `[[ =~ ]]` matches the whole value; grep
+            # would pass a multi-line one on its first line.
+            if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::package.json at $SRC_SHA has no X.Y.Z version: '$version'"
+              exit 1
             fi
+            npm_status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 \
+              "https://registry.npmjs.org/urbicon/$version") || true
+            case "$npm_status" in
+              200) ;;
+              404)
+                echo "::notice::v$version is not on npm yet — the site waits for the Release run that publishes it."
+                echo "proceed=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              *)
+                echo "::error::npm answered '$npm_status' for urbicon@$version — not deploying on an unknown publish state."
+                exit 1
+                ;;
+            esac
           fi
 
           echo "proceed=true" >> "$GITHUB_OUTPUT"

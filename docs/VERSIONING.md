@@ -59,11 +59,29 @@ table applies without exception.
 
 A failure in any of these steps rolls back to the commit the bump started from and deletes the tag.
 
-Result: one release commit + one annotated tag on HEAD. The tag on HEAD is critical — pushing it is what starts the release. Push with `git push --follow-tags`. **Never edit `CHANGELOG.md` manually** — it is fully auto-generated.
+Result: one release commit + one annotated tag on HEAD. The tag on HEAD is critical — pushing it is what starts the release. Push with `git push --follow-tags`, or land the commit through a PR ([Releasing through a pull request](#releasing-through-a-pull-request)). **Never edit `CHANGELOG.md` manually** — it is fully auto-generated.
 
-**Where publishing actually happens.** The tag triggers `.github/workflows/release.yml`, which both gates and publishes: a `gate` job runs lint, typecheck, unit tests and e2e against the tagged commit (e2e only when CI has not already passed on it) and packs the tarballs, then a separate `publish` job uploads them over npm trusted publishing (OIDC — no long-lived token, and no `bun install` in the credential-bearing job). Live since 2026-08-01 (v6.48.1). The docs site is deployed separately by `.github/workflows/deploy.yml`, which waits for a green pipeline rather than for the tag. See [DECISIONS.md](DECISIONS.md#the-publishing-job-holds-a-credential-and-nothing-else).
+**Where publishing actually happens.** The tag triggers `.github/workflows/release.yml`, which both gates and publishes: a `gate` job runs lint, typecheck, unit tests and e2e against the tagged commit (e2e only when CI has not already passed on it) and packs the tarballs, then a separate `publish` job uploads them over npm trusted publishing (OIDC — no long-lived token, and no `bun install` in the credential-bearing job). Live since 2026-08-01 (v6.48.1). The docs site is deployed separately by `.github/workflows/deploy.yml`, after a green pipeline — but a green CI run deploys only a version npm already has, so a release goes live from its Release run, after the publish. See [DECISIONS.md](DECISIONS.md#the-publishing-job-holds-a-credential-and-nothing-else).
 
 **`apps/*` are intentionally out of scope.** The bump only scans `packages/`, and the version write is additionally guarded to non-private packages. `apps/docs` is a private, never-published app, so it keeps its own `package.json` version (currently `0.0.1`) rather than tracking the library version — a private app sharing the public library version would be misleading. This is by design, not a drift to fix.
+
+## Releasing through a pull request
+
+The release commit can reach `main` through a PR instead of a direct push. The tag then comes second, and it cannot be the one `bump.sh` made: that one points at the branch commit, and the squash merge puts a different commit on `main`.
+
+1. Run the bump on a branch, then delete its tag right away (`git tag -d vX.Y.Z`) — pushed, it would start the Release run on a commit that never reaches `main`.
+2. Push the branch, open the PR, and squash-merge it with the title exactly `chore: release vX.Y.Z` — delete the ` (#N)` GitHub appends.
+3. Tag the merge commit, annotated and signed, and push only the tag:
+
+   ```bash
+   git fetch origin
+   git tag -a -s vX.Y.Z -m vX.Y.Z "$(gh pr view <N> --json mergeCommit --jq .mergeCommit.oid)"
+   git push origin vX.Y.Z
+   ```
+
+Never `gh release create --target main` instead: it makes a lightweight, unsigned tag on whatever `main` points at by then, which need not be the release commit any more.
+
+Between the merge and the publish the docs site stays on the previous release, and commits merged in that window do not deploy either: the Release run puts the release commit live, the next push to `main` (or a manual run of `deploy.yml`) the commits after it.
 
 ## Commit types → Changelog sections
 

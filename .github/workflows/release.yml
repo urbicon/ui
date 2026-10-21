@@ -1,7 +1,9 @@
 name: Release
 
-# Triggered when a `vX.Y.Z` tag lands on main (created by
-# `bun run bump:{patch,minor,major}` followed by `git push --follow-tags`).
+# Triggered when a `vX.Y.Z` tag is pushed — together with the release commit
+# `bun run bump:{patch,minor,major}` made (`git push --follow-tags`), or onto
+# the merge commit after that release commit landed through a PR
+# (docs/VERSIONING.md § Releasing through a pull request).
 #
 # TWO JOBS, ON PURPOSE.
 #
@@ -107,9 +109,9 @@ jobs:
       # a completed, successful CI run on this exact commit — which, because CI
       # shards the same suite, is the same evidence.
       #
-      # WHY THIS WAITS. `bun run bump` pushes commit and tag together, so both
-      # pipelines start in the same second and CI is still running when this
-      # step is reached. As a snapshot the check therefore lost every time it
+      # WHY THIS WAITS. Commit and tag pushed together (`git push --follow-tags`)
+      # start both pipelines in the same second, and CI is still running when
+      # this step is reached. As a snapshot the check therefore lost every time it
       # mattered: on v6.49.0 — the first release with the skip — it asked at
       # 16:38:00 and CI went green at 16:38:50, fifty seconds later. The e2e
       # suite then ran a second time, unsharded, for nothing.
@@ -212,9 +214,9 @@ jobs:
 
       # The deploy artefact, the same one ci.yml uploads. A tag push runs THIS
       # workflow and not CI, so without it a release would publish to npm and
-      # leave the docs site on the previous version. deploy.yml waits for this
-      # workflow rather than for CI on tagged commits, precisely so the site
-      # never moves ahead of a publish that then fails.
+      # leave the docs site on the previous version. deploy.yml lets a CI run
+      # deploy only a version npm already has, so a release goes live from
+      # this workflow, after its publish — never ahead of a publish that fails.
       - uses: actions/upload-artifact@v7
         with:
           name: site-dist
