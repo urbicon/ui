@@ -3,7 +3,7 @@
  * what lets a consumer's `load` function or plain test call it.
  */
 import { describe, expect, it } from 'vitest';
-import { withSearchParams } from './search-params';
+import { type SearchParamsPatch, withSearchParams } from './search-params';
 
 const at = (href: string) => new URL(href, 'https://x.test');
 
@@ -30,11 +30,25 @@ describe('withSearchParams', () => {
     );
   });
 
+  it('puts integer-like record keys first, in the order the record iterates them', () => {
+    expect(withSearchParams(at('/f'), { z: '1', '2': 'b', a: '3' })).toBe('/f?2=b&z=1&a=3');
+  });
+
   it('returns the original address after changing a value and changing it back', () => {
     const original = '/films?sort=title&page=3&q=noir';
     const changed = withSearchParams(at(original), { sort: 'year' });
     expect(changed).toBe('/films?sort=year&page=3&q=noir');
     expect(withSearchParams(at(changed), { sort: 'title' })).toBe(original);
+  });
+
+  it('does not restore a query outside URLSearchParams encoding, or a repeated key', () => {
+    const roundTrip = (start: string, there: SearchParamsPatch, back: SearchParamsPatch) =>
+      withSearchParams(at(withSearchParams(at(start), there)), back);
+
+    expect(roundTrip('/f?q=a%20b&sort=x', { sort: 'y' }, { sort: 'x' })).toBe('/f?q=a+b&sort=x');
+    expect(roundTrip('/f?tag=a&q=1&tag=b', { tag: 'z' }, { tag: ['a', 'b'] })).toBe(
+      '/f?tag=a&tag=b&q=1'
+    );
   });
 
   it('removes the key for null and for undefined', () => {

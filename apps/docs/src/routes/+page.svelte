@@ -750,7 +750,7 @@
 
   const [selectedSlug, setSelectedSlug] = useUrlParam<string | null>('c', {
     parse: (sp) => sp.get('c'),
-    serialize: (value) => new URLSearchParams(value ? { c: value } : {}),
+    serialize: (value) => value,
     initial: null,
     replaceState: true
   });

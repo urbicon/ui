@@ -28,19 +28,21 @@ Bind a typed, reactive value to a URL search param. When the value changes, the 
   // Single string param, typed
   const [page, setPage] = useUrlParam<number>('page', {
     parse: (sp) => Number(sp.get('page') ?? '1'),
-    serialize: (v) => new URLSearchParams({ page: String(v) }),
+    serialize: (v) => String(v),
     initial: 1
   });
 
   // Repeated-key array param: ?tag=a&tag=b
   const [tags, setTags] = useUrlArrayParam('tag', { initial: [], strategy: 'repeat' });
 
-  // CSV array param: ?tag=a,b
+  // CSV array param: ?cat=a,b
   const [categories, setCategories] = useUrlArrayParam('cat', { initial: [], strategy: 'csv' });
 </script>
 
 <button onclick={() => setPage(page() + 1)}>Next — current: {page()}</button>
 ```
+
+`serialize` returns the entries of the one key the setter manages — a string, an array for a repeated key, or `null` to remove the key — and every other param keeps its value and its position. An empty array removes the key too. `useUrlArrayParam` removes its key for an empty selection under either strategy: `setTags([])` leaves no `tag` in the URL.
 
 Low-level escape hatch if you prefer to update multiple params at once:
 
@@ -52,7 +54,7 @@ import { updateUrlSearchParams } from '@urbicon-ui/sveltekit-utils/url.svelte';
 updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 ```
 
-A link needs an address, not a setter. `withSearchParams(url, patch)` is the pure core that `updateUrlSearchParams` and `createUrlParam`'s setter navigate to: the address `url` has after `patch` — a scalar replaces its key's value, an array replaces it with each element, `null` removes the key, every other param stays as it is. A patched key keeps the position of its first occurrence and only a new key goes to the end, so changing a key's value and changing it back returns the same address. An empty string is a value and keeps its key (`?a=`); an empty array has no values and so removes it. It reads nothing from the page and navigates nowhere, so the same call builds a link's `href` and a redirect's location.
+A link needs an address, not a setter. `withSearchParams(url, patch)` is the pure core that `updateUrlSearchParams` and `createUrlParam`'s setter navigate to: the address `url` has after `patch` — a scalar replaces its key's value, an array replaces it with each element, `null` removes the key, every other param keeps its value. A patched key keeps the position of its first occurrence and only a new key goes to the end. The query comes back in `URLSearchParams` encoding (`%20` as `+`), so changing a key's value and changing it back restores the query only when it was already in that encoding and the key occurred once. An empty string is a value and keeps its key (`?a=`); an empty array has no values and so removes it. It reads nothing from the page and navigates nowhere, so the same call builds a link's `href` and a redirect's location.
 
 <!-- typecheck -->
 
