@@ -1,5 +1,6 @@
 import {
   autoUpdate,
+  clippingBoundary,
   computePosition,
   flip,
   size as floatingSize,
@@ -202,6 +203,9 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
       computePosition(ref, floating, {
         placement,
         strategy: positionStrategy,
+        // An in-place panel is clipped by the scroll boxes around it; for a
+        // top-layer one this reads as the viewport.
+        boundary: clippingBoundary,
         middleware: [
           offset(offsetDistance),
           flip(),

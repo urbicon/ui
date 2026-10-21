@@ -19,7 +19,7 @@ export interface MiddlewareState {
   elements: { reference: HTMLElement; floating: HTMLElement };
   middlewareData: Record<string, unknown>;
   strategy: Strategy;
-  /** Where the floating element can be seen, in viewport coordinates — see {@link clippingBoundary}. */
+  /** The area the floating element has to stay inside, in viewport coordinates. */
   boundary: Boundary;
 }
 
@@ -205,17 +205,23 @@ function viewportToLocal(
 // computes a `visible` partner to `auto`.
 const CLIPPING_OVERFLOW = /auto|scroll|overlay|hidden|clip/;
 
-function matchesSafely(el: Element, selector: string): boolean {
-  try {
-    return el.matches(selector);
-  } catch {
-    // An engine that does not know the pseudo-class has no such state either.
-    return false;
-  }
+/** The (visual) viewport, the boundary `computePosition` measures against by default. */
+function viewportBoundary(): Boundary {
+  return {
+    top: 0,
+    left: 0,
+    right: window.visualViewport?.width ?? window.innerWidth,
+    bottom: window.visualViewport?.height ?? window.innerHeight
+  };
 }
 
 function inTopLayer(el: Element): boolean {
-  return matchesSafely(el, ':popover-open') || matchesSafely(el, ':modal');
+  try {
+    return el.matches(':modal') || el.matches(':popover-open');
+  } catch {
+    // An engine that rejects the pseudo-class has no popover top layer either.
+    return false;
+  }
 }
 
 /**
@@ -225,44 +231,21 @@ function inTopLayer(el: Element): boolean {
  * it does not contain a fixed child (measured in Chromium).
  */
 function establishesContainingBlock(style: CSSStyleDeclaration): boolean {
-  const transformLike = [
-    style.transform,
-    style.translate,
-    style.rotate,
-    style.scale,
-    style.perspective,
-    style.filter,
-    style.backdropFilter
-  ];
   return (
-    transformLike.some((value) => !!value && value !== 'none') ||
+    [
+      style.transform,
+      style.translate,
+      style.rotate,
+      style.scale,
+      style.perspective,
+      style.filter,
+      style.backdropFilter
+    ].some((value) => !!value && value !== 'none') ||
     style.transformStyle === 'preserve-3d' ||
-    /layout|paint|strict|content/.test(style.contain ?? '') ||
-    /auto|hidden/.test(style.contentVisibility ?? '') ||
-    /transform|translate|rotate|scale|perspective|filter/.test(style.willChange ?? '')
+    /layout|paint|strict|content/.test(style.contain) ||
+    /auto|hidden/.test(style.contentVisibility) ||
+    /transform|translate|rotate|scale|perspective|filter/.test(style.willChange)
   );
-}
-
-/**
- * The containing block of an out-of-flow element: an `Element`, `null` for the
- * viewport, or `undefined` when `el` is in flow and every ancestor's overflow
- * applies to it.
- */
-function containingBlockOf(el: Element, position: string): Element | null | undefined {
-  if (position !== 'absolute' && position !== 'fixed') return undefined;
-  // The top layer is laid out against the viewport whatever its ancestors say,
-  // and so is anything inside it that nothing in between contains: an ancestor
-  // outside a modal dialog does not contain the dialog's fixed descendants.
-  if (inTopLayer(el)) return null;
-  const root = el.ownerDocument;
-  for (let node = el.parentElement; node; node = node.parentElement) {
-    if (node === root.body || node === root.documentElement) return null;
-    const style = getComputedStyle(node);
-    if (establishesContainingBlock(style)) return node;
-    if (position === 'absolute' && style.position !== 'static') return node;
-    if (inTopLayer(node)) return null;
-  }
-  return null;
 }
 
 /**
@@ -276,31 +259,36 @@ function containingBlockOf(el: Element, position: string): Element | null | unde
  * `position: absolute` is not clipped by a scroll box that sits between it and
  * its positioned ancestor, the top layer by none at all, and `fixed` by none
  * below the nearest transformed (filtered, contained…) ancestor — or below the
- * top-layer element it sits in. The walk therefore jumps from every out-of-flow
- * box straight to its containing block.
+ * top-layer element it sits in, which is laid out against the viewport. So the
+ * walk skips from every out-of-flow box to its containing block.
  * `body` and `html` are not consulted — the viewport stands for them, and a
  * scroll lock's `overflow: hidden` on either hides nothing that is on screen.
  *
- * With no clipping ancestor this is the viewport rectangle itself, the boundary
- * every overlay measured against before.
+ * With no clipping ancestor this is the viewport rectangle itself. Pass it as
+ * `computePosition`'s `boundary` for a panel that can render in place; a
+ * top-layer panel needs none of this walk.
  */
 export function clippingBoundary(floating: HTMLElement): Boundary {
-  const boundary: Boundary = {
-    top: 0,
-    left: 0,
-    right: window.visualViewport?.width ?? window.innerWidth,
-    bottom: window.visualViewport?.height ?? window.innerHeight
-  };
-  const first = floating.parentElement;
-  if (!first) return boundary;
+  const boundary = viewportBoundary();
+  let node = floating.parentElement;
+  if (!node || inTopLayer(floating)) return boundary;
 
-  const root = floating.ownerDocument;
-  let escapeTo = containingBlockOf(floating, getComputedStyle(floating).position);
-  for (let node: Element | null = first; node; node = node.parentElement) {
-    if (node === root.body || node === root.documentElement) break;
-    if (escapeTo !== undefined && node !== escapeTo) continue;
-
+  const { body, documentElement } = floating.ownerDocument;
+  // The containing block still being looked for: none while the walk is in
+  // flow, where every clipping ancestor applies.
+  let seeking: string | undefined = getComputedStyle(floating).position;
+  for (; node && node !== body && node !== documentElement; node = node.parentElement) {
     const style = getComputedStyle(node);
+    if (seeking === 'absolute' || seeking === 'fixed') {
+      const contains =
+        establishesContainingBlock(style) ||
+        (seeking === 'absolute' && style.position !== 'static');
+      if (!contains) {
+        if (inTopLayer(node)) break;
+        continue;
+      }
+    }
+
     const clipsX = CLIPPING_OVERFLOW.test(style.overflowX);
     const clipsY = CLIPPING_OVERFLOW.test(style.overflowY);
     if ((clipsX || clipsY) && style.display !== 'inline' && style.display !== 'contents') {
@@ -316,7 +304,8 @@ export function clippingBoundary(floating: HTMLElement): Boundary {
         boundary.bottom = Math.min(boundary.bottom, top + node.clientHeight);
       }
     }
-    escapeTo = containingBlockOf(node, style.position);
+    seeking = style.position;
+    if ((seeking === 'absolute' || seeking === 'fixed') && inTopLayer(node)) break;
   }
   return boundary;
 }
@@ -340,17 +329,25 @@ export function computePosition(
     placement?: Placement;
     strategy?: Strategy;
     middleware?: Middleware[];
+    /**
+     * Measures the area the floating element has to stay inside, once per run
+     * and again on every reset. The (visual) viewport by default; pass
+     * {@link clippingBoundary} for a panel rendered in place, so that `flip`,
+     * `shift` and `size` also respect the scroll boxes that clip it.
+     */
+    boundary?: (floating: HTMLElement) => Boundary;
   } = {}
 ): Promise<ComputePositionReturn> {
   const {
     placement: initialPlacement = 'bottom',
     strategy = 'absolute',
-    middleware = []
+    middleware = [],
+    boundary: measureBoundary = viewportBoundary
   } = options;
 
   let placement = initialPlacement;
   let refRect = reference.getBoundingClientRect();
-  let boundary = clippingBoundary(floating);
+  let boundary = measureBoundary(floating);
   const floatingSize = { width: floating.offsetWidth, height: floating.offsetHeight };
   let { x, y } = getBaseCoords(refRect, floatingSize, placement);
   const middlewareData: Record<string, unknown> = {};
@@ -382,7 +379,7 @@ export function computePosition(
         placement = result.reset.placement;
       }
       refRect = reference.getBoundingClientRect();
-      boundary = clippingBoundary(floating);
+      boundary = measureBoundary(floating);
       floatingSize.width = floating.offsetWidth;
       floatingSize.height = floating.offsetHeight;
       ({ x, y } = getBaseCoords(refRect, floatingSize, placement));
