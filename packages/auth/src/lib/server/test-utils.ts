@@ -1,4 +1,6 @@
 import './server-only.js';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { isRedirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
@@ -345,6 +347,73 @@ export function createBrowserJar<E, A extends unknown[]>(
         commit();
         return { status: err.status, event, response: null };
       }
+    }
+  };
+}
+
+/**
+ * A handle under SvelteKit's own request pipeline — `respond` from Kit's
+ * `runtime/server/respond.js`, what an adapter's `server.respond` awaits — so
+ * a test sees what Kit makes of what the hook returns or throws, which no mock
+ * `resolve` can show. The manifest has no routes: node 0 is a root layout
+ * whose server `load` is `layoutLoad`, node 1 Kit's own error page. A rejection
+ * of `respond` is what adapter-node leaves unhandled.
+ *
+ * The modules sit outside Kit's exports map, so they are reached by absolute
+ * path off the package.json it does export, like the cookie-runtime oracle in
+ * `handle.test.ts`: a release that moves one fails at import. It runs only
+ * under this package's Vitest config, whose SvelteKit plugin supplies the
+ * generated modules and `__SVELTEKIT_*__` globals the runtime reads. Kit keeps
+ * one set of hooks per module instance, so `respond` installs the handle per
+ * request.
+ */
+export async function createKitRuntime(handle: Handle) {
+  const kitPackageJson = pathToFileURL(
+    createRequire(import.meta.url).resolve('@sveltejs/kit/package.json')
+  );
+  const kit = (path: string) => import(/* @vite-ignore */ new URL(path, kitPackageJson).href);
+  const [internal, { respond }, { create_request_state }, layout, error] = await Promise.all([
+    kit('./src/runtime/server/internal.js'),
+    kit('./src/runtime/server/respond.js'),
+    kit('./src/runtime/server/state.js'),
+    kit('./src/runtime/components/layout.svelte'),
+    kit('./src/runtime/components/error.svelte')
+  ]);
+  const layoutLoad = vi.fn((_event: { locals: Record<string, unknown> }) => ({}));
+  const node = (index: number, extra: Record<string, unknown>) => async () => ({
+    index,
+    imports: [],
+    stylesheets: [],
+    fonts: [],
+    ...extra
+  });
+  internal.set_manifest({
+    app_dir: '_app',
+    app_path: '_app',
+    assets: new Set(),
+    mime_types: {},
+    client: { start: '', app: '', imports: [], stylesheets: [], fonts: [], nodes: [], routes: [] },
+    nodes: [
+      node(0, { server: { load: layoutLoad }, component: async () => layout.default }),
+      node(1, { component: async () => error.default })
+    ],
+    remotes: {},
+    routes: [],
+    prerendered_routes: new Set(),
+    matchers: async () => ({}),
+    server_assets: {}
+  });
+  return {
+    layoutLoad,
+    respond(request: Request): Promise<Response> {
+      internal.set_hooks({
+        handle,
+        handleError: () => undefined,
+        handleFetch: (input: { request: Request; fetch: typeof globalThis.fetch }) =>
+          input.fetch(input.request),
+        reroute: () => undefined
+      });
+      return respond(request, create_request_state({ getClientAddress: () => '127.0.0.1' }));
     }
   };
 }

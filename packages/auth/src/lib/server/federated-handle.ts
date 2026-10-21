@@ -22,7 +22,8 @@ import {
   compilePublicRoutes,
   isApiPath,
   type PublicRoute,
-  type PublicRoutes
+  type PublicRoutes,
+  undecodableRefusal
 } from './public-routes.js';
 
 /**
@@ -305,7 +306,8 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
  * `resolveUser`, exposes the result as `event.locals.user` (same locals
  * contract as `createAuthHandle`), and guards routes: unauthenticated remote
  * requests are default-denied, `/api/` routes get a JSON 401, pages redirect
- * to `loginUrl` (when set) — `publicRoutes` are exempt.
+ * to `loginUrl` (when set; a pathname that does not decode gets a plain 400
+ * instead) — `publicRoutes` are exempt.
  *
  * **Identity ≠ authorization.** The token proves who the caller is; this app
  * decides — in `resolveUser` — whether that identity gets in and as what.
@@ -540,6 +542,8 @@ export function createFederatedAuthHandle<TUser>(
         if (!loginUrl || isApiPath(event.url.pathname)) {
           return authError('not_authenticated');
         }
+        const refusal = undecodableRefusal(event.url.pathname);
+        if (refusal) return refusal;
         // Verbatim, no redirectTo — see FederatedAuthHandleOptions.loginUrl.
         // Kit refuses a cross-origin target unless opted in, and the IdP's
         // login page is one by construction.

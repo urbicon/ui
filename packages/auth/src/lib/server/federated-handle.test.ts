@@ -15,6 +15,7 @@ import {
   MAX_TOKEN_LENGTH,
   SESSION_TOKEN_PURPOSE
 } from './jwt.js';
+import { createKitRuntime } from './test-utils.js';
 
 /**
  * Consumer-side federation tests. The IdP side (key generation, ES256
@@ -831,6 +832,36 @@ describe('createFederatedAuthHandle — route guard', () => {
     });
     expect((await strict({ event: asEvent(authed), resolve: ok() })).status).toBe(200);
     expect(authed.locals.user).not.toBeNull();
+  });
+
+  it('refuses a pathname SvelteKit cannot decode with a 400 under its own pipeline', async () => {
+    // Kit calls the hook for such a pathname outside the `try` that turns a
+    // throw into a response, so the loginUrl redirect would reject `respond`
+    // — which adapter-node leaves unhandled, ending the process.
+    const loginUrl = 'https://idp.test/auth/login';
+    const forms: Array<[string, FederatedAuthHandleOptions<unknown>['publicRoutes']]> = [
+      ['the default', undefined],
+      ['a list', ['/blog']],
+      ['a predicate', (pathname) => pathname.startsWith('/blog')]
+    ];
+    for (const [form, publicRoutes] of forms) {
+      const kit = await createKitRuntime(
+        createFederatedAuthHandle(handleOptions({ loginUrl, publicRoutes }))
+      );
+      for (const path of ['/%c0', '/%E0%A4%A', '/admin/%C0%80']) {
+        const response = await kit.respond(new Request(`https://consumer.test${path}`));
+        expect(response.status, `${form}: ${path}`).toBe(400);
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        // This handle sets no security headers — they are the app's own policy.
+        expect(response.headers.get('X-Frame-Options')).toBeNull();
+      }
+      expect(kit.layoutLoad, form).not.toHaveBeenCalled();
+      // Positive control: the same pipeline delivers the redirect for a
+      // pathname it decodes.
+      const guarded = await kit.respond(new Request('https://consumer.test/dashboard'));
+      expect(guarded.status, form).toBe(302);
+      expect(guarded.headers.get('location')).toBe(loginUrl);
+    }
   });
 
   it('never writes or clears cookies — the IdP owns the session cookie', async () => {
