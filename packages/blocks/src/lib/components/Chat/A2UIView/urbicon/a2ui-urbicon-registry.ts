@@ -115,7 +115,11 @@ export const UNSUPPORTED_URBICON_A2UI_COMPONENTS: ReadonlySet<string> = new Set(
   'CommandPalette'
 ]);
 
-/** Props recognised anywhere but intentionally ignored (validation warning only, dropped before render). */
+/**
+ * Props recognised anywhere but intentionally ignored (validation warning only,
+ * dropped before render) — `checks` except on `Button`, whose `disabled` reads
+ * it (`readsChecks`).
+ */
 export const URBICON_A2UI_IGNORED_PROPS: ReadonlySet<string> = new Set([
   'checks',
   'validationRegexp'
@@ -410,6 +414,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'boolean',
         dynamic: true,
         failsafe: true,
+        readsChecks: true,
         description:
           'Whether the button is disabled. To keep it disabled until a Checkbox bound to /agreed is ticked: { "call": "not", "args": { "value": { "path": "/agreed" } } }.'
       }

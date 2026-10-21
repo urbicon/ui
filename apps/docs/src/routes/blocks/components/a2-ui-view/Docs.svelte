@@ -169,7 +169,8 @@ const system = [
         Never hand-roll the catalog description. <code>a2uiSystemPrompt()</code> renders the
         envelope rules, the component subset (props, required flags, enums), the binding forms (<code
           >{'{ path }'}</code
-        >, plus <code>not</code>/<code>and</code>/<code>or</code> where a prop reads a boolean), the
+        >, plus <code>not</code>/<code>and</code>/<code>or</code> on a gate such as the Urbicon
+        <code>Button.disabled</code>), the
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
         the action rules, straight from the registry that validates the payload. It omits what is
         app-specific: how envelopes reach the client, and which components a surface must carry —

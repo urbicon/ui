@@ -63,6 +63,15 @@ export interface A2uiPropSpec {
    * could only fail open.
    */
   failsafe?: boolean;
+  /**
+   * A gate only (see `acceptsLogicCall`): the component takes A2UI's `checks`, a
+   * list of `{ condition, message }` rules, as part of this gate, and on it the
+   * name `checks` means that list, whatever else the catalog says of it. The
+   * validator holds this gate at its `failsafe` while the list cannot be
+   * evaluated; the dispatcher must hold it there while any rule's `condition`
+   * does not resolve to exactly `true`.
+   */
+  readsChecks?: boolean;
 }
 
 /**
@@ -85,6 +94,23 @@ export interface A2uiComponentSpec {
   /** Agent-facing description; emitted into the system prompt verbatim. */
   description: string;
   props: Record<string, A2uiPropSpec>;
+}
+
+/**
+ * A2UI's `Checkable` property: a list of `{ condition, message }` rules, which
+ * upstream lets a Button use to disable itself. It is part of a gate only where
+ * the registry says so (see {@link checksGates}); on any other component it is
+ * what the catalog makes of that prop name — ignored if `ignoredProps` lists it,
+ * unknown if not, or the component's own prop if the registry declares one.
+ */
+export const A2UI_CHECKS_PROP = 'checks';
+
+/** The gates of a component that take its `checks` (see {@link A2uiPropSpec.readsChecks}). */
+export function checksGates(spec: A2uiComponentSpec): string[] {
+  return Object.keys(spec.props).filter((key) => {
+    const prop = spec.props[key];
+    return prop.readsChecks === true && acceptsLogicCall(prop);
+  });
 }
 
 /** Whether any prop of any component in `registry` takes a logic call. */

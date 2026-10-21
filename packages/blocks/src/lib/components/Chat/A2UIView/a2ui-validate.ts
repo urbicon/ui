@@ -25,19 +25,24 @@ import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } fr
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec, resolveCatalog } from './a2ui-catalog';
 import {
   A2UI_LOGIC_FUNCTION_NAMES,
+  A2UI_MAX_LOGIC_OPERANDS,
   type A2uiLogicFault,
   cloneData,
   deleteAtPointer,
   getAtPointer,
   isLogicCall,
   logicCallFault,
+  type OperandBudget,
   setAtPointer
 } from './a2ui-data';
 import {
+  A2UI_CHECKS_PROP,
   A2UI_SUPPORTED_VERSIONS,
   A2UI_SVG_PATH_RE,
+  type A2uiComponentSpec,
   type A2uiPropSpec,
   acceptsLogicCall,
+  checksGates,
   ownEntry
 } from './a2ui-registry';
 import {
@@ -67,8 +72,9 @@ export interface A2uiComponentInstance {
   id: string;
   component: string;
   /**
-   * Only registry-declared props; the raw payload values (dynamics resolved at
-   * render), except a gate whose call cannot be evaluated, which holds its
+   * Only registry-declared props, plus `checks` where a gate reads it
+   * (`readsChecks`); the raw payload values (dynamics resolved at render),
+   * except a gate whose value or `checks` cannot be evaluated, which holds its
    * `failsafe`.
    */
   props: ReadonlyMap<string, unknown>;
@@ -260,7 +266,7 @@ function validateProp(
   const result = validatePropValue(componentName, key, spec, value, path, surfaceId, iconNames);
   if (typeof spec.failsafe !== 'boolean') return result;
   if (result.store && result.issues.every((i) => i.severity !== 'error')) return result;
-  const held = `; "${key}" is held at ${spec.failsafe} until it is fixed`;
+  const held = `; ${heldAt(key, spec)} until it is fixed`;
   return {
     store: true,
     substitute: { value: spec.failsafe },
@@ -270,6 +276,17 @@ function validateProp(
   };
 }
 
+/** How an error names the state it leaves a gate in: `"disabled" is held at true`. */
+function heldAt(key: string, spec: A2uiPropSpec): string {
+  return `"${key}" is held at ${spec.failsafe}`;
+}
+
+/** {@link heldAt} for every gate a component's unusable `checks` hold. */
+function heldGates(spec: A2uiComponentSpec, gates: readonly string[]): string {
+  return gates.map((gate) => heldAt(gate, spec.props[gate])).join(' and ');
+}
+
+/** `budget`: a logic call's operands count against it (see {@link logicCallFault}). */
 function validatePropValue(
   componentName: string,
   key: string,
@@ -277,7 +294,8 @@ function validatePropValue(
   value: unknown,
   path: string,
   surfaceId: string,
-  iconNames: readonly string[]
+  iconNames: readonly string[],
+  budget?: OperandBudget
 ): PropResult {
   const issues: A2uiValidationIssue[] = [];
   const mismatch = (detail: string): PropResult => {
@@ -287,7 +305,9 @@ function validatePropValue(
 
   if (spec.dynamic && isFunctionCall(value)) {
     const call = value as Record<string, unknown>;
-    if (acceptsLogicCall(spec)) return validateGate(componentName, key, call, path, surfaceId);
+    if (acceptsLogicCall(spec)) {
+      return validateGate(componentName, key, call, path, surfaceId, budget);
+    }
     if (isLogicCall(call)) return refuseLogicCall(componentName, key, spec, call, path, surfaceId);
   }
 
@@ -393,10 +413,11 @@ function validateGate(
   key: string,
   call: Record<string, unknown>,
   path: string,
-  surfaceId: string
+  surfaceId: string,
+  budget?: OperandBudget
 ): PropResult {
   const fault: A2uiLogicFault | undefined = isLogicCall(call)
-    ? logicCallFault(call)
+    ? logicCallFault(call, budget)
     : {
         code: A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
         at: '',
@@ -412,6 +433,127 @@ function validateGate(
       })
     ]
   };
+}
+
+/**
+ * A check rule's `condition` takes exactly what a gate takes, so it is validated
+ * as one. `failsafe: false` is what an unusable condition means — the check
+ * fails — but nothing is substituted for it: `checksIssues`' caller holds the
+ * gates themselves.
+ */
+const CHECK_CONDITION_SPEC: A2uiPropSpec = {
+  kind: 'boolean',
+  dynamic: true,
+  failsafe: false,
+  description: 'The condition a check rule requires to be true.'
+};
+const CHECK_RULE_KEYS: ReadonlySet<string> = new Set(['condition', 'message']);
+
+/**
+ * `checks` where a gate reads it: a list of `{ condition, message }` rules, both
+ * keys required and no other, as A2UI's `CheckRule` defines them. The gate
+ * re-evaluates every condition on every render, so the list is held to the
+ * operand cap of one call tree, counted as one `and` over its conditions: each
+ * condition counts one, and a call's operands count as well. Reports each
+ * rule's first fault, and stops at the condition that runs past the cap; an
+ * error means the list cannot be used.
+ */
+function checksIssues(
+  componentName: string,
+  value: unknown,
+  path: string,
+  surfaceId: string,
+  iconNames: readonly string[]
+): A2uiValidationIssue[] {
+  const fault = (code: string, at: string, message: string) =>
+    issue('error', code, message, { surfaceId, path: `${path}${at}` });
+  const overCap = () =>
+    fault(
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '',
+      `"${A2UI_CHECKS_PROP}" on ${componentName} holds more than ${A2UI_MAX_LOGIC_OPERANDS} operands in all, counted as one "and" over its conditions`
+    );
+  if (!Array.isArray(value)) {
+    return [
+      fault(
+        A2UI_ISSUE_CODES.TYPE_MISMATCH,
+        '',
+        `"${A2UI_CHECKS_PROP}" on ${componentName} must be an array of { condition, message } rules`
+      )
+    ];
+  }
+  // Every condition counts one at least, so a longer list cannot fit; refused
+  // before a fault is reported for each of its rules.
+  if (value.length > A2UI_MAX_LOGIC_OPERANDS) return [overCap()];
+  const budget: OperandBudget = { used: 0 };
+  const issues: A2uiValidationIssue[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const rule: unknown = value[i];
+    const label = `${A2UI_CHECKS_PROP}[${i}]`;
+    if (!isPlainObject(rule)) {
+      issues.push(
+        fault(
+          A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          `/${i}`,
+          `"${label}" on ${componentName} must be a { condition, message } rule`
+        )
+      );
+      continue;
+    }
+    const extra = Object.keys(rule).find((key) => !CHECK_RULE_KEYS.has(key));
+    if (extra !== undefined) {
+      issues.push(
+        fault(
+          PROTO_KEYS.has(extra)
+            ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION
+            : A2UI_ISSUE_CODES.UNKNOWN_PROP,
+          `/${i}/${extra}`,
+          `Unexpected key "${extra}" in "${label}" on ${componentName}; a rule is { condition, message }`
+        )
+      );
+      continue;
+    }
+    if (!Object.hasOwn(rule, 'condition')) {
+      issues.push(
+        fault(
+          A2UI_ISSUE_CODES.MISSING_FIELD,
+          `/${i}/condition`,
+          `"${label}" on ${componentName} needs a condition`
+        )
+      );
+      continue;
+    }
+    if (typeof rule.message !== 'string') {
+      issues.push(
+        fault(
+          rule.message === undefined
+            ? A2UI_ISSUE_CODES.MISSING_FIELD
+            : A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          `/${i}/message`,
+          `"${label}.message" on ${componentName} must be a string`
+        )
+      );
+      continue;
+    }
+    budget.used++; // the condition itself, as an operand of the list's `and`
+    const condition = validatePropValue(
+      componentName,
+      `${label}.condition`,
+      CHECK_CONDITION_SPEC,
+      rule.condition,
+      `${path}/${i}/condition`,
+      surfaceId,
+      iconNames,
+      budget
+    );
+    // Past the cap, the list's fault is reported in place of this condition's.
+    if (budget.used > A2UI_MAX_LOGIC_OPERANDS) {
+      issues.push(overCap());
+      break;
+    }
+    for (const conditionIssue of condition.issues) issues.push(conditionIssue);
+  }
+  return issues;
 }
 
 /** A logic call on a dynamic prop that takes none — refused, so the agent hears why. */
@@ -879,6 +1021,8 @@ function validateComponent(
   }
 
   const props = new Map<string, unknown>();
+  const checkedGates = checksGates(spec);
+  let checksHeld = false;
   for (const key of Object.keys(comp)) {
     if (key === 'id' || key === 'component') continue;
     if (PROTO_KEYS.has(key)) {
@@ -890,6 +1034,26 @@ function validateComponent(
           { surfaceId, path: `${base}/${key}` }
         )
       );
+      continue;
+    }
+    if (key === A2UI_CHECKS_PROP && checkedGates.length > 0) {
+      const checkIssues = checksIssues(
+        componentName,
+        comp[key],
+        `${base}/${key}`,
+        surfaceId,
+        catalog.iconNames
+      );
+      checksHeld = checkIssues.some((i) => i.severity === 'error');
+      const held = `; ${heldGates(spec, checkedGates)} until it is fixed`;
+      for (const checkIssue of checkIssues) {
+        surface.issues.push(
+          checkIssue.severity === 'error'
+            ? { ...checkIssue, message: `${checkIssue.message}${held}` }
+            : checkIssue
+        );
+      }
+      if (!checksHeld) props.set(key, comp[key]);
       continue;
     }
     if (catalog.ignoredProps.has(key)) {
@@ -930,6 +1094,8 @@ function validateComponent(
     for (const propIssue of result.issues) surface.issues.push(propIssue);
     if (result.store) props.set(key, result.substitute ? result.substitute.value : comp[key]);
   }
+  // After the loop, so a gate the payload lists after `checks` cannot reopen it.
+  if (checksHeld) for (const gate of checkedGates) props.set(gate, spec.props[gate].failsafe);
 
   for (const [key, propSpec] of Object.entries(spec.props)) {
     if (propSpec.required && !props.has(key)) {
@@ -1007,7 +1173,8 @@ function createProcessor(
   // and fails as the agent's error, naming a catalog that can meet it. Only an
   // entry no configured catalog can meet is the consumer's mistake.
   function applyRequirements(surface: A2uiSurfaceState): void {
-    // The key is payload text, so an own entry only (`toString` must miss).
+    // An own entry only: `a2uiSurfaceRequirementsSection` reads `Object.entries`,
+    // so an inherited one was never in the prompt and must not be checked.
     const requested = ownEntry(surfaceRequirements, surface.surfaceId);
     if (!Array.isArray(requested) || requested.length === 0) return;
     const checked: A2uiSurfaceRequirement[] = [];

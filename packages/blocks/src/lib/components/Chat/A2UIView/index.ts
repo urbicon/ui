@@ -101,16 +101,16 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * Basic catalog (which is prepended automatically as the default/fallback). A
    * surface renders through the catalog whose id its `createSurface.catalogId`
    * names. Pass the shipped `urbiconA2uiCatalog` to enable the Urbicon-native
-   * catalog. Resolved once at init (icon setup reads context) — keep it
-   * referentially stable.
+   * catalog. Read once, when the view mounts (icon setup reads context then): a
+   * different list passed later is ignored.
    */
   catalogs?: readonly A2uiCatalog[];
   /**
    * Optional surface data schema. When set, every `updateDataModel` write is
    * validated against it (type mismatch on a declared pointer → error;
    * undeclared top-level branch → warning), reported via `onValidationError`.
-   * Document the same schema to the agent with `a2uiDataSchemaSection`. Keep it
-   * referentially stable.
+   * Document the same schema to the agent with `a2uiDataSchemaSection`. Read
+   * once, when the view mounts: a different schema passed later is ignored.
    */
   dataSchema?: A2uiDataSchema;
   /**
@@ -128,8 +128,8 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * `INVALID_REQUIREMENT` warning instead and is not checked. A surface without
    * an entry is unaffected. The model picks surfaceIds, so put the same object
    * in the prompt with `a2uiSurfaceRequirementsSection(requirements,
-   * catalogSpec)`, which pins the id. Resolved once at init — keep it
-   * referentially stable.
+   * catalogSpec)`, which pins the id. Read once, when the view mounts: a
+   * different object passed later is ignored.
    * @summary Which components each surface must contain, reported back to the agent when missing.
    */
   surfaceRequirements?: A2uiSurfaceRequirements;

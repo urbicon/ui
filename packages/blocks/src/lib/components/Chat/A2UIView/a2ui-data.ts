@@ -251,9 +251,10 @@ export const A2UI_LOGIC_FUNCTION_NAMES = [...A2UI_LOGIC_FUNCTIONS].join(', ');
 
 /**
  * How deep logic calls may nest (`not(and(…))` is two), and how many operands
- * one call tree may hold in all. Generous for any gate; they exist because the
- * tree is re-evaluated on every render, and a hostile payload must neither
- * recurse without bound nor make each keystroke walk a list of thousands.
+ * one gate may hold in all — one call tree, or every condition of a `checks`
+ * list together. Generous for any gate; they exist because a gate is
+ * re-evaluated on every render, and a hostile payload must neither recurse
+ * without bound nor make each keystroke walk a list of thousands.
  */
 export const A2UI_MAX_LOGIC_DEPTH = 8;
 export const A2UI_MAX_LOGIC_OPERANDS = 64;
@@ -298,8 +299,8 @@ function unexpectedKey(
   return undefined;
 }
 
-/** Operands counted so far across one call tree (see {@link A2UI_MAX_LOGIC_OPERANDS}). */
-interface OperandBudget {
+/** Operands counted so far against one gate's {@link A2UI_MAX_LOGIC_OPERANDS}. */
+export interface OperandBudget {
   used: number;
 }
 
@@ -410,9 +411,15 @@ function callFault(
  * `{ path }` binding or another logic call, within the depth and operand caps.
  * The validator reports this fault and `resolveDynamic` refuses to evaluate on
  * it, so the two read one definition of well-formed.
+ *
+ * `budget` counts the operands against one already in use, for calls that share
+ * a gate's cap: the conditions of one `checks` list.
  */
-export function logicCallFault(call: Record<string, unknown>): A2uiLogicFault | undefined {
-  return callFault(call, 1, { used: 0 });
+export function logicCallFault(
+  call: Record<string, unknown>,
+  budget: OperandBudget = { used: 0 }
+): A2uiLogicFault | undefined {
+  return callFault(call, 1, budget);
 }
 
 /**
@@ -494,6 +501,19 @@ export function resolveDynamic(
     return { value };
   }
   return { value };
+}
+
+/**
+ * Whether every rule of a stored `checks` list passes: its `condition`, passed
+ * through `resolve` (the dispatcher's `resolveDynamic`), is exactly `true` — the
+ * truthiness a logic operand reads, so an unset path, `"true"` or a call the
+ * engine does not run all fail. No list passes; a value that is not a list of
+ * rules fails.
+ */
+export function checksPass(checks: unknown, resolve: (value: unknown) => unknown): boolean {
+  if (checks === undefined) return true;
+  if (!Array.isArray(checks)) return false;
+  return checks.every((rule) => isPlainRecord(rule) && resolve(rule.condition) === true);
 }
 
 /**

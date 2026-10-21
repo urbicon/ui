@@ -131,6 +131,16 @@ function calls a binding may use:
 - **`action.event.context` evaluates them too**, at click time, so the event carries the boolean. A
   malformed one is an error, and its key travels as `undefined`: context has nothing to fail closed
   to.
+- **`checks` gates the button too.** A2UI's own form of this gate is a list of rules on the Button,
+  `"checks": [{ "condition": { "path": "/agreed" }, "message": "…" }]`. Today only the Urbicon
+  `Button` evaluates `checks`: the button is disabled while any condition is not exactly `true` —
+  read like an operand, so the path above passes only once `/agreed` is `true` — or while
+  `disabled` asks for it. A list the engine cannot evaluate is an error and holds `disabled` at
+  `true`: a rule other than `{ condition, message }`, a list holding more operands than one call
+  may when counted as an `and` over its conditions, or a condition `disabled` would refuse,
+  `required` and `email` among them. `required` stays out on purpose: upstream counts `false` as a
+  value, so it would pass for a box the user unticked. The `message` is not rendered. Every other
+  component, every Basic one included, ignores `checks` with an `IGNORED_PROP` warning.
 - **A gate is a convenience, not a guarantee.** The agent is still the only validator: an action
   can reach it with `/agreed` false, and it should not act on one.
 
@@ -187,16 +197,19 @@ once `streaming` is false: a surface arrives over several envelopes, and v0.9.1 
 marks one complete, so the end of the turn that built or patched it is the earliest point at which
 "missing" is true. It is an error so it travels the channel you relay, and the model can patch the
 surface; nothing is thrown, and the surface renders as it stands. A surface whose id has no entry is
-not checked. Without the view, `createA2uiProcessor({ surfaceRequirements })` plus
-`collectGraphIssues(surface)` reports the same issue on a server.
+not checked. Without the view, a processor holding the view's catalogs, Basic first as the view
+holds it — `createA2uiProcessor({ catalogs: [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec],
+surfaceRequirements })` — plus `collectGraphIssues(surface)` reports the same issue on a server.
+Without `catalogs` the processor knows Basic alone, so an Urbicon entry is an `INVALID_REQUIREMENT`
+warning and never checked.
 
 Which catalog a surface is on is the model's choice, and `A2UIView` always holds the Basic catalog
 as its fallback — a surface created with Basic's id, an unknown one or the upstream catalog URL
 lands there. An entry that surface's catalog cannot hold (`Checkbox` is the Urbicon spelling,
 `CheckBox` the Basic one) is still checked: it fails as `MISSING_REQUIRED_COMPONENT`, and the
-message names the catalog the surface should have been created with. So that the model picks it in
-the first place, `a2uiSurfaceRequirementsSection` pins that catalogId next to the surfaceId
-whenever Basic cannot meet a surface's entries.
+message names the catalog the surface should have been created with. The prompt states it up front:
+`a2uiSurfaceRequirementsSection` names that catalogId next to the surfaceId whenever Basic cannot
+meet a surface's entries.
 
 An entry no catalog of the view can meet — a component none of them has, a prop the component does
 not declare, a relative `path` — is your mistake, not the model's. The view reports it once, as an

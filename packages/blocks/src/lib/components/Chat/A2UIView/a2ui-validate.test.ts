@@ -6,9 +6,13 @@ import { exIncremental } from './__fixtures__/spec/ex_incremental';
 import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
-import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
+import { type A2uiCatalogSpec, type A2uiPropSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
 import { A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
-import type { A2uiRequiredComponent, A2uiSurfaceRequirements } from './a2ui-requirements';
+import {
+  type A2uiRequiredComponent,
+  type A2uiSurfaceRequirements,
+  a2uiSurfaceRequirementsSection
+} from './a2ui-requirements';
 import {
   type A2uiProcessor,
   type A2uiSurfaceState,
@@ -873,6 +877,306 @@ describe('logic-function bindings (not / and / or)', () => {
   });
 });
 
+// Upstream's form of the consent gate: "Buttons can also define `checks`. If any
+// check fails, the button is automatically disabled."
+describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
+  const checkedButton = (checks: unknown, extra: Record<string, unknown> = {}): unknown[] => [
+    {
+      id: 'root',
+      component: 'Button',
+      child: 'label',
+      action: { event: { name: 'book' } },
+      checks,
+      ...extra
+    },
+    { id: 'label', component: 'Text', text: 'Book' }
+  ];
+  const CHECKS = '/messages/1/updateComponents/components/0/checks';
+  const stored = (proc: A2uiProcessor, key: string) =>
+    proc.surfaces.get('s')?.components.get('root')?.props.get(key);
+  const rule = (condition: unknown) => ({ condition, message: 'Accept the policy' });
+  const required = (path: string) => ({ call: 'required', args: { value: { path } } });
+
+  it('stores usable rules as written and leaves disabled alone', () => {
+    for (const condition of [
+      { path: '/agreed' },
+      and({ path: '/agreed' }, or({ path: '/email' }, { path: '/phone' })),
+      true
+    ]) {
+      const checks = [rule(condition)];
+      const proc = urbiconSurface(checkedButton(checks));
+      expect(allIssues(proc)).toEqual([]);
+      expect(stored(proc, 'checks')).toEqual(checks);
+      expect(stored(proc, 'disabled')).toBeUndefined();
+    }
+    expect(allIssues(urbiconSurface(checkedButton([])))).toEqual([]);
+  });
+
+  const unusable: Array<[string, unknown, string, string]> = [
+    ['a value that is not a list', rule(true), A2UI_ISSUE_CODES.TYPE_MISMATCH, ''],
+    ['a rule that is not an object', ['yes'], A2UI_ISSUE_CODES.TYPE_MISMATCH, '/0'],
+    [
+      'the call written in place of { condition }',
+      [{ ...required('/terms'), message: 'Required' }],
+      A2UI_ISSUE_CODES.UNKNOWN_PROP,
+      '/0/call'
+    ],
+    [
+      'an own __proto__ key on a rule',
+      [JSON.parse('{"condition":true,"message":"m","__proto__":{"x":1}}')],
+      A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+      '/0/__proto__'
+    ],
+    ['no condition', [{ message: 'm' }], A2UI_ISSUE_CODES.MISSING_FIELD, '/0/condition'],
+    ['no message', [{ condition: true }], A2UI_ISSUE_CODES.MISSING_FIELD, '/0/message'],
+    [
+      'a message that is not a string',
+      [{ condition: true, message: 1 }],
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/0/message'
+    ],
+    [
+      'a condition naming another function',
+      [rule(required('/terms'))],
+      A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
+      '/0/condition'
+    ],
+    [
+      "upstream's own example, required inside and",
+      [rule(and(required('/terms'), or(required('/email'), required('/phone'))))],
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/0/condition/args/values/0'
+    ],
+    ['a string condition', [rule('true')], A2UI_ISSUE_CODES.TYPE_MISMATCH, '/0/condition'],
+    [
+      'a poisoned condition path',
+      [rule({ path: '/__proto__/x' })],
+      A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+      '/0/condition'
+    ],
+    [
+      'a malformed logic call',
+      [rule(true), rule(and(true))],
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/1/condition/args/values'
+    ]
+  ];
+  for (const [name, checks, code, at] of unusable) {
+    it(`reports ${name} as ${code} at its own path, and holds disabled at true`, () => {
+      const proc = urbiconSurface(checkedButton(checks));
+      const issues = allIssues(proc);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]).toMatchObject({
+        severity: 'error',
+        code,
+        surfaceId: 's',
+        path: CHECKS + at
+      });
+      expect(issues[0].message).toContain('"disabled" is held at true until it is fixed');
+      expect(stored(proc, 'disabled')).toBe(true);
+      expect(stored(proc, 'checks')).toBeUndefined();
+    });
+  }
+
+  it('names the logic functions it does evaluate when a condition calls another', () => {
+    const [issue] = allIssues(urbiconSurface(checkedButton([rule(required('/terms'))])));
+    expect(issue.message).toContain('"required" is not supported (only not, and, or');
+  });
+
+  it('reports every rule that cannot be used, not only the first', () => {
+    const proc = urbiconSurface(checkedButton([rule('x'), rule(true), { condition: true }]));
+    expect(allIssues(proc).map((i) => i.path)).toEqual([
+      `${CHECKS}/0/condition`,
+      `${CHECKS}/2/message`
+    ]);
+  });
+
+  // One cap for the whole list, counted as for `and(condition, …)`: the gate
+  // re-evaluates every condition on every render.
+  describe('holds all its conditions to one operand cap, counted as one and', () => {
+    const MAX = A2UI_MAX_LOGIC_OPERANDS;
+    const bare = (count: number) => Array.from({ length: count }, () => rule(true));
+    const wide = (count: number) => or(...Array.from({ length: count }, () => false));
+    const fits: Array<[string, unknown[]]> = [
+      ['one bare condition per operand', bare(MAX)],
+      ['one call, counted with its operands', [rule(wide(MAX - 1))]],
+      ['calls and bare conditions together', [...bare(MAX - 3), rule(and(true, true))]]
+    ];
+    for (const [name, checks] of fits) {
+      it(`stores ${name}, exactly at the cap`, () => {
+        const proc = urbiconSurface(checkedButton(checks));
+        expect(allIssues(proc)).toEqual([]);
+        expect(stored(proc, 'checks')).toEqual(checks);
+      });
+    }
+    const over: Array<[string, unknown[]]> = [
+      ['more rules than the cap', bare(MAX + 1)],
+      ['the widest call disabled takes, one more as a condition', [rule(wide(MAX))]],
+      ['two calls that each fit alone', [rule(wide(MAX / 2)), rule(wide(MAX / 2 - 1))]],
+      ['a bare condition after a call at the cap', [rule(wide(MAX - 1)), rule(true)]],
+      ['a call after bare conditions at the cap', [...bare(MAX - 2), rule(and(true, true))]],
+      ['every rule as wide as disabled may be', Array.from({ length: MAX }, () => rule(wide(MAX)))]
+    ];
+    for (const [name, checks] of over) {
+      it(`refuses ${name} with one error on the list, and holds disabled at true`, () => {
+        const proc = urbiconSurface(checkedButton(checks));
+        const issues = allIssues(proc);
+        expect(issues.map((i) => [i.severity, i.code, i.path])).toEqual([
+          ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, CHECKS]
+        ]);
+        expect(issues[0].message).toContain(`holds more than ${MAX} operands in all`);
+        expect(issues[0].message).toContain('"disabled" is held at true until it is fixed');
+        expect(stored(proc, 'disabled')).toBe(true);
+        expect(stored(proc, 'checks')).toBeUndefined();
+      });
+    }
+  });
+
+  it('holds a condition nested deeper than a gate may be closed', () => {
+    let condition: unknown = true;
+    for (let i = 0; i < A2UI_MAX_LOGIC_DEPTH + 1; i++) condition = not(condition);
+    expect(stored(urbiconSurface(checkedButton([rule(condition)])), 'disabled')).toBe(true);
+  });
+
+  it('holds disabled whichever order the payload lists the two in', () => {
+    const broken = [rule(required('/terms'))];
+    for (const order of [
+      { checks: broken, disabled: false },
+      { disabled: false, checks: broken }
+    ]) {
+      const proc = urbiconSurface([
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'label',
+          action: { event: { name: 'book' } },
+          ...order
+        },
+        { id: 'label', component: 'Text', text: 'Book' }
+      ]);
+      expect(stored(proc, 'disabled')).toBe(true);
+    }
+  });
+
+  it('stores a usable disabled beside usable checks', () => {
+    const proc = urbiconSurface(
+      checkedButton([rule({ path: '/agreed' })], { disabled: { path: '/locked' } })
+    );
+    expect(allIssues(proc)).toEqual([]);
+    expect(stored(proc, 'disabled')).toEqual({ path: '/locked' });
+  });
+
+  it('keeps ignoring checks where no gate reads them, in either catalog', () => {
+    const urbicon = urbiconSurface([
+      {
+        id: 'root',
+        component: 'Checkbox',
+        label: 'I agree',
+        value: { path: '/agreed' },
+        checks: [rule('x')]
+      }
+    ]);
+    const basic = applyAll([
+      { version: V91, createSurface: { surfaceId: 's', catalogId: 'x' } },
+      {
+        version: V91,
+        updateComponents: {
+          surfaceId: 's',
+          components: [
+            {
+              id: 'root',
+              component: 'Button',
+              child: 'label',
+              action: { event: { name: 'book' } },
+              checks: [rule({ path: '/agreed' })]
+            },
+            { id: 'label', component: 'Text', text: 'Book' }
+          ]
+        }
+      }
+    ]);
+    for (const proc of [urbicon, basic]) {
+      expect(allIssues(proc).map((i) => [i.severity, i.code])).toEqual([
+        ['warning', A2UI_ISSUE_CODES.IGNORED_PROP]
+      ]);
+      expect(stored(proc, 'checks')).toBeUndefined();
+    }
+  });
+
+  // A consumer's dispatcher knows nothing of `checks`, so a gate that does not
+  // ask for them must leave the name to the catalog, as it did before.
+  describe('on a consumer catalog whose gate has a failsafe', () => {
+    const gate = { kind: 'boolean', dynamic: true, failsafe: true, description: 'Gate.' } as const;
+    const catalog = (
+      ignored: readonly string[],
+      props: Record<string, A2uiPropSpec> = {}
+    ): A2uiCatalogSpec => ({
+      catalogId: 'consumer/gated',
+      registry: {
+        Go: {
+          description: 'A consumer button.',
+          props: { label: { kind: 'string', description: 'Label.' }, disabled: gate, ...props }
+        }
+      },
+      iconNames: [],
+      unsupportedComponents: new Set(),
+      ignoredProps: new Set(ignored),
+      flexContainers: new Set()
+    });
+    const apply = (spec: A2uiCatalogSpec, checks: unknown): A2uiProcessor => {
+      const proc = createA2uiProcessor({ catalogs: [spec] });
+      proc.apply(
+        { version: V91, createSurface: { surfaceId: 's', catalogId: 'consumer/gated' } },
+        0
+      );
+      proc.apply(
+        {
+          version: V91,
+          updateComponents: {
+            surfaceId: 's',
+            components: [{ id: 'root', component: 'Go', label: 'Go', checks }]
+          }
+        },
+        1
+      );
+      return proc;
+    };
+    const rules = [rule({ path: '/agreed' })];
+    const summary = (proc: A2uiProcessor) => allIssues(proc).map((i) => [i.severity, i.code]);
+
+    it('ignores checks the catalog lists in ignoredProps, with a warning', () => {
+      const proc = apply(catalog(['checks']), rules);
+      expect(summary(proc)).toEqual([['warning', A2UI_ISSUE_CODES.IGNORED_PROP]]);
+      expect(stored(proc, 'checks')).toBeUndefined();
+      expect(stored(proc, 'disabled')).toBeUndefined();
+    });
+
+    it('reports checks the catalog does not know as an unknown prop', () => {
+      const proc = apply(catalog([]), rules);
+      expect(summary(proc)).toEqual([['error', A2UI_ISSUE_CODES.UNKNOWN_PROP]]);
+      expect(stored(proc, 'checks')).toBeUndefined();
+      expect(stored(proc, 'disabled')).toBeUndefined();
+    });
+
+    it("stores the component's own checks prop as its registry declares it", () => {
+      const own = catalog([], { checks: { kind: 'stringList', description: 'Tick marks.' } });
+      const proc = apply(own, ['a', 'b']);
+      expect(summary(proc)).toEqual([]);
+      expect(stored(proc, 'checks')).toEqual(['a', 'b']);
+      expect(stored(proc, 'disabled')).toBeUndefined();
+    });
+
+    it('takes checks as part of the gate once the gate declares readsChecks', () => {
+      const asked = catalog([], { disabled: { ...gate, readsChecks: true } });
+      expect(summary(apply(asked, rules))).toEqual([]);
+      expect(stored(apply(asked, rules), 'checks')).toEqual(rules);
+      const broken = apply(asked, [rule(required('/agreed'))]);
+      expect(summary(broken)).toEqual([['error', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED]]);
+      expect(stored(broken, 'disabled')).toBe(true);
+    });
+  });
+});
+
 describe('surface requirements', () => {
   const consent: A2uiSurfaceRequirements = {
     booking: [{ component: 'Checkbox', path: '/agreed', description: 'consent to the policy' }]
@@ -1016,6 +1320,14 @@ describe('surface requirements', () => {
     }
   });
 
+  // The prompt section lists own entries only (`Object.entries`), so an entry
+  // the model was never told about must not be checked either.
+  it('checks no entry the requirements object only inherits, as the prompt never states one', () => {
+    const inherited: A2uiSurfaceRequirements = Object.create(consent);
+    expect(a2uiSurfaceRequirementsSection(inherited, urbiconA2uiCatalogSpec)).toBe('');
+    expect(allIssues(booking(form([]), inherited))).toEqual([]);
+  });
+
   it('reports only MISSING_ROOT for a settled surface without a root', () => {
     const proc = booking([{ id: 'intro', component: 'Text', text: 'x' }]);
     expect(allIssues(proc).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MISSING_ROOT]);
@@ -1049,7 +1361,12 @@ describe('surface requirements', () => {
         { component: 'Text', prop: 'variant', path: '/style' },
         'cannot be bound'
       ],
-      ['a relative path', { component: 'Checkbox', path: 'agreed' }, 'is relative']
+      ['a relative path', { component: 'Checkbox', path: 'agreed' }, 'is relative'],
+      [
+        'the checks a gate reads, which are no prop',
+        { component: 'Button', prop: 'checks' },
+        'declares no prop "checks"'
+      ]
     ];
     for (const [name, requirement, reason] of unmeetable) {
       it(`reports ${name} once, as INVALID_REQUIREMENT, and never asks the agent for it`, () => {

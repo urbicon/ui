@@ -43,7 +43,7 @@
   // Effective catalogs: the Basic catalog is always available and FIRST (the
   // default/fallback), consumer catalogs follow. Resolved ONCE at init —
   // `createIcons()` reads the IconProvider context, so it must run during
-  // component init and cannot be reactive. Keep `catalogs` referentially stable.
+  // component init and cannot be reactive: a `catalogs` value passed later is ignored.
   // `untrack` captures the initial prop value without a reactive subscription
   // (the init-only capture is deliberate — silences `state_referenced_locally`).
   const catalogs: readonly A2uiCatalog[] = [

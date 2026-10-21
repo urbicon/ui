@@ -87,7 +87,10 @@ export const A2UI_ISSUE_CODES = {
   UNSUPPORTED_COMPONENT: 'UNSUPPORTED_COMPONENT',
   /** A prop not declared for the component (whitelist violation). */
   UNKNOWN_PROP: 'UNKNOWN_PROP',
-  /** A recognized-but-ignored prop (`checks`, `validationRegexp`). */
+  /**
+   * A recognized-but-ignored prop: `validationRegexp`, or `checks` where no
+   * gate reads it.
+   */
   IGNORED_PROP: 'IGNORED_PROP',
   /** A prop value's shape does not match its declared kind. */
   TYPE_MISMATCH: 'TYPE_MISMATCH',

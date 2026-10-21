@@ -11,6 +11,29 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.33.0
+
+### An A2UI `Button` with `checks` is disabled while a check fails
+
+On a surface rendered through the Urbicon catalog, a `Button` now evaluates the `checks` the agent
+gives it, as A2UI's protocol describes: the button is disabled while any rule's `condition` is not
+exactly `true`, as well as while its `disabled` says so. Until now `checks` was dropped with an
+`IGNORED_PROP` warning, and the button stayed enabled.
+
+- **A button that was always clickable can now start disabled.** A rule bound to a path nobody has
+  written, `{ "condition": { "path": "/agreed" }, "message": "Accept the policy" }` before the box
+  is ticked, fails until the user sets it to `true`.
+- **A rule the engine cannot evaluate keeps the button disabled**, with an error on
+  `onValidationError` where there was a warning: a condition calling `required`, `email` or any
+  function other than `not`, `and` and `or` — upstream's own button example among them — and a
+  rule other than `{ condition, message }`. Relay the error to the agent, as for a broken
+  `disabled`.
+- **Every other component, and every component of the Basic catalog, ignores `checks` as before.**
+
+```sh
+rg -n -e '"checks"' -e 'IGNORED_PROP' src
+```
+
 ## 8.32.0
 
 ### A persisted `Input` restores what is stored, over `value` too

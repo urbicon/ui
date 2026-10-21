@@ -114,6 +114,32 @@ describe('registry ↔ dispatcher drift guard', () => {
   }
 });
 
+// The drift guard above asserts the chip's absence; this asserts it appears.
+describe('fault chip', () => {
+  it('stands in for a known component missing a required prop, and for an unknown one', () => {
+    for (const [component, props] of [
+      ['Button', { child: 'stub' }],
+      ['Nope', {}]
+    ] as const) {
+      const { issues } = render({
+        payload: [
+          surface(),
+          comps([
+            { id: 'root', component, ...props },
+            { id: 'stub', component: 'Text', text: 'stub' }
+          ])
+        ]
+      });
+      expect(issues.some((issue) => issue.severity === 'error')).toBe(true);
+      expect(document.body.textContent).toContain(`FAULTCHIP: ${component}`);
+      expect(document.querySelector('button')).toBeNull();
+      dispose?.();
+      dispose = undefined;
+      document.body.replaceChildren();
+    }
+  });
+});
+
 describe('Urbicon rendering + interaction', () => {
   it('Button dispatches a spec-exact action with a resolved context binding', async () => {
     const user = userEvent.setup();
