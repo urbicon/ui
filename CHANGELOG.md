@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.33.0](https://github.com/urbicon/ui/compare/v8.32.0...v8.33.0) - 2026-10-21
+
+### Breaking Changes
+- **sveltekit-utils**: Let a url param's setter remove its own key ([#568](https://github.com/urbicon/ui/issues/568))
+> **BREAKING:** UrlParamOptions.serialize returns the key's value (string | string[] | null) instead of URLSearchParams; null or [] removes the key.
+
+### Bug Fixes
+- **blocks**: Key sankey links by input position, not by their node ids ([#570](https://github.com/urbicon/ui/issues/570))
+- **auth**: Answer a pathname that does not decode with a 400 first ([#567](https://github.com/urbicon/ui/issues/567))
+- **blocks**: Disable an a2ui button while its checks fail ([#566](https://github.com/urbicon/ui/issues/566))
+
 ## [8.32.0](https://github.com/urbicon/ui/compare/v8.31.0...v8.32.0) - 2026-10-19
 
 ### Breaking Changes
