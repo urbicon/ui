@@ -306,8 +306,8 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
  * `resolveUser`, exposes the result as `event.locals.user` (same locals
  * contract as `createAuthHandle`), and guards routes: unauthenticated remote
  * requests are default-denied, `/api/` routes get a JSON 401, pages redirect
- * to `loginUrl` (when set; a pathname that does not decode gets a plain 400
- * instead) — `publicRoutes` are exempt.
+ * to `loginUrl` (when set) — `publicRoutes` are exempt. A request whose
+ * pathname does not decode gets a plain `400` before any of that.
  *
  * **Identity ≠ authorization.** The token proves who the caller is; this app
  * decides — in `resolveUser` — whether that identity gets in and as what.
@@ -515,6 +515,10 @@ export function createFederatedAuthHandle<TUser>(
   };
 
   return async ({ event, resolve }) => {
+    // Before step 1, for every request — see undecodableRefusal.
+    const undecodable = undecodableRefusal(event.url.pathname);
+    if (undecodable) return undecodable;
+
     // 1. IdP session cookie → verified identity → the consumer's own user.
     const token = event.cookies.get(cookieName);
     let user: TUser | null = null;
@@ -542,8 +546,6 @@ export function createFederatedAuthHandle<TUser>(
         if (!loginUrl || isApiPath(event.url.pathname)) {
           return authError('not_authenticated');
         }
-        const refusal = undecodableRefusal(event.url.pathname);
-        if (refusal) return refusal;
         // Verbatim, no redirectTo — see FederatedAuthHandleOptions.loginUrl.
         // Kit refuses a cross-origin target unless opted in, and the IdP's
         // login page is one by construction.

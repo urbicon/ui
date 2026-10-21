@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import type { RequestEvent } from '@sveltejs/kit';
+import { type RequestEvent, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CSRF_COOKIE_NAME } from '../csrf-constants.js';
@@ -353,9 +353,9 @@ describe('createAuthHandle', () => {
     it('answers an escaped /api/ address with the JSON 401, like /api/ itself', async () => {
       expect(await unauthenticated({ path: '/%61pi/admin' })).toBe('status-401');
       expect(await unauthenticated({ publicRoutes: [], path: '/%61pi/admin' })).toBe('status-401');
-      // An address that does not decode is read as sent — and off /api/ it is
-      // refused without the redirect (see `a pathname SvelteKit cannot decode`).
-      expect(await unauthenticated({ publicRoutes: [], path: '/api/%E0%A4%A' })).toBe('status-401');
+      // An address that does not decode never reaches the guard: the handle
+      // answers it first (see `a pathname SvelteKit cannot decode`).
+      expect(await unauthenticated({ publicRoutes: [], path: '/api/%E0%A4%A' })).toBe('status-400');
       expect(await unauthenticated({ publicRoutes: [], path: '/%E0%A4%A' })).toBe('status-400');
     });
 
@@ -574,8 +574,8 @@ describe('createAuthHandle', () => {
         expect(
           await unauthenticated({ publicRoutes: defaultPublic, path: '/api/%61dmin/secrets' })
         ).toBe('status-401');
-        // A pathname that does not decode resolves no route, so nothing public
-        // is behind it: guarded, predicate unasked, refused without the redirect.
+        // A pathname that does not decode is answered before the guard, so the
+        // predicate is never asked about it.
         const asked = vi.fn((_pathname: string) => true);
         expect(await unauthenticated({ publicRoutes: asked, path: '/%E0%A4%A' })).toBe(
           'status-400'
@@ -1081,111 +1081,224 @@ describe('createAuthHandle', () => {
 });
 
 // SvelteKit calls the hook for a pathname it cannot decode outside the `try`
-// that turns a throw into a response, so a redirect thrown for one rejects
-// `respond` — which adapter-node leaves unhandled, ending the process. Only
-// Kit's own pipeline shows that; the mock `resolve` above catches the redirect
-// itself.
+// that turns a throw into a response, so anything the hook throws for one
+// rejects `respond` — which adapter-node leaves unhandled, ending the process.
+// Only Kit's own pipeline shows that: with the mock `resolve` above a thrown
+// redirect is an answer and any other throw a failed test.
 describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
   const undecodable = ['/%c0', '/%E0%A4%A', '/admin/%C0%80'];
-  const get = (path: string, cookie?: string) =>
-    new Request(`https://app.test${path}`, cookie ? { headers: { cookie } } : {});
-  /** A `Set-Cookie` header with its value blanked: what Kit and the hook must agree on. */
-  const shape = (header: string) => header.replace(/^([^=]+)=[^;]*/, '$1=');
+  const request = (
+    path: string,
+    init: { cookie?: string; headers?: Record<string, string> } = {}
+  ) =>
+    new Request(`https://app.test${path}`, {
+      headers: { ...init.headers, ...(init.cookie ? { cookie: init.cookie } : {}) }
+    });
+  const signedIn = async () =>
+    `session=${await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    )}`;
+  const quiet: AuthConfig = { ...config, logger: { warn: vi.fn(), error: vi.fn() } };
 
-  it('refuses it with a 400 and the security headers, under the list and the predicate', async () => {
+  /** The handle's own refusal; Kit's 400 is its error page, rendered through the root layout. */
+  async function expectRefusal(response: Response, label: string) {
+    expect(response.status, label).toBe(400);
+    expect(await response.text(), label).toBe('Bad Request');
+    expect(response.headers.get('Cache-Control'), label).toBe('no-store');
+    expect(response.headers.get('X-Frame-Options'), label).toBe('DENY');
+    expect(response.headers.get('Content-Security-Policy'), label).toBe("frame-ancestors 'none'");
+    expect(response.headers.getSetCookie(), label).toEqual([]);
+  }
+
+  it('answers it first, with a 400 and the security headers, under every publicRoutes form', async () => {
     const forms: Array<[string, AuthHandleOptions['publicRoutes']]> = [
       ['the defaults', undefined],
       ['an empty list', []],
-      ['a predicate', (pathname) => pathname.startsWith('/blog')]
+      ['a predicate', (pathname) => pathname.startsWith('/blog')],
+      ['a list that publishes everything', ['/']]
     ];
     for (const [form, publicRoutes] of forms) {
       const kit = await createKitRuntime(
-        createAuthHandle({ config, repos: createMockRepos(), publicRoutes })
+        createAuthHandle({ config: quiet, repos: createMockRepos(), publicRoutes })
       );
       for (const path of undecodable) {
-        const response = await kit.respond(get(path));
-        expect(response.status, `${form}: ${path}`).toBe(400);
-        expect(response.headers.get('X-Frame-Options'), `${form}: ${path}`).toBe('DENY');
-        expect(response.headers.get('Content-Security-Policy')).toBe("frame-ancestors 'none'");
-        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        await expectRefusal(await kit.respond(request(path)), `${form}: ${path}`);
       }
-      // The refusal is the hook's, not Kit's: Kit's 400 would have run the root
-      // layout's load for a client the guard turned away.
       expect(kit.layoutLoad, form).not.toHaveBeenCalled();
-      // Positive control: the same pipeline catches the redirect for a
-      // pathname it decodes.
-      const guarded = await kit.respond(get('/dashboard'));
-      expect(guarded.status, form).toBe(302);
-      expect(guarded.headers.get('location')).toBe('/auth/login?redirectTo=%2Fdashboard');
     }
-    // And the probe on the layout sees Kit's own 400, so its silence above is
-    // a finding: with every route public, the request reaches Kit.
-    const open = await createKitRuntime(
-      createAuthHandle({
-        config: { ...config, logger: { warn: vi.fn(), error: vi.fn() } },
-        repos: createMockRepos(),
-        publicRoutes: ['/']
-      })
-    );
-    expect((await open.respond(get('/%c0'))).status).toBe(400);
-    expect(open.layoutLoad).toHaveBeenCalledTimes(1);
+    // Positive control: a pathname that decodes, an escape included, runs the
+    // chain to the guard's redirect under the same pipeline.
+    const kit = await createKitRuntime(createAuthHandle({ config, repos: createMockRepos() }));
+    for (const path of ['/dashboard', '/%61dmin']) {
+      const guarded = await kit.respond(request(path));
+      expect(guarded.status, path).toBe(302);
+      expect(guarded.headers.get('location')).toBe(
+        `/auth/login?redirectTo=${encodeURIComponent(path)}`
+      );
+    }
   });
 
-  describe('with refresh rotation', () => {
-    const rotationConfig: AuthConfig = {
-      ...config,
-      logger: { warn: vi.fn(), error: vi.fn() },
-      refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }
-    };
-    async function rotating(hooks?: AuthConfig['hooks']) {
-      const refreshToken = createInMemoryRefreshTokenRepository(createInMemoryStore());
-      const { token } = await issueRefreshToken(refreshToken, 'user-1', { refreshTokenTtl: '30d' });
-      const kit = await createKitRuntime(
-        createAuthHandle({
-          config: { ...rotationConfig, hooks },
-          repos: { ...createMockRepos(), refreshToken }
-        })
-      );
-      const response = await kit.respond(get('/%c0', `refresh=${token}`));
-      const setCookie = response.headers.getSetCookie();
-      const named = (name: string) => setCookie.find((header) => header.startsWith(`${name}=`));
-      return { kit, response, setCookie, named, token };
+  it('rejects respond for a hook that throws on such a pathname — the premise', async () => {
+    // Also the control that this pipeline lets a rejection out at all, which
+    // every `respond` in this block that settles relies on.
+    const thrown: Array<[string, Handle, number]> = [
+      ['a redirect', () => redirect(302, '/auth/login'), 302],
+      [
+        'an error',
+        () => {
+          throw new Error('boom');
+        },
+        500
+      ]
+    ];
+    for (const [name, handle, answered] of thrown) {
+      const kit = await createKitRuntime(handle);
+      await expect(kit.respond(request('/%c0')), name).rejects.toBeDefined();
+      // Where the path decodes, Kit answers the same throw.
+      expect((await kit.respond(request('/dashboard'))).status, name).toBe(answered);
     }
+  });
 
-    it('carries a rotation that committed before the refusal to the browser', async () => {
-      // The transform throws after the rotation committed, so the hook goes on
-      // unauthenticated and refuses the request; the successor has to ride on
-      // the refusal (see `survives a throwing transform on the refresh-rotation
-      // path`).
-      const refused = await rotating({
-        transformUser: () => {
-          throw new Error('enrichment boom');
-        }
+  it("is the handle's own 400 — Kit's runs the root layout's load", async () => {
+    // The control for every `layoutLoad` silence in this block: a hook that
+    // hands the request on gets Kit's 400, rendered through the root layout.
+    const kit = await createKitRuntime(({ event, resolve }) => resolve(event));
+    const response = await kit.respond(request('/%c0'));
+    expect(response.status).toBe(400);
+    expect(await response.text()).not.toBe('Bad Request');
+    expect(kit.layoutLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers a signed-in request the same, without reading the session', async () => {
+    const findById = vi.fn().mockResolvedValue(createMockUser());
+    const kit = await createKitRuntime(
+      createAuthHandle({ config, repos: createMockRepos({ findById }) })
+    );
+    const cookie = await signedIn();
+    await expectRefusal(await kit.respond(request('/%c0', { cookie })), 'signed in');
+    expect(findById).not.toHaveBeenCalled();
+    expect(kit.layoutLoad).not.toHaveBeenCalled();
+    // Positive control: the cookie signs the request in where the path decodes.
+    await kit.respond(request('/dashboard', { cookie }));
+    expect(findById).toHaveBeenCalledTimes(1);
+    expect(kit.layoutLoad.mock.calls[0]?.[0].locals.user).toMatchObject({ id: 'user-1' });
+  });
+
+  it('rotates no refresh token for it and stages no cookie', async () => {
+    const store = createInMemoryStore();
+    const refreshToken = createInMemoryRefreshTokenRepository(store);
+    const findByHash = vi.spyOn(refreshToken, 'findByHash');
+    const { token } = await issueRefreshToken(refreshToken, 'user-1', { refreshTokenTtl: '30d' });
+    findByHash.mockClear();
+    const kit = await createKitRuntime(
+      createAuthHandle({
+        config: {
+          ...quiet,
+          csrf: { doubleSubmit: true },
+          refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }
+        },
+        repos: { ...createMockRepos(), refreshToken }
+      })
+    );
+    await expectRefusal(
+      await kit.respond(request('/%c0', { cookie: `refresh=${token}` })),
+      'a valid refresh cookie'
+    );
+    expect(findByHash).not.toHaveBeenCalled();
+    // Positive control: the same cookie rotates where the path decodes, and the
+    // CSRF cookie is seeded there too.
+    const rotated = await kit.respond(request('/dashboard', { cookie: `refresh=${token}` }));
+    expect(findByHash).toHaveBeenCalled();
+    expect(
+      rotated.headers
+        .getSetCookie()
+        .map((header) => header.split('=')[0])
+        .sort()
+    ).toEqual([DEFAULT_CSRF_COOKIE_NAME, 'refresh', 'session'].sort());
+  });
+
+  describe('settles with the 400 where a step of the chain would throw', () => {
+    const boom = () => {
+      throw new Error('boom');
+    };
+    const down = () => vi.fn().mockRejectedValue(new Error('database unreachable'));
+    const cases: Array<[string, () => Promise<{ handle: Handle; cookie?: string }>]> = [
+      [
+        'a transformUser that throws on the session path',
+        async () => ({
+          handle: createAuthHandle({
+            config: { ...quiet, hooks: { transformUser: boom } },
+            repos: createMockRepos()
+          }),
+          cookie: await signedIn()
+        })
+      ],
+      [
+        'a user repository that throws',
+        async () => ({
+          handle: createAuthHandle({ config: quiet, repos: createMockRepos({ findById: down() }) }),
+          cookie: await signedIn()
+        })
+      ],
+      [
+        'a refresh-token repository that throws, for any refresh cookie',
+        async () => ({
+          handle: createAuthHandle({
+            config: { ...quiet, refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' } },
+            repos: {
+              ...createMockRepos(),
+              refreshToken: {
+                ...createInMemoryRefreshTokenRepository(createInMemoryStore()),
+                findByHash: down()
+              }
+            }
+          }),
+          cookie: 'refresh=x'
+        })
+      ],
+      [
+        'a csrf.exempt predicate that throws',
+        async () => ({
+          handle: createAuthHandle({
+            config: quiet,
+            repos: createMockRepos(),
+            csrf: { exempt: boom }
+          })
+        })
+      ]
+    ];
+    for (const [name, build] of cases) {
+      it(name, async () => {
+        const { handle, cookie } = await build();
+        const kit = await createKitRuntime(handle);
+        await expectRefusal(await kit.respond(request('/%c0', { cookie })), name);
+        // Positive control: the step does throw — Kit turns it into a 500 where
+        // the path decodes.
+        expect((await kit.respond(request('/dashboard', { cookie }))).status).toBe(500);
       });
-      expect(refused.response.status).toBe(400);
-      expect(refused.kit.layoutLoad).not.toHaveBeenCalled();
-      expect(refused.named('session'), 'the minted access cookie').toBeDefined();
-      expect(refused.named('refresh')).toBeDefined();
-      expect(refused.named('refresh')).not.toContain(refused.token);
-      expect(refused.setCookie).toHaveLength(2);
+    }
+  });
 
-      // Kit flushes the same rotation itself once the request is signed in, so
-      // its headers are the oracle for the ones the hook wrote.
-      const signedIn = await rotating();
-      expect(refused.setCookie.map(shape)).toEqual(signedIn.setCookie.map(shape));
-    });
-
-    it("leaves a request the rotation signed in to SvelteKit's own 400", async () => {
-      // Kit renders its error page through the root layout, for the user, and
-      // flushes the rotated cookies; the hook adds its headers on the way out.
-      const { kit, response, named, token } = await rotating();
-      expect(response.status).toBe(400);
-      expect(kit.layoutLoad).toHaveBeenCalledTimes(1);
-      expect(kit.layoutLoad.mock.calls[0]?.[0].locals.user).toMatchObject({ id: 'user-1' });
-      expect(named('session')).toBeDefined();
-      expect(named('refresh')).not.toContain(token);
-      expect(response.headers.get('X-Frame-Options')).toBe('DENY');
-    });
+  it('answers the API path and both remote-function transports the same', async () => {
+    const kit = await createKitRuntime(createAuthHandle({ config, repos: createMockRepos() }));
+    await expectRefusal(await kit.respond(request('/api/%c0')), '/api/');
+    // A remote call takes its pathname from the client's header.
+    await expectRefusal(
+      await kit.respond(
+        request('/_app/remote/abc/fn', { headers: { 'x-sveltekit-pathname': '/%c0' } })
+      ),
+      'the /_app/remote/ transport'
+    );
+    await expectRefusal(
+      await kit.respond(
+        new Request('https://app.test/%c0?/remote=abc', {
+          method: 'POST',
+          headers: { origin: 'https://app.test' }
+        })
+      ),
+      'the ?/remote= form fallback'
+    );
   });
 });
 

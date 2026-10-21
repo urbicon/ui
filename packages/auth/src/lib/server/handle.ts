@@ -263,16 +263,16 @@ function recordCookieWrites(cookies: Cookies): { cookies: Cookies; setCookie: st
 }
 
 /**
- * A refusal of the guard (3a/3b), carrying the cookies the hook staged — the
- * same cookie semantics the redirect already gives the page path. The hook
- * returns it instead of calling `resolve`, so without these headers a device
- * holding a refused cookie would go on sending it (see
- * {@link recordCookieWrites}).
+ * The guard's refusal (3a/3b), carrying the cookies the hook staged — the same
+ * cookie semantics the redirect already gives the page path. The hook returns
+ * this instead of calling `resolve`, so without these headers a device holding
+ * a refused cookie would go on sending it (see {@link recordCookieWrites}).
  *
  * One `Set-Cookie` header per cookie. A comma-joined list is ambiguous for any
  * cookie whose `Expires` attribute contains one.
  */
-const withStagedCookies = (response: Response, setCookie: readonly string[]): Response => {
+const jsonUnauthorized = (setCookie: readonly string[]): Response => {
+  const response = authError('not_authenticated');
   for (const header of setCookie) response.headers.append('set-cookie', header);
   return response;
 };
@@ -340,11 +340,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
   };
 
-  // 4. Resolve and apply security headers — the one step every resolved
-  // request gets, the cookieless short-circuit included; the refusal of an
-  // undecodable pathname gets the headers without the resolve. HSTS is gated
-  // on a secure deployment — the same predicate the cookie names and the
-  // brute-force-default warnings use.
+  // 4. Resolve and apply security headers. The cookieless short-circuit gets
+  // them too, and the refusal of a pathname that does not decode gets them
+  // without the resolve. HSTS is gated on a secure deployment — the same
+  // predicate the cookie names and the brute-force-default warnings use.
   const withSecurityHeaders = (response: Response): Response =>
     applySecurityHeaders(response, {
       ...config.securityHeaders,
@@ -356,9 +355,12 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   ): Promise<Response> => withSecurityHeaders(await resolve(event));
 
   return async ({ event, resolve }) => {
-    // Steps 1–2a write through this view so the guard's own 401 and 400 can
-    // carry what they staged; `resolve` and the redirect keep the real
-    // `event.cookies`.
+    // Before step 0, for every request — see undecodableRefusal.
+    const undecodable = undecodableRefusal(event.url.pathname);
+    if (undecodable) return withSecurityHeaders(undecodable);
+
+    // Steps 1–2a write through this view so the guard's own 401 can carry what
+    // they staged; `resolve` and the redirect keep the real `event.cookies`.
     const { cookies, setCookie } = recordCookieWrites(event.cookies);
 
     // A remote-function call reaches this hook via one of two transports, both
@@ -466,19 +468,17 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       // and must then guard those functions themselves. Authenticated remote
       // requests fall through unchanged.
       if (!user && !allowUnauthenticatedRemote) {
-        return withStagedCookies(authError('not_authenticated'), setCookie);
+        return jsonUnauthorized(setCookie);
       }
     } else {
       // 3b. Path-based guard for normal requests: redirect unauthenticated
-      // users to login (401 for API routes, 400 for a pathname that does not
-      // decode). The match runs only when its answer decides, so a consumer
-      // predicate is not asked for a signed-in request.
+      // users to login (401 for API routes). The match runs only when its
+      // answer decides, so a consumer predicate is not asked for a signed-in
+      // request.
       if (!user && !isPublicPath(event)) {
         if (isApiPath(event.url.pathname)) {
-          return withStagedCookies(authError('not_authenticated'), setCookie);
+          return jsonUnauthorized(setCookie);
         }
-        const refusal = undecodableRefusal(event.url.pathname);
-        if (refusal) return withSecurityHeaders(withStagedCookies(refusal, setCookie));
         // Preserve the deep link: append the requested path so the login flow
         // can send the user back after signing in. GET/HEAD only — re-issuing
         // a guarded POST target as a post-login GET navigation would be wrong.
