@@ -30,10 +30,15 @@ export type SearchParamsPatch =
  * for `null`/`undefined`, which **removes** the key; a `URLSearchParams` by all
  * of its entries for that key, so repeated keys survive. An empty string is a
  * value and keeps its key (`?a=`); an empty array has no values and therefore
- * removes it. A patched key keeps the position of its first occurrence, so
- * changing a key's value and changing it back returns the same address; a key
- * the URL does not have yet goes to the end, in patch order. A param the patch does not name
- * keeps its value and its position. The hash is not carried.
+ * removes it. A patched key keeps the position of its first occurrence; a key
+ * the URL does not have yet goes to the end, in the patch's iteration order —
+ * which for a record puts integer-like keys (`'2'`) first. A param the patch
+ * does not name keeps its value and its position. The query is written in
+ * `URLSearchParams` encoding (`%20` comes back as `+`), so changing a key's
+ * value and changing it back restores the query only when it was already in
+ * that encoding, the key occurred once and it was not removed in between — a
+ * removed key that is set again is new and goes to the end. The hash is not
+ * carried.
  *
  * A `url.pathname` that itself begins with `//` comes back origin-qualified
  * (`https://host//films?page=2`): left relative, `//films` is a

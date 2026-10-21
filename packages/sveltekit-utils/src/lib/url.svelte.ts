@@ -38,12 +38,14 @@ export type UrlParamOptions<T> = {
    */
   parse: (sp: ReadableSearchParams) => T | null | undefined;
   /**
-   * Encode the value into `URLSearchParams`. The keys it produces are the ones
-   * the setter manages: on write they are cleared from the current URL and
-   * replaced by this output, leaving every other param untouched. Emit no
-   * entry for a key to remove it from the URL.
+   * Encode the value as the entries of the param's key — the one key the
+   * setter manages. A string sets it, an array writes one entry per element
+   * (`?tag=a&tag=b`), and `null` or an empty array removes the key from the
+   * URL; an empty string is a value and keeps it (`?q=`). Every prior entry of
+   * the key is replaced at the position of its first occurrence; every other
+   * param keeps its value and its position.
    */
-  serialize: (value: T) => URLSearchParams;
+  serialize: (value: T) => string | string[] | null;
   /** Value the getter returns when {@link parse} yields `null`/`undefined`. */
   initial: T;
   /**
@@ -93,23 +95,20 @@ export function updateUrlSearchParams(next: SearchParamsPatch, opts?: { replaceS
  * escape hatch when you need to read against a snapshot other than the live
  * page URL (tests, a server `load`).
  *
- * `set` rewrites only the keys that `options.serialize` produces (replaced in
- * place) and preserves the rest, then navigates with `goto` to the address
+ * `set` replaces `key` with what `options.serialize` returns and keeps every
+ * other param, then navigates with `goto` to the address
  * {@link withSearchParams} builds (`replace` per `replaceState`, `reset: false`).
  *
- * @param _key - Ignored — `options.parse`/`options.serialize` already close
- *   over the key (see {@link useUrlArrayParam}); kept only for signature parity
- *   with {@link useUrlParam}.
+ * @param key - The param the setter manages. `options.parse` receives all
+ *   params, so it reads this key by name itself.
  * @param options - Parse/serialize codec, initial value, history behaviour.
  * @returns `{ get, set }` — `get(sp)` reads a value from the given params
  *   (falling back to `initial`), `set(value)` writes it to the URL.
  */
-// `key` is unused here — `options.parse`/`options.serialize` already close over
-// it (see useUrlArrayParam) — but kept for signature parity with useUrlParam.
-export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
+export function createUrlParam<T>(key: string, options: UrlParamOptions<T>) {
   const get = (sp: ReadableSearchParams) => options.parse(sp) ?? options.initial;
   function setValue(next: T) {
-    goto(withSearchParams(page.url, options.serialize(next)), {
+    goto(withSearchParams(page.url, { [key]: options.serialize(next) }), {
       replace: options.replaceState ?? true,
       reset: false
     });
@@ -136,8 +135,7 @@ export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
  * `$derived`/`$effect` and the read is tracked there.
  *
  * @typeParam T - The decoded value type.
- * @param key - Param key (forwarded to `createUrlParam` for signature parity;
- *   the actual key handling lives in `options.parse`/`options.serialize`).
+ * @param key - The param the setter manages; see {@link createUrlParam}.
  * @param options - Parse/serialize codec, initial value, history behaviour.
  * @returns `[get, set]` — `get()` reads the live value, `set(value)` writes it.
  * @example
@@ -147,7 +145,7 @@ export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
  *
  *   const [page, setPage] = useUrlParam<number>('page', {
  *     parse: (sp) => Number(sp.get('page') ?? '1'),
- *     serialize: (v) => new URLSearchParams({ page: String(v) }),
+ *     serialize: (v) => String(v),
  *     initial: 1
  *   });
  * </script>
@@ -165,8 +163,9 @@ export function useUrlParam<T>(key: string, options: UrlParamOptions<T>) {
  * {@link useUrlParam} specialised for a `string[]`, with the encoding handled
  * for you. Reactive read + `goto`-based write, same as {@link useUrlParam}.
  *
- * The `csv` strategy drops empty segments on read (`?tag=` → `[]`) and writes
- * no param for an empty array, so an empty selection leaves the URL clean.
+ * Under either strategy an empty array removes the param, so an empty
+ * selection leaves the URL clean; `csv` also drops empty segments on read
+ * (`?tag=` → `[]`).
  *
  * @param key - The param key.
  * @param opts - `initial` seed, `strategy` (default `'repeat'`), and
@@ -196,14 +195,9 @@ export function useUrlArrayParam(
     return raw ? raw.split(delimiter).filter(Boolean) : [];
   };
 
-  const serialize = (values: string[]): URLSearchParams => {
-    const sp = new URLSearchParams();
-    if (strategy === 'repeat') {
-      for (const v of values) sp.append(key, v);
-    } else {
-      if (values.length) sp.set(key, values.join(delimiter));
-    }
-    return sp;
+  const serialize = (values: string[]): string | string[] | null => {
+    if (strategy === 'repeat') return values;
+    return values.length ? values.join(delimiter) : null;
   };
 
   return useUrlParam<string[]>(key, { parse, serialize, initial: opts.initial });
