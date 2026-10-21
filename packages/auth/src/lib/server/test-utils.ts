@@ -355,17 +355,22 @@ export function createBrowserJar<E, A extends unknown[]>(
  * A handle under SvelteKit's own request pipeline — `respond` from Kit's
  * `runtime/server/respond.js`, what an adapter's `server.respond` awaits — so
  * a test sees what Kit makes of what the hook returns or throws, which no mock
- * `resolve` can show. The manifest has no routes: node 0 is a root layout
- * whose server `load` is `layoutLoad`, node 1 Kit's own error page. A rejection
- * of `respond` is what adapter-node leaves unhandled.
+ * `resolve` can show (why a rejection matters: `undecodableRefusal` in
+ * `public-routes.ts`). The manifest has no routes: node 0 is a root layout
+ * whose server `load` is `layoutLoad`, node 1 Kit's own error page.
+ *
+ * It is Kit's dev branch (`__SVELTEKIT_DEV__`), so the CSRF and remote-origin
+ * gate an adapter-node build runs before the hook does not run here: the right
+ * pipeline for what a hook's answer becomes, the wrong one for a CSRF test.
  *
  * The modules sit outside Kit's exports map, so they are reached by absolute
  * path off the package.json it does export, like the cookie-runtime oracle in
  * `handle.test.ts`: a release that moves one fails at import. It runs only
  * under this package's Vitest config, whose SvelteKit plugin supplies the
  * generated modules and `__SVELTEKIT_*__` globals the runtime reads. Kit keeps
- * one set of hooks per module instance, so `respond` installs the handle per
- * request.
+ * one manifest and one set of hooks per module instance, so `respond`
+ * installs both per request — and two runtimes must not have requests in
+ * flight at once, or one answers through the other's.
  */
 export async function createKitRuntime(handle: Handle) {
   const kitPackageJson = pathToFileURL(
@@ -387,7 +392,7 @@ export async function createKitRuntime(handle: Handle) {
     fonts: [],
     ...extra
   });
-  internal.set_manifest({
+  const manifest = {
     app_dir: '_app',
     app_path: '_app',
     assets: new Set(),
@@ -402,10 +407,11 @@ export async function createKitRuntime(handle: Handle) {
     prerendered_routes: new Set(),
     matchers: async () => ({}),
     server_assets: {}
-  });
+  };
   return {
     layoutLoad,
     respond(request: Request): Promise<Response> {
+      internal.set_manifest(manifest);
       internal.set_hooks({
         handle,
         handleError: () => undefined,

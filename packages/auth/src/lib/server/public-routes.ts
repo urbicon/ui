@@ -86,7 +86,13 @@ export function decodePathname(pathname: string): string | null {
  * the response would have to carry. Not `resolve`: Kit's own `400` renders its
  * error page through the root layout, that layout's server `load` included.
  * `no-store` because it is a response this package builds (AUTH.md →
- * "Responses are uncacheable by default").
+ * "Responses are uncacheable by default"). Each handle sets `locals.user` to
+ * `null` before returning it: a hook ahead of it in `sequence()` goes on after
+ * its `resolve` and reads `locals`.
+ *
+ * Kit decodes the pathname a `reroute` hook returns, which no handle sees;
+ * this checks the requested one. A `reroute` that maps a pathname that decodes
+ * to one that does not is therefore not covered.
  */
 export const undecodableRefusal = (pathname: string): Response | null =>
   decodePathname(pathname) === null

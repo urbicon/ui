@@ -357,7 +357,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   return async ({ event, resolve }) => {
     // Before step 0, for every request — see undecodableRefusal.
     const undecodable = undecodableRefusal(event.url.pathname);
-    if (undecodable) return withSecurityHeaders(undecodable);
+    if (undecodable) {
+      (event.locals as Record<string, unknown>).user = null;
+      return withSecurityHeaders(undecodable);
+    }
 
     // Steps 1–2a write through this view so the guard's own 401 can carry what
     // they staged; `resolve` and the redirect keep the real `event.cookies`.

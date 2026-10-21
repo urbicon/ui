@@ -1,5 +1,5 @@
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import { type Handle, sequence } from '@sveltejs/kit/hooks';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AuthLogger, JwtConfig } from '../types.js';
 import { base64UrlEncodeString } from './encoding.js';
@@ -835,10 +835,8 @@ describe('createFederatedAuthHandle — route guard', () => {
   });
 
   describe('a pathname SvelteKit cannot decode', () => {
-    // Kit calls the hook for such a pathname outside the `try` that turns a
-    // throw into a response, so anything the hook throws for one rejects
-    // `respond` — which adapter-node leaves unhandled, ending the process.
-    // `handle.test.ts` pins that premise; this handle answers first.
+    // Why it is refused first: `undecodableRefusal`; `handle.test.ts` pins
+    // Kit's side of it.
     const loginUrl = 'https://idp.test/auth/login';
     const request = (path: string, cookie?: string) =>
       new Request(`https://consumer.test${path}`, cookie ? { headers: { cookie } } : {});
@@ -889,6 +887,38 @@ describe('createFederatedAuthHandle — route guard', () => {
       await kit.respond(request('/dashboard', cookie));
       expect(resolveUser).toHaveBeenCalledTimes(1);
       expect(kit.layoutLoad.mock.calls[0]?.[0].locals.user).toEqual({ id: 'idp-user-1' });
+    });
+
+    it('leaves locals.user null for a hook sequenced before it', async () => {
+      // `outer` goes on after `resolve` and reads `locals.user` the way
+      // `App.Locals` types it: the user or `null`.
+      const outer: Handle = async ({ event, resolve }) => {
+        const response = await resolve(event);
+        const { user } = event.locals as { user: { id: string } | null };
+        response.headers.set('x-who', user === null ? 'anonymous' : user.id);
+        return response;
+      };
+      stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+      const kit = await createKitRuntime(
+        sequence(
+          outer,
+          createFederatedAuthHandle(
+            handleOptions({ loginUrl, resolveUser: (identity) => ({ id: identity.subject }) })
+          )
+        )
+      );
+      const cookie = `session=${await mintIdpToken()}`;
+      for (const [label, signedIn] of [
+        ['anonymous', undefined],
+        ['signed in', cookie]
+      ] as const) {
+        const response = await kit.respond(request('/%c0', signedIn));
+        expect(response.status, label).toBe(400);
+        expect(response.headers.get('x-who'), label).toBe('anonymous');
+      }
+      // Positive control: `outer` reads the user where the path decodes.
+      const decoded = await kit.respond(request('/dashboard', cookie));
+      expect(decoded.headers.get('x-who')).toBe('idp-user-1');
     });
 
     it('settles with the 400 where resolveUser would throw', async () => {

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { type RequestEvent, redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import { type Handle, sequence } from '@sveltejs/kit/hooks';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CSRF_COOKIE_NAME } from '../csrf-constants.js';
 import { sanitizeRedirect } from '../redirect.js';
@@ -1080,11 +1080,9 @@ describe('createAuthHandle', () => {
   });
 });
 
-// SvelteKit calls the hook for a pathname it cannot decode outside the `try`
-// that turns a throw into a response, so anything the hook throws for one
-// rejects `respond` — which adapter-node leaves unhandled, ending the process.
-// Only Kit's own pipeline shows that: with the mock `resolve` above a thrown
-// redirect is an answer and any other throw a failed test.
+// Why such a pathname is refused first: `undecodableRefusal`. Only Kit's own
+// pipeline shows what a throw does there: with the mock `resolve` above a
+// thrown redirect is an answer and any other throw a failed test.
 describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
   const undecodable = ['/%c0', '/%E0%A4%A', '/admin/%C0%80'];
   const request = (
@@ -1108,7 +1106,25 @@ describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
     expect(response.headers.get('Cache-Control'), label).toBe('no-store');
     expect(response.headers.get('X-Frame-Options'), label).toBe('DENY');
     expect(response.headers.get('Content-Security-Policy'), label).toBe("frame-ancestors 'none'");
-    expect(response.headers.getSetCookie(), label).toEqual([]);
+  }
+
+  /**
+   * `handle`, recording every cookie it stages on `event.cookies`. Kit writes
+   * them onto a response it builds itself (`resolve`, a thrown redirect), never
+   * onto one the hook returns, so the refusal's headers cannot show them.
+   */
+  function recordingStaged(handle: Handle) {
+    const staged: string[] = [];
+    const recording: Handle = (input) => {
+      const { cookies } = input.event;
+      const set = cookies.set.bind(cookies);
+      cookies.set = (name, value, opts) => {
+        staged.push(name);
+        set(name, value, opts);
+      };
+      return handle(input);
+    };
+    return { handle: recording, staged };
   }
 
   it('answers it first, with a 400 and the security headers, under every publicRoutes form', async () => {
@@ -1141,23 +1157,19 @@ describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
 
   it('rejects respond for a hook that throws on such a pathname — the premise', async () => {
     // Also the control that this pipeline lets a rejection out at all, which
-    // every `respond` in this block that settles relies on.
-    const thrown: Array<[string, Handle, number]> = [
-      ['a redirect', () => redirect(302, '/auth/login'), 302],
-      [
-        'an error',
-        () => {
-          throw new Error('boom');
-        },
-        500
-      ]
-    ];
-    for (const [name, handle, answered] of thrown) {
-      const kit = await createKitRuntime(handle);
-      await expect(kit.respond(request('/%c0')), name).rejects.toBeDefined();
-      // Where the path decodes, Kit answers the same throw.
-      expect((await kit.respond(request('/dashboard'))).status, name).toBe(answered);
-    }
+    // every `respond` in this block that settles relies on. Where the path
+    // decodes, Kit answers the same throw.
+    const redirecting = await createKitRuntime(() => redirect(302, '/auth/login'));
+    await expect(redirecting.respond(request('/%c0'))).rejects.toMatchObject({
+      status: 302,
+      location: '/auth/login'
+    });
+    expect((await redirecting.respond(request('/dashboard'))).status).toBe(302);
+    const throwing = await createKitRuntime(() => {
+      throw new Error('boom');
+    });
+    await expect(throwing.respond(request('/%c0'))).rejects.toThrow('boom');
+    expect((await throwing.respond(request('/dashboard'))).status).toBe(500);
   });
 
   it("is the handle's own 400 — Kit's runs the root layout's load", async () => {
@@ -1168,6 +1180,42 @@ describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
     expect(response.status).toBe(400);
     expect(await response.text()).not.toBe('Bad Request');
     expect(kit.layoutLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers each runtime through its own manifest while another is alive', async () => {
+    // The control that a `layoutLoad` count belongs to the runtime it is read on.
+    const pass: Handle = ({ event, resolve }) => resolve(event);
+    const first = await createKitRuntime(pass);
+    const second = await createKitRuntime(pass);
+    await first.respond(request('/%c0'));
+    expect(first.layoutLoad).toHaveBeenCalledTimes(1);
+    expect(second.layoutLoad).not.toHaveBeenCalled();
+  });
+
+  it('leaves locals.user null for a hook sequenced before it', async () => {
+    // `outer` goes on after `resolve` and reads `locals.user` the way
+    // `App.Locals` types it: the user or `null`.
+    const outer: Handle = async ({ event, resolve }) => {
+      const response = await resolve(event);
+      const { user } = event.locals as { user: { id: string } | null };
+      response.headers.set('x-who', user === null ? 'anonymous' : user.id);
+      return response;
+    };
+    const kit = await createKitRuntime(
+      sequence(outer, createAuthHandle({ config, repos: createMockRepos() }))
+    );
+    const cookie = await signedIn();
+    for (const [label, init] of [
+      ['anonymous', {}],
+      ['signed in', { cookie }]
+    ] as const) {
+      const response = await kit.respond(request('/%c0', init));
+      expect(response.status, label).toBe(400);
+      expect(response.headers.get('x-who'), label).toBe('anonymous');
+    }
+    // Positive control: `outer` reads the user where the path decodes.
+    const decoded = await kit.respond(request('/dashboard', { cookie }));
+    expect(decoded.headers.get('x-who')).toBe('user-1');
   });
 
   it('answers a signed-in request the same, without reading the session', async () => {
@@ -1191,7 +1239,7 @@ describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
     const findByHash = vi.spyOn(refreshToken, 'findByHash');
     const { token } = await issueRefreshToken(refreshToken, 'user-1', { refreshTokenTtl: '30d' });
     findByHash.mockClear();
-    const kit = await createKitRuntime(
+    const { handle, staged } = recordingStaged(
       createAuthHandle({
         config: {
           ...quiet,
@@ -1201,21 +1249,18 @@ describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
         repos: { ...createMockRepos(), refreshToken }
       })
     );
+    const kit = await createKitRuntime(handle);
     await expectRefusal(
       await kit.respond(request('/%c0', { cookie: `refresh=${token}` })),
       'a valid refresh cookie'
     );
     expect(findByHash).not.toHaveBeenCalled();
+    expect(staged).toEqual([]);
     // Positive control: the same cookie rotates where the path decodes, and the
     // CSRF cookie is seeded there too.
-    const rotated = await kit.respond(request('/dashboard', { cookie: `refresh=${token}` }));
+    await kit.respond(request('/dashboard', { cookie: `refresh=${token}` }));
     expect(findByHash).toHaveBeenCalled();
-    expect(
-      rotated.headers
-        .getSetCookie()
-        .map((header) => header.split('=')[0])
-        .sort()
-    ).toEqual([DEFAULT_CSRF_COOKIE_NAME, 'refresh', 'session'].sort());
+    expect([...staged].sort()).toEqual([DEFAULT_CSRF_COOKIE_NAME, 'refresh', 'session'].sort());
   });
 
   describe('settles with the 400 where a step of the chain would throw', () => {
