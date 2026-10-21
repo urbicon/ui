@@ -41,7 +41,7 @@ describe('withSearchParams', () => {
     expect(withSearchParams(at(changed), { sort: 'title' })).toBe(original);
   });
 
-  it('does not restore a query outside URLSearchParams encoding, or a repeated key', () => {
+  it('does not restore a query outside URLSearchParams encoding, a repeated key, or a removed key', () => {
     const roundTrip = (start: string, there: SearchParamsPatch, back: SearchParamsPatch) =>
       withSearchParams(at(withSearchParams(at(start), there)), back);
 
@@ -49,6 +49,8 @@ describe('withSearchParams', () => {
     expect(roundTrip('/f?tag=a&q=1&tag=b', { tag: 'z' }, { tag: ['a', 'b'] })).toBe(
       '/f?tag=a&tag=b&q=1'
     );
+    expect(roundTrip('/f?tag=a&q=1', { tag: [] }, { tag: ['a'] })).toBe('/f?q=1&tag=a');
+    expect(roundTrip('/f?c=slug&q=1', { c: null }, { c: 'slug' })).toBe('/f?q=1&c=slug');
   });
 
   it('removes the key for null and for undefined', () => {

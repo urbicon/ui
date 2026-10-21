@@ -36,7 +36,9 @@ export type SearchParamsPatch =
  * does not name keeps its value and its position. The query is written in
  * `URLSearchParams` encoding (`%20` comes back as `+`), so changing a key's
  * value and changing it back restores the query only when it was already in
- * that encoding and the key occurred once. The hash is not carried.
+ * that encoding, the key occurred once and it was not removed in between — a
+ * removed key that is set again is new and goes to the end. The hash is not
+ * carried.
  *
  * A `url.pathname` that itself begins with `//` comes back origin-qualified
  * (`https://host//films?page=2`): left relative, `//films` is a
