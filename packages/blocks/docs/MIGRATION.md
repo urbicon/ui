@@ -11,7 +11,7 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
-## 8.32.1
+## 8.33.0
 
 ### An A2UI `Button` with `checks` is disabled while a check fails
 
