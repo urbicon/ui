@@ -55,7 +55,10 @@ export interface SankeyLaidOutLink<TLinkMeta = unknown> {
   y1: number;
   /** Pixel width of the link (proportional to value). */
   width: number;
-  /** Index (for stable ordering / iteration). */
+  /**
+   * Position of this link in the input `links`. A dropped link (unknown node
+   * id, self-loop) keeps its number, so after one the indices skip it.
+   */
   index: number;
 }
 

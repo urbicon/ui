@@ -121,9 +121,11 @@
     return inputNodeById.get(n.id)?.intent ?? intent;
   }
 
-  // Link index → original link for intent lookup
-  function getOriginalLink(idx: number) {
-    return links[idx];
+  // The `{#each}` key of an input link, in the paths and in the screen-reader
+  // table. The input index is what makes it unique: parallel links share source
+  // and target, and with a `-` inside an id `a-b→c` and `a→b-c` spell the same.
+  function linkKey(source: string, target: string, inputIndex: number) {
+    return `${source}-${target}-${inputIndex}`;
   }
 
   // Link intent: explicit > source-node intent > component default
@@ -284,8 +286,8 @@
   >
     <!-- Links first so nodes render on top -->
     <g class="sankey-links">
-      {#each layout.links as link, idx (`${link.source.id}-${link.target.id}-${idx}`)}
-        {@const orig = getOriginalLink(idx)}
+      {#each layout.links as link, idx (linkKey(link.source.id, link.target.id, link.index))}
+        {@const orig = links[link.index]}
         {@const highlighted = isLinkHighlighted(link, idx)}
         {@const dimmed = hovered !== null && !highlighted}
         {#if linkContentSnippet}
@@ -452,7 +454,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each links as link (`${link.source}-${link.target}`)}
+        {#each links as link, i (linkKey(link.source, link.target, i))}
           <tr>
             <td>{nodeLabelById(link.source)}</td>
             <td>{nodeLabelById(link.target)}</td>
