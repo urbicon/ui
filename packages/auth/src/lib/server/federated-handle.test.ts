@@ -1,5 +1,5 @@
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import { type Handle, sequence } from '@sveltejs/kit/hooks';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AuthLogger, JwtConfig } from '../types.js';
 import { base64UrlEncodeString } from './encoding.js';
@@ -15,6 +15,7 @@ import {
   MAX_TOKEN_LENGTH,
   SESSION_TOKEN_PURPOSE
 } from './jwt.js';
+import { createKitRuntime } from './test-utils.js';
 
 /**
  * Consumer-side federation tests. The IdP side (key generation, ES256
@@ -831,6 +832,134 @@ describe('createFederatedAuthHandle — route guard', () => {
     });
     expect((await strict({ event: asEvent(authed), resolve: ok() })).status).toBe(200);
     expect(authed.locals.user).not.toBeNull();
+  });
+
+  describe('a pathname SvelteKit cannot decode', () => {
+    // Why it is refused first: `undecodableRefusal`; `handle.test.ts` pins
+    // Kit's side of it.
+    const loginUrl = 'https://idp.test/auth/login';
+    const request = (path: string, cookie?: string) =>
+      new Request(`https://consumer.test${path}`, cookie ? { headers: { cookie } } : {});
+
+    /** The handle's own refusal; Kit's 400 is its error page, rendered through the root layout. */
+    async function expectRefusal(response: Response, label: string) {
+      expect(response.status, label).toBe(400);
+      expect(await response.text(), label).toBe('Bad Request');
+      expect(response.headers.get('Cache-Control'), label).toBe('no-store');
+      // This handle sets no security headers — they are the app's own policy.
+      expect(response.headers.get('X-Frame-Options'), label).toBeNull();
+    }
+
+    it('answers it first, with a 400, under every publicRoutes form and without a loginUrl', async () => {
+      const forms: Array<[string, Partial<FederatedAuthHandleOptions<unknown>>]> = [
+        ['the default', { loginUrl }],
+        ['a list', { loginUrl, publicRoutes: ['/blog'] }],
+        ['a predicate', { loginUrl, publicRoutes: (pathname) => pathname.startsWith('/blog') }],
+        ['a list that publishes everything', { loginUrl, publicRoutes: ['/'] }],
+        ['no loginUrl', {}]
+      ];
+      for (const [form, options] of forms) {
+        const kit = await createKitRuntime(createFederatedAuthHandle(handleOptions(options)));
+        for (const path of ['/%c0', '/%E0%A4%A', '/admin/%C0%80', '/api/%c0']) {
+          await expectRefusal(await kit.respond(request(path)), `${form}: ${path}`);
+        }
+        expect(kit.layoutLoad, form).not.toHaveBeenCalled();
+      }
+      // Positive control: the same pipeline delivers the redirect for a
+      // pathname it decodes.
+      const kit = await createKitRuntime(createFederatedAuthHandle(handleOptions({ loginUrl })));
+      const guarded = await kit.respond(request('/dashboard'));
+      expect(guarded.status).toBe(302);
+      expect(guarded.headers.get('location')).toBe(loginUrl);
+    });
+
+    it('answers a signed-in request the same, without verifying the token or asking resolveUser', async () => {
+      const fetchMock = stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+      const resolveUser = vi.fn((identity: FederatedIdentity) => ({ id: identity.subject }));
+      const kit = await createKitRuntime(
+        createFederatedAuthHandle(handleOptions({ loginUrl, resolveUser }))
+      );
+      const cookie = `session=${await mintIdpToken()}`;
+      await expectRefusal(await kit.respond(request('/%c0', cookie)), 'signed in');
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(resolveUser).not.toHaveBeenCalled();
+      // Positive control: the token signs the request in where the path decodes.
+      await kit.respond(request('/dashboard', cookie));
+      expect(resolveUser).toHaveBeenCalledTimes(1);
+      expect(kit.layoutLoad.mock.calls[0]?.[0].locals.user).toEqual({ id: 'idp-user-1' });
+    });
+
+    it('leaves locals.user null for a hook sequenced before it', async () => {
+      // `outer` goes on after `resolve` and reads `locals.user` the way
+      // `App.Locals` types it: the user or `null`.
+      const outer: Handle = async ({ event, resolve }) => {
+        const response = await resolve(event);
+        const { user } = event.locals as { user: { id: string } | null };
+        response.headers.set('x-who', user === null ? 'anonymous' : user.id);
+        return response;
+      };
+      stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+      const kit = await createKitRuntime(
+        sequence(
+          outer,
+          createFederatedAuthHandle(
+            handleOptions({ loginUrl, resolveUser: (identity) => ({ id: identity.subject }) })
+          )
+        )
+      );
+      const cookie = `session=${await mintIdpToken()}`;
+      for (const [label, signedIn] of [
+        ['anonymous', undefined],
+        ['signed in', cookie]
+      ] as const) {
+        const response = await kit.respond(request('/%c0', signedIn));
+        expect(response.status, label).toBe(400);
+        expect(response.headers.get('x-who'), label).toBe('anonymous');
+      }
+      // Positive control: `outer` reads the user where the path decodes.
+      const decoded = await kit.respond(request('/dashboard', cookie));
+      expect(decoded.headers.get('x-who')).toBe('idp-user-1');
+    });
+
+    it('settles with the 400 where resolveUser would throw', async () => {
+      stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+      const kit = await createKitRuntime(
+        createFederatedAuthHandle(
+          handleOptions({
+            loginUrl,
+            resolveUser: () => {
+              throw new Error('database unreachable');
+            }
+          })
+        )
+      );
+      const cookie = `session=${await mintIdpToken()}`;
+      await expectRefusal(await kit.respond(request('/%c0', cookie)), 'a throwing resolveUser');
+      // Positive control: it does throw — Kit turns it into a 500 where the
+      // path decodes.
+      expect((await kit.respond(request('/dashboard', cookie))).status).toBe(500);
+    });
+
+    it('answers both remote-function transports the same', async () => {
+      const kit = await createKitRuntime(createFederatedAuthHandle(handleOptions({ loginUrl })));
+      await expectRefusal(
+        await kit.respond(
+          new Request('https://consumer.test/_app/remote/abc/fn', {
+            headers: { 'x-sveltekit-pathname': '/%c0' }
+          })
+        ),
+        'the /_app/remote/ transport'
+      );
+      await expectRefusal(
+        await kit.respond(
+          new Request('https://consumer.test/%c0?/remote=abc', {
+            method: 'POST',
+            headers: { origin: 'https://consumer.test' }
+          })
+        ),
+        'the ?/remote= form fallback'
+      );
+    });
   });
 
   it('never writes or clears cookies — the IdP owns the session cookie', async () => {

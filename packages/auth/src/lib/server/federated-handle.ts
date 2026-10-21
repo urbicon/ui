@@ -22,7 +22,8 @@ import {
   compilePublicRoutes,
   isApiPath,
   type PublicRoute,
-  type PublicRoutes
+  type PublicRoutes,
+  undecodableRefusal
 } from './public-routes.js';
 
 /**
@@ -71,8 +72,10 @@ export interface FederatedAuthHandleOptions<TUser> {
    * authorization decision. Return the object to expose as `locals.user`, or
    * `null` to deny access (fail-closed: the request is then treated exactly
    * like an unauthenticated one). Called on every request that carries a
-   * verifiable token; memoize/cache inside if your lookup is expensive. A
-   * throw fails the request (mirroring `transformUser` on the IdP handle).
+   * verifiable token, unless its pathname does not decode (answered `400`
+   * before the cookie is read); memoize/cache inside if your lookup is
+   * expensive. A throw fails the request (mirroring `transformUser` on the IdP
+   * handle).
    *
    * Receives ONLY identity claims ({@link FederatedIdentity}) — deliberately
    * never the IdP token's `role`/`tokenVersion`.
@@ -305,7 +308,8 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
  * `resolveUser`, exposes the result as `event.locals.user` (same locals
  * contract as `createAuthHandle`), and guards routes: unauthenticated remote
  * requests are default-denied, `/api/` routes get a JSON 401, pages redirect
- * to `loginUrl` (when set) — `publicRoutes` are exempt.
+ * to `loginUrl` (when set) — `publicRoutes` are exempt. A request whose
+ * pathname does not decode gets a plain `400` before any of that.
  *
  * **Identity ≠ authorization.** The token proves who the caller is; this app
  * decides — in `resolveUser` — whether that identity gets in and as what.
@@ -335,8 +339,9 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
  * header-less cross-origin endpoint, gate cookie-authenticated mutations
  * yourself via the exported `validateCsrf` first — docs/AUTH.md → Federated)
  * and no security headers (they are this app's own policy, not the
- * IdP's) — it does exactly one thing: turn the IdP cookie into
- * `locals.user`, or into a guarded 401/redirect.
+ * IdP's) — it turns the IdP cookie into `locals.user`, or into a guarded
+ * 401/redirect, and answers a pathname that does not decode `400` without
+ * reading the cookie; nothing else.
  *
  * Revocation caveat: the consumer cannot see the IdP's `tokenVersion` ("log
  * out everywhere"), so an IdP-revoked session stays verifiable here until
@@ -513,6 +518,13 @@ export function createFederatedAuthHandle<TUser>(
   };
 
   return async ({ event, resolve }) => {
+    // Before step 1, for every request — see undecodableRefusal.
+    const undecodable = undecodableRefusal(event.url.pathname);
+    if (undecodable) {
+      (event.locals as Record<string, unknown>).user = null;
+      return undecodable;
+    }
+
     // 1. IdP session cookie → verified identity → the consumer's own user.
     const token = event.cookies.get(cookieName);
     let user: TUser | null = null;

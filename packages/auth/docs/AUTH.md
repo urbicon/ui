@@ -615,6 +615,19 @@ blocks each stage swaps in, and the invariants that hold across all of them.
 session (`locals.user`), guards routes, applies the response security headers, and
 enforces CSRF. The handler factories alone do none of that.
 
+A request whose pathname SvelteKit cannot decode (`/%c0`) is answered before any of
+that: a plain `400` with the security headers and `no-store`, before the hook reads a
+cookie or calls anything of yours, and with `locals.user` set to `null`;
+`createFederatedAuthHandle` answers it the same, without the headers. SvelteKit runs the
+hook for such a pathname outside the code that turns a throw into a response, so a throw
+there — the guard's redirect, a failing `transformUser`, a repository call during an
+outage — would reject the request instead, and under adapter-node end the process. A
+hook of your own that can throw is covered only when it runs after this one in
+`sequence()`. The check reads the requested pathname, `event.url.pathname`, but
+SvelteKit decodes the one a `reroute` hook returns: a `reroute` that returns a decoded
+pathname — `/100%` for a request to `/100%25` — has the hook called just as
+unprotected, so return pathnames from `reroute` still encoded.
+
 **Mail transport:** `deps.email` is optional, like the feature-scoped repositories.
 Three factories mail whenever they act at all — `createRegisterHandler`,
 `createForgotPasswordHandler` and `createChangeEmailHandler`; the caller can neither

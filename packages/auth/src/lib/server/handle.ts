@@ -15,7 +15,8 @@ import {
   type PublicRoutes,
   predicateMatched,
   type RouteListOption,
-  reportOnce
+  reportOnce,
+  undecodableRefusal
 } from './public-routes.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
@@ -339,22 +340,28 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
   };
 
-  // 4. Resolve and apply security headers — the one step every request gets,
-  // the cookieless short-circuit included. HSTS is gated on a secure
-  // deployment — the same predicate the cookie names and the
-  // brute-force-default warnings use.
-  const respond = async (
-    event: RequestEvent,
-    resolve: Parameters<Handle>[0]['resolve']
-  ): Promise<Response> => {
-    const response = await resolve(event);
-    return applySecurityHeaders(response, {
+  // 4. Resolve and apply security headers. The cookieless short-circuit gets
+  // them too, and the refusal of a pathname that does not decode gets them
+  // without the resolve. HSTS is gated on a secure deployment — the same
+  // predicate the cookie names and the brute-force-default warnings use.
+  const withSecurityHeaders = (response: Response): Response =>
+    applySecurityHeaders(response, {
       ...config.securityHeaders,
       secure: isSecureDeployment(config)
     });
-  };
+  const respond = async (
+    event: RequestEvent,
+    resolve: Parameters<Handle>[0]['resolve']
+  ): Promise<Response> => withSecurityHeaders(await resolve(event));
 
   return async ({ event, resolve }) => {
+    // Before step 0, for every request — see undecodableRefusal.
+    const undecodable = undecodableRefusal(event.url.pathname);
+    if (undecodable) {
+      (event.locals as Record<string, unknown>).user = null;
+      return withSecurityHeaders(undecodable);
+    }
+
     // Steps 1–2a write through this view so the guard's own 401 can carry what
     // they staged; `resolve` and the redirect keep the real `event.cookies`.
     const { cookies, setCookie } = recordCookieWrites(event.cookies);

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import type { RequestEvent } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit/hooks';
+import { type RequestEvent, redirect } from '@sveltejs/kit';
+import { type Handle, sequence } from '@sveltejs/kit/hooks';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CSRF_COOKIE_NAME } from '../csrf-constants.js';
 import { sanitizeRedirect } from '../redirect.js';
@@ -19,6 +19,7 @@ import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
 import {
   createBrowserJar,
+  createKitRuntime,
   createMockCookies,
   createMockInvitationRepository,
   createMockUser,
@@ -352,9 +353,10 @@ describe('createAuthHandle', () => {
     it('answers an escaped /api/ address with the JSON 401, like /api/ itself', async () => {
       expect(await unauthenticated({ path: '/%61pi/admin' })).toBe('status-401');
       expect(await unauthenticated({ publicRoutes: [], path: '/%61pi/admin' })).toBe('status-401');
-      // An address that does not decode is read as sent.
-      expect(await unauthenticated({ publicRoutes: [], path: '/api/%E0%A4%A' })).toBe('status-401');
-      expect(await unauthenticated({ publicRoutes: [], path: '/%E0%A4%A' })).toBe('redirect-302');
+      // An address that does not decode never reaches the guard: the handle
+      // answers it first (see `a pathname SvelteKit cannot decode`).
+      expect(await unauthenticated({ publicRoutes: [], path: '/api/%E0%A4%A' })).toBe('status-400');
+      expect(await unauthenticated({ publicRoutes: [], path: '/%E0%A4%A' })).toBe('status-400');
     });
 
     it('rejects mutation of DEFAULT_PUBLIC_ROUTES', () => {
@@ -572,11 +574,11 @@ describe('createAuthHandle', () => {
         expect(
           await unauthenticated({ publicRoutes: defaultPublic, path: '/api/%61dmin/secrets' })
         ).toBe('status-401');
-        // A pathname that does not decode resolves no route (SvelteKit answers
-        // it 400), so nothing public is behind it: guarded, predicate unasked.
+        // A pathname that does not decode is answered before the guard, so the
+        // predicate is never asked about it.
         const asked = vi.fn((_pathname: string) => true);
         expect(await unauthenticated({ publicRoutes: asked, path: '/%E0%A4%A' })).toBe(
-          'redirect-302'
+          'status-400'
         );
         expect(asked).not.toHaveBeenCalled();
       });
@@ -1075,6 +1077,273 @@ describe('createAuthHandle', () => {
     });
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+// Why such a pathname is refused first: `undecodableRefusal`. Only Kit's own
+// pipeline shows what a throw does there: with the mock `resolve` above a
+// thrown redirect is an answer and any other throw a failed test.
+describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
+  const undecodable = ['/%c0', '/%E0%A4%A', '/admin/%C0%80'];
+  const request = (
+    path: string,
+    init: { cookie?: string; headers?: Record<string, string> } = {}
+  ) =>
+    new Request(`https://app.test${path}`, {
+      headers: { ...init.headers, ...(init.cookie ? { cookie: init.cookie } : {}) }
+    });
+  const signedIn = async () =>
+    `session=${await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    )}`;
+  const quiet: AuthConfig = { ...config, logger: { warn: vi.fn(), error: vi.fn() } };
+
+  /** The handle's own refusal; Kit's 400 is its error page, rendered through the root layout. */
+  async function expectRefusal(response: Response, label: string) {
+    expect(response.status, label).toBe(400);
+    expect(await response.text(), label).toBe('Bad Request');
+    expect(response.headers.get('Cache-Control'), label).toBe('no-store');
+    expect(response.headers.get('X-Frame-Options'), label).toBe('DENY');
+    expect(response.headers.get('Content-Security-Policy'), label).toBe("frame-ancestors 'none'");
+  }
+
+  /**
+   * `handle`, recording every cookie it stages on `event.cookies`. Kit writes
+   * them onto a response it builds itself (`resolve`, a thrown redirect), never
+   * onto one the hook returns, so the refusal's headers cannot show them.
+   */
+  function recordingStaged(handle: Handle) {
+    const staged: string[] = [];
+    const recording: Handle = (input) => {
+      const { cookies } = input.event;
+      const set = cookies.set.bind(cookies);
+      cookies.set = (name, value, opts) => {
+        staged.push(name);
+        set(name, value, opts);
+      };
+      return handle(input);
+    };
+    return { handle: recording, staged };
+  }
+
+  it('answers it first, with a 400 and the security headers, under every publicRoutes form', async () => {
+    const forms: Array<[string, AuthHandleOptions['publicRoutes']]> = [
+      ['the defaults', undefined],
+      ['an empty list', []],
+      ['a predicate', (pathname) => pathname.startsWith('/blog')],
+      ['a list that publishes everything', ['/']]
+    ];
+    for (const [form, publicRoutes] of forms) {
+      const kit = await createKitRuntime(
+        createAuthHandle({ config: quiet, repos: createMockRepos(), publicRoutes })
+      );
+      for (const path of undecodable) {
+        await expectRefusal(await kit.respond(request(path)), `${form}: ${path}`);
+      }
+      expect(kit.layoutLoad, form).not.toHaveBeenCalled();
+    }
+    // Positive control: a pathname that decodes, an escape included, runs the
+    // chain to the guard's redirect under the same pipeline.
+    const kit = await createKitRuntime(createAuthHandle({ config, repos: createMockRepos() }));
+    for (const path of ['/dashboard', '/%61dmin']) {
+      const guarded = await kit.respond(request(path));
+      expect(guarded.status, path).toBe(302);
+      expect(guarded.headers.get('location')).toBe(
+        `/auth/login?redirectTo=${encodeURIComponent(path)}`
+      );
+    }
+  });
+
+  it('rejects respond for a hook that throws on such a pathname — the premise', async () => {
+    // Also the control that this pipeline lets a rejection out at all, which
+    // every `respond` in this block that settles relies on. Where the path
+    // decodes, Kit answers the same throw.
+    const redirecting = await createKitRuntime(() => redirect(302, '/auth/login'));
+    await expect(redirecting.respond(request('/%c0'))).rejects.toMatchObject({
+      status: 302,
+      location: '/auth/login'
+    });
+    expect((await redirecting.respond(request('/dashboard'))).status).toBe(302);
+    const throwing = await createKitRuntime(() => {
+      throw new Error('boom');
+    });
+    await expect(throwing.respond(request('/%c0'))).rejects.toThrow('boom');
+    expect((await throwing.respond(request('/dashboard'))).status).toBe(500);
+  });
+
+  it("is the handle's own 400 — Kit's runs the root layout's load", async () => {
+    // The control for every `layoutLoad` silence in this block: a hook that
+    // hands the request on gets Kit's 400, rendered through the root layout.
+    const kit = await createKitRuntime(({ event, resolve }) => resolve(event));
+    const response = await kit.respond(request('/%c0'));
+    expect(response.status).toBe(400);
+    expect(await response.text()).not.toBe('Bad Request');
+    expect(kit.layoutLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers each runtime through its own manifest while another is alive', async () => {
+    // The control that a `layoutLoad` count belongs to the runtime it is read on.
+    const pass: Handle = ({ event, resolve }) => resolve(event);
+    const first = await createKitRuntime(pass);
+    const second = await createKitRuntime(pass);
+    await first.respond(request('/%c0'));
+    expect(first.layoutLoad).toHaveBeenCalledTimes(1);
+    expect(second.layoutLoad).not.toHaveBeenCalled();
+  });
+
+  it('leaves locals.user null for a hook sequenced before it', async () => {
+    // `outer` goes on after `resolve` and reads `locals.user` the way
+    // `App.Locals` types it: the user or `null`.
+    const outer: Handle = async ({ event, resolve }) => {
+      const response = await resolve(event);
+      const { user } = event.locals as { user: { id: string } | null };
+      response.headers.set('x-who', user === null ? 'anonymous' : user.id);
+      return response;
+    };
+    const kit = await createKitRuntime(
+      sequence(outer, createAuthHandle({ config, repos: createMockRepos() }))
+    );
+    const cookie = await signedIn();
+    for (const [label, init] of [
+      ['anonymous', {}],
+      ['signed in', { cookie }]
+    ] as const) {
+      const response = await kit.respond(request('/%c0', init));
+      expect(response.status, label).toBe(400);
+      expect(response.headers.get('x-who'), label).toBe('anonymous');
+    }
+    // Positive control: `outer` reads the user where the path decodes.
+    const decoded = await kit.respond(request('/dashboard', { cookie }));
+    expect(decoded.headers.get('x-who')).toBe('user-1');
+  });
+
+  it('answers a signed-in request the same, without reading the session', async () => {
+    const findById = vi.fn().mockResolvedValue(createMockUser());
+    const kit = await createKitRuntime(
+      createAuthHandle({ config, repos: createMockRepos({ findById }) })
+    );
+    const cookie = await signedIn();
+    await expectRefusal(await kit.respond(request('/%c0', { cookie })), 'signed in');
+    expect(findById).not.toHaveBeenCalled();
+    expect(kit.layoutLoad).not.toHaveBeenCalled();
+    // Positive control: the cookie signs the request in where the path decodes.
+    await kit.respond(request('/dashboard', { cookie }));
+    expect(findById).toHaveBeenCalledTimes(1);
+    expect(kit.layoutLoad.mock.calls[0]?.[0].locals.user).toMatchObject({ id: 'user-1' });
+  });
+
+  it('rotates no refresh token for it and stages no cookie', async () => {
+    const store = createInMemoryStore();
+    const refreshToken = createInMemoryRefreshTokenRepository(store);
+    const findByHash = vi.spyOn(refreshToken, 'findByHash');
+    const { token } = await issueRefreshToken(refreshToken, 'user-1', { refreshTokenTtl: '30d' });
+    findByHash.mockClear();
+    const { handle, staged } = recordingStaged(
+      createAuthHandle({
+        config: {
+          ...quiet,
+          csrf: { doubleSubmit: true },
+          refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }
+        },
+        repos: { ...createMockRepos(), refreshToken }
+      })
+    );
+    const kit = await createKitRuntime(handle);
+    await expectRefusal(
+      await kit.respond(request('/%c0', { cookie: `refresh=${token}` })),
+      'a valid refresh cookie'
+    );
+    expect(findByHash).not.toHaveBeenCalled();
+    expect(staged).toEqual([]);
+    // Positive control: the same cookie rotates where the path decodes, and the
+    // CSRF cookie is seeded there too.
+    await kit.respond(request('/dashboard', { cookie: `refresh=${token}` }));
+    expect(findByHash).toHaveBeenCalled();
+    expect([...staged].sort()).toEqual([DEFAULT_CSRF_COOKIE_NAME, 'refresh', 'session'].sort());
+  });
+
+  describe('settles with the 400 where a step of the chain would throw', () => {
+    const boom = () => {
+      throw new Error('boom');
+    };
+    const down = () => vi.fn().mockRejectedValue(new Error('database unreachable'));
+    const cases: Array<[string, () => Promise<{ handle: Handle; cookie?: string }>]> = [
+      [
+        'a transformUser that throws on the session path',
+        async () => ({
+          handle: createAuthHandle({
+            config: { ...quiet, hooks: { transformUser: boom } },
+            repos: createMockRepos()
+          }),
+          cookie: await signedIn()
+        })
+      ],
+      [
+        'a user repository that throws',
+        async () => ({
+          handle: createAuthHandle({ config: quiet, repos: createMockRepos({ findById: down() }) }),
+          cookie: await signedIn()
+        })
+      ],
+      [
+        'a refresh-token repository that throws, for any refresh cookie',
+        async () => ({
+          handle: createAuthHandle({
+            config: { ...quiet, refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' } },
+            repos: {
+              ...createMockRepos(),
+              refreshToken: {
+                ...createInMemoryRefreshTokenRepository(createInMemoryStore()),
+                findByHash: down()
+              }
+            }
+          }),
+          cookie: 'refresh=x'
+        })
+      ],
+      [
+        'a csrf.exempt predicate that throws',
+        async () => ({
+          handle: createAuthHandle({
+            config: quiet,
+            repos: createMockRepos(),
+            csrf: { exempt: boom }
+          })
+        })
+      ]
+    ];
+    for (const [name, build] of cases) {
+      it(name, async () => {
+        const { handle, cookie } = await build();
+        const kit = await createKitRuntime(handle);
+        await expectRefusal(await kit.respond(request('/%c0', { cookie })), name);
+        // Positive control: the step does throw — Kit turns it into a 500 where
+        // the path decodes.
+        expect((await kit.respond(request('/dashboard', { cookie }))).status).toBe(500);
+      });
+    }
+  });
+
+  it('answers the API path and both remote-function transports the same', async () => {
+    const kit = await createKitRuntime(createAuthHandle({ config, repos: createMockRepos() }));
+    await expectRefusal(await kit.respond(request('/api/%c0')), '/api/');
+    // A remote call takes its pathname from the client's header.
+    await expectRefusal(
+      await kit.respond(
+        request('/_app/remote/abc/fn', { headers: { 'x-sveltekit-pathname': '/%c0' } })
+      ),
+      'the /_app/remote/ transport'
+    );
+    await expectRefusal(
+      await kit.respond(
+        new Request('https://app.test/%c0?/remote=abc', {
+          method: 'POST',
+          headers: { origin: 'https://app.test' }
+        })
+      ),
+      'the ?/remote= form fallback'
+    );
   });
 });
 

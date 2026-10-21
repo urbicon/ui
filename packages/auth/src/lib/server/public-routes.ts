@@ -55,12 +55,12 @@ const PUBLIC_ROUTES_OPTION: RouteListOption = {
 
 /**
  * `pathname` decoded the way SvelteKit decodes it before matching a route, or
- * `null` when it does not decode — Kit answers such a request `400` and
- * resolves no route for it. `event.url.pathname` keeps the escapes, so
- * without this a predicate guarding `/admin` would read `/%61dmin` as public
- * while Kit serves the `/admin` route for it. Kit runs `reroute` on the
- * undecoded URL before this step and strips `paths.base` after it; this does
- * neither.
+ * `null` when it does not decode — Kit then resolves no route for it, and both
+ * handles refuse the request before anything else ({@link undecodableRefusal}).
+ * `event.url.pathname` keeps the escapes, so without this a predicate guarding
+ * `/admin` would read `/%61dmin` as public while Kit serves the `/admin` route
+ * for it. Kit runs `reroute` on the undecoded URL before this step and strips
+ * `paths.base` after it; this does neither.
  * `%25` is split out so an escaped escape stays one. Kit's own function
  * (`decode_pathname`) is outside its exports map, hence restated;
  * `handle.test.ts` compares the two over Kit's.
@@ -74,9 +74,36 @@ export function decodePathname(pathname: string): string | null {
 }
 
 /**
+ * What both handles answer, first and for every request, when the pathname
+ * does not decode ({@link decodePathname}) — or `null` when it decodes.
+ *
+ * For such a pathname SvelteKit calls the hook outside the `try` that turns a
+ * throw into a response (`runtime/server/respond.js`, the catch around
+ * `decode_pathname`), so anything the hook throws — the guard's redirect, a
+ * consumer callback, a repository read during an outage — rejects the
+ * adapter's `server.respond`, which adapter-node leaves unhandled: the process
+ * exits. Answered first, none of that runs, and no step has staged a cookie
+ * the response would have to carry. Not `resolve`: Kit's own `400` renders its
+ * error page through the root layout, that layout's server `load` included.
+ * `no-store` because it is a response this package builds (AUTH.md →
+ * "Responses are uncacheable by default"). Each handle sets `locals.user` to
+ * `null` before returning it: a hook ahead of it in `sequence()` goes on after
+ * its `resolve` and reads `locals`.
+ *
+ * Kit decodes the pathname a `reroute` hook returns, which no handle sees;
+ * this checks the requested one. A `reroute` that maps a pathname that decodes
+ * to one that does not is therefore not covered.
+ */
+export const undecodableRefusal = (pathname: string): Response | null =>
+  decodePathname(pathname) === null
+    ? new Response('Bad Request', { status: 400, headers: { 'Cache-Control': 'no-store' } })
+    : null;
+
+/**
  * Whether the guard refuses a request with the JSON `401` rather than the
  * login redirect: its pathname, decoded, is under `/api/`, so `/%61pi/…` is
- * answered like `/api/…`. A pathname that does not decode is read as sent.
+ * answered like `/api/…`. A pathname that does not decode is read as sent,
+ * though neither handle asks about one ({@link undecodableRefusal}).
  * It is the address, not the route: under `paths.base` or behind a `reroute`
  * an API route is refused with the redirect.
  */
@@ -135,8 +162,9 @@ export function predicateMatched(result: unknown, name: string, report: ReportOn
  * The predicate form of a route option, gated on a literal `true`
  * ({@link predicateMatched}). A throw leaves the route guarded and is
  * reported, once — the only other trace of it is a login redirect on a page
- * meant to be public. A pathname that does not decode resolves no route, so
- * it stays guarded without asking.
+ * meant to be public. A pathname that does not decode stays guarded without
+ * asking — and never reaches it from a handle, which refuses the request first
+ * ({@link undecodableRefusal}).
  */
 function gatePredicate(
   predicate: (pathname: string, event: RequestEvent) => boolean,
