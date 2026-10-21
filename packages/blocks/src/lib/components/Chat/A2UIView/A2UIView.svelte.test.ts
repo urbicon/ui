@@ -379,6 +379,133 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     }
   });
 
+  describe('gated the upstream way, with checks', () => {
+    /** The consent form with `book` gated by `button` (checks, disabled, or both) instead. */
+    const checkedForm = (button: Record<string, unknown>): unknown[] =>
+      consentForm(true).map((entry) => {
+        const { disabled: _gate, ...rest } = entry as Record<string, unknown>;
+        return rest.id === 'book' ? { ...rest, ...button } : entry;
+      });
+    const book = () => screen.getByRole('button', { name: /Book/ }) as HTMLButtonElement;
+    const consent = () => screen.getByLabelText('I accept the cancellation policy');
+
+    it('keeps the Button disabled until every check passes', async () => {
+      const user = userEvent.setup();
+      const actions: A2uiActionEvent[] = [];
+      const reported: A2uiValidationIssue[][] = [];
+      render({
+        catalogs: [urbiconA2uiCatalog],
+        payload: [
+          urbiconSurface(),
+          comps(
+            checkedForm({
+              checks: [{ condition: { path: '/agreed' }, message: 'Accept the policy' }]
+            })
+          )
+        ],
+        onAction: (actionEvent) => actions.push(actionEvent),
+        onValidationError: (issues) => reported.push(issues)
+      });
+
+      expect(book().disabled).toBe(true);
+      await user.click(consent());
+      flushSync();
+      expect(book().disabled).toBe(false);
+      await user.click(book());
+      expect(actions.map((a) => a.name)).toEqual(['book']);
+      await user.click(consent());
+      flushSync();
+      expect(book().disabled).toBe(true);
+      expect(reported.flat()).toEqual([]);
+    });
+
+    // Unlike a plainly bound `disabled`, a condition is read as a logic operand.
+    it('passes a check only on a condition that is exactly true', () => {
+      for (const [agreed, disabled] of [
+        [true, false],
+        ['yes', true],
+        [1, true],
+        ['true', true]
+      ] as const) {
+        render({
+          catalogs: [urbiconA2uiCatalog],
+          payload: [
+            urbiconSurface(),
+            data({ agreed }),
+            comps(
+              checkedForm({
+                checks: [{ condition: { path: '/agreed' }, message: 'Accept the policy' }]
+              })
+            )
+          ]
+        });
+        expect(book().disabled, `agreed ${JSON.stringify(agreed)}`).toBe(disabled);
+        dispose?.();
+        dispose = undefined;
+        document.body.replaceChildren();
+      }
+    });
+
+    it("holds upstream's own example closed, and says why", async () => {
+      const user = userEvent.setup();
+      const reported: A2uiValidationIssue[][] = [];
+      const required = { call: 'required', args: { value: { path: '/agreed' } } };
+      render({
+        catalogs: [urbiconA2uiCatalog],
+        payload: [
+          urbiconSurface(),
+          comps(
+            checkedForm({
+              checks: [
+                {
+                  condition: { call: 'and', args: { values: [required, { path: '/agreed' }] } },
+                  message: 'You must accept the terms'
+                }
+              ]
+            })
+          )
+        ],
+        onValidationError: (issues) => reported.push(issues)
+      });
+
+      await user.click(consent());
+      flushSync();
+      expect(book().disabled).toBe(true);
+      expect(reported.flat()).toEqual([
+        expect.objectContaining({ severity: 'error', code: A2UI_ISSUE_CODES.TYPE_MISMATCH })
+      ]);
+    });
+
+    it('disables while either disabled or checks asks for it', async () => {
+      const user = userEvent.setup();
+      for (const [locked, ticked, expected] of [
+        [true, true, true],
+        [false, false, true],
+        [false, true, false]
+      ] as const) {
+        render({
+          catalogs: [urbiconA2uiCatalog],
+          payload: [
+            urbiconSurface(),
+            data({ locked }),
+            comps(
+              checkedForm({
+                disabled: { path: '/locked' },
+                checks: [{ condition: { path: '/agreed' }, message: 'Accept the policy' }]
+              })
+            )
+          ]
+        });
+        if (ticked) await user.click(consent());
+        flushSync();
+        expect(book().disabled, `locked ${locked}, ticked ${ticked}`).toBe(expected);
+        dispose?.();
+        dispose = undefined;
+        document.body.replaceChildren();
+      }
+    });
+  });
+
   it('reports a consent box the agent cannot hold on the catalog it picked, as one relayed error', () => {
     // Exactly the documented wiring; the agent names upstream's Basic catalog URL,
     // which the view does not know, so the surface falls back to Basic — where no
@@ -461,6 +588,48 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     });
     // Present: nothing to report, so the issue-free render stays silent.
     expect(presentReports).toEqual([]);
+  });
+
+  // What the prop's JSDoc states: the object is read once, at mount.
+  it('ignores surfaceRequirements passed after mount, even on a rebuild', () => {
+    const one = { s: [{ component: 'Checkbox' }] };
+    const two = { s: [{ component: 'Checkbox' }, { component: 'Slider' }] };
+    const reports: A2uiValidationIssue[][] = [];
+    const missing = () =>
+      reports.at(-1)?.filter((i) => i.code === A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT);
+    // Control: mounted with both entries, the view reports both.
+    render({
+      catalogs: [urbiconA2uiCatalog],
+      surfaceRequirements: two,
+      payload: [urbiconSurface(), comps(consentForm(false))],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    expect(missing()).toHaveLength(2);
+    dispose?.();
+    document.body.replaceChildren();
+
+    const props = render({
+      catalogs: [urbiconA2uiCatalog],
+      surfaceRequirements: one,
+      payload: [urbiconSurface(), comps(consentForm(false))],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    expect(missing()).toHaveLength(1);
+    flushSync(() => {
+      props.surfaceRequirements = two;
+    });
+    // A payload that does not extend the last one rebuilds the processor; the
+    // Markdown in a plain Text adds a warning, so the rebuild reports anew.
+    const before = reports.length;
+    flushSync(() => {
+      props.payload = [
+        urbiconSurface(),
+        comps([...consentForm(false), { id: 'note', component: 'Text', text: '**rebuilt**' }])
+      ];
+    });
+    expect(reports.length).toBeGreaterThan(before);
+    expect(reports.at(-1)?.some((i) => i.code === A2UI_ISSUE_CODES.MARKDOWN_IN_TEXT)).toBe(true);
+    expect(missing()).toHaveLength(1);
   });
 });
 

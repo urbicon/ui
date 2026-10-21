@@ -497,6 +497,19 @@ export function resolveDynamic(
 }
 
 /**
+ * Whether every rule of a stored `checks` list passes: its `condition`, passed
+ * through `resolve` (the dispatcher's `resolveDynamic`), is exactly `true` — the
+ * truthiness a logic operand reads, so an unset path, `"true"` or a call the
+ * engine does not run all fail. No list passes; a value that is not a list of
+ * rules fails.
+ */
+export function checksPass(checks: unknown, resolve: (value: unknown) => unknown): boolean {
+  if (checks === undefined) return true;
+  if (!Array.isArray(checks)) return false;
+  return checks.every((rule) => isPlainRecord(rule) && resolve(rule.condition) === true);
+}
+
+/**
  * Deep-clone JSON data for ingest into the model, stripping any own
  * `__proto__`/`constructor`/`prototype` keys (harmless as own props, but never
  * addressable, so we drop them). Functions/symbols are dropped. Used by the

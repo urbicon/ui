@@ -115,7 +115,11 @@ export const UNSUPPORTED_URBICON_A2UI_COMPONENTS: ReadonlySet<string> = new Set(
   'CommandPalette'
 ]);
 
-/** Props recognised anywhere but intentionally ignored (validation warning only, dropped before render). */
+/**
+ * Props recognised anywhere but intentionally ignored (validation warning only,
+ * dropped before render) — `checks` only on a component without a gate, so not
+ * on `Button`, whose `disabled` it feeds (see `A2UI_CHECKS_PROP`).
+ */
 export const URBICON_A2UI_IGNORED_PROPS: ReadonlySet<string> = new Set([
   'checks',
   'validationRegexp'

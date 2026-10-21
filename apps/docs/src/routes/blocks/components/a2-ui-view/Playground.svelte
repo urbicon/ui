@@ -26,7 +26,7 @@
   Datenmodell-Stand reist erst mit der Aktion.
 
   Auf die Aktion folgt der Zug des Agenten, denn die Surface prüft nichts
-  (`checks` ignoriert der Renderer; docs/A2UI.md: „The agent is the only
+  (`checks` ignoriert der Basic-Katalog; docs/A2UI.md: „The agent is the only
   validator"). Endet die Bühne beim Echo, liest sich jede Aktion als ausgeführt,
   auch eine leer abgeschickte. Ein leeres Feld beantwortet der Agent deshalb mit
   einem Hinweis, den er in die bestehende Surface patcht — ausgeführt wird

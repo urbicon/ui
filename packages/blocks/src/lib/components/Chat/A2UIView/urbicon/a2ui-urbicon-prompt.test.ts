@@ -14,8 +14,9 @@ describe('Urbicon system prompt', () => {
     expect(prompt).toContain(URBICON_A2UI_CATALOG_ID);
   });
 
-  it('stays under the byte ceiling', () => {
-    // A hard gate: a bloated prompt degrades model conformance. Target ~17-21 kB.
+  it('stays under the length ceiling', () => {
+    // A budget, not a measured threshold: a prompt that outgrows it raises this
+    // number on purpose. `length` counts UTF-16 code units, not bytes.
     expect(prompt.length).toBeLessThan(24000);
   });
 

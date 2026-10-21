@@ -30,10 +30,12 @@
   import StreamingMarkdown from '../../StreamingMarkdown/StreamingMarkdown.svelte';
   import { checkImageUrl, checkLinkUrl } from '../../markdown/url-policy.js';
   import type { A2uiActionEvent } from '../a2ui.types';
+  import { checksPass } from '../a2ui-data';
   import { coerceText, dedupeOptions, splitDateTime } from '../a2ui-node-common';
   import type { A2uiNodeProps, A2uiRenderNode } from '../a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from '../a2ui-render';
   import {
+    A2UI_CHECKS_PROP,
     A2UI_SVG_PATH_RE,
     A2UI_VALUE_PROP,
     ownEntry,
@@ -215,7 +217,12 @@
     return typeof resolvedUrl === 'string' ? resolvedUrl : undefined;
   });
   const buttonUsable = $derived(actionEvent !== undefined || openUrlArg !== undefined);
-  const buttonDisabled = $derived(!buttonUsable || Boolean(resolved('disabled')));
+  // `checks` is part of the `disabled` gate: a failing rule holds it at its failsafe.
+  const buttonDisabled = $derived(
+    !buttonUsable ||
+      Boolean(resolved('disabled')) ||
+      !checksPass(raw(A2UI_CHECKS_PROP), (value) => context.resolve(value, node.scopePrefix).value)
+  );
 
   function dispatchButton() {
     if (actionEvent !== undefined) {

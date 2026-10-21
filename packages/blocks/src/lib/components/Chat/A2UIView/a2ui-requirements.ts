@@ -43,9 +43,10 @@ export interface A2uiRequiredComponent {
   /** The prop carrying that binding. Every input in both catalogs binds through `value`. @default 'value' */
   prop?: string;
   /**
-   * What the component is for, in a few words ("consent to the cancellation
-   * policy"). The model reads it in the prompt section and in the issue, so it
-   * labels the control sensibly.
+   * Say what the component is for, in a few words ("consent to the cancellation
+   * policy"). It is printed in parentheses after the entry wherever one is
+   * described: in `a2uiSurfaceRequirementsSection` and in the
+   * `MISSING_REQUIRED_COMPONENT` and `INVALID_REQUIREMENT` messages.
    */
   description?: string;
 }

@@ -3,6 +3,7 @@ import { A2UI_ISSUE_CODES } from './a2ui.types';
 import {
   A2UI_MAX_LOGIC_DEPTH,
   A2UI_MAX_LOGIC_OPERANDS,
+  checksPass,
   cloneData,
   deleteAtPointer,
   getAtPointer,
@@ -240,6 +241,39 @@ describe('resolveDynamic — not / and / or', () => {
     for (let i = 0; i < 100_000; i++) nested = not(nested);
     expect(() => resolve(nested)).not.toThrow();
     expect(resolve(nested).value).toBeUndefined();
+  });
+});
+
+describe('checksPass', () => {
+  const model = { agreed: true, declined: false, name: 'Ada', one: 1 };
+  const resolve = (value: unknown) => resolveDynamic(value, model, undefined).value;
+  const rule = (condition: unknown) => ({ condition, message: 'm' });
+
+  it('passes with no list, an empty one, or every condition exactly true', () => {
+    expect(checksPass(undefined, resolve)).toBe(true);
+    expect(checksPass([], resolve)).toBe(true);
+    const not = { call: 'not', args: { value: { path: '/declined' } } };
+    expect(checksPass([rule({ path: '/agreed' }), rule(not), rule(true)], resolve)).toBe(true);
+  });
+
+  it('fails on one condition that is not exactly true', () => {
+    for (const condition of [
+      { path: '/declined' },
+      { path: '/unset' },
+      { path: '/name' },
+      { path: '/one' },
+      'true',
+      { call: 'required', args: { value: { path: '/name' } } },
+      { call: 'and', args: { values: [true] } }
+    ]) {
+      expect(checksPass([rule(true), rule(condition)], resolve)).toBe(false);
+    }
+  });
+
+  it('fails on a value that is not a list of rules', () => {
+    for (const checks of [null, rule(true), [true], ['x'], [null]]) {
+      expect(checksPass(checks, resolve)).toBe(false);
+    }
   });
 });
 
