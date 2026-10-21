@@ -30,6 +30,7 @@ export const RELEASE_PACKAGES = [
   // urbicon LAST: it depends only on design and nothing depends on it, and a
   // name's first publish has no trusted publisher (OIDC cannot create one), so
   // a failure here must be the last thing in the run — publish-tarballs.mjs
-  // stops at the first failed package.
+  // stops at the first failed package. deploy.yml relies on the same order:
+  // urbicon on npm is how it knows a whole release is published.
   'packages/urbicon'
 ];

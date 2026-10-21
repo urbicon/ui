@@ -36,7 +36,10 @@ if ! git diff --quiet -- ':!bundle-size.baseline.json' || ! git diff --cached --
 fi
 
 # A release is the commit "${RELEASE_PREFIX}v<version>" plus the tag
-# "v<version>" (step 5); the tag guard below reads both back.
+# "v<version>" (step 5); the tag guard below reads both back. A release commit
+# squash-merged through a PR can carry GitHub's " (#N)" title suffix; it is a
+# release all the same (git-cliff's `^chore: release` skip matches it), so the
+# guard accepts the suffix.
 RELEASE_PREFIX="chore: release "
 
 # git-cliff (step 4) rewrites the whole CHANGELOG.md from the history and tags
@@ -51,10 +54,10 @@ if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
   exit 1
 fi
 UNTAGGED=$(LC_ALL=C comm -23 \
-  <(git log --format=%s | sed -n "s/^${RELEASE_PREFIX}\(v[0-9][0-9.]*\)\$/\1/p" | LC_ALL=C sort -u) \
+  <(git log --format=%s | sed -nE "s/^${RELEASE_PREFIX}(v[0-9][0-9.]*)( \(#[0-9]+\))?\$/\1/p" | LC_ALL=C sort -u) \
   <(git tag -l 'v*' | LC_ALL=C sort -u))
 if [ -n "$UNTAGGED" ]; then
-  echo "Error: $(echo "$UNTAGGED" | wc -l | tr -d ' ') release commit(s) without their tag in this clone ($(echo "$UNTAGGED" | head -3 | paste -sd' ')…) —"
+  echo "Error: $(echo "$UNTAGGED" | wc -l | tr -d ' ') release commit(s) without their tag in this clone ($(echo "$UNTAGGED" | head -3 | paste -sd' ' -)…) —"
   echo "  git-cliff would fold each of those releases into the one after it."
   echo "  Fix: git fetch --tags"
   exit 1
