@@ -1,9 +1,11 @@
 import type {
   AliasBase,
   GenericBase,
+  MethodBaseProps,
   MidProps,
   MidWithDom,
   OtherProps,
+  PanelProps,
   RootProps,
   WidgetProps
 } from '../shared/base';
@@ -89,6 +91,24 @@ export interface ForeignOmitProps extends Omit<Partial<ARIAMixin>, 'role'> {
   own?: string;
 }
 
+/** The base ForeignOmit filters, extended as a whole. */
+export interface ForeignPlainProps extends Partial<ARIAMixin> {
+  /** Own. */
+  own?: string;
+}
+
+/** Omit over a base whose callback is a method signature. */
+export interface MethodOmitProps extends Omit<MethodBaseProps, 'hidden'> {
+  /** Own. */
+  own?: string;
+}
+
+/** Pick of the same method. */
+export interface MethodPickProps extends Pick<MethodBaseProps, 'onPick' | 'label'> {
+  /** Own. */
+  own?: string;
+}
+
 /** Omit that resolves to no member at all. */
 export interface NothingOmitProps extends Omit<Record<never, string>, 'x'> {
   /** Own. */
@@ -120,6 +140,12 @@ export interface DeclaredAxisProps extends Omit<WidgetProps, 'label'> {
 
 /** A tv() axis through Pick of a props interface, not redeclared. */
 export interface BarePickAxisProps extends Pick<WidgetProps, 'density' | 'label'> {
+  /** Own. */
+  own?: string;
+}
+
+/** A tv() axis whose config names its values by identifier, not redeclared. */
+export interface BareNamedAxisProps extends Omit<PanelProps, 'label'> {
   /** Own. */
   own?: string;
 }

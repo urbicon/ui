@@ -188,7 +188,12 @@ export function deriveControls(
             key,
             label: humanize(key),
             items: toItems(variant.values),
-            defaultValue: variant.defaultValue ?? variant.values[0]
+            defaultValue: variant.defaultValue ?? variant.values[0],
+            // The component's fallback is known here only from the config's
+            // default. Without one the dropdown still opens on the first value,
+            // whichever the config lists first; recording that as the fallback
+            // would let the snippet omit a value the preview passes.
+            componentDefault: variant.defaultValue
           };
     } else if (prop?.values?.length) {
       const values = prop.values;
@@ -242,11 +247,11 @@ export function deriveControls(
       );
     }
 
-    // The derived default is what the *component* does without the prop. An
-    // override may move where the playground starts (`searchDebounceMs: 100`
-    // on a component that defaults to 300) — keep the original, or the code
-    // snippet would omit exactly the props that make the preview look the way
-    // it does.
+    // The derived default is what the *component* does without the prop, where
+    // `base` carries no `componentDefault` of its own. An override may move
+    // where the playground starts (`searchDebounceMs: 100` on a component that
+    // defaults to 300) — keep the original, or the code snippet would omit
+    // exactly the props that make the preview look the way it does.
     return { componentDefault: base.defaultValue, ...base, ...override };
   });
 

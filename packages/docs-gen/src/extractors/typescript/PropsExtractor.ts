@@ -24,8 +24,8 @@ type PropsDeclaration =
 export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput, PropInfo[]> {
   public config: TypeScriptExtractionConfig;
   private currentVariantKeys: string[] = [];
-  /** Rows built from a heritage member with no declaration to read — see `assertDocumented`. */
-  private undeclaredMembers = new WeakSet<PropInfo>();
+  /** Rows built from a tv() axis no signature declares — see `assertDocumented`. */
+  private undocumentedAxes = new WeakSet<PropInfo>();
 
   constructor(tsConfig?: Record<string, unknown>) {
     super(tsConfig);
@@ -542,16 +542,17 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
   }
 
   /**
-   * Refuse a row nothing documents. A member that reaches the props through an
-   * `Omit` / `Pick` clause without a property signature — a tv() axis, whose
-   * declaration is a key of the config — has no JSDoc and no `@default` to read,
-   * and the base's `defaultVariants` is the wrapper's default only where the
-   * wrapper forwards `undefined`: CopyButton picks Button's `variant` and
-   * defaults it to `ghost`, Button to `filled`. The interface's own declaration
-   * is the one place that knows, so it is required.
+   * Refuse a tv() axis nothing documents. An axis that reaches the props through
+   * an `Omit` / `Pick` clause is declared by a key of the config, which has no
+   * JSDoc and no `@default` to read, and the base's `defaultVariants` is the
+   * wrapper's default only where the wrapper forwards `undefined`: CopyButton
+   * picks Button's `variant` and defaults it to `ghost`, Button to `filled`. The
+   * interface's own declaration is the one place that knows, so it is required.
+   * A member a property or method signature declares keeps that signature's
+   * JSDoc and passes.
    */
   private assertDocumented(props: PropInfo[], interfaceName: string): void {
-    const bare = props.filter((p) => this.undeclaredMembers.has(p));
+    const bare = props.filter((p) => this.undocumentedAxes.has(p));
     if (bare.length === 0) return;
     const rows = bare.map((p) => `'${p.name}' (${p.source.name})`).join(', ');
     throw new Error(
@@ -560,7 +561,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     );
   }
 
-  private extractPropFromMember(member: ts.PropertySignature): PropInfo | null {
+  private extractPropFromMember(
+    member: ts.PropertySignature | ts.MethodSignature
+  ): PropInfo | null {
     const propName = this.getPropertyName(member);
     if (!propName) return null;
 
@@ -569,7 +572,11 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       return null;
     }
 
-    const propType = this.getTypeString(member.type);
+    // A method's `type` node is what it returns, not the member's type. Only a
+    // checker-resolved heritage member hands this a method, and that row takes
+    // its type and values from the checker (`propFromResolvedMember`).
+    const typeNode = ts.isPropertySignature(member) ? member.type : undefined;
+    const propType = this.getTypeString(typeNode);
     const isRequired = this.isPropertyRequired(member);
 
     // Extract JSDoc information
@@ -634,9 +641,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     // which reading the node would miss. It answers all-or-nothing, so a union
     // with a non-literal member (`number | 'auto'`) falls back to the literals
     // written at the declaration — as does single-file mode, with no checker.
-    const resolved = this.resolveTypeNodeLiterals(member.type);
+    const resolved = this.resolveTypeNodeLiterals(typeNode);
     const values =
-      resolved.length > 0 ? resolved : member.type ? this.extractUnionValues(member.type) : [];
+      resolved.length > 0 ? resolved : typeNode ? this.extractUnionValues(typeNode) : [];
 
     const prop: PropInfo = {
       name: propName,
@@ -837,10 +844,15 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
 
   /**
    * A key-filtering clause that contributes nothing would otherwise vanish from
-   * every surface without a trace — no row, no placeholder.
+   * every surface without a trace — no row, no placeholder. The two spellings
+   * the message offers are the two that do leave one.
    */
   private emptyClause(clause: string, why: string): Error {
-    return new Error(`${clause}: ${why}, so none of its props can be documented.`);
+    return new Error(
+      `${clause}: ${why}, so none of its props can be documented. Extend the base ` +
+        'without Omit/Pick, or name a DOM-attribute bag by its HTML…Attributes type: ' +
+        'either is listed as one placeholder row.'
+    );
   }
 
   /**
@@ -966,9 +978,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
    * mapped **from**, so reading `declaration.type` for a member that travelled
    * through `VariantProps<typeof xVariants>` reports the tv() config object
    * (`{ calm: unknown; loud: unknown }`) instead of the axis' values
-   * (`'calm' | 'loud'`). A member with no property signature at all (a tv()
-   * `PropertyAssignment`) has nothing to document it, so its row is recorded
-   * for `assertDocumented`: it may stand only where the interface redeclares it.
+   * (`'calm' | 'loud'`). A tv() axis no signature declares has nothing to
+   * document it, so its row is recorded for `assertDocumented`: it may stand
+   * only where the interface redeclares it.
    */
   private propFromResolvedMember(
     member: ResolvedHeritageMember,
@@ -989,7 +1001,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       ...(member.values.length > 0 ? { values: member.values } : {}),
       source: { type: 'inherited', name: clause }
     };
-    if (!documented) this.undeclaredMembers.add(prop);
+    if (member.tvAxis) this.undocumentedAxes.add(prop);
     return prop;
   }
 
@@ -1085,7 +1097,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     return packageMap[typeName];
   }
 
-  private extractJSDocExamples(member: ts.PropertySignature): PropInfo['examples'] {
+  private extractJSDocExamples(
+    member: ts.PropertySignature | ts.MethodSignature
+  ): PropInfo['examples'] {
     const examples: NonNullable<PropInfo['examples']> = [];
 
     // Extract @example tags

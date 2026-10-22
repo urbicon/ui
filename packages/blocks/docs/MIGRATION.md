@@ -15,12 +15,12 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ### The field props types drop the axes the fields compute
 
-`InputProps` no longer accepts `hasLeftIcon`, `hasRightIcon` or `iconPosition`, and the props of
-`Input`, `Select`, `Textarea`, `PinInput`, `TimeInput` and `Slider` no longer accept
-`messageType`. Each component computes these axes itself, from its icon snippets and clear button,
-per icon container, or from `error`, and never read a prop of that name: it was passed on to the
-element as an unknown attribute. `NumberInput`, `CurrencyInput` and `LocaleSwitcher` inherit the
-narrower types.
+`InputProps`, and with it `NumberInputProps` and `CurrencyInputProps`, no longer accepts
+`hasLeftIcon`, `hasRightIcon` or `iconPosition`. `SelectProps` (and with it `LocaleSwitcherProps`),
+`TextareaProps`, `PinInputProps`, `TimeInputProps` and `SliderProps` no longer accept
+`messageType`, which `InputProps` already left out. Each component computes these axes itself, from
+its icon snippets and clear button, per icon container, or from `error`, and never read a prop of
+that name: it was passed on to the element as an unknown attribute.
 
 - **A call site that passes one of them no longer type-checks.** Delete the prop: it changed
   nothing on screen. For the message colour, set `error`.

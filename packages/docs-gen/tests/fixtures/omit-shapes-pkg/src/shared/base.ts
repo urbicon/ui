@@ -61,6 +61,16 @@ export interface GenericBase<T> {
   g?: string;
 }
 
+/** A base whose callback is a method signature rather than a property. */
+export interface MethodBaseProps {
+  /** Method label. */
+  label?: string;
+  /** Fired with the picked value. */
+  onPick?(value: string): void;
+  /** Left out by the clauses below. */
+  hidden?: boolean;
+}
+
 type VariantProps<T> = {
   [K in keyof T]?: keyof T[K];
 };
@@ -72,6 +82,17 @@ const widgetVariants = {
 };
 
 export type WidgetVariants = VariantProps<typeof widgetVariants>;
+
+/** A config axis whose values are a shared object, named rather than written out. */
+const spacingScale = { roomy: {}, compact: {} };
+const panelVariants = { spacing: spacingScale };
+
+export type PanelVariants = VariantProps<typeof panelVariants>;
+
+export interface PanelProps extends PanelVariants {
+  /** Panel label. */
+  label?: string;
+}
 
 /** A props interface whose axes arrive through the variants alias. */
 export interface WidgetProps extends Omit<WidgetVariants, 'internal'> {

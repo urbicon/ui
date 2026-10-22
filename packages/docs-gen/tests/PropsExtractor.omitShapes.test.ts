@@ -145,6 +145,25 @@ describe('PropsExtractor — a clause that contributes nothing fails the extract
       /Pick<Record<never, string>, never>: it resolves to no members/
     );
   });
+
+  it('names the spelling that leaves a row, which the same base extended whole does', async () => {
+    expect(await failure('ForeignOmit')).toContain('Extend the base without Omit/Pick');
+    expect(await rows('ForeignPlain')).toEqual(['...ARIAMixin: inherited', 'own: string']);
+  });
+});
+
+describe('PropsExtractor — a member a method signature declares', () => {
+  it('keeps its JSDoc through Omit and through Pick, typed by the checker', async () => {
+    for (const component of ['MethodOmit', 'MethodPick']) {
+      expect(await rows(component)).toEqual([
+        'label: string',
+        'onPick: (value: string) => void',
+        'own: string'
+      ]);
+      const onPick = (await extract(component)).data?.find((p) => p.name === 'onPick');
+      expect(onPick?.description).toBe('Fired with the picked value.');
+    }
+  });
 });
 
 describe('PropsExtractor — a tv() axis inherited through a props interface', () => {
@@ -156,6 +175,10 @@ describe('PropsExtractor — a tv() axis inherited through a props interface', (
     expect(message).toContain('Redeclare each on BareAxisProps');
     expect(await failure('BarePickAxis')).toContain(
       "BarePickAxisProps: no declaration documents 'density' (Pick<WidgetProps, 'density' | 'label'>)"
+    );
+    // However the config writes the axis' values: here a shared object by name.
+    expect(await failure('BareNamedAxis')).toContain(
+      "BareNamedAxisProps: no declaration documents 'spacing' (Omit<PanelProps, 'label'>)"
     );
   });
 

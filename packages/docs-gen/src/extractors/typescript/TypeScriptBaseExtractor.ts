@@ -8,15 +8,22 @@ import { getProgramBundle } from './ProgramCache';
  * One member of a heritage clause resolved through the type checker.
  *
  * `declaration` is set only when the member traces back to a real
- * `PropertySignature` — then the caller can read its JSDoc as usual. Members
- * that originate in a tv() config have none: `VariantProps<typeof
+ * `PropertySignature` or `MethodSignature` — then the caller can read its JSDoc
+ * as usual. Members that originate in a tv() config have none: `VariantProps<typeof
  * buttonVariants>` maps `variant` onto a `PropertyAssignment` in
  * `button.variants.ts`, which carries no prop documentation. For those,
  * `type` and `values` are everything that is knowable.
  */
 export interface ResolvedHeritageMember {
   name: string;
-  declaration: ts.PropertySignature | null;
+  declaration: ts.PropertySignature | ts.MethodSignature | null;
+  /**
+   * No signature declares the member and a key of an object literal does — how
+   * a tv() axis arrives through `VariantProps<typeof xVariants>`, whatever the
+   * key's value is written as. Its base's `defaultVariants` is not necessarily
+   * the default of a props type that forwards it.
+   */
+  tvAxis: boolean;
   /** Declared with a `?` (or otherwise optional through the mapped type). */
   optional: boolean;
   /** Literal union members, `[]` when the type is not a literal union. */
@@ -34,7 +41,8 @@ export interface ResolvedHeritageMember {
    * written spelling is true here. False wherever the clause changed it: an
    * instantiated generic (`SelectOption<T>` read as `SelectOption<string>`), a
    * mapped type whose values are not its source's (`{ [K in keyof T]?: Box<T[K]> }`,
-   * a tv() axis mapped from its config).
+   * a tv() axis mapped from its config) — and for a method, whose `type` node
+   * is what it returns.
    */
   writtenTypeHolds: boolean;
 }
@@ -263,14 +271,14 @@ export abstract class TypeScriptBaseExtractor<
   /**
    * Check if property is required (no question token)
    */
-  protected isPropertyRequired(member: ts.PropertySignature): boolean {
+  protected isPropertyRequired(member: ts.PropertySignature | ts.MethodSignature): boolean {
     return !member.questionToken;
   }
 
   /**
    * Get property name from property signature
    */
-  protected getPropertyName(member: ts.PropertySignature): string | null {
+  protected getPropertyName(member: ts.PropertySignature | ts.MethodSignature): string | null {
     if (!member.name) {
       return null;
     }
@@ -572,14 +580,19 @@ export abstract class TypeScriptBaseExtractor<
       const members: ResolvedHeritageMember[] = [];
       for (const symbol of this.checker.getPropertiesOfType(type)) {
         const declarations = symbol.declarations ?? [];
-        const declaration = declarations.find(ts.isPropertySignature) ?? null;
+        const declaration =
+          declarations.find(
+            (d): d is ts.PropertySignature | ts.MethodSignature =>
+              ts.isPropertySignature(d) || ts.isMethodSignature(d)
+          ) ?? null;
         const propertyType = this.checker.getTypeOfSymbolAtLocation(symbol, heritageType);
         // Type identity, not structural equality: the checker interns a type
         // once, so the same type reached through an unchanged mapping is the same
         // object, and an instantiation or a changed mapping is a different one.
-        const declaredSymbol = declaration
-          ? this.checker.getSymbolAtLocation(declaration.name)
-          : undefined;
+        const declaredSymbol =
+          declaration && ts.isPropertySignature(declaration)
+            ? this.checker.getSymbolAtLocation(declaration.name)
+            : undefined;
         const writtenTypeHolds =
           declaredSymbol !== undefined &&
           this.checker.getTypeOfSymbol(declaredSymbol) === propertyType;
@@ -590,6 +603,11 @@ export abstract class TypeScriptBaseExtractor<
         members.push({
           name: symbol.name,
           declaration,
+          tvAxis:
+            declaration === null &&
+            declarations.some(
+              (d) => ts.isPropertyAssignment(d) || ts.isShorthandPropertyAssignment(d)
+            ),
           optional: (symbol.flags & ts.SymbolFlags.Optional) !== 0,
           values: literals.map((l) => l.value),
           // Same spelling the variants pass emits (`'sm' | 'md' | 'lg'`), so a
