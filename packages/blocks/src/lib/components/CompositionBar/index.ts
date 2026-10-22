@@ -14,7 +14,8 @@ export type CompositionBarIntent =
 export interface CompositionItem {
   /**
    * Keeps the item's segment and legend row with it when `items` reorder;
-   * without one they stay at the position. Two items may share an id.
+   * without one they stay at the position. Two items may share an id; those
+   * keep their places rather than following the item.
    */
   id?: string | number;
   /** Display label in the legend and the default tooltip. */

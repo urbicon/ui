@@ -103,7 +103,7 @@
    * stay distinct when ids or labels repeat, or an id spells a label.
    */
   const rowKeys = $derived(
-    eachKeys(filtered, (item) => (item.id === undefined ? `label:${item.label}` : `id:${item.id}`))
+    eachKeys(filtered, (item) => (item.id == null ? `label:${item.label}` : `id:${item.id}`))
   );
 
   const grouped = $derived.by(() => {

@@ -1405,10 +1405,18 @@ describe('CommandPalette (row identity)', () => {
     ],
     ['by its label without an id', [{ label: 'Alpha' }, { label: 'Beta' }]],
     [
+      // JSON hands the palette `null` where the type says `undefined`.
+      'by its label when its id is null',
+      [
+        { id: null, label: 'Alpha' },
+        { id: null, label: 'Beta' }
+      ] as unknown as CommandPaletteItem[]
+    ],
+    [
       'by its label beside an id that spells it',
       [{ id: 'Beta', label: 'Alpha' }, { label: 'Beta' }]
     ]
-  ])('keeps a row`s node %s while the query filters the list', async (_, items) => {
+  ])("keeps a row's node %s while the query filters the list", async (_, items) => {
     render({ items });
     await tick();
     const beta = screen.getByRole('option', { name: 'Beta', hidden: true });
