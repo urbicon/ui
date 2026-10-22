@@ -31,6 +31,9 @@
 
   let isOpen = $state(false);
 
+  const propsId = $props.id();
+  const titleId = `filter-menu-title-${propsId}`;
+
   const activeFilters = $derived(tableView.filters);
   const isActive = $derived(activeFilters.length > 0);
   const triggerClass = $derived(
@@ -115,10 +118,11 @@
   onClickOutside={() => (isOpen = false)}
   trigger={triggerContent}
   role="dialog"
+  aria-labelledby={titleId}
   class={menuStyles.base()}
 >
   <div class={menuStyles.header()}>
-    <h2 class={menuStyles.title()}>
+    <h2 id={titleId} class={menuStyles.title()}>
       {tt('filter.menu.addFilter')}
     </h2>
     <Button

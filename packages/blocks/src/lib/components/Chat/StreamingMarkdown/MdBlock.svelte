@@ -12,7 +12,7 @@
   const uid = $props.id();
 
   const tag = $derived(
-    block.kind === 'heading' ? headingTag(block.level - 1 + ctx.headingLevelStart) : 'h2'
+    block.kind === 'heading' ? headingTag(ctx.headingLevelStart, block.level - 1) : 'h2'
   );
 
   function alignClass(align: 'left' | 'center' | 'right' | null): string {

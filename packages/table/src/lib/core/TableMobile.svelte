@@ -78,9 +78,9 @@
   const columnTitle = (columnId: string) => resolveColumnLabelById(tableState.allColumns, columnId);
 </script>
 
-{#snippet summaryBand(title: string, values: Record<string, number>, level: number)}
+{#snippet summaryBand(title: string, values: Record<string, number>, offset: number)}
   <div class={listStyles.summary()}>
-    <svelte:element this={headingTag(level)} class={listStyles.summaryTitle()}
+    <svelte:element this={headingTag(headingLevel, offset)} class={listStyles.summaryTitle()}
       >{title}</svelte:element
     >
     {#each summaryConfigs as config (config.column)}
@@ -174,7 +174,7 @@
           {@render summaryBand(
             `${tt('group.summaryFor')} ${groupName}`,
             groupedSummaryData[groupName],
-            headingLevel + 1
+            1
           )}
         {/if}
       </div>
@@ -193,11 +193,7 @@
     {/each}
 
     {#if hasSummary}
-      {@render summaryBand(
-        tt('table.summary.totalSummary'),
-        tableContext.summaryData,
-        headingLevel
-      )}
+      {@render summaryBand(tt('table.summary.totalSummary'), tableContext.summaryData, 0)}
     {/if}
   {/if}
 </div>

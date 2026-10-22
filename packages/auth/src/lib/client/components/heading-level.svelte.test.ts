@@ -74,6 +74,30 @@ describe('headingLevel', () => {
     for (const section of sections) expect(section).toBe(rank + 3);
   });
 
+  // TypeScript refuses both; plain JavaScript and a nullable CMS field pass them.
+  it.each(SUBJECTS)(
+    '%s reads a rank that is no number as h6, its sections with it',
+    async (_, component, _rank, props) => {
+      const all = await ranks(component, { ...props, headingLevel: null });
+
+      expect(all.length).toBeGreaterThan(0);
+      expect(all).toEqual(all.map(() => 6));
+    }
+  );
+
+  it.each(SUBJECTS)(
+    '%s reads a numeric string rank as its number',
+    async (_, component, rank, props) => {
+      const [title, ...sections] = await ranks(component, {
+        ...props,
+        headingLevel: String(rank + 1)
+      });
+
+      expect(title).toBe(rank + 1);
+      for (const section of sections) expect(section).toBe(rank + 2);
+    }
+  );
+
   it('section headings stay headings at the clamp', async () => {
     const all = await ranks(AccountSettings, { user, headingLevel: 6 });
 

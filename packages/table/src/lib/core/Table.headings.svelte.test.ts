@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
-import { flushSync, mount, unmount } from 'svelte';
+import { screen, within } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
+import { type Component, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import ToolSurfacesHarness from '#lib/features/SmartFilterBar/__fixtures__/ToolSurfacesHarness.svelte';
 import type { Column } from '#lib/types/tableTypes.js';
 import { createTableView } from '#lib/view/view.svelte.js';
 import TableHarness from './__fixtures__/TableHarness.svelte';
@@ -34,12 +37,15 @@ afterEach(() => {
   }
 });
 
-function mountTable(props: Record<string, unknown>): HTMLElement {
+function mountTable(
+  props: Record<string, unknown>,
+  harness: Component<any> = TableHarness
+): HTMLElement {
   const target = document.createElement('div');
   document.body.appendChild(target);
   // Typed wide, like the sister suites: the harness pins its own Row shape.
   const merged: Record<string, unknown> = { items: ROWS, columns: COLUMNS, ...props };
-  const comp = mount(TableHarness, { target, props: merged }) as Record<string, unknown>;
+  const comp = mount(harness, { target, props: merged }) as Record<string, unknown>;
   flushSync();
   mounted.push({ comp, target });
   return target;
@@ -125,6 +131,27 @@ describe('the card list derives its ranks from the table rank', () => {
     expect(mobileHeadings(root).map((h) => h.split(' ')[0])).toEqual(['h2']);
   });
 
+  // TypeScript refuses both; plain JavaScript and a nullable CMS field pass them.
+  it('reads a rank that is no number as h6, a group summary with it', () => {
+    const root = mountTable({
+      prefs: SUMMARY,
+      view: createTableView({ defaults: { groupBy: 'dept' } }),
+      headingLevel: null
+    });
+
+    expect(mobileHeadings(root).map((h) => h.split(' ')[0])).toEqual(['h6', 'h6', 'h6', 'h6']);
+  });
+
+  it('reads a numeric string rank as its number', () => {
+    const root = mountTable({
+      prefs: SUMMARY,
+      view: createTableView({ defaults: { groupBy: 'dept' } }),
+      headingLevel: '2'
+    });
+
+    expect(mobileHeadings(root).map((h) => h.split(' ')[0])).toEqual(['h2', 'h3', 'h2', 'h3']);
+  });
+
   it('defaults to h3, as the state titles do', () => {
     const grouped = mountTable({
       prefs: SUMMARY,
@@ -134,5 +161,28 @@ describe('the card list derives its ranks from the table rank', () => {
 
     const flat = mountTable({ prefs: SUMMARY });
     expect(mobileHeadings(flat).map((h) => h.split(' ')[0])).toEqual(['h3']);
+  });
+});
+
+describe('the filter dialog', () => {
+  it('is an h2, like a Dialog, and that heading names it', async () => {
+    const user = userEvent.setup();
+    mountTable({}, ToolSurfacesHarness);
+
+    await user.click(
+      within(screen.getByRole('toolbar', { name: 'Filter bar' })).getByRole('button', {
+        name: /^Add filter/
+      })
+    );
+
+    // jsdom has no top layer: the open panel stays `display: none`, which
+    // leaves it no accessible name to query by, so the reference is asserted.
+    const title = await screen.findByRole('heading', {
+      level: 2,
+      name: 'Add filter',
+      hidden: true
+    });
+    expect(title.id).not.toBe('');
+    expect(title.closest('[role="dialog"]')?.getAttribute('aria-labelledby')).toBe(title.id);
   });
 });

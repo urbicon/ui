@@ -41,7 +41,8 @@
         and error titles, and the card list's group headers and summaries — take their rank from
         <code class="text-text-primary">headingLevel</code> (default
         <code class="text-text-primary">3</code>): set it to the rank that continues your page's
-        outline.
+        outline. The filter bar's popover keeps its own: it is a dialog, and like a Dialog it is
+        titled and named by an <code class="text-text-primary">&lt;h2&gt;</code>.
       </p>
     </Note>
     <Note headingLevel={2} title="Keyboard Navigation">
