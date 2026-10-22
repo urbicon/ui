@@ -22,7 +22,7 @@
     "@sveltejs/vite-plugin-svelte": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@testing-library/dom": "catalog:",
-    "@shikijs/langs": "^4.4.3",
+    "@shikijs/langs": "^4.5.0",
     "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",
     "@urbicon-ui/blocks": "workspace:*",

@@ -60,7 +60,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Coding Conventions
 
-- Lint/format: **Biome** for `.ts`/`.js`/`.json` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`. Biome does not parse `.svelte`.
+- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`. Biome does not parse `.svelte`.
 - **Four `.svelte` lint rules are unenforced** — Biome cannot parse `.svelte`, so the `{@html}` XSS guard, each-key, `prefer-svelte-reactivity` and `no-navigation-without-resolve` are on you; re-add a `.svelte`-only ESLint pass if they regress ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
@@ -139,7 +139,7 @@ Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` i
 
 ## Git Workflow (Agent Notes)
 
-- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json` and `prettier --write` on staged `.svelte`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for `.svelte` you have **not** staged (a whole-package sweep).
+- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json`/`.yml` and `prettier --write` on staged `.svelte`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for `.svelte` you have **not** staged (a whole-package sweep).
 - **A fresh worktree needs a build before anything else.** `bun install`, then `bunx --bun svelte-kit sync` (blocks, docs-app), then `bun run build:packages` (a flat `--filter='./packages/*'` sweep races the topology; the script's header says why). Without it the symptoms mislead — a dev server that won't start, missing `@urbicon-ui/…` modules, phantom `Snippet` errors, a failing `run test` — all because `@urbicon-ui/i18n` has no `dist/` yet. `api.ts` is git-ignored, so `docs:gen` too.
 - **Worktree merges**: `main` is checked out in the root worktree. Merge without leaving yours via `git -C <repo-root> merge <branch>` — this is the orchestrator's move from its own worktree; implementation subagents inside a `pr-wave` never run `git -C` on the main checkout. Stash there first if that tree is dirty.
 - **Only a PR's head SHA proves it landed.** PRs squash-merge, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Check with `gh pr view <N> --json headRefName,headRefOid,state` — equal SHA plus `MERGED` is also what makes deleting the branch safe. Cleanup removes the branch, its worktree and the `worktree-*` scaffolding branch the tooling creates (that one never merges on its own), then `git worktree prune`.

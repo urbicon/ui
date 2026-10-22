@@ -304,6 +304,7 @@ test.describe('Guide — axe scan', () => {
 
 // ─── Visual regression (light / dark) ───────────────────────────────────────
 
+// biome-ignore lint/correctness/usePlaywrightValidDescribeCallback: Playwright's (title, details, callback) overload; the rule knows only (title, callback)
 test.describe('Guide — visual', { tag: '@pixel' }, () => {
   for (const scheme of ['light', 'dark'] as const) {
     test(`panel — ${scheme}`, async ({ page }) => {

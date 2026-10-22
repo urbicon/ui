@@ -26,7 +26,7 @@ ESLint pass alongside Biome — not abandoning Biome.
 
 ## Pre-commit runs neither `check` nor the tests
 
-The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.json`) and
+The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.json`/`.yml`) and
 `prettier --write` (staged `.svelte`) — no `svelte-check`, no Vitest.
 
 `svelte-check` across all packages takes 30–60 s and would noticeably block every commit;
