@@ -340,26 +340,23 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
   };
 
-  // 4. Resolve and apply security headers. The cookieless short-circuit gets
-  // them too, and the refusal of a pathname that does not decode gets them
-  // without the resolve. HSTS is gated on a secure deployment — the same
-  // predicate the cookie names and the brute-force-default warnings use.
+  // HSTS is gated on a secure deployment — the same predicate the cookie names
+  // and the brute-force-default warnings use.
   const withSecurityHeaders = (response: Response): Response =>
     applySecurityHeaders(response, {
       ...config.securityHeaders,
       secure: isSecureDeployment(config)
     });
-  const respond = async (
-    event: RequestEvent,
-    resolve: Parameters<Handle>[0]['resolve']
-  ): Promise<Response> => withSecurityHeaders(await resolve(event));
 
-  return async ({ event, resolve }) => {
+  // The hook's steps. Every response it returns — what `resolve` renders and
+  // its own refusals alike — leaves through the one `withSecurityHeaders` call
+  // at the bottom, so an answer added here cannot skip the headers.
+  const answer: Handle = async ({ event, resolve }) => {
     // Before step 0, for every request — see undecodableRefusal.
     const undecodable = undecodableRefusal(event.url.pathname);
     if (undecodable) {
       (event.locals as Record<string, unknown>).user = null;
-      return withSecurityHeaders(undecodable);
+      return undecodable;
     }
 
     // Steps 1–2a write through this view so the guard's own 401 can carry what
@@ -393,7 +390,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     // would let a spoofed pathname past the default-deny in 3a.
     if (!isRemote && isCsrfExempt(event)) {
       (event.locals as Record<string, unknown>).user = null;
-      return respond(event, resolve);
+      return resolve(event);
     }
 
     // 1. CSRF check for mutating requests. The package's own Origin gate,
@@ -496,7 +493,15 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       }
     }
 
-    // 4. Resolve, headers on.
-    return respond(event, resolve);
+    // 4. Resolve.
+    return resolve(event);
   };
+
+  // The guard's login redirect is thrown, so it never comes back through here:
+  // SvelteKit builds that response from the throw and writes the staged
+  // cookies onto it. For a `__data.json` request it answers a JSON redirect,
+  // and it does the same to a 302 the hook returns, dropping that response's
+  // headers and every staged cookie — so the redirect stays a throw and goes
+  // out without security headers; the login page it leads to carries them.
+  return async (input) => withSecurityHeaders(await answer(input));
 }
