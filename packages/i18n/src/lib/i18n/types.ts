@@ -265,7 +265,8 @@ export interface PackageI18n<T extends Translations> {
   /**
    * What the factory was called with, for `auditPackage` from
    * `@urbicon-ui/i18n/audit`: it audits the package against this base, so a
-   * parity test never names the base a second time. Not read at runtime.
+   * parity test never names the base a second time. The registry holds the
+   * same bundle objects, so the bundles are read-only here.
    */
   readonly source: PackageSource;
   types: CreatePackageTypes<T>;
@@ -277,7 +278,7 @@ export interface PackageSource {
   /** `options.base`, or `en`. */
   readonly base: Locale;
   /** The eager bundles. */
-  readonly translations: PackageTranslations;
+  readonly translations: Readonly<PackageTranslations>;
   /** `options.loaders`, or `{}`. */
   readonly loaders: Readonly<Partial<Record<Locale, () => Promise<Translations>>>>;
 }

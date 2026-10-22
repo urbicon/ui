@@ -24,7 +24,7 @@
     [
       'source',
       '{ name, base, translations, loaders }',
-      'What the factory was called with — read by auditPackage, not at runtime.'
+      'What the factory was called with, read-only — what auditPackage audits.'
     ],
     [
       'types',

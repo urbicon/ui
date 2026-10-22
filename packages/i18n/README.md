@@ -316,7 +316,7 @@ it('translations pass the audit', async () => {
 
 It reads the name, the base and the bundles from the package's `source`, so it takes no `baseLocale`; it does take `auditTranslations`' `checks` and `ignoreKeys`. Bundles that are not a `createPackageI18n` package go to `auditTranslations` directly, and the `urbicon i18n` CLI, which reads bundle files rather than your package, takes `--base-locale de` (or `"baseLocale"` in `i18n.audit.json`).
 
-> **Removed in 8.34.0:** `validatePackageTranslations`. `auditPackage` checks the same key parity, plus empty values, `{{param}}` drift and `_plural` shape. Replace `validatePackageTranslations('shop', { en, de }).errors` with `(await auditPackage(shopI18n)).errors`.
+> **Removed in 8.34.0:** `validatePackageTranslations`. `auditPackage` checks the same key parity, plus empty values, `{{param}}` drift and `_plural` shape. Replace `validatePackageTranslations('shop', { en, de }).errors` with `(await auditPackage(shopI18n)).errors`; `isValid` is now `ok`, and `errors` and `warnings` hold `TranslationFinding` objects (the old message is `.detail`).
 
 ## API Surface
 
