@@ -27,6 +27,16 @@ export type Translations = {
   [key: string]: string | Translations;
 };
 
+/** Throws unless `bundle` is a plain translations object; `subject` opens the message. */
+export function assertTranslations(
+  bundle: unknown,
+  subject: string
+): asserts bundle is Translations {
+  if (bundle && typeof bundle === 'object' && !Array.isArray(bundle)) return;
+  const kind = bundle === null ? 'null' : Array.isArray(bundle) ? 'array' : typeof bundle;
+  throw new Error(`[i18n] ${subject} must be a translations object, got ${kind}.`);
+}
+
 export type PackageTranslations = Partial<Record<Locale, Translations>>;
 
 /**
@@ -252,7 +262,24 @@ export interface PackageI18n<T extends Translations> {
    * base bundle. Throws on an unsupported locale or a non-object bundle.
    */
   registerLocale: (locale: Locale, bundle: Translations) => void;
+  /**
+   * What the factory was called with, for `auditPackage` from
+   * `@urbicon-ui/i18n/audit`: it audits the package against this base, so a
+   * parity test never names the base a second time. Not read at runtime.
+   */
+  readonly source: PackageSource;
   types: CreatePackageTypes<T>;
+}
+
+/** The arguments a `createPackageI18n` call was made with — see {@link PackageI18n.source}. */
+export interface PackageSource {
+  readonly name: string;
+  /** `options.base`, or `en`. */
+  readonly base: Locale;
+  /** The eager bundles. */
+  readonly translations: PackageTranslations;
+  /** `options.loaders`, or `{}`. */
+  readonly loaders: Readonly<Partial<Record<Locale, () => Promise<Translations>>>>;
 }
 
 // Component props for I18n integration

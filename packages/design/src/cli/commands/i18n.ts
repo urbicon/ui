@@ -17,7 +17,8 @@
  *
  * A configured translations dir that loads no locale bundle fails any run that
  * needs bundles, and `parity` / `unused` are skipped then — why per check: the
- * comment above the bundle load in `runI18n`. `hardcoded` needs no bundles.
+ * comment above the bundle load in `runI18n`. A group without the
+ * `--base-locale` bundle fails the same way. `hardcoded` needs no bundles.
  *
  * The bundle loader uses dynamic `import()`, so run it under Bun (or point at
  * compiled `.js` bundles) — Node cannot import a consumer's `.ts` translations.
@@ -274,10 +275,10 @@ async function runUnused(
   const defined = new Set<string>();
   for (const group of groups) {
     // The same base `parity` diffs against: the defined-key set is the base's.
-    const base =
-      (config.baseLocale ? group.bundles[config.baseLocale] : undefined) ??
-      group.bundles.en ??
-      Object.values(group.bundles)[0];
+    // `runI18n` has already failed a group that lacks a named base.
+    const base = config.baseLocale
+      ? group.bundles[config.baseLocale]
+      : (group.bundles.en ?? Object.values(group.bundles)[0]);
     if (base) for (const key of audit.collectDeepKeys(base)) defined.add(key);
   }
 
@@ -433,6 +434,13 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     groups = loaded.groups;
     bundleErrors = loaded.errors;
     bundlesComplete = loaded.complete;
+    // A group without the named base has no side to diff against and no defined
+    // keys — a hole of the same kind as a dir that loaded nothing.
+    for (const group of groups) {
+      if (!config.baseLocale || group.bundles[config.baseLocale]) continue;
+      bundleErrors.push(`no "${config.baseLocale}" bundle (the base locale) in ${group.name}`);
+      bundlesComplete = false;
+    }
   }
 
   const sections: Record<string, Outcome> = {};

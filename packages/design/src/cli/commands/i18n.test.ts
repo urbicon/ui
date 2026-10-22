@@ -76,6 +76,16 @@ describe('urbicon i18n', () => {
     expect(lastJson().unused?.unused.some((u) => u.key === 'unused.deep')).toBe(false);
   });
 
+  it('fails a group without the --base-locale bundle instead of reading another', async () => {
+    // The fixture has en and de only.
+    expect(await run('unused', { 'base-locale': 'fr', json: true })).toBe(1);
+    const json = lastJson();
+    expect(json.bundleErrors).toEqual([
+      expect.stringContaining('no "fr" bundle (the base locale) in ')
+    ]);
+    expect(json.unused).toBeUndefined();
+  });
+
   it('flags hardcoded markup copy', async () => {
     await run('hardcoded', { json: true });
     const json = lastJson();

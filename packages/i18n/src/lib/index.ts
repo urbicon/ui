@@ -17,8 +17,8 @@ export type {
   TranslationFindingSeverity
 } from '#lib/audit/translations.js';
 // Translation audit (data-level parity & quality). Pure, dependency-free — run in
-// a vitest test (`expect(auditTranslations(bundles).ok).toBe(true)`) or via the
-// `urbicon i18n parity` CLI. The richer successor to validatePackageTranslations.
+// a vitest test or via the `urbicon i18n parity` CLI. For a createPackageI18n
+// package, `auditPackage` on the `/audit` subpath reads the base from the package.
 export { auditTranslations } from '#lib/audit/translations.js';
 // Provider + general hook: mount one <I18nProvider> at the app root, read locale
 // control and locale-aware formatting via useI18n() inside components.
@@ -33,8 +33,7 @@ export {
   createPackageTranslations,
   createTypedPackage,
   registerPackages,
-  registerTranslationLoaders,
-  validatePackageTranslations
+  registerTranslationLoaders
 } from '#lib/i18n/package-integration.js';
 // The `explicit prop → provider → base locale` chain a component resolves an
 // `Intl` tag through. Distinct from `resolveLocale` below: this one answers
@@ -56,6 +55,7 @@ export type {
   Locale,
   PackageBundles,
   PackageI18n,
+  PackageSource,
   PackageTranslations,
   PluralParams,
   PluralRules,

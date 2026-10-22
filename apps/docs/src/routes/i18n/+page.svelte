@@ -47,12 +47,14 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
   isLocaleSupported,
 
   // Package integration
-  createPackageI18n, // (name, { en }, { loaders }?) -> { useTranslate, t, exists, getLocales, … }
-  validatePackageTranslations,
+  createPackageI18n, // (name, { en }, { base?, loaders? }?) -> { useTranslate, t, exists, getLocales, source, … }
 
   // Deep-key utilities
   getDeepValue, hasDeepKey, collectDeepKeys
-} from '@urbicon-ui/i18n';`;
+} from '@urbicon-ui/i18n';
+
+// Test-time audit of a package's bundles against its base
+import { auditPackage } from '@urbicon-ui/i18n/audit';`;
 </script>
 
 <SeoMeta
