@@ -107,9 +107,7 @@ function forceCompactBar() {
   };
 }
 
-// Menus and tooltips live in a native popover, which jsdom has no top layer
-// for — hence `{ hidden: true }` everywhere; see the blocks-testing skill.
-const summaryTrigger = () => screen.getByRole('button', { name: 'Summary', hidden: true });
+const summaryTrigger = () => screen.getByRole('button', { name: 'Summary' });
 const query = (testId: string) => screen.queryByTestId(testId);
 
 /** Every surface that claims a summary is acting on the grid, read at once. */
@@ -235,14 +233,14 @@ describe('toggleSummary(): the editing controls', () => {
     expect(query('summary-row-total')).toBeNull();
 
     await user.click(screen.getByTestId('header-menu-trigger-amount'));
-    await user.click(screen.getByRole('menuitem', { name: 'Summary', hidden: true }));
+    await user.click(screen.getByRole('menuitem', { name: 'Summary' }));
 
-    expect(
-      screen.getByRole('menuitemradio', { name: 'Sum', hidden: true }).getAttribute('aria-checked')
-    ).toBe('true');
-    expect(
-      screen.getByRole('menuitemradio', { name: 'None', hidden: true }).getAttribute('aria-checked')
-    ).toBe('false');
+    expect(screen.getByRole('menuitemradio', { name: 'Sum' }).getAttribute('aria-checked')).toBe(
+      'true'
+    );
+    expect(screen.getByRole('menuitemradio', { name: 'None' }).getAttribute('aria-checked')).toBe(
+      'false'
+    );
   });
 
   it('a pick from the hidden state brings back exactly the set the control showed', async () => {
@@ -259,8 +257,8 @@ describe('toggleSummary(): the editing controls', () => {
     flushSync();
 
     await user.click(screen.getByTestId('header-menu-trigger-amount'));
-    await user.click(screen.getByRole('menuitem', { name: 'Summary', hidden: true }));
-    await user.click(screen.getByRole('menuitemradio', { name: 'Average', hidden: true }));
+    await user.click(screen.getByRole('menuitem', { name: 'Summary' }));
+    await user.click(screen.getByRole('menuitemradio', { name: 'Average' }));
 
     expect(context().state.summaryConfigs).toEqual([
       { column: 'amount', type: 'avg' },
@@ -284,8 +282,8 @@ describe('toggleSummary(): the editing controls', () => {
     flushSync();
 
     await user.click(screen.getByTestId('header-menu-trigger-amount'));
-    await user.click(screen.getByRole('menuitem', { name: 'Summary', hidden: true }));
-    await user.click(screen.getByRole('menuitemradio', { name: 'None', hidden: true }));
+    await user.click(screen.getByRole('menuitem', { name: 'Summary' }));
+    await user.click(screen.getByRole('menuitemradio', { name: 'None' }));
 
     expect(context().state.summaryConfigs).toEqual([{ column: 'price', type: 'min' }]);
     expect(context().state.showSummary).toBe(false);

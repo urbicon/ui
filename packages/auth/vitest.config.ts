@@ -21,8 +21,9 @@ export default mergeConfig(
       // live. The file is guarded on `window`, so the node files (the bulk of
       // this suite) load it and skip all of it. It reaches across the package
       // boundary to a path outside blocks' exports map, which is safe only
-      // because it is import-free and never published; should it ever gain an
-      // import, this run fails loudly on the unresolved specifier rather than
+      // because its only imports are the import-free `scripts/vitest-*.ts`
+      // stubs and it is never published; should it ever gain a package import,
+      // this run fails loudly on the unresolved specifier rather than
       // quietly losing a polyfill. The package's own file resets the two
       // process-wide secret registries before each test, and it is held to the
       // same rule for the same reason: a module a setup file imports is pinned

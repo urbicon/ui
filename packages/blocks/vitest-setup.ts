@@ -1,4 +1,5 @@
 import '../../scripts/vitest-match-media';
+import '../../scripts/vitest-popover';
 
 // Global vitest setup for @urbicon-ui/blocks.
 //
@@ -39,13 +40,8 @@ if (typeof window !== 'undefined') {
     Element.prototype.hasPointerCapture = () => false;
   }
 
-  // Native Popover API (listbox/menu/tooltip render in the browser top layer). jsdom has no top
-  // layer; no-op show/hide keeps `useFloatingPanel` from throwing. Content still renders from the
-  // component's `open` state, so the listbox/menu options appear in the DOM regardless.
-  if (!HTMLElement.prototype.showPopover) {
-    HTMLElement.prototype.showPopover = () => {};
-    HTMLElement.prototype.hidePopover = () => {};
-  }
+  // The Popover API (listbox/menu/tooltip render in the browser top layer) is installed by
+  // `scripts/vitest-popover.ts` (imported at the top), shared with table.
 
   // Native modal `<dialog>` (Dialog/Drawer call `showModal()` to enter the top
   // layer). jsdom ships no showModal/show/close, so reflect the `open` attribute

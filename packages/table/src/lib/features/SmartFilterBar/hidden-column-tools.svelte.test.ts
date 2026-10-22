@@ -98,9 +98,7 @@ function renderTable(): { ctx: () => InternalTableContext } {
 }
 
 const box = (testid: string) => screen.getByTestId(testid);
-// Menu and Select content renders in a native popover; jsdom has no top layer,
-// hence `{ hidden: true }` — see the blocks-testing skill.
-const trigger = (name: string) => screen.getByRole('button', { name, hidden: true });
+const trigger = (name: string) => screen.getByRole('button', { name });
 const names = (items: unknown[]) => items.map((item) => (item as Row).name);
 
 describe('#253 — a hidden column keeps its tool value on screen', () => {
@@ -164,9 +162,7 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
     // `customTrigger` and Svelte never evaluates the `selectedOptions` argument
     // it declines to read.
     await user.click(trigger('Sort'));
-    expect(
-      screen.getByRole('option', { name: 'Location · Descending', hidden: true })
-    ).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Location · Descending' })).toBeTruthy();
 
     // …and the grid is still sorted by it, not re-ordered by an undefined value.
     expect(names(ctx().sortedItems)).toEqual(['Grace', 'Ada']);
@@ -189,11 +185,9 @@ describe('#253 — a hidden column keeps its tool value on screen', () => {
 
     // The wide bar's menu: the same state as a `menuitemradio` group.
     await user.click(trigger('Summary'));
-    const menuGroup = screen.getByRole('group', { name: 'Amount total', hidden: true });
+    const menuGroup = screen.getByRole('group', { name: 'Amount total' });
     expect(
-      within(menuGroup)
-        .getByRole('menuitemradio', { name: '∑ Sum', hidden: true })
-        .getAttribute('aria-checked')
+      within(menuGroup).getByRole('menuitemradio', { name: '∑ Sum' }).getAttribute('aria-checked')
     ).toBe('true');
 
     // …and the aggregate itself stays right. The desktop summary row draws no

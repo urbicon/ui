@@ -12,12 +12,10 @@ import Menu from './Menu.svelte';
 // trigger). Unlike Select's listbox (virtual cursor on the trigger), Menu moves
 // focus into the panel, which only a mounted-in-a-DOM test exercises.
 //
-// Menu renders its panel through Popover in manual mode (autoTrigger=false); in
-// jsdom there is no top layer, so items live in the DOM but read as "hidden" —
-// queried with `{ hidden: true }`. Same stack + rationale as the Combobox pilot:
-// Svelte's own `mount`/`unmount`, @testing-library/dom + user-event, native
-// vitest matchers. These assert menu *logic* (open state, activation callbacks,
-// keyboard nav, focus restore), not visual visibility — that is Playwright's job.
+// Menu renders its panel through Popover in manual mode (autoTrigger=false).
+// Absence checks pass `{ hidden: true }`, so they also catch an item left
+// rendered but hidden. Same stack as the Combobox pilot: Svelte's own
+// `mount`/`unmount`, @testing-library/dom + user-event, native vitest matchers.
 
 let dispose: (() => void) | undefined;
 
@@ -34,8 +32,8 @@ function renderMenu(props: MenuProps) {
 }
 
 const trigger = () => screen.getByRole('button', { name: /Actions/ });
-const item = (name: string) => screen.getByRole('menuitem', { name, hidden: true });
-const radioItem = (name: string) => screen.getByRole('menuitemradio', { name, hidden: true });
+const item = (name: string) => screen.getByRole('menuitem', { name });
+const radioItem = (name: string) => screen.getByRole('menuitemradio', { name });
 const expanded = () => trigger().getAttribute('aria-expanded');
 
 describe('Menu (component interaction)', () => {
@@ -50,7 +48,7 @@ describe('Menu (component interaction)', () => {
 
     expect(expanded()).toBe('true');
     expect(item('Edit')).toBeTruthy();
-    expect(screen.getAllByRole('menuitem', { hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
   });
 
   it('activates an item on click: fires onSelect once and closes the menu', async () => {
@@ -300,7 +298,7 @@ describe('Menu (selectable items)', () => {
 
     await user.click(trigger());
 
-    const group = screen.getByRole('group', { hidden: true });
+    const group = screen.getByRole('group');
     const labelId = group.getAttribute('aria-labelledby');
     expect(labelId).toBeTruthy();
     expect(document.getElementById(labelId as string)?.textContent?.trim()).toBe('Sort by');
@@ -344,7 +342,7 @@ describe('Menu (selectable items)', () => {
 // pipeline, and the submenu parent row (which used to bypass the item styling
 // entirely — no slotClasses.item, no unstyled).
 describe('Menu (per-item styling)', () => {
-  const nested = () => screen.getByRole('menuitem', { name: 'Nested', hidden: true });
+  const nested = () => screen.getByRole('menuitem', { name: 'Nested' });
 
   it('applies the per-item class in array mode, on the submenu parent row, and inside the submenu', async () => {
     const user = userEvent.setup();
@@ -407,7 +405,7 @@ describe('Menu (submenu lifecycle & detail readout)', () => {
 
     await user.click(trigger());
     await user.click(item('More'));
-    expect(screen.getByRole('menuitem', { name: 'Nested', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Nested' })).toBeTruthy();
 
     await user.keyboard('{Escape}');
     await user.click(trigger());
@@ -478,8 +476,8 @@ describe('Menu (context menu)', () => {
     const ev = rightClick(screen.getByTestId('ctx-target'));
 
     expect(ev.defaultPrevented).toBe(true);
-    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
-    expect(screen.getAllByRole('menuitem', { hidden: true })).toHaveLength(2);
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
   });
 
   it('does not open (nor preventDefault) when disabled', () => {
@@ -495,7 +493,7 @@ describe('Menu (context menu)', () => {
     renderMenu({ items: [{ label: 'Cut', onSelect: onCut }], contextTrigger });
 
     rightClick(screen.getByTestId('ctx-target'));
-    await user.click(screen.getByRole('menuitem', { name: 'Cut', hidden: true }));
+    await user.click(screen.getByRole('menuitem', { name: 'Cut' }));
 
     expect(onCut).toHaveBeenCalledOnce();
     expect(screen.queryByRole('menuitem', { hidden: true })).toBeNull();
