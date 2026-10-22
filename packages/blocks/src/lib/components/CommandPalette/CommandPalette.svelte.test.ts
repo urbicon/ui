@@ -1361,3 +1361,69 @@ describe('CommandPalette (footer)', () => {
     expect(hintTexts()).toEqual(['↑↓ Navigieren', '↵ Auswählen', 'Esc Schließen']);
   });
 });
+
+/**
+ * Items are consumer data, and nothing makes their ids or labels unique: a row
+ * whose `id` repeats, or matches the label of a row without one, still renders.
+ */
+describe('CommandPalette (row identity)', () => {
+  const optionLabels = () =>
+    screen.getAllByRole('option', { hidden: true }).map((row) => row.textContent?.trim());
+
+  it.each<[string, CommandPaletteItem[]]>([
+    [
+      'two rows without an id that share a label',
+      [
+        { label: 'Open', category: 'File' },
+        { label: 'Open', category: 'File', excerpt: 'Read-only' }
+      ]
+    ],
+    [
+      'two rows that share an id',
+      [
+        { id: 'open', label: 'Open' },
+        { id: 'open', label: 'Open recent' }
+      ]
+    ],
+    [
+      'a row whose id is the label of a row without one',
+      [{ id: 'Open', label: 'Open file' }, { label: 'Open' }]
+    ]
+  ])('renders %s', async (_, items) => {
+    render({ items });
+    await tick();
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(2);
+  });
+
+  it.each<[string, CommandPaletteItem[]]>([
+    [
+      'by its id',
+      [
+        { id: 'a', label: 'Alpha' },
+        { id: 'b', label: 'Beta' }
+      ]
+    ],
+    ['by its label without an id', [{ label: 'Alpha' }, { label: 'Beta' }]],
+    [
+      // JSON hands the palette `null` where the type says `undefined`.
+      'by its label when its id is null',
+      [
+        { id: null, label: 'Alpha' },
+        { id: null, label: 'Beta' }
+      ] as unknown as CommandPaletteItem[]
+    ],
+    [
+      'by its label beside an id that spells it',
+      [{ id: 'Beta', label: 'Alpha' }, { label: 'Beta' }]
+    ]
+  ])("keeps a row's node %s while the query filters the list", async (_, items) => {
+    render({ items });
+    await tick();
+    const beta = screen.getByRole('option', { name: 'Beta', hidden: true });
+
+    type('Beta');
+
+    expect(optionLabels()).toEqual(['Beta']);
+    expect(screen.getByRole('option', { name: 'Beta', hidden: true })).toBe(beta);
+  });
+});

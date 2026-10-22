@@ -181,9 +181,7 @@
     <Note title="Bidirectional Highlight">
       <p>
         Hovering or focusing a bar segment dims the other segments and highlights the matching
-        legend entry, and the reverse holds too. The link runs through the shared
-        <code class="text-text-primary">item.id</code>
-        (or the index as a fallback).
+        legend entry, and the reverse holds too.
       </p>
     </Note>
   </NoteList>

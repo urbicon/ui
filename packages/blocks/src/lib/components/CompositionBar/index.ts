@@ -12,7 +12,11 @@ export type CompositionBarIntent =
 
 /** A single share in the stacked bar. */
 export interface CompositionItem {
-  /** Stable ID for highlight synchronization and snippet identity. */
+  /**
+   * Keeps the item's segment and legend row with it when `items` reorder;
+   * without one they stay at the position. Two items may share an id; those
+   * keep their places rather than following the item.
+   */
   id?: string | number;
   /** Display label in the legend and the default tooltip. */
   label: string;

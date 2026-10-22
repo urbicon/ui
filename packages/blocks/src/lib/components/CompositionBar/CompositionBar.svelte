@@ -2,6 +2,7 @@
   import { useBlocksI18n } from '#lib';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { eachKeys } from '#lib/internal/each-keys.js';
   import { percentFormatter } from '#lib/internal/percent.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
@@ -60,7 +61,7 @@
   );
 
   let barRef = $state<HTMLDivElement>();
-  let hoveredId = $state<string | number | null>(null);
+  let hoveredKey = $state<string | null>(null);
 
   const itemsSum = $derived(items.reduce((s, i) => s + Math.max(0, i.value), 0));
   const hasExplicitTotal = $derived(totalOverride !== undefined);
@@ -140,9 +141,14 @@
   const fmtValue = (v: number) => (formatValue ? formatValue(v) : v.toString());
   const fmtPercent = (p: number) => (formatPercent ? formatPercent(p) : defaultPercentFmt(p));
 
-  // Stable IDs per item — falls back to the index when no ID is set
-  const itemKey = (item: CompositionItem, index: number) =>
-    item.id !== undefined ? item.id : index;
+  // One key per item for the three loops and the hover, distinct even when ids
+  // repeat or one equals the position an item without an id falls back to.
+  // `typeof` keeps the id `1` apart from `'1'`.
+  const itemKeys = $derived(
+    eachKeys(items, (item, index) =>
+      item.id === undefined ? `index:${index}` : `${typeof item.id}:${item.id}`
+    )
+  );
 
   // Readable text color on the segment background (for showValues). Not a
   // variant axis like `fill` and `intent`: the element it lands on carries no
@@ -263,22 +269,22 @@
       aria-label={ariaSummary}
       class={unstyled ? (slotClasses?.bar ?? '') : styles.bar({ class: slotClasses?.bar })}
     >
-      {#each items as item, index (itemKey(item, index))}
+      {#each items as item, index (itemKeys[index])}
         {@const pct = adjustedPercents[index]}
         {@const rawPct = rawPercents[index]}
-        {@const k = itemKey(item, index)}
-        {@const isHovered = hoveredId === k}
+        {@const k = itemKeys[index]}
+        {@const isHovered = hoveredKey === k}
         {#if pct > 0}
           <button
             type="button"
             data-composition-segment
-            data-segment-id={k}
+            data-segment-id={item.id ?? index}
             class={unstyled
               ? (slotClasses?.segment ?? '')
               : styles.segment({
                   intent: itemIntent(item),
                   fill: itemFill(item),
-                  dimmed: hoveredId !== null && !isHovered,
+                  dimmed: hoveredKey !== null && !isHovered,
                   class: slotClasses?.segment
                 })}
             style={[
@@ -294,10 +300,10 @@
               .join('; ')}
             aria-label={`${item.label}: ${fmtValue(item.value)} (${fmtPercent(rawPct)})`}
             tabindex="0"
-            onmouseenter={() => (hoveredId = k)}
-            onmouseleave={() => (hoveredId = null)}
-            onfocus={() => (hoveredId = k)}
-            onblur={() => (hoveredId = null)}
+            onmouseenter={() => (hoveredKey = k)}
+            onmouseleave={() => (hoveredKey = null)}
+            onfocus={() => (hoveredKey = k)}
+            onblur={() => (hoveredKey = null)}
             onclick={() => handleSelect(item, index)}
             onkeydown={(e) => handleSegmentKeydown(e, item, index)}
           >
@@ -377,7 +383,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each items as item, index (itemKey(item, index))}
+          {#each items as item, index (itemKeys[index])}
             <tr>
               <td>{item.label}</td>
               <td>{fmtValue(item.value)}</td>
@@ -401,10 +407,10 @@
     <ul
       class={unstyled ? (slotClasses?.legend ?? '') : styles.legend({ class: slotClasses?.legend })}
     >
-      {#each items as item, index (itemKey(item, index))}
-        {@const k = itemKey(item, index)}
+      {#each items as item, index (itemKeys[index])}
+        {@const k = itemKeys[index]}
         {@const rawPct = rawPercents[index]}
-        {@const isHovered = hoveredId === k}
+        {@const isHovered = hoveredKey === k}
         <li>
           <button
             type="button"
@@ -413,14 +419,14 @@
               : styles.legendItem({
                   intent: itemIntent(item),
                   isHovered,
-                  dimmed: hoveredId !== null && !isHovered,
+                  dimmed: hoveredKey !== null && !isHovered,
                   class: slotClasses?.legendItem
                 })}
             aria-label={`${item.label}: ${fmtValue(item.value)} (${fmtPercent(rawPct)})`}
-            onmouseenter={() => (hoveredId = k)}
-            onmouseleave={() => (hoveredId = null)}
-            onfocus={() => (hoveredId = k)}
-            onblur={() => (hoveredId = null)}
+            onmouseenter={() => (hoveredKey = k)}
+            onmouseleave={() => (hoveredKey = null)}
+            onfocus={() => (hoveredKey = k)}
+            onblur={() => (hoveredKey = null)}
             onclick={() => handleSelect(item, index)}
           >
             {#if legendItemSnippet}

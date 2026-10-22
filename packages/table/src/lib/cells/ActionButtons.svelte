@@ -214,7 +214,7 @@
       </Button>
     {/if}
 
-    {#each extraActions as action (action.testIdSuffix ?? action.label)}
+    {#each extraActions as action, i (`${action.testIdSuffix ?? action.label}-${i}`)}
       {#if action.show?.(item) ?? true}
         {@const ExtraIcon = action.icon}
         {@const isDisabled = action.disabled?.(item) ?? false}
