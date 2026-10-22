@@ -663,8 +663,8 @@ They go on every response the hook returns — what `resolve` renders and the
 hook's own refusals alike: the guard's `401`, the remote-function default-deny,
 the CSRF `403` and the `400` for a pathname that does not decode. What leaves
 the hook as a throw gets none, because SvelteKit builds that response itself:
-the guard's login redirect — a `302`, or a JSON redirect for a `__data.json`
-request, either carrying the staged cookies — and the `500` for a step that
+the guard's login redirect, in whichever form SvelteKit gives it for the
+request, carrying the staged cookies — and the `500` for a step that
 throws, such as a failing `transformUser`. The login page the redirect leads to
 carries them.
 
