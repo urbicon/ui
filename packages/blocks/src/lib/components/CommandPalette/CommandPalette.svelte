@@ -4,6 +4,7 @@
   import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import SearchIconDefault from '#lib/icons/SearchIcon.svelte';
+  import { eachKeys } from '#lib/internal/each-keys.js';
   import { Dialog, Kbd, Separator } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
@@ -95,6 +96,15 @@
    * item count on every render.
    */
   type GroupEntry = { item: CommandPaletteItem; flatIdx: number };
+
+  /**
+   * The row keys, by `flatIdx`. An item keys by its `id`, or by its `label`
+   * without one, so its row stays with it while the list filters; the keys
+   * stay distinct when ids or labels repeat, or an id spells a label.
+   */
+  const rowKeys = $derived(
+    eachKeys(filtered, (item) => (item.id === undefined ? `label:${item.label}` : `id:${item.id}`))
+  );
 
   const grouped = $derived.by(() => {
     const groups: { category: string; entries: GroupEntry[] }[] = [];
@@ -418,7 +428,7 @@
               {group.category}
             </div>
           {/if}
-          {#each group.entries as { item, flatIdx } (item.id ?? item.label)}
+          {#each group.entries as { item, flatIdx } (rowKeys[flatIdx])}
             {@const isHighlighted = flatIdx === highlightIndex}
             {@const isDisabled = item.disabled ?? false}
             <!--

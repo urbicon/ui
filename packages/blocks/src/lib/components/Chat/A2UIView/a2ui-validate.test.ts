@@ -1030,6 +1030,18 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
         expect(stored(proc, 'checks')).toBeUndefined();
       });
     }
+
+    // Such rules fail before their condition counts against the cap, so only
+    // the list's length can refuse them as one.
+    it('refuses more rules than the cap with one error, though none has a message', () => {
+      const proc = urbiconSurface(
+        checkedButton(Array.from({ length: MAX + 1 }, () => ({ condition: true })))
+      );
+      expect(allIssues(proc).map((i) => [i.severity, i.code, i.path])).toEqual([
+        ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, CHECKS]
+      ]);
+      expect(stored(proc, 'disabled')).toBe(true);
+    });
   });
 
   it('holds a condition nested deeper than a gate may be closed', () => {
@@ -1123,7 +1135,11 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       ignoredProps: new Set(ignored),
       flexContainers: new Set()
     });
-    const apply = (spec: A2uiCatalogSpec, checks: unknown): A2uiProcessor => {
+    const apply = (
+      spec: A2uiCatalogSpec,
+      checks: unknown,
+      extra: Record<string, unknown> = {}
+    ): A2uiProcessor => {
       const proc = createA2uiProcessor({ catalogs: [spec] });
       proc.apply(
         { version: V91, createSurface: { surfaceId: 's', catalogId: 'consumer/gated' } },
@@ -1134,7 +1150,7 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
           version: V91,
           updateComponents: {
             surfaceId: 's',
-            components: [{ id: 'root', component: 'Go', label: 'Go', checks }]
+            components: [{ id: 'root', component: 'Go', label: 'Go', checks, ...extra }]
           }
         },
         1
@@ -1173,6 +1189,17 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       const broken = apply(asked, [rule(required('/agreed'))]);
       expect(summary(broken)).toEqual([['error', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED]]);
       expect(stored(broken, 'disabled')).toBe(true);
+    });
+
+    // A prop without a failsafe has nothing to be held at: holding it would
+    // write `undefined` over the payload's value, which renders it open.
+    it('leaves checks to the catalog where readsChecks sits on a prop that is no gate', () => {
+      const notGate = catalog([], {
+        disabled: { kind: 'boolean', dynamic: true, readsChecks: true, description: 'No gate.' }
+      });
+      const proc = apply(notGate, [rule(required('/agreed'))], { disabled: true });
+      expect(stored(proc, 'disabled')).toBe(true);
+      expect(summary(proc)).toEqual([['error', A2UI_ISSUE_CODES.UNKNOWN_PROP]]);
     });
   });
 });
