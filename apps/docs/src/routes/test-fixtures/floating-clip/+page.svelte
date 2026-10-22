@@ -34,8 +34,12 @@
     </div>
   </div>
 
-  <!-- The same box with a top-layer listbox: the box does not clip it. -->
-  <div class="border-border-default relative h-64 w-80 overflow-y-auto rounded border p-4">
+  <!-- The same box, transformed, with a top-layer listbox. The transform would
+       hold a fixed listbox in the box; the top layer escapes it all the same. -->
+  <div
+    class="border-border-default relative h-64 w-80 overflow-y-auto rounded border p-4"
+    style:transform="translateX(0)"
+  >
     <div class="flex h-full flex-col justify-end">
       <Select label="Portalled" value="contains" {options} />
     </div>

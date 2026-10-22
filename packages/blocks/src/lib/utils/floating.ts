@@ -228,7 +228,7 @@ function inTopLayer(el: Element): boolean {
  * Whether `style` makes its element the containing block of positioned
  * descendants on its own, with no `position` of its own needed — the list
  * `position: fixed` escapes everything but. `container-type` is not on it:
- * it does not contain a fixed child (measured in Chromium).
+ * it does not contain a fixed child (measured in Chromium and WebKit).
  */
 function establishesContainingBlock(style: CSSStyleDeclaration): boolean {
   return (
@@ -279,6 +279,11 @@ export function clippingBoundary(floating: HTMLElement): Boundary {
   let seeking: string | undefined = getComputedStyle(floating).position;
   for (; node && node !== body && node !== documentElement; node = node.parentElement) {
     const style = getComputedStyle(node);
+    // `display: contents` makes no box: it clips nothing, contains nothing and
+    // takes nothing out of flow, whatever its `position`, `overflow`, `filter`
+    // or `will-change` say. An open dialog or popover never computes to it —
+    // the top layer makes it `block` — so the walk still stops there.
+    if (style.display === 'contents') continue;
     if (seeking === 'absolute' || seeking === 'fixed') {
       const contains =
         establishesContainingBlock(style) ||
@@ -291,7 +296,7 @@ export function clippingBoundary(floating: HTMLElement): Boundary {
 
     const clipsX = CLIPPING_OVERFLOW.test(style.overflowX);
     const clipsY = CLIPPING_OVERFLOW.test(style.overflowY);
-    if ((clipsX || clipsY) && style.display !== 'inline' && style.display !== 'contents') {
+    if ((clipsX || clipsY) && style.display !== 'inline') {
       const box = node.getBoundingClientRect();
       const left = box.left + node.clientLeft;
       const top = box.top + node.clientTop;

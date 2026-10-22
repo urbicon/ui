@@ -1,13 +1,11 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 // An in-place panel (`usePortal={false}`) inside a scroll box is cut off at the
-// box's edge however much room the viewport has. `flip`, `shift` and `size`
-// measure against that edge (`clippingBoundary` in utils/floating.ts); before,
-// they measured against the viewport alone, and the last operator select of the
-// filter popover opened downward into the box's edge with three of its four
-// options unreachable (#93). The other cases are the ones the boundary must NOT
-// narrow: a top-layer listbox, and fixed listboxes inside a modal dialog that
-// sits in a transformed, clipping box or holds a size container. jsdom has no
+// box's edge however much room the viewport has, so `flip`, `shift` and `size`
+// measure against that edge (`clippingBoundary` in utils/floating.ts). The
+// other cases are the ones the boundary must NOT narrow: a top-layer listbox in
+// a transformed scroll box, and fixed listboxes inside a modal dialog that sits
+// in a transformed, clipping box or holds a size container. jsdom has no
 // layout, so this is where the geometry is asserted.
 
 const FIXTURE_URL = '/test-fixtures/floating-clip';
@@ -75,7 +73,9 @@ test.describe('floating panel inside a clipping box', () => {
     expect(await reachableOptions(page)).toEqual([true, true, true, true]);
   });
 
-  test('a top-layer listbox is not narrowed by the box it was declared in', async ({ page }) => {
+  test('a top-layer listbox is not narrowed by the transformed box it was declared in', async ({
+    page
+  }) => {
     await gotoFixture(page);
     const { trigger, listbox } = await open(page, 'Portalled');
 

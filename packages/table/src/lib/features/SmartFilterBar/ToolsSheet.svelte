@@ -19,21 +19,19 @@
    *
    * The bar used to fold its five triggers into a popover, and each of those
    * triggers opened a panel of its own: a `Select` listbox or the filter
-   * popover, i.e. a second overlay inside the first. That construction has three
+   * popover, i.e. a second overlay inside the first. That construction has two
    * failure modes that are not implementation bugs and do not go away by fixing
    * one of them:
    *
-   * 1. **The inner panel is clipped by the outer one.** A nested panel renders
-   *    `position: absolute` (Popover's own contract for a panel inside a panel),
-   *    and the outer popover is a `max-h` + `overflow-y-auto` box. Floating UI
-   *    flips and shifts against the viewport, not against that scroll box, so
-   *    the options land outside it.
-   * 2. **The inner panel flips onto the outer one.** The trigger sits partway
+   * 1. **The inner panel flips onto the outer one.** The trigger sits partway
    *    down a panel that already reaches the viewport edge, so there is no room
    *    below it, and the panel opens upward — over the thing it came from.
-   * 3. **Two nested height caps and a keyboard.** Both panels cap themselves
-   *    against the visual viewport. With the iOS keyboard open, that is a form
-   *    inside a ~200px window inside a ~300px window.
+   * 2. **Two nested height caps and a keyboard.** A nested panel renders
+   *    `position: absolute` (Popover's own contract for a panel inside a panel)
+   *    in the outer popover's `max-h` + `overflow-y-auto` box, so it caps itself
+   *    against that box, and the box against the visual viewport. With the iOS
+   *    keyboard open, that is a form inside a ~200px window inside a ~300px
+   *    window.
    *
    * A sheet removes the nesting rather than tuning it. It is one modal surface
    * at full bar width, the tools are sections instead of triggers, and none of
