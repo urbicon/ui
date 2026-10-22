@@ -22,16 +22,8 @@
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
   const controls = deriveControls(componentData, {
-    // intent/tier/disabled/variant reach the underlying Button through
-    // `Pick<ButtonProps, …>`; docs-gen resolves the members since 2026-07-30,
-    // so type, label and option list all derive.
     pick: ['value', 'label', 'size', 'variant', 'intent', 'tier', 'disabled'],
     overrides: {
-      // `variant`/`intent` are set in CopyButton.svelte rather than as a prop
-      // `@default`, so the extractor cannot see them and the derived default
-      // would be `values[0]` (filled / primary).
-      variant: { defaultValue: 'ghost' },
-      intent: { defaultValue: 'neutral' },
       value: { defaultValue: 'npm i @urbicon-ui/blocks' },
       label: { defaultValue: '' }
     }

@@ -100,10 +100,12 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
   it('declares every emitted inheritance prop field on InheritanceProp', async () => {
     const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
     const data = fullComponentData();
+    // An Omit / Pick clause carries no props; a plain `extends` of a local
+    // interface does.
     data.inheritance = [
       {
-        typeName: "Pick<ButtonProps, 'variant'>",
-        source: 'pick-pattern',
+        typeName: 'ButtonBaseProps',
+        source: 'local-interface',
         props: [
           {
             name: 'variant',

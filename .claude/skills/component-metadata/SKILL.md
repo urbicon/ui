@@ -51,7 +51,9 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 
 ## A prop's `@default` is copied, never checked
 
-docs-gen takes a direct prop's default from its `@default` tag alone (`PropsExtractor.ts`), never from the `$props()` destructuring; only a tv() axis reads its default from code (`defaultVariants`). A wrong `@default` travels unchecked into `api.ts`, the component's `llm.txt` and everything serving it (`llms-full.txt`, the `urbicon` CLI) — no gate compares it with the code. Change the tag in the same edit as the destructuring default.
+docs-gen takes a direct prop's default from its `@default` tag alone (`PropsExtractor.ts`), never from the `$props()` destructuring; only a component's own tv() axis reads its default from code (`defaultVariants`). A wrong `@default` travels unchecked into `api.ts`, the component's `llm.txt` and everything serving it (`llms-full.txt`, the `urbicon` CLI) — no gate compares it with the code. Change the tag in the same edit as the destructuring default.
+
+A wrapper that takes another component's props through `Omit` / `Pick` (NumberInput over `InputProps`, CopyButton over `ButtonProps`) inherits that component's tv() axes with no JSDoc and no `@default` — and the base's `defaultVariants` is not the wrapper's default wherever the wrapper sets its own (CopyButton's `variant` is `ghost`, Button's `filled`). Redeclare each forwarded axis on the wrapper's interface, typed by reference (`size?: InputProps['size']`), with its JSDoc and `@default`; `docs:gen` fails naming every axis that is not, unless the wrapper's own tv() config declares an axis of that name.
 
 ## A variant value's description lives in `*.variants.ts`
 

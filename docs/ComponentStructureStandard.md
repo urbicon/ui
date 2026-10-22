@@ -74,7 +74,7 @@ export interface CheckboxProps
 }
 ```
 
-Internal variant props that are not part of the public API (e.g. `elementType`) should also be excluded via `Omit`.
+Internal variant props that are not part of the public API (e.g. `elementType`, or `messageType`, which a field computes from `error`) should also be excluded via `Omit`.
 
 A compound subcomponent that only owns a slice of the parent's slots constrains its `slotClasses` keys from the derived `*Slots` type via `Exclude`/`Extract`/`Pick` — never a hand-written union that drifts when a slot is renamed. `AccordionItem` uses `Partial<Record<Exclude<AccordionSlots, 'base'>, string>>`; `TabItem` uses `Partial<Record<Extract<TabSlots, 'trigger' | 'icon' | 'label' | 'badge'>, string>>`.
 

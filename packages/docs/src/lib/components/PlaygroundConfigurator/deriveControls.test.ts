@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { computeOmittableDefaults, generateDefaultCode, normalizeControls } from './code-gen';
 import { defaultValuesOf, deriveControls } from './deriveControls';
 
 // Shaped like a real generated api.ts: variant axes carry their full value set,
@@ -23,7 +24,7 @@ describe('deriveControls', () => {
     const [intent] = deriveControls(SLIDER, { pick: ['intent'] });
 
     expect(intent).toMatchObject({ type: 'dropdown', key: 'intent', defaultValue: 'primary' });
-    // Values arrive alphabetically and come out in intent order.
+    // Values arrive in another order and come out in intent order.
     expect(intent.items?.map((i) => i.value)).toEqual(['primary', 'danger', 'neutral']);
   });
 
@@ -61,7 +62,6 @@ describe('deriveControls', () => {
   });
 
   it('reorders an alphabetical size axis into scale order', () => {
-    // docs-gen emits variant values sorted alphabetically.
     const [size] = deriveControls(
       { variants: [{ name: 'size', values: ['lg', 'md', 'sm', 'xl', 'xs'], defaultValue: 'md' }] },
       { pick: ['size'] }
@@ -280,5 +280,20 @@ describe('componentDefault', () => {
 
     expect(c.componentDefault).toBe('md');
     expect(c.defaultValue).toBe('md');
+  });
+
+  it('prints the first value of an axis that declares no default', () => {
+    // Avatar's `status`: the config has no default, the playground opens on
+    // "(none)", and the reader picks the value the config happens to list first.
+    const controls = deriveControls(
+      { variants: [{ name: 'status', values: ['online', 'offline', 'busy', 'away'] }] },
+      { pick: ['status'], overrides: { status: { defaultValue: '' } } }
+    );
+    const omittable = computeOmittableDefaults(normalizeControls(controls));
+
+    expect(controls[0].componentDefault).toBeUndefined();
+    expect(generateDefaultCode('Avatar', { status: 'online' }, omittable)).toContain(
+      'status="online"'
+    );
   });
 });

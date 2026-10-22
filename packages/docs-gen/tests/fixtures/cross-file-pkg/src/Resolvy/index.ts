@@ -44,4 +44,6 @@ export interface ResolvyProps {
 export interface PickScaleProps extends Pick<ResolvyBaseProps, 'scale' | 'layout'> {
   /** Own prop. */
   own?: string;
+  /** The picked tv() axis, redeclared: nothing else documents it. */
+  scale?: ResolvyBaseProps['scale'];
 }

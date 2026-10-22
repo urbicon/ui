@@ -11,6 +11,27 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.34.0
+
+### The field props types drop the axes the fields compute
+
+`InputProps`, and with it `NumberInputProps` and `CurrencyInputProps`, no longer accepts
+`hasLeftIcon`, `hasRightIcon` or `iconPosition`. `SelectProps` (and with it `LocaleSwitcherProps`),
+`TextareaProps`, `PinInputProps`, `TimeInputProps` and `SliderProps` no longer accept
+`messageType`, which `InputProps` already left out. Each component computes these axes itself, from
+its icon snippets and clear button, per icon container, or from `error`, and never read a prop of
+that name: it was passed on to the element as an unknown attribute.
+
+- **A call site that passes one of them no longer type-checks.** Delete the prop: it changed
+  nothing on screen. For the message colour, set `error`.
+- **Only the types change.** A component renders as before, and an `overrides` rule keyed on
+  `hasRightIcon` or `messageType` matches as before: its keys are the axes of the component's
+  tv() config, not its props.
+
+```sh
+rg -n -e 'hasLeftIcon' -e 'hasRightIcon' -e 'iconPosition' -e 'messageType' src
+```
+
 ## 8.33.0
 
 ### An A2UI `Button` with `checks` is disabled while a check fails

@@ -24,6 +24,23 @@ export interface ThroughVariantsProps extends Pick<GadgetProps, 'tone' | 'densit
 }
 
 /**
+ * The same clause with `density` — the axis nothing documents — redeclared.
+ *
+ * @description Fixture component that picks through a variant alias and redeclares an axis.
+ * @tag form
+ */
+export interface ThroughVariantsDeclaredProps
+  extends Pick<GadgetProps, 'tone' | 'density' | 'disabled'> {
+  /** Own prop. */
+  own?: string;
+  /**
+   * Row spacing of the gadget.
+   * @default 'cosy'
+   */
+  density?: GadgetProps['density'];
+}
+
+/**
  * The JourneyTimeline shape: the base is the *Variants alias itself, which is
  * a statement about which axes are public.
  *

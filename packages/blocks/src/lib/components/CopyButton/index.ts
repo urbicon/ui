@@ -34,6 +34,25 @@ export interface CopyButtonProps
     Omit<HTMLButtonAttributes, 'value' | 'onclick' | 'class' | 'disabled' | 'children'> {
   /** The text written to the clipboard when pressed. */
   value: string;
+  // Redeclared from the Pick: a tv() axis arrives through ButtonProps with no
+  // JSDoc and no `@default`, and `variant`'s default is CopyButton's, not Button's.
+  /**
+   * Visual weight of the button, forwarded to the underlying Button.
+   * @default 'ghost'
+   */
+  variant?: ButtonProps['variant'];
+  /**
+   * Color at rest, forwarded to the underlying Button; a copy shows `success`,
+   * a failed one `danger`.
+   * @default 'neutral'
+   */
+  intent?: ButtonProps['intent'];
+  /**
+   * Corner-radius tier, forwarded to the underlying Button. Read from the
+   * wrapping `TierContext` when unset.
+   * @default 'commit'
+   */
+  tier?: ButtonProps['tier'];
   /** Optional visible label next to the icon. When omitted the button is icon-only. */
   label?: string;
   /**

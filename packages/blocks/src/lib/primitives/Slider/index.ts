@@ -59,7 +59,7 @@ export interface SliderRangeStatusText {
  * ```
  */
 export interface SliderProps
-  extends Omit<SliderVariants, 'error' | 'rangeStatus'>,
+  extends Omit<SliderVariants, 'error' | 'messageType' | 'rangeStatus'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   /** Current value. Number for single, [min, max] tuple for range. Supports `bind:value`. */
   value?: number | [number, number];
