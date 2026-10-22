@@ -28,21 +28,23 @@
  * parser, not a regex: markup and imports quoted in a `code={`…`}` sample are
  * strings to the parser, so a sample showing them does not count.
  *
- * Run: `bun run refsections:lint` (after `bun run docs:gen:all`)
+ * Run: `bun run refsections:lint` (after `bun run docs:gen:all`). `--routes <dir>`
+ * points it at another routes tree; its positive controls
+ * (`refsections-lint.test.ts`) run it over a fixture.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'svelte/compiler';
 
-const ROUTES = join(dirname(fileURLToPath(import.meta.url)), '../src/routes');
+const APP_ROUTES = join(dirname(fileURLToPath(import.meta.url)), '../src/routes');
 
 /**
  * Component pages that compose `ApiReference` and `TypesReference` themselves,
  * each with the reason. An entry whose page renders `ReferenceSections`, or
  * that is no component page, is stale and an error.
  */
-const COMPOSED: Record<string, string> = {
+export const COMPOSED: Record<string, string> = {
   '/blocks/components/guide':
     'family page — one API Reference section holds a prop table per Guide surface and per ' +
     'controller/tour/step/event API under one Types section; the tables go through the ' +
@@ -96,7 +98,7 @@ interface Page {
   rendersReferenceSections: boolean;
 }
 
-function read(dir: string): Page {
+function read(routes: string, dir: string): Page {
   let importsOwnApi = false;
   let rendersReferenceSections = false;
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.svelte'))) {
@@ -106,7 +108,7 @@ function read(dir: string): Page {
     rendersReferenceSections ||= local !== null && renders(ast.fragment, local);
   }
   return {
-    route: dir.slice(ROUTES.length),
+    route: dir.slice(routes.length),
     importsOwnApi,
     hasApi: existsSync(join(dir, 'api.ts')),
     rendersReferenceSections
@@ -121,56 +123,71 @@ function pageDirs(dir: string, out: string[]): void {
   if (existsSync(join(dir, '+page.svelte'))) out.push(dir);
 }
 
-const dirs: string[] = [];
-pageDirs(ROUTES, dirs);
-const pages = dirs.map(read).filter((p) => p.importsOwnApi || p.hasApi);
+function lint(routes: string): void {
+  const dirs: string[] = [];
+  pageDirs(routes, dirs);
+  const pages = dirs.map((dir) => read(routes, dir)).filter((p) => p.importsOwnApi || p.hasApi);
 
-const errors: string[] = [];
-const composedSeen = new Set<string>();
+  const errors: string[] = [];
+  const composedSeen = new Set<string>();
 
-for (const page of pages) {
-  const { route } = page;
-  if (route in COMPOSED) composedSeen.add(route);
-  if (page.importsOwnApi && !page.hasApi) {
-    errors.push(
-      `${route}: imports './api' but no api.ts was generated for it, so its reference sections ` +
-        'cannot be checked. Run `bun run docs:gen:all`; if it still lacks one, the component ' +
-        'dropped out of the catalog.'
-    );
-    continue;
-  }
-  if (route in COMPOSED) {
-    if (page.rendersReferenceSections) {
-      errors.push(`${route}: renders <ReferenceSections> — drop its COMPOSED entry`);
+  for (const page of pages) {
+    const { route } = page;
+    if (route in COMPOSED) composedSeen.add(route);
+    if (page.importsOwnApi && !page.hasApi) {
+      errors.push(
+        `${route}: imports './api' but no api.ts was generated for it, so its reference sections ` +
+          'cannot be checked. Run `bun run docs:gen:all`; if it still lacks one, the component ' +
+          'dropped out of the catalog.'
+      );
+      continue;
     }
-    continue;
+    if (route in COMPOSED) {
+      if (page.rendersReferenceSections) {
+        errors.push(`${route}: renders <ReferenceSections> — drop its COMPOSED entry`);
+      }
+      continue;
+    }
+    if (!page.rendersReferenceSections) {
+      errors.push(
+        `${route}: is a component page and renders no <ReferenceSections>, so its props and ` +
+          `types are documented nowhere. Add \`<ReferenceSections {componentData} />\` with ` +
+          `\`componentData\` from './api', or list the page in COMPOSED with the reason.`
+      );
+    }
   }
-  if (!page.rendersReferenceSections) {
-    errors.push(
-      `${route}: is a component page and renders no <ReferenceSections>, so its props and ` +
-        `types are documented nowhere. Add \`<ReferenceSections {componentData} />\` with ` +
-        `\`componentData\` from './api', or list the page in COMPOSED with the reason.`
-    );
+
+  for (const route of Object.keys(COMPOSED)) {
+    if (!composedSeen.has(route)) {
+      errors.push(`COMPOSED: stale entry '${route}' — no component page there. Remove it.`);
+    }
   }
-}
 
-for (const route of Object.keys(COMPOSED)) {
-  if (!composedSeen.has(route)) {
-    errors.push(`COMPOSED: stale entry '${route}' — no component page there. Remove it.`);
+  if (pages.length === 0) {
+    errors.push(`no component page under ${routes} — did the routes move?`);
   }
+
+  if (errors.length > 0) {
+    console.error(`\n\x1b[31m✗ refsections-lint: ${errors.length} error(s)\x1b[0m`);
+    for (const e of errors) console.error(`  ${e}`);
+    process.exit(1);
+  }
+
+  console.log(
+    `\x1b[32m✓ refsections-lint: ${pages.length - composedSeen.size} component pages render ` +
+      `<ReferenceSections>, ${composedSeen.size} compose the tables by decision.\x1b[0m`
+  );
 }
 
-if (pages.length === 0) {
-  errors.push(`no component page under ${ROUTES} — did the routes move?`);
+if (import.meta.main) {
+  const argv = process.argv.slice(2);
+  const at = argv.indexOf('--routes');
+  const given = at === -1 ? null : argv[at + 1];
+  // `--routes` with nothing behind it would otherwise lint the app's own tree
+  // and report it clean for a tree the caller never named.
+  if (at !== -1 && (!given || given.startsWith('--'))) {
+    console.error('refsections-lint: --routes needs a directory');
+    process.exit(2);
+  }
+  lint(given ? resolve(given) : APP_ROUTES);
 }
-
-if (errors.length > 0) {
-  console.error(`\n\x1b[31m✗ refsections-lint: ${errors.length} error(s)\x1b[0m`);
-  for (const e of errors) console.error(`  ${e}`);
-  process.exit(1);
-}
-
-console.log(
-  `\x1b[32m✓ refsections-lint: ${pages.length - composedSeen.size} component pages render ` +
-    `<ReferenceSections>, ${composedSeen.size} compose the tables by decision.\x1b[0m`
-);

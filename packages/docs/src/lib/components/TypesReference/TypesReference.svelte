@@ -38,12 +38,11 @@
   // and renders under the docs locale's `lang` (the title/subtitle snippets);
   // a consumer's string is in the page's own language and renders as given.
   //
-  // The count is the types the component has, not the rows on screen: the API
-  // Reference above counts its props the same way, and its search narrows the
-  // rows without changing either of its counts. So the heading and the toolbar
-  // always agree, whatever "Only referenced" or the search hides.
+  // The toolbar's count is the types the component has, not the rows on screen:
+  // "Only referenced" and the search narrow the rows and leave it alone, as the
+  // API Reference's search leaves its prop count. It is the section's one count;
+  // the heading shows a `meta` only when a page passes one.
   const typesCount = $derived(dt('typesCount', { count: types.length }));
-  const headingMeta = $derived(meta ?? typesCount);
 
   type SlotName = keyof NonNullable<TypesReferenceProps['slotClasses']>;
   function slot(name: SlotName) {
@@ -222,7 +221,7 @@
 <Section
   {id}
   {marker}
-  meta={headingMeta}
+  {meta}
   {title}
   titleSnippet={title == null ? localizedTitle : undefined}
   subtitle={description}

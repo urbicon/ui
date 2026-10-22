@@ -122,7 +122,8 @@
     "examples:lint": "bun run packages/docs-gen/scripts/examples-lint.ts",
     "docs:fences:lint": "bun run packages/docs-gen/scripts/doc-fences-lint.ts",
     "examples:budget": "bun --filter='@urbicon-ui/docs-app' run examples:budget",
-    "refsections:lint": "bun --filter='@urbicon-ui/docs-app' run refsections:lint"
+    "refsections:lint": "bun --filter='@urbicon-ui/docs-app' run refsections:lint",
+    "section-ids:check": "bun --filter='@urbicon-ui/docs-app' run section-ids:check"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
