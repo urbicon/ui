@@ -1,4 +1,4 @@
-import { validatePackageTranslations } from '@urbicon-ui/i18n';
+import { auditTranslations } from '@urbicon-ui/i18n';
 import { describe, expect, it } from 'vitest';
 import { de } from './de';
 import { en } from './en';
@@ -9,12 +9,12 @@ import { en } from './en';
  * required and both bundles are `satisfies AuthLocale`; consumer subsets enter
  * as `PartialAuthLocale` through `mergeAuthLocale` instead) — this test stays
  * as the guard that survives someone loosening or dropping the `satisfies`.
+ * Auth keeps its own locale registry, not a `createPackageI18n` package, so it
+ * calls the audit directly; `en` is its base.
  */
-describe('auth translations — en/de deep-key parity', () => {
-  it('en and de carry identical nested keys', () => {
-    const { errors, warnings } = validatePackageTranslations('auth', { en, de });
-    expect(errors).toEqual([]);
-    expect(warnings).toEqual([]);
+describe('auth translations — audit against the en base', () => {
+  it('reports no findings', () => {
+    expect(auditTranslations('auth', { en, de }).findings).toEqual([]);
   });
 });
 

@@ -59,8 +59,8 @@
     <p class="text-text-tertiary mt-3 text-xs">
       Compile-time key parity is <strong>not</strong> checked for lazy locales — the chunk isn't
       visible to the type-checker. Guard parity at runtime with
-      <a href={resolve('/i18n/package-integration')}><code>validatePackageTranslations</code></a> in a
-      test.
+      <a href={resolve('/i18n/package-integration')}><code>auditPackage</code></a> in a test — it loads
+      the lazy locales itself.
     </p>
   </Section>
 

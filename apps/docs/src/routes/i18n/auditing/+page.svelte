@@ -4,18 +4,20 @@
   import { resolve } from '$app/paths';
 
   const parityCode = `// translations.test.ts — pure, deterministic, zero false positives.
-import { auditTranslations } from '@urbicon-ui/i18n';
-import { appTranslations } from '#lib/i18n.js'; // { en: { … }, de: { … } }
+import { auditPackage } from '@urbicon-ui/i18n/audit';
+import { shopI18n } from '#lib/i18n.js'; // createPackageI18n('shop', { en, de })
 
-it('translations stay in parity', () => {
-  const report = auditTranslations('app', appTranslations);
+it('translations stay in parity', async () => {
+  const report = await auditPackage(shopI18n); // auditTranslations over the package's bundles
   expect(report.ok).toBe(true); // true ⇢ no error-severity findings
 });
 
 // Each report.findings entry carries a stable \`code\` + severity:
 //   missing-key · empty-value · param-mismatch · plural-shape-invalid
-//   plural-category-incomplete · value-equals-key · wrong-type   (errors)
-//   extra-key · same-as-base (opt-in)                            (warnings)`;
+//   wrong-type · invalid-locale · no-translations                (errors)
+//   extra-key · value-equals-key · plural-category-incomplete
+//   same-as-base (opt-in)                                        (warnings)
+// An empty value is an error only where the base has text for that key.`;
 
   const collectorCode = `// test setup — catch keys that resolve nowhere at RUNTIME, including the
 // dynamically-built keys a static scan can't see.
@@ -106,8 +108,10 @@ const report = findUnusedKeys(collectDeepKeys(enBundle), scan, {
     </p>
     <CodeExample code={parityCode} language="typescript" preview={false} />
     <p class="text-text-tertiary mt-3 text-xs">
-      The richer successor to <code>validatePackageTranslations</code> (kept for back-compat).
-      Toggle individual checks or set a base locale via the third options argument;
+      <code>auditPackage</code> passes a package's own bundles — the lazy ones loaded — and its base
+      locale. Bundles outside a package go to <code>auditTranslations(name, bundles, options)</code>
+      directly, with the base as <code>baseLocale</code> (default: <code>en</code> when present).
+      Toggle individual checks via <code>checks</code>;
       <code>same-as-base</code>
       (a target string still identical to the base — probably untranslated) is opt-in because proper nouns
       make it FP-prone.

@@ -1,4 +1,3 @@
-import { collectDeepKeys } from '#lib/utils/deep-keys.js';
 import { useI18nState } from './context.svelte';
 import { getRegistry } from './registry.svelte';
 import type {
@@ -14,7 +13,7 @@ import type {
   Translations,
   TypedTranslationFunction
 } from './types';
-import { isLocaleSupported, SUPPORTED_LOCALES } from './types';
+import { assertTranslations, isLocaleSupported, SUPPORTED_LOCALES } from './types';
 
 /**
  * Loose translation call (key as plain string + optional params/options).
@@ -53,8 +52,9 @@ export interface CreatePackageI18nOptions<B extends Locale = 'en'> {
    * `() => import('./translations/de').then((m) => m.default)`. Listed locales
    * stay out of the initial bundle until activated by the provider / `setLocale`;
    * the eager base bundle (see `base`) stays the last fallback. Compile-time key
-   * parity is NOT checked for lazy locales — pair with `validatePackageTranslations`
-   * in a test to guard parity at runtime/CI.
+   * parity is NOT checked for lazy locales — `auditPackage` from
+   * `@urbicon-ui/i18n/audit` loads them and checks them against the base; assert
+   * its report in a test.
    */
   loaders?: Partial<Record<Locale, () => Promise<Translations>>>;
 }
@@ -204,12 +204,7 @@ export function createPackageI18n(
           `Supported: ${SUPPORTED_LOCALES.join(', ')}.`
       );
     }
-    if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
-      const kind = bundle === null ? 'null' : Array.isArray(bundle) ? 'array' : typeof bundle;
-      throw new Error(
-        `[i18n] ${packageName}.registerLocale("${locale}"): bundle must be a translations object, got ${kind}.`
-      );
-    }
+    assertTranslations(bundle, `${packageName}.registerLocale("${locale}"): bundle`);
     ensureRegistered();
     getRegistry().registerPackageLocale(packageName, locale, bundle);
   };
@@ -221,6 +216,7 @@ export function createPackageI18n(
     getLocales,
     register,
     registerLocale,
+    source: { name: packageName, base: baseLocale, translations, loaders: options?.loaders ?? {} },
     types: {} as CreatePackageTypes<T>
   };
 }
@@ -342,77 +338,4 @@ export function registerPackages(
   packages.forEach(({ name, translations }) => {
     getRegistry().registerPackage(name, translations);
   });
-}
-
-/**
- * Validates deep-key parity across a package's locale bundles.
- *
- * Compares the full recursive leaf-key set (not just top-level keys) of every
- * locale against the base locale (`en` first by convention). A missing nested
- * key is an error; an extra nested key is a warning. Pair with a per-package
- * vitest assertion (`expect(errors).toEqual([])`) to fail CI on drift —
- * complementing the compile-time parity `satisfies`/generic factory enforce for
- * statically-typed bundles, and covering dynamically/lazily loaded ones.
- */
-// Non-generic on purpose: this is a runtime structural check. A generic
-// `<T>(…: Partial<Record<Locale, T>>)` would bind every locale to the SAME `T`
-// inferred from `en`, so a `de` bundle with different string literals (the
-// normal case under `as const`) fails to assign. `Translations` widens the
-// values, decoupling the locales — parity is verified at runtime via keys.
-export function validatePackageTranslations(
-  packageName: string,
-  translations: Partial<Record<Locale, Translations>>,
-  options: {
-    /** The package's base locale — pass the `createPackageI18n` `base` when it is not `en`. */
-    baseLocale?: Locale;
-  } = {}
-): {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-} {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  const locales = Object.keys(translations) as Locale[];
-  if (locales.length === 0) {
-    errors.push(`[${packageName}] No translations provided`);
-    return { isValid: false, errors, warnings };
-  }
-
-  // An explicit base wins, else `en`: the error (missing) vs warning (extra)
-  // asymmetry is only meaningful against the canonical source locale, not
-  // whichever key Object.keys happens to return first.
-  const baseLocale = options.baseLocale ?? (locales.includes('en') ? 'en' : locales[0]);
-  const baseBundle = translations[baseLocale];
-  if (!baseBundle) {
-    errors.push(`[${packageName}] Base locale ${baseLocale} has no translations`);
-    return { isValid: false, errors, warnings };
-  }
-
-  const baseKeys = collectDeepKeys(baseBundle);
-  const baseKeySet = new Set(baseKeys);
-
-  locales.forEach((locale) => {
-    if (locale === baseLocale) return;
-    const bundle = translations[locale];
-    if (!bundle) return;
-    const localeKeySet = new Set(collectDeepKeys(bundle));
-
-    const missingKeys = baseKeys.filter((key) => !localeKeySet.has(key));
-    const extraKeys = [...localeKeySet].filter((key) => !baseKeySet.has(key));
-
-    if (missingKeys.length > 0) {
-      errors.push(`[${packageName}] Locale ${locale} missing keys: ${missingKeys.join(', ')}`);
-    }
-    if (extraKeys.length > 0) {
-      warnings.push(`[${packageName}] Locale ${locale} has extra keys: ${extraKeys.join(', ')}`);
-    }
-  });
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings
-  };
 }

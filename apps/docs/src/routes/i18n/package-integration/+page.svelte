@@ -22,6 +22,11 @@
       'Eagerly + additively register a lazy locale bundle (SSR escape hatch). Call once at server start; throws on an unsupported locale or non-object bundle.'
     ],
     [
+      'source',
+      '{ name, base, translations, loaders }',
+      'What the factory was called with, read-only — what auditPackage audits.'
+    ],
+    [
       'types',
       'CreatePackageTypes<T>',
       'Phantom carrier for the inferred key/param types (compile-time only).'
@@ -83,13 +88,12 @@ export const shopI18n = createPackageI18n('shop', { en, de });
 export const useShopI18n = shopI18n.useTranslate;`;
 
   const validateCode = `// my-app/src/lib/i18n.test.ts
-import { validatePackageTranslations } from '@urbicon-ui/i18n';
-import en from '#lib/translations/en.js';
-import de from '#lib/translations/de.js'; // import lazy bundles directly for the check
+import { auditPackage } from '@urbicon-ui/i18n/audit';
+import { shopI18n } from '#lib/i18n.js';
 
-it('en/de key parity', () => {
-  const { errors } = validatePackageTranslations('blocks', { en, de });
-  expect(errors).toEqual([]); // a missing nested key is an error, an extra one a warning
+it('translations pass the audit', async () => {
+  const report = await auditPackage(shopI18n); // loads lazy locales, diffs against the base
+  expect(report.findings).toEqual([]); // a missing nested key is an error, an extra one a warning
 });`;
 </script>
 
@@ -213,12 +217,18 @@ it('en/de key parity', () => {
 
   <Section id="validate" title="Parity validation (CI)">
     <p class="text-text-secondary mb-4">
-      <code>validatePackageTranslations</code> does a recursive deep-key diff across a package's
-      locale bundles — a missing nested key is an error, an extra one a warning. Wire it into a
-      vitest test to fail CI on drift. It complements the compile-time parity the generic factory
-      enforces for eager bundles, and covers lazy/dynamic ones (see
+      <code>auditPackage</code> (from <code>@urbicon-ui/i18n/audit</code>) loads a package's lazy
+      locales and runs the
+      <a href={resolve('/i18n/auditing')}>translation audit</a> over every bundle against the
+      package's base — <code>en</code>, or <code>options.base</code>. Assert it in a vitest test to
+      fail CI on drift. It complements the compile-time parity the generic factory enforces for
+      eager bundles, and covers the lazy ones (see
       <a href={resolve('/i18n/typed-keys')}>Type Safety</a>).
     </p>
     <CodeExample code={validateCode} language="typescript" preview={false} />
+    <p class="text-text-tertiary mt-3 text-xs">
+      It reads the base from the package's <code>source</code>, so it takes no
+      <code>baseLocale</code>.
+    </p>
   </Section>
 </DocsPageLayout>

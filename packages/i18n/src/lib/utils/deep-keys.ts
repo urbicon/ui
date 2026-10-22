@@ -60,8 +60,8 @@ export function hasDeepKey<T extends Record<string, unknown>>(obj: T, path: stri
  * Runtime counterpart to the `DeepKeys` type: collects every leaf-key path of a
  * nested translation object (dotted, e.g. `form.label.required`). A leaf is any
  * non-object value (the translation strings); nested objects recurse. Used by
- * `validatePackageTranslations` to diff locale bundles structurally — two
- * bundles with the same leaf-key set are key-compatible.
+ * `auditTranslations` to diff locale bundles structurally — two bundles with the
+ * same leaf-key set are key-compatible.
  */
 export function collectDeepKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   const entries = Object.entries(obj);
