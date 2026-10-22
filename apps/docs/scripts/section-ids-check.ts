@@ -26,7 +26,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
-const APP_DIST = new URL('../dist', import.meta.url).pathname;
+const APP_DIST = join(import.meta.dirname, '../dist');
 
 function htmlFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir).sort()) {
@@ -54,7 +54,9 @@ function check(dist: string): number {
   let files: string[];
   try {
     files = htmlFiles(dist);
-  } catch {
+  } catch (error) {
+    const { code, path } = error as { code?: string; path?: string };
+    if (code !== 'ENOENT' || path !== dist) throw error;
     console.error(`section-ids-check: no build to check — ${dist} does not exist.`);
     return 1;
   }

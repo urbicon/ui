@@ -250,8 +250,8 @@
          different row heights read as two different widgets.
          The empty `pagination` snippet is the one case Table.svelte's note
          about that workaround does not cover: the footer it suppresses exists
-         to carry the only visible row count, and this component already prints
-         one in the toolbar above ("5 types"). Page size follows — a reference
+         to carry a row count, and this component states its count in the
+         toolbar above ("5 types", all types, filter or not). Page size follows — a reference
          list a reader searches with Ctrl+F must not hide a type on page two. -->
       <Table
         items={filteredItems}

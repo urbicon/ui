@@ -60,7 +60,7 @@ describe('refsections-lint', () => {
   it('passes a tree whose component page renders <ReferenceSections>', () => {
     const { status, output } = lint(fixture());
 
-    expect(output).toContain('1 component pages render <ReferenceSections>');
+    expect(output).toContain('refsections-lint: 1 component pages render <ReferenceSections>');
     expect(status).toBe(0);
   });
 

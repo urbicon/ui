@@ -309,9 +309,9 @@
     </div>
   </Section>
 
-  <!-- Headed like every other component page's Types section: the count
-       TypesReference gives by default, and no subtitle (ReferenceSections passes
-       the same empty `description`). -->
+  <!-- Headed like every other component page's Types section: no count beside
+       the heading (the toolbar under it states it) and no subtitle
+       (ReferenceSections passes the same empty `description`). -->
   <TypesReference {types} description="" />
 
   <Section marker id="installation" title="Installation">
