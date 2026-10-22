@@ -73,11 +73,15 @@
           storage: persistStorage,
           debounceMs: persistDebounceMs,
           version: persistVersion,
-          // Throws on anything but a string: an entry that fails to load reads
-          // as absent, so junk never wins over `value` the way a stored value does.
+          // Throws on anything but a string or a number: an entry that fails to
+          // load reads as absent, so junk never wins over `value` the way a
+          // stored value does. A number is what a `type="number"` field stored
+          // up to 8.31; it reads as its text, and the first save after the
+          // load writes that text back.
           deserialize: (s) => {
             const parsed: unknown = JSON.parse(s);
-            if (typeof parsed !== 'string') throw new TypeError('not a string');
+            if (typeof parsed === 'number') return String(parsed);
+            if (typeof parsed !== 'string') throw new TypeError('neither a string nor a number');
             return parsed;
           }
         })
@@ -108,8 +112,8 @@
     const store = persisted;
     // `value` is read past the guard only, so a field without `persistKey` does not depend on it.
     if (!store) return;
-    // `type="number"` binds a number; stored as one, it would fail the string
-    // check above on every later load.
+    // `type="number"` binds a number; the entry holds its text, and
+    // `fromStored` turns it back.
     const text = typeof value === 'string' ? value : value == null ? '' : String(value);
     if (store !== reconciled) {
       const first = reconciled === null;
