@@ -35,5 +35,5 @@
 
 <!-- `description` is passed even when unset: TypesReference falls back to a
      localized subtitle for `undefined`, and the API Reference heading above
-     carries none. The count beside the heading is TypesReference's own. -->
+     carries none. -->
 <TypesReference {types} description={typesDescription ?? ''} />

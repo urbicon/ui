@@ -120,11 +120,9 @@ export interface TypesReferenceProps
   marker?: boolean;
 
   /**
-   * Right-aligned counter in the section header — the slot the API Reference
-   * section uses for its prop count. Unset, it is the localized count of
-   * `types` ("27 types"), the same number the toolbar above the table shows:
-   * both count the types the component has, not the rows a filter leaves on
-   * screen. An empty string shows none.
+   * Right-aligned counter in the section header, e.g. `"27 types"` — the same
+   * slot the API Reference section uses for its prop count. Unset by default:
+   * the toolbar above the table already states the count.
    */
   meta?: string;
 

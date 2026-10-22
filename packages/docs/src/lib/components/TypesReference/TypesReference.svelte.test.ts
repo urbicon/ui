@@ -107,23 +107,28 @@ describe('TypesReference', () => {
     { name: 'CalendarSlots', type: 'type', definition: "'root'" }
   ];
 
-  it('counts the same types in the heading and the toolbar, filtered or not', () => {
-    // The API Reference counts its props, not the rows its search leaves; both
-    // of its counts stay put. "Only referenced" hides two rows here and must not
-    // make the toolbar disagree with the heading above it.
+  it('states its count once, in the toolbar, filtered or not', () => {
+    // The API Reference counts its props, not the rows its search leaves.
+    // "Only referenced" hides two rows here and leaves the count at three; the
+    // heading carries none beside it.
     const target = render({ types: USED });
     const counts = () => [
       target.querySelector('header')?.textContent?.match(/\d+ types/)?.[0],
       target.querySelector('section > div [class*="justify-between"] > span')?.textContent?.trim()
     ];
 
-    expect(counts()).toEqual(['3 types', '3 types']);
+    expect(counts()).toEqual([undefined, '3 types']);
     target.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
     flushSync();
     expect(
       target.querySelectorAll('[data-table-layout=desktop] tbody tr[id^="type-"]')
     ).toHaveLength(1);
-    expect(counts()).toEqual(['3 types', '3 types']);
+    expect(counts()).toEqual([undefined, '3 types']);
+  });
+
+  it('puts a meta it is given beside the heading', () => {
+    const target = render({ types: USED, meta: 'generated' });
+    expect(target.querySelector('header')?.textContent).toContain('generated');
   });
 
   it('keeps each "Used by" comma on its link', () => {

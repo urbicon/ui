@@ -128,7 +128,8 @@ jobs:
       # contents is built from the sections a page renders, so a page that
       # drops it also drops their entries and nothing else notices. Presence
       # only, not reachability or binding. A page importing './api' with no
-      # generated api.ts fails, so it needs the build:ts above.
+      # generated api.ts fails, so it needs the build:ts above. Its positive
+      # controls run in the docs-app suite (`test`).
       - run: bun run refsections:lint
       # The 2-4 CodeExample budget per component page. It lived only as prose in
       # DocsPageGuide.md until 2026-08 and the corpus had drifted to 17 pages
@@ -382,6 +383,12 @@ jobs:
       # every src/lib whole and is not a consumer (#314). Needs the dist that
       # `build` just produced; its positive controls run in the `test` job.
       - run: bun run consumer-css:check
+      # No two <section> of a prerendered page share an id: the table of
+      # contents lists the first, and `#id` reaches only that one. The section
+      # registry says so in development only. Here because this is the job
+      # holding the prerendered site, the bytes the deploy ships; its positive
+      # controls run in the docs-app suite (`test`).
+      - run: bun run section-ids:check
 
       # THE DEPLOY ARTEFACT. deploy.yml pulls it from this run by id instead of
       # rebuilding, so a push that reaches production is byte-for-byte the tree
