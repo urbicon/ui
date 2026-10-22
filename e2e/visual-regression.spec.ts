@@ -169,6 +169,7 @@ async function expectRoomStamped(page: Page, theme: (typeof THEMES)[number]) {
   ).toBeTruthy();
 }
 
+// biome-ignore lint/correctness/usePlaywrightValidDescribeCallback: Playwright's (title, details, callback) overload; the rule knows only (title, callback)
 test.describe('Primitive visual regression', { tag: '@pixel' }, () => {
   // Both platforms now have baselines (`…-chromium-darwin.png` +
   // `…-chromium-linux.png`), generated 2026-07-26 — the Linux set on the deploy

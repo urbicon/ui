@@ -260,7 +260,7 @@ jobs:
     # against, and this pair cannot drift quietly anyway. Different tags means
     # different rendering, which means every shot red on the next run.
     container:
-      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
     permissions:
       contents: read
     strategy:
@@ -316,7 +316,7 @@ jobs:
           # `PWTEST_SHARD_WEIGHTS=46:62:97:123 bunx playwright test --list --shard=1/4`
           # shows what a slice holds.
           #
-          # Undocumented: Playwright 1.62.1 reads it in lib/cli/testActions.js
+          # Undocumented: Playwright 1.64.1 reads it in lib/cli/testActions.js
           # and its sharding guide never names it. A version that drops it falls
           # back to equal counts without a word; nothing is skipped, shard 1 just
           # runs long again. After a bump, `PWTEST_SHARD_WEIGHTS=0:0:0:1 bunx
