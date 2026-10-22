@@ -619,8 +619,8 @@ describe('teardown', () => {
     flushSync();
     return {
       store: () => seen,
-      read(on: boolean) {
-        reader.on = on;
+      stopReading() {
+        reader.on = false;
         flushSync();
       },
       cleanup
@@ -634,45 +634,40 @@ describe('teardown', () => {
     flushSync();
     expect(storage.getItem('urbicon_ps_unread_flush_v1')).toBe(null);
 
-    owner.read(false);
+    owner.stopReading();
 
     expect(storage.getItem('urbicon_ps_unread_flush_v1')).toBe('"typed"');
     owner.cleanup();
   });
 
-  it('writes nothing after a $derived owner nobody read is destroyed', () => {
+  it('saves a value set while a $derived owner is unread, after the debounce', () => {
+    const storage = installMemoryStorage();
+    const owner = withDerivedOwner('ps_unread_save');
+    const store = owner.store();
+
+    owner.stopReading();
+    store.value = 'set while unread';
+    flushSync();
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_ps_unread_save_v1')).toBe('"set while unread"');
+    owner.cleanup();
+  });
+
+  it('still saves a value set while a $derived owner is unread when the owner is destroyed first', () => {
     const storage = installMemoryStorage();
     const setItem = vi.spyOn(storage, 'setItem');
     const owner = withDerivedOwner('ps_unread_destroy');
     const store = owner.store();
 
-    owner.read(false);
+    owner.stopReading();
     store.value = 'set while unread';
     flushSync();
     owner.cleanup();
     vi.advanceTimersByTime(1000);
 
-    expect(setItem).not.toHaveBeenCalled();
-    expect(storage.getItem('urbicon_ps_unread_destroy_v1')).toBe(null);
-  });
-
-  it('saves a value set while a $derived owner is unread once it is read again', () => {
-    const storage = installMemoryStorage();
-    const owner = withDerivedOwner('ps_unread_resume');
-    const store = owner.store();
-
-    owner.read(false);
-    store.value = 'set while unread';
-    flushSync();
-    vi.advanceTimersByTime(1000);
-    expect(storage.getItem('urbicon_ps_unread_resume_v1')).toBe(null);
-
-    owner.read(true);
-    expect(owner.store()).toBe(store);
-    vi.advanceTimersByTime(1000);
-
-    expect(storage.getItem('urbicon_ps_unread_resume_v1')).toBe('"set while unread"');
-    owner.cleanup();
+    // Once, under the key of the instance it was set on.
+    expect(setItem.mock.calls).toEqual([['urbicon_ps_unread_destroy_v1', '"set while unread"']]);
   });
 
   it('writes nothing on teardown for an untouched instance', () => {

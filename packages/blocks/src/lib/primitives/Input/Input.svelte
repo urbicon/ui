@@ -112,8 +112,8 @@
     const store = persisted;
     // `value` is read past the guard only, so a field without `persistKey` does not depend on it.
     if (!store) return;
-    // `type="number"` binds a number; stored as one, it would fail the string
-    // check above on every later load.
+    // `type="number"` binds a number; the entry holds its text, and
+    // `fromStored` turns it back.
     const text = typeof value === 'string' ? value : value == null ? '' : String(value);
     if (store !== reconciled) {
       const first = reconciled === null;

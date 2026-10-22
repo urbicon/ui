@@ -89,10 +89,10 @@ interface LoadResult<T> {
  * `$derived` that is not, Svelte throws `effect_in_unowned_derived`) — and ends
  * with it: a save still waiting out the debounce is written when that owner is
  * destroyed (a `$derived`: when it re-evaluates), and nothing is written after.
- * A `$derived` owner that loses its last reader pauses the auto-save until it
- * is read again: the save still waiting is written as the last reader goes,
- * and a value set while paused is saved once the derived is read again — never,
- * if it is destroyed first. Keep it read while the state is in use.
+ * A `$derived` owner that loses its last reader is the exception: the save
+ * still waiting is written as the last reader goes, and a value set on the
+ * instance after that is saved by its own debounce timer, under that
+ * instance's key — also when the owner is destroyed before the timer ends.
  * `reset()` and `reload()` drop a save still waiting instead.
  */
 export function createPersistentState<T>(config: PersistentStateConfig<T>) {
@@ -223,14 +223,13 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
 
   const debouncedSave = debounce(saveToStorage, debounceMs);
 
-  // Auto-save when state changes. The returned no-op is what lets Svelte pause
-  // this effect while a `$derived` owner has no reader and re-run it once the
-  // derived is read again: an effect without a teardown keeps running there,
-  // and a save it schedules then outlives the owner, because the flush below
-  // has already been spent.
+  // Auto-save when state changes. No teardown, on purpose: while a `$derived`
+  // owner has no reader, Svelte pauses the effects it owns that have one, and a
+  // value set then would not be saved until an effect read the derived again
+  // (never, if the owner went first). Without one this keeps scheduling, and
+  // the timer writes the value even after the owner is destroyed.
   $effect(() => {
     debouncedSave.schedule(state.value);
-    return () => {};
   });
 
   // No dependencies, so this never re-runs on a change. Its cleanup runs when
