@@ -464,6 +464,31 @@ describe('Input (persistence)', () => {
     expect(text.value).toBe('7');
   });
 
+  it('takes over an entry stored as a JSON number, as text, without a warning', () => {
+    // What a `type="number"` field wrote up to 8.31: its binding, as JSON.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { storage, writes } = recordingStorage({ urbicon_qty_v1: '42' });
+
+    const qty = renderBound({ persistKey: 'qty', type: 'number' });
+    expect(qty.value).toBe(42);
+    vi.advanceTimersByTime(1000);
+    // Rewritten as text once; the next mounts read it as any other entry.
+    expect(writes).toEqual([['urbicon_qty_v1', '"42"']]);
+
+    remount({ persistKey: 'qty', type: 'number' });
+    const field = () => document.querySelector('input') as HTMLInputElement;
+    expect(field().value).toBe('42');
+    vi.advanceTimersByTime(1000);
+    expect(writes).toHaveLength(1);
+    expect(warn).not.toHaveBeenCalled();
+
+    field().value = '43';
+    fireEvent.input(field());
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(storage.getItem('urbicon_qty_v1')).toBe('"43"');
+  });
+
   it('starts persisting when persistKey first arrives after mount, with the current text', () => {
     const { storage, writes } = recordingStorage();
     const props = renderLive({});
@@ -482,14 +507,14 @@ describe('Input (persistence)', () => {
     expect(writes).toEqual([]);
   });
 
-  it('lets the consumer value win over an entry that is not a stored string', () => {
+  it('lets the consumer value win over an entry that is neither a string nor a number', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    recordingStorage({ urbicon_junk_v1: '{not json', urbicon_number_v1: '5' });
+    recordingStorage({ urbicon_junk_v1: '{not json', urbicon_object_v1: '{"text":"5"}' });
 
     renderInput({ persistKey: 'junk', value: 'Hallo' });
     expect(input().value).toBe('Hallo');
 
-    remount({ persistKey: 'number', value: 'Hallo' });
+    remount({ persistKey: 'object', value: 'Hallo' });
     expect(input().value).toBe('Hallo');
   });
 

@@ -12,8 +12,9 @@ export interface PersistentStateConfig<T> {
   debounceMs?: number;
   /**
    * Schema version, part of the storage key (`urbicon_<key>_v<version>`). On
-   * init, the entries this key holds under a lower version are deleted; nothing
-   * is read across or migrated, so raising it discards the stored value.
+   * init, the entries this key holds under the whole versions from 1 up to
+   * below it are deleted; nothing is read across or migrated, so raising it
+   * discards the stored value.
    * @default 1
    */
   version?: number;
@@ -88,8 +89,10 @@ interface LoadResult<T> {
  * `$derived` that is not, Svelte throws `effect_in_unowned_derived`) — and ends
  * with it: a save still waiting out the debounce is written when that owner is
  * destroyed (a `$derived`: when it re-evaluates), and nothing is written after.
- * Keep a `$derived` owner read while the state is in use: once it loses its
- * last reader, Svelte runs that flush early, and the destroy no longer does.
+ * A `$derived` owner that loses its last reader pauses the auto-save until it
+ * is read again: the save still waiting is written as the last reader goes,
+ * and a value set while paused is saved once the derived is read again — never,
+ * if it is destroyed first. Keep it read while the state is in use.
  * `reset()` and `reload()` drop a save still waiting instead.
  */
 export function createPersistentState<T>(config: PersistentStateConfig<T>) {
@@ -103,7 +106,8 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
     version = 1
   } = config;
 
-  const storageKey = `urbicon_${key}_v${version}`;
+  const entryKey = (v: number) => `urbicon_${key}_v${v}`;
+  const storageKey = entryKey(version);
   const storage = getStorage(storageType);
 
   if (storage && version > 1) removeOlderVersions(storage);
@@ -138,15 +142,23 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
 
   // Listed, not counted up to `version`: the number is the consumer's, and a
   // date stamp (`20261018`) would make a loop over v1 … v(n − 1) twenty million
-  // removals on every init. Only a canonical positive integer below `version`
-  // as the whole rest of the name is one of ours — `urbicon_<key>_v2_v1` is the
-  // key `<key>_v2`. A refused removal leaves the entry where it was, unread.
+  // removals on every init. An entry is deleted only when `entryKey` writes
+  // exactly its name for a whole version from 1 up to below `version`: `Number`
+  // also reads `_v01`, `_v1.0` and `_v 1` as 1, but no version is written that
+  // way. A refused removal leaves the entry where it was, unread.
   function removeOlderVersions(target: StorageInterface): void {
     const prefix = `urbicon_${key}_v`;
     for (const candidate of target.keys()) {
       if (!candidate.startsWith(prefix)) continue;
-      const suffix = candidate.slice(prefix.length);
-      if (/^[1-9]\d*$/.test(suffix) && Number(suffix) < version) target.removeItem(candidate);
+      const older = Number(candidate.slice(prefix.length));
+      if (
+        Number.isInteger(older) &&
+        older >= 1 &&
+        older < version &&
+        entryKey(older) === candidate
+      ) {
+        target.removeItem(candidate);
+      }
     }
   }
 
@@ -211,9 +223,14 @@ export function createPersistentState<T>(config: PersistentStateConfig<T>) {
 
   const debouncedSave = debounce(saveToStorage, debounceMs);
 
-  // Auto-save when state changes
+  // Auto-save when state changes. The returned no-op is what lets Svelte pause
+  // this effect while a `$derived` owner has no reader and re-run it once the
+  // derived is read again: an effect without a teardown keeps running there,
+  // and a save it schedules then outlives the owner, because the flush below
+  // has already been spent.
   $effect(() => {
     debouncedSave.schedule(state.value);
+    return () => {};
   });
 
   // No dependencies, so this never re-runs on a change. Its cleanup runs when

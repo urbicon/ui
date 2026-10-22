@@ -73,11 +73,15 @@
           storage: persistStorage,
           debounceMs: persistDebounceMs,
           version: persistVersion,
-          // Throws on anything but a string: an entry that fails to load reads
-          // as absent, so junk never wins over `value` the way a stored value does.
+          // Throws on anything but a string or a number: an entry that fails to
+          // load reads as absent, so junk never wins over `value` the way a
+          // stored value does. A number is what a `type="number"` field stored
+          // up to 8.31; it reads as its text, and the first save after the
+          // load writes that text back.
           deserialize: (s) => {
             const parsed: unknown = JSON.parse(s);
-            if (typeof parsed !== 'string') throw new TypeError('not a string');
+            if (typeof parsed === 'number') return String(parsed);
+            if (typeof parsed !== 'string') throw new TypeError('neither a string nor a number');
             return parsed;
           }
         })

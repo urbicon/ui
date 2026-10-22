@@ -413,6 +413,37 @@ describe('older versions', () => {
     cleanup();
   });
 
+  it('deletes only the names it writes for a whole version from 1 below the current one', () => {
+    const kept = {
+      // Versions it can write, outside 1 … version − 1.
+      urbicon_ps_shape_v0: '"zero"',
+      'urbicon_ps_shape_v-1': '"negative"',
+      'urbicon_ps_shape_v1.5': '"fraction"',
+      // Read by `Number` as 1, but no version is written this way.
+      urbicon_ps_shape_v01: '"leading zero"',
+      'urbicon_ps_shape_v1.0': '"decimal point"',
+      urbicon_ps_shape_v1e0: '"exponent"',
+      'urbicon_ps_shape_v+1': '"sign"',
+      'urbicon_ps_shape_v 1': '"space"',
+      urbicon_ps_shape_v0x1: '"hex"',
+      urbicon_ps_shape_v: '"no version"'
+    };
+    const storage = installMemoryStorage('localStorage', {
+      ...kept,
+      urbicon_ps_shape_v1: '"one"'
+    });
+
+    const { cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_shape', defaultValue: '', version: 2 })
+    );
+
+    expect(storage.getItem('urbicon_ps_shape_v1')).toBe(null);
+    for (const [name, value] of Object.entries(kept)) {
+      expect({ name, value: storage.getItem(name) }).toEqual({ name, value });
+    }
+    cleanup();
+  });
+
   it('starts from the default when only an older version is stored', () => {
     const storage = installMemoryStorage('localStorage', { urbicon_ps_bump_v1: '"old"' });
 
@@ -567,6 +598,81 @@ describe('teardown', () => {
     vi.advanceTimersByTime(1000);
 
     expect(storage.getItem('urbicon_ps_force_teardown_v1')).toBe('"b"');
+  });
+
+  /**
+   * The state created inside a `$derived`, read by an effect that can stop
+   * reading it — what markup under an `{#if}` does. `store()` is the instance
+   * the reader saw last, the reference a consumer keeps writing through.
+   */
+  function withDerivedOwner(key: string) {
+    let reader!: { on: boolean };
+    let seen!: ReturnType<typeof createPersistentState<string>>;
+    const cleanup = $effect.root(() => {
+      const reading = $state({ on: true });
+      reader = reading;
+      const owner = $derived(createPersistentState({ key, defaultValue: '' }));
+      $effect(() => {
+        if (reading.on) seen = owner;
+      });
+    });
+    flushSync();
+    return {
+      store: () => seen,
+      read(on: boolean) {
+        reader.on = on;
+        flushSync();
+      },
+      cleanup
+    };
+  }
+
+  it('writes a save still pending when a $derived owner loses its last reader', () => {
+    const storage = installMemoryStorage();
+    const owner = withDerivedOwner('ps_unread_flush');
+    owner.store().value = 'typed';
+    flushSync();
+    expect(storage.getItem('urbicon_ps_unread_flush_v1')).toBe(null);
+
+    owner.read(false);
+
+    expect(storage.getItem('urbicon_ps_unread_flush_v1')).toBe('"typed"');
+    owner.cleanup();
+  });
+
+  it('writes nothing after a $derived owner nobody read is destroyed', () => {
+    const storage = installMemoryStorage();
+    const setItem = vi.spyOn(storage, 'setItem');
+    const owner = withDerivedOwner('ps_unread_destroy');
+    const store = owner.store();
+
+    owner.read(false);
+    store.value = 'set while unread';
+    flushSync();
+    owner.cleanup();
+    vi.advanceTimersByTime(1000);
+
+    expect(setItem).not.toHaveBeenCalled();
+    expect(storage.getItem('urbicon_ps_unread_destroy_v1')).toBe(null);
+  });
+
+  it('saves a value set while a $derived owner is unread once it is read again', () => {
+    const storage = installMemoryStorage();
+    const owner = withDerivedOwner('ps_unread_resume');
+    const store = owner.store();
+
+    owner.read(false);
+    store.value = 'set while unread';
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(storage.getItem('urbicon_ps_unread_resume_v1')).toBe(null);
+
+    owner.read(true);
+    expect(owner.store()).toBe(store);
+    vi.advanceTimersByTime(1000);
+
+    expect(storage.getItem('urbicon_ps_unread_resume_v1')).toBe('"set while unread"');
+    owner.cleanup();
   });
 
   it('writes nothing on teardown for an untouched instance', () => {
