@@ -140,6 +140,12 @@ export class ExtractionCoordinator {
         // Extract props with knowledge of variant keys (for Omit filtering)
         const variantKeys = ((variantsResult.data || []) as VariantInfo[]).map((v) => v.name);
         const propsResult = await this.extractProps(manifest, variantKeys);
+        // A failed extraction carries no props; publishing the component anyway
+        // would ship it with an empty API table and nothing to say why.
+        if (!propsResult.success) {
+          const reasons = propsResult.errors.map((e) => e.message).join('; ');
+          throw new Error(`Props extraction failed for ${componentName}: ${reasons}`);
+        }
 
         // Extract JSDoc metadata from *Props interface
         const [description, summary, tags, relatedComponents, stability] = await Promise.all([

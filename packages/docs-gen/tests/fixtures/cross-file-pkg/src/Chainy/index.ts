@@ -20,6 +20,27 @@ export interface ChainyProps
   mint?: string;
   /** Redeclared from the Omit target itself. */
   label?: string;
+  /**
+   * Redeclared tv() axis of the chain's base: nothing else documents it.
+   * @default 'loud'
+   */
+  tone?: FrameSingleProps<string>['tone'];
+}
+
+/**
+ * The same clause with the tv() axis left to the chain.
+ *
+ * @description Fixture component that inherits an undocumented axis.
+ * @tag form
+ */
+export interface BareChainProps
+  extends Omit<
+    FrameSingleProps<string>,
+    // Owned by the component itself.
+    'value'
+  > {
+  /** Own prop. */
+  own?: string;
 }
 
 /**

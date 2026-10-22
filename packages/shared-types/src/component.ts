@@ -204,8 +204,11 @@ export interface InheritanceInfo {
   typeName: string;
   /** Source package/module */
   source: string;
-  /** Inherited properties */
-  props: PropInfo[];
+  /**
+   * Inherited properties. Absent on an `Omit` / `Pick` clause: the members it
+   * lets through are rows of the component's own `props`.
+   */
+  props?: PropInfo[];
   /** Documentation URL */
   url?: string;
 }

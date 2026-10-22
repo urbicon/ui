@@ -23,7 +23,7 @@ describe('deriveControls', () => {
     const [intent] = deriveControls(SLIDER, { pick: ['intent'] });
 
     expect(intent).toMatchObject({ type: 'dropdown', key: 'intent', defaultValue: 'primary' });
-    // Values arrive alphabetically and come out in intent order.
+    // Values arrive in another order and come out in intent order.
     expect(intent.items?.map((i) => i.value)).toEqual(['primary', 'danger', 'neutral']);
   });
 
@@ -61,7 +61,6 @@ describe('deriveControls', () => {
   });
 
   it('reorders an alphabetical size axis into scale order', () => {
-    // docs-gen emits variant values sorted alphabetically.
     const [size] = deriveControls(
       { variants: [{ name: 'size', values: ['lg', 'md', 'sm', 'xl', 'xs'], defaultValue: 'md' }] },
       { pick: ['size'] }

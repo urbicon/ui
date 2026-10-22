@@ -53,7 +53,7 @@ import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
  * ```
  */
 export interface PinInputProps
-  extends Omit<PinInputVariants, 'error'>,
+  extends Omit<PinInputVariants, 'error' | 'messageType'>,
     // `class`, `id` and `aria-label` are modelled below; the rest of a div's
     // attributes reach the root. `aria-describedby` stays in and is merged
     // rather than spread, so a consumer hint adds to the error/helper chain.

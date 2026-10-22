@@ -20,11 +20,16 @@ import type { InputSlots, InputVariants } from './input.variants';
  * ```
  */
 export interface InputProps
-  // `error` and `messageType` are tv-internal axes derived from the `error`
-  // prop (Input.svelte: messageType = error ? 'error' : 'helper'). Leaving
-  // them in the props type let a caller pass messageType="error" and get a
-  // type-checked no-op — the range-hint-input recipe shipped exactly that.
-  extends Omit<InputVariants, 'error' | 'messageType'>,
+  // Axes Input computes rather than receives. The `error` axis is the boolean
+  // of the `error` message declared below and `messageType` follows from it;
+  // `hasLeftIcon` / `hasRightIcon` follow from the icon snippets and the clear
+  // button, `iconPosition` is set per icon container. A prop named after one of
+  // the last four is never read — it lands on the `<input>` as an unknown
+  // attribute — so the type leaves them out instead of accepting a no-op.
+  extends Omit<
+      InputVariants,
+      'error' | 'messageType' | 'hasLeftIcon' | 'hasRightIcon' | 'iconPosition'
+    >,
     Omit<HTMLInputAttributes, 'size' | 'class' | 'disabled' | 'readonly' | 'children'> {
   /** Snippet content rendered below the input for advanced layouts. */
   children?: Snippet;

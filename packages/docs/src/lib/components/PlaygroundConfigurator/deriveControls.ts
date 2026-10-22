@@ -49,18 +49,17 @@ function humanize(key: string): string {
 }
 
 /**
- * The design system's two ordered scales. docs-gen emits variant values
- * **alphabetically**, which turns a size axis into `lg, md, sm` and an intent
- * axis into `danger, neutral, primary, …` — readable as a list, wrong as a
- * scale. Reordering happens by *content*, not by key name, so an axis called
+ * The design system's two ordered scales. docs-gen emits variant values in the
+ * order the tv() config lists them, and a config is free to choose one that is
+ * not the scale's: Dialog lists its intents from `neutral`, Alert puts `info`
+ * second. Reordering happens by *content*, not by key name, so an axis called
  * `itemSize` or `dotIntent` is fixed too.
  */
 const SCALE_ORDER = [
   // `none` is the bottom rung of a spacing scale (Card's `padding`,
   // SidebarLayout's `contentMaxWidth`), `full`/`fullscreen` the top rung of a
   // size scale (Drawer, Dialog). Without them here `values.every(…)` fails and
-  // the whole axis falls back to alphabetical — which is how Dialog ended up
-  // offering `full, fullscreen, lg, md, sm, xl`.
+  // the whole axis keeps the order docs-gen emitted.
   'none',
   '3xs',
   '2xs',

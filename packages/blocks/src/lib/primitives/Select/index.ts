@@ -135,7 +135,7 @@ export interface NullOptionConfig {
  * `multiple`.
  */
 interface SelectBaseProps<T extends SelectValue = string>
-  extends Omit<SelectVariants, 'error' | 'selected' | 'open' | 'variant'>,
+  extends Omit<SelectVariants, 'error' | 'messageType' | 'selected' | 'open' | 'variant'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   /**
    * Visual style.

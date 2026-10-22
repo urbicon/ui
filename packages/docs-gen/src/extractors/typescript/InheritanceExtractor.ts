@@ -136,11 +136,11 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
 
     // Handle different inheritance patterns
     if (this.isOmitPattern(heritageType)) {
-      return this.handleOmitPattern(heritageType, sourceFile);
+      return this.handleOmitPattern(heritageType);
     }
 
     if (this.isPickPattern(heritageType)) {
-      return this.handlePickPattern(heritageType, sourceFile);
+      return this.handlePickPattern(heritageType);
     }
 
     if (this.isHTMLAttributes(typeName)) {
@@ -192,138 +192,31 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
   // INHERITANCE PATTERN HANDLERS
   // ==========================================
 
-  private handleOmitPattern(
-    heritageType: ts.ExpressionWithTypeArguments,
-    sourceFile: ts.SourceFile
-  ): InheritanceInfo {
-    const fullType = heritageType.getText();
+  /**
+   * `Omit<Base, K>` and `Pick<Base, K>` name the clause and nothing else: the
+   * members they let through are rows of the component's `props`, resolved
+   * there (PropsExtractor) and nowhere else.
+   */
+  private handleOmitPattern(heritageType: ts.ExpressionWithTypeArguments): InheritanceInfo {
     const clause = this.heritageClauseLabel(heritageType);
-    console.log(`✂️ Handling Omit pattern: ${fullType}`);
-
-    // Parse Omit<BaseType, Keys> pattern
-    const match = fullType.match(/Omit<([^,]+),\s*([^>]+)>/);
-    if (!match) {
-      throw new Error(`Invalid Omit pattern: ${fullType}`);
-    }
-
-    const baseType = (match[1] || '').trim();
-    const omittedKeys = (match[2] || '').trim();
-
-    // Extract omitted key names
-    const omittedKeyList = this.parseOmittedKeys(omittedKeys);
-
-    let props: PropInfo[] = [];
-    let url: string | undefined;
-
-    // Handle base type
-    if (this.isHTMLAttributes(baseType)) {
-      const elementType = this.extractElementType(baseType);
-      url = `https://developer.mozilla.org/en-US/docs/Web/HTML/Element/${elementType.toLowerCase()}`;
-
-      props = [
-        {
-          name: `...${elementType}Attributes`,
-          type: 'HTMLAttributes',
-          required: false,
-          description: `HTML ${elementType.toLowerCase()} attributes${omittedKeyList.length > 0 ? ` (excluding: ${omittedKeyList.join(', ')})` : ''}`,
-          source: {
-            type: 'inherited',
-            name: baseType,
-            package: 'svelte/elements'
-          }
-        }
-      ];
-    } else if (!/\bkeyof\b/.test(omittedKeys)) {
-      // Interface base with literal omit keys — declared in this file or
-      // resolved across files through the shared program (e.g.
-      // Omit<InputProps, 'type' | …>). A `keyof` omit *is* enumerable here —
-      // `resolveHeritageKeyLiterals` answers it — but the entry stays empty
-      // until #167: this list and the props list feed `usedByProps`
-      // independently, so filling it in makes every type a member names count
-      // twice (measured on Menu: MintProp 1 → 2, joining the two literal-key
-      // components that already double-count).
-      const baseInterface =
-        this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
-      if (baseInterface) {
-        const omitted = new Set(omittedKeyList);
-        for (const member of baseInterface.members) {
-          if (!ts.isPropertySignature(member)) continue;
-          const prop = this.extractPropFromMember(member);
-          if (!prop || omitted.has(prop.name)) continue;
-          prop.source = { type: 'inherited', name: clause };
-          props.push(prop);
-        }
-      }
-    }
-
+    console.log(`✂️ Handling Omit pattern: ${clause}`);
+    const baseType = this.heritageBaseTypeText(heritageType) ?? '';
+    const elementType = this.isHTMLAttributes(baseType) ? this.extractElementType(baseType) : null;
     return {
       typeName: clause,
       source: 'omit-pattern',
-      props,
-      ...(url ? { url } : {})
+      ...(elementType
+        ? {
+            url: `https://developer.mozilla.org/en-US/docs/Web/HTML/Element/${elementType.toLowerCase()}`
+          }
+        : {})
     };
   }
 
-  /**
-   * `Pick<Base, 'a' | 'b'>` — the counterpart to `handleOmitPattern`. Before
-   * this existed the clause fell through to `handleExternalType`, which
-   * recorded the *utility type* as the inheritance source: one entry named
-   * `Pick` holding one prop named `...Pick`, with the picked members nowhere.
-   *
-   * Members come from the checker where a program is available (the only route
-   * that sees through a tv() variant alias in the base) and from the base
-   * interface's own members otherwise.
-   */
-  private handlePickPattern(
-    heritageType: ts.ExpressionWithTypeArguments,
-    sourceFile: ts.SourceFile
-  ): InheritanceInfo {
+  private handlePickPattern(heritageType: ts.ExpressionWithTypeArguments): InheritanceInfo {
     const clause = this.heritageClauseLabel(heritageType);
     console.log(`🎯 Handling Pick pattern: ${clause}`);
-
-    const baseType = this.heritageBaseTypeText(heritageType) ?? '';
-    const pickedKeys = new Set(this.parseOmittedKeys(this.heritageKeyArgText(heritageType)));
-    const props: PropInfo[] = [];
-
-    // A tv() variant alias base contributes no *inherited* props: the axes are
-    // reported by the variants pass, and PropsExtractor decides which of them
-    // stay public. `handleOmitPattern` leaves `Omit<XVariants, …>` empty for the
-    // same reason — listing them here would show every picked axis twice.
-    if (/Variants$|VariantProps$/.test(baseType)) {
-      return { typeName: clause, source: 'pick-pattern', props };
-    }
-
-    const resolved = this.resolveHeritageMembersViaChecker(heritageType);
-    if (resolved) {
-      for (const member of resolved) {
-        // Documentation from the declaration, shape from the checker — see
-        // PropsExtractor.propFromResolvedMember for why the two must not be
-        // taken from the same place.
-        const documented = member.declaration
-          ? this.extractPropFromMember(member.declaration)
-          : null;
-        props.push({
-          ...(documented ?? { description: `Inherited from ${baseType}.` }),
-          name: member.name,
-          type: member.type,
-          required: !member.optional,
-          ...(member.values.length > 0 ? { values: member.values } : {}),
-          source: { type: 'inherited', name: clause }
-        });
-      }
-    } else {
-      const baseInterface =
-        this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
-      for (const member of baseInterface?.members ?? []) {
-        if (!ts.isPropertySignature(member)) continue;
-        const prop = this.extractPropFromMember(member);
-        if (!prop || !pickedKeys.has(prop.name)) continue;
-        prop.source = { type: 'inherited', name: clause };
-        props.push(prop);
-      }
-    }
-
-    return { typeName: clause, source: 'pick-pattern', props };
+    return { typeName: clause, source: 'pick-pattern' };
   }
 
   private handleHTMLAttributes(typeName: string): InheritanceInfo {
@@ -418,7 +311,7 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
 
     // Flatten nested inheritance props
     nestedInheritance.forEach((inheritance) => {
-      props.push(...inheritance.props);
+      props.push(...(inheritance.props ?? []));
     });
 
     return {
@@ -490,16 +383,6 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
   private extractElementType(typeName: string): string {
     const match = typeName?.match(/HTML(\w+)Attributes/);
     return match?.[1] ? match[1] : 'Element';
-  }
-
-  private parseOmittedKeys(omittedKeys: string): string[] {
-    // Handle union types: 'key1' | 'key2' | 'key3'
-    const keys = omittedKeys
-      .split('|')
-      .map((key) => key.trim().replace(/['"]/g, ''))
-      .filter((key) => key.length > 0);
-
-    return keys;
   }
 
   private getPackageForType(typeName: string): string | undefined {

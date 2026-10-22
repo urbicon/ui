@@ -102,18 +102,29 @@ describe('PropsExtractor — Omit<Derived, K> where Derived extends Base (progra
     expect(width?.description).toBe('Width in pixels.');
   });
 
-  it('gives a tv() axis reached through the chain its values, not its config', async () => {
+  it('refuses a tv() axis reached through the chain that nothing documents', async () => {
+    // `tone` is a key of the chain's tv() config: no JSDoc, no `@default`.
+    const extractor = new PropsExtractor({ configPath: CONFIG });
+    const result = await extractor.extract({ filePath: CHAINY, componentName: 'BareChain' });
+    expect(result.success).toBe(false);
+    expect(result.errors[0]?.message).toContain(
+      "BareChainProps: no declaration documents 'tone' (Omit<FrameSingleProps<string>, 'value'>)"
+    );
+  });
+
+  it('takes a redeclared axis from the redeclaration, its values in config order', async () => {
     const { tone } = await byName('Chainy');
-    expect(tone?.type).toBe("'calm' | 'loud'");
     expect(tone?.values).toEqual(['calm', 'loud']);
-    expect(tone?.description).toBe('Inherited from FrameSingleProps<string>.');
+    expect(tone?.defaultValue).toBe("'loud'");
+    expect(tone?.source).toEqual({ type: 'direct', name: 'ChainyProps' });
   });
 
   it("lets the interface's own declaration stand in for an inherited one of the same name", async () => {
-    // `mint` comes from the chain's base, `label` from the Omit target; both are
-    // redeclared on ChainyProps, and the type keeps only that declaration.
+    // `mint` comes from the chain's base, `label` from the Omit target, `tone`
+    // from the base's tv() alias; all are redeclared on ChainyProps, and the
+    // type keeps only that declaration.
     const extracted = await props('Chainy');
-    for (const name of ['mint', 'label']) {
+    for (const name of ['mint', 'label', 'tone']) {
       const copies = extracted.filter((p) => p.name === name);
       expect(copies).toHaveLength(1);
       expect(copies[0]?.source).toEqual({ type: 'direct', name: 'ChainyProps' });
@@ -121,7 +132,7 @@ describe('PropsExtractor — Omit<Derived, K> where Derived extends Base (progra
   });
 
   it("defers an inherited axis to the component's own tv() axis of that name", async () => {
-    const names = (await props('Chainy', ['tone'])).map((p) => p.name);
+    const names = (await props('BareChain', ['tone'])).map((p) => p.name);
     expect(names).not.toContain('tone');
   });
 });

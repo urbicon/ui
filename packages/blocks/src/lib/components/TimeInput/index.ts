@@ -47,7 +47,7 @@ import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
  * ```
  */
 export interface TimeInputProps
-  extends Omit<TimeInputVariants, 'error'>,
+  extends Omit<TimeInputVariants, 'error' | 'messageType'>,
     // `class`, `id` and `aria-label` are modelled below; the rest of a div's
     // attributes reach the root. `aria-describedby` and `aria-labelledby` stay in
     // and are merged rather than spread: a consumer's description joins every
