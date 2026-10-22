@@ -11,7 +11,7 @@
       "!**/CHANGELOG.md"
     ]
   },
-  "markdown": { "formatter": { "enabled": false } },
+  "markdown": { "formatter": { "enabled": false }, "linter": { "enabled": false } },
   "yaml": { "formatter": { "quoteStyle": "single" } },
   "linter": {
     "rules": {
