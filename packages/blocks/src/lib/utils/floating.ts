@@ -19,6 +19,16 @@ export interface MiddlewareState {
   elements: { reference: HTMLElement; floating: HTMLElement };
   middlewareData: Record<string, unknown>;
   strategy: Strategy;
+  /** The area the floating element has to stay inside, in viewport coordinates. */
+  boundary: Boundary;
+}
+
+/** A viewport-space rectangle, edges only. */
+export interface Boundary {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 }
 
 export interface MiddlewareReturn {
@@ -190,14 +200,128 @@ function viewportToLocal(
   };
 }
 
-function detectOverflow(state: MiddlewareState, padding = 0) {
-  const vh = window.visualViewport?.height ?? window.innerHeight;
-  const vw = window.visualViewport?.width ?? window.innerWidth;
+// Anything but `visible` clips its axis. The axes are read one by one:
+// `overflow-x: clip` leaves `overflow-y: visible`, unlike `hidden`, which
+// computes a `visible` partner to `auto`.
+const CLIPPING_OVERFLOW = /auto|scroll|overlay|hidden|clip/;
+
+/** The (visual) viewport, the boundary `computePosition` measures against by default. */
+function viewportBoundary(): Boundary {
   return {
-    top: padding - state.y,
-    bottom: state.y + state.rects.floating.height - vh + padding,
-    left: padding - state.x,
-    right: state.x + state.rects.floating.width - vw + padding
+    top: 0,
+    left: 0,
+    right: window.visualViewport?.width ?? window.innerWidth,
+    bottom: window.visualViewport?.height ?? window.innerHeight
+  };
+}
+
+function inTopLayer(el: Element): boolean {
+  try {
+    return el.matches(':modal') || el.matches(':popover-open');
+  } catch {
+    // An engine that rejects the pseudo-class has no popover top layer either.
+    return false;
+  }
+}
+
+/**
+ * Whether `style` makes its element the containing block of positioned
+ * descendants on its own, with no `position` of its own needed — the list
+ * `position: fixed` escapes everything but. `container-type` is not on it:
+ * it does not contain a fixed child (measured in Chromium and WebKit).
+ */
+function establishesContainingBlock(style: CSSStyleDeclaration): boolean {
+  return (
+    [
+      style.transform,
+      style.translate,
+      style.rotate,
+      style.scale,
+      style.perspective,
+      style.filter,
+      style.backdropFilter
+    ].some((value) => !!value && value !== 'none') ||
+    style.transformStyle === 'preserve-3d' ||
+    /layout|paint|strict|content/.test(style.contain) ||
+    /auto|hidden/.test(style.contentVisibility) ||
+    /transform|translate|rotate|scale|perspective|filter/.test(style.willChange)
+  );
+}
+
+/**
+ * The part of the viewport the floating element can actually be seen in: the
+ * (visual) viewport, narrowed to the padding box of every ancestor whose
+ * `overflow` clips it. A panel rendered in place inside a scroll box is cut off
+ * at the box's edge however much room the viewport has, so `flip`, `shift` and
+ * `size` have to measure against that edge.
+ *
+ * An ancestor clips an out-of-flow element only from its containing block up:
+ * `position: absolute` is not clipped by a scroll box that sits between it and
+ * its positioned ancestor, the top layer by none at all, and `fixed` by none
+ * below the nearest transformed (filtered, contained…) ancestor — or below the
+ * top-layer element it sits in, which is laid out against the viewport. So the
+ * walk skips from every out-of-flow box to its containing block.
+ * `body` and `html` are not consulted — the viewport stands for them, and a
+ * scroll lock's `overflow: hidden` on either hides nothing that is on screen.
+ *
+ * With no clipping ancestor this is the viewport rectangle itself. Pass it as
+ * `computePosition`'s `boundary` for a panel that can render in place; a
+ * top-layer panel needs none of this walk.
+ */
+export function clippingBoundary(floating: HTMLElement): Boundary {
+  const boundary = viewportBoundary();
+  let node = floating.parentElement;
+  if (!node || inTopLayer(floating)) return boundary;
+
+  const { body, documentElement } = floating.ownerDocument;
+  // The containing block still being looked for: none while the walk is in
+  // flow, where every clipping ancestor applies.
+  let seeking: string | undefined = getComputedStyle(floating).position;
+  for (; node && node !== body && node !== documentElement; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    // `display: contents` makes no box: it clips nothing, contains nothing and
+    // takes nothing out of flow, whatever its `position`, `overflow`, `filter`
+    // or `will-change` say. An open dialog or popover never computes to it —
+    // the top layer makes it `block` — so the walk still stops there.
+    if (style.display === 'contents') continue;
+    if (seeking === 'absolute' || seeking === 'fixed') {
+      const contains =
+        establishesContainingBlock(style) ||
+        (seeking === 'absolute' && style.position !== 'static');
+      if (!contains) {
+        if (inTopLayer(node)) break;
+        continue;
+      }
+    }
+
+    const clipsX = CLIPPING_OVERFLOW.test(style.overflowX);
+    const clipsY = CLIPPING_OVERFLOW.test(style.overflowY);
+    if ((clipsX || clipsY) && style.display !== 'inline') {
+      const box = node.getBoundingClientRect();
+      const left = box.left + node.clientLeft;
+      const top = box.top + node.clientTop;
+      if (clipsX) {
+        boundary.left = Math.max(boundary.left, left);
+        boundary.right = Math.min(boundary.right, left + node.clientWidth);
+      }
+      if (clipsY) {
+        boundary.top = Math.max(boundary.top, top);
+        boundary.bottom = Math.min(boundary.bottom, top + node.clientHeight);
+      }
+    }
+    seeking = style.position;
+    if ((seeking === 'absolute' || seeking === 'fixed') && inTopLayer(node)) break;
+  }
+  return boundary;
+}
+
+function detectOverflow(state: MiddlewareState, padding = 0) {
+  const { boundary } = state;
+  return {
+    top: boundary.top + padding - state.y,
+    bottom: state.y + state.rects.floating.height - boundary.bottom + padding,
+    left: boundary.left + padding - state.x,
+    right: state.x + state.rects.floating.width - boundary.right + padding
   };
 }
 
@@ -210,16 +334,25 @@ export function computePosition(
     placement?: Placement;
     strategy?: Strategy;
     middleware?: Middleware[];
+    /**
+     * Measures the area the floating element has to stay inside, once per run
+     * and again on every reset. The (visual) viewport by default; pass
+     * {@link clippingBoundary} for a panel rendered in place, so that `flip`,
+     * `shift` and `size` also respect the scroll boxes that clip it.
+     */
+    boundary?: (floating: HTMLElement) => Boundary;
   } = {}
 ): Promise<ComputePositionReturn> {
   const {
     placement: initialPlacement = 'bottom',
     strategy = 'absolute',
-    middleware = []
+    middleware = [],
+    boundary: measureBoundary = viewportBoundary
   } = options;
 
   let placement = initialPlacement;
   let refRect = reference.getBoundingClientRect();
+  let boundary = measureBoundary(floating);
   const floatingSize = { width: floating.offsetWidth, height: floating.offsetHeight };
   let { x, y } = getBaseCoords(refRect, floatingSize, placement);
   const middlewareData: Record<string, unknown> = {};
@@ -236,7 +369,8 @@ export function computePosition(
       rects: { reference: refRect, floating: floatingSize },
       elements: { reference, floating },
       middlewareData,
-      strategy
+      strategy,
+      boundary
     };
 
     const result = mw.fn(state);
@@ -250,6 +384,7 @@ export function computePosition(
         placement = result.reset.placement;
       }
       refRect = reference.getBoundingClientRect();
+      boundary = measureBoundary(floating);
       floatingSize.width = floating.offsetWidth;
       floatingSize.height = floating.offsetHeight;
       ({ x, y } = getBaseCoords(refRect, floatingSize, placement));
@@ -314,29 +449,16 @@ export function flip(options?: { padding?: number }): Middleware {
 
       if (mainOverflow > 0) {
         const ref = state.rects.reference;
-        const vh = window.visualViewport?.height ?? window.innerHeight;
-        const vw = window.visualViewport?.width ?? window.innerWidth;
+        const { boundary } = state;
+        const room: Record<Side, number> = {
+          top: ref.top - boundary.top,
+          bottom: boundary.bottom - ref.bottom,
+          left: ref.left - boundary.left,
+          right: boundary.right - ref.right
+        };
+        const opposite = getOppositeSide(side);
 
-        const spaceOnSide =
-          axis === 'y'
-            ? side === 'bottom'
-              ? vh - ref.top - ref.height
-              : ref.top
-            : side === 'right'
-              ? vw - ref.left - ref.width
-              : ref.left;
-
-        const spaceOnOpposite =
-          axis === 'y'
-            ? side === 'bottom'
-              ? ref.top
-              : vh - ref.top - ref.height
-            : side === 'right'
-              ? ref.left
-              : vw - ref.left - ref.width;
-
-        if (spaceOnOpposite > spaceOnSide) {
-          const opposite = getOppositeSide(side);
+        if (room[opposite] > room[side]) {
           const newPlacement = alignment ? (`${opposite}-${alignment}` as Placement) : opposite;
           return { data: { flipped: true }, reset: { placement: newPlacement } };
         }
@@ -416,7 +538,7 @@ export function size(options: {
       const side = getSide(state.placement);
       const vertical = side === 'top' || side === 'bottom';
 
-      // Room in the placement's MAIN axis is measured anchor → viewport edge:
+      // Room in the placement's MAIN axis is measured anchor → boundary edge:
       // `dimension - overflow[side]` cancels the floating element's own
       // dimension, so the value reflects true available room and grows back
       // once space is restored. Subtracting the *clamped* overflow of both

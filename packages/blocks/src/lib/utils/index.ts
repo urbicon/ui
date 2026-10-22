@@ -21,7 +21,9 @@ export {
 export {
   arrow,
   autoUpdate,
+  type Boundary,
   type ComputePositionReturn,
+  clippingBoundary,
   computePosition,
   flip,
   type Middleware,

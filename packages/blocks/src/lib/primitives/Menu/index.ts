@@ -139,7 +139,8 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
 
   /**
    * Render menu content in a portal for better positioning.
-   * Prevents menu from being clipped by overflow containers.
+   * Prevents menu from being clipped by overflow containers; without it, the
+   * menu flips and caps its height to stay inside a scroll box that clips it.
    * @default true
    */
   usePortal?: boolean;

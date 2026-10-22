@@ -44,9 +44,13 @@ function makeState(overrides: Partial<MiddlewareState> = {}): MiddlewareState {
     },
     middlewareData: {},
     strategy: 'absolute',
+    boundary: { top: 0, left: 0, right: VIEWPORT_W, bottom: VIEWPORT_H },
     ...overrides
   };
 }
+
+/** A scroll box the floating element sits in, well inside the viewport. */
+const SCROLL_BOX = { top: 100, left: 50, right: 650, bottom: 400 };
 
 // ─── offset ──────────────────────────────────────────────────────────────────
 
@@ -171,6 +175,40 @@ describe('flip middleware', () => {
   });
 });
 
+describe('flip middleware against a clipping boundary', () => {
+  // The viewport has 300px below the reference; the scroll box it sits in has
+  // 40. The panel spills out of the box and is clipped there, so it flips.
+  const nearBoxBottom = {
+    placement: 'bottom' as Placement,
+    y: 360,
+    rects: {
+      reference: mockRect(100, 320, 120, 40),
+      floating: { width: 200, height: 100 }
+    },
+    boundary: SCROLL_BOX
+  };
+
+  it('flips when the panel leaves the boundary, though the viewport has room', () => {
+    expect(flip().fn(makeState(nearBoxBottom)).reset).toEqual({ placement: 'top' });
+  });
+
+  it('positive control: the same geometry against the viewport stays put', () => {
+    const { boundary: _, ...againstViewport } = nearBoxBottom;
+    expect(flip().fn(makeState(againstViewport)).reset).toBeUndefined();
+  });
+
+  it('measures the room on each side from the boundary edges', () => {
+    // 40px below the reference inside the box, 20px above it: the opposite side
+    // has less room, so flipping would not help.
+    const state = makeState({
+      ...nearBoxBottom,
+      rects: { reference: mockRect(100, 120, 120, 240), floating: { width: 200, height: 100 } },
+      boundary: SCROLL_BOX
+    });
+    expect(flip().fn(state).reset).toBeUndefined();
+  });
+});
+
 // ─── shift ───────────────────────────────────────────────────────────────────
 
 describe('shift middleware', () => {
@@ -214,6 +252,14 @@ describe('shift middleware', () => {
     const state = makeState({ x: -5, placement: 'bottom' });
     const result = mw.fn(state);
     expect(result.x).toBe(10);
+  });
+});
+
+describe('shift middleware against a clipping boundary', () => {
+  it('keeps the panel inside the boundary, not just the viewport', () => {
+    // x 500 + width 200 = 700: inside the 1024px viewport, 50px past the box.
+    const result = shift({ padding: 8 }).fn(makeState({ x: 500, boundary: SCROLL_BOX }));
+    expect(result.x).toBe(SCROLL_BOX.right - 200 - 8);
   });
 });
 
@@ -330,6 +376,17 @@ describe('size middleware', () => {
     expect(new Set(captured).size).toBe(1);
     // … and equal to the room below the anchor (viewport bottom − y)
     expect(captured[0]).toBe(VIEWPORT_H - 200);
+  });
+
+  it('caps the available height at the boundary edge, so a clipped list scrolls instead', () => {
+    let availableHeight = -1;
+    size({
+      apply: (args) => {
+        availableHeight = args.availableHeight;
+      }
+    }).fn(makeState({ placement: 'bottom', y: 200, boundary: SCROLL_BOX }));
+
+    expect(availableHeight).toBe(SCROLL_BOX.bottom - 200);
   });
 });
 
