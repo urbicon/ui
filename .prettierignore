@@ -1,32 +1,15 @@
-# Package Managers
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-bun.lock
-bun.lockb
-
-# SvelteKit build output
-.svelte-kit/
-
-# Build outputs
-dist/
-out/
-build/
-.output/
-
-# Generated files
-**/llm.txt
-
-# Dependencies
-node_modules/
-
-# Caches
-.eslintcache
-.cache/
-*.tsbuildinfo
-.turbo/
-
-# Environment files
-.env
-.env.*
-!.env.example
+# Files whose exact bytes are a contract, each with its reason. Nothing else:
+# scripts/fmt.ts takes its scope from git, so a build-output pattern here can
+# only hide a tracked file.
+# byte-identical copies of upstream svelte.dev pages
+apps/docs/canon/effect.md
+apps/docs/canon/getting-started.md
+apps/docs/canon/what-are-runes.md
+# git-cliff writes it, nothing else does
+/CHANGELOG.md
+# test inputs: an unclosed fence, a list-indented fence and `~~~` fences are the syntax under test
+packages/docs-gen/tests/fixtures/pattern-fences/
+# test inputs: marker spacing, a whitespace-only line and an unclosed fence are the syntax under test
+packages/docs-gen/tests/fixtures/doc-fences/
+# parser corpus: `*` emphasis, a tilde fence and bare `javascript:` links are the input under test
+packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/

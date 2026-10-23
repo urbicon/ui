@@ -69,10 +69,13 @@ site:
   `IconProvider` override still wins when present; the direct import is only the fallback.
 
   ```svelte
-  import { resolveIcon } from '#lib/icons/index.js';
-  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';   // ← the static edge
+  <script>
+    import { resolveIcon } from '#lib/icons/index.js';
+    import CloseIconDefault from '#lib/icons/CloseIcon.svelte'; // ← the static edge
 
-  const CloseIcon = resolveIcon('close', CloseIconDefault);
+    const CloseIcon = resolveIcon('close', CloseIconDefault);
+  </script>
+
   <!-- render unchanged: <CloseIcon class="h-4 w-4" /> -->
   ```
 
@@ -115,14 +118,14 @@ Every `.svg`'s root element is exactly:
 - **24×24 viewBox.** No exceptions.
 - **`stroke-width="2"`** on the root, and **never** overridden on a child. Strokes scale with the
   icon; a 1.5px stroke anywhere breaks the family weight.
-- **`fill="none"`** on the root; **no child carries `fill` other than `none`.** Icons are *pure
-  stroke* — shapes are described by their outline, never by a filled body.
+- **`fill="none"`** on the root; **no child carries `fill` other than `none`.** Icons are _pure
+  stroke_ — shapes are described by their outline, never by a filled body.
 - **`stroke-linecap="round"` and `stroke-linejoin="round"`** — every terminal and corner is round.
   This is the single biggest contributor to the "one family" feel.
 - **`stroke="currentColor"`** on the root; no child overrides `stroke`. Colour comes from the
   consumer's text colour / token.
 - **Original geometry only.** Do not copy path data from Lucide, Heroicons, Feather, etc. Match
-  *our* construction rules; draw the shape yourself.
+  _our_ construction rules; draw the shape yourself.
 
 Elements: use `<path>`, `<circle>`, `<rect>`, `<line>`, `<ellipse>`. A `<g>` is allowed **only**
 to carry a local `transform` (see `ruler.svg`, which draws an axis-aligned ruler then rotates it
@@ -130,12 +133,12 @@ to carry a local `transform` (see `ruler.svg`, which draws an axis-aligned ruler
 
 ## 2 · Construction grid
 
-- **0.5px grid (hard for axis-aligned geometry).** Every coordinate on an *attribute* —
+- **0.5px grid (hard for axis-aligned geometry).** Every coordinate on an _attribute_ —
   `x y width height cx cy r rx ry x1 y1 x2 y2` — is a multiple of `0.5`. The whole set currently
   honours this with zero violations; keep it that way.
 - **Organic / diagonal paths (soft).** Bézier control points and diagonal vertices inside a
   `d="…"` may use finer values when the shape demands it (`star`, `sun`, `eye-off`, `link`).
-  Prefer 0.5 for start/end points; the linter only *warns* on off-grid path numbers so genuinely
+  Prefer 0.5 for start/end points; the linter only _warns_ on off-grid path numbers so genuinely
   organic curves aren't forced onto a grid that would distort them.
 - **Dot idiom.** A "dot" (the `i` of info, the `?` tail, a status pip) is drawn as a zero-length
   round-capped segment: `<path d="M12 17h.01" />`. The `.01` is intentional and exempt from the
@@ -155,12 +158,12 @@ curve pushes outward (a pencil tip, a speech-bubble tail, a scale pan, a ray).
   Bézier and arc extremes included — which the renderer computes and `icons:lint` does not. Measure
   it on the contact sheet (§8): `getBBox()` of the drawing, grown by 1 on every side.
 - **Optical centring beats geometric centring.** A shape's visual mass should sit at the centre,
-  which is *not* always its bounding-box centre (a play triangle, a teardrop, a cloud lean
+  which is _not_ always its bounding-box centre (a play triangle, a teardrop, a cloud lean
   slightly off-centre on purpose). Match the reference icon rather than forcing the bbox to 12,12.
 - **Drawn for motion.** `loader` is drawn to be rotated — render it as
   `<LoaderIcon animation="spin" />` — and its gap sits off-centre on purpose, so that standing
   still it reads as a ring with a gap rather than as the letter U.
-- Keep optical *size* consistent: a new icon should fill about as much of the live area as its
+- Keep optical _size_ consistent: a new icon should fill about as much of the live area as its
   neighbours. Compact glyphs (`droplet`, `flame`) are the floor; don't go smaller without reason.
 
 ## 3 · Corner radius (enforced — errors)
@@ -168,15 +171,15 @@ curve pushes outward (a pencil tip, a speech-bubble tail, a scale pan, a ray).
 `rect` corners come from a small discrete scale, chosen by the rect's **shorter edge**, or are a
 **capsule** (fully rounded on the short axis). Anything else is an error.
 
-| Shorter edge | `rx` | Use | Reference |
-| --- | --- | --- | --- |
-| ≥ 10 | **2.5** | large container / card / screen | `calendar`, `credit-card`, `inbox`, `terminal` |
-| 6 – 9 | **1.5** | mid body | `server`, `printer`, `qr-code` finder squares |
-| ≤ 5 | **0.5** | small detail module | `qr-code` modules, `list-ordered` counters, `archive` lid |
-| any | **`min(w,h) / 2`** | capsule / pill (intentionally round) | `mic`, `pause` bars, `bug` body, `headphones` ears |
-| any | **`0` or `0.5`** | intentionally angular | `building` (architecture reads as crisp) |
+| Shorter edge | `rx`               | Use                                  | Reference                                                 |
+| ------------ | ------------------ | ------------------------------------ | --------------------------------------------------------- |
+| ≥ 10         | **2.5**            | large container / card / screen      | `calendar`, `credit-card`, `inbox`, `terminal`            |
+| 6 – 9        | **1.5**            | mid body                             | `server`, `printer`, `qr-code` finder squares             |
+| ≤ 5          | **0.5**            | small detail module                  | `qr-code` modules, `list-ordered` counters, `archive` lid |
+| any          | **`min(w,h) / 2`** | capsule / pill (intentionally round) | `mic`, `pause` bars, `bug` body, `headphones` ears        |
+| any          | **`0` or `0.5`**   | intentionally angular                | `building` (architecture reads as crisp)                  |
 
-Allowed discrete values: **`{0, 0.5, 1.5, 2.5}`**. The in-between values `1` and `2` are *not*
+Allowed discrete values: **`{0, 0.5, 1.5, 2.5}`**. The in-between values `1` and `2` are _not_
 allowed — they're the source of the "same shape, different rounding" drift. `database`'s `rx="8"`
 is an **`<ellipse>` radius** (a cylinder), not a corner, and is out of scope.
 
@@ -184,18 +187,18 @@ is an **`<ellipse>` radius** (a cylinder), not a corner, and is out of scope.
 
 Reuse one shape for one idea so repeated elements are pixel-consistent:
 
-| Motif | Canonical form | Notes |
-| --- | --- | --- |
-| Status ring | `<circle cx="12" cy="12" r="9.5" />` | every `*-circle` status icon |
-| Checkmark (in-circle) | `<path d="M8.5 12l2.5 3L16 9" />` | `check-circle` **and** `success-circle` share it |
-| Checkmark (standalone) | `<path d="M5.5 12l4.5 5L18.5 6.5" />` | the larger `check`; same ~0.5 arm ratio, scaled up |
-| Dot | `<circle r="1" />` | grip dots, `more-horizontal/vertical`, list bullets |
-| Small node / hub | `<circle r="1.5" />` | dial hubs (`gauge`), `tag` eyelet |
-| Graph node | `<circle r="2.5" />` | `git-branch`, `share` endpoints |
-| Head / lens | `<circle r="4.5" />` (person) · `r="3.5"` (lens) | `user`, `eye`, `camera` |
-| Pip / "i" dot | `<path d="M12 8h.01" />` | info, help, warning |
-| Arrowhead (standalone) | arms `6.5` long: `<path d="M13 5.5l6.5 6.5-6.5 6.5" />` | `arrow-right` and its three siblings |
-| Arrowhead (composite) | arms `4` long: `<path d="M9 8l-4 4 4 4" />` | double arrows, corner arrows, `sort-asc`, `export`; a tray or cloud may push it 0.5 either way |
+| Motif                  | Canonical form                                          | Notes                                                                                          |
+| ---------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Status ring            | `<circle cx="12" cy="12" r="9.5" />`                    | every `*-circle` status icon                                                                   |
+| Checkmark (in-circle)  | `<path d="M8.5 12l2.5 3L16 9" />`                       | `check-circle` **and** `success-circle` share it                                               |
+| Checkmark (standalone) | `<path d="M5.5 12l4.5 5L18.5 6.5" />`                   | the larger `check`; same ~0.5 arm ratio, scaled up                                             |
+| Dot                    | `<circle r="1" />`                                      | grip dots, `more-horizontal/vertical`, list bullets                                            |
+| Small node / hub       | `<circle r="1.5" />`                                    | dial hubs (`gauge`), `tag` eyelet                                                              |
+| Graph node             | `<circle r="2.5" />`                                    | `git-branch`, `share` endpoints                                                                |
+| Head / lens            | `<circle r="4.5" />` (person) · `r="3.5"` (lens)        | `user`, `eye`, `camera`                                                                        |
+| Pip / "i" dot          | `<path d="M12 8h.01" />`                                | info, help, warning                                                                            |
+| Arrowhead (standalone) | arms `6.5` long: `<path d="M13 5.5l6.5 6.5-6.5 6.5" />` | `arrow-right` and its three siblings                                                           |
+| Arrowhead (composite)  | arms `4` long: `<path d="M9 8l-4 4 4 4" />`             | double arrows, corner arrows, `sort-asc`, `export`; a tray or cloud may push it 0.5 either way |
 
 Two glyphs may be **intentionally identical** when they're semantic aliases (`check-circle` vs
 `success-circle`): same drawing, different name and colour token. That's fine — don't introduce a
@@ -210,7 +213,7 @@ dense smears into a blob.
   16px (the failure mode behind dense bullseyes and stacked waves).
 - **≤ 20 coordinate pairs per `<path>`** (linter warns above). Prefer splitting distinct shapes
   into separate primitives over one dense compound path. Genuinely complex single glyphs (a gear
-  — `settings`, ~24 pts) are an accepted, *documented* exception, not a licence for density.
+  — `settings`, ~24 pts) are an accepted, _documented_ exception, not a licence for density.
 - If a concept can't survive 16px, simplify the concept, don't shrink the strokes.
 
 ## 6 · Path style (soft — warnings)
@@ -225,22 +228,22 @@ dense smears into a blob.
 
 When drawing a new icon, find its class and start from that file's geometry:
 
-| Class | Reference(s) | Construction cue |
-| --- | --- | --- |
-| Round / status | `circle`, `info-circle`, `check-circle` | `r=9.5` ring + inner glyph |
-| Triangle / warning | `warning-triangle` | `M12 3.5L2.5 20h19z` |
-| Large container | `calendar`, `credit-card`, `monitor` | `rect rx=2.5`, ~17 per side |
-| Mid container | `server`, `printer` | `rect rx=1.5` |
-| Capsule | `mic`, `pause` | `rx = short/2` |
-| Document | `file`, `file-check` | folded-corner outline; one path |
-| Teardrop | `droplet`, `flame` | shared `M12 3C9 7 6 11 6 14.5a6 6 0 0 0 12 0…` |
-| Inline meter | `meter`, `water-meter` | `rect 6…18 rx=2.5` housing + pipe stubs, flanges at `x=2.5/21.5` |
-| Person | `user`, `users` | `r=4.5` head + shoulder arc |
-| Arrow | `arrow-right` | shaft `M4.5 12h15` + head |
-| Chevron | `chevron-right` | `M9.5 7l5 5-5 5` |
-| Bars / chart | `bar-chart`, `sort-asc` | parallel strokes ≥2px apart |
-| Toggle pair | `eye`/`eye-off`, `mic`/`mic-off` | base glyph + diagonal slash `M…l…` |
-| Git graph | `git-branch`, `git-merge`, `git-pull-request` | `r=2.5` nodes; time runs bottom-up as in `git log --graph`, so a branch splits upward and a merge joins upward |
+| Class              | Reference(s)                                  | Construction cue                                                                                               |
+| ------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Round / status     | `circle`, `info-circle`, `check-circle`       | `r=9.5` ring + inner glyph                                                                                     |
+| Triangle / warning | `warning-triangle`                            | `M12 3.5L2.5 20h19z`                                                                                           |
+| Large container    | `calendar`, `credit-card`, `monitor`          | `rect rx=2.5`, ~17 per side                                                                                    |
+| Mid container      | `server`, `printer`                           | `rect rx=1.5`                                                                                                  |
+| Capsule            | `mic`, `pause`                                | `rx = short/2`                                                                                                 |
+| Document           | `file`, `file-check`                          | folded-corner outline; one path                                                                                |
+| Teardrop           | `droplet`, `flame`                            | shared `M12 3C9 7 6 11 6 14.5a6 6 0 0 0 12 0…`                                                                 |
+| Inline meter       | `meter`, `water-meter`                        | `rect 6…18 rx=2.5` housing + pipe stubs, flanges at `x=2.5/21.5`                                               |
+| Person             | `user`, `users`                               | `r=4.5` head + shoulder arc                                                                                    |
+| Arrow              | `arrow-right`                                 | shaft `M4.5 12h15` + head                                                                                      |
+| Chevron            | `chevron-right`                               | `M9.5 7l5 5-5 5`                                                                                               |
+| Bars / chart       | `bar-chart`, `sort-asc`                       | parallel strokes ≥2px apart                                                                                    |
+| Toggle pair        | `eye`/`eye-off`, `mic`/`mic-off`              | base glyph + diagonal slash `M…l…`                                                                             |
+| Git graph          | `git-branch`, `git-merge`, `git-pull-request` | `r=2.5` nodes; time runs bottom-up as in `git log --graph`, so a branch splits upward and a merge joins upward |
 
 ## 8 · Adding a new icon — touch ALL of these
 
@@ -307,5 +310,5 @@ this document — change them together.
 
 ---
 
-See also: `AGENTS.md` → *Icons* (summary + pointer here; `CLAUDE.md` is a symlink to it),
+See also: `AGENTS.md` → _Icons_ (summary + pointer here; `CLAUDE.md` is a symlink to it),
 `packages/blocks/src/lib/icons/icon-registry.ts` (registry & metadata), `icon.context.ts` (override context + `resolveIcon`).

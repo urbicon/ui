@@ -34,7 +34,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo on Bun workspaces.
 - **Z-Index**: CSS custom property tokens (`--z-modal`, `--z-dropdown`, etc.) via `z-[var(--z-*)]`
 - **Components**: All support `unstyled` + `slotClasses` + `preset` props for style overrides; `BlocksProvider` additionally accepts prop-conditional `overrides` (style only a specific variant/intent/state, e.g. the `outlined` variant)
 - **Internal core layer**: Public blocks components never import each other for trivial embedded controls (close ×, loading spinner, icon-only nav button) — they use the never-exported cores in `src/lib/internal/core/` (`ls` it for the roster). Essential compositions (ConfirmDialog→Dialog) stay direct imports but need a justified allowlist entry in `packages/blocks/scripts/imports-lint.ts`; `imports:lint` errors on unknown edges AND stale entries. Canon: [ARCHITECTURE.md § The internal core layer](docs/ARCHITECTURE.md#the-internal-core-layer).
-- **A gate is the last resort, not the first**: before adding a lint, ask whether the state it would report can be made *unrepresentable* instead — a value derived from one source cannot disagree with itself, and a gate that keeps two hand-written copies of one list agreeing is paying rent on the duplication rather than removing it (#146, #147, #148). When a gate genuinely is the answer, it must ask a real system — the compiler, Tailwind, the bundler, axe, a generator plus `--check` (`a2ui:axes:check` is the model).
+- **A gate is the last resort, not the first**: before adding a lint, ask whether the state it would report can be made _unrepresentable_ instead — a value derived from one source cannot disagree with itself, and a gate that keeps two hand-written copies of one list agreeing is paying rent on the duplication rather than removing it (#146, #147, #148). When a gate genuinely is the answer, it must ask a real system — the compiler, Tailwind, the bundler, axe, a generator plus `--check` (`a2ui:axes:check` is the model).
 
 For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -60,13 +60,13 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Coding Conventions
 
-- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`.
-- **Biome lints `.svelte` with six rules, nothing else** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; formatting stays with Prettier. They are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
+- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **`bun fmt`** for `.svelte` and `.md` (`.prettierrc`: single quotes, width 100, no trailing commas) + `svelte-check`.
+- **Biome lints `.svelte` with six rules, nothing else** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; `bun fmt` formats them. They are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
 - Use semantic design tokens over primitive Tailwind classes
-- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show *and* what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
+- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show _and_ what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
 
 Full references: [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md) (props, callbacks, styling) · [ComponentStructureStandard.md](docs/ComponentStructureStandard.md) (file structure).
 
@@ -74,18 +74,18 @@ Full references: [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.m
 
 Full reference with examples, role models and grep targets: [docs/SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md).
 
-| Pattern | Replacement | Severity |
-| --- | --- | --- |
-| `Math.random()` for IDs | `$props.id()` — two-step pattern (see below) | 🔴 |
-| `setContext('string', …)` | `createContext<T>()` from `svelte` (≥ 5.40) | 🟠 |
-| `$state(new Map())` / `$state(new Set())` | `SvelteMap` / `SvelteSet` from `svelte/reactivity` | 🟠 |
-| `onMount + matchMedia(…)` | `MediaQuery` from `svelte/reactivity` | 🟡 |
-| Index as key in `{#each}` | Stable unique key (`item.id`, ISO date, `${a}-${b}-${i}`) | 🟠 |
-| `class:foo={bar}` directive | Array in `class={['foo', bar && 'bar']}` | 🟡 |
-| `use:action` | `{@attach action(…)}` | 🟡 |
-| `<svelte:component this={X}>` | `<X />` directly | 🟡 |
-| `<slot />` / `<svelte:fragment>` | `{@render children()}` + snippets | 🟠 |
-| `export let foo`, `on:click=`, `$:`, `$$props` | `$props()`, `onclick=`, `$derived`/`$effect`, `let { ...rest } = $props()` | 🔴 |
+| Pattern                                        | Replacement                                                                | Severity |
+| ---------------------------------------------- | -------------------------------------------------------------------------- | -------- |
+| `Math.random()` for IDs                        | `$props.id()` — two-step pattern (see below)                               | 🔴       |
+| `setContext('string', …)`                      | `createContext<T>()` from `svelte` (≥ 5.40)                                | 🟠       |
+| `$state(new Map())` / `$state(new Set())`      | `SvelteMap` / `SvelteSet` from `svelte/reactivity`                         | 🟠       |
+| `onMount + matchMedia(…)`                      | `MediaQuery` from `svelte/reactivity`                                      | 🟡       |
+| Index as key in `{#each}`                      | Stable unique key (`item.id`, ISO date, `${a}-${b}-${i}`)                  | 🟠       |
+| `class:foo={bar}` directive                    | Array in `class={['foo', bar && 'bar']}`                                   | 🟡       |
+| `use:action`                                   | `{@attach action(…)}`                                                      | 🟡       |
+| `<svelte:component this={X}>`                  | `<X />` directly                                                           | 🟡       |
+| `<slot />` / `<svelte:fragment>`               | `{@render children()}` + snippets                                          | 🟠       |
+| `export let foo`, `on:click=`, `$:`, `$$props` | `$props()`, `onclick=`, `$derived`/`$effect`, `let { ...rest } = $props()` | 🔴       |
 
 **Svelte MCP** (`mcp__svelte__*`):
 
@@ -128,7 +128,7 @@ The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt` and 
 **`urbicon` CLI** (`packages/design`, the consumer surface). `urbicon validate` gates the
 loop by linting generated markup. In this repo it runs only in CI, against
 `packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`); the
-`PostToolUse` hook is what `urbicon init --hook` installs for *consumers*, not something this
+`PostToolUse` hook is what `urbicon init --hook` installs for _consumers_, not something this
 repo uses.
 
 Which command serves what and the `init` contract: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
@@ -139,11 +139,11 @@ Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` i
 
 ## Git Workflow (Agent Notes)
 
-- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json`/`.yml` and `prettier --write` on staged `.svelte`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for `.svelte` you have **not** staged (a whole-package sweep).
+- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json`/`.yml` and `bun fmt` on staged `.svelte`/`.md`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for files you have **not** staged (a whole-package sweep).
 - **A fresh worktree needs a build before anything else.** `bun install`, then `bunx --bun svelte-kit sync` (blocks, docs-app), then `bun run build:packages` (a flat `--filter='./packages/*'` sweep races the topology; the script's header says why). Without it the symptoms mislead — a dev server that won't start, missing `@urbicon-ui/…` modules, phantom `Snippet` errors, a failing `run test` — all because `@urbicon-ui/i18n` has no `dist/` yet. `api.ts` is git-ignored, so `docs:gen` too.
 - **Worktree merges**: `main` is checked out in the root worktree. Merge without leaving yours via `git -C <repo-root> merge <branch>` — this is the orchestrator's move from its own worktree; implementation subagents inside a `pr-wave` never run `git -C` on the main checkout. Stash there first if that tree is dirty.
 - **Only a PR's head SHA proves it landed.** PRs squash-merge, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Check with `gh pr view <N> --json headRefName,headRefOid,state` — equal SHA plus `MERGED` is also what makes deleting the branch safe. Cleanup removes the branch, its worktree and the `worktree-*` scaffolding branch the tooling creates (that one never merges on its own), then `git worktree prune`.
-- **No Markdown is prettier-gated** — not root `docs/*.md` and `AGENTS.md`, not package Markdown (`packages/*/README.md`, `packages/*/docs/*.md`). Match a file's existing style for surgical diffs; never blindly `prettier --write`, it re-aligns whole tables. Keep package Markdown prettier-clean by hand instead: `bunx prettier --check` on every file you touch, and a file that already fails must not gain a violation.
+- **Every tracked `.svelte` and `.md` is `bun fmt` output** — `bun run fmt:check` gates it in CI; `.prettierignore` holds the exemptions, each with its reason. A bare `bun fmt` runs the scoped `fmt` script, in the root and in every workspace; for one `.svelte`/`.md` file, `bun fmt --no-script <file>`.
 - **The `import.meta.env` build warning is expected — do not "fix" it.** `blocks` uses optional-chained `import.meta.env?.DEV` instead of `esm-env`, which would be a runtime dependency in the published `dist/` and break the zero-dependency maxim. The `@sveltejs/package` advisory is a plain string match, so it fires anyway. Never resolve it by adding `esm-env` or `$app/env`.
 
 ## Versioning
@@ -168,12 +168,12 @@ One unified version across all packages, bumped once at the end of a coherent se
 
 - **Every issue carries four label axes**, set when it is opened (`enhancement` issues carry no `debt:` axis) — a new issue with only a `debt:` label erodes the taxonomy:
 
-  | axis | values | meaning |
-  | --- | --- | --- |
-  | `debt:<area>` | the existing values as in `gh label list` | the topic |
-  | `pkg:<package>` | the package name as in `gh label list` | where it lives (multiple allowed) |
-  | `prio:P1\|P2\|P3` | **P1 = someone comes to harm**: a security hole, wrong data, a crash, a keyboard trap. Not "touches shipped code" — in a library every line does | the order |
-  | `size:S\|M\|L` | a session · about a day · a wave | the cost |
+  | axis              | values                                                                                                                                           | meaning                           |
+  | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+  | `debt:<area>`     | the existing values as in `gh label list`                                                                                                        | the topic                         |
+  | `pkg:<package>`   | the package name as in `gh label list`                                                                                                           | where it lives (multiple allowed) |
+  | `prio:P1\|P2\|P3` | **P1 = someone comes to harm**: a security hole, wrong data, a crash, a keyboard trap. Not "touches shipped code" — in a library every line does | the order                         |
+  | `size:S\|M\|L`    | a session · about a day · a wave                                                                                                                 | the cost                          |
 
   Plus two state labels: **`ready`** — the path is clear, no open design decision — and `blocked:upstream`. **`ready` is deliberately the positive label**: nearly every deferred finding ends in "wants a decision", so a `needs-decision` label would sit on ~75 % of the backlog and sort nothing. The useful question is what can be picked up right now (`gh issue list --label ready`). There is no P0; that channel stays free for an actual fire.
 

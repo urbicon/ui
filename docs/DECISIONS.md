@@ -24,7 +24,7 @@ promises and similar issues are caught by TypeScript itself (`strict`, `noImplic
 four as nursery rules (`noSvelteAtHtmlTags`, `useSvelteRequireEachKey`,
 `useSvelteReactiveClasses`, `useSvelteKitResolve`), plus `noSvelteClassDirective` and
 `noSvelteExportLet`, and `biome.json` enforces these six on `.svelte` and nothing else: no
-recommended preset, no assist, no formatter — Prettier still formats `.svelte`. They need
+recommended preset, no assist, no formatter — `bun fmt` formats `.svelte`. They need
 `html.experimentalFullSupportEnabled`, which takes effect only at the top level of
 `biome.json`; inside an `overrides` entry Biome 2.6.2 ignores it and lints the `<script>`
 alone. Nursery rules behind an experimental flag can change in any Biome release; the lockfile
@@ -39,11 +39,40 @@ cannot parse gets rewritten.
 ## Pre-commit runs neither `check` nor the tests
 
 The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.json`/`.yml`) and
-`prettier --write` (staged `.svelte`) — no `svelte-check`, no Vitest.
+`bun fmt` (staged `.svelte`/`.md`) — no `svelte-check`, no Vitest.
 
 `svelte-check` across all packages takes 30–60 s and would noticeably block every commit;
 tests are CI's job. The consequence — `svelte-check` errors surface only in CI — is
 acceptable because CI failures reproduce locally in seconds.
+
+A file staged hunk by hunk is the hook's blind spot. lefthook sets the unstaged rest aside,
+runs the formatter, and re-applies the rest as a patch without context. A hunk that replaces
+lines finds its place again by their content; an unstaged hunk that only adds lines goes back
+by line number, so when the formatter changes the line count above it, it lands as many lines
+off — in the working copy only; the commit is right. That holds for any formatter,
+`bun fmt --staged` included, because lefthook hides the rest before the formatter runs. After
+such a commit, read `git diff` before staging what it shows.
+
+## `bun fmt` formats `.svelte` and Markdown, on an unpinned Bun
+
+`bun fmt` formats every tracked `.svelte` and `.md` file and Biome everything else;
+`scripts/fmt.ts` is the scoped entry point, and `bun run fmt:check` gates it in the `lint` job.
+
+**Known consequence:** CI installs the latest Bun (`oven-sh/setup-bun` without a version), so
+a Bun release that formats differently turns `lint` red on every PR until one `bun run fmt`
+commit lands. Bun stays unpinned on purpose.
+
+`.prettierrc` is `bun fmt`'s configuration, and its `plugins` array names packages the repo no
+longer installs. It is not dead: the two entries switch on `bun fmt`'s built-in Svelte
+formatter and Tailwind class sort. Without `prettier-plugin-svelte`, `bun fmt` refuses every
+`.svelte` file and `fmt:check` fails. Without `prettier-plugin-tailwindcss`, or without a
+`tailwindcss` package that resolves upward from the file, classes stay unsorted without a
+word, so `scripts/fmt.ts` first formats a probe and fails unless its classes come back sorted.
+
+`.prettierignore` holds only the files whose exact bytes are a contract — vendored upstream
+pages, the generated changelog, test inputs whose syntax is what the test reads — each with its
+reason. `bun fmt` reads ignore files from the working directory only, so `scripts/fmt.ts`
+passes the root one explicitly and takes its file list from git.
 
 ## Stricter TS flags are not raised centrally
 
@@ -59,7 +88,7 @@ yet justified.
 
 ## `import.meta.env?.DEV` instead of `esm-env`
 
-The library build emits a `@sveltejs/package` advisory: *"Avoid usage of `import.meta.env`"*.
+The library build emits a `@sveltejs/package` advisory: _"Avoid usage of `import.meta.env`"_.
 It is intentional and harmless.
 
 `blocks` uses optional-chained `import.meta.env?.DEV` (safe in non-Vite consumers) rather
@@ -168,12 +197,12 @@ the Guide — are placed by `packages/blocks/src/lib/utils/floating.ts`, a zero-
 `computePosition` with middleware and `autoUpdate`. Two platform features would replace parts
 of it and are held back:
 
-- **CSS Anchor Positioning** is Baseline only as *newly* available. Browsers without it are
+- **CSS Anchor Positioning** is Baseline only as _newly_ available. Browsers without it are
   still in use, so the JS path would have to stay beside it — adopting it now adds a second
   positioning path instead of removing one.
 - **`popover="hint"`** for Tooltip is blocked by Safari, which does not ship it.
 
-**Revisit only if:** Anchor Positioning is Baseline *widely* available (then replace, do not
+**Revisit only if:** Anchor Positioning is Baseline _widely_ available (then replace, do not
 add), or Safari ships `popover="hint"` (then Tooltip migrates).
 
 ## The MCP server was retired
@@ -185,7 +214,7 @@ endpoint, and no local-install consumer path was documented.
 
 It was **retired** (#500, decided 2026-09-24): next to the CLI, which is the consumer surface,
 it had no use case of its own. The CLI serves the knowledge of the version a project
-installed, where the remote served *latest*, and it does what a stateless remote server
+installed, where the remote served _latest_, and it does what a stateless remote server
 structurally cannot — read and write the project's `design.manifest.md`, and tell an
 importable component from one whose package is not installed. The engine and the content
 bundle stay, behind the CLI.
@@ -205,7 +234,7 @@ Before the split, a single job carried `NPM_TOKEN` in its job-level `env`, which
 scope for `bun install` and every transitive `postinstall`.
 
 Authentication is npm **trusted publishing** (OIDC), so there is no long-lived token: the job
-mints a short-lived credential bound to this repository *and* this workflow file, useless
+mints a short-lived credential bound to this repository _and_ this workflow file, useless
 anywhere else. It needs `id-token: write`, npm ≥ 11.5.1, Node ≥ 22.14, and a trusted publisher
 configured per package on npmjs.com. Provenance attestations are automatic — the
 `--provenance` flag is not needed. The surviving `NPM_TOKEN` fallback is dead weight kept as
@@ -270,7 +299,7 @@ table server-renderable: the URL binding applies synchronously at init, storage 
 hydration.
 
 **Known consequence:** combining the two needs a rule about who wins, and v8 spends exactly
-one — precedence comes from *phases*, not from registration order. Defaults → URL (at init) →
+one — precedence comes from _phases_, not from registration order. Defaults → URL (at init) →
 storage (after hydration); at runtime only the URL applies, storage only writes, and an axis
 is stored when its last change came from the reader, which is what keeps someone else's link
 out of storage. v7 needed two mechanisms for this (presence-based reads, prop-wiring-based
@@ -329,7 +358,7 @@ A two-day spike (local branch `experiment/domain-projection`, tip `9b8afdb6`, ne
 AI-driven meta-system that projects a consumer's domain model onto the library, keeping
 changes cheap as that model evolves, is worth building. **Decision: no round-trip/codegen
 tool.** Determinism belongs in verification — drift linters, types, `urbicon validate` as
-gates — not in generation; the AI sits at the upper seam as the *executor* of changes, never
+gates — not in generation; the AI sits at the upper seam as the _executor_ of changes, never
 as a generator whose output then has to be kept in sync with hand edits.
 
 A UI's skeleton falls out almost entirely from the schema (Drizzle + Zod); the value that is

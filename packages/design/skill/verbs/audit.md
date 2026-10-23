@@ -1,7 +1,7 @@
 # audit — check design consistency across the whole app
 
 **When:** a periodic or pre-release sweep — is the app still coherent, or has it
-drifted? The flagship cross-page verb: it reasons over *many* surfaces via the
+drifted? The flagship cross-page verb: it reasons over _many_ surfaces via the
 manifest usage-index, which no single-page or system-agnostic tool can do.
 **Gate:** none — assessment over n pages. Change nothing; produce a drift report.
 
@@ -16,7 +16,7 @@ manifest usage-index, which no single-page or system-agnostic tool can do.
    (`urbicon pattern <name>`). A page marked `dashboard` that looks like a form is
    drift.
 4. **Score a representative sample.** Pick the highest-traffic or most-divergent pages
-   and score them with `urbicon principles --rubric`. Look for *spread* — wide
+   and score them with `urbicon principles --rubric`. Look for _spread_ — wide
    variance across pages is the consistency problem, even if each page passes alone.
 5. **Report drift, don't fix it.** Produce: the app-wide correctness/craft scores and
    their trend; per-pattern conformance; the rubric spread; and a ranked list of the

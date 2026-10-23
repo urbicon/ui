@@ -19,13 +19,13 @@ treatment rather than inventing a synonym.
 Every container variant is built from four tints that sit on top of `surface-base`
 (the page background). Picking a variant is really picking a rung:
 
-| Token | Reads as | Lift relative to base |
-| --- | --- | --- |
-| `surface-base` | The page itself | — |
-| `surface-quiet` | A softly tinted in-page zone — "own zone", no border, no shadow | 1.5 % darker (light), 3 % lighter (dark) |
-| `surface-subtle` | A **resting** tint against a border — readonly/disabled fields, list rows, code chips | 3.5 % darker (light), 8 % lighter (dark) |
-| `surface-elevated` | A floating overlay with its own stacking context | same lift as `subtle`, plus shadow + z-index |
-| `surface-overlay` | The highest surfaces — Dialog, Drawer, Sheet, Toast — over a dimmed backdrop | same as base (light), 3 % lighter (dark); the backdrop carries the separation |
+| Token              | Reads as                                                                              | Lift relative to base                                                         |
+| ------------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `surface-base`     | The page itself                                                                       | —                                                                             |
+| `surface-quiet`    | A softly tinted in-page zone — "own zone", no border, no shadow                       | 1.5 % darker (light), 3 % lighter (dark)                                      |
+| `surface-subtle`   | A **resting** tint against a border — readonly/disabled fields, list rows, code chips | 3.5 % darker (light), 8 % lighter (dark)                                      |
+| `surface-elevated` | A floating overlay with its own stacking context                                      | same lift as `subtle`, plus shadow + z-index                                  |
+| `surface-overlay`  | The highest surfaces — Dialog, Drawer, Sheet, Toast — over a dimmed backdrop          | same as base (light), 3 % lighter (dark); the backdrop carries the separation |
 
 Two traps worth naming:
 
@@ -40,12 +40,12 @@ Two traps worth naming:
 
 ## 2 · Card
 
-| `variant` | Treatment | Reach for it when |
-| --- | --- | --- |
-| `quiet` *(default)* | `surface-quiet` tint, no border, no shadow | The card groups content inside a page that already has structure |
-| `outlined` | Transparent background + `border-default` | The card is in-page chrome and must not add a tint |
-| `elevated` | `surface-elevated` + `shadow-md` | The card should lift off the page on its own |
-| `floating` | `surface-elevated` + `shadow-lg` | Popover-weight lift — the heaviest rung |
+| `variant`           | Treatment                                  | Reach for it when                                                |
+| ------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
+| `quiet` _(default)_ | `surface-quiet` tint, no border, no shadow | The card groups content inside a page that already has structure |
+| `outlined`          | Transparent background + `border-default`  | The card is in-page chrome and must not add a tint               |
+| `elevated`          | `surface-elevated` + `shadow-md`           | The card should lift off the page on its own                     |
+| `floating`          | `surface-elevated` + `shadow-lg`           | Popover-weight lift — the heaviest rung                          |
 
 `elevated` gains a `hover:shadow-lg` lift **only** with `interactive`. A non-interactive
 card that animates on hover falsely signals interactivity (WCAG 3.2).
@@ -58,10 +58,10 @@ footer — the traditional card-with-header look.
 `variant` picks the card's weight; `tier` picks its **shape family**, and it has exactly two
 values because there are exactly two answers:
 
-| `tier` | Radius | Reach for it when |
-| --- | --- | --- |
-| `contain` *(default)* | `--radius-contain` | The card is architecture — a panel, a section, a page-level surface |
-| `bridge` | `--radius-bridge` | The card is a small tinted **content** tile — a chip, a stat cell, a compact list card |
+| `tier`                | Radius             | Reach for it when                                                                      |
+| --------------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| `contain` _(default)_ | `--radius-contain` | The card is architecture — a panel, a section, a page-level surface                    |
+| `bridge`              | `--radius-bridge`  | The card is a small tinted **content** tile — a chip, a stat cell, a compact list card |
 
 The distinction is optical, not decorative: radius scales with the area it turns, so the edge that
 reads as **precise** on a 600 px panel reads as an untouched rectangle on a 200 px tile. `--radius-bridge`
@@ -78,11 +78,11 @@ principles name — see `principles.md` → "Semantic Radius Tiers".
 
 ## 3 · Alert
 
-| `variant` | Treatment | Voice |
-| --- | --- | --- |
-| `soft` *(default)* | `bg-{intent}-subtle`, no border | Quiet, sits in the reading flow |
-| `inline` | `border-l-2` only, transparent background | Memo-style — the quietest form, no surrounding box |
-| `filled` | `bg-{intent}`, on-intent text | Strongest emphasis |
+| `variant`          | Treatment                                 | Voice                                              |
+| ------------------ | ----------------------------------------- | -------------------------------------------------- |
+| `soft` _(default)_ | `bg-{intent}-subtle`, no border           | Quiet, sits in the reading flow                    |
+| `inline`           | `border-l-2` only, transparent background | Memo-style — the quietest form, no surrounding box |
+| `filled`           | `bg-{intent}`, on-intent text             | Strongest emphasis                                 |
 
 Alert and Toast carry the **feedback intent palette**: they add `info` and drop
 `secondary`. `info` is a stable informational blue that survives a brand recolour, which
@@ -100,21 +100,21 @@ already reads as text (`urbicon css-reference intents` carries the stops).
 
 The two disclosure siblings share one vocabulary:
 
-| `variant` | Accordion | Collapsible |
-| --- | --- | --- |
-| `default` | Hairlines between items (`divide-y`) | No chrome |
-| `card` | Items as standalone card blocks, `surface-quiet` tint, `space-y-2`, no dividers | Bordered block: `border-hairline` + `rounded-contain` + `shadow-sm` |
-| `ghost` | No separators, hover tint per item | No separators, hover tint on the trigger |
+| `variant` | Accordion                                                                       | Collapsible                                                         |
+| --------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `default` | Hairlines between items (`divide-y`)                                            | No chrome                                                           |
+| `card`    | Items as standalone card blocks, `surface-quiet` tint, `space-y-2`, no dividers | Bordered block: `border-hairline` + `rounded-contain` + `shadow-sm` |
+| `ghost`   | No separators, hover tint per item                                              | No separators, hover tint on the trigger                            |
 
 ---
 
 ## 5 · Table chrome
 
-| `variant` | Treatment | Reach for it when |
-| --- | --- | --- |
-| `flush` *(default)* | No outer frame — the table sits inline in the reading flow | The table is the content of the page or section |
-| `surface` | `bg-surface-quiet` — a gentle tinted zone, no border | The table needs to read as its own zone without a frame |
-| `framed` | `surface-elevated` + `border-default` + `rounded-contain` + `shadow-sm` | The table is a standalone block among other blocks |
+| `variant`           | Treatment                                                               | Reach for it when                                       |
+| ------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| `flush` _(default)_ | No outer frame — the table sits inline in the reading flow              | The table is the content of the page or section         |
+| `surface`           | `bg-surface-quiet` — a gentle tinted zone, no border                    | The table needs to read as its own zone without a frame |
+| `framed`            | `surface-elevated` + `border-default` + `rounded-contain` + `shadow-sm` | The table is a standalone block among other blocks      |
 
 The frame belongs to the table, not to one of its layouts: below the mobile
 breakpoint the same treatment wraps the record list, and the records inside it
@@ -184,11 +184,11 @@ The Table's three state snippets are named after the `slotClasses` slots they st
 frees `loading` and `error` for the state fields they are everywhere else in the library.
 Since v8 those two live on the data source rather than on the table itself:
 
-| Snippet | Companion field |
-| --- | --- |
-| `emptyState` | — |
-| `loadingState` | `source.loading?: boolean` |
-| `errorState` | `source.error?: string \| null` |
+| Snippet        | Companion field                 |
+| -------------- | ------------------------------- |
+| `emptyState`   | —                               |
+| `loadingState` | `source.loading?: boolean`      |
+| `errorState`   | `source.error?: string \| null` |
 
 ```svelte
 <Table {columns} source={{ processing: 'client', items, loading: pending, error: failure }}>
@@ -212,13 +212,13 @@ The field family — Input, Textarea, Select, Combobox — shares one `variant` 
 and TimeInput carry the first three; the last two need a single continuous line to sit on, which a
 row of cells and a segmented time field do not have.
 
-| `variant` | At rest | On focus | Reach for it when |
-| --- | --- | --- | --- |
-| `outlined` *(default)* | `border-subtle` frame on `surface-base` | Frame turns primary + a 2px ring at 20 % alpha | The default form field |
-| `filled` | `surface-interactive` fill, transparent border | Fill drops back to `surface-base`, frame + ring | Dense toolbars, fields on a tinted zone |
-| `ghost` | Transparent — border and background are *transparent*, not absent | **Becomes an outlined field**: `surface-base`, `border-subtle`, frame + ring | The chrome should stay out of the way until the field is used |
-| `underline` | Bottom border only, no radius | Bottom border turns primary, no ring | Editorial knob strips, docs playgrounds |
-| `bare` | Nothing: no frame, no fill, no padding, no fixed height, no radius | An **outline** in the family focus colour, and nothing else | The field should read as the text it sits in |
+| `variant`              | At rest                                                            | On focus                                                                     | Reach for it when                                             |
+| ---------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `outlined` _(default)_ | `border-subtle` frame on `surface-base`                            | Frame turns primary + a 2px ring at 20 % alpha                               | The default form field                                        |
+| `filled`               | `surface-interactive` fill, transparent border                     | Fill drops back to `surface-base`, frame + ring                              | Dense toolbars, fields on a tinted zone                       |
+| `ghost`                | Transparent — border and background are _transparent_, not absent  | **Becomes an outlined field**: `surface-base`, `border-subtle`, frame + ring | The chrome should stay out of the way until the field is used |
+| `underline`            | Bottom border only, no radius                                      | Bottom border turns primary, no ring                                         | Editorial knob strips, docs playgrounds                       |
+| `bare`                 | Nothing: no frame, no fill, no padding, no fixed height, no radius | An **outline** in the family focus colour, and nothing else                  | The field should read as the text it sits in                  |
 
 `ghost` is not `bare`. It keeps the `size` axis's padding and height, takes a hover tint, and
 reveals its frame on focus — a field that hides its chrome until you use it, not a field without
@@ -327,15 +327,15 @@ class is the marker:
 Several of these values were renamed on the way to v6 so siblings would agree. If you are
 reading older code or an older changelog entry:
 
-| Component | Former value | Current | Since |
-| --- | --- | --- | --- |
-| Alert | `outlined` | `inline` | v5.0 |
-| Accordion | `bordered` → `separated` | `card` | v5.0 → v6.30 |
-| Card | `filled` | `quiet` | v5.0 |
-| Card | `glass` | *removed* — rebuild via `unstyled` | v5.0 |
-| Table | `appearance` axis | `variant` axis | v6.32 |
-| Table | `empty` / `loading` / `error` snippets | `emptyState` / `loadingState` / `errorState` | v6.41 |
-| Toggle / Slider / SegmentGroup | `appearance` axis | `variant` axis | v6.x |
+| Component                      | Former value                           | Current                                      | Since        |
+| ------------------------------ | -------------------------------------- | -------------------------------------------- | ------------ |
+| Alert                          | `outlined`                             | `inline`                                     | v5.0         |
+| Accordion                      | `bordered` → `separated`               | `card`                                       | v5.0 → v6.30 |
+| Card                           | `filled`                               | `quiet`                                      | v5.0         |
+| Card                           | `glass`                                | _removed_ — rebuild via `unstyled`           | v5.0         |
+| Table                          | `appearance` axis                      | `variant` axis                               | v6.32        |
+| Table                          | `empty` / `loading` / `error` snippets | `emptyState` / `loadingState` / `errorState` | v6.41        |
+| Toggle / Slider / SegmentGroup | `appearance` axis                      | `variant` axis                               | v6.x         |
 
 The full v4 → v5 upgrade path is archived in the repository; consumers on v6 need only the
 table above.

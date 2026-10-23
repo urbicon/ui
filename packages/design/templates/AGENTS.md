@@ -14,12 +14,12 @@ for the full command list with flags — it covers component discovery and APIs,
 recipes, design principles and patterns, the token reference, the design linter, and this
 project's design memory. Its knowledge is **version-matched to the library this project
 installed**, so it is true of the code you actually have. If the hosted docs disagree with
-the CLI, the CLI is right — they serve *latest*.
+the CLI, the CLI is right — they serve _latest_.
 
 ### How to work — the design loop
 
 1. **Read the intent** — `bunx urbicon context`. The design manifest holds this product's
-   paradigm, voice and past decisions. This is what keeps output consistent with *this*
+   paradigm, voice and past decisions. This is what keeps output consistent with _this_
    product instead of generic.
 2. **Discover** — `bunx urbicon find <query>`, then `get-component <slug>` for the real API
    (`--section api` when you only need the props). Don't guess props or invent components.

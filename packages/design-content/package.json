@@ -34,6 +34,7 @@
     "README.md"
   ],
   "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
     "build": "echo 'no build needed — Bun runs TypeScript directly'",
     "check": "tsc --noEmit",
     "test": "bunx --bun vitest run",

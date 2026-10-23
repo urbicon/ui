@@ -41,18 +41,18 @@ widening the type.
 
 ## Built-in effects
 
-| Mint        | Trigger | Behaviour                                          |
-| ----------- | ------- | -------------------------------------------------- |
-| `scale`     | hover   | Scales up slightly — **held** while hovered        |
-| `translate` | hover   | Lifts the element — held                           |
-| `rotate`    | hover   | Tilts the element — held                           |
-| `glow`      | hover   | Intent-aware glow — held                           |
-| `pulse`     | hover   | Pulses continuously — held                         |
-| `bounce`    | click   | One-shot bounce                                    |
-| `shake`     | click   | One-shot shake                                     |
-| `wiggle`    | hover   | One wiggle cycle per hover entry (not continuous)  |
-| `ripple`    | click   | Material-style ripple from the pointer position    |
-| `composite` | —       | Bundles several mints via `config.mints`           |
+| Mint        | Trigger | Behaviour                                         |
+| ----------- | ------- | ------------------------------------------------- |
+| `scale`     | hover   | Scales up slightly — **held** while hovered       |
+| `translate` | hover   | Lifts the element — held                          |
+| `rotate`    | hover   | Tilts the element — held                          |
+| `glow`      | hover   | Intent-aware glow — held                          |
+| `pulse`     | hover   | Pulses continuously — held                        |
+| `bounce`    | click   | One-shot bounce                                   |
+| `shake`     | click   | One-shot shake                                    |
+| `wiggle`    | hover   | One wiggle cycle per hover entry (not continuous) |
+| `ripple`    | click   | Material-style ripple from the pointer position   |
+| `composite` | —       | Bundles several mints via `config.mints`          |
 
 ### Two behaviour models
 

@@ -7,7 +7,7 @@ rebuild.
 correctness.
 
 1. **Context.** `urbicon context` for the Product Intent — polish moves the page
-   *toward* its voice, not toward your taste.
+   _toward_ its voice, not toward your taste.
 2. **Find the craft notes.** Run `urbicon validate` and read the **craft**
    findings specifically (the advisory notes): generic font, uniform
    spacing/weights, identical cards, grey-on-colour, animated dimensions,

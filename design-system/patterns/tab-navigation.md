@@ -97,13 +97,13 @@ The tab bar is navigation, so it is a `<nav>` of anchors. The browser gets real 
 
 ## Component Selection
 
-| UI Need                                     | Component                      | When                                                                            |
-| ------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
-| Route-addressed peer sections               | `<nav>` + `Link`               | This pattern — the URL is the state, `active` marks the current tab             |
-| Panels inside one document                  | `Tab` + `TabItem` + `TabPanel` | Client-side `bind:value`; nothing changes the URL                               |
-| A view switch inside one page (list / grid) | `SegmentGroup` + `SegmentItem` | A chosen value, not a location — never a route switcher                         |
-| 5+ sections on mobile                       | `Select`                       | Dropdown fallback for narrow screens                                            |
-| Hierarchical subsections                    | `Sidebar`                      | Use `settings-page` pattern instead                                             |
+| UI Need                                     | Component                      | When                                                                |
+| ------------------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| Route-addressed peer sections               | `<nav>` + `Link`               | This pattern — the URL is the state, `active` marks the current tab |
+| Panels inside one document                  | `Tab` + `TabItem` + `TabPanel` | Client-side `bind:value`; nothing changes the URL                   |
+| A view switch inside one page (list / grid) | `SegmentGroup` + `SegmentItem` | A chosen value, not a location — never a route switcher             |
+| 5+ sections on mobile                       | `Select`                       | Dropdown fallback for narrow screens                                |
+| Hierarchical subsections                    | `Sidebar`                      | Use `settings-page` pattern instead                                 |
 
 ## Behavioral Rules
 

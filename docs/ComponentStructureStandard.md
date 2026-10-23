@@ -36,8 +36,7 @@ import type { ComponentSlots, ComponentVariants } from './component.variants';
 import type { MintProp } from '#lib/mint/index.js';
 
 export interface ComponentNameProps
-  extends ComponentVariants,
-    Omit<HTMLAttributes<HTMLElement>, 'children'> {
+  extends ComponentVariants, Omit<HTMLAttributes<HTMLElement>, 'children'> {
   children?: Snippet;
   class?: string;
   disabled?: boolean;
@@ -65,7 +64,8 @@ When a prop type differs from `ComponentVariants` (e.g. `error: string` instead 
 
 ```typescript
 export interface CheckboxProps
-  extends Omit<CheckboxVariants, 'error' | 'checked'>,
+  extends
+    Omit<CheckboxVariants, 'error' | 'checked'>,
     Omit<HTMLInputAttributes, 'type' | 'size' | 'checked' | 'class' | 'children'> {
   /** Error message that replaces helper text and sets aria-invalid. */
   error?: string;
@@ -179,9 +179,7 @@ The root slot folds `class` and `slotClasses.base` together (so `class` reaches 
 
 ```svelte
 <!-- Multi-slot pattern (e.g. Input, whose root slot is `wrapper`, not `base`) -->
-<span
-  class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
->
+<span class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}>
   …
 </span>
 ```
@@ -199,14 +197,14 @@ import { tv, type SlotNames, type VariantProps } from '#lib/utils/variants.js';
 
 export const componentVariants = tv({
   slots: {
-    base: ['...'],
+    base: ['...']
   },
   variants: {
     variant: { filled: {}, outlined: {}, ghost: {} },
     size: { sm: {}, md: {}, lg: {} },
-    intent: { primary: {}, neutral: {}, danger: {} },
+    intent: { primary: {}, neutral: {}, danger: {} }
   },
-  defaultVariants: { variant: 'filled', size: 'md', intent: 'primary' },
+  defaultVariants: { variant: 'filled', size: 'md', intent: 'primary' }
 });
 
 export type ComponentVariants = VariantProps<typeof componentVariants>;
@@ -233,7 +231,7 @@ compoundVariants: [
     error: false,
     class: { base: 'border-transparent' }
   }
-]
+];
 ```
 
 ### Variant Distinctness
@@ -243,8 +241,8 @@ Every variant option must produce a visible difference. Empty variant definition
 ```typescript
 compoundVariants: [
   { checked: false, variant: 'outlined', class: { box: 'bg-surface-base border-border-default' } },
-  { checked: false, variant: 'ghost',    class: { box: 'bg-transparent border-transparent' } },
-]
+  { checked: false, variant: 'ghost', class: { box: 'bg-transparent border-transparent' } }
+];
 ```
 
 ### Size Progressions

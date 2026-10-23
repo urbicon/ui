@@ -8,12 +8,13 @@ Tailwind 4 replaces `theme()` with CSS variables. Custom tokens are defined in `
 
 ```css
 @theme {
-  --color-surface-base: oklch(1 0 0);     /* → bg-surface-base, text-surface-base */
-  --color-primary: oklch(0.5 0.2 230);    /* → bg-primary, text-primary */
+  --color-surface-base: oklch(1 0 0); /* → bg-surface-base, text-surface-base */
+  --color-primary: oklch(0.5 0.2 230); /* → bg-primary, text-primary */
 }
 ```
 
 Our token architecture in `blocks/src/lib/style/`:
+
 - `foundation.css` – OKLCH color palette, z-index, spacing, radii
 - `semantic.css` – `surface-*`, `text-*`, `border-*` tokens with automatic dark mode (via the CSS `light-dark()` function)
 - `interaction.css` – Hover/focus/active states, animations
@@ -21,8 +22,10 @@ Our token architecture in `blocks/src/lib/style/`:
 ## CSS Variable Access
 
 ```css
-/* Tailwind 3 */  background-color: theme(colors.gray.100);
-/* Tailwind 4 */  background-color: var(--color-gray-100);
+/* Tailwind 3 */
+background-color: theme(colors.gray.100);
+/* Tailwind 4 */
+background-color: var(--color-gray-100);
 ```
 
 Standard variables: `--color-{name}-{shade}`, `--text-{size}`, `--spacing`, `--shadow-{size}`, `--radius-{size}`, `--breakpoint-{size}`.
@@ -56,7 +59,7 @@ transition-transform            /* ✓ shorthand expands to all four */
 
 The `transition-transform` shorthand is safe — it expands to `transform, translate, scale, rotate`. Only the arbitrary-value form has to name every property it wants to animate.
 
-This was a silent, library-wide defect: 12 variant slots listed `transform` and animated nothing, **including `Button`** — the canonical press cue had been jumping since it was written. `bun run variants:lint` now errors on an arbitrary transition list that omits a discrete property the same class chain uses (rule documented at the top of `packages/blocks/scripts/variants-lint.ts`). It inspects the *rendered* class chain, so a compound that only adds `scale-*` under one variant is caught too. Verified against compiled output, not inferred from the docs.
+This was a silent, library-wide defect: 12 variant slots listed `transform` and animated nothing, **including `Button`** — the canonical press cue had been jumping since it was written. `bun run variants:lint` now errors on an arbitrary transition list that omits a discrete property the same class chain uses (rule documented at the top of `packages/blocks/scripts/variants-lint.ts`). It inspects the _rendered_ class chain, so a compound that only adds `scale-*` under one variant is caught too. Verified against compiled output, not inferred from the docs.
 
 ## Preflight no longer sets `cursor: pointer` on buttons
 
@@ -68,11 +71,11 @@ Tailwind 4 only scans explicitly configured source directories for class names. 
 
 ```css
 /* apps/docs/src/app.css */
-@source "./lib";
-@source "./routes";
-@source "../../../packages/blocks/dist";     /* published blocks */
-@source "../../../packages/docs/src/lib";    /* docs component library */
-@source "../../../packages/table/src/lib";   /* table package */
+@source './lib';
+@source './routes';
+@source '../../../packages/blocks/dist'; /* published blocks */
+@source '../../../packages/docs/src/lib'; /* docs component library */
+@source '../../../packages/table/src/lib'; /* table package */
 ```
 
 Without this directive, responsive classes like `lg:block` or transform classes like `rotate-90` that only appear in package components will not be included in the generated CSS. The Vite plugin follows the module graph for content detection but does not reliably capture all classes from external workspace packages.
@@ -83,7 +86,7 @@ Without this directive, responsive classes like `lg:block` or transform classes 
 
 The CSS files exported from this monorepo (`packages/blocks/src/lib/style/index.css`, `packages/table/src/lib/style/index.css`, `packages/auth/src/lib/style/index.css`, `packages/docs/src/lib/style/index.css`) **must not** start with `@import 'tailwindcss';`. That directive belongs in the consumer app's CSS only.
 
-Why this matters: Tailwind 4 collects every `@theme {}` block from all imported CSS files into one consolidated `:root {}` block per Tailwind compilation. With one compilation (the consumer app's), the consumer's `@theme` is processed last and wins the cascade. The moment a *second* `@import 'tailwindcss';` shows up — e.g. inside a library CSS file that gets pulled into the consumer bundle as a side-effect of importing a component — Tailwind runs a *second* compilation. That second compilation does **not** see the consumer's overrides, so it emits the library defaults. Both compilations land in `@layer theme`, and the later one wins; the consumer's `@theme` overrides silently flip back to the library defaults.
+Why this matters: Tailwind 4 collects every `@theme {}` block from all imported CSS files into one consolidated `:root {}` block per Tailwind compilation. With one compilation (the consumer app's), the consumer's `@theme` is processed last and wins the cascade. The moment a _second_ `@import 'tailwindcss';` shows up — e.g. inside a library CSS file that gets pulled into the consumer bundle as a side-effect of importing a component — Tailwind runs a _second_ compilation. That second compilation does **not** see the consumer's overrides, so it emits the library defaults. Both compilations land in `@layer theme`, and the later one wins; the consumer's `@theme` overrides silently flip back to the library defaults.
 
 This shows up dramatically with `@urbicon-ui/table` because `packages/table/src/lib/style/index.ts` side-effect-imports `./index.css`, so the second Tailwind compilation enters the consumer's DOM as soon as a Table is mounted — or even just hover-preloaded by SvelteKit (`data-sveltekit-preload-data="hover"`).
 

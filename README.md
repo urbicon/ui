@@ -44,12 +44,12 @@ In practice, that means:
 Every pixel of the [documentation site](https://ui.urbicon.de), landing included, is built from
 the library itself.
 
-| | |
-| --- | --- |
-| <img src=".github/assets/landing.png" alt="Landing page: name tile beside a live dashboard composed from blocks" /> | <img src=".github/assets/specimen-book.png" alt="Specimen book: every cell renders the live component" /> |
-| The landing: a back-office dashboard composed from charts, controls and tokens, in one container-adaptive card. | The [specimen book](https://ui.urbicon.de/blocks): the complete set as living specimens, every cell the real component, each linked to its props, variants and playground. |
-| <img src=".github/assets/agents-tile.png" alt="Agents exhibit: terminal replay beside the actual component source" /> | <img src=".github/assets/install-ask-ship.png" alt="Install, Ask, Ship: the ordered neon-magenta booking page, delivered" /> |
-| An agent writes a component and `urbicon validate` scores it; the source view then shows the very file, verbatim. Readable code is the point. | Install · Ask · Ship: the prompt asks for *neon-magenta*, and the shipped page **is** that magenta. |
+|                                                                                                                                               |                                                                                                                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src=".github/assets/landing.png" alt="Landing page: name tile beside a live dashboard composed from blocks" />                           | <img src=".github/assets/specimen-book.png" alt="Specimen book: every cell renders the live component" />                                                                  |
+| The landing: a back-office dashboard composed from charts, controls and tokens, in one container-adaptive card.                               | The [specimen book](https://ui.urbicon.de/blocks): the complete set as living specimens, every cell the real component, each linked to its props, variants and playground. |
+| <img src=".github/assets/agents-tile.png" alt="Agents exhibit: terminal replay beside the actual component source" />                         | <img src=".github/assets/install-ask-ship.png" alt="Install, Ask, Ship: the ordered neon-magenta booking page, delivered" />                                               |
+| An agent writes a component and `urbicon validate` scores it; the source view then shows the very file, verbatim. Readable code is the point. | Install · Ask · Ship: the prompt asks for _neon-magenta_, and the shipped page **is** that magenta.                                                                        |
 
 ## Quick start
 
@@ -98,16 +98,16 @@ setup and the first real page.
 
 ## What's in the box
 
-| Package | What it gives you |
-| --- | --- |
-| [`@urbicon-ui/blocks`](https://ui.urbicon.de/blocks) | 80+ primitives and components (forms, overlays, charts, chat/AI surfaces), plus OKLCH tokens, the `tv()` variant engine and 300+ icons |
-| [`@urbicon-ui/table`](https://ui.urbicon.de/table) | The data grid: sorting, grouping, selection, keyboard nav, virtual rows, remote data, live updates |
-| [`@urbicon-ui/auth`](https://ui.urbicon.de/auth) | Sessions, refresh rotation, passkeys/WebAuthn, notifications, email; Web Crypto only, adapter-based |
-| [`@urbicon-ui/i18n`](https://ui.urbicon.de/i18n) | Runes-based localisation with a data-level translation audit |
-| [`@urbicon-ui/design`](https://ui.urbicon.de/ai) | The `urbicon` CLI: design knowledge, `urbicon validate`, `urbicon init` onboarding |
-| [`urbicon`](https://www.npmjs.com/package/urbicon) | The unscoped name for that CLI, so `bunx urbicon …` resolves in every project; forwards to `@urbicon-ui/design` at the same version |
-| `@urbicon-ui/sveltekit-utils` | URL-state runes, cron runner and other SvelteKit helpers |
-| [`@urbicon-ui/sv`](https://www.npmjs.com/package/@urbicon-ui/sv) | The Svelte CLI add-on (beta, SvelteKit only): `sv add @urbicon-ui` installs the library and wires the stylesheet |
+| Package                                                          | What it gives you                                                                                                                      |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@urbicon-ui/blocks`](https://ui.urbicon.de/blocks)             | 80+ primitives and components (forms, overlays, charts, chat/AI surfaces), plus OKLCH tokens, the `tv()` variant engine and 300+ icons |
+| [`@urbicon-ui/table`](https://ui.urbicon.de/table)               | The data grid: sorting, grouping, selection, keyboard nav, virtual rows, remote data, live updates                                     |
+| [`@urbicon-ui/auth`](https://ui.urbicon.de/auth)                 | Sessions, refresh rotation, passkeys/WebAuthn, notifications, email; Web Crypto only, adapter-based                                    |
+| [`@urbicon-ui/i18n`](https://ui.urbicon.de/i18n)                 | Runes-based localisation with a data-level translation audit                                                                           |
+| [`@urbicon-ui/design`](https://ui.urbicon.de/ai)                 | The `urbicon` CLI: design knowledge, `urbicon validate`, `urbicon init` onboarding                                                     |
+| [`urbicon`](https://www.npmjs.com/package/urbicon)               | The unscoped name for that CLI, so `bunx urbicon …` resolves in every project; forwards to `@urbicon-ui/design` at the same version    |
+| `@urbicon-ui/sveltekit-utils`                                    | URL-state runes, cron runner and other SvelteKit helpers                                                                               |
+| [`@urbicon-ui/sv`](https://www.npmjs.com/package/@urbicon-ui/sv) | The Svelte CLI add-on (beta, SvelteKit only): `sv add @urbicon-ui` installs the library and wires the stylesheet                       |
 
 One version across all packages; supporting packages (`design-engine`, `docs-gen`, …) live in the
 same repo and release in lockstep.

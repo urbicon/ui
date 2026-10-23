@@ -24,22 +24,22 @@ since scaffold's own raw output ships as comments rather than finished content.
 
 ## Section Order
 
-| #   | Section                                       | Required | Source         | `marker` | Enforced by |
-| --- | --------------------------------------------- | -------- | -------------- | -------- | ----------- |
-| 1   | Playground                                    | yes      | `+page.svelte` | —        | editorial — no gate checks its presence |
+| #   | Section                                       | Required | Source         | `marker` | Enforced by                                                   |
+| --- | --------------------------------------------- | -------- | -------------- | -------- | ------------------------------------------------------------- |
+| 1   | Playground                                    | yes      | `+page.svelte` | —        | editorial — no gate checks its presence                       |
 | 2   | Examples                                      | yes      | `Docs.svelte`  | yes      | `examples:budget` (a `NO_EXAMPLES` entry excuses its absence) |
-| 3+  | Component-specific (e.g. Mint, Customization) | optional | `Docs.svelte`  | yes      | editorial |
-| N-2 | Accessibility                                 | yes      | `Docs.svelte`  | yes      | editorial — no gate checks its presence |
-| N-1 | API Reference, Types                          | yes      | `+page.svelte` | built in | `refsections:lint` (one `<ReferenceSections>` renders both) |
-| N   | Installation                                  | yes      | `+page.svelte` | yes      | editorial — no gate checks its presence |
+| 3+  | Component-specific (e.g. Mint, Customization) | optional | `Docs.svelte`  | yes      | editorial                                                     |
+| N-2 | Accessibility                                 | yes      | `Docs.svelte`  | yes      | editorial — no gate checks its presence                       |
+| N-1 | API Reference, Types                          | yes      | `+page.svelte` | built in | `refsections:lint` (one `<ReferenceSections>` renders both)   |
+| N   | Installation                                  | yes      | `+page.svelte` | yes      | editorial — no gate checks its presence                       |
 
 Installation always comes last – experienced users rarely need it, and new users will read through anyway.
 
 **The table of contents is the page's sections, not a list beside them.** Every `<Section>` registers
 with `DocsLayout` as it renders, and the layout lists the ones with a title, in render order across
 both files, each under its own heading. There is nothing to keep in step: a section you add is listed,
-one you remove is gone, and a reordering moves its entry with it. Whether *this* section belongs on
-*this* page is an editorial call the table above states, not something any gate verifies.
+one you remove is gone, and a reordering moves its entry with it. Whether _this_ section belongs on
+_this_ page is an editorial call the table above states, not something any gate verifies.
 
 **`marker` numbers a section: `<Section marker …>`, and the number is its position among the
 numbered sections, continuously across both files, in render order, as two digits.** The Playground
@@ -57,7 +57,6 @@ contents.
 `api` takes `intent="secondary"` (`ReferenceSections` sets it, and its Types section matches). Examples, Customization, Accessibility and Installation pass none
 at all: zero of the 329 such sections on the site carry one. Adding an intent there makes the page's
 headings step out of line with every other page.
-
 
 **API Reference and Types are one line: `<ReferenceSections {componentData} />`.** It renders the
 numbered API Reference section (`id="api"`, the prop count beside the heading) and the Types section
@@ -155,7 +154,7 @@ type-checks `@example` JSDoc blocks.
   `<BlocksProvider defaults={{ Component: { slotClasses } }}>` rather than copy-pasting it onto each
   child. The `tv()` conflict resolver drops the defaults an override conflicts with, so plain
   `class` / `slotClasses` keep the component's radius tier, spacing, shadow tokens and behaviour.
-  Use the system for everything it *has* — radius from the tiers (usually by deleting a raw
+  Use the system for everything it _has_ — radius from the tiers (usually by deleting a raw
   `rounded-*`), shadow from `--blocks-shadow-*` — and raw values only for what it genuinely lacks (a
   translucent glass fill, a neon hue). Neutralise an unwanted default with
   `border-transparent` / `shadow-none`, not `unstyled`. **Vary the look across pages:** prefer a
@@ -351,13 +350,14 @@ Only use the manual `code` prop when the displayed code should **intentionally**
 > prop (or any attribute) whose value contains double quotes MUST be a
 > template-literal (`code={`…`}`) or come from `isolate` / a `?raw` import — never
 > a single-quoted attribute like `code='<X a="b" />'`. `prettier-plugin-svelte`
-> (the lefthook pre-commit formatter for `.svelte`) rewrites the outer single
-> quotes to double quotes **without escaping the inner ones** — `code="<X a="b" />"`
-> — which no longer parses ("Expected token ="). Verified 2026-07-13 on the
-> info-card page. Template-literal `code={`…`}` and `isolate` both sidestep it;
-> this is why every example on the pages uses one of them. (Upstream
-> `prettier-plugin-svelte` bug — a minimal repro is still to be filed; the
-> convention is the working mitigation.)
+> rewrites the outer single quotes to double quotes **without escaping the inner
+> ones** — `code="<X a="b" />"` — which no longer parses ("Expected token =");
+> still so in prettier 3.9.10 with the plugin at 4.1.1. The repo's formatter,
+> `bun fmt`, keeps such an attribute intact, but an editor that formats `.svelte`
+> through `prettier-plugin-svelte` on save does not. Template-literal `code={`…`}`
+> and `isolate` both sidestep it; this is why every example on the pages uses one
+> of them. (Upstream `prettier-plugin-svelte` bug — a minimal repro is still to be
+> filed; the convention is the working mitigation.)
 
 ### CodeExample with `?raw` import (code-only, no live preview)
 
@@ -416,13 +416,13 @@ Core principles:
 
 Docs pages use a consistent 3-level heading scale:
 
-| Level | Element       | Tailwind                  | Size | Usage                            |
-| ----- | ------------- | ------------------------- | ---- | -------------------------------- |
-| h1    | Page title    | `text-3xl font-extrabold` | 30px | Set by DocsPageLayout            |
-| h2    | Section title | `text-lg font-medium`     | 18px | Section with no `intent`         |
-| h2    | Section title | `text-2xl font-bold`      | 24px | Section with `intent="primary"`  |
-| h2    | Section title | `text-xl font-semibold`   | 20px | Section with `intent="secondary"`|
-| h3    | Subsection    | `text-base font-medium`   | 16px | CodeExample titles               |
+| Level | Element       | Tailwind                  | Size | Usage                             |
+| ----- | ------------- | ------------------------- | ---- | --------------------------------- |
+| h1    | Page title    | `text-3xl font-extrabold` | 30px | Set by DocsPageLayout             |
+| h2    | Section title | `text-lg font-medium`     | 18px | Section with no `intent`          |
+| h2    | Section title | `text-2xl font-bold`      | 24px | Section with `intent="primary"`   |
+| h2    | Section title | `text-xl font-semibold`   | 20px | Section with `intent="secondary"` |
+| h3    | Subsection    | `text-base font-medium`   | 16px | CodeExample titles                |
 
 The heading **level** is `headingLevel`, the heading **size** is `intent` — the two are separate,
 so a subsection can keep `h3` semantics at the primary type scale without breaking the outline.

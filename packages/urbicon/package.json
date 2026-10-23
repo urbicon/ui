@@ -29,6 +29,7 @@
     "access": "public"
   },
   "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

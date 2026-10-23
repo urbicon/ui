@@ -9,21 +9,21 @@ of its rules the protocol enforces rather than the renderer.
 
 ## The five pieces
 
-| Piece | What it does |
-| --- | --- |
-| `a2uiSystemPrompt()` | The catalog contract: every component, prop and enum the agent may use. Generated from the same registry the validator checks against, so prompt and validation cannot drift. |
-| `a2uiFencedTransportSection()` | How envelopes travel: the agent writes prose and opens a ` ```a2ui ` fence. The prompt half of `A2uiStreamSplitter`. |
-| `A2uiStreamSplitter` | Turns a token stream into ordered message parts — text, and `a2ui` parts whose payload grows envelope by envelope. |
-| `A2uiSurfaceRouter` + `routeMessageParts()` | Delivers envelopes to the message that owns their surface, so an agent can patch a form it sent two turns ago. |
-| `A2UIView` | Renders one payload. Fail-loud and whitelist-only: unknown components and undeclared props never reach the DOM, and neither does a function-call binding — except the logic functions `not`, `and`, `or`, which evaluate to a boolean and execute nothing. |
+| Piece                                       | What it does                                                                                                                                                                                                                                               |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `a2uiSystemPrompt()`                        | The catalog contract: every component, prop and enum the agent may use. Generated from the same registry the validator checks against, so prompt and validation cannot drift.                                                                              |
+| `a2uiFencedTransportSection()`              | How envelopes travel: the agent writes prose and opens a ` ```a2ui ` fence. The prompt half of `A2uiStreamSplitter`.                                                                                                                                       |
+| `A2uiStreamSplitter`                        | Turns a token stream into ordered message parts — text, and `a2ui` parts whose payload grows envelope by envelope.                                                                                                                                         |
+| `A2uiSurfaceRouter` + `routeMessageParts()` | Delivers envelopes to the message that owns their surface, so an agent can patch a form it sent two turns ago.                                                                                                                                             |
+| `A2UIView`                                  | Renders one payload. Fail-loud and whitelist-only: unknown components and undeclared props never reach the DOM, and neither does a function-call binding — except the logic functions `not`, `and`, `or`, which evaluate to a boolean and execute nothing. |
 
 ```ts
 // Server — the system prompt, assembled from the shipped pieces.
 const system = [
   a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
-  a2uiDataSchemaSection(MY_SCHEMA),   // optional: type-check the data model
+  a2uiDataSchemaSection(MY_SCHEMA), // optional: type-check the data model
   a2uiFencedTransportSection(),
-  MY_DOMAIN_RULES                      // yours: which tools to call, what never to invent
+  MY_DOMAIN_RULES // yours: which tools to call, what never to invent
 ].join('\n\n');
 ```
 
@@ -54,9 +54,9 @@ const router = new A2uiSurfaceRouter();
 
 // Before storing a message's parts, route them:
 const result = routeMessageParts(router, messages, messageId, parts);
-messages = result.messages;         // patches already delivered into earlier payloads
-storeParts(result.parts);           // this message's own parts, foreign envelopes removed
-queueForAgent(result.issues);       // e.g. a re-used surfaceId — a protocol slip worth reporting
+messages = result.messages; // patches already delivered into earlier payloads
+storeParts(result.parts); // this message's own parts, foreign envelopes removed
+queueForAgent(result.issues); // e.g. a re-used surfaceId — a protocol slip worth reporting
 
 // When a turn leaves the transcript (regenerate, retry, delete):
 messages = revokeMessage(router, messages, droppedMessageId);

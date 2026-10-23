@@ -18,7 +18,7 @@ Controls the semantic color of a component. Use when a component needs to commun
 
 **Do not** add `info` outside feedback — `intent="info"` on a button, a tooltip or a form field has no semantic meaning. (Tooltip carried `info` until v6.42; it resolved one hue step from `primary` and implied a distinction it could not show.)
 
-**Form fields carry a narrower axis:** `default | success | warning | danger` — the *tone of the field frame*, not a category. There is no `primary`/`secondary`/`neutral` field: a text input has no brand state. See §Form validation below for how `intent` and `error` divide the work.
+**Form fields carry a narrower axis:** `default | success | warning | danger` — the _tone of the field frame_, not a category. There is no `primary`/`secondary`/`neutral` field: a text input has no brand state. See §Form validation below for how `intent` and `error` divide the work.
 
 **Default value convention:**
 
@@ -29,12 +29,12 @@ Controls the semantic color of a component. Use when a component needs to commun
 
 **Components with intent:**
 
-| Palette | Values | Components |
-| --- | --- | --- |
-| Standard | `primary` `secondary` `success` `warning` `danger` `neutral` | Button, Badge, Avatar, Checkbox, Toggle, RadioGroup, Slider, Progress, Dialog, Drawer, Tooltip, ButtonGroup, Pagination, Menu, ConfirmDialog, CopyButton, CompositionBar, Sankey |
-| Feedback (`+info`, `−secondary`) | `primary` `info` `success` `warning` `danger` `neutral` | Alert, Toast |
-| Form field tone | `default` `success` `warning` `danger` | Input, Textarea, PinInput, TimeInput (and CurrencyInput/NumberInput by inheritance) |
-| Component-specific | see the component | Spinner (`+current`, follows `currentColor`), FileUpload (`primary`/`neutral` only) |
+| Palette                          | Values                                                       | Components                                                                                                                                                                       |
+| -------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard                         | `primary` `secondary` `success` `warning` `danger` `neutral` | Button, Badge, Avatar, Checkbox, Toggle, RadioGroup, Slider, Progress, Dialog, Drawer, Tooltip, ButtonGroup, Pagination, Menu, ConfirmDialog, CopyButton, CompositionBar, Sankey |
+| Feedback (`+info`, `−secondary`) | `primary` `info` `success` `warning` `danger` `neutral`      | Alert, Toast                                                                                                                                                                     |
+| Form field tone                  | `default` `success` `warning` `danger`                       | Input, Textarea, PinInput, TimeInput (and CurrencyInput/NumberInput by inheritance)                                                                                              |
+| Component-specific               | see the component                                            | Spinner (`+current`, follows `currentColor`), FileUpload (`primary`/`neutral` only)                                                                                              |
 
 Components with **no** intent axis: Select, Combobox, DatePicker, FormField, SegmentGroup, Accordion, Card, Popover, Tab, Stepper — they carry no colour category of their own. (The first four still take `error`/`helper`; see §Form validation.)
 
@@ -86,14 +86,14 @@ One documented deviation: the text fields **Input, Select and Combobox use `h-7`
 
 Most components support a subset of this scale. Current component sizes (from the `size` axis of each `*.variants.ts` — regenerate this table from those files, not from memory):
 
-| Subset         | Sizes                            | Components                                                                              |
-| -------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
-| Compact        | `sm`, `md`, `lg`                 | Pagination, Popover, Tab, Tooltip, Alert, Breadcrumb, Accordion, Separator, SegmentGroup, Slider, Stepper |
-| Standard       | `xs`–`xl`                        | Input, Select, Combobox, Textarea, Spinner, Skeleton                                     |
-| Extended-4     | `xs`–`lg`                        | Badge, Checkbox, Toggle, RadioGroup, Progress                                            |
-| Button         | `2xs`–`xl`                       | Button                                                                                   |
-| Avatar         | `xs`–`2xl`                       | Avatar                                                                                   |
-| Overlay panels | `sm`–`xl` + `full`(+`fullscreen`) | Dialog (`fullscreen` too), Drawer                                                        |
+| Subset         | Sizes                             | Components                                                                                                |
+| -------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Compact        | `sm`, `md`, `lg`                  | Pagination, Popover, Tab, Tooltip, Alert, Breadcrumb, Accordion, Separator, SegmentGroup, Slider, Stepper |
+| Standard       | `xs`–`xl`                         | Input, Select, Combobox, Textarea, Spinner, Skeleton                                                      |
+| Extended-4     | `xs`–`lg`                         | Badge, Checkbox, Toggle, RadioGroup, Progress                                                             |
+| Button         | `2xs`–`xl`                        | Button                                                                                                    |
+| Avatar         | `xs`–`2xl`                        | Avatar                                                                                                    |
+| Overlay panels | `sm`–`xl` + `full`(+`fullscreen`) | Dialog (`fullscreen` too), Drawer                                                                         |
 
 Special cases:
 
@@ -107,15 +107,15 @@ Avoid introducing new size values unless there's a clear use case.
 
 Three props, three jobs — they do not overlap, and their precedence is a rule, not an accident of declaration order.
 
-| Prop | Type | Job |
-| --- | --- | --- |
-| `error` | `string` | The failure message **and** the invalid state. Non-empty ⇒ the field frame turns danger, the message renders in the error tone with `role="alert"`, and `aria-invalid` is set. |
-| `helper` | `string` | Guidance while the field is valid. **Displaced** by `error` — they never render together. |
-| `intent` | `default \| success \| warning \| danger` | The *tone* of the frame while the field is valid: a positive confirmation, a soft warning. Only on the input-shaped fields (Input, Textarea, PinInput, TimeInput); Select and Combobox have no intent axis. |
+| Prop     | Type                                      | Job                                                                                                                                                                                                         |
+| -------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `error`  | `string`                                  | The failure message **and** the invalid state. Non-empty ⇒ the field frame turns danger, the message renders in the error tone with `role="alert"`, and `aria-invalid` is set.                              |
+| `helper` | `string`                                  | Guidance while the field is valid. **Displaced** by `error` — they never render together.                                                                                                                   |
+| `intent` | `default \| success \| warning \| danger` | The _tone_ of the frame while the field is valid: a positive confirmation, a soft warning. Only on the input-shaped fields (Input, Textarea, PinInput, TimeInput); Select and Combobox have no intent axis. |
 
-**`error` beats `intent`, structurally.** Both paint the same buckets (border colour, focused border + ring), so only one can win. Wherever a field has *both* axes — Input, Textarea, PinInput, TimeInput — the error frame is emitted from the **compound stage** of the `tv()` config, which the engine folds after every axis, not from the `error` axis, whose win would depend on being declared after `intent`. Reordering axes, or slipping a new one in between, can no longer turn validation feedback back into a green frame. Fields without an intent axis (Select, Combobox) keep the frame on the `error` axis, where nothing competes for the bucket — with a comment requiring the move if an intent axis is ever added. `internal/field-chrome.ts` carries the contract.
+**`error` beats `intent`, structurally.** Both paint the same buckets (border colour, focused border + ring), so only one can win. Wherever a field has _both_ axes — Input, Textarea, PinInput, TimeInput — the error frame is emitted from the **compound stage** of the `tv()` config, which the engine folds after every axis, not from the `error` axis, whose win would depend on being declared after `intent`. Reordering axes, or slipping a new one in between, can no longer turn validation feedback back into a green frame. Fields without an intent axis (Select, Combobox) keep the frame on the `error` axis, where nothing competes for the bucket — with a comment requiring the move if an intent axis is ever added. `internal/field-chrome.ts` carries the contract.
 
-**Do not** introduce a second *public* way to say "invalid" on a field: no `invalid` boolean beside `error`, no validation-`status` prop, no intent value that means failure on its own. A field is invalid exactly when it has an `error` string. (Internal tv() flags of the same name are fine — they are what the string feeds; and `status` is a legitimate prop name elsewhere, e.g. Avatar's presence dot or a table cell's state.)
+**Do not** introduce a second _public_ way to say "invalid" on a field: no `invalid` boolean beside `error`, no validation-`status` prop, no intent value that means failure on its own. A field is invalid exactly when it has an `error` string. (Internal tv() flags of the same name are fine — they are what the string feeds; and `status` is a legitimate prop name elsewhere, e.g. Avatar's presence dot or a table cell's state.)
 
 **Field frames come from `internal/field-chrome.ts`** (`fieldErrorFrame`, `fieldIntentFrames`, `fieldFocusRing`, `FIELD_MESSAGE_TONES`, …) — Input, Textarea, Select, Combobox, PinInput and TimeInput all consume it. Hand-inlining the same strings is how the family drifted apart before: Select's error frame and Combobox's message tones had been re-derived by hand, and Combobox had no visual error state at all until v6.42.
 
@@ -167,7 +167,7 @@ export type TabProps = TabPropsHorizontal | TabPropsVertical;
 Rules:
 
 - **Both arms extend a shared `*BaseProps`** so shared fields stay in one place; only the deciding prop plus the forbidden fields differ.
-- The forbidden fields use `?: never`, not `: never` — they remain *optional* (the consumer doesn't have to write them), but passing a value fails type-check.
+- The forbidden fields use `?: never`, not `: never` — they remain _optional_ (the consumer doesn't have to write them), but passing a value fails type-check.
 - The deciding prop in the **non-default** arm is **required** (`variant: 'dot'`, `orientation: 'vertical'`) so the discriminant narrows reliably. The default arm makes it optional (`variant?: 'filled' | ...`).
 - The exported `*Props` type is the union (`BadgeDotProps | BadgeStandardProps`). docs-gen picks the discriminated union up automatically — both arms appear in the prop table.
 - The JSDoc on the union type lists the discriminant and the trade-off ("variant='dot' forbids children/...") so the API rule is discoverable from autocomplete, not just from this guide.
@@ -202,7 +202,7 @@ Use `on` + PascalCase for callbacks that emit derived/processed state:
 <Select onOpenChange={(open) => ...} />
 ```
 
-(Menu is the deliberate exception: its items are *verbs*, so activation is the per-item `onSelect` callback and there is no `onValueChange` — an item's `checked` shows a setting as `menuitemradio`, but that state stays consumer-owned; Menu displays it and never stores a selection.)
+(Menu is the deliberate exception: its items are _verbs_, so activation is the per-item `onSelect` callback and there is no `onValueChange` — an item's `checked` shows a setting as `menuitemradio`, but that state stays consumer-owned; Menu displays it and never stores a selection.)
 
 **Parameter convention:** Always pass the new state value, not the raw event.
 
@@ -229,13 +229,13 @@ Always use semantic tokens over primitive Tailwind classes:
 
 Always use CSS custom property tokens:
 
-| Layer    | Token                   | Value |
-| -------- | ----------------------- | ----- |
-| Menu | `z-[var(--z-dropdown)]` | 1150  |
-| Overlay  | `z-[var(--z-overlay)]`  | 1300  |
-| Dialog   | `z-[var(--z-modal)]`    | 1400  |
-| Popover  | `z-[var(--z-popover)]`  | 1500  |
-| Tooltip  | `z-[var(--z-tooltip)]`  | 1800  |
+| Layer   | Token                   | Value |
+| ------- | ----------------------- | ----- |
+| Menu    | `z-[var(--z-dropdown)]` | 1150  |
+| Overlay | `z-[var(--z-overlay)]`  | 1300  |
+| Dialog  | `z-[var(--z-modal)]`    | 1400  |
+| Popover | `z-[var(--z-popover)]`  | 1500  |
+| Tooltip | `z-[var(--z-tooltip)]`  | 1800  |
 
 ### Focus Styles
 
@@ -274,13 +274,13 @@ When a prop has a visual-only intermediate state, that state is also bindable:
 
 The canonical pair is **`open` (bindable) + `onOpenChange(open: boolean)`** — used by Menu, Select, Combobox, Popover, Tooltip, Collapsible, and Sidebar. `onOpenChange` fires on user-interaction-driven transitions (trigger click, keyboard, selection, Escape, outside click), **not** when the consumer writes `bind:open` directly — the consumer already knows about their own writes.
 
-**Optimistic transitions — the controlled contract:** every member applies an interaction-driven transition by writing the bindable `open` *before* firing `onOpenChange`; the component never waits for consumer approval. With `bind:open` that write is what propagates the change, so accepted transitions need no handler at all, and a veto is still possible by writing the previous value back inside `onOpenChange` (synchronous, no paint in between). A consumer that passes `open={value}` **without** `bind:` must mirror every `onOpenChange` into its state — nothing re-syncs an ignored change, so the component and the consumer's source of truth silently diverge. This is by design, not detectable: Svelte cannot distinguish `open={x}` from `bind:open={x}` at runtime, and from inside the component a rejected unbound transition is indistinguishable from an accepted bound one. To conditionally reject transitions from plain controlled state, own the transition instead: keep `open` driven by your source of truth and attach your own handler to the trigger rather than calling the provided `toggle` — AccordionItem's `collapsible=false` handling (custom `trigger` snippet calling `ctx.toggle`) is the in-repo reference.
+**Optimistic transitions — the controlled contract:** every member applies an interaction-driven transition by writing the bindable `open` _before_ firing `onOpenChange`; the component never waits for consumer approval. With `bind:open` that write is what propagates the change, so accepted transitions need no handler at all, and a veto is still possible by writing the previous value back inside `onOpenChange` (synchronous, no paint in between). A consumer that passes `open={value}` **without** `bind:` must mirror every `onOpenChange` into its state — nothing re-syncs an ignored change, so the component and the consumer's source of truth silently diverge. This is by design, not detectable: Svelte cannot distinguish `open={x}` from `bind:open={x}` at runtime, and from inside the component a rejected unbound transition is indistinguishable from an accepted bound one. To conditionally reject transitions from plain controlled state, own the transition instead: keep `open` driven by your source of truth and attach your own handler to the trigger rather than calling the provided `toggle` — AccordionItem's `collapsible=false` handling (custom `trigger` snippet calling `ctx.toggle`) is the in-repo reference.
 
 **Deliberate deviation:** Dialog and Drawer expose `onClose` instead of `onOpenChange`. These components have no internal "open" path — opening happens exclusively through the consumer setting `open = true` — so an `onOpenChange` could only ever report `false`. `onClose` names the single transition they own. Do not "fix" this by adding `onOpenChange` to them; a change-callback that can never fire for half its domain is more misleading than an asymmetric name. `ConfirmDialog` takes the same shape one step further: it has no `onClose` of its own either, because its two exits are already named — `onConfirm` (which may be `async`, with a rejection going to `onError`) and `onCancel`, which is what it hands the inner Dialog as `onClose`.
 
 **`onClose` is the intent, `onClosed` the completion.** Dialog and Drawer report a close twice. `onClose` fires when a close is requested — Escape, a backdrop click, the close button, `overlayStack.closeAll()` or `closeTop()` — before the exit animation, while focus is still inside, with `open` already `false`. It follows the optimistic contract above: writing `open = true` back synchronously inside it vetoes the close, and the surface stays as it was — no exit, no `onClosed`, focus and stack position unchanged. One close is exempt, on purpose: a close the browser has already performed — `<form method="dialog">`, `dialog.close()`, a close request the surface did not intercept (a back gesture, assistive technology) — still reaches `onClose`, but the `<dialog>` is closed by then. The library does not reopen it, because a second `showModal()` against a close request the browser does not let a page refuse would trap a user who is trying to leave; it undoes the write-back instead (`open` goes `false` again, and DEV warns), so `open` never reports a closed `<dialog>` as open. `closeOnEscape={false}` is what holds such requests off, for as long as the browser lets a page refuse them. `onClosed` fires once the close has finished: exit animation ended, `<dialog>` closed, scroll lock released, focus returned to the element that had it before the surface opened — unless that element is gone or still inert: when stacked surfaces close together, focus can end on the page body. It fires once for every close that finishes, including one the consumer started with `open = false`, and never for a vetoed close, a close that a reopen interrupts, or a component destroyed before its close finishes. It is the place to move focus elsewhere, reset a form without a visible flash, or open a follow-up surface. `ConfirmDialog` and `CommandPalette` carry it too: ConfirmDialog fires it after `onConfirm` resolved or `onCancel` ran, never while an `onConfirm` is pending; CommandPalette relays its inner Dialog's. The pair is not an `onOpenChange` cut in two: `onClose` reports a close request and stays silent about the consumer's own writes to `open`, `onClosed` reports the outcome, whoever caused it.
 
-The granular dismiss-path callbacks (`onEscape`, `onClickOutside`) remain separate where offered (Select, Combobox, Popover): they identify *why* the overlay closed, while `onOpenChange` reports *that* it opened or closed.
+The granular dismiss-path callbacks (`onEscape`, `onClickOutside`) remain separate where offered (Select, Combobox, Popover): they identify _why_ the overlay closed, while `onOpenChange` reports _that_ it opened or closed.
 
 ## `data-state` Attribute
 
@@ -364,10 +364,10 @@ slotClasses?: Partial<Record<XSlots, string>>;
 No component lacks a `tv()` config to derive from, and a hand-written slot name survives in three shapes, each for a reason `SlotNames` cannot cover.
 
 - **A union written out whole**, where there is nothing to read the names off: `Separator` and `Popover` resolve through the **no-slot** `tv()` overload, which returns a string rather than a slot map; and `CalendarHeader` deliberately narrows Calendar's union to the seven keys its own element tree carries.
-- **A derived union extended by hand**, where the extra key addresses a *nested* component instead of a slot of this config: `Guide`'s `skip` / `prev` / `next` become the `class` on the footer's `<Button>`s.
+- **A derived union extended by hand**, where the extra key addresses a _nested_ component instead of a slot of this config: `Guide`'s `skip` / `prev` / `next` become the `class` on the footer's `<Button>`s.
 - **A slot name in filter position** — `Exclude<XSlots, 'base'>` where a compound part does not own one slot of a shared config, `Extract<XSlots, …>` where it owns only some. The set is every `Exclude<`/`Extract<` over a `*Slots` type in a `slotClasses` **prop** — six components today; `AccordionContext.slotClasses` reads the same way and is a context field, not a prop.
 
-The third shape fails the most quietly, which is worth knowing before reaching for it: a filter name that matches nothing silently **widens** the prop by a slot under `Exclude`, and silently collapses it to `never` under `Extract` — measured, both leave `bun run check` at 0 errors. Exactly one such typo is caught today, and by accident rather than by design: a `@ts-expect-error` in `provider/component-slots.types.test.ts` asserts that `SegmentGroup` has no `item`, so breaking that one name surfaces as an *unused directive* somewhere else entirely.
+The third shape fails the most quietly, which is worth knowing before reaching for it: a filter name that matches nothing silently **widens** the prop by a slot under `Exclude`, and silently collapses it to `never` under `Extract` — measured, both leave `bun run check` at 0 errors. Exactly one such typo is caught today, and by accident rather than by design: a `@ts-expect-error` in `provider/component-slots.types.test.ts` asserts that `SegmentGroup` has no `item`, so breaking that one name surfaces as an _unused directive_ somewhere else entirely.
 
 Where a component forwards slot classes to one it embeds, `SidebarLayout` is the shape to copy rather than any of the three: its union is `` `sidebar${Capitalize<SidebarSlots>}` `` and the runtime map walks the same config, so neither the slot names nor the prefix is written twice, and `SidebarLayout.svelte.test.ts` asserts that each key reaches the slot it names — identified by the classes Sidebar's own config paints there, because a crossed pair keeps every marker landing on a distinct element and passes a check that asks only whether it landed. `ConfirmDialog` is in neither shape: it reuses `DialogSlots` outright.
 
@@ -395,18 +395,18 @@ Do not read "root slot" as "the first slot the `tv()` config declares". The two 
 
 A provider entry and a preset can set a component's **props**, not only classes: `defaults={{ Input: { props: { variant: 'underline' } } }}` gives every Input that names no `variant` the shipped `underline` variant, instead of a theme rebuilding it in `slotClasses` and drifting from it (#214). Decided 2026-10-11, and the rule is one sentence: **style belongs in the theme, behaviour stays at the call site.** A theme may default a prop that changes how a component looks and nothing else — not what it renders, not how it behaves or is announced, not where it sits in the page, not a state the user or the data drives.
 
-The rule is applied per **name**, library-wide, and a name is admitted only where it is a look on every component that declares it. The admitted names are `STYLE_PROPS` in `packages/blocks/src/lib/provider/theme-props.ts` — the variant, size, colour-intent and tier axes, the spacing and density axes, and the motion and decoration axes. A component admits each of those names it declares as a prop **with a vocabulary type** (a literal union or a boolean): QRCode's `size` is pixels, a free value, and stays at the call site. `ThemePropsOf<'Input'>` is that set for one component, typed as the component types each prop, so a key the component does not declare, or a value its prop does not take, is a compile error; whether the component *reads* a key it declares is the sweep's question (below). A props type split into arms is read in the arm an instance naming nothing is in, so a value only a discriminated arm admits stays at the call site — Badge's `variant: 'dot'`, which hides the badge's content. A name with no provider entry of its own is typed open: `PaginationItem` declares no `slotClasses`, so `defaults.PaginationItem.props.variant` compiles and reaches nothing, as its slot classes would.
+The rule is applied per **name**, library-wide, and a name is admitted only where it is a look on every component that declares it. The admitted names are `STYLE_PROPS` in `packages/blocks/src/lib/provider/theme-props.ts` — the variant, size, colour-intent and tier axes, the spacing and density axes, and the motion and decoration axes. A component admits each of those names it declares as a prop **with a vocabulary type** (a literal union or a boolean): QRCode's `size` is pixels, a free value, and stays at the call site. `ThemePropsOf<'Input'>` is that set for one component, typed as the component types each prop, so a key the component does not declare, or a value its prop does not take, is a compile error; whether the component _reads_ a key it declares is the sweep's question (below). A props type split into arms is read in the arm an instance naming nothing is in, so a value only a discriminated arm admits stays at the call site — Badge's `variant: 'dot'`, which hides the badge's content. A name with no provider entry of its own is typed open: `PaginationItem` declares no `slotClasses`, so `defaults.PaginationItem.props.variant` compiles and reaches nothing, as its slot classes would.
 
 What stays out, measured over every prop that is also a `tv()` axis of its component:
 
-| Why | Names |
-| --- | --- |
-| **Behaviour** — changes keys, focus, ARIA or what the element does | `orientation` (arrow keys or `aria-orientation` on Tab, RadioGroup, ButtonGroup, Toolbar, Separator, SplitPane, JourneyTimeline — so out on all), `mode`, `clickable`, `interactive`, `removable`, `clearable`, `autoResize`, `usePortal`, `syncWidth`, `snap`, `view`, `wrap` (a scrolling region on CodeBlock, truncation on Breadcrumb) |
-| **State** — the user or the data drives it | `disabled`, `readonly`, `required`, `error`, `open`, `checked`, `indeterminate`, `loading`, `active`, `pressed`, `expanded`, `status`, `dimmed`, `state` (StepperStep) |
-| **Content and structure** — changes what is rendered or announced | `layout` (Pagination's controls, ChatMessage's header), `citationStyle` (the chip's text), `detail`, `counter`, `optionalNote`, `showWeekNumbers`, `showWeekNumber` (Planner's deprecated spelling), `showToday`, `stacksOnNarrow`, `navPlacement` |
-| **Call-site layout** — where it sits, which the page decides | `placement`, `side`, `fullWidth`, `contentMaxWidth`, `align`, `emphasis` (needs `align="center"`), `legendPlacement`, `fluid`, `border` (Badge, to lift a positioned badge off its parent) |
-| **A signal about one instance** | `pulse`, `ring`, `animated` (Progress's moving stripes — and Calendar's and Planner's transition switch under the same name) |
-| **Derived by the component** — an axis its props type happens to expose | `buttonGroupConnected`, `fill` |
+| Why                                                                     | Names                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Behaviour** — changes keys, focus, ARIA or what the element does      | `orientation` (arrow keys or `aria-orientation` on Tab, RadioGroup, ButtonGroup, Toolbar, Separator, SplitPane, JourneyTimeline — so out on all), `mode`, `clickable`, `interactive`, `removable`, `clearable`, `autoResize`, `usePortal`, `syncWidth`, `snap`, `view`, `wrap` (a scrolling region on CodeBlock, truncation on Breadcrumb) |
+| **State** — the user or the data drives it                              | `disabled`, `readonly`, `required`, `error`, `open`, `checked`, `indeterminate`, `loading`, `active`, `pressed`, `expanded`, `status`, `dimmed`, `state` (StepperStep)                                                                                                                                                                     |
+| **Content and structure** — changes what is rendered or announced       | `layout` (Pagination's controls, ChatMessage's header), `citationStyle` (the chip's text), `detail`, `counter`, `optionalNote`, `showWeekNumbers`, `showWeekNumber` (Planner's deprecated spelling), `showToday`, `stacksOnNarrow`, `navPlacement`                                                                                         |
+| **Call-site layout** — where it sits, which the page decides            | `placement`, `side`, `fullWidth`, `contentMaxWidth`, `align`, `emphasis` (needs `align="center"`), `legendPlacement`, `fluid`, `border` (Badge, to lift a positioned badge off its parent)                                                                                                                                                 |
+| **A signal about one instance**                                         | `pulse`, `ring`, `animated` (Progress's moving stripes — and Calendar's and Planner's transition switch under the same name)                                                                                                                                                                                                               |
+| **Derived by the component** — an axis its props type happens to expose | `buttonGroupConnected`, `fill`                                                                                                                                                                                                                                                                                                             |
 
 A new name joins `STYLE_PROPS` in the PR that introduces it, with its row here if it stays out.
 
@@ -458,7 +458,7 @@ A component takes `href` only when it owns **structure** the consumer cannot reb
 
 The line sits there because a swappable root has three real costs, and only structure pays for them (decided 2026-09-08, kino consumer feedback): the props type splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes` and forces a `Record<string, unknown>` cast; navigation-resolution lint rules have to be scoped off for the component; and internal-vs-external URL, `resolve()`, `target`/`rel` are app-routing decisions the library cannot see. `Card` pays all three, and it is worth it, because an `<a>` around a `cardVariants()` shell would have to rebuild three slots. An `<a>` around `buttonVariants()` rebuilds nothing — so that is the recipe, and the library holds itself to it (#427).
 
-When you need a link that looks like a *button* — `Link` is a link look — write a thin wrapper in your app and reuse the exported variant function:
+When you need a link that looks like a _button_ — `Link` is a link look — write a thin wrapper in your app and reuse the exported variant function:
 
 ```svelte
 <!-- LinkButton.svelte -->
@@ -540,18 +540,18 @@ The tier model — the three tokens, the two axes that share the name, which com
 
 `packages/docs` components carry `data-docs-*` attributes so that an opt-in docs theme (currently the Color Rooms theme in `apps/docs/`) can paint, flatten, or hide chrome without forking the components. The namespace is the package's **published theming contract**: themes target these attributes only (never internal class names, and never test ids — hooks that exist for styling are named as such), and renaming one is a breaking change for downstream skins:
 
-| Hook | Attached to | Docs-scope behaviour |
-| --- | --- | --- |
-| `data-docs-header` | `DocsLayout` hero header (full-width band, direct child of the layout container) | Becomes the room colour field in `.docs-rooms`; spans everything right of the app sidebar, TOC drops below it; an inner wrapper sharing `main`'s max width keeps it aligned with the body column |
-| `data-docs-sticky-bar` | `DocsLayout` sticky breadcrumb strip | Shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon in the room colour |
-| `data-docs-sticky-hairline` | expanding hairline inside the sticky strip | `display: none` in `.docs-rooms` (the colour edge is the separator; kept for the bare library skin) |
-| `data-docs-scrollspy` | active-section badge in the sticky strip | Flips to a translucent-foreground inlay so it reads on the accent strip |
-| `data-docs-stage="example|playground"` | `CodeExample` and `PlaygroundConfigurator` outer wrappers | Background flattens to transparent in `.docs-rooms` |
-| `data-docs-stage-frame` | Inner preview frame (Code / Playground) | Same — flattens against cream paper |
-| `data-docs-subtitle` | `description` paragraph in `DocsLayout` | `display: none` in the docs scope (field is title-first) |
-| `data-docs-note` | `NoteList` and `InfoCard` roots | Marks reading material rather than an exhibit. A skin running a narrower reading edge than its exhibit edge (the docs app: 46rem prose inside a 60rem column) caps these with the prose instead of letting them stretch to the width a table gets |
-| `data-docs-content` | `DocsLayout` content column (page body plus the page-nav slot; not the header, sticky strip or TOC) | Scope for prose-only rules: the docs app styles `<a>` in running text under it as blocks' `Link` `variant="inline"` (and stamps the same hook on its recipe frame and hand-rolled prose columns) ([DocsPageGuide.md § Links in prose](DocsPageGuide.md#links-in-prose)) |
-| `data-room-hero` | hand-rolled section-landing heroes | Full-width colour-field band flush to the app sidebar (the page nests an inner `max-w` wrapper for alignment); `data-room-chip` flips a room-tinted chip to read on the fill |
+| Hook                        | Attached to                                                                                         | Docs-scope behaviour                                                                                                                                                                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-docs-header`          | `DocsLayout` hero header (full-width band, direct child of the layout container)                    | Becomes the room colour field in `.docs-rooms`; spans everything right of the app sidebar, TOC drops below it; an inner wrapper sharing `main`'s max width keeps it aligned with the body column                                                                        |
+| `data-docs-sticky-bar`      | `DocsLayout` sticky breadcrumb strip                                                                | Shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon in the room colour                                                                                                                                      |
+| `data-docs-sticky-hairline` | expanding hairline inside the sticky strip                                                          | `display: none` in `.docs-rooms` (the colour edge is the separator; kept for the bare library skin)                                                                                                                                                                     |
+| `data-docs-scrollspy`       | active-section badge in the sticky strip                                                            | Flips to a translucent-foreground inlay so it reads on the accent strip                                                                                                                                                                                                 |
+| `data-docs-stage="example   | playground"`                                                                                        | `CodeExample` and `PlaygroundConfigurator` outer wrappers                                                                                                                                                                                                               | Background flattens to transparent in `.docs-rooms` |
+| `data-docs-stage-frame`     | Inner preview frame (Code / Playground)                                                             | Same — flattens against cream paper                                                                                                                                                                                                                                     |
+| `data-docs-subtitle`        | `description` paragraph in `DocsLayout`                                                             | `display: none` in the docs scope (field is title-first)                                                                                                                                                                                                                |
+| `data-docs-note`            | `NoteList` and `InfoCard` roots                                                                     | Marks reading material rather than an exhibit. A skin running a narrower reading edge than its exhibit edge (the docs app: 46rem prose inside a 60rem column) caps these with the prose instead of letting them stretch to the width a table gets                       |
+| `data-docs-content`         | `DocsLayout` content column (page body plus the page-nav slot; not the header, sticky strip or TOC) | Scope for prose-only rules: the docs app styles `<a>` in running text under it as blocks' `Link` `variant="inline"` (and stamps the same hook on its recipe frame and hand-rolled prose columns) ([DocsPageGuide.md § Links in prose](DocsPageGuide.md#links-in-prose)) |
+| `data-room-hero`            | hand-rolled section-landing heroes                                                                  | Full-width colour-field band flush to the app sidebar (the page nests an inner `max-w` wrapper for alignment); `data-room-chip` flips a room-tinted chip to read on the fill                                                                                            |
 
 Consumers writing their own theme can hook the same attributes. The library defaults remain unchanged. See [the docs-site README § The Color Rooms theme](../apps/docs/README.md#the-color-rooms-theme) for the full theme architecture.
 
@@ -597,7 +597,7 @@ Reference: `Dialog.svelte`.
 its selection-group attributes (`role`/`aria-checked`/`data-value`) and modeled
 state (`pressed`/`disabled`/`loading`) win when the component has something to
 say, and fall back to the consumer's restProps value when it doesn't — a plain
-explicit attribute after the spread would *remove* a standalone consumer's
+explicit attribute after the spread would _remove_ a standalone consumer's
 `role="link"` (explicit `undefined` deletes the attribute). Reference:
 `Button.svelte` for selection-wired attributes. `ButtonGroup`'s container
 follows the same treatment (also 2026-07-22): the computed
@@ -641,7 +641,7 @@ A component is promoted when all five hold:
    API's. Measured on the component's `index.ts` — the props surface — with
    `git log -1 --date=short -- <path>/index.ts`.
 
-   A purely additive change that brings the component *onto* a convention in
+   A purely additive change that brings the component _onto_ a convention in
    this document does not restart the clock — it removes a deviation rather
    than exploring a design. Renaming a prop, changing its type, or changing
    what an existing one means does restart it — and so does a commit with
@@ -657,6 +657,7 @@ A component is promoted when all five hold:
    elsewhere: the SvelteKit 3 move in 8.27.0 broke the peer range and rewrote
    `$lib` to `#lib` in most component directories. Read past such a commit in
    `git log --date=short --format='%ad %h %s' -- <path>`.
+
 4. The conventions in this document hold — in particular the standard props of
    § Common props. `stable` is defined by that sentence, so the criteria have
    to ask it rather than assume it. For `restProps` that is two checks, since

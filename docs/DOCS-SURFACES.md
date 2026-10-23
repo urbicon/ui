@@ -62,16 +62,16 @@ synthesis, and the standing rule:
 
 ## Classes and channels
 
-| Class | Source of truth | Audience | Channels |
-| --- | --- | --- | --- |
-| Component API | `*Props` JSDoc in the package source | consumers + agents | docs-gen → `api.ts`, `llm.txt` tree, component catalog, `design-content` (CLI) |
-| Package guide (integration, security, limitations) | `packages/<pkg>/docs/*.md` | consumers + agents | tarball (`files`), docs-gen `guides` → `static/<scope>/` + scope `llms.txt`, `design-content` bundle → `urbicon guide`, llms-full extraction (`embedInLlmsFull`), site route (`/auth/guide`) |
-| Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (deep links go absolute to the rendered site route — npmjs does not resolve relative links into the repo, so they 404 there regardless of repo visibility; `./docs/…` stays as the shipped-copy pointer) |
-| Monorepo conventions (SVELTE5-PATTERNS, ICON-DESIGN, …) | `docs/*.md` | repo developers + agents | repo only — deliberately not shipped |
-| Design knowledge (principles, patterns, tokens) | `design-system/`, `css-reference.ts` | consumers + agents | `design-content` bundle → `urbicon` CLI, docs site |
-| Planning / strategy / review bookkeeping | `docs/internal/` (gitignored) | maintainers | repo only |
-| Deferred findings (technical debt) | GitHub issues, `debt:*` labels | maintainers + contributors | issue tracker |
-| Site-only prose (Docs.svelte pages, recipes) | `apps/docs/src/**` | site readers | docs site |
+| Class                                                   | Source of truth                      | Audience                   | Channels                                                                                                                                                                                                                     |
+| ------------------------------------------------------- | ------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component API                                           | `*Props` JSDoc in the package source | consumers + agents         | docs-gen → `api.ts`, `llm.txt` tree, component catalog, `design-content` (CLI)                                                                                                                                               |
+| Package guide (integration, security, limitations)      | `packages/<pkg>/docs/*.md`           | consumers + agents         | tarball (`files`), docs-gen `guides` → `static/<scope>/` + scope `llms.txt`, `design-content` bundle → `urbicon guide`, llms-full extraction (`embedInLlmsFull`), site route (`/auth/guide`)                                 |
+| Package quickstart                                      | `packages/<pkg>/README.md`           | consumers                  | tarball, npmjs page (deep links go absolute to the rendered site route — npmjs does not resolve relative links into the repo, so they 404 there regardless of repo visibility; `./docs/…` stays as the shipped-copy pointer) |
+| Monorepo conventions (SVELTE5-PATTERNS, ICON-DESIGN, …) | `docs/*.md`                          | repo developers + agents   | repo only — deliberately not shipped                                                                                                                                                                                         |
+| Design knowledge (principles, patterns, tokens)         | `design-system/`, `css-reference.ts` | consumers + agents         | `design-content` bundle → `urbicon` CLI, docs site                                                                                                                                                                           |
+| Planning / strategy / review bookkeeping                | `docs/internal/` (gitignored)        | maintainers                | repo only                                                                                                                                                                                                                    |
+| Deferred findings (technical debt)                      | GitHub issues, `debt:*` labels       | maintainers + contributors | issue tracker                                                                                                                                                                                                                |
+| Site-only prose (Docs.svelte pages, recipes)            | `apps/docs/src/**`                   | site readers               | docs site                                                                                                                                                                                                                    |
 
 Everything under `apps/docs/static/<scope>/` and `dist/` is a **generated
 artifact** (git-ignored, rebuilt by `docs:gen:all` / `build`) — never edit it,

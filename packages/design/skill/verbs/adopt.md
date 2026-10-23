@@ -26,7 +26,7 @@ between what the code does and what Urbicon expects.
    the first history entry so future runs show the trend.
 6. **Seed the manifest.** Write the inferred `## Product Intent`, the confirmed
    `## Token Overrides`, and the synced `## Pattern Usages`. Append an ADR recording
-   that the manifest was *adopted from existing code* on this date (so later readers
+   that the manifest was _adopted from existing code_ on this date (so later readers
    know it's inferred, not designed-first).
 7. **Report.** Summarise: paradigm, intent, N project tokens, M patterns in use, and
    the top correctness/craft offenders — with `fix` / `retheme` / `audit` as the

@@ -92,7 +92,7 @@ doc names its end condition in its head; when the work ends it is harvested,
 then removed with `git rm` in that repository — no archive folder, no row left
 in the index; the history is the archive:
 
-- decision → `docs/DECISIONS.md` with *Revisit only if*, or the contract doc
+- decision → `docs/DECISIONS.md` with _Revisit only if_, or the contract doc
   that owns the rule
 - rule → canon doc or skill; trap or method → skill if it is procedure, else
   memory

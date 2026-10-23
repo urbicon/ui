@@ -35,6 +35,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      # Every tracked .svelte and .md must be `bun fmt` output; .prettierignore
+      # exempts what has to keep its bytes. setup-bun above installs the latest
+      # Bun, so a release that formats differently turns this red on every PR
+      # until one `bun run fmt` commit lands.
+      - run: bun run fmt:check
       # Dead-token guard over every tv() config — the compensating control
       # for the fold semantics ("axis order is semantic"), where a
       # mis-ordered axis strips classes without any runtime error.

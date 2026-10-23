@@ -34,8 +34,8 @@ imitated verbatim; pointers do not.
 - Single-prop rules → the prop's JSDoc (`component-metadata` skill); the page explains relations
   between props.
 - Information must not drop. Misplaced facts move; they are not cut.
-- Gates before reporting: prettier on the page, `bun --filter='@urbicon-ui/docs-app' run
-  examples:budget`. No commits, no staging.
+- Gates before reporting: `bun fmt --no-script <page>`, `bun --filter='@urbicon-ui/docs-app' run
+examples:budget`. No commits, no staging.
 
 ## Migration (existing page)
 

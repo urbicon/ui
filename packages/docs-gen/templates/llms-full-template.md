@@ -25,11 +25,12 @@ bunx sv add tailwindcss=plugins:none @urbicon-ui
 CSS setup (in your app's root layout or entry CSS) — already done for you on the add-on path. Your
 app owns the Tailwind import and it MUST come first; the Urbicon UI CSS that follows depends on it
 and overrides its defaults:
+
 ```css
 @import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css'; /* tokens + @source directives */
-@import '@urbicon-ui/table/style/index.css';  /* only if you use @urbicon-ui/table */
-@import '@urbicon-ui/auth/style/index.css';   /* only if you use @urbicon-ui/auth */
+@import '@urbicon-ui/table/style/index.css'; /* only if you use @urbicon-ui/table */
+@import '@urbicon-ui/auth/style/index.css'; /* only if you use @urbicon-ui/auth */
 ```
 
 Import the single `style/index.css` — **not** the `foundation`/`semantic`/`interaction`
@@ -42,6 +43,7 @@ subfiles (which omit those directives) is the usual cause of responsive utilitie
 ## Import Pattern
 
 ALWAYS import from the package root:
+
 ```svelte
 <script>
   import { Button, Input, Card, Dialog, Badge } from '@urbicon-ui/blocks';
@@ -64,6 +66,7 @@ Default: `neutral` (action elements), `primary` (form/decorative elements)
 ### `variant` – Visual Weight
 
 Values: `filled` | `outlined` | `ghost` | `text` (component-dependent)
+
 - `filled`: Solid background, highest emphasis
 - `outlined`: Border only, transparent background
 - `ghost`: No border, no background
@@ -74,13 +77,13 @@ Values: `filled` | `outlined` | `ghost` | `text` (component-dependent)
 Standard scale: `xs` | `sm` | `md` | `lg` | `xl`
 Default: `md` for all components.
 
-| Size | Height | Font     |
-|------|--------|----------|
-| xs   | h-6    | text-xs  |
-| sm   | h-8    | text-sm  |
-| md   | h-10   | text-base|
-| lg   | h-12   | text-lg  |
-| xl   | h-14   | text-xl  |
+| Size | Height | Font      |
+| ---- | ------ | --------- |
+| xs   | h-6    | text-xs   |
+| sm   | h-8    | text-sm   |
+| md   | h-10   | text-base |
+| lg   | h-12   | text-lg   |
+| xl   | h-14   | text-xl   |
 
 ### `unstyled` – Strip All Default Styles
 
@@ -91,10 +94,9 @@ Default: `md` for all components.
 ### `slotClasses` – Override Specific Slots
 
 Each component documents its slots. Override without losing other styles:
+
 ```svelte
-<Card slotClasses={{ header: 'bg-primary-subtle', footer: 'border-t-2' }}>
-  ...
-</Card>
+<Card slotClasses={{ header: 'bg-primary-subtle', footer: 'border-t-2' }}>...</Card>
 ```
 
 ### `mint` – Micro-Interactions (opt-in)
@@ -255,6 +257,7 @@ This is the COMPLETE list of available semantic tokens. Use ONLY these — do no
 ### Intent Tokens (available for ALL intents: primary, secondary, neutral, success, warning, danger)
 
 Each intent has 5 variants. Example with `success`:
+
 ```
 bg-success               /* base intent color */
 bg-success-hover         /* hover state */
@@ -342,7 +345,7 @@ var(--blocks-ease-snappy)     /* quick, decisive */
 
 ### Border Radius — semantic tiers first
 
-Shape is decided by component *family*, not per element, and the tiers rank **roles**: actions
+Shape is decided by component _family_, not per element, and the tiers rank **roles**: actions
 softest, fields in between, containers tightest. A pill Button inside a hairline-edged Card is the
 system working as intended. Retune a whole family at once through its token, and move the families
 together so the ranking stays legible.
@@ -420,7 +423,7 @@ their semantic meaning — status, severity, actions — never as visual flair.
 <Badge intent="danger" variant="filled">Critical</Badge>  <!-- red = critical -->
 ```
 
-An intent says *how severe*, not *which kind*. Workflow stages, types, priorities and owners are
+An intent says _how severe_, not _which kind_. Workflow stages, types, priorities and owners are
 **categories** and carry no severity — mapping them onto intents makes the page shout about a
 problem that does not exist:
 
@@ -461,11 +464,11 @@ a card's density (`lg` for the one carrying the page, `md`/`sm` for the referenc
 Choose a shape philosophy and apply it **at the tier**, so a whole component family moves at
 once (see "Border Radius — semantic tiers first" above for the tokens):
 
-| Strategy | Tokens | Personality |
-|----------|--------|-------------|
-| Sharp | `--radius-contain: 0` · `--radius-modify: 0` · `--radius-commit: var(--radius-sm)` | Technical precision, data-dense |
-| Soft *(default)* | library defaults: 2px containers, 4px fields, pill actions | Professional, precise |
-| Round | `--radius-contain: var(--radius-xl)` · `--radius-modify: var(--radius-lg)` · `--radius-commit: 9999px` | Friendly, modern |
+| Strategy         | Tokens                                                                                                 | Personality                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| Sharp            | `--radius-contain: 0` · `--radius-modify: 0` · `--radius-commit: var(--radius-sm)`                     | Technical precision, data-dense |
+| Soft _(default)_ | library defaults: 2px containers, 4px fields, pill actions                                             | Professional, precise           |
+| Round            | `--radius-contain: var(--radius-xl)` · `--radius-modify: var(--radius-lg)` · `--radius-commit: 9999px` | Friendly, modern                |
 
 Move the families **together** so the ranking stays legible. The defect to avoid is not "inner
 rounder than outer" — in this system it usually is, by design — but values with no stateable rule:
@@ -535,6 +538,7 @@ design system's behavior (dark mode, hover/active cascade, focus rings).
 ### Level 1: CSS Token Themes
 
 Import a theme CSS file after base styles to override the color palette:
+
 ```css
 @import '@urbicon-ui/blocks/style/index.css';
 @import '@urbicon-ui/blocks/style/themes/ocean.css';
@@ -543,6 +547,7 @@ Import a theme CSS file after base styles to override the color palette:
 Built-in themes: `ocean.css`, `forest.css`, `sunset.css`, `rose.css`, `neutral.css`.
 
 Create custom themes with a `@theme` block:
+
 ```css
 @theme {
   --color-primary-50: oklch(0.95 0.03 YOUR_HUE);
@@ -561,6 +566,7 @@ overrides at call sites.
 
 Register once at the app root, from a wrapper component of its own — a raw brand colour has
 no token, and its exemption should cover the presets map, never the whole root layout:
+
 ```svelte
 <!-- src/lib/AppPresets.svelte -->
 <!-- urbicon-ignore arbitrary-color — preset registry: the brand hex has no token -->
@@ -614,6 +620,7 @@ The pragma names the rule the colour trips: `arbitrary-color` for a hex like `br
 neither — `neutral-0` and `neutral-950` are tokens.
 
 Then use across the project:
+
 ```svelte
 <Button preset="overlay">Reinholen</Button>
 <Button preset="brand">Jetzt kaufen</Button>
@@ -637,7 +644,7 @@ Then use across the project:
 ```
 
 When defining a preset, specify **all interactive states explicitly** (`hover:`, `active:`,
-and `focus-visible:` where applicable). The preset's `slotClasses.base` is merged *after*
+and `focus-visible:` where applicable). The preset's `slotClasses.base` is merged _after_
 the `tv()` defaults, so conflicting Tailwind utilities are resolved by the built-in bucket
 conflict resolver (last source wins) — no `!` needed.
 
@@ -646,7 +653,7 @@ An unknown preset name emits a dev-only console warning, so typos are discoverab
 ### Level 3: BlocksProvider – Global Component Defaults
 
 Use `defaults` (distinct from `presets`) to set **project-wide baseline styles** that
-apply to *every* instance of a component — e.g. "all Buttons should be rounded-full in this app":
+apply to _every_ instance of a component — e.g. "all Buttons should be rounded-full in this app":
 
 ```svelte
 <BlocksProvider
@@ -661,6 +668,7 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
 ```
 
 `defaults` vs. `presets` vs. `overrides` — when to use which:
+
 - **`defaults.props`**: the variant, size, intent or tier every instance takes when it sets none
   itself — when the look you want is one the library ships, name it here instead of rebuilding it
   in classes. Style props only; behaviour and state (`disabled`, `open`, `orientation`) stay at the
@@ -672,7 +680,12 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
 
 ```svelte
 <!-- Every Input without a variant of its own is the shipped underline; every such Card outlined. -->
-<BlocksProvider defaults={{ Input: { props: { variant: 'underline' } }, Card: { props: { variant: 'outlined' } } }}>
+<BlocksProvider
+  defaults={{
+    Input: { props: { variant: 'underline' } },
+    Card: { props: { variant: 'outlined' } }
+  }}
+>
   {@render children()}
 </BlocksProvider>
 ```
@@ -681,13 +694,15 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
 
 ```svelte
 <!-- Only outlined badges get a 1px border; the conflict resolver strips the variant's border-2. -->
-<BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
+<BlocksProvider
+  defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}
+>
   {@render children()}
 </BlocksProvider>
 ```
 
 Each `overrides` entry is a `compoundVariant`-shaped matcher (`string` = equals, `string[]` = one-of →
-per-slot `class`); it matches active prop *values*, so it works regardless of whether the library
+per-slot `class`); it matches active prop _values_, so it works regardless of whether the library
 defines the conflicting class in a `variant` or a `compoundVariant`.
 
 The library's own `tv()` variant styles sit below every rung a consumer writes, and `preset.*` in
@@ -697,10 +712,14 @@ the chain reads `presets[Component][name].*` — the entry the instance's `prese
 ### Level 4: Global Unstyled Mode
 
 Strip all default styles from every component, then apply your own:
+
 ```svelte
-<BlocksProvider unstyled defaults={{
-  Button: { slotClasses: { base: 'inline-flex items-center border-2 px-6 py-3 font-mono' } }
-}}>
+<BlocksProvider
+  unstyled
+  defaults={{
+    Button: { slotClasses: { base: 'inline-flex items-center border-2 px-6 py-3 font-mono' } }
+  }}
+>
   {@render children()}
 </BlocksProvider>
 ```
@@ -715,15 +734,15 @@ supports `unstyled` (strips all defaults) and `slotClasses` (targeted sub-elemen
 
 ### Slot Reference
 
-| Component | Slots |
-|-----------|-------|
-| Button | `base`, `content`, `spinner` |
-| Card | `base`, `header`, `content`, `footer` |
-| Input | `wrapper`, `container`, `base`, `label`, `message`, `iconContainer` |
-| Badge | `base`, `content`, `removeButton`, `removeIcon` |
-| Dialog | `base`, `overlay`, `header`, `body`, `footer` |
-| Alert | `base`, `icon`, `content`, `title`, `description`, `actions` |
-| Tooltip | `base`, `arrow` |
+| Component | Slots                                                               |
+| --------- | ------------------------------------------------------------------- |
+| Button    | `base`, `content`, `spinner`                                        |
+| Card      | `base`, `header`, `content`, `footer`                               |
+| Input     | `wrapper`, `container`, `base`, `label`, `message`, `iconContainer` |
+| Badge     | `base`, `content`, `removeButton`, `removeIcon`                     |
+| Dialog    | `base`, `overlay`, `header`, `body`, `footer`                       |
+| Alert     | `base`, `icon`, `content`, `title`, `description`, `actions`        |
+| Tooltip   | `base`, `arrow`                                                     |
 
 ### Pattern: Glassmorphism
 
@@ -832,6 +851,7 @@ Combine with a gradient or image background on the page container.
 ### Override Interaction Tokens
 
 Change the feel of all components at once:
+
 ```css
 :root {
   --blocks-ease-confident: cubic-bezier(0.22, 1, 0.36, 1);
@@ -845,14 +865,11 @@ Change the feel of all components at once:
 ### Per-Instance Override
 
 For one-off customizations without changing the global style:
-```svelte
-<Card unstyled slotClasses={{ base: 'my-custom-card-class', header: 'my-header' }}>
-  ...
-</Card>
 
-<Button class="rounded-full px-12 tracking-widest uppercase">
-  Custom Button
-</Button>
+```svelte
+<Card unstyled slotClasses={{ base: 'my-custom-card-class', header: 'my-header' }}>...</Card>
+
+<Button class="rounded-full px-12 tracking-widest uppercase">Custom Button</Button>
 ```
 
 `class` merges with defaults; `unstyled` + `slotClasses` replaces them entirely.
@@ -865,6 +882,7 @@ Native DOM events: lowercase (`onclick`, `onfocus`)
 Custom state callbacks: `on` + PascalCase (`onCheckedChange`, `onValueChange`, `onPageChange`)
 
 Always pass the NEW STATE VALUE, not the raw event:
+
 ```svelte
 <Checkbox onCheckedChange={(checked) => ...} />
 <Menu onValueChange={(value) => ...} />
@@ -891,6 +909,7 @@ Supported locales: `en`, `de`. Components auto-translate their internal text.
 ## Common Patterns
 
 ### Form with validation
+
 ```svelte
 <form onsubmit={handleSubmit}>
   <Input label="Email" type="email" bind:value={email} error={errors.email} required />
@@ -901,17 +920,19 @@ Supported locales: `en`, `de`. Components auto-translate their internal text.
 ```
 
 ### Confirmation dialog
+
 ```svelte
 <Dialog bind:open={showConfirm} title="Delete Item?" intent="danger" size="sm">
   <p>This action cannot be undone.</p>
   {#snippet footer()}
-    <Button variant="ghost" onclick={() => showConfirm = false}>Cancel</Button>
+    <Button variant="ghost" onclick={() => (showConfirm = false)}>Cancel</Button>
     <Button intent="danger" onclick={handleDelete} loading={deleting}>Delete</Button>
   {/snippet}
 </Dialog>
 ```
 
 ### Data display card
+
 ```svelte
 <Card variant="outlined" padding="lg">
   {#snippet header()}
@@ -920,12 +941,13 @@ Supported locales: `en`, `de`. Components auto-translate their internal text.
       <Badge intent="success" variant="soft">+12%</Badge>
     </div>
   {/snippet}
-  <p class="text-3xl font-bold text-text-primary">$48,200</p>
+  <p class="text-text-primary text-3xl font-bold">$48,200</p>
   <p class="text-text-tertiary text-sm">vs. $43,000 last month</p>
 </Card>
 ```
 
 ### Navigation tabs
+
 ```svelte
 <Tab
   tabs={[
@@ -945,6 +967,7 @@ Supported locales: `en`, `de`. Components auto-translate their internal text.
 ```
 
 ### Menu with custom items
+
 ```svelte
 <Menu
   items={users}
@@ -963,11 +986,12 @@ Supported locales: `en`, `de`. Components auto-translate their internal text.
 ```
 
 ### Loading skeleton
+
 ```svelte
 {#if loading}
   <div class="flex items-center gap-3">
     <Skeleton variant="circular" size="md" />
-    <div class="flex-1 flex flex-col gap-2">
+    <div class="flex flex-1 flex-col gap-2">
       <Skeleton variant="text" size="sm" />
       <Skeleton variant="text" size="xs" class="w-2/3" />
     </div>
@@ -978,12 +1002,16 @@ Supported locales: `en`, `de`. Components auto-translate their internal text.
 ```
 
 ### Breadcrumb navigation
+
 ```svelte
-<Breadcrumb items={[
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Settings', href: '/dashboard/settings' },
-  { label: 'Profile' }
-]} size="sm" />
+<Breadcrumb
+  items={[
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Settings', href: '/dashboard/settings' },
+    { label: 'Profile' }
+  ]}
+  size="sm"
+/>
 ```
 
 ---

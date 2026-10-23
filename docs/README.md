@@ -67,12 +67,12 @@ and a link to that place, and in these reference docs the owning section says so
 
 - [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) — seven-family taxonomy (Action / Form / Navigation / Container / Feedback / Identity / Conversation): ARIA, tier behaviour, border-token source
 - [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) — Sidebar/Drawer/Popover/SidebarLayout and Calendar/Planner decision matrices
-- [VARIANT-CONTRACT.md](VARIANT-CONTRACT.md) — what each `variant` value means across the library *(shipped in the blocks tarball)*
-- [STICKY-PINNING.md](STICKY-PINNING.md) — table scroll models: page-relative sticky pinning + contained scroll *(shipped in the table tarball)*
-- [MIGRATION-V8.md](MIGRATION-V8.md) — table v7 → v8: the consumer-owned view object, the source union, the two persistence channels *(shipped in the table tarball)*
-- [MIGRATION-BLOCKS.md](MIGRATION-BLOCKS.md) — breaking changes to the component library, newest first *(shipped in the blocks tarball)*
-- [GUIDE.md](GUIDE.md) — Guide system: non-modal help panel, contextual hints, guided tour *(shipped in the blocks tarball)*
-- [A2UI.md](A2UI.md) — agent-generated UI in a chat: long-lived surfaces, the action-only return path *(shipped in the blocks tarball)*
+- [VARIANT-CONTRACT.md](VARIANT-CONTRACT.md) — what each `variant` value means across the library _(shipped in the blocks tarball)_
+- [STICKY-PINNING.md](STICKY-PINNING.md) — table scroll models: page-relative sticky pinning + contained scroll _(shipped in the table tarball)_
+- [MIGRATION-V8.md](MIGRATION-V8.md) — table v7 → v8: the consumer-owned view object, the source union, the two persistence channels _(shipped in the table tarball)_
+- [MIGRATION-BLOCKS.md](MIGRATION-BLOCKS.md) — breaking changes to the component library, newest first _(shipped in the blocks tarball)_
+- [GUIDE.md](GUIDE.md) — Guide system: non-modal help panel, contextual hints, guided tour _(shipped in the blocks tarball)_
+- [A2UI.md](A2UI.md) — agent-generated UI in a chat: long-lived surfaces, the action-only return path _(shipped in the blocks tarball)_
 
 ## Icons
 
@@ -80,7 +80,7 @@ and a link to that place, and in these reference docs the owning section says so
 
 ## Auth
 
-- [AUTH.md](AUTH.md) — `@urbicon-ui/auth`: architecture, exports, consumer integration, known-limitations catalog *(shipped in the auth tarball)*
+- [AUTH.md](AUTH.md) — `@urbicon-ui/auth`: architecture, exports, consumer integration, known-limitations catalog _(shipped in the auth tarball)_
 
 ## Project tracking
 

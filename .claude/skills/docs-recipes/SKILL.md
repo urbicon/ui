@@ -40,7 +40,7 @@ Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files
   (`[/* … your rows … */]`); (2) a docs-forced fake (a setTimeout where the app would
   fetch) — the code carries a seam comment naming the replacement; (3) the host: the stage
   belongs to the docs, the app's mounting is a comment (`<!-- Centre it in your page's own
-  layout -->`), unless the layout IS the recipe (table-detail's grid). Where a legacy page's
+layout -->`), unless the layout IS the recipe (table-detail's grid). Where a legacy page's
   foot code disagrees with its demo, the demo wins.
 - **Multi-example pages** (page-header, stat-tile, clickable-card): each demo sits directly
   above its own code — several CodeExamples with children inside the one preview section,
@@ -68,7 +68,7 @@ overrides**:
 - **Table stays `flush`** (the default) — its rows sit directly on the stage tint.
 - **The accent comes from the room channel.** Anything `intent="primary"` in the demo is
   orange on a recipe page with zero configuration; never hardcode the hue.
-- Hairline dividers *inside* one surface (`divide-border-hairline`, a `border-t` above a sum)
+- Hairline dividers _inside_ one surface (`divide-border-hairline`, a `border-t` above a sum)
   are fine — the rule is against boxes around boxes, not against quiet lines within one.
 
 Because the demo markup uses only library defaults and variants, the copied `recipeCode`
@@ -109,12 +109,12 @@ gate checks the binding there.
 The stage is as wide as the preview column (≈ 650 px in the hero). A single-line
 field stretched across it reads as a bug, so a form playground wraps its control:
 
-| Control | Cap | Who has it |
-| --- | --- | --- |
-| single-line field | `max-w-xs` | Input · Select · DatePicker · DateRangePicker · NumberInput · CurrencyInput |
-| multi-line / wrapper | `max-w-md` | Textarea · FormField · FileUpload · Slider |
-| composer / wide widget | `max-w-xl` | PromptInput · JourneyTimeline |
-| naturally narrow | none | Checkbox · Radio · Toggle · PinInput · TimeInput · Spinner |
+| Control                | Cap        | Who has it                                                                  |
+| ---------------------- | ---------- | --------------------------------------------------------------------------- |
+| single-line field      | `max-w-xs` | Input · Select · DatePicker · DateRangePicker · NumberInput · CurrencyInput |
+| multi-line / wrapper   | `max-w-md` | Textarea · FormField · FileUpload · Slider                                  |
+| composer / wide widget | `max-w-xl` | PromptInput · JourneyTimeline                                               |
+| naturally narrow       | none       | Checkbox · Radio · Toggle · PinInput · TimeInput · Spinner                  |
 
 Two rules that are easy to get wrong:
 
@@ -128,7 +128,7 @@ Two rules that are easy to get wrong:
 ## Playground knobs: only offer what the reader can see move
 
 `pick` is an edited selection, not "every prop". Before adding a knob, check
-that it *visibly* changes the stage — a knob that does nothing reads as a broken
+that it _visibly_ changes the stage — a knob that does nothing reads as a broken
 library, and the 2026-07-28 hero review found nine of them.
 
 Four kinds that look pickable but are not:

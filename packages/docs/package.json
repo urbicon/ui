@@ -30,9 +30,6 @@
     "@urbicon-ui/shared-types": "workspace:*",
     "@urbicon-ui/table": "workspace:*",
     "jsdom": "catalog:",
-    "prettier": "catalog:",
-    "prettier-plugin-svelte": "catalog:",
-    "prettier-plugin-tailwindcss": "catalog:",
     "shiki": "catalog:",
     "svelte": "catalog:",
     "svelte-check": "catalog:",
@@ -80,7 +77,8 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "bunx --bun vitest run",
-    "format": "biome format --write . && prettier --write \"**/*.svelte\"",
+    "fmt": "bun ../../scripts/fmt.ts",
+    "format": "biome format --write . && bun run fmt",
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json"
   },
   "sideEffects": [
