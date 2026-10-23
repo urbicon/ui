@@ -237,3 +237,80 @@ test.describe('Popover mode change while open', () => {
     expect(await isShowing(page)).toBe(false);
   });
 });
+
+test.describe('Popover losing its anchor in auto mode', () => {
+  async function showUnlocked(page: Page) {
+    await page.goto(`${URL}?s=anchor&locked=false`, { waitUntil: 'load' });
+    await page.waitForSelector('html[data-hydrated]');
+    await page.getByRole('button', { name: 'Show' }).click();
+    await expect(page.locator(PANEL)).toBeVisible();
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
+  }
+
+  test('stays open without reporting a dismiss, and shows again at the anchor', async ({
+    page
+  }) => {
+    await showUnlocked(page);
+
+    // From inside the panel, so nothing is clicked outside; `useFloatingPanel`
+    // hides the panel because its anchor is gone.
+    await page.getByRole('button', { name: 'Detach anchor' }).click();
+    await expect.poll(() => isShowing(page)).toBe(false);
+    await page.waitForTimeout(300);
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('true');
+    await expect(page.getByTestId('popover-mode-calls')).toBeEmpty();
+
+    await page.getByRole('button', { name: 'Restore anchor' }).click();
+    await expect.poll(() => isShowing(page)).toBe(true);
+    // Placed against the anchor again: `bottom-start`, 4px below it.
+    const offset = () =>
+      page.evaluate((selector) => {
+        const panel = (document.querySelector(selector) as HTMLElement).getBoundingClientRect();
+        const anchor = (
+          document.querySelector('[data-testid="popover-mode-anchor"]') as HTMLElement
+        ).getBoundingClientRect();
+        return [Math.round(panel.left - anchor.left), Math.round(panel.top - anchor.bottom)];
+      }, PANEL);
+    await expect.poll(offset).toEqual([0, 4]);
+    await expect(page.getByTestId('popover-mode-calls')).toBeEmpty();
+  });
+
+  test('a click outside that also removes the anchor is still a click outside', async ({
+    page
+  }) => {
+    await showUnlocked(page);
+
+    await page.getByRole('button', { name: 'Remove anchor' }).click();
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('false');
+    await expect(page.getByTestId('popover-mode-calls')).toHaveText(
+      'openChange:false clickOutside'
+    );
+    expect(await isShowing(page)).toBe(false);
+  });
+});
+
+test.describe('Popover closed by a press on its trigger in auto mode', () => {
+  test('closes without reporting a click outside', async ({ page }) => {
+    const trigger = await openPanel(page, '');
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
+
+    // The browser light-dismisses on the press, before the trigger's `click`.
+    await trigger.click();
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('false');
+    await page.waitForTimeout(300);
+    await expect(page.getByTestId('popover-mode-calls')).toHaveText(
+      'openChange:true openChange:false'
+    );
+    expect(await isShowing(page)).toBe(false);
+  });
+
+  test('a click outside still reports a click outside', async ({ page }) => {
+    await openPanel(page, '');
+
+    await page.getByTestId('popover-mode-calls').click();
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('false');
+    await expect(page.getByTestId('popover-mode-calls')).toHaveText(
+      'openChange:true openChange:false clickOutside'
+    );
+  });
+});

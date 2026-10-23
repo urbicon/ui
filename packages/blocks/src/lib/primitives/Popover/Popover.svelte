@@ -266,15 +266,29 @@
   // Only relevant in `auto` mode — in manual mode the browser doesn't fire
   // toggle events for outside clicks or Escape, so the dismiss callbacks
   // come from our own listeners below.
+  //
+  // A close while `open` is a dismiss, except the one `useFloatingPanel` makes
+  // when the anchor is gone: that panel stays open, hidden, and shows again
+  // when an anchor returns, as in manual mode. A press on the trigger is a
+  // dismiss that reports no click outside. Both are read in `beforetoggle`, at
+  // the hide itself: the `toggle` task runs after the gesture's `click`, which
+  // has consumed `dismissedByTrigger` by then, and a click outside may have
+  // removed the anchor by then and is still a dismiss.
   $effect(() => {
     if (!popoverElement || popoverMode !== 'auto') return;
+    let hiddenWithoutAnchor = false;
+    let hiddenByTrigger = false;
+    function handleBeforeToggle(e: Event) {
+      if ((e as ToggleEvent).newState !== 'closed') return;
+      hiddenWithoutAnchor = !effectiveTriggerElement;
+      hiddenByTrigger = dismissedByTrigger;
+    }
     function handleToggle(e: Event) {
       const toggle = e as ToggleEvent;
-      if (toggle.newState === 'closed' && open) {
+      if (toggle.newState === 'closed' && open && !hiddenWithoutAnchor) {
         const wasEscape = escapePending;
-        const wasTrigger = dismissedByTrigger;
+        const wasTrigger = hiddenByTrigger;
         escapePending = false;
-        // Don't reset dismissedByTrigger here — the click handler still needs it
 
         open = false;
         onOpenChange?.(false);
@@ -290,8 +304,13 @@
         }
       }
     }
-    popoverElement.addEventListener('toggle', handleToggle);
-    return () => popoverElement?.removeEventListener('toggle', handleToggle);
+    const el = popoverElement;
+    el.addEventListener('beforetoggle', handleBeforeToggle);
+    el.addEventListener('toggle', handleToggle);
+    return () => {
+      el.removeEventListener('beforetoggle', handleBeforeToggle);
+      el.removeEventListener('toggle', handleToggle);
+    };
   });
 
   // ── Manual-mode dismiss listeners ─────────────────────────
@@ -423,11 +442,15 @@
   //
   // The show puts the panel last in the top layer, above every popover opened
   // from inside it (a listbox, a tooltip, a nested manual Popover), so those
-  // are shown again after it. A nested `auto` Popover is lost on auto → manual:
-  // the write itself closes it, and it reports a click outside. The control
-  // focus is put back on has seen a blur and now sees a focus, and a Combobox
-  // reopens its listbox on that focus. A change to `null` renders the panel in
-  // place, and focus is put back there too.
+  // are shown again after it. Other top-layer elements stay under it: a modal
+  // `<dialog>` opened from inside the panel (`close()` + `showModal()` would
+  // fire `close`; only the paint is wrong, the modal keeps the panel inert),
+  // and top-layer elements outside the panel shown after it, such as a Guide
+  // step. A nested `auto` Popover is lost on auto → manual: the write itself
+  // closes it, and it reports a click outside. The control focus is put back
+  // on has seen a blur and now sees a focus, and a Combobox reopens its
+  // listbox on that focus. A change to `null` renders the panel in place, and
+  // focus is put back there too.
   const popoverAttribute = $derived(panel.topLayer ? popoverMode : null);
   let prevPopoverAttribute = untrack(() => popoverAttribute);
   let beforeAttributeChange: { focused: HTMLElement | null; running: Set<Animation> } | null = null;

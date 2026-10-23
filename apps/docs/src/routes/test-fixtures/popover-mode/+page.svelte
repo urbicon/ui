@@ -6,8 +6,10 @@
   //    in manual mode; `?duration=` sets the motion's duration.
   //  - `tags`: a pick in the multi-select Combobox inside the panel locks it
   //    (`closeOnClickOutside` off) while the listbox stays open.
-  //  - `anchor`: starts locked (manual) on an external anchor. Buttons outside the panel open
-  //    it, remove the anchor and unlock it (manual → auto).
+  //  - `anchor`: an external anchor that toggles the panel, locked (manual) unless
+  //    `?locked=false`. Buttons outside the panel open it, remove the anchor, bring it back and
+  //    unlock the panel (manual → auto); "Detach anchor" removes it from inside the panel,
+  //    which is no click outside.
   // Not part of the docs nav.
   import { page } from '$app/state';
   import { Button, Checkbox, Combobox, Popover } from '@urbicon-ui/blocks';
@@ -21,7 +23,7 @@
 
   let open = $state(false);
   let closeOnEscape = $state(page.url.searchParams.get('closeOnEscape') !== 'false');
-  let locked = $state(variant === 'anchor');
+  let locked = $state(variant === 'anchor' && page.url.searchParams.get('locked') !== 'false');
   let tags = $state<string[]>([]);
   let anchorShown = $state(true);
   let anchor = $state<HTMLElement | null>(null);
@@ -53,10 +55,17 @@
     <div class="flex gap-4">
       <Button onclick={() => (open = true)}>Show</Button>
       <Button onclick={() => (anchorShown = false)}>Remove anchor</Button>
+      <Button onclick={() => (anchorShown = true)}>Restore anchor</Button>
       <Button onclick={() => (locked = false)}>Unlock</Button>
     </div>
     {#if anchorShown}
-      <span bind:this={anchor} class="text-text-primary mt-8 inline-block">Anchor</span>
+      <button
+        type="button"
+        bind:this={anchor}
+        class="text-text-primary mt-8 inline-block"
+        data-testid="popover-mode-anchor"
+        onclick={() => (open = !open)}>Anchor</button
+      >
     {/if}
     <Popover
       bind:open
@@ -66,6 +75,7 @@
       {...callbacks}
     >
       <p class="text-text-primary">Anchored panel</p>
+      <Button onclick={() => (anchorShown = false)}>Detach anchor</Button>
     </Popover>
   {:else}
     <Popover
