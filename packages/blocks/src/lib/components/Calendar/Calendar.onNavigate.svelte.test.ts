@@ -128,7 +128,6 @@ describe('Calendar onNavigate — the header month picker', () => {
     const trigger = document.querySelector<HTMLElement>('[aria-expanded]');
     if (!trigger) throw new Error('no month-picker trigger');
     click(trigger);
-    // The picker renders in a popover; jsdom has no top layer, so query hidden.
     const popover = document.querySelector<HTMLElement>('[popover]');
     if (!popover) throw new Error('month picker did not open');
     // Twelve buttons in month order — position, not label, so the assertion is

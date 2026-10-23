@@ -13,9 +13,6 @@ import DatePicker from './DatePicker.svelte';
 // clear resets. useBlocksI18n is read-tolerant (no provider needed — labels resolve to the base
 // locale, en); `renderPicker` pins locale='de-DE' so the display mask is DD.MM.YYYY. Same stack as the
 // Combobox pilot: svelte's own mount/unmount, @testing-library/dom + user-event, native matchers.
-//
-// jsdom note: the calendar renders inside a native popover with no top layer, so its day buttons are
-// reached by their deterministic `data-date="YYYY-MM-DD"` attribute rather than by visible role.
 
 let dispose: (() => void) | undefined;
 
