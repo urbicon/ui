@@ -458,8 +458,7 @@
                   ? (slotClasses?.legendValue ?? '')
                   : styles.legendValue({ class: slotClasses?.legendValue })}
               >
-                {fmtValue(item.value)}{#if showPercentages}
-                  · {fmtPercent(rawPct)}{/if}
+                {fmtValue(item.value)}{showPercentages ? ` · ${fmtPercent(rawPct)}` : ''}
               </span>
             {/if}
           </button>

@@ -137,6 +137,8 @@ export const calendarVariants = tv({
     ],
     // The cursor sits here, not on the tile: the button's ::after covers the tile, so the
     // pointer is always over the button, and the UA stylesheet gives a button `cursor: default`.
+    // Keep this slot unpositioned and untransformed: a `relative`, `transform`, `filter` or
+    // `contain` makes the button the ::after's containing block, shrinking the tile's hit area.
     yearMonthTitle: [
       'cursor-pointer font-medium text-text-primary text-center',
       'focus-visible:outline-none'

@@ -19,23 +19,26 @@ A control's accessible name has to contain the text it shows (WCAG 2.5.3, Label 
 speech-input user can say what they see. axe 4.14 checks it, and two generated names failed.
 
 - **`CompositionBar` names an item `Gas: 60, 60.0%`, not `Gas: 60 (60.0%)`.** Its segment and its
-  legend row share the name. The row shows `Gas 60 · 60.0%`, and axe drops a parenthetical before
-  it compares. A `legendItem` snippet keeps that name, so the text it shows has to fit in it.
+  legend row share the name. The row shows `Gas 60 · 60.0%`, now with the space before the dot
+  that the tooltip always had, and axe drops a parenthetical before it compares. A `legendItem`
+  snippet keeps that name, so the text it shows has to fit in it.
 - **A `Calendar` year-view month is a `<button>` holding only the month name**, inside a
   `<div role="gridcell">` that also holds the month's day numbers, now hidden from assistive
   technology. The button keeps the name (`Jan 2026`) and the arrow keys; its `::after` covers the
-  tile, so a click anywhere on it still opens the month. A test that dispatches a click on the
-  gridcell itself (`fireEvent.click`) no longer reaches the handler: click the button,
-  `getByRole('button', { name: 'Jan 2026' })`.
+  tile, so a click anywhere on it still opens the month. Focus and the keys now land on the
+  button, not the gridcell: a test that clicks, focuses, presses keys on, or asserts focus on the
+  gridcell addresses `getByRole('button', { name: 'Jan 2026' })` instead.
 - **The `yearMonth` slot styles a tile that never takes focus.** Its focus ring moves from
   `focus-visible:` to `has-focus-visible:`, and `cursor-pointer` and `focus-visible:outline-none`
   move to `yearMonthTitle`, which now styles the button. A `slotClasses.yearMonth` override with
-  `focus-visible:` classes needs `has-focus-visible:`.
+  `focus-visible:` classes needs `has-focus-visible:`. Keep `yearMonthTitle` unpositioned and
+  untransformed: its `::after` is the tile's hit area, and a `relative`, `transform`, `filter` or
+  `contain` there shrinks it to the month name.
 
-A test or snapshot that matches a `CompositionBar` item name needs the new one.
+A test or snapshot that matches a `CompositionBar` item name or legend row text needs the new one.
 
 ```sh
-rg -n -e 'yearMonth' -e 'data-month' src e2e tests
+rg -n -e 'yearMonth' -e 'data-month' -e 'gridcell' src e2e tests
 rg -n -g '*.{test,spec}.*' '\([0-9.,]+[^)]*%\)' src e2e tests
 ```
 

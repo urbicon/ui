@@ -72,13 +72,15 @@ describe('CompositionBar (label in name)', () => {
       .filter(Boolean)
       .join(' ');
 
-  it.each<[string, Locale | undefined]>([
-    ['the base locale', undefined],
-    ['German', 'de']
-  ])('names each legend row with the text it shows, in %s', (_, locale) => {
+  it.each<[string, Locale | undefined, string]>([
+    ['the base locale', undefined, 'Gas 60 · 60.0%'],
+    ['German', 'de', 'Gas 60 · 60,0\u00a0%']
+  ])('names each legend row with the text it shows, in %s', (_, locale, shown) => {
     renderBar({ items: shares }, locale);
     const rows = Array.from(document.querySelectorAll<HTMLElement>('ul > li > button'));
     expect(rows).toHaveLength(2);
+    // Collapses source whitespace only; the locale's no-break space stays.
+    expect(rows[0].textContent?.replace(/[\t\n ]+/g, ' ').trim()).toBe(shown);
     for (const row of rows) {
       expect(` ${words(row.getAttribute('aria-label') ?? '')} `).toContain(
         ` ${words(row.textContent ?? '')} `
