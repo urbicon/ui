@@ -221,17 +221,17 @@ test.describe('Popover mode change while open', () => {
   test('a mode change leaves a panel hidden for its lost anchor hidden', async ({ page }) => {
     await page.goto(`${URL}?s=anchor`, { waitUntil: 'load' });
     await page.waitForSelector('html[data-hydrated]');
-    await page.getByRole('button', { name: 'Show' }).click();
+    await page.getByRole('button', { name: 'Show', exact: true }).click();
     await expect(page.locator(PANEL)).toBeVisible();
     await expect(page.locator(PANEL)).toHaveAttribute('popover', 'manual');
 
     // Locked, so a click outside does not dismiss; the anchor goes, and
     // `useFloatingPanel` hides the still-open panel.
-    await page.getByRole('button', { name: 'Remove anchor' }).click();
+    await page.getByRole('button', { name: 'Remove anchor', exact: true }).click();
     await expect.poll(() => isShowing(page)).toBe(false);
     await expect(page.getByTestId('popover-mode-open')).toHaveText('true');
 
-    await page.getByRole('button', { name: 'Unlock' }).click();
+    await page.getByRole('button', { name: 'Unlock', exact: true }).click();
     await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
     await settle(page);
     expect(await isShowing(page)).toBe(false);
@@ -242,7 +242,7 @@ test.describe('Popover losing its anchor in auto mode', () => {
   async function showUnlocked(page: Page) {
     await page.goto(`${URL}?s=anchor&locked=false`, { waitUntil: 'load' });
     await page.waitForSelector('html[data-hydrated]');
-    await page.getByRole('button', { name: 'Show' }).click();
+    await page.getByRole('button', { name: 'Show', exact: true }).click();
     await expect(page.locator(PANEL)).toBeVisible();
     await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
   }
@@ -254,13 +254,13 @@ test.describe('Popover losing its anchor in auto mode', () => {
 
     // From inside the panel, so nothing is clicked outside; `useFloatingPanel`
     // hides the panel because its anchor is gone.
-    await page.getByRole('button', { name: 'Detach anchor' }).click();
+    await page.getByRole('button', { name: 'Detach anchor', exact: true }).click();
     await expect.poll(() => isShowing(page)).toBe(false);
     await page.waitForTimeout(300);
     await expect(page.getByTestId('popover-mode-open')).toHaveText('true');
     await expect(page.getByTestId('popover-mode-calls')).toBeEmpty();
 
-    await page.getByRole('button', { name: 'Restore anchor' }).click();
+    await page.getByRole('button', { name: 'Restore anchor', exact: true }).click();
     await expect.poll(() => isShowing(page)).toBe(true);
     // Placed against the anchor again: `bottom-start`, 4px below it.
     const offset = () =>
@@ -280,7 +280,7 @@ test.describe('Popover losing its anchor in auto mode', () => {
   }) => {
     await showUnlocked(page);
 
-    await page.getByRole('button', { name: 'Remove anchor' }).click();
+    await page.getByRole('button', { name: 'Remove anchor', exact: true }).click();
     await expect(page.getByTestId('popover-mode-open')).toHaveText('false');
     await expect(page.getByTestId('popover-mode-calls')).toHaveText(
       'openChange:false clickOutside'
@@ -312,5 +312,56 @@ test.describe('Popover closed by a press on its trigger in auto mode', () => {
     await expect(page.getByTestId('popover-mode-calls')).toHaveText(
       'openChange:true openChange:false clickOutside'
     );
+  });
+
+  test('a press on the trigger with focus inside the panel leaves focus on the trigger', async ({
+    page
+  }) => {
+    const trigger = await openPanel(page, '');
+    await page.getByRole('checkbox', { name: 'Close on Escape' }).focus();
+
+    // Chromium focuses the trigger on the press itself; WebKit's press does
+    // not, and the Popover moves focus there (measured outside this suite).
+    await trigger.click();
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('false');
+    await expect(trigger).toBeFocused();
+    await page.waitForTimeout(300);
+    await expect(page.getByTestId('popover-mode-calls')).toHaveText(
+      'openChange:true openChange:false'
+    );
+  });
+});
+
+test.describe('Popover losing its anchor as its mode changes', () => {
+  async function showLocked(page: Page) {
+    await page.goto(`${URL}?s=anchor`, { waitUntil: 'load' });
+    await page.waitForSelector('html[data-hydrated]');
+    await page.getByRole('button', { name: 'Show', exact: true }).click();
+    await expect(page.locator(PANEL)).toBeVisible();
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'manual');
+  }
+
+  async function expectHiddenAndSilent(page: Page) {
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
+    await page.waitForTimeout(300);
+    expect(await isShowing(page)).toBe(false);
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('true');
+    await expect(page.getByTestId('popover-mode-calls')).toBeEmpty();
+  }
+
+  test('anchor gone and unlocked in one flush: no re-show without an anchor', async ({ page }) => {
+    await showLocked(page);
+    // Locked, so the click outside does not dismiss.
+    await page.getByRole('button', { name: 'Drop anchor and unlock', exact: true }).click();
+    await expectHiddenAndSilent(page);
+  });
+
+  test('anchor gone, unlocked a microtask later: the earlier hide is no dismiss', async ({
+    page
+  }) => {
+    await showLocked(page);
+    // The hide happens while manual; its `toggle` reaches the auto listener.
+    await page.getByRole('button', { name: 'Drop anchor, unlock after', exact: true }).click();
+    await expectHiddenAndSilent(page);
   });
 });

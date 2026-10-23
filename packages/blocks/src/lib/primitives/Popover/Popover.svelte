@@ -248,6 +248,10 @@
   // Track if the dismiss was caused by clicking the trigger (pointerdown → light dismiss).
   // This prevents the click handler from re-opening the popover after light dismiss closed it.
   let dismissedByTrigger = false;
+  // Whether focus was inside the panel when that press began. Read at the
+  // press: by the dismiss's `beforetoggle`, WebKit's press has moved focus to
+  // the document and Chromium's and Firefox's to the trigger.
+  let triggerPressedFromInside = false;
 
   // Track Escape key to distinguish from click-outside in the toggle handler,
   // so we fire onEscape vs onClickOutside correctly.
@@ -267,44 +271,51 @@
   // toggle events for outside clicks or Escape, so the dismiss callbacks
   // come from our own listeners below.
   //
-  // A close while `open` is a dismiss, except the one `useFloatingPanel` makes
-  // when the anchor is gone: that panel stays open, hidden, and shows again
-  // when an anchor returns, as in manual mode. A press on the trigger is a
-  // dismiss that reports no click outside. Both are read in `beforetoggle`, at
-  // the hide itself: the `toggle` task runs after the gesture's `click`, which
-  // has consumed `dismissedByTrigger` by then, and a click outside may have
-  // removed the anchor by then and is still a dismiss.
+  // A close is a dismiss only if this listener saw it begin: `beforetoggle`
+  // records its cause and the `toggle` consumes it. The cause is read at the
+  // hide itself because the `toggle` task runs after the gesture's `click`,
+  // which has consumed `dismissedByTrigger` by then, and after a click outside
+  // may have removed the anchor too. Not a dismiss: the hide `useFloatingPanel`
+  // makes when the anchor is gone (the panel stays open, hidden, and shows
+  // again when an anchor returns, as in manual mode), and a close that began
+  // before this listener existed, while the panel was manual. A press on the
+  // trigger reports no click outside, and moves focus to the trigger only when
+  // the press began with focus inside the panel.
   $effect(() => {
     if (!popoverElement || popoverMode !== 'auto') return;
-    let hiddenWithoutAnchor = false;
-    let hiddenByTrigger = false;
+    const el = popoverElement;
+    let pendingClose: { withoutAnchor: boolean; byTrigger: boolean; fromInside: boolean } | null =
+      null;
     function handleBeforeToggle(e: Event) {
       if ((e as ToggleEvent).newState !== 'closed') return;
-      hiddenWithoutAnchor = !effectiveTriggerElement;
-      hiddenByTrigger = dismissedByTrigger;
+      pendingClose = {
+        withoutAnchor: !effectiveTriggerElement,
+        byTrigger: dismissedByTrigger,
+        fromInside: dismissedByTrigger && triggerPressedFromInside
+      };
     }
     function handleToggle(e: Event) {
-      const toggle = e as ToggleEvent;
-      if (toggle.newState === 'closed' && open && !hiddenWithoutAnchor) {
-        const wasEscape = escapePending;
-        const wasTrigger = hiddenByTrigger;
-        escapePending = false;
+      const cause = pendingClose;
+      pendingClose = null;
+      if ((e as ToggleEvent).newState !== 'closed' || !open || !cause || cause.withoutAnchor) {
+        return;
+      }
+      const wasEscape = escapePending;
+      escapePending = false;
 
-        open = false;
-        onOpenChange?.(false);
+      open = false;
+      onOpenChange?.(false);
 
-        if (wasEscape) {
-          onEscapeProp?.();
-        } else if (!wasTrigger) {
-          onClickOutsideProp?.();
-        }
+      if (wasEscape) {
+        onEscapeProp?.();
+      } else if (!cause.byTrigger) {
+        onClickOutsideProp?.();
+      }
 
-        if (!wasTrigger) {
-          focusTrigger();
-        }
+      if (!cause.byTrigger || cause.fromInside) {
+        focusTrigger();
       }
     }
-    const el = popoverElement;
     el.addEventListener('beforetoggle', handleBeforeToggle);
     el.addEventListener('toggle', handleToggle);
     return () => {
@@ -436,9 +447,11 @@
   // frame paints the hidden panel, and the browser folds the hide's queued
   // `toggle` and the show's into one `open → open`, which the toggle handler
   // does not read as a dismiss. What the write changes is read before it, in
-  // the `$effect.pre`: whether the panel was showing (a panel
-  // `useFloatingPanel` hid for a lost anchor stays hidden), where focus was,
-  // and which transitions were already running.
+  // the `$effect.pre`: whether the panel was showing, where focus was, and
+  // which transitions were already running. A panel without an anchor is not
+  // shown again, as `useFloatingPanel` keeps it hidden, also when the anchor
+  // goes in the same flush as the write: the `$effect.pre` still sees that
+  // panel showing.
   //
   // The show puts the panel last in the top layer, above every popover opened
   // from inside it (a listbox, a tooltip, a nested manual Popover), so those
@@ -483,7 +496,7 @@
       refocus();
       return;
     }
-    if (popoverElement.matches(':popover-open')) return;
+    if (popoverElement.matches(':popover-open') || !effectiveTriggerElement) return;
     const inner = [...popoverElement.querySelectorAll<HTMLElement>(':popover-open')];
     try {
       popoverElement.showPopover();
@@ -553,6 +566,7 @@
     // unable to close its own popover.
     if (open && popoverMode === 'auto') {
       dismissedByTrigger = true;
+      triggerPressedFromInside = !!popoverElement?.contains(document.activeElement);
       // This event has already passed the document's capture phase, so the
       // listener can only fire on a LATER pointerdown.
       document.addEventListener('pointerdown', disarmDismissedByTrigger, {

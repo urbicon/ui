@@ -9,7 +9,8 @@
   //  - `anchor`: an external anchor that toggles the panel, locked (manual) unless
   //    `?locked=false`. Buttons outside the panel open it, remove the anchor, bring it back and
   //    unlock the panel (manual → auto); "Detach anchor" removes it from inside the panel,
-  //    which is no click outside.
+  //    which is no click outside. The two "Drop anchor" buttons remove it and unlock in the
+  //    same flush, or in the microtask after it.
   // Not part of the docs nav.
   import { page } from '$app/state';
   import { Button, Checkbox, Combobox, Popover } from '@urbicon-ui/blocks';
@@ -57,6 +58,18 @@
       <Button onclick={() => (anchorShown = false)}>Remove anchor</Button>
       <Button onclick={() => (anchorShown = true)}>Restore anchor</Button>
       <Button onclick={() => (locked = false)}>Unlock</Button>
+      <Button
+        onclick={() => {
+          anchorShown = false;
+          locked = false;
+        }}>Drop anchor and unlock</Button
+      >
+      <Button
+        onclick={() => {
+          anchorShown = false;
+          queueMicrotask(() => (locked = false));
+        }}>Drop anchor, unlock after</Button
+      >
     </div>
     {#if anchorShown}
       <button

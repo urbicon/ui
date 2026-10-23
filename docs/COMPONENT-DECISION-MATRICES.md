@@ -220,7 +220,7 @@ the right abstraction only when no scrim exists.
 | Selection / commit       | —       | (consumer)      | → trigger / input |
 | Escape                   | trigger | → trigger       | → trigger / input |
 | Outside click            | trigger | → trigger       | **stay** (user explicitly clicked elsewhere) |
-| Trigger click while open | —       | stay (no-op)    | → trigger / input |
+| Trigger click while open | —       | stay (no-op); → trigger if focus was inside the panel | → trigger / input |
 
 The "stay on outside click" policy for Select/Combobox is intentional: form inputs are most commonly
 dismissed by clicking another field, and stealing focus back to the trigger would override the user's
