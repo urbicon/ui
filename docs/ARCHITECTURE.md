@@ -215,8 +215,8 @@ the strip, never the strip.
 
 ```svelte
 <Toolbar tier="modify">
-  <Button />
   <!-- now rounded-modify instead of the commit pill -->
+  <Button />
   <Toggle />
 </Toolbar>
 ```

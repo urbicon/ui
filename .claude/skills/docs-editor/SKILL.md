@@ -107,7 +107,7 @@ Before a measurement becomes a component bug, rule out the rig:
 
 ## Gates and reporting
 
-`bunx prettier --write <page>`, then `bun --filter='@urbicon-ui/docs-app' run registry:lint`,
+`bun fmt --no-script <page>`, then `bun --filter='@urbicon-ui/docs-app' run registry:lint`,
 and `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path> --craft-floor 70`
 (`urbicon validate`, which lints the page's own markup). On a component page, also `refsections:lint`
 and `examples:budget`; after a JSDoc change, also `summary:lint` and `playgrounds:lint`. This is the

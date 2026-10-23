@@ -6,9 +6,13 @@ pre-commit:
       glob: '*.{ts,js,mjs,cjs,json,jsonc,yml,yaml}'
       run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
-    prettier:
-      glob: '*.svelte'
-      run: bunx prettier --write {staged_files}
+    fmt:
+      glob: '*.{svelte,md}'
+      # --no-script: in the root, `bun fmt` runs the `fmt` script, which formats every
+      # tracked .svelte/.md. --no-error-on-unmatched-pattern: a staged symlink exits 2 otherwise.
+      # --ignore-path: the default list includes .gitignore, whose `build/` and `out/` would
+      # skip a tracked file below such a folder.
+      run: bun fmt --no-script --no-error-on-unmatched-pattern --ignore-path .prettierignore {staged_files}
       stage_fixed: true
 
 commit-msg:

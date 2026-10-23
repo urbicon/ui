@@ -60,8 +60,8 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Coding Conventions
 
-- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`.
-- **Biome lints `.svelte` with six rules, nothing else** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; formatting stays with Prettier. They are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
+- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **`bun fmt`** for `.svelte` and `.md` (`.prettierrc`: single quotes, width 100, no trailing commas) + `svelte-check`.
+- **Biome lints `.svelte` with six rules, nothing else** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; `bun fmt` formats them. They are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
@@ -139,11 +139,11 @@ Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` i
 
 ## Git Workflow (Agent Notes)
 
-- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json`/`.yml` and `prettier --write` on staged `.svelte`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for `.svelte` you have **not** staged (a whole-package sweep).
+- **Formatting happens for you.** The lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json`/`.yml` and `bun fmt` on staged `.svelte`/`.md`, re-staging the results (see `lefthook.yml`); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`. The package `format` script is only for files you have **not** staged (a whole-package sweep).
 - **A fresh worktree needs a build before anything else.** `bun install`, then `bunx --bun svelte-kit sync` (blocks, docs-app), then `bun run build:packages` (a flat `--filter='./packages/*'` sweep races the topology; the script's header says why). Without it the symptoms mislead — a dev server that won't start, missing `@urbicon-ui/…` modules, phantom `Snippet` errors, a failing `run test` — all because `@urbicon-ui/i18n` has no `dist/` yet. `api.ts` is git-ignored, so `docs:gen` too.
 - **Worktree merges**: `main` is checked out in the root worktree. Merge without leaving yours via `git -C <repo-root> merge <branch>` — this is the orchestrator's move from its own worktree; implementation subagents inside a `pr-wave` never run `git -C` on the main checkout. Stash there first if that tree is dirty.
 - **Only a PR's head SHA proves it landed.** PRs squash-merge, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Check with `gh pr view <N> --json headRefName,headRefOid,state` — equal SHA plus `MERGED` is also what makes deleting the branch safe. Cleanup removes the branch, its worktree and the `worktree-*` scaffolding branch the tooling creates (that one never merges on its own), then `git worktree prune`.
-- **No Markdown is prettier-gated** — not root `docs/*.md` and `AGENTS.md`, not package Markdown (`packages/*/README.md`, `packages/*/docs/*.md`). Match a file's existing style for surgical diffs; never blindly `prettier --write`, it re-aligns whole tables. Keep package Markdown prettier-clean by hand instead: `bunx prettier --check` on every file you touch, and a file that already fails must not gain a violation.
+- **Every tracked `.svelte` and `.md` is `bun fmt` output** — `bun run fmt:check` gates it in CI; `.prettierignore` holds the exemptions, each with its reason. A bare `bun fmt` runs the scoped `fmt` script, in the root and in every workspace; for one `.svelte`/`.md` file, `bun fmt --no-script <file>`.
 - **The `import.meta.env` build warning is expected — do not "fix" it.** `blocks` uses optional-chained `import.meta.env?.DEV` instead of `esm-env`, which would be a runtime dependency in the published `dist/` and break the zero-dependency maxim. The `@sveltejs/package` advisory is a plain string match, so it fires anyway. Never resolve it by adding `esm-env` or `$app/env`.
 
 ## Versioning

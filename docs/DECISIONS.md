@@ -24,7 +24,7 @@ promises and similar issues are caught by TypeScript itself (`strict`, `noImplic
 four as nursery rules (`noSvelteAtHtmlTags`, `useSvelteRequireEachKey`,
 `useSvelteReactiveClasses`, `useSvelteKitResolve`), plus `noSvelteClassDirective` and
 `noSvelteExportLet`, and `biome.json` enforces these six on `.svelte` and nothing else: no
-recommended preset, no assist, no formatter — Prettier still formats `.svelte`. They need
+recommended preset, no assist, no formatter — `bun fmt` formats `.svelte`. They need
 `html.experimentalFullSupportEnabled`, which takes effect only at the top level of
 `biome.json`; inside an `overrides` entry Biome 2.6.2 ignores it and lints the `<script>`
 alone. Nursery rules behind an experimental flag can change in any Biome release; the lockfile
@@ -39,11 +39,40 @@ cannot parse gets rewritten.
 ## Pre-commit runs neither `check` nor the tests
 
 The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.json`/`.yml`) and
-`prettier --write` (staged `.svelte`) — no `svelte-check`, no Vitest.
+`bun fmt` (staged `.svelte`/`.md`) — no `svelte-check`, no Vitest.
 
 `svelte-check` across all packages takes 30–60 s and would noticeably block every commit;
 tests are CI's job. The consequence — `svelte-check` errors surface only in CI — is
 acceptable because CI failures reproduce locally in seconds.
+
+A file staged hunk by hunk is the hook's blind spot. lefthook sets the unstaged rest aside,
+runs the formatter, and re-applies the rest as a patch without context. A hunk that replaces
+lines finds its place again by their content; an unstaged hunk that only adds lines goes back
+by line number, so when the formatter changes the line count above it, it lands as many lines
+off — in the working copy only; the commit is right. That holds for any formatter,
+`bun fmt --staged` included, because lefthook hides the rest before the formatter runs. After
+such a commit, read `git diff` before staging what it shows.
+
+## `bun fmt` formats `.svelte` and Markdown, on an unpinned Bun
+
+`bun fmt` formats every tracked `.svelte` and `.md` file and Biome everything else;
+`scripts/fmt.ts` is the scoped entry point, and `bun run fmt:check` gates it in the `lint` job.
+
+**Known consequence:** CI installs the latest Bun (`oven-sh/setup-bun` without a version), so
+a Bun release that formats differently turns `lint` red on every PR until one `bun run fmt`
+commit lands. Bun stays unpinned on purpose.
+
+`.prettierrc` is `bun fmt`'s configuration, and its `plugins` array names packages the repo no
+longer installs. It is not dead: the two entries switch on `bun fmt`'s built-in Svelte
+formatter and Tailwind class sort. Without `prettier-plugin-svelte`, `bun fmt` refuses every
+`.svelte` file and `fmt:check` fails. Without `prettier-plugin-tailwindcss`, or without a
+`tailwindcss` package that resolves upward from the file, classes stay unsorted without a
+word, so `scripts/fmt.ts` first formats a probe and fails unless its classes come back sorted.
+
+`.prettierignore` holds only the files whose exact bytes are a contract — vendored upstream
+pages, the generated changelog, test inputs whose syntax is what the test reads — each with its
+reason. `bun fmt` reads ignore files from the working directory only, so `scripts/fmt.ts`
+passes the root one explicitly and takes its file list from git.
 
 ## Stricter TS flags are not raised centrally
 

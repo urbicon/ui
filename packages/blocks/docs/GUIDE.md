@@ -456,9 +456,9 @@ Deliberately **out** of the first cut (avoiding over-engineering):
 
 - Branching / conditional steps (branched tours by user answer)
 - Cross-route **resume state** (surviving a full page reload / deep-link into the middle of a
-  tour) — client-side cross-route touring _is_ supported now, both declaratively (`GuideStep.route`
-  - the `navigate` hook) and imperatively (the `onStep` recipe), §9; persisting progress across a
-    hard reload is what stays out
+  tour) — client-side cross-route touring _is_ supported now, both declaratively
+  (`GuideStep.route` and the `navigate` hook) and imperatively (the `onStep` recipe), §9;
+  persisting progress across a hard reload is what stays out
 - WYSIWYG tour editor / no-code authoring
 - Built-in analytics persistence (we ship only the hooks, no backend)
 - Server-driven remote guides (content from a CMS) — an adapter is conceivable, not v1

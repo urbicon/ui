@@ -495,7 +495,7 @@ function checkGreyOnIntent(lines: string[]): Finding[] {
 /**
  * Centred body copy: `text-center` on a `<p>` — hurts readability past one line.
  * Scanned against the full source: the opening tag routinely wraps across lines
- * under the repo's Prettier width, so a per-line scan would miss it. The class
+ * under a formatter's print width, so a per-line scan would miss it. The class
  * value is captured in a single linear pass (no overlapping `[^"]*` around the
  * keyword → ReDoS-safe) and tested afterwards.
  */

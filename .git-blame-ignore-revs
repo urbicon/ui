@@ -1,0 +1,5 @@
+# Commits that only reformat. GitHub's blame skips them on its own; locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: format markdown and svelte with bun fmt
+SWEEP_SQUASH_SHA
