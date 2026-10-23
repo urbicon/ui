@@ -295,7 +295,11 @@ export const TableColumns = {
   },
 
   /**
-   * Creates a CustomCell column for generic text content with optional styling.
+   * Creates a `CustomCell` column. The accessor is what sorting, search and grouping read; what
+   * the cell shows is `options.content(item)`, rendered as text — markup in the string is shown
+   * as written, never parsed as HTML. For rich content pass `options.component` or
+   * `options.children`, or build the column by hand with a `cell` snippet. Without any of
+   * them the cell shows the row as JSON.
    */
   custom: <Item>(
     accessor: DataAccessor<Item>,

@@ -10,8 +10,9 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 
 ## Already on 8.0?
 
-8.1.0 tightened four things 8.0 shipped with, and 8.7.0 deleted two CSS files that never did anything.
-All the API changes are quick, and TypeScript names every call site that has to move. In
+8.1.0 tightened four things 8.0 shipped with, 8.7.0 deleted two CSS files that never did anything,
+and 8.35.0 stopped parsing consumer strings in `CustomCell` and `EmptyState` as HTML.
+All the 8.1.0 API changes are quick, and TypeScript names every call site that has to move. In
 plain JavaScript there is no compiler to do that, so the two changes that alter a *shape* —
 the dropped array arm and the required `processing` — throw on the first render with a
 message that names them. The two renames cannot: a `{ items, totalItems }` your query still
@@ -172,6 +173,40 @@ where an `md` row renders `h-10`, 40px.
 
 Density is the `size` prop — `sm` / `md` / `lg` on `<Table>` — which moves row height, header
 height and cell padding together.
+
+**`CustomCell` renders `content` as text (8.35.0).** The string your `content` function returns
+was inserted as HTML, unsanitised: a row value holding `<img src=x onerror=…>` became a real
+`<img>` with that handler. It now renders as text, so markup in it shows as written. This reaches
+`TableColumns.custom` and `TypedColumnBuilder.customCell`, whose `content` option is the same
+prop. TypeScript reports nothing, because the type stays `(item) => string`, so grep:
+
+```sh
+rg -n -e 'TableColumns\.custom\b' -e '\.customCell\(' -e 'CustomCell' src
+```
+
+A `content` that returns plain text needs no change. One that builds markup moves it into a
+`cell` snippet on the column, or the cell's `children` snippet, and writes `{@html}` there
+itself, where your own linter sees it. Rich content without HTML strings is a `component`.
+
+**`EmptyState`'s `icon` is a name or a snippet (8.35.0).** `icon` took any string:
+`'search'`, `'database'` and `'inbox'` drew a library icon, and every other string was inserted
+as HTML, unsanitised. It is now `'search' | 'database' | 'inbox' | Snippet`, so TypeScript names
+every call site that passes another string. In plain JavaScript such a string throws on the
+first render with `[EmptyState] icon must be 'search', 'database', 'inbox' or a snippet` instead
+of reaching the DOM. Pass your own icon as a snippet:
+
+```svelte
+<!-- before 8.35.0 -->
+<EmptyState icon={'<svg viewBox="0 0 24 24"><path d="M3 7h18" /></svg>'} />
+
+<!-- 8.35.0 -->
+{#snippet folderIcon()}
+  <svg viewBox="0 0 24 24"><path d="M3 7h18" /></svg>
+{/snippet}
+<EmptyState icon={folderIcon} />
+```
+
+The table itself never passes `icon`, so a `<Table>` renders its empty state as before.
 
 ## The shape of the change
 
