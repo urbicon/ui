@@ -51,10 +51,12 @@
   }
 
   function handleKeyDown(event: KeyboardEvent) {
-    if (clickable && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault();
-      handleClick();
-    }
+    if (!clickable || (event.key !== 'Enter' && event.key !== ' ')) return;
+    // Claimed even when ignored, so the grid's Space does not run instead.
+    event.preventDefault();
+    // A held Space activates a native button once; Enter repeats.
+    if (event.key === ' ' && event.repeat) return;
+    handleClick();
   }
 </script>
 

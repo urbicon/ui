@@ -84,7 +84,9 @@
   }
 </script>
 
-<!-- The view takes focus so the arrow keys can move it. -->
+<!-- A landmark that doubles as a keyboard widget: it takes focus so the arrow keys move
+     the view, but it has no widget role, so screen-reader browse mode does not pass the
+     arrows through. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
 <div

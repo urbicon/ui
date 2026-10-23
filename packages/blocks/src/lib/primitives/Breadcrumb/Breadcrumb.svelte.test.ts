@@ -203,6 +203,15 @@ describe('Breadcrumb — item icons', () => {
   // An icon-led last crumb is the case that made this matter: the icon is
   // aria-hidden, so a terse `label` leaves the current page with almost nothing
   // to announce. `aria-label` used to be read in the <a> branch only.
+  // ARIA prohibits a name on the generic current-page span, so the label
+  // travels as text: what a screen reader reads is the text outside every
+  // aria-hidden subtree.
+  const announced = (el: Element | null) => {
+    const copy = el?.cloneNode(true) as Element | undefined;
+    for (const hidden of copy?.querySelectorAll('[aria-hidden="true"]') ?? []) hidden.remove();
+    return copy?.textContent ?? '';
+  };
+
   it('applies a per-item aria-label to the current page, not only to links', () => {
     const items: BreadcrumbItem[] = [
       { label: 'Alpha', href: '/a' },
@@ -211,6 +220,19 @@ describe('Breadcrumb — item icons', () => {
     renderBreadcrumb({ items });
 
     const current = document.querySelector('[aria-current="page"]');
-    expect(current?.getAttribute('aria-label')).toBe('Settings');
+    expect(current?.hasAttribute('aria-label')).toBe(false);
+    expect(announced(current)).toBe('Settings');
+  });
+
+  it('reads the aria-label instead of a visible current-page label', () => {
+    const items: BreadcrumbItem[] = [
+      { label: 'Alpha', href: '/a' },
+      { label: 'Cfg', 'aria-label': 'Settings' }
+    ];
+    renderBreadcrumb({ items });
+
+    const current = document.querySelector('[aria-current="page"]');
+    expect(announced(current)).toBe('Settings');
+    expect(current?.textContent).toBe('SettingsCfg');
   });
 });

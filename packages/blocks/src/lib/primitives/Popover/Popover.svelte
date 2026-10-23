@@ -660,7 +660,7 @@
   drops the fading subtree from the a11y tree immediately.
 -->
 {#if panelRendered}
-  <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: the role is an expression the rule reads as none; the default `dialog` supports `aria-modal` and the Escape handler, and any other role is the consumer's -->
   <div
     bind:this={popoverElement}
     class={popoverClasses}

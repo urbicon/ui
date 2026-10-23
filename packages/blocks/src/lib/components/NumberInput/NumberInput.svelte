@@ -218,11 +218,10 @@
        `pointer-events-none` decoration container (input.variants.ts), so without
        this the stepper buttons would be dead to mouse clicks in a real browser. -->
   <span class={slot('stepper')}>
-    <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: pointer-only stepper; keyboard users step with the arrow keys on the input -->
     <button
       type="button"
       class={slot('stepperButton')}
-      tabindex={-1}
+      tabindex="-1"
       aria-hidden="true"
       disabled={disabled || readonly || atMax}
       onmousedown={(e) => e.preventDefault()}
@@ -230,11 +229,10 @@
     >
       <ChevronIcon class="h-3.5 w-3.5 rotate-180" />
     </button>
-    <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: pointer-only stepper; keyboard users step with the arrow keys on the input -->
     <button
       type="button"
       class={slot('stepperButton')}
-      tabindex={-1}
+      tabindex="-1"
       aria-hidden="true"
       disabled={disabled || readonly || atMin}
       onmousedown={(e) => e.preventDefault()}

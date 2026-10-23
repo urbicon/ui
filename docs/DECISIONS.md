@@ -39,7 +39,10 @@ cannot parse gets rewritten.
 
 Two rules are off for `.svelte`, because they are wrong there. `noUselessEscapeInString` flags
 the `<\/script>` of a code sample inside `<script>`, and its fix ends the element early: the
-file stops compiling (`Unterminated template`). `noInvalidGridAreas` compares the length of
+file stops compiling (`Unterminated template`). `<\x2Fscript>` would keep the rule quiet and
+compile to the same string, but it trades the spelling every Svelte author knows for a style
+rule, and with the rule on, the pre-commit hook's `biome check --write` would apply the breaking
+fix to the next `<\/script>` it is handed. `noInvalidGridAreas` compares the length of
 each `grid-template-areas` string instead of its cells, so it rejects the valid
 `'title view' 'scope scope'`. A deliberate site everywhere else carries a `biome-ignore` with
 its reason, most of them at a blind spot: the a11y rules read a `role` given as an expression
@@ -50,8 +53,10 @@ a `biome-ignore-start`/`-end` range, closed as the element's first child.
 
 ## Pre-commit runs neither `check` nor the tests
 
-The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.json`/`.yml`) and
-`bun fmt` (staged `.svelte`/`.md`) — no `svelte-check`, no Vitest.
+The lefthook pre-commit hook runs `biome check --write` (staged `.ts`/`.js`/`.json`/`.yml`/
+`.svelte`) and `bun fmt` (staged `.svelte`/`.md`) — no `svelte-check`, no Vitest. Both tools
+write a `.svelte` file, so its two jobs run piped, Biome first; in parallel they would write the
+same file at once.
 
 `svelte-check` across all packages takes 30–60 s and would noticeably block every commit;
 tests are CI's job. The consequence — `svelte-check` errors surface only in CI — is
@@ -71,8 +76,8 @@ such a commit, read `git diff` before staging what it shows.
 `scripts/fmt.ts` is the scoped entry point, and `bun run fmt:check` gates it in the `lint` job.
 `biome.json` keeps Biome's Markdown formatter and linter off, because Biome 2.6.2 formats
 Markdown differently — on `README.md` it rewrites a CSS fence's `'tailwindcss'` to double quotes
-and drops the blank line before a list — so with both on, two formatters would rewrite every
-`.md` against each other.
+and drops the blank line before a list — so with both on, two formatters would rewrite most
+`.md` files against each other.
 
 **Known consequence:** CI installs the latest Bun (`oven-sh/setup-bun` without a version), so
 a Bun release that formats differently turns `lint` red on every PR until one `bun run fmt`

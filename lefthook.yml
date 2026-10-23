@@ -1,17 +1,31 @@
 # Git hooks (managed by @urbicon/udx).
 pre-commit:
   parallel: true
-  commands:
-    biome:
+  jobs:
+    - name: biome
       glob: '*.{ts,js,mjs,cjs,json,jsonc,yml,yaml}'
       run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
-    fmt:
-      glob: '*.{svelte,md}'
-      # --no-script: in the root, `bun fmt` runs the `fmt` script, which formats every
-      # tracked .svelte/.md. --no-error-on-unmatched-pattern: a staged symlink exits 2 otherwise.
-      # --ignore-path: the default list includes .gitignore, whose `build/` and `out/` would
-      # skip a tracked file below such a folder.
+    # Both tools write a .svelte file — Biome its import order and lint fixes, bun fmt
+    # its formatting — so they run one after the other, not in parallel.
+    - name: svelte
+      glob: '*.svelte'
+      group:
+        piped: true
+        jobs:
+          - name: biome-svelte
+            run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+            stage_fixed: true
+          - name: fmt-svelte
+            # --no-script: in the root, `bun fmt` runs the `fmt` script, which formats every
+            # tracked .svelte/.md. --no-error-on-unmatched-pattern: a staged symlink exits 2 otherwise.
+            # --ignore-path: the default list includes .gitignore, whose `build/` and `out/` would
+            # skip a tracked file below such a folder.
+            run: bun fmt --no-script --no-error-on-unmatched-pattern --ignore-path .prettierignore {staged_files}
+            stage_fixed: true
+    - name: fmt-md
+      glob: '*.md'
+      # The flags as for fmt-svelte above.
       run: bun fmt --no-script --no-error-on-unmatched-pattern --ignore-path .prettierignore {staged_files}
       stage_fixed: true
 

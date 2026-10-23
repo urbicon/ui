@@ -147,4 +147,12 @@ describe('Planner SSR smoke', () => {
     // Two meals on 16 Jun → the fallback badge shows "2" inside that cell.
     expect(body).toMatch(/data-date="2026-06-16"[\s\S]*?>2</);
   });
+
+  // The badge's name is all a screen reader gets, so a single item reads as one.
+  it('names the count badge in the singular for one item', () => {
+    const { body } = renderPlanner({ view: 'week', value: anchor, items: meals });
+    expect(body).toContain('aria-label="2 items"');
+    expect(body).toContain('aria-label="1 item"');
+    expect(body).not.toContain('aria-label="1 items"');
+  });
 });

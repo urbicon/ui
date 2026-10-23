@@ -97,13 +97,6 @@
   function handleToggleGroup() {
     toggleGroup(groupName);
   }
-
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleToggleGroup();
-    }
-  }
 </script>
 
 <!-- Group Header Row -->
@@ -118,35 +111,45 @@
   data-testid={computedTestId}
   id={`grouped-item-${groupName}`}
 >
-  <!-- biome-ignore-start lint/a11y/noNoninteractiveElementToInteractiveRole lint/a11y/useSemanticElements: known gap: the cell itself is the group toggle; the fix is a button inside the td -->
+  <!-- The whole band toggles on a click; the button inside is the keyboard path and the
+       name, and it stays a sibling of `groupHeaderContent`, which may hold the consumer's
+       own buttons. The band draws the button's focus ring, so keyboard focus outlines the
+       whole band; `outline: auto` alone would take the text colour, not the platform's. -->
+  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: a pointer target around the toggle button, which takes the keys -->
   <td
     colspan={colSpan}
-    class={styles.cell()}
+    class={[
+      styles.cell(),
+      'has-[[data-group-toggle]:focus-visible]:[outline:auto]',
+      'has-[[data-group-toggle]:focus-visible]:[outline-color:-webkit-focus-ring-color]'
+    ]}
     onclick={handleToggleGroup}
-    onkeydown={handleKeyDown}
-    role="button"
-    tabindex="0"
-    aria-expanded={isExpanded}
-    aria-label="{displayGroupName} {itemCountText} {isExpanded
-      ? tt('header.collapseGroup')
-      : tt('header.expandGroup')}"
   >
-    <!-- biome-ignore-end lint/a11y/noNoninteractiveElementToInteractiveRole lint/a11y/useSemanticElements: closes the range above -->
     <div class={styles.content()}>
-      <!-- Expand/Collapse Icon -->
-      <div class={styles.chevron()}>
-        <ChevronDownIcon class={styles.chevron()} size={16} />
-      </div>
+      <button
+        type="button"
+        class="{styles.content()} cursor-pointer focus-visible:outline-none"
+        data-group-toggle
+        aria-expanded={isExpanded}
+        aria-label="{displayGroupName} {itemCountText} {isExpanded
+          ? tt('header.collapseGroup')
+          : tt('header.expandGroup')}"
+      >
+        <!-- Expand/Collapse Icon -->
+        <span class={styles.chevron()}>
+          <ChevronDownIcon class={styles.chevron()} size={16} />
+        </span>
 
-      <!-- Group Name and Count -->
-      <div class={styles.content()}>
-        <span class={styles.title()}>
-          {displayGroupName}
+        <!-- Group Name and Count -->
+        <span class={styles.content()}>
+          <span class={styles.title()}>
+            {displayGroupName}
+          </span>
+          <span class={styles.count()}>
+            {itemCountText}
+          </span>
         </span>
-        <span class={styles.count()}>
-          {itemCountText}
-        </span>
-      </div>
+      </button>
 
       <!-- Custom header content or actions -->
       <div class={styles.actions()}>

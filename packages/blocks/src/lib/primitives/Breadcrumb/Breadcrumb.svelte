@@ -155,20 +155,21 @@
           </button>
         {:else if entry.current}
           <!--
-            `aria-label` reaches the current page too, not just the links. It
-            used to be read only in the <a> branch, which made an icon-led last
-            crumb (short or empty `label` + an aria-hidden icon) announce as an
-            empty list item. Chrome does expose an author name on this span
-            despite its generic role — checked in the a11y tree, where it reads
-            back as the element's name.
+            `aria-label` reaches the current page too, not just the links: an
+            icon-led last crumb (short or empty `label` + an aria-hidden icon)
+            would otherwise announce as an empty list item. ARIA prohibits a name
+            on this generic span, so it travels as text: read in place of the
+            visible label, which is hidden from the tree.
           -->
-          <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: Chrome exposes this name on the span, see the comment above -->
           <span
             class={unstyled
               ? (slotClasses?.currentPage ?? '')
               : styles.currentPage({ class: slotClasses?.currentPage })}
-            aria-label={entry.item['aria-label']}
-            aria-current="page">{@render crumbIcon(entry.item)}{entry.item.label}</span
+            aria-current="page"
+            >{@render crumbIcon(entry.item)}{#if entry.item['aria-label']}<span class="sr-only"
+                >{entry.item['aria-label']}</span
+              >{#if entry.item.label}<span aria-hidden="true">{entry.item.label}</span
+                >{/if}{:else}{entry.item.label}{/if}</span
           >
         {:else}
           <!-- BreadcrumbItem.href is opaque to the library; resolve() is the consumer's responsibility. -->

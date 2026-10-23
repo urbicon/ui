@@ -498,6 +498,10 @@
 
   function handleTableKeyDown(e: KeyboardEvent) {
     if (!interactive) return;
+    // A control inside the grid that handled the key owns it: a clickable cell,
+    // the header sort, a consumer's input. Running on would fire the row action
+    // too, on `focusedRowIndex`, which Tab does not move.
+    if (e.defaultPrevented) return;
 
     // Only handle keys when focus is on or inside a row
     const target = e.target as HTMLElement;

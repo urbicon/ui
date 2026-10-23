@@ -799,11 +799,10 @@
         can see is the `error` prop's job — the same channel every other field
         in this library uses, wired to the trigger through `aria-describedby`.
       -->
-      <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: the validation proxy for `required`; its focus is forwarded to the trigger -->
       <input
         type="text"
         required
-        tabindex={-1}
+        tabindex="-1"
         aria-hidden="true"
         autocomplete="off"
         class="pointer-events-none absolute inset-0 opacity-0"

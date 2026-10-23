@@ -334,7 +334,6 @@
   ondrop={allowAttachments ? handleDrop : undefined}
 >
   {#if allowAttachments}
-    <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: the hidden file input the attach button opens; tabindex=-1 keeps it out of the tab order -->
     <input
       bind:this={fileInputEl}
       type="file"
@@ -342,7 +341,7 @@
       multiple={maxFiles !== 1}
       {disabled}
       class="sr-only"
-      tabindex={-1}
+      tabindex="-1"
       aria-hidden="true"
       onchange={handleFileInputChange}
     />

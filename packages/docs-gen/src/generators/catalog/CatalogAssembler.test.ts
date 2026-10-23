@@ -86,12 +86,10 @@ describe('CatalogAssembler.extractRecipeCode', () => {
     expect(CatalogAssembler.extractRecipeCode('<script>const x = 1;<\\/script>')).toBe('');
   });
 
-  // The literals escape BOTH script tags — the closer because it would end the
-  // page's real script block, the opener because Vite's dependency scanner
-  // lexes .svelte files as HTML and a raw `<script` inside the literal starts
-  // a phantom module (its `#lib/…` imports then ENOENT the whole scan; found
-  // live on 2026-08-16). What `urbicon recipe` ships must be the cooked string the
-  // code panel displays, never those backslashes.
+  // The closer stays escaped in the literals, or it would end the page's real
+  // script block; an escaped opener cooks the same way. What `urbicon recipe`
+  // ships must be the cooked string the code panel displays, never those
+  // backslashes.
   it('cooks the script-tag escapes: what ships is what the page displays', () => {
     const code = CatalogAssembler.extractRecipeCode(
       page('<\\script lang="ts">\\n  let n = 1;\\n<\\/script>\\n<Table {items} />')
