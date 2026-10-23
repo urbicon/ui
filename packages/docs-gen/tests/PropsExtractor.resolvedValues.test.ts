@@ -113,11 +113,14 @@ describe('PropsExtractor — values the written type does not list (program-back
     expect(mixed?.values).toEqual(['auto', 'zeta', 'alpha']);
   });
 
-  it('orders a picked tv() axis by its config, not by the checker', async () => {
+  it('orders a picked member by its declaration, and a redeclared tv() axis by its config', async () => {
     const extracted = await propsOf('PickScale');
-    expect(extracted.scale?.values).toEqual(['sm', 'md', 'lg']);
-    expect(extracted.scale?.type).toBe("'sm' | 'md' | 'lg'");
     expect(extracted.layout?.values).toEqual(['stacked', 'inline']);
+    expect(extracted.layout?.source).toEqual({
+      type: 'inherited',
+      name: "Pick<ResolvyBaseProps, 'scale' | 'layout'>"
+    });
+    expect(extracted.scale?.values).toEqual(['sm', 'md', 'lg']);
   });
 });
 

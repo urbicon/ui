@@ -24,6 +24,8 @@ type PropsDeclaration =
 export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput, PropInfo[]> {
   public config: TypeScriptExtractionConfig;
   private currentVariantKeys: string[] = [];
+  /** Rows built from a tv() axis no signature declares — see `assertDocumented`. */
+  private undocumentedAxes = new WeakSet<PropInfo>();
 
   constructor(tsConfig?: Record<string, unknown>) {
     super(tsConfig);
@@ -516,23 +518,52 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     if (propsInterface.heritageClauses) {
       console.log(`🔍 Processing ${propsInterface.heritageClauses.length} heritage clauses...`);
 
-      // A name the interface declares itself is the declaration the type keeps.
-      // An inherited copy beside it is a second row of the llm.txt API table;
-      // only the docs page's ApiReference merges rows by name.
-      const declared = new Set(props.map((p) => p.name));
+      // One row per name, and the declaration the type keeps: the interface's
+      // own, else the first clause that brings the name — the checker adds a
+      // base's member only where no earlier one supplied it. A second copy is a
+      // second row of the llm.txt API table; only the docs page's ApiReference
+      // merges rows by name.
+      const seen = new Set(props.map((p) => p.name));
       for (const heritageClause of propsInterface.heritageClauses) {
         for (const heritageType of heritageClause.types) {
-          const inheritedProps = await this.extractInheritedProps(heritageType, sourceFile);
-          props.push(...inheritedProps.filter((p) => !declared.has(p.name)));
+          for (const prop of await this.extractInheritedProps(heritageType, sourceFile)) {
+            if (seen.has(prop.name)) continue;
+            seen.add(prop.name);
+            props.push(prop);
+          }
         }
       }
     }
+
+    this.assertDocumented(props, propsInterface.name.text);
 
     // Sort props by category and name
     return this.sortProps(props);
   }
 
-  private extractPropFromMember(member: ts.PropertySignature): PropInfo | null {
+  /**
+   * Refuse a tv() axis nothing documents. An axis that reaches the props through
+   * an `Omit` / `Pick` clause is declared by a key of the config, which has no
+   * JSDoc and no `@default` to read, and the base's `defaultVariants` is the
+   * wrapper's default only where the wrapper forwards `undefined`: CopyButton
+   * picks Button's `variant` and defaults it to `ghost`, Button to `filled`. The
+   * interface's own declaration is the one place that knows, so it is required.
+   * A member a property or method signature declares keeps that signature's
+   * JSDoc and passes.
+   */
+  private assertDocumented(props: PropInfo[], interfaceName: string): void {
+    const bare = props.filter((p) => this.undocumentedAxes.has(p));
+    if (bare.length === 0) return;
+    const rows = bare.map((p) => `'${p.name}' (${p.source.name})`).join(', ');
+    throw new Error(
+      `${interfaceName}: no declaration documents ${rows}. ` +
+        `Redeclare each on ${interfaceName} with its JSDoc and @default.`
+    );
+  }
+
+  private extractPropFromMember(
+    member: ts.PropertySignature | ts.MethodSignature
+  ): PropInfo | null {
     const propName = this.getPropertyName(member);
     if (!propName) return null;
 
@@ -541,7 +572,11 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       return null;
     }
 
-    const propType = this.getTypeString(member.type);
+    // A method's `type` node is what it returns, not the member's type. Only a
+    // checker-resolved heritage member hands this a method, and that row takes
+    // its type and values from the checker (`propFromResolvedMember`).
+    const typeNode = ts.isPropertySignature(member) ? member.type : undefined;
+    const propType = this.getTypeString(typeNode);
     const isRequired = this.isPropertyRequired(member);
 
     // Extract JSDoc information
@@ -606,9 +641,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     // which reading the node would miss. It answers all-or-nothing, so a union
     // with a non-literal member (`number | 'auto'`) falls back to the literals
     // written at the declaration — as does single-file mode, with no checker.
-    const resolved = this.resolveTypeNodeLiterals(member.type);
+    const resolved = this.resolveTypeNodeLiterals(typeNode);
     const values =
-      resolved.length > 0 ? resolved : member.type ? this.extractUnionValues(member.type) : [];
+      resolved.length > 0 ? resolved : typeNode ? this.extractUnionValues(typeNode) : [];
 
     const prop: PropInfo = {
       name: propName,
@@ -722,93 +757,106 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     heritageType: ts.ExpressionWithTypeArguments,
     sourceFile: ts.SourceFile
   ): PropInfo[] {
-    const fullType = heritageType.getText();
     const clause = this.heritageClauseLabel(heritageType);
+    const baseType = this.heritageBaseTypeText(heritageType) ?? '';
+    const omittedKeys = this.heritageKeyArgText(heritageType);
 
-    // Extract base type and omitted keys
-    const match = fullType.match(/Omit<([^,]+),\s*([^>]+)>/);
-    if (match?.[1] && match[2]) {
-      const baseType = match[1].trim();
-      const omittedKeys = match[2].trim();
-
-      if (this.isHTMLAttributes(baseType)) {
-        return [
-          {
-            name: `...${baseType}`,
-            type: 'HTMLAttributes',
-            required: false,
-            description: `HTML attributes${omittedKeys ? ` (excluding: ${omittedKeys})` : ''}`,
-            source: {
-              type: 'inherited',
-              name: clause,
-              package: 'svelte/elements'
-            }
+    if (this.isHTMLAttributes(baseType)) {
+      return [
+        {
+          name: `...${baseType}`,
+          type: 'HTMLAttributes',
+          required: false,
+          description: `HTML attributes${omittedKeys ? ` (excluding: ${omittedKeys})` : ''}`,
+          source: {
+            type: 'inherited',
+            name: clause,
+            package: 'svelte/elements'
           }
-        ];
-      }
-
-      // *Variants type alias — `findInterface` returns null because
-      // *Variants is a `type` alias over `VariantProps<typeof xVariants>`,
-      // not an interface. Emit the variant-inheritance placeholder AND
-      // omit-markers for each literal-string key in the omitted list.
-      // APIDataGenerator filters those markers (and the named keys) out
-      // of the final variant-props list so they don't leak into the
-      // public API table.
-      if (this.isVariantInterface(baseType)) {
-        const result: PropInfo[] = this.handleVariantInheritance(baseType);
-        const omittedAxes =
-          this.resolveHeritageKeyLiterals(heritageType) ??
-          new Set(this.extractOmittedLiteralKeys(omittedKeys));
-        for (const key of omittedAxes) {
-          result.push({
-            name: `__OMIT_VARIANT__${key}`,
-            type: 'omit-marker',
-            required: false,
-            description: `Suppress variant prop "${key}" from the public API surface (declared via Omit<${baseType}, ...>).`,
-            source: { type: 'inherited', name: clause }
-          });
         }
-        return result;
-      }
-
-      // Interface base, local (Omit<MenuSpecificProps, keyof MenuVariants>) or
-      // imported from the package sources (Omit<InputProps, 'type' | …>).
-      const baseInterface =
-        this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
-      if (baseInterface) {
-        const resolved = this.resolveHeritageMembersViaChecker(heritageType);
-        if (resolved) return this.propsFromOmittedInterface(resolved, baseType, clause);
-
-        // No checker answer (single-file mode): the base's own members minus the
-        // omitted keys. What the base inherits stays unread without one.
-        const extracted = this.extractPropsFromLocalInterface(baseInterface, baseType);
-        // Blacklist: the checker's answer for the keys argument wherever it has
-        // one, the written literals otherwise. The `keyof *Variants` special
-        // case below is what single-file mode has instead — one spelling out of
-        // the many the checker resolves.
-        const resolvedKeys = this.resolveHeritageKeyLiterals(heritageType);
-        const blacklist = resolvedKeys ?? new Set(this.extractOmittedLiteralKeys(omittedKeys));
-        if (!resolvedKeys && /keyof\s+\w*Variants/.test(omittedKeys)) {
-          for (const key of this.currentVariantKeys) blacklist.add(key);
-        }
-
-        return extracted
-          .filter((p) => !blacklist.has(p.name))
-          .map((p) => ({
-            ...p,
-            source: {
-              type: 'inherited',
-              name: clause
-            }
-          }));
-      }
+      ];
     }
 
-    return [];
+    // *Variants type alias — `findInterface` returns null because
+    // *Variants is a `type` alias over `VariantProps<typeof xVariants>`,
+    // not an interface. Emit the variant-inheritance placeholder AND
+    // omit-markers for each literal-string key in the omitted list.
+    // APIDataGenerator filters those markers (and the named keys) out
+    // of the final variant-props list so they don't leak into the
+    // public API table.
+    if (this.isVariantInterface(baseType)) {
+      const result: PropInfo[] = this.handleVariantInheritance(baseType);
+      const omittedAxes =
+        this.resolveHeritageKeyLiterals(heritageType) ??
+        new Set(this.extractOmittedLiteralKeys(omittedKeys));
+      for (const key of omittedAxes) {
+        result.push({
+          name: `__OMIT_VARIANT__${key}`,
+          type: 'omit-marker',
+          required: false,
+          description: `Suppress variant prop "${key}" from the public API surface (declared via Omit<${baseType}, ...>).`,
+          source: { type: 'inherited', name: clause }
+        });
+      }
+      return result;
+    }
+
+    // Every other base — an interface, local or imported, an object alias, an
+    // intersection, another `Omit`, a mapped type over any of these — is a
+    // question for the checker, which answers them all the same way.
+    const resolved = this.resolveHeritageMembersViaChecker(heritageType);
+    if (resolved) {
+      if (resolved.every((member) => member.outsidePackage)) {
+        throw this.emptyClause(
+          clause,
+          'every member it resolves to is declared outside the package'
+        );
+      }
+      return this.propsFromOmittedInterface(resolved, baseType, clause);
+    }
+
+    // No checker answer (single-file mode): the base's own members minus the
+    // omitted keys, where the base is an interface in this file. What the base
+    // inherits stays unread without one.
+    const baseInterface = this.findInterface(sourceFile, baseType);
+    if (!baseInterface) throw this.emptyClause(clause, 'it resolves to no members');
+    const extracted = this.extractPropsFromLocalInterface(baseInterface, baseType);
+    // Blacklist: the checker's answer for the keys argument wherever it has
+    // one, the written literals otherwise. The `keyof *Variants` special
+    // case below is what single-file mode has instead — one spelling out of
+    // the many the checker resolves.
+    const resolvedKeys = this.resolveHeritageKeyLiterals(heritageType);
+    const blacklist = resolvedKeys ?? new Set(this.extractOmittedLiteralKeys(omittedKeys));
+    if (!resolvedKeys && /keyof\s+\w*Variants/.test(omittedKeys)) {
+      for (const key of this.currentVariantKeys) blacklist.add(key);
+    }
+
+    return extracted
+      .filter((p) => !blacklist.has(p.name))
+      .map((p) => ({
+        ...p,
+        source: {
+          type: 'inherited',
+          name: clause
+        }
+      }));
   }
 
   /**
-   * The members of `Omit<Interface, K>` as the checker resolves the clause.
+   * A key-filtering clause that contributes nothing would otherwise vanish from
+   * every surface without a trace — no row, no placeholder. The two spellings
+   * the message offers are the two that do leave one.
+   */
+  private emptyClause(clause: string, why: string): Error {
+    return new Error(
+      `${clause}: ${why}, so none of its props can be documented. Extend the base ` +
+        'without Omit/Pick, or name a DOM-attribute bag by its HTML…Attributes type: ' +
+        'either is listed as one placeholder row.'
+    );
+  }
+
+  /**
+   * The members of an `Omit<Base, K>` clause as the checker resolves it.
    *
    * The base's declared members alone stop one level short of the type: in
    * `Omit<SelectSingleProps<string>, …>` everything `SelectSingleProps` takes
@@ -913,13 +961,10 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     // 3. Syntactic fallback: the base interface's own members ∩ picked keys.
     const baseInterface =
       this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
-    if (baseInterface) {
-      return this.extractPropsFromLocalInterface(baseInterface, baseType)
-        .filter((p) => picked.has(p.name))
-        .map((p) => ({ ...p, source: { type: 'inherited' as const, name: clause } }));
-    }
-
-    return [];
+    if (!baseInterface) throw this.emptyClause(clause, 'it resolves to no members');
+    return this.extractPropsFromLocalInterface(baseInterface, baseType)
+      .filter((p) => picked.has(p.name))
+      .map((p) => ({ ...p, source: { type: 'inherited' as const, name: clause } }));
   }
 
   /**
@@ -933,10 +978,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
    * mapped **from**, so reading `declaration.type` for a member that travelled
    * through `VariantProps<typeof xVariants>` reports the tv() config object
    * (`{ calm: unknown; loud: unknown }`) instead of the axis' values
-   * (`'calm' | 'loud'`). Members with no property signature at all (a tv()
-   * `PropertyAssignment`) additionally get a one-line provenance note — short on
-   * purpose: that string is what a playground shows beside the knob, under a
-   * 120-character budget.
+   * (`'calm' | 'loud'`). A tv() axis no signature declares has nothing to
+   * document it, so its row is recorded for `assertDocumented`: it may stand
+   * only where the interface redeclares it.
    */
   private propFromResolvedMember(
     member: ResolvedHeritageMember,
@@ -949,7 +993,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     const { values: _writtenValues, ...documentation } = documented ?? {
       description: `Inherited from ${baseType}.`
     };
-    return {
+    const prop: PropInfo = {
       ...documentation,
       name: member.name,
       type: member.type,
@@ -957,6 +1001,8 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       ...(member.values.length > 0 ? { values: member.values } : {}),
       source: { type: 'inherited', name: clause }
     };
+    if (member.tvAxis) this.undocumentedAxes.add(prop);
+    return prop;
   }
 
   private handleHTMLAttributes(typeName: string): PropInfo[] {
@@ -1051,7 +1097,9 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     return packageMap[typeName];
   }
 
-  private extractJSDocExamples(member: ts.PropertySignature): PropInfo['examples'] {
+  private extractJSDocExamples(
+    member: ts.PropertySignature | ts.MethodSignature
+  ): PropInfo['examples'] {
     const examples: NonNullable<PropInfo['examples']> = [];
 
     // Extract @example tags

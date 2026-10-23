@@ -74,6 +74,6 @@ describe('VariantsExtractor — per-value descriptions', () => {
   });
 
   it('leaves the value list itself as it was', () => {
-    expect(variant?.values).toEqual(['default', 'detached', 'dot', 'pill', 'ring', 'square']);
+    expect(variant?.values).toEqual(['default', 'pill', 'dot', 'square', 'detached', 'ring']);
   });
 });

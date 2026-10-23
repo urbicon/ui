@@ -101,9 +101,6 @@ squash merges into `main`.
   mechanical: strip the three markers, keep both blocks (order within a
   release does not matter), commit the merge, push — one CI round per
   merge of `main`, so merge PRs promptly rather than batching them.
-- **Commitlint rejects a subject that starts with a capital** (`subject-case`),
-  which a component name at the front of the subject triggers — write "the
-  CommandPalette owns…", not "CommandPalette owns…".
 
 ## Cleanup — a named final step, per merged PR
 

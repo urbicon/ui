@@ -17,6 +17,7 @@ import {
 } from './handle.js';
 import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
+import { applySecurityHeaders } from './security-headers.js';
 import {
   createBrowserJar,
   createKitRuntime,
@@ -1344,6 +1345,113 @@ describe('createAuthHandle — a pathname SvelteKit cannot decode', () => {
       ),
       'the ?/remote= form fallback'
     );
+  });
+});
+
+// Under Kit's own pipeline, so what is read is what reaches the wire; the
+// reference is a response the same handle hands to `resolve`.
+describe('createAuthHandle — security headers on the answers it builds itself', () => {
+  // Read off the function rather than copied: every header it sets under the
+  // defaults in a secure deployment, which `config` is.
+  const names = [...applySecurityHeaders(new Response(), { secure: true }).headers.keys()];
+  const securityHeaders = (response: Response) =>
+    Object.fromEntries(names.map((name) => [name, response.headers.get(name)]));
+  const request = (path: string, init: RequestInit = {}) =>
+    new Request(`https://app.test${path}`, init);
+
+  /** What `resolve` gets: a public page, which the empty manifest answers with Kit's 404. */
+  async function reference(kit: Awaited<ReturnType<typeof createKitRuntime>>) {
+    const resolved = await kit.respond(request('/auth/login'));
+    expect(resolved.status).toBe(404);
+    expect(kit.layoutLoad, 'Kit rendered it, so it went through resolve').toHaveBeenCalled();
+    const expected = securityHeaders(resolved);
+    expect(names, 'something to compare').not.toEqual([]);
+    expect(Object.values(expected), 'the reference carries every one').not.toContain(null);
+    return expected;
+  }
+
+  const answers: Array<[string, () => Request, number, string]> = [
+    ['the guard 401 on an API path', () => request('/api/data'), 401, 'not_authenticated'],
+    [
+      'the remote default-deny on /_app/remote/',
+      () => request('/_app/remote/abc/fn', { headers: { 'x-sveltekit-pathname': '/auth/login' } }),
+      401,
+      'not_authenticated'
+    ],
+    [
+      'the remote default-deny on the ?/remote= form fallback',
+      () =>
+        request('/auth/login?/remote=abc', {
+          method: 'POST',
+          headers: { origin: 'https://app.test' }
+        }),
+      401,
+      'not_authenticated'
+    ],
+    ['the CSRF 403', () => request('/api/data', { method: 'POST' }), 403, 'csrf_failed']
+  ];
+  for (const [label, makeRequest, status, code] of answers) {
+    it(`gives ${label} what resolve gets`, async () => {
+      const kit = await createKitRuntime(createAuthHandle({ config, repos: createMockRepos() }));
+      const expected = await reference(kit);
+      const response = await kit.respond(makeRequest());
+      expect(response.status).toBe(status);
+      expect((await response.json()).code).toBe(code);
+      expect(securityHeaders(response)).toEqual(expected);
+    });
+  }
+
+  it('keeps the cookies on the guard 401, one header each', async () => {
+    // An unknown refresh token ends the session, which clears both cookies.
+    const kit = await createKitRuntime(
+      createAuthHandle({
+        config: { ...config, refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' } },
+        repos: {
+          ...createMockRepos(),
+          refreshToken: createInMemoryRefreshTokenRepository(createInMemoryStore())
+        }
+      })
+    );
+    const expected = await reference(kit);
+    const response = await kit.respond(
+      request('/api/data', { headers: { cookie: 'refresh=not-a-token' } })
+    );
+    expect(response.status).toBe(401);
+    expect(securityHeaders(response)).toEqual(expected);
+    const cleared = response.headers.getSetCookie();
+    expect(cleared.map((header) => header.split('=')[0]).sort()).toEqual(['refresh', 'session']);
+    expect(cleared.every((header) => header.includes('Max-Age=0'))).toBe(true);
+  });
+
+  it("leaves the guard's login redirect to Kit — cookies on, security headers off", async () => {
+    // The redirect is thrown, so Kit builds it: a 302 for a page, a JSON
+    // redirect for a data request, the staged clear written onto both. A 302
+    // the hook returned would lose that clear on the data request.
+    const repos = createMockRepos({
+      findById: vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
+    });
+    const kit = await createKitRuntime(createAuthHandle({ config, repos }));
+    // The control: the same handle does set them on what it resolves.
+    await reference(kit);
+    const cookie = `session=${await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    )}`;
+    const page = await kit.respond(request('/dashboard', { headers: { cookie } }));
+    expect(page.status).toBe(302);
+    expect(page.headers.get('location')).toBe('/auth/login?redirectTo=%2Fdashboard');
+    const data = await kit.respond(request('/dashboard/__data.json', { headers: { cookie } }));
+    expect(data.status).toBe(200);
+    expect(await data.json()).toMatchObject({ type: 'redirect', status: 302 });
+    for (const [label, response] of [
+      ['the data request', data],
+      ['the page', page]
+    ] as const) {
+      expect(response.headers.getSetCookie(), label).toEqual([
+        expect.stringMatching(/^session=; Max-Age=0;/)
+      ]);
+      expect(Object.values(securityHeaders(response)), label).toEqual(names.map(() => null));
+    }
   });
 });
 

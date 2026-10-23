@@ -149,8 +149,10 @@ export function getMultiDayEventLayout(
 
       if (evEnd < weekStart || evStart > weekEnd) continue;
 
+      // biome-ignore-start lint/complexity/useMathMinMax: Date operands; Math.max/min return a number timestamp, daysBetween needs the Date
       const visStart = evStart < weekStart ? weekStart : evStart;
       const visEnd = evEnd > weekEnd ? weekEnd : evEnd;
+      // biome-ignore-end lint/complexity/useMathMinMax: closes the range above
 
       const startCol = daysBetween(weekStart, visStart);
       const endCol = daysBetween(weekStart, visEnd);

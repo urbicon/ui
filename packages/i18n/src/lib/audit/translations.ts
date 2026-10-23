@@ -1,17 +1,17 @@
 /**
  * `auditTranslations` — data-level translation quality & parity audit.
  *
- * The richer successor to {@link validatePackageTranslations}: a pure function
- * over a package's locale bundles (no source scan, no I/O, deterministic, zero
- * false positives) that reports structured findings instead of opaque strings.
+ * A pure function over a package's locale bundles (no source scan, no I/O,
+ * deterministic, zero false positives) that reports structured findings.
  *
- * Consumers run it in a vitest test to fail CI on drift —
- * `expect(auditTranslations('app', bundles).ok).toBe(true)` — or via the
- * `urbicon i18n parity` CLI, which formats the same findings. Key parity is the
- * baseline (missing/extra keys); on top of it sit the checks a structural diff
- * can't see: empty values, interpolation-param drift between locales, malformed
- * or CLDR-incomplete `_plural` objects, placeholder leftovers, and (opt-in)
- * not-yet-translated strings identical to the base locale.
+ * Consumers run it in a vitest test to fail CI on drift — for a
+ * `createPackageI18n` package through `auditPackage`, which passes the package's
+ * own bundles and base — or via the `urbicon i18n parity` CLI, which formats the
+ * same findings. Key parity is the baseline (missing/extra keys); on top of it
+ * sit the checks a structural diff can't see: empty values, interpolation-param
+ * drift between locales, malformed or CLDR-incomplete `_plural` objects,
+ * placeholder leftovers, and (opt-in) not-yet-translated strings identical to
+ * the base locale.
  */
 
 import { isLocaleSupported, type Locale, SUPPORTED_LOCALES } from '#lib/i18n/types.js';
@@ -47,7 +47,11 @@ export interface TranslationFinding {
 }
 
 export interface AuditTranslationsOptions {
-  /** Base locale every other locale is diffed against. Default: `en` if present, else the first. */
+  /**
+   * Base locale every other locale is diffed against. Default: `en` if present,
+   * else the first. `auditPackage` sets it to the package's `base` and does not
+   * take it.
+   */
   baseLocale?: Locale;
   /**
    * Per-check toggles. Unlisted checks keep their default — all on EXCEPT

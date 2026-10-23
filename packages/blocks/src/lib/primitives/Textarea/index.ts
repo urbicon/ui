@@ -20,7 +20,7 @@ import type { TextareaSlots, TextareaVariants } from './textarea.variants';
  * ```
  */
 export interface TextareaProps
-  extends Omit<TextareaVariants, 'error' | 'counterState' | 'variant'>,
+  extends Omit<TextareaVariants, 'error' | 'messageType' | 'counterState' | 'variant'>,
     Omit<HTMLTextareaAttributes, 'size' | 'class' | 'children'> {
   /**
    * Visual style.

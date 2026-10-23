@@ -24,7 +24,7 @@ const blocks = createPackageI18n('blocks', { en, de });
 //                                                  is a type error — parity by construction.
 
 // Lazy: a loader's bundle isn't visible to the type-checker, so parity is a
-// RUNTIME check. Pair it with validatePackageTranslations in a test.
+// RUNTIME check. Assert \`await auditPackage(blocks2)\` in a test.
 const blocks2 = createPackageI18n(
   'blocks',
   { en },
@@ -87,9 +87,9 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
       Additional <strong>eager</strong> locales are checked against the base bundle's structure, so
       a missing or misspelled key in <code>de</code> is a compile error too — key parity by
       construction. For <strong>lazy</strong> locales the bundle isn't visible to the type-checker,
-      so parity becomes a runtime check; pair it with
-      <a href={resolve('/i18n/package-integration')}><code>validatePackageTranslations</code></a> in a
-      test.
+      so parity becomes a runtime check; assert
+      <a href={resolve('/i18n/package-integration')}><code>auditPackage</code></a> over the package in
+      a test.
     </p>
     <CodeExample code={parityCode} language="typescript" preview={false} />
   </Section>

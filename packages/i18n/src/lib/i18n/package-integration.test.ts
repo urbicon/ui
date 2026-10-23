@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import BaseLocaleHarness from './__fixtures__/BaseLocaleHarness.svelte';
 import { dePackage } from './__fixtures__/de-package';
 import {
+  type CreatePackageI18nOptions,
   createPackageI18n,
-  createTypedPackage,
-  validatePackageTranslations
+  createTypedPackage
 } from './package-integration';
 import { getRegistry } from './registry.svelte';
 
@@ -119,10 +119,25 @@ describe('createPackageI18n — `base` names a non-en base bundle', () => {
     createPackageI18n('bad-b', { de: { a: 'A', b: 'B' } as const, en: { a: 'A' } }, { base: 'de' });
     // @ts-expect-error en declares key `z` that the de base does not
     createPackageI18n('bad-z', { de: { a: 'A' } as const, en: { a: 'A', z: 'Z' } }, { base: 'de' });
+    // @ts-expect-error en is missing the nested key `n.y` that the de base declares
+    createPackageI18n(
+      'bad-nested-y',
+      { de: { n: { x: 'X', y: 'Y' } } as const, en: { n: { x: 'X' } } },
+      { base: 'de' }
+    );
+    // @ts-expect-error en declares the nested key `n.z` that the de base does not
+    createPackageI18n(
+      'bad-nested-z',
+      { de: { n: { x: 'X' } } as const, en: { n: { x: 'X', z: 'Z' } } },
+      { base: 'de' }
+    );
     // @ts-expect-error with `base: 'de'` the de bundle is required
     createPackageI18n('base-de-missing', { en: { a: 'A' } }, { base: 'de' });
     // @ts-expect-error without `base` the en bundle is still required
     createPackageI18n('base-en-missing', { de: { a: 'A' } });
+    // @ts-expect-error without a type argument the options name the en base
+    const deOptions: CreatePackageI18nOptions = { base: 'de' };
+    void deOptions;
 
     // The deprecated en-only wrapper keeps its typed `t`.
     const typed = createTypedPackage('base-typed-shim', { en: { a: 'A' } as const });
@@ -209,68 +224,5 @@ describe('createPackageI18n — `base` names a non-en base bundle', () => {
       // @ts-expect-error deliberately unsupported locale
       createPackageI18n('base-bad', { xx: { a: 'A' } }, { base: 'xx' })
     ).toThrow(/unsupported base locale "xx"/);
-  });
-});
-
-describe('validatePackageTranslations — runtime deep-key parity', () => {
-  it('diffs against an explicit baseLocale', () => {
-    const r = validatePackageTranslations(
-      'p',
-      { en: { a: 'A' }, de: { a: 'A', b: 'B' } },
-      { baseLocale: 'de' }
-    );
-    expect(r.isValid).toBe(false);
-    expect(r.errors.join()).toContain('Locale en missing keys: b');
-  });
-
-  it('checks every non-base locale, whatever the key order of the object', () => {
-    // The `en` base is not the object's first key; `de` before it must still be checked.
-    const r = validatePackageTranslations('p', { de: { a: 'A' }, en: { a: 'A', b: 'B' } });
-    expect(r.errors.join()).toContain('Locale de missing keys: b');
-  });
-
-  it('passes when locales share the same nested keys', () => {
-    const r = validatePackageTranslations('p', {
-      en: { a: 'A', nested: { x: 'X' } },
-      de: { a: 'A', nested: { x: 'X' } }
-    });
-    expect(r.isValid).toBe(true);
-    expect(r.errors).toEqual([]);
-    expect(r.warnings).toEqual([]);
-  });
-
-  it('flags a missing NESTED key as an error (a top-level-only check would miss it)', () => {
-    const r = validatePackageTranslations('p', {
-      en: { nested: { x: 'X', y: 'Y' } },
-      de: { nested: { x: 'X' } }
-    });
-    expect(r.isValid).toBe(false);
-    expect(r.errors.join()).toContain('nested.y');
-  });
-
-  it('flags an extra nested key as a warning', () => {
-    const r = validatePackageTranslations('p', {
-      en: { nested: { x: 'X' } },
-      de: { nested: { x: 'X', z: 'Z' } }
-    });
-    expect(r.warnings.join()).toContain('nested.z');
-  });
-
-  it('flags structural divergence (object vs string at the same path)', () => {
-    const r = validatePackageTranslations('p', {
-      en: { a: { b: 'B' } },
-      de: { a: 'A' }
-    });
-    // en's leaf `a.b` is absent in de (whose `a` is itself the leaf)
-    expect(r.isValid).toBe(false);
-    expect(r.errors.join()).toContain('a.b');
-  });
-
-  it('includes the package name in messages', () => {
-    const r = validatePackageTranslations('mypkg', {
-      en: { a: 'A' },
-      de: {}
-    });
-    expect(r.errors.join()).toContain('[mypkg]');
   });
 });

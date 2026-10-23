@@ -17,7 +17,11 @@ import type { CommandPaletteSlots, CommandPaletteVariants } from './commandPalet
  * ```
  */
 export interface CommandPaletteItem {
-  /** Unique identifier. Falls back to `label` when omitted. */
+  /**
+   * Keeps the item's row with it while the list filters; without one the
+   * `label` does. Neither has to be unique; rows that share one keep their
+   * order among themselves rather than following the item.
+   */
   id?: string;
   /** Display text shown in the list. */
   label: string;

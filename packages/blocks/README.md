@@ -123,7 +123,7 @@ A rule is matched against the component's **effective** variants — the axes th
 </BlocksProvider>
 ```
 
-The keys are the component's variant axes. For most axes that is the prop you already write (`variant`, `size`, `intent`, `disabled`); a few are computed rather than received and are listed with each component's variants — `hasRightIcon` and `messageType` on the fields, `open` on the overlays, `interactive` on Card (the axis `clickable`, `onclick` and `href` all resolve to, so one rule covers a card made operable by any of the three).
+The keys are the component's variant axes. For most axes that is the prop you already write (`variant`, `size`, `intent`, `disabled`); a few are computed rather than received — `hasRightIcon` and `messageType` on the fields, `open` on the overlays, `interactive` on Card (the axis `clickable`, `onclick` and `href` all resolve to, so one rule covers a card made operable by any of the three). A key the component neither passes nor declares makes a development build name the keys that can.
 
 Two kinds of axis are deliberately not addressable. A component whose look carries no axes at all — `Chat`, `ChatMessageList`, the `Guide*` parts — has nothing to match on; style those with unconditional `slotClasses` or a preset. And an axis that belongs to a _part_ rather than the component is only addressable where the state lives: a rule on `{ disabled: … }` under `SegmentItem` selects the item that is disabled, but the same key under `Menu` selects nothing, because Menu's rows carry their own `disabled` per row.
 

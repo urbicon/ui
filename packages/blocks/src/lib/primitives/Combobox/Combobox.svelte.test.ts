@@ -25,11 +25,9 @@ import type { ComboboxMultipleProps, ComboboxOption, ComboboxProps } from './ind
 // Assertions use vitest's native matchers (not @testing-library/jest-dom — its expect augmentation
 // doesn't compose with vitest 4's Assertion type). `expanded()` reads the DOM directly.
 //
-// jsdom note: the listbox renders in a native popover (`popover="manual"`). jsdom applies the UA
-// `[popover]:not(:popover-open)` display:none but has no real top layer to open it into, so the
-// options live in the DOM but read as "hidden" to accessibility queries. These tests assert open /
-// selection *logic* (aria-expanded, callbacks, keyboard nav), not visual visibility — that is
-// Playwright's job — so option queries pass `{ hidden: true }`.
+// The listbox renders in a native popover (`popover="manual"`). Absence checks pass
+// `{ hidden: true }`, so they also catch an option left rendered but hidden, not just a torn-down
+// one.
 
 const OPTIONS = [
   { value: 'apple', label: 'Apple' },
@@ -54,7 +52,7 @@ function renderCombobox(props: ComboboxProps<string | number | boolean>) {
   flushSync();
 }
 
-const option = (name: string) => screen.getByRole('option', { name, hidden: true });
+const option = (name: string) => screen.getByRole('option', { name });
 const expanded = (input: HTMLElement) => input.getAttribute('aria-expanded');
 
 describe('Combobox (component interaction)', () => {
@@ -69,7 +67,7 @@ describe('Combobox (component interaction)', () => {
 
     expect(expanded(input)).toBe('true');
     expect(option('Apple')).toBeTruthy();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
   });
 
   it('reports every interaction-driven open transition through onOpenChange exactly once', async () => {
@@ -200,7 +198,7 @@ const GROUPS = [
 ];
 
 describe('Combobox (groups)', () => {
-  const group = (name: string) => screen.getByRole('group', { name, hidden: true });
+  const group = (name: string) => screen.getByRole('group', { name });
 
   it('renders section headers and all grouped options', async () => {
     const user = userEvent.setup();
@@ -209,7 +207,7 @@ describe('Combobox (groups)', () => {
     await user.click(screen.getByRole('combobox'));
     expect(group('Fruit')).toBeTruthy();
     expect(group('Veg')).toBeTruthy();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
   });
 
   it('flows keyboard navigation across group boundaries', async () => {
@@ -234,7 +232,7 @@ describe('Combobox (groups)', () => {
 
     expect(group('Veg')).toBeTruthy();
     expect(screen.queryByRole('group', { name: 'Fruit', hidden: true })).toBeNull();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(1);
+    expect(screen.getAllByRole('option')).toHaveLength(1);
   });
 
   it('selects a grouped option on click', async () => {
@@ -243,7 +241,7 @@ describe('Combobox (groups)', () => {
     renderCombobox({ groups: GROUPS, onValueChange });
 
     await user.click(screen.getByRole('combobox'));
-    await user.click(screen.getByRole('option', { name: 'Banana', hidden: true }));
+    await user.click(screen.getByRole('option', { name: 'Banana' }));
     expect(onValueChange).toHaveBeenCalledWith('banana');
   });
 });
@@ -278,7 +276,7 @@ describe('Combobox (async queryFn)', () => {
     flushSync();
 
     expect(queryFn).toHaveBeenCalledWith('ab', expect.any(AbortSignal));
-    expect(screen.getByRole('option', { name: 'Hit: ab', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Hit: ab' })).toBeTruthy();
   });
 
   it('shows the loading row while a request is in flight', async () => {
@@ -290,13 +288,13 @@ describe('Combobox (async queryFn)', () => {
     await user.click(screen.getByRole('combobox'));
     await settle();
     flushSync();
-    expect(screen.getByRole('status', { hidden: true }).textContent).toContain('Searching…');
+    expect(screen.getByRole('status').textContent).toContain('Searching…');
 
     d.resolve([{ value: 'x', label: 'X' }]);
     await settle();
     flushSync();
     expect(screen.queryByRole('status', { hidden: true })).toBeNull();
-    expect(screen.getByRole('option', { name: 'X', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'X' })).toBeTruthy();
   });
 
   it('shows loading immediately on open, not the no-results row, during the debounce window', async () => {
@@ -316,7 +314,7 @@ describe('Combobox (async queryFn)', () => {
     await user.click(screen.getByRole('combobox'));
     flushSync();
 
-    expect(screen.getByRole('status', { hidden: true }).textContent).toContain('Searching…');
+    expect(screen.getByRole('status').textContent).toContain('Searching…');
     expect(screen.queryByText('Nothing')).toBeNull();
   });
 
@@ -346,7 +344,7 @@ describe('Combobox (async queryFn)', () => {
     await settle();
     flushSync();
 
-    expect(screen.getByRole('option', { name: 'Fresh', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Fresh' })).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Stale', hidden: true })).toBeNull();
   });
 
@@ -398,7 +396,7 @@ describe('Combobox (async queryFn)', () => {
     await user.type(input, 'fo');
     await settle();
     flushSync();
-    await user.click(screen.getByRole('option', { name: 'Foo', hidden: true }));
+    await user.click(screen.getByRole('option', { name: 'Foo' }));
     expect(onValueChange).toHaveBeenCalledWith('foo');
     expect(input.value).toBe('Foo');
 
@@ -435,7 +433,7 @@ describe('Combobox (async queryFn)', () => {
     await user.click(input); // call 1 → resolves with Alpha
     await settle();
     flushSync();
-    expect(screen.getByRole('option', { name: 'Alpha', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Alpha' })).toBeTruthy();
 
     await user.type(input, 'x'); // call 2 → rejects
     await settle();
@@ -447,7 +445,7 @@ describe('Combobox (async queryFn)', () => {
     expect(screen.queryByRole('status', { hidden: true })).toBeNull();
     // Stale-options decision: the previous result set stays in place (no
     // result-set clobber; a UI error slot is deliberately out of scope).
-    expect(screen.getByRole('option', { name: 'Alpha', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Alpha' })).toBeTruthy();
   });
 
   it('stays silent on an AbortError rejection — no onError, no dev warn', async () => {
@@ -511,7 +509,8 @@ describe('Combobox (multiple)', () => {
     expect(removeTagBtn('Apple')).toBeTruthy();
     expect(removeTagBtn('Banana')).toBeTruthy();
     expect(queryRemoveTagBtn('Cherry')).toBeNull();
-    // Multi-mode listbox announces itself as multiselectable.
+    // Multi-mode listbox announces itself as multiselectable — read while closed,
+    // so `hidden: true`.
     expect(screen.getByRole('listbox', { hidden: true }).getAttribute('aria-multiselectable')).toBe(
       'true'
     );
@@ -653,7 +652,7 @@ describe('Combobox (multiple)', () => {
 
     // Query cleared so the next search starts fresh; the full list is back.
     expect(input.value).toBe('');
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
     // Placeholder is suppressed once a tag exists.
     expect(input.getAttribute('placeholder')).toBe('');
   });
@@ -972,8 +971,8 @@ describe('Combobox (groups — stable key)', () => {
         { label: 'Team', options: [{ value: 'b', label: 'Bob' }] }
       ]
     });
-    expect(screen.getAllByRole('group', { name: 'Team', hidden: true })).toHaveLength(2);
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('group', { name: 'Team' })).toHaveLength(2);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
   });
 });
 
@@ -1291,7 +1290,7 @@ describe('Combobox (option hints)', () => {
     });
 
     await user.click(screen.getByRole('combobox'));
-    const opt = screen.getAllByRole('option', { hidden: true })[0];
+    const opt = screen.getAllByRole('option')[0];
     expect(flat(opt)).toBe('own row');
     expect(opt.querySelector('.tabular-nums')).toBeNull();
   });
@@ -1319,7 +1318,7 @@ describe('Combobox (allowCustom)', () => {
     await user.type(input, 'Kino 46');
 
     const row = customRow();
-    expect(screen.getAllByRole('option', { hidden: true })).toEqual([row]);
+    expect(screen.getAllByRole('option')).toEqual([row]);
 
     await user.keyboard('{ArrowDown}');
     expect(input.getAttribute('aria-activedescendant')).toBe(row.id);
@@ -1366,7 +1365,7 @@ describe('Combobox (allowCustom)', () => {
     await user.type(input, 'Kino 46');
 
     const row = customRow();
-    const options = screen.getAllByRole('option', { hidden: true });
+    const options = screen.getAllByRole('option');
     expect(options[options.length - 1]).toBe(row);
     // Outside the group: a synthetic row belongs to no section.
     expect(row.closest('[role="group"]')).toBeNull();
@@ -1386,7 +1385,7 @@ describe('Combobox (allowCustom)', () => {
     await user.click(input);
     await user.type(input, 'Kino 46');
 
-    const options = screen.getAllByRole('option', { hidden: true });
+    const options = screen.getAllByRole('option');
     expect(options).toHaveLength(2);
     expect(new Set(options.map((o) => o.id)).size).toBe(2);
     expect(options[1]).toBe(customRow());
@@ -1468,7 +1467,7 @@ describe('Combobox (allowCustom)', () => {
     await user.click(input);
     await user.type(input, 'Custom');
 
-    const options = screen.getAllByRole('option', { hidden: true });
+    const options = screen.getAllByRole('option');
     expect(options).toHaveLength(2);
     expect(new Set(options.map((o) => o.id)).size).toBe(2);
 
@@ -1525,7 +1524,7 @@ describe('Combobox (allowCustom)', () => {
 
     // The snippet is the consumer's renderer for THEIR options; the synthetic
     // row is in none of their arrays and its label is a prompt.
-    const options = screen.getAllByRole('option', { hidden: true });
+    const options = screen.getAllByRole('option');
     expect(options).toHaveLength(1);
     expect(options[0].textContent?.trim()).toBe('Use “Kino 46”');
   });
@@ -1541,7 +1540,7 @@ describe('Combobox (allowCustom)', () => {
     await user.click(input);
     await user.type(input, 'Arsenal');
 
-    expect(screen.getByRole('option', { name: 'Use “Arsenal”', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Use “Arsenal”' })).toBeTruthy();
   });
 
   it('disables the row at maxItems, like every other unselected option', async () => {
@@ -1579,7 +1578,7 @@ describe('Combobox (allowCustom)', () => {
     // "Kino" matches the option's label AND equals none of them, so the list
     // holds a real row and the synthetic one.
     await user.type(input, 'Kino');
-    const rows = screen.getAllByRole('option', { hidden: true });
+    const rows = screen.getAllByRole('option');
     expect(rows.map((r) => r.textContent?.trim())).toEqual(['Kino Arsenal', 'Use “Kino”']);
 
     // End reaches the last row — the synthetic one — and Home comes back to the
@@ -1603,7 +1602,7 @@ describe('Combobox (allowCustom)', () => {
     await settle();
 
     // Server result first, the synthetic row after it.
-    const options = screen.getAllByRole('option', { hidden: true });
+    const options = screen.getAllByRole('option');
     expect(options.map((o) => o.textContent?.trim())).toEqual(['Kino Arsenal', 'Use “Kino 46”']);
   });
 

@@ -879,9 +879,11 @@ export class APIDataGenerator {
     }
 
     // Process inherited props
-    processedItem.props = await Promise.all(
-      inheritance.props.map((prop: PropInfo) => this.processProp(prop, component))
-    );
+    if (inheritance.props) {
+      processedItem.props = await Promise.all(
+        inheritance.props.map((prop: PropInfo) => this.processProp(prop, component))
+      );
+    }
 
     return processedItem;
   }

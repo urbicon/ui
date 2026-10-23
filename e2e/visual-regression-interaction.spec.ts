@@ -99,6 +99,7 @@ async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeo
   }
 }
 
+// biome-ignore lint/correctness/usePlaywrightValidDescribeCallback: Playwright's (title, details, callback) overload; the rule knows only (title, callback)
 test.describe('Interaction-state visual regression', { tag: '@pixel' }, () => {
   for (const scheme of SCHEMES) {
     for (const theme of THEMES) {

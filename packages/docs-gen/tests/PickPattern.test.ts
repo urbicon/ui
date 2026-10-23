@@ -83,7 +83,7 @@ describe('PropsExtractor — Pick<ImportedProps, keys> (program-backed)', () => 
     // buttonVariants>`. A purely syntactic reading of the base interface finds
     // `disabled` and silently loses the rest.
     const byName = Object.fromEntries(
-      (await props('ThroughVariants', { configPath: CONFIG })).map((p) => [p.name, p])
+      (await props('ThroughVariantsDeclared', { configPath: CONFIG })).map((p) => [p.name, p])
     );
 
     expect(Object.keys(byName).sort()).toEqual(['density', 'disabled', 'own', 'tone']);
@@ -95,13 +95,15 @@ describe('PropsExtractor — Pick<ImportedProps, keys> (program-backed)', () => 
     expect(byName.tone?.type).toBe("'calm' | 'loud'");
     expect(byName.tone?.values).toEqual(['calm', 'loud']);
 
-    // `density` maps onto a PropertyAssignment: no property signature, so no
-    // documentation to keep — just a short provenance line (playground hints
-    // are budgeted at 120 characters).
-    expect(byName.density?.type).toBe("'compact' | 'cosy'");
+    // `density` maps onto a PropertyAssignment: nothing documents it, so the
+    // row is the redeclaration's.
     expect(byName.density?.values).toEqual(['compact', 'cosy']);
-    expect(byName.density?.description).toBe('Inherited from GadgetProps.');
-    expect(byName.density?.description.length).toBeLessThanOrEqual(120);
+    expect(byName.density?.description).toBe('Row spacing of the gadget.');
+    expect(byName.density?.defaultValue).toBe("'cosy'");
+    expect(byName.density?.source).toEqual({
+      type: 'direct',
+      name: 'ThroughVariantsDeclaredProps'
+    });
 
     // A hand-declared member keeps everything it declares.
     expect(byName.disabled?.type).toBe('boolean');
@@ -110,16 +112,26 @@ describe('PropsExtractor — Pick<ImportedProps, keys> (program-backed)', () => 
     expect(byName.disabled?.values).toBeUndefined(); // a boolean is not a two-value dropdown
   });
 
+  it('refuses a picked tv() axis that nothing documents', async () => {
+    const extractor = new PropsExtractor({ configPath: CONFIG });
+    const result = await extractor.extract({ filePath: PICKY, componentName: 'ThroughVariants' });
+    expect(result.success).toBe(false);
+    // `tone` has a property signature to read; only `density` is refused.
+    expect(result.errors[0]?.message).toMatch(
+      /^ThroughVariantsProps: no declaration documents 'density' \(Pick<GadgetProps, [^)]*\)\. Redeclare/
+    );
+  });
+
   it("defers a picked key to the component's own tv() axis when it has one", async () => {
     // CopyButton picks ButtonProps' `size` *and* declares a `size` axis of its
     // own. Nothing dedupes props by name downstream, so the pass-through has to
     // stand aside — the component's own axis owns the values and the default.
     const names = (
-      await props('ThroughVariants', { configPath: CONFIG, variantKeys: ['tone'] })
+      await props('ThroughVariants', { configPath: CONFIG, variantKeys: ['density'] })
     ).map((p) => p.name);
 
-    expect(names).not.toContain('tone');
-    expect(names).toContain('density');
+    expect(names).not.toContain('density');
+    expect(names).toContain('tone');
     expect(names).toContain('disabled');
   });
 });
@@ -172,31 +184,14 @@ describe('PropsExtractor — Pick in single-file mode (no program)', () => {
 });
 
 describe('InheritanceExtractor — Pick pattern', () => {
-  it('records the clause under its full type with the picked members', async () => {
-    const entry = (await inheritance('Picky')).find((i) => i.typeName.startsWith('Pick<'));
-
-    expect(entry).toBeDefined();
-    expect(entry?.typeName).toBe("Pick<BarProps, 'label' | 'size'>");
-    expect(entry?.source).toBe('pick-pattern');
-    expect((entry?.props ?? []).map((p) => p.name)).toEqual(['label', 'size']);
-    expect((entry?.props ?? []).map((p) => p.name)).not.toContain('...Pick');
-  });
-
-  it('resolves members that reach the base through a variant alias', async () => {
-    const entry = (await inheritance('ThroughVariants')).find((i) =>
-      i.typeName.startsWith('Pick<')
-    );
-    const byName = Object.fromEntries((entry?.props ?? []).map((p) => [p.name, p]));
-
-    expect(Object.keys(byName).sort()).toEqual(['density', 'disabled', 'tone']);
-    expect(byName.tone?.type).toBe("'calm' | 'loud'");
-  });
-
-  it('leaves a *Variants base empty — the variants pass reports those axes', async () => {
-    const entry = (await inheritance('PickVariants')).find((i) => i.typeName.startsWith('Pick<'));
-
-    expect(entry?.typeName).toBe("Pick<ToneVariants, 'tone'>");
-    expect(entry?.source).toBe('pick-pattern');
-    expect(entry?.props).toEqual([]);
+  it('records the clause under its full type, and no members — they are the props rows', async () => {
+    for (const [component, clause] of [
+      ['Picky', "Pick<BarProps, 'label' | 'size'>"],
+      ['ThroughVariants', "Pick<GadgetProps, 'tone' | 'density' | 'disabled'>"],
+      ['PickVariants', "Pick<ToneVariants, 'tone'>"]
+    ] as const) {
+      const entry = (await inheritance(component)).find((i) => i.typeName.startsWith('Pick<'));
+      expect(entry).toEqual({ typeName: clause, source: 'pick-pattern' });
+    }
   });
 });

@@ -74,8 +74,9 @@ Types section (`/blocks/components/guide`) composes `ApiReference` and `TypesRef
 Both sections reach the table of contents under their headings (`apiReferenceTitle`, `typesTitle`).
 The headings follow the reader's locale, under its own `lang`, and their entries are the headings,
 `lang` included — in German the TOC says "API-Referenz" over a heading that says "API-Referenz". The
-counts beside the headings ("22 Props") are localized too but carry no `lang` of their own, since
-`Section` takes `meta` as a string. A component whose types need an introduction the table cannot
+prop count beside the API Reference heading ("22 Props") is localized too but carries no `lang` of
+its own, since `Section` takes `meta` as a string; the Types section states its count once, in the
+toolbar above its table. A component whose types need an introduction the table cannot
 give passes `typesDescription` (`toast` does: which of its types a caller constructs).
 
 **The rendered order is the order you write.** The TOC lists the sections in the order the page
@@ -84,7 +85,8 @@ after it move up. A `<Section>` inside a `CodeExample` or a `PlaygroundConfigura
 subject: it never reaches the page's TOC, and a numbered one counts from `01` within its stage. A
 section nested in a titled `<Section>` becomes a child entry of it and takes no number; one inside
 a `<Section>` without a title is listed and numbered at that section's level, as if it were not there.
-Two sections that share an id are listed once, under the first; a page should not have them.
+Two sections that share an id are listed once, under the first; a page should not have them, and
+`bun run section-ids:check` fails on one in the built site (after `bun run build`).
 
 ## Examples Strategy
 

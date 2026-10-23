@@ -12,6 +12,7 @@ async function setupPage(page: Page) {
   await page.waitForTimeout(2000);
 }
 
+// biome-ignore lint/correctness/usePlaywrightValidDescribeCallback: Playwright's (title, details, callback) overload; the rule knows only (title, callback)
 test.describe('Floating positioning – Visual Regression', { tag: '@pixel' }, () => {
   // ─── Popover section: all cardinal placements at once ──────────────────
 

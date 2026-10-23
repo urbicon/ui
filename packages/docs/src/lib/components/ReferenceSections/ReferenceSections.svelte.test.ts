@@ -118,12 +118,15 @@ describe('ReferenceSections', () => {
     expect(stats).toContain('3 props');
   });
 
-  it('heads the Types section like the API section: a count, no subtitle', () => {
+  it('heads the Types section with neither a count nor a subtitle', () => {
+    // Its count is the toolbar's, right under the heading; a second one beside
+    // the heading would repeat it.
     const target = render({ componentData: DATA });
     const header = target.querySelector('#types header');
 
-    expect(header?.textContent).toContain('2 types');
+    expect(header?.textContent).not.toMatch(/\d+ types/);
     expect(header?.querySelector('p')).toBeNull();
+    expect(target.querySelector('#types')?.textContent).toContain('2 types');
   });
 
   it('tags both localized headings with the locale they render in', () => {

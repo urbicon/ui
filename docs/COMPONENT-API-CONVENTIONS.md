@@ -404,7 +404,7 @@ What stays out, measured over every prop that is also a `tv()` axis of its compo
 | **Content and structure** — changes what is rendered or announced | `layout` (Pagination's controls, ChatMessage's header), `citationStyle` (the chip's text), `detail`, `counter`, `optionalNote`, `showWeekNumbers`, `showWeekNumber` (Planner's deprecated spelling), `showToday`, `stacksOnNarrow`, `navPlacement` |
 | **Call-site layout** — where it sits, which the page decides | `placement`, `side`, `fullWidth`, `contentMaxWidth`, `align`, `emphasis` (needs `align="center"`), `legendPlacement`, `fluid`, `border` (Badge, to lift a positioned badge off its parent) |
 | **A signal about one instance** | `pulse`, `ring`, `animated` (Progress's moving stripes — and Calendar's and Planner's transition switch under the same name) |
-| **Derived by the component** — an axis its props type happens to expose | `hasLeftIcon`, `hasRightIcon`, `iconPosition`, `messageType`, `buttonGroupConnected`, `fill` |
+| **Derived by the component** — an axis its props type happens to expose | `buttonGroupConnected`, `fill` |
 
 A new name joins `STYLE_PROPS` in the PR that introduces it, with its row here if it stays out.
 

@@ -50,7 +50,7 @@ jobs:
     # comparing it is the defect this whole arrangement removes. Bump both tags
     # together or neither.
     container:
-      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
     permissions:
       contents: read
     # Unsharded on purpose. `--update-snapshots` writes files, and four shards

@@ -135,7 +135,7 @@ export interface NullOptionConfig {
  * `multiple`.
  */
 interface SelectBaseProps<T extends SelectValue = string>
-  extends Omit<SelectVariants, 'error' | 'selected' | 'open' | 'variant'>,
+  extends Omit<SelectVariants, 'error' | 'messageType' | 'selected' | 'open' | 'variant'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   /**
    * Visual style.
@@ -227,7 +227,10 @@ interface SelectBaseProps<T extends SelectValue = string>
    * When true, the listbox is rendered into the browser top layer via the native
    * `popover` API, so it cannot be clipped by `overflow: auto` ancestors. When
    * false, the listbox stays in the regular DOM flow — useful inside other
-   * popovers/portals to avoid double-portaling. @default true
+   * popovers/portals to avoid double-portaling. A scroll box that holds its
+   * offset parent then clips it, so the list flips and caps its height to stay
+   * inside that box.
+   * @default true
    */
   usePortal?: boolean;
 

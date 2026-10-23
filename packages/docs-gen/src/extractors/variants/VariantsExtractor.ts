@@ -107,8 +107,7 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
       if (!slotsProperty || !ts.isObjectLiteralExpression(slotsProperty)) return [];
 
       // Source order (base, header, content, footer …) is more useful — and
-      // just as deterministic — as alphabetical, so unlike variant values we
-      // deliberately do not sort.
+      // just as deterministic — as alphabetical, so we deliberately do not sort.
       return this.extractObjectKeys(slotsProperty);
     } catch {
       return [];
@@ -462,9 +461,8 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
       return null;
     }
 
-    // Sort values for consistency
-    values.sort();
-
+    // Config order, unsorted: a prop typed by the same axis (`InputProps['size']`,
+    // a picked or redeclared one) lists its values in that order too.
     const variantInfo: VariantInfo = {
       name: variantName,
       values,

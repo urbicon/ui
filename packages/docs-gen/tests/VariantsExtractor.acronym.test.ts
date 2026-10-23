@@ -39,7 +39,7 @@ describe('VariantsExtractor — acronym-led component names', () => {
     const result = await extractor.extract(located('QRTag', 'QRTag', 'qr-tag.variants.ts'));
     expect(result.success).toBe(true);
     expect(result.data?.map((v) => [v.name, v.values, v.defaultValue])).toEqual([
-      ['frame', ['card', 'none'], 'none']
+      ['frame', ['none', 'card'], 'none']
     ]);
     expect(
       await extractor.extractSlotNames(located('QRTag', 'QRTag', 'qr-tag.variants.ts'))

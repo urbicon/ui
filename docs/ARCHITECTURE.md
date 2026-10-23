@@ -767,6 +767,8 @@ Runes-based internationalization in `packages/i18n/`, re-exported through `block
   start to make it SSR-present.
 - **Translation audit:** data-level `auditTranslations` plus a dev-only
   `@urbicon-ui/i18n/audit` source scanner, fronted by `urbicon i18n` and `bun run i18n:check`.
+  `auditPackage` audits a package from the `source` it carries — bundles, lazy ones loaded,
+  and base locale — so a test cannot name a different base.
 
 The deliberate trade-off: a **runtime registry** (not a Paraglide-style compiler) keeps
 translations reactive and SSR-context-scoped at the cost of full tree-shaking — acceptable

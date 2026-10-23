@@ -10,7 +10,7 @@
  * `auditTranslations` here.
  */
 
-export type { I18nMissingKey, Locale } from '#lib/i18n/types.js';
+export type { I18nMissingKey, Locale, PackageSource } from '#lib/i18n/types.js';
 export { isLocaleSupported, SUPPORTED_LOCALES } from '#lib/i18n/types.js';
 // Re-exported so the CLI can derive defined keys from a bundle and validate
 // locale tags without importing the main (Svelte-bearing) entry — keeps the node
@@ -19,6 +19,9 @@ export { collectDeepKeys } from '#lib/utils/deep-keys.js';
 export { makeGlobMatcher } from './glob';
 export type { MissingKeyCollector, MissingKeyRecord } from './missing-key-collector';
 export { createMissingKeyCollector } from './missing-key-collector';
+// The data-level audit over a `createPackageI18n` package, against the base the
+// package names.
+export { auditPackage } from './package-audit';
 export type { FindHardcodedOptions, HardcodedFinding } from './scan/hardcoded';
 export { findHardcodedStrings } from './scan/hardcoded';
 export type { ScanSourcesResult } from './scan/scanner';

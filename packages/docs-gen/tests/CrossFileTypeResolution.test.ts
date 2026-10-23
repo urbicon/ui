@@ -67,17 +67,13 @@ describe('PropsExtractor — cross-file resolution (program-backed)', () => {
 });
 
 describe('InheritanceExtractor — cross-file resolution (program-backed)', () => {
-  it('enumerates Omit<ImportedProps, literal keys> props minus the omitted keys', async () => {
+  it('names an Omit<ImportedProps, keys> clause and lists none of its members', async () => {
+    // The members are rows of the props list (the PropsExtractor test above).
     const extractor = new InheritanceExtractor({ configPath: CONFIG });
     const result = await extractor.extract({ filePath: FOO, componentName: 'Foo' });
     expect(result.success).toBe(true);
     const omit = (result.data ?? []).find((i) => i.typeName.startsWith('Omit<'));
-    expect(omit).toBeDefined();
-    expect(omit?.source).toBe('omit-pattern');
-    const names = (omit?.props ?? []).map((p) => p.name);
-    expect(names).toContain('label');
-    expect(names).toContain('error');
-    expect(names).not.toContain('hidden');
+    expect(omit).toEqual({ typeName: "Omit<BarProps, 'hidden'>", source: 'omit-pattern' });
   });
 
   it('resolves a plain imported heritage clause as resolved-interface', async () => {

@@ -172,7 +172,7 @@ t('greeting', { name: 'Ada' }); // ✓ param `name` inferred from {{name}}
 t('greeting'); // ✗ compile error — missing required param
 ```
 
-Additional **eager** locales are checked against the base structure, so a missing or misspelled key in `de` is a compile error too (key parity by construction). For **lazy** locales (below) parity is a runtime check — pair with `validatePackageTranslations` in a test.
+Additional **eager** locales are checked against the base structure, so a missing or misspelled key in `de` is a compile error too (key parity by construction). For **lazy** locales (below) parity is a runtime check — assert [`auditPackage`](#parity-validation-ci) on the package in a test.
 
 > `createTypedPackage` is **deprecated** — `createPackageI18n` gives the same type safety directly.
 
@@ -303,19 +303,20 @@ configureI18n({ onError: (e) => reportToSentry(e) });
 
 ## Parity validation (CI)
 
-`validatePackageTranslations` does a recursive deep-key diff across a package's locale bundles (a missing nested key is an error, an extra one a warning). Wire it into a per-package vitest test to fail CI on drift — it complements the compile-time parity the generic factory enforces for eager bundles, and covers lazy/dynamic ones:
+`auditPackage` (on the dev-only `@urbicon-ui/i18n/audit` subpath) takes the object `createPackageI18n` returned, loads its lazy `loaders` locales, then runs [`auditTranslations`](#translation-auditing) over all of its bundles against its base — `en`, or the locale `base` names. A missing nested key is an error, an extra one a warning. Assert it in a vitest test to fail CI on drift — it complements the compile-time parity the generic factory enforces for eager bundles, and covers the lazy ones:
 
 ```ts
-import { validatePackageTranslations } from '@urbicon-ui/i18n';
-import en from '#lib/translations/en.js';
-import de from '#lib/translations/de.js'; // import lazy bundles directly for the check
+import { auditPackage } from '@urbicon-ui/i18n/audit';
+import { blocksI18n } from '#lib/i18n/index.js';
 
-it('en/de key parity', () => {
-  expect(validatePackageTranslations('blocks', { en, de }).errors).toEqual([]);
+it('translations pass the audit', async () => {
+  expect((await auditPackage(blocksI18n)).findings).toEqual([]);
 });
 ```
 
-The diff runs against `en` when present. A package with another `base` passes it along — `validatePackageTranslations('mach', { de, en }, { baseLocale: 'de' })`; `auditTranslations` takes the same `baseLocale` option, and the `urbicon i18n` CLI takes `--base-locale de` (or `"baseLocale"` in `i18n.audit.json`).
+It reads the name, the base and the bundles from the package's `source`, so it takes no `baseLocale`; it does take `auditTranslations`' `checks` and `ignoreKeys`. Bundles that are not a `createPackageI18n` package go to `auditTranslations` directly, and the `urbicon i18n` CLI, which reads bundle files rather than your package, takes `--base-locale de` (or `"baseLocale"` in `i18n.audit.json`).
+
+> **Removed in 8.34.0:** `validatePackageTranslations`. `auditPackage` checks the same key parity, plus empty values, `{{param}}` drift and `_plural` shape. Replace `validatePackageTranslations('shop', { en, de }).errors` with `(await auditPackage(shopI18n)).errors`; `isValid` is now `ok`, and `errors` and `warnings` hold `TranslationFinding` objects (the old message is `.detail`).
 
 ## API Surface
 
@@ -337,12 +338,14 @@ import {
 
 // Package integration
 import {
-  createPackageI18n, // (name, { en }, { base?, loaders? }?) -> { useTranslate, t, exists, getLocales, ... }
+  createPackageI18n, // (name, { en }, { base?, loaders? }?) -> { useTranslate, t, exists, getLocales, source, ... }
   createComponentI18n,
   registerTranslationLoaders,
-  registerPackages,
-  validatePackageTranslations
+  registerPackages
 } from '@urbicon-ui/i18n';
+
+// Test-time audit (dev-only subpath)
+import { auditPackage, auditTranslations } from '@urbicon-ui/i18n/audit';
 
 // Deep-key utilities + types
 import { getDeepValue, hasDeepKey, collectDeepKeys } from '@urbicon-ui/i18n';
@@ -374,7 +377,7 @@ import type {
 
 Three layers catch i18n problems — untranslated strings, unused keys, and copy that bypassed i18n entirely. The data-level audit and the runtime sink ship from the main entry (dependency-free, usable in a Vitest test); the source scanner lives on the dev-only `@urbicon-ui/i18n/audit` subpath; the `urbicon i18n` CLI (`@urbicon-ui/design`) is the filesystem front end over all three.
 
-**1. Data-level parity & quality** — `auditTranslations(packageName, bundles)` diffs locale bundles for missing/extra keys, empty values, interpolation-param drift (`{{name}}` in one locale but not another), value-equals-key placeholders, and malformed / CLDR-incomplete `_plural` objects. Pure and deterministic — run it as a test (the richer successor to `validatePackageTranslations`, kept for back-compat):
+**1. Data-level parity & quality** — `auditTranslations(packageName, bundles)` diffs locale bundles for missing/extra keys, empty values, interpolation-param drift (`{{name}}` in one locale but not another), value-equals-key placeholders, and malformed / CLDR-incomplete `_plural` objects. Pure and deterministic — run it as a test. For a `createPackageI18n` package, [`auditPackage`](#parity-validation-ci) passes the package's own bundles and base:
 
 ```ts
 import { auditTranslations } from '@urbicon-ui/i18n';

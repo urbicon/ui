@@ -61,6 +61,13 @@ export interface LocaleSwitcherProps
   size?: SelectSingleProps<string>['size'];
 
   /**
+   * Corner-radius tier, forwarded to the inner Select. Read from the wrapping
+   * `TierContext` when unset.
+   * @default 'modify'
+   */
+  tier?: SelectSingleProps<string>['tier'];
+
+  /**
    * Text shown while the active locale is not among `locales`, in place of the
    * localized default. While a locale loads, the localized loading text is
    * shown instead.

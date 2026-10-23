@@ -45,7 +45,8 @@ export const selectVariants = tv({
     // correctly and the UA's `overflow: auto` doesn't render a duplicate
     // scrollbar. Width AND a keyboard-aware max-height come from Floating
     // UI's `size` middleware: it sets `--blocks-overlay-available-height`
-    // to the room left in the visual viewport (e.g. above the iOS keyboard);
+    // to the room left in the visual viewport (e.g. above the iOS keyboard),
+    // or in the scroll box that clips an in-place panel;
     // the `max-h-[min(15rem,…)]` below keeps 15rem as the upper design cap
     // via `min()` and falls back to it whenever the var is unset.
     // tier: contain — floating dropdown panel.

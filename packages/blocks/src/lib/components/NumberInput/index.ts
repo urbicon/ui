@@ -50,6 +50,27 @@ export interface NumberInputProps
    */
   mint?: InputProps['mint'];
   /**
+   * Field surface, forwarded to the inner Input.
+   * @default 'outlined'
+   */
+  variant?: InputProps['variant'];
+  /**
+   * Field height, padding and type size, forwarded to the inner Input.
+   * @default 'md'
+   */
+  size?: InputProps['size'];
+  /**
+   * Tone of the field frame, forwarded to the inner Input. `error` overrides it.
+   * @default 'default'
+   */
+  intent?: InputProps['intent'];
+  /**
+   * Corner-radius tier, forwarded to the inner Input. Read from the wrapping
+   * `TierContext` when unset.
+   * @default 'modify'
+   */
+  tier?: InputProps['tier'];
+  /**
    * Apply a named preset registered via `<BlocksProvider presets={{ NumberInput: {...} }}>`.
    * Resolved against the **`NumberInput`** key, not `Input`: a preset written for
    * the number field would otherwise style every text field under the provider.

@@ -7,11 +7,10 @@ import CitationChip from './CitationChip.svelte';
 import type { CitationChipProps, CitationSource } from './index';
 
 // DOM/interaction tests for the citation marker. CitationChip composes the
-// Popover primitive; the popover panel renders in a native popover, which jsdom
-// keeps in the DOM but reads as "hidden" to accessibility queries (no top
-// layer). So role queries into the panel pass `{ hidden: true }`, mirroring the
-// Combobox reference test. Mounting uses Svelte's own `mount`/`unmount` (not
-// @testing-library/svelte) so svelte-check sees a single `Snippet` type.
+// Popover primitive; the no-link checks pass `{ hidden: true }`, so a link left
+// rendered but hidden in the panel still fails them. Mounting uses Svelte's own
+// `mount`/`unmount` (not @testing-library/svelte) so svelte-check sees a single
+// `Snippet` type.
 
 const SOURCE: CitationSource = {
   id: 'src-1',
@@ -76,7 +75,7 @@ describe('CitationChip', () => {
 
     await openPopover(user);
 
-    const link = screen.getByRole('link', { name: /Read more/, hidden: true });
+    const link = screen.getByRole('link', { name: /Read more/ });
     expect(link.getAttribute('href')).toBe('https://example.com/book');
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');

@@ -40,11 +40,11 @@
      * - `sheet` — the hull is a modal `<dialog>` (Drawer). `useFloatingPanel`
      *   detects that on its own and renders the Select `position: fixed` inside
      *   the dialog's subtree — which is what lets it escape the sheet body's
-     *   `overflow-y: auto` instead of being clipped by it. Forcing
-     *   `usePortal={false}` here would put it back inside the scroll box.
+     *   `overflow-y: auto` instead of being confined to it. Forcing
+     *   `usePortal={false}` here would put it back inside the scroll box, where
+     *   it flips and shrinks to fit what the body shows.
      *
-     * Explicit rather than sniffed from the DOM: the hull knows what it is, and
-     * a wrong guess is a silently clipped dropdown.
+     * Explicit rather than sniffed from the DOM: the hull knows what it is.
      */
     surface?: 'popover' | 'sheet';
     /**

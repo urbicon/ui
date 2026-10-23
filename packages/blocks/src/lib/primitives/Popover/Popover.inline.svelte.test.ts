@@ -42,7 +42,10 @@ function mountPopover(props: Record<string, unknown> = {}) {
   flushSync();
 }
 
-/** jsdom has no top layer, so the panel is only reachable with `hidden: true`. */
+/**
+ * Closed, the panel is `display: none`, so `panel()` passes `hidden: true` to
+ * reach it in either state.
+ */
 const panel = () => screen.queryByRole('dialog', { hidden: true });
 
 describe('Popover inline mode — after mount', () => {
