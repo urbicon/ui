@@ -1,25 +1,25 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import type { AreaChartProps } from './index';
+  import { useBlocksI18n } from '#lib';
   import type { ChartSeries } from '#lib/internal/charts/types.js';
+  import type { ChartPoint } from '#lib/internal/charts/utils.js';
+  import {
+    areaPath,
+    extent,
+    linearScale,
+    linePath,
+    niceScale,
+    numberFormatter,
+    seriesColor
+  } from '#lib/internal/charts/utils.js';
   import {
     type ChartVariants,
     chartSlotResolver,
     chartVariants
   } from '#lib/internal/charts/variants.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import {
-    linearScale,
-    niceScale,
-    linePath,
-    areaPath,
-    seriesColor,
-    numberFormatter,
-    extent
-  } from '#lib/internal/charts/utils.js';
-  import type { ChartPoint } from '#lib/internal/charts/utils.js';
   import ChartFrame from '../ChartFrame/ChartFrame.svelte';
-  import { useBlocksI18n } from '#lib';
+  import type { AreaChartProps } from './index';
 
   let {
     data,

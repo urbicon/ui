@@ -1,4 +1,13 @@
 <script lang="ts">
+  import {
+    Button,
+    CheckIcon as CheckIconDefault,
+    CloseIcon as CloseIconDefault,
+    Input,
+    resolveIcon,
+    Select,
+    useBlocksI18n
+  } from '@urbicon-ui/blocks';
   import { tick } from 'svelte';
   import { useTableI18n } from '#lib';
   import { getTableContext } from '#lib/stores/TableStore.svelte.js';
@@ -7,15 +16,6 @@
   import { filterPanelVariants } from '#lib/variants/index.js';
   import ToolEmptyNote from './ToolEmptyNote.svelte';
   import { buildFilterEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
-  import {
-    Button,
-    Select,
-    Input,
-    useBlocksI18n,
-    resolveIcon,
-    CheckIcon as CheckIconDefault,
-    CloseIcon as CloseIconDefault
-  } from '@urbicon-ui/blocks';
 
   /**
    * The filter form: one section per filterable column, plus the actions that

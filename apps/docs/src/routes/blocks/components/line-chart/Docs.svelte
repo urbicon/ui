@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { type CartesianDatum, type ChartSeries, LineChart } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { LineChart, type CartesianDatum, type ChartSeries } from '@urbicon-ui/blocks';
 
   const single: CartesianDatum[] = [
     { label: 'Jan', values: [12] },

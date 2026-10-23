@@ -3,8 +3,8 @@
      equivalent for. They are the only raw colours on the page; every other section stays under
      the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Kbd, MoonIcon, SunIcon, Toggle } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let darkMode = $state(true);

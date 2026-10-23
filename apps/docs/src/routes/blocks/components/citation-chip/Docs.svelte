@@ -1,11 +1,10 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { SourceFooter, CitationStyles, FromStreamingMarkdown } from './examples';
-
-  import sourceFooterCode from './examples/SourceFooter.svelte?raw';
+  import { CitationStyles, FromStreamingMarkdown, SourceFooter } from './examples';
   import citationStylesCode from './examples/CitationStyles.svelte?raw';
   import fromStreamingMarkdownCode from './examples/FromStreamingMarkdown.svelte?raw';
+  import sourceFooterCode from './examples/SourceFooter.svelte?raw';
 </script>
 
 <Section marker id="examples" title="Examples">

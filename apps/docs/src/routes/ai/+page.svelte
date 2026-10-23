@@ -1,8 +1,8 @@
 <script lang="ts">
+  import { buttonVariants, Card } from '@urbicon-ui/blocks';
+  import { CodeExample } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
   import { asset } from '$app/paths';
-  import { Card, buttonVariants } from '@urbicon-ui/blocks';
-  import { CodeExample } from '@urbicon-ui/docs';
 
   const cliSetupExample = `# One dev-dependency wires your agent into the design system
 # (already there if you set the project up with \`sv add @urbicon-ui\`):

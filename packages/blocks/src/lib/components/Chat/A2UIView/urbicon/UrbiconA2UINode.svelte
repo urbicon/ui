@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import {
     Accordion,
     AccordionItem,
@@ -21,19 +23,15 @@
     Textarea,
     Toggle
   } from '#lib/primitives/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
   import { fromDateInputValue, toDateInputValue } from '#lib/utils/date.js';
   import DatePicker from '../../../DatePicker/DatePicker.svelte';
   import EmptyState from '../../../EmptyState/EmptyState.svelte';
   import TimeInput from '../../../TimeInput/TimeInput.svelte';
-  import StreamingMarkdown from '../../StreamingMarkdown/StreamingMarkdown.svelte';
   import { checkImageUrl, checkLinkUrl } from '../../markdown/url-policy.js';
+  import StreamingMarkdown from '../../StreamingMarkdown/StreamingMarkdown.svelte';
   import type { A2uiActionEvent } from '../a2ui.types';
   import { checksPass } from '../a2ui-data';
   import { coerceText, dedupeOptions, splitDateTime } from '../a2ui-node-common';
-  import type { A2uiNodeProps, A2uiRenderNode } from '../a2ui-render';
-  import { bindingPointer, toInputString, toStringArray } from '../a2ui-render';
   import {
     A2UI_CHECKS_PROP,
     A2UI_SVG_PATH_RE,
@@ -41,8 +39,10 @@
     ownEntry,
     rendersAsComponent
   } from '../a2ui-registry';
-  import { URBICON_A2UI_REGISTRY } from './a2ui-urbicon-registry';
+  import type { A2uiNodeProps, A2uiRenderNode } from '../a2ui-render';
+  import { bindingPointer, toInputString, toStringArray } from '../a2ui-render';
   import { a2uiUrbiconVariants } from './a2ui-urbicon.variants';
+  import { URBICON_A2UI_REGISTRY } from './a2ui-urbicon-registry';
 
   // Recursive dispatcher for the Urbicon A2UI catalog — the sibling of A2UINode,
   // mapping the richer Urbicon vocabulary (real intents/variants/sizes, Section,

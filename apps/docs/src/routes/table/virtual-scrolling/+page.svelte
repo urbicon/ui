@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Note, NoteList } from '@urbicon-ui/docs';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { type Column, Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, type Employee } from '../_data';
+  import { type Employee, employees } from '../_data';
 
   // 10,000 rows, cycled from the shared fixture: the page claims a row count
   // the DOM never sees, and a preview is the only place a reader can check

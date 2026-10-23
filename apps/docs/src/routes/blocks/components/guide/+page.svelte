@@ -1,30 +1,30 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
-    ApiReference,
     type ApiProp,
+    ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
     InfoCard,
     Section,
     TypesReference
   } from '@urbicon-ui/docs';
-  import CustomDocs from './Docs.svelte';
-  import Playground from './Playground.svelte';
-  import { componentData } from './api';
+  import { buildRelatedLinks } from '#lib/component-links.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset, resolve } from '$app/paths';
+  import { componentData as articleData } from '../guide-article/api';
+  import { componentData as beaconData } from '../guide-beacon/api';
+  import { componentData as hintData } from '../guide-hint/api';
+  import { componentData as markerData } from '../guide-marker/api';
+  import { componentData as mentionData } from '../guide-mention/api';
+  import { componentData as panelData } from '../guide-panel/api';
   // Every Guide surface is a `@standalone` catalog component with its own generated
   // api.ts (sibling route dirs without a +page — this system page stays the single
   // docs surface; catalog/llm.txt consumers see them as eight components).
   import { componentData as providerData } from '../guide-provider/api';
-  import { componentData as panelData } from '../guide-panel/api';
-  import { componentData as articleData } from '../guide-article/api';
-  import { componentData as markerData } from '../guide-marker/api';
-  import { componentData as mentionData } from '../guide-mention/api';
   import { componentData as refData } from '../guide-ref/api';
-  import { componentData as hintData } from '../guide-hint/api';
-  import { componentData as beaconData } from '../guide-beacon/api';
-  import { buildRelatedLinks } from '#lib/component-links.js';
-  import { asset, resolve } from '$app/paths';
+  import { componentData } from './api';
+  import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
 
   // The generated @related list is the sibling Guide surfaces — self-referential on this
   // family page. Point "related" at the spatial, event-driven overlays Guide contrasts with

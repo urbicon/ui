@@ -1,19 +1,20 @@
 <script lang="ts" generics="Item">
-  import type { Component } from 'svelte';
   import {
     Button,
-    resolveIcon,
     EditIcon as EditIconDefault,
-    TrashIcon as TrashIconDefault,
-    EyeIcon as EyeIconDefault
+    EyeIcon as EyeIconDefault,
+    resolveIcon,
+    TrashIcon as TrashIconDefault
   } from '@urbicon-ui/blocks';
+  import type { Component } from 'svelte';
 
   const EditIcon = resolveIcon('edit', EditIconDefault);
   const TrashIcon = resolveIcon('trash', TrashIconDefault);
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
-  import { useTableI18n } from '../i18n';
-  import { actionCellVariants, type ActionCellVariantProps } from '#lib/variants/index.js';
+
   import { getNestedValue } from '#lib/utils/index.js';
+  import { type ActionCellVariantProps, actionCellVariants } from '#lib/variants/index.js';
+  import { useTableI18n } from '../i18n';
 
   const tt = useTableI18n();
 

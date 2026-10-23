@@ -7,14 +7,14 @@
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
-  import { LineChart, type CartesianDatum, type ChartSeries } from '@urbicon-ui/blocks';
+  import { type CartesianDatum, type ChartSeries, LineChart } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

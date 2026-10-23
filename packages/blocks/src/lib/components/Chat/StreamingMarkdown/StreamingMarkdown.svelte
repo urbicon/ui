@@ -1,16 +1,16 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import type { CitationSource } from '../CitationChip';
   import { createIncrementalParser } from '../markdown/blocks';
   import type { MarkdownParseOptions, MarkdownUrlPolicy } from '../markdown/types';
-  import type { CitationSource } from '../CitationChip';
+  import type { StreamingMarkdownProps } from './index';
   import MdBlock from './MdBlock.svelte';
   import type { MdRenderContext } from './md-context';
   import {
-    streamingMarkdownVariants,
-    type StreamingMarkdownVariants
+    type StreamingMarkdownVariants,
+    streamingMarkdownVariants
   } from './streaming-markdown.variants';
-  import type { StreamingMarkdownProps } from './index';
 
   const theme = useThemeProps('StreamingMarkdown', () => preset);
 

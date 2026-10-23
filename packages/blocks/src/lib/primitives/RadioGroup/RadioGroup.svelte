@@ -5,7 +5,7 @@
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { RadioGroupProps } from './index';
   import { setRadioGroupContext } from './radioGroup.context';
-  import { radioGroupVariants, type RadioGroupVariants } from './radioGroup.variants';
+  import { type RadioGroupVariants, radioGroupVariants } from './radioGroup.variants';
 
   const theme = useThemeProps('RadioGroup', () => preset);
 

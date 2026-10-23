@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CalendarWeekdayHeader from '../CalendarWeekdayHeader.svelte';
   // Test harness for CalendarWeekdayHeader. The component reads everything from
   // getCalendarContext(), so we stand up a minimal Calendar context and inject an
   // explicit `weekdays` array — the one input that drives the keyed {#each}.
@@ -13,8 +14,7 @@
   // (weekdays, showWeekNumbers, slotClasses, unstyled). unstyled:true short-circuits
   // the styles lookup in createSlotHelper, so the remaining context fields stay unused
   // and the cast is safe.
-  import { setCalendarContext, type CalendarContext } from '../calendar.context';
-  import CalendarWeekdayHeader from '../CalendarWeekdayHeader.svelte';
+  import { type CalendarContext, setCalendarContext } from '../calendar.context';
 
   let { weekdays, showWeekNumbers = false }: { weekdays: string[]; showWeekNumbers?: boolean } =
     $props();

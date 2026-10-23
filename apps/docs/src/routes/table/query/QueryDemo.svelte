@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Badge, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   // Live managed-source demo: `source={{ processing: 'server', query, debounceMs }}` runs against a
   // deterministic in-memory mock backend — search, sort, and pagination are
   // applied server-side (here: in this module) after an adjustable artificial
@@ -7,8 +8,7 @@
   // superseded ones aborted. The same demo-fetcher pattern drives the Combobox
   // async-search demo and the e2e remote fixture. Fully deterministic — no
   // network, no Math.random.
-  import { Table, type Column, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
-  import { Badge, SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
+  import { type Column, Table, type TablePage, type TableViewSnapshot } from '@urbicon-ui/table';
 
   type User = {
     id: number;

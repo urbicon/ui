@@ -1,14 +1,14 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { onDestroy } from 'svelte';
-  import { Popover } from '#lib/primitives/Popover/index.js';
-  import { getCalendarContext } from './calendar.context';
-  import { calendarVariants } from './calendar.variants';
-  import { isSameDay, formatDateFull } from '#lib/date/index.js';
+  import { formatDateFull, isSameDay } from '#lib/date/index.js';
   import { focusDayCell } from '#lib/internal/date-grid/index.js';
+  import { Popover } from '#lib/primitives/Popover/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarEventPopover from './CalendarEventPopover.svelte';
+  import { getCalendarContext } from './calendar.context';
+  import type { CalendarEvent, DayCellContext } from './calendar.types';
+  import { calendarVariants } from './calendar.variants';
 
   interface CalendarDayInternalProps {
     date: Date;

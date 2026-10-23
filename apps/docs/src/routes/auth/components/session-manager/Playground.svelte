@@ -1,10 +1,10 @@
 <!-- Knobless auth playground — see docs/DocsPageGuide.md → "Auth playgrounds
      carry no knobs". Stage: BasicDemo (mocked API), snippet: Basic.svelte. -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { PlaygroundConfigurator } from '@urbicon-ui/docs';
-  import BasicDemo from './examples/BasicDemo.svelte';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import basicCode from './examples/Basic.svelte?raw';
+  import BasicDemo from './examples/BasicDemo.svelte';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();
 </script>

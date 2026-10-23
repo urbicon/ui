@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TabPanelProps } from './index';
   import { getTabContext } from './tab.context';
-  import { tabVariants, type TabVariants } from './tab.variants';
-  import { fade } from 'svelte/transition';
-  import { resolveClassChain } from '#lib/utils/variants.js';
+  import { type TabVariants, tabVariants } from './tab.variants';
 
   let {
     value,

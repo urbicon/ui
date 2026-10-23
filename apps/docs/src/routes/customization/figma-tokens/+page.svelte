@@ -1,10 +1,17 @@
 <script lang="ts">
+  import type { FigmaToken, FigmaTokenGroup } from '@urbicon-ui/blocks';
+  import {
+    Badge,
+    Button,
+    Card,
+    DownloadIcon,
+    generateFigmaTokens,
+    generateFigmaTokensJSON,
+    Separator
+  } from '@urbicon-ui/blocks';
+  import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { Badge, Button, Card, DownloadIcon, Separator } from '@urbicon-ui/blocks';
-  import { generateFigmaTokens, generateFigmaTokensJSON } from '@urbicon-ui/blocks';
-  import type { FigmaToken, FigmaTokenGroup } from '@urbicon-ui/blocks';
-  import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   let copied = $state(false);
   let showFull = $state(false);

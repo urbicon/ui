@@ -1,9 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { resolveIcon } from '#lib/icons/index.js';
   import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
   import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
@@ -16,7 +16,7 @@
     scrollEdges,
     scrollTargetForStep
   } from './scroller.utils';
-  import { scrollerVariants, type ScrollerVariants } from './scroller.variants';
+  import { type ScrollerVariants, scrollerVariants } from './scroller.variants';
 
   const bt = useBlocksI18n();
 

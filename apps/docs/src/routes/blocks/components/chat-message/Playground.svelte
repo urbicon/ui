@@ -18,7 +18,6 @@
   abgeschrieben — der Schnipsel kann also nicht von der Vorschau abweichen.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { ChatMessage, type ChatMessageData } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -27,6 +26,7 @@
     PlaygroundConfigurator,
     serializeValue
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

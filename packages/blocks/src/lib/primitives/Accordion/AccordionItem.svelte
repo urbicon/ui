@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { accordionVariants, type AccordionVariants } from './accordion.variants';
-  import { getAccordionContext } from './accordion.context';
-  import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { Collapsible } from '../Collapsible';
+  import { getAccordionContext } from './accordion.context';
+  import { type AccordionVariants, accordionVariants } from './accordion.variants';
   import type { AccordionItemProps } from './index';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);

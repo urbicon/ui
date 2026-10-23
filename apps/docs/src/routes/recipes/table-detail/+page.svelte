@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { MediaQuery } from 'svelte/reactivity';
   import { Avatar, Badge, Card, Drawer } from '@urbicon-ui/blocks';
-  import { Table, TableColumns, type Column } from '@urbicon-ui/table';
-  import { useI18n } from '@urbicon-ui/i18n';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { useI18n } from '@urbicon-ui/i18n';
+  import { type Column, Table, TableColumns } from '@urbicon-ui/table';
+  import { MediaQuery } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   type OrderStatus = 'paid' | 'packing' | 'shipped' | 'refunded';
 

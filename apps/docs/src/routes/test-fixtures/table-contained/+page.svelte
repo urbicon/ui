@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { type Column, Table } from '@urbicon-ui/table';
   // E2E fixture for the contained scroll model (e2e/table-contained.spec.ts):
   // whether the box really caps, which layout renders at a given container ×
   // viewport pair, and where the pinned layers land.
@@ -29,7 +30,6 @@
   // one table and one app-shell bar, which is what `--blocks-table-avail-top`
   // reads.
   import { page } from '$app/state';
-  import { Table, type Column } from '@urbicon-ui/table';
 
   type Row = {
     id: number;

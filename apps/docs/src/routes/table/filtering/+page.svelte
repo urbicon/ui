@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { Table, createTableView, type Column } from '@urbicon-ui/table';
   import { Input, Slider } from '@urbicon-ui/blocks';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import { type Column, createTableView, Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, scriptOpen, scriptClose, type Employee } from '../_data';
+  import { basicColumns, type Employee, employees, scriptClose, scriptOpen } from '../_data';
 
   // ── External-search demo ───────────────────────────────────────────────────
   //

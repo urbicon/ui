@@ -1,13 +1,13 @@
 <script lang="ts">
   import { Checkbox } from '@urbicon-ui/blocks';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { type Column, Table } from '@urbicon-ui/table';
   import { InlineCode, Section } from '#lib';
   import { useDocsI18n, useDocsLocale } from '#lib/i18n/index.js';
   import { revealTableRow } from '#lib/utils/cross-reference.js';
   import { SEARCH_ABOVE_ROWS } from '../ApiReference/reference-table.js';
-  import { typesReferenceVariants } from './types-reference.variants';
+  import type { LocalTypeDef, TypesReferenceProps, TypeUsedByRef } from './index.js';
   import { extractLiteralValues } from './index.js';
-  import type { LocalTypeDef, TypeUsedByRef, TypesReferenceProps } from './index.js';
+  import { typesReferenceVariants } from './types-reference.variants';
 
   const dt = useDocsI18n();
   const docsLocale = useDocsLocale();

@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { CompositionBar, type CompositionItem, Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { CompositionBar, Kbd, type CompositionItem } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
     new Intl.NumberFormat('en-US', {

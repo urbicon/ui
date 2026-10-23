@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ApiReference, type ApiProp, CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
+  import { type ApiProp, ApiReference, CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
 
   // A hand-written stand-in for the generated `componentData.props`. The shape
   // is the real one — this is what `docs:gen` writes into every page's api.ts.

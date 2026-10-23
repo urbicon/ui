@@ -1,8 +1,8 @@
 <script lang="ts">
+  import { Badge, EyeIcon as EyeIconDefault, resolveIcon, Select } from '@urbicon-ui/blocks';
   import { useTableI18n } from '#lib';
   import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
-  import { Badge, Select, resolveIcon, EyeIcon as EyeIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
   import { buildColumnVisibilityEntries, toolEmptyKey } from './tool-columns';
 

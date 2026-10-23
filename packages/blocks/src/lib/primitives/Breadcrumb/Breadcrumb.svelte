@@ -3,8 +3,8 @@
   import { useBlocksI18n } from '#lib';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { breadcrumbVariants, type BreadcrumbVariants } from './breadcrumb.variants';
-  import type { BreadcrumbProps, BreadcrumbItem } from './index';
+  import { type BreadcrumbVariants, breadcrumbVariants } from './breadcrumb.variants';
+  import type { BreadcrumbItem, BreadcrumbProps } from './index';
 
   const bt = useBlocksI18n();
 

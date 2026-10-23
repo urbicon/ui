@@ -8,15 +8,15 @@
     Separator,
     Spinner
   } from '@urbicon-ui/blocks';
-  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount, tick } from 'svelte';
+  import { MAX_DISPLAY_NAME_LENGTH } from '../../../display-name.js';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
-  import type { PasskeyManagerProps } from './index.js';
-  import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
-  import { MAX_DISPLAY_NAME_LENGTH } from '../../../display-name.js';
+  import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
+  import type { PasskeyManagerProps } from './index.js';
 
   let {
     t: tProp,

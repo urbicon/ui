@@ -3,8 +3,8 @@
      system deliberately does not: a frosted-glass look. Tokenising it would delete the
      example. Every other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Button, Kbd, Stepper, StepperStep } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let interactiveStep = $state(0);

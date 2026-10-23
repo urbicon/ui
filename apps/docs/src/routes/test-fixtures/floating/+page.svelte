@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Button, Tooltip, Popover, Menu, Combobox } from '@urbicon-ui/blocks';
   import type { Placement } from '@urbicon-ui/blocks';
+  import { Button, Combobox, Menu, Popover, Tooltip } from '@urbicon-ui/blocks';
 
   const cardinalPlacements: Placement[] = ['top', 'bottom', 'left', 'right'];
 

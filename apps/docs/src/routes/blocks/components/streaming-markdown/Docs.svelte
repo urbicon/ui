@@ -1,11 +1,10 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { StaticMarkdown, WithCitations, UrlPolicy, CustomRenderer } from './examples';
-
-  import staticMarkdownCode from './examples/StaticMarkdown.svelte?raw';
-  import withCitationsCode from './examples/WithCitations.svelte?raw';
-  import urlPolicyCode from './examples/UrlPolicy.svelte?raw';
+  import { CustomRenderer, StaticMarkdown, UrlPolicy, WithCitations } from './examples';
   import customRendererCode from './examples/CustomRenderer.svelte?raw';
+  import staticMarkdownCode from './examples/StaticMarkdown.svelte?raw';
+  import urlPolicyCode from './examples/UrlPolicy.svelte?raw';
+  import withCitationsCode from './examples/WithCitations.svelte?raw';
 </script>
 
 <Section marker id="examples" title="Examples">

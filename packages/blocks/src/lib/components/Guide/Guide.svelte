@@ -4,19 +4,19 @@
   import { useBlocksI18n } from '#lib/i18n/index.js';
   import { Button } from '#lib/primitives/Button/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import {
-    computePosition,
     autoUpdate,
+    computePosition,
     flip,
-    shift,
+    arrow as floatingArrow,
     offset,
-    arrow as floatingArrow
+    shift
   } from '#lib/utils/floating.js';
   import { observeTargetResolution } from '#lib/utils/observe-target.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
-  import { guideTourVariants, type GuideTourVariants } from './guide.variants';
+  import { type GuideTourVariants, guideTourVariants } from './guide.variants';
   import type { GuideProps } from './index';
 
   const bt = useBlocksI18n();

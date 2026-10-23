@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { SearchIcon } from '@urbicon-ui/blocks';
   import {
     CodeExample,
@@ -9,6 +8,7 @@
     Section
   } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { basicColumns, scriptClose, scriptOpen } from '../_data';
 

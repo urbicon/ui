@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ReasoningDisclosure, type ChatReasoningPart } from '@urbicon-ui/blocks';
+  import { type ChatReasoningPart, ReasoningDisclosure } from '@urbicon-ui/blocks';
 
   const reasoning: ChatReasoningPart = {
     type: 'reasoning',

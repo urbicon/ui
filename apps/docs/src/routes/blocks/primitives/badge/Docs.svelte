@@ -3,8 +3,8 @@
      because frosted glass has no token equivalent. Every other section on this page stays under the
      rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Badge, Button, Kbd } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let filters = $state<string[]>(['Active', 'Premium', 'Last 7 days']);

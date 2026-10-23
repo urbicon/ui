@@ -4,9 +4,9 @@
      utility. -->
 
 <script lang="ts">
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
 
   const activationExample = `<!-- apps/docs/src/app.html — Color Rooms is the shipped default -->
 <html lang="en" class="docs-rooms">

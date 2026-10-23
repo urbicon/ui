@@ -8,13 +8,13 @@
     Separator,
     Spinner
   } from '@urbicon-ui/blocks';
-  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorTextFromBody, getJson, parseJsonBody } from '../../utils/http.js';
-  import type { SessionManagerProps } from './index.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
+  import type { SessionManagerProps } from './index.js';
 
   let {
     t: tProp,

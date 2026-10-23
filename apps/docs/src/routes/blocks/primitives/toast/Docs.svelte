@@ -3,8 +3,8 @@
      hue the intent palette has no equivalent for. Every other section on this page stays under
      the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Kbd, toaster } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let counter = $state(0);

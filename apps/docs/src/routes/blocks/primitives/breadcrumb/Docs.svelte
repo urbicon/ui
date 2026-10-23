@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Breadcrumb,
+    type BreadcrumbItem,
     ChevronRightIcon,
     HomeIcon,
-    Kbd,
-    type BreadcrumbItem
+    Kbd
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   // Demo-only items don't navigate; they only illustrate the component's

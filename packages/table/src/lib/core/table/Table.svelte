@@ -1,42 +1,43 @@
 <script lang="ts" generics="T = TableItem">
-  import type { TableProps } from './index';
-  import type { TableItem, Column } from '#lib/types/tableTypes.js';
-  import type { TableSource } from '#lib/view/source.js';
-  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
   import {
-    CARDS_BELOW_VALUES,
-    tableContainerVariants,
-    type TableContainerVariantProps
-  } from '#lib/variants/index.js';
-  import {
+    ChevronLeftIcon as ChevronLeftIconDefault,
+    ChevronRightIcon as ChevronRightIconDefault,
     getBlocksConfig,
     Pagination,
     resolveIcon,
     resolveSlotClasses,
-    useThemeProps,
-    ChevronLeftIcon as ChevronLeftIconDefault,
-    ChevronRightIcon as ChevronRightIconDefault
+    useThemeProps
   } from '@urbicon-ui/blocks';
+  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import {
+    CARDS_BELOW_VALUES,
+    type TableContainerVariantProps,
+    tableContainerVariants
+  } from '#lib/variants/index.js';
+  import type { TableSource } from '#lib/view/source.js';
   import SmartFilterBar from '../../features/SmartFilterBar/SmartFilterBar.svelte';
+  import type { TableProps } from './index';
 
   const ChevronLeftIcon = resolveIcon('chevronLeft', ChevronLeftIconDefault);
   const ChevronRightIcon = resolveIcon('chevronRight', ChevronRightIconDefault);
-  import LiveUpdateBanner from '../../features/LiveUpdateBanner.svelte';
+
   import { useTableI18n } from '#lib/i18n/index.js';
-  import TableDesktop from '../TableDesktop.svelte';
-  import TableMobile from '../TableMobile.svelte';
-  import TableProvider from '../TableProvider.svelte';
-  import {
-    setTableStyleContext,
-    resolveSlotClass,
-    type TableSlotClasses
-  } from '../table-style-context';
-  import { createStickyState, resolveStickyMode, setStickyContext } from '../sticky-context.svelte';
   import {
     measureToCssVar,
     measureViewportOffsetTop,
     observeStuck
   } from '#lib/utils/sticky-measure.js';
+  import LiveUpdateBanner from '../../features/LiveUpdateBanner.svelte';
+  import { createStickyState, resolveStickyMode, setStickyContext } from '../sticky-context.svelte';
+  import TableDesktop from '../TableDesktop.svelte';
+  import TableMobile from '../TableMobile.svelte';
+  import TableProvider from '../TableProvider.svelte';
+  import {
+    resolveSlotClass,
+    setTableStyleContext,
+    type TableSlotClasses
+  } from '../table-style-context';
 
   const tt = useTableI18n();
 

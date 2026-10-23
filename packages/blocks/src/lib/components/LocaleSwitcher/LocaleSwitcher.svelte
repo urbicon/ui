@@ -1,12 +1,12 @@
 <script lang="ts">
+  import type { Locale } from '@urbicon-ui/i18n';
+  import { useI18n } from '@urbicon-ui/i18n';
+  import { getBlocksLocales, useBlocksI18n } from '#lib';
   import Select from '#lib/primitives/Select/Select.svelte';
   import { useThemeProps } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { getTierContext } from '#lib/utils/tier-context.js';
   import type { LocaleSwitcherProps } from './index';
-  import { useBlocksI18n, getBlocksLocales } from '#lib';
-  import { useI18n } from '@urbicon-ui/i18n';
-  import type { Locale } from '@urbicon-ui/i18n';
 
   const bt = useBlocksI18n();
   const i18n = useI18n();

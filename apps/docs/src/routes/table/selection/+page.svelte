@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { Button } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -8,9 +8,9 @@
     Section
   } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
-  import { Button } from '@urbicon-ui/blocks';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, scriptClose } from '../_data';
+  import { basicColumns, employees, scriptClose } from '../_data';
 
   // The snippets declare typed state, which only compiles in a `lang="ts"`
   // block — the same pair the other table pages use.

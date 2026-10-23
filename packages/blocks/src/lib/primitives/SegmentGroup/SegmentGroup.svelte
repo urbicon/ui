@@ -2,13 +2,13 @@
   import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { composeHandlers } from '#lib/utils/compose-handlers.js';
-  import { type CollapseMark, hostHasRoomAgain } from './overflow';
-  import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
-  import { setSegmentGroupContext } from './segmentGroup.context';
   import type { RegisteredSegment, SegmentGroupContext, SegmentGroupProps } from './index';
+  import { type CollapseMark, hostHasRoomAgain } from './overflow';
+  import { setSegmentGroupContext } from './segmentGroup.context';
+  import { type SegmentGroupVariants, segmentGroupVariants } from './segmentgroup.variants';
 
   const theme = useThemeProps('SegmentGroup', () => preset);
 

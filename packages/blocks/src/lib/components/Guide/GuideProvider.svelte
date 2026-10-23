@@ -1,7 +1,7 @@
 <script lang="ts">
   import { GuideController } from '#lib/utils/index.js';
-  import type { GuideProviderProps } from './index';
   import { setGuideContext } from './guide.context';
+  import type { GuideProviderProps } from './index';
 
   let { storage, navigate, controller, children }: GuideProviderProps = $props();
 

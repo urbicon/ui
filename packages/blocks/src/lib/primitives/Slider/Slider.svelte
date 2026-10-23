@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { useBlocksI18n, mintAttachment } from '#lib';
-  import { resolveIcon } from '#lib/icons/index.js';
+  import { mintAttachment, useBlocksI18n } from '#lib';
   import AlertCircleIconDefault from '#lib/icons/AlertCircleIcon.svelte';
   import CheckCircleIconDefault from '#lib/icons/CheckCircleIcon.svelte';
   import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { SliderProps } from './index';
-  import { sliderVariants, type SliderVariants } from './slider.variants';
+  import { type SliderVariants, sliderVariants } from './slider.variants';
 
   const bt = useBlocksI18n();
 

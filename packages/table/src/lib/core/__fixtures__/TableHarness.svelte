@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Table from '../table/Table.svelte';
   import type { Column } from '#lib/types/tableTypes.js';
+  import Table from '../table/Table.svelte';
 
   /**
    * Minimal mountable/renderable table.

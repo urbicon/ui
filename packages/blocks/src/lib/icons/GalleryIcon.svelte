@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { IconProps } from './icon.context';
   import IconWrapper from './IconWrapper.svelte';
+  import type { IconProps } from './icon.context';
   import content from './svg/gallery.svg?raw';
 
   let props: IconProps = $props();

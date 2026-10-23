@@ -1,17 +1,17 @@
 <script lang="ts">
   import {
-    resolveIcon,
     Checkbox,
+    ChevronDownIcon as ChevronDownIconDefault,
+    ChevronsDownUpIcon as ChevronsDownUpIconDefault,
+    ChevronsUpDownIcon as ChevronsUpDownIconDefault,
+    ChevronUpIcon as ChevronUpIconDefault,
     createDraggable,
     findDropTarget,
-    ChevronDownIcon as ChevronDownIconDefault,
-    ChevronUpIcon as ChevronUpIconDefault,
-    ChevronsDownUpIcon as ChevronsDownUpIconDefault,
-    ChevronsUpDownIcon as ChevronsUpDownIconDefault
+    resolveIcon
   } from '@urbicon-ui/blocks';
   import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
-  import { resolveColumnId } from '#lib/utils/index.js';
   import { isColumnSortable } from '#lib/utils/column-capabilities.js';
+  import { resolveColumnId } from '#lib/utils/index.js';
   import { SUMMARY_TYPE_GLYPH } from '#lib/utils/summary-types.js';
   import { headerSelection } from './header-selection';
   import { structuralColumns } from './structural-columns';
@@ -20,13 +20,14 @@
   const ChevronUpIcon = resolveIcon('chevronUp', ChevronUpIconDefault);
   const ChevronsDownUpIcon = resolveIcon('chevronsDownUp', ChevronsDownUpIconDefault);
   const ChevronsUpDownIcon = resolveIcon('chevronsUpDown', ChevronsUpDownIconDefault);
+
+  import { measureToCssVar } from '#lib/utils/sticky-measure.js';
+  import { headerIndicatorVariants, tableHeaderVariants } from '#lib/variants/index.js';
+  import { TABLE_INDICATORS } from '#lib/variants/table.system.js';
   import HeaderMenu from '../features/HeaderMenu.svelte';
   import { useTableI18n } from '../i18n';
-  import { tableHeaderVariants, headerIndicatorVariants } from '#lib/variants/index.js';
-  import { TABLE_INDICATORS } from '#lib/variants/table.system.js';
-  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { getStickyContext } from './sticky-context.svelte';
-  import { measureToCssVar } from '#lib/utils/sticky-measure.js';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();
 

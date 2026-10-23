@@ -4,8 +4,8 @@
      brand gradient the intent palette has no equivalent for. Every other section on this page
      stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Kbd, ThemeSwitcher, Toggle } from '@urbicon-ui/blocks';
+  import { CodeExample, Section } from '@urbicon-ui/docs';
 </script>
 
 <Section marker id="examples" title="Examples">

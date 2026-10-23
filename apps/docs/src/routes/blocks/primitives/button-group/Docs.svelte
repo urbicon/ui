@@ -3,26 +3,26 @@
      the raw colours cover the glass fill, border, blur and white icons — a frosted-glass look the
      token palette has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     AlignCenterIcon,
     AlignLeftIcon,
     AlignRightIcon,
+    BlocksProvider,
     BoldIcon,
     Button,
     ButtonGroup,
+    type ButtonGroupValue,
     GalleryIcon,
     ItalicIcon,
     Kbd,
     ListIcon,
     MapIcon,
     MapPinIcon,
-    type ButtonGroupValue,
     UnderlineIcon,
     ZoomInIcon,
-    ZoomOutIcon,
-    BlocksProvider
+    ZoomOutIcon
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   // View switcher — single selection. ButtonGroupValue is string | string[] | undefined.

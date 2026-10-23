@@ -2,8 +2,8 @@
   import { useBlocksI18n } from '#lib';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { skeletonVariants, type SkeletonVariants } from './skeleton.variants';
   import type { SkeletonProps } from './index';
+  import { type SkeletonVariants, skeletonVariants } from './skeleton.variants';
 
   const bt = useBlocksI18n();
 

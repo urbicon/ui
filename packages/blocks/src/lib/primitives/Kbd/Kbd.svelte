@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { kbdVariants } from './kbd.variants';
   import type { KbdProps } from './index';
+  import { kbdVariants } from './kbd.variants';
 
   const theme = useThemeProps('Kbd', () => preset);
 

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { mintAttachment } from '#lib';
-  import { resolveIcon } from '#lib/icons/index.js';
   import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { getMenuContext, getMenuParentId } from './menu.context';
   import { menuIconVariants } from './menu.variants';

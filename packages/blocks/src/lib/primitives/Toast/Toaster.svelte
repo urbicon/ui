@@ -1,21 +1,21 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
   import { untrack } from 'svelte';
   import { fly } from 'svelte/transition';
-  import { getOverlayMotion } from '#lib/utils/index.js';
-  import { toastVariants, type ToastVariants } from './toast.variants';
-  import { toaster } from './toast.store.svelte';
-  import { resolveIcon, type IconComponent } from '#lib/icons/index.js';
+  import { useBlocksI18n } from '#lib';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
   import InfoCircleIconDefault from '#lib/icons/InfoCircleIcon.svelte';
+  import { type IconComponent, resolveIcon } from '#lib/icons/index.js';
   import SuccessCircleIconDefault from '#lib/icons/SuccessCircleIcon.svelte';
   import WarningTriangleIconDefault from '#lib/icons/WarningTriangleIcon.svelte';
-  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '#lib/internal/core/CoreSpinner.svelte';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
+  import { getOverlayMotion } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ToastData, ToastProps } from './index';
+  import { toaster } from './toast.store.svelte';
+  import { type ToastVariants, toastVariants } from './toast.variants';
 
   const bt = useBlocksI18n();
 

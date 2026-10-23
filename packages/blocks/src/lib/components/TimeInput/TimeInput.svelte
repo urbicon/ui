@@ -1,14 +1,14 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
+  import ClockIconDefault from '#lib/icons/ClockIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import ClockIconDefault from '#lib/icons/ClockIcon.svelte';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TimeInputProps } from './index';
-  import { timeInputVariants, type TimeInputVariants } from './time-input.variants';
+  import { type TimeInputVariants, timeInputVariants } from './time-input.variants';
 
   const bt = useBlocksI18n();
   const ClockIcon = resolveIcon('clock', ClockIconDefault);

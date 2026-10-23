@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns } from '../_data';
+  import { basicColumns, employees } from '../_data';
 </script>
 
 <SeoMeta

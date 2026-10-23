@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Locale } from '@urbicon-ui/i18n';
   // Test-only harness for LocaleSwitcher — it reads the active locale via useI18n() and calls the
   // write-strict setLocale(), which throws without an <I18nProvider>. provideI18n (the primitive
   // behind <I18nProvider>) installs the request-scoped I18nState on this harness's context, so the
@@ -6,9 +7,8 @@
   // actually moved the locale (setLocale), not just fired the callback. Under __fixtures__/ so it is
   // excluded from the published package and never collected as a test file.
   import { provideI18n } from '@urbicon-ui/i18n';
-  import type { Locale } from '@urbicon-ui/i18n';
-  import LocaleSwitcher from '../LocaleSwitcher.svelte';
   import type { LocaleSwitcherProps } from '../index';
+  import LocaleSwitcher from '../LocaleSwitcher.svelte';
 
   let {
     initialLocale = 'en',

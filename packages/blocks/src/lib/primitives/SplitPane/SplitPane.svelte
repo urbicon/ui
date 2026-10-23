@@ -5,7 +5,7 @@
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { SplitPaneProps } from './index';
   import { clampRatio, parseLimit, ratioFromPointer, resolveDragRatio } from './split-pane.utils';
-  import { splitPaneVariants, type SplitPaneVariants } from './split-pane.variants';
+  import { type SplitPaneVariants, splitPaneVariants } from './split-pane.variants';
 
   let {
     start,

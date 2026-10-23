@@ -12,7 +12,6 @@
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import type { AuthUser } from '../../../types.js';
-  import type { AccountSettingsProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
   import {
     passwordRefusalFromBody,
@@ -22,6 +21,7 @@
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
+  import type { AccountSettingsProps } from './index.js';
 
   let {
     user,

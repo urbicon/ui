@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Planner, Button, PlusIcon } from '@urbicon-ui/blocks';
+  import { Button, Planner, PlusIcon } from '@urbicon-ui/blocks';
 
   type MealType = 'breakfast' | 'lunch' | 'dinner';
   interface Meal {

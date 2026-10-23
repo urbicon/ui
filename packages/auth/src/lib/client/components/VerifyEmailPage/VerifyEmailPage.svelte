@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { Spinner, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { getBlocksConfig, Spinner } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import { postJson, wireError } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
-  import type { VerifyEmailPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
+  import type { VerifyEmailPageProps } from './index.js';
 
   let {
     t: tProp,

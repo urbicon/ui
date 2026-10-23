@@ -2,11 +2,10 @@
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import ChatComposer from './examples/ChatComposer.svelte';
-  import WithAttachments from './examples/WithAttachments.svelte';
-  import WithModelSelect from './examples/WithModelSelect.svelte';
-
   import chatComposerCode from './examples/ChatComposer.svelte?raw';
+  import WithAttachments from './examples/WithAttachments.svelte';
   import withAttachmentsCode from './examples/WithAttachments.svelte?raw';
+  import WithModelSelect from './examples/WithModelSelect.svelte';
   import withModelSelectCode from './examples/WithModelSelect.svelte?raw';
 </script>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
   import type { CalendarEvent } from './calendar.types';
 
   interface CalendarEventPopoverInternalProps {

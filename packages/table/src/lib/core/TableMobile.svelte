@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { headingTag } from '@urbicon-ui/blocks';
+  import type { Snippet } from 'svelte';
   import { useTableI18n } from '#lib/i18n/index.js';
-  import MobileCard from './MobileCard.svelte';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import { resolveColumnLabelById, resolveRowItemId } from '#lib/utils/index.js';
   import { mobileListVariants } from '#lib/variants/index.js';
-  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { groupCountText } from './group-count';
-  import type { Column, TableItem } from '#lib/types/tableTypes.js';
-  import type { Snippet } from 'svelte';
-  import { headingTag } from '@urbicon-ui/blocks';
+  import MobileCard from './MobileCard.svelte';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();
 

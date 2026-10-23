@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '#lib';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
+  import { getTableContext, useTableI18n } from '#lib';
   import ToolEmptyNote from './ToolEmptyNote.svelte';
   import { buildGroupingEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 

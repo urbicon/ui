@@ -3,8 +3,8 @@
      scroll lock, and only the fill, border and neon glow are raw — a terminal green the token
      palette has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Dialog, Input, Kbd, SearchIcon, TrashIcon } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let basicOpen = $state(false);

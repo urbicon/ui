@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { Popover } from '#lib/primitives/Popover/index.js';
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
+  import CalendarEventPopover from './CalendarEventPopover.svelte';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
   import { draggableEvent, resizableEvent } from './calendar.drag';
   import { getContrastTextColor } from './calendar.engine';
   import type { CalendarEvent, DateCategory } from './calendar.types';
-  import CalendarEventPopover from './CalendarEventPopover.svelte';
 
   interface CalendarTimeEventInternalProps {
     event: CalendarEvent;

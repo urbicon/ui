@@ -1,16 +1,16 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import {
-    useFloatingPanel,
-    floatingPanelHidden,
-    maxTransitionDurationMs
-  } from '#lib/utils/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import {
+    floatingPanelHidden,
+    maxTransitionDurationMs,
+    useFloatingPanel
+  } from '#lib/utils/index.js';
   import { overlayStack } from '#lib/utils/overlay-stack.svelte.js';
-  import { popoverVariants } from './popover.variants';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { PopoverProps } from './index';
+  import { popoverVariants } from './popover.variants';
 
   const theme = useThemeProps('Popover', () => preset);
 

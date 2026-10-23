@@ -7,7 +7,6 @@
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { DatePicker } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -16,6 +15,7 @@
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
   import { useI18n } from '@urbicon-ui/i18n';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

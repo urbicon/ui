@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Combobox from '../Combobox.svelte';
   // Test-only composition harness for multi-select Combobox. Two things a plain
   // `mount(Combobox, { props })` can't do drive this instead:
   //   • `customTag` is a Snippet prop — a real `{#snippet}` composition exercises
@@ -8,7 +9,6 @@
   // Lives under __fixtures__/ so it's excluded from the published package
   // (package.json `files`) and never collected as a test (no .test/.spec).
   import type { ComboboxOption } from '../index';
-  import Combobox from '../Combobox.svelte';
 
   // Combobox widens its generic `T` to the constraint `string | number | boolean`
   // at the use site (same reason the test helper types props at that width), so

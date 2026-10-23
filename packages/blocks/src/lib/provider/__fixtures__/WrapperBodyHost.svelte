@@ -3,8 +3,8 @@
   import ConfirmDialog from '#lib/primitives/ConfirmDialog/ConfirmDialog.svelte';
   import Input from '#lib/primitives/Input/Input.svelte';
   import Select from '#lib/primitives/Select/Select.svelte';
-  import type { ComponentDefaults } from '../blocks-context';
   import BlocksProvider from '../BlocksProvider.svelte';
+  import type { ComponentDefaults } from '../blocks-context';
 
   // A field in the *body* of a wrapper's dialog, not in the wrapper's own
   // markup. At runtime it is a child of the Dialog that ConfirmDialog wraps, so

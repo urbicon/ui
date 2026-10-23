@@ -2,8 +2,8 @@
   import { ForgotPasswordPage } from '@urbicon-ui/auth';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   const recipeCode = `// 1. src/routes/api/auth/forgot-password/+server.ts — request a reset link
 import { createForgotPasswordHandler } from '@urbicon-ui/auth/server';

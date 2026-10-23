@@ -3,8 +3,8 @@
   // it, so the label-association tests mount that wiring and nothing else. Under __fixtures__/
   // so it is excluded from the published package.
   import FormField from '#lib/primitives/FormField/FormField.svelte';
-  import type { FileUploadFile, FileUploadProps } from '../index';
   import FileUpload from '../FileUpload.svelte';
+  import type { FileUploadFile, FileUploadProps } from '../index';
 
   let {
     error,

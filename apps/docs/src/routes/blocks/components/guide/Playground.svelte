@@ -7,7 +7,6 @@
   The rest (Marker, Mention, Provider) is wiring, not a knob.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import {
     GuideArticle,
     GuideController,
@@ -23,6 +22,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData as panelData } from '../guide-panel/api';
   import playgroundSource from './Playground.svelte?raw';
 

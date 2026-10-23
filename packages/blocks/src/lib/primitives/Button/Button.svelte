@@ -6,11 +6,11 @@
   // Button's mint default is 'scale', so the scale factory ships statically
   // as the apply() fallback; every other mint name stays demand-loaded.
   import { scaleMint } from '#lib/mint/engine.js';
+  import { type ButtonVariants, buttonVariants } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
-  import { buttonVariants, type ButtonVariants } from '#lib/primitives/index.js';
   import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
   import type { ButtonProps } from './index';
 
   const theme = useThemeProps('Button', () => preset);

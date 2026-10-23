@@ -19,13 +19,9 @@
   established for Dialog/Popover/Tooltip.
 -->
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { BLOCKS_COMPONENT_COUNT, navigationItems } from '#lib/navigation.js';
   import {
-    A2UIView,
     A2UI_CATALOG_ID,
-    URBICON_A2UI_CATALOG_ID,
-    urbiconA2uiCatalog,
+    A2UIView,
     Accordion,
     AccordionItem,
     Alert,
@@ -68,8 +64,8 @@
     Input,
     JourneyTimeline,
     Kbd,
-    Link,
     LineChart,
+    Link,
     LocaleSwitcher,
     Menu,
     NumberInput,
@@ -104,9 +100,13 @@
     TimeInput,
     Toggle,
     Toolbar,
-    ToolCallCard
+    ToolCallCard,
+    URBICON_A2UI_CATALOG_ID,
+    urbiconA2uiCatalog
   } from '@urbicon-ui/blocks';
   import { ScrollSpy } from '@urbicon-ui/docs';
+  import { BLOCKS_COMPONENT_COUNT, navigationItems } from '#lib/navigation.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
 
   // ── Chapters — derived from the sidebar nav (single source of truth) ──

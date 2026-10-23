@@ -1,12 +1,12 @@
 <script lang="ts">
   import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import LiveDemo from './examples/LiveDemo.svelte';
-  import UrbiconDemo from './examples/UrbiconDemo.svelte';
   import BrokenPayload from './examples/BrokenPayload.svelte';
+  import brokenPayloadCode from './examples/BrokenPayload.svelte?raw';
+  import LiveDemo from './examples/LiveDemo.svelte';
 
   import liveDemoCode from './examples/LiveDemo.svelte?raw';
+  import UrbiconDemo from './examples/UrbiconDemo.svelte';
   import urbiconDemoCode from './examples/UrbiconDemo.svelte?raw';
-  import brokenPayloadCode from './examples/BrokenPayload.svelte?raw';
 
   const wiringCode = `<script lang="ts">
   import {

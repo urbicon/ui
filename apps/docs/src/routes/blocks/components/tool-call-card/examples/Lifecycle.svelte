@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Button, type ChatToolCallPart, ToolCallCard } from '@urbicon-ui/blocks';
   import { onDestroy } from 'svelte';
-  import { Button, ToolCallCard, type ChatToolCallPart } from '@urbicon-ui/blocks';
 
   // The consumer owns the part and mutates its `state` / `output` as the
   // real call resolves — here a timer stands in for the transport layer.

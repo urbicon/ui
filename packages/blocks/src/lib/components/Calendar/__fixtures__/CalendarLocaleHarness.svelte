@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Locale } from '@urbicon-ui/i18n';
   // Test-only harness for the Calendar locale chain. Calendar resolves `locale="auto"` through
   // useI18n(), which reads the request-scoped I18nState from context — so proving the chain needs a
   // parent that installs one. `provideI18n` is the primitive behind <I18nProvider>; passing
@@ -7,7 +8,6 @@
   //
   // Under __fixtures__/ so it is excluded from the published package and never collected as a test.
   import { provideI18n } from '@urbicon-ui/i18n';
-  import type { Locale } from '@urbicon-ui/i18n';
   import Calendar from '../Calendar.svelte';
   import type { CalendarProps } from '../index';
 

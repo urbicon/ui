@@ -1,44 +1,44 @@
 <script lang="ts">
-  import { SvelteMap, MediaQuery } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { calendarVariants, type CalendarVariants } from './calendar.variants';
-  import { setCalendarContext, type CalendarContext } from './calendar.context';
+  import { MediaQuery, SvelteMap } from 'svelte/reactivity';
   import {
-    getYearMonths,
+    addDays,
+    clampDate,
+    clampMonth,
+    daysInMonth,
     formatDateRange,
     formatDayTitle,
     formatMonthYear,
+    getYearMonths,
     isInMonth,
-    toIso,
     stripTime,
-    addDays,
-    clampMonth,
-    clampDate,
-    daysInMonth
+    toIso
   } from '#lib/date/index.js';
+  import type { DateGridSelection, DateGridView } from '#lib/internal/date-grid/index.js';
   import { DateGridController } from '#lib/internal/date-grid/index.js';
   import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
-  import type { DateGridSelection, DateGridView } from '#lib/internal/date-grid/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { compareDayEvents, getEventDayInfo, expandRecurrence } from './calendar.engine';
-  import type { CalendarProps } from './index';
+  import CalendarAgendaView from './CalendarAgendaView.svelte';
+  import CalendarDayView from './CalendarDayView.svelte';
+  import CalendarEventList from './CalendarEventList.svelte';
+  import CalendarGrid from './CalendarGrid.svelte';
+  import CalendarHeader from './CalendarHeader.svelte';
+  import CalendarLegend from './CalendarLegend.svelte';
+  import CalendarMiniMonth from './CalendarMiniMonth.svelte';
+  import CalendarWeekGrid from './CalendarWeekGrid.svelte';
+  import CalendarYearGrid from './CalendarYearGrid.svelte';
+  import { type CalendarContext, setCalendarContext } from './calendar.context';
+  import { compareDayEvents, expandRecurrence, getEventDayInfo } from './calendar.engine';
   import type {
     CalendarEvent,
-    DateCategory,
     CalendarViewMode,
+    DateCategory,
     DateRange,
     EventDayInfo
   } from './calendar.types';
-  import CalendarHeader from './CalendarHeader.svelte';
-  import CalendarGrid from './CalendarGrid.svelte';
-  import CalendarYearGrid from './CalendarYearGrid.svelte';
-  import CalendarWeekGrid from './CalendarWeekGrid.svelte';
-  import CalendarDayView from './CalendarDayView.svelte';
-  import CalendarAgendaView from './CalendarAgendaView.svelte';
-  import CalendarLegend from './CalendarLegend.svelte';
-  import CalendarEventList from './CalendarEventList.svelte';
-  import CalendarMiniMonth from './CalendarMiniMonth.svelte';
+  import { type CalendarVariants, calendarVariants } from './calendar.variants';
+  import type { CalendarProps } from './index';
 
   const theme = useThemeProps('Calendar', () => preset);
 

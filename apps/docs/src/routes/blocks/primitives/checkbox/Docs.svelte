@@ -3,8 +3,8 @@
      animation, and only the gradient fill, glow and border are raw — a violet→fuchsia glow the
      token palette has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Checkbox, Kbd } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let tasks = $state([

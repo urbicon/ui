@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Card, Skeleton } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Skeleton, Card } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 

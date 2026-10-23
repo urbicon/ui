@@ -1,8 +1,8 @@
 <script lang="ts">
   import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
+  import { onMount } from 'svelte';
   import { useAppI18n } from '#lib/i18n/index.js';
   import { clearStored, readStored, writeStored } from '#lib/storage.js';
-  import { onMount } from 'svelte';
 
   const ta = useAppI18n();
 

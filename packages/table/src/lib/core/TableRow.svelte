@@ -1,22 +1,23 @@
 <script lang="ts">
   import {
-    resolveIcon,
     Checkbox,
-    ChevronDownIcon as ChevronDownIconDefault
+    ChevronDownIcon as ChevronDownIconDefault,
+    resolveIcon
   } from '@urbicon-ui/blocks';
   import { slide } from 'svelte/transition';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
-  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+
+  import type { Snippet } from 'svelte';
   import { useTableI18n } from '#lib/i18n/index.js';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import { resolveColumnId, resolveRowItemId } from '#lib/utils/index.js';
   import { tableRowVariants } from '#lib/variants/index.js';
-  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { resolveRowClickActions } from './row-interaction';
   import { structuralColumns } from './structural-columns';
   import TableCell from './TableCell.svelte';
-  import { resolveColumnId, resolveRowItemId } from '#lib/utils/index.js';
-  import type { Column, TableItem } from '#lib/types/tableTypes.js';
-  import type { Snippet } from 'svelte';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();
 

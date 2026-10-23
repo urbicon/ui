@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Button,
     EyeIcon,
@@ -10,6 +9,7 @@
     MailIcon,
     SearchIcon
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let searchValue = $state('Svelte components');

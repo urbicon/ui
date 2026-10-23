@@ -1,6 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -8,6 +6,8 @@
     NoteList,
     Section
   } from '@urbicon-ui/docs';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { resolve } from '$app/paths';
   import { scriptClose, scriptOpen } from '../_data';
   import UrlStateDemo from './UrlStateDemo.svelte';
 

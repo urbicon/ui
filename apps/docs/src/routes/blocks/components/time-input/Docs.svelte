@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { DatePicker, Kbd, TimeInput, toDateInputValue } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   let startTime = $state('09:30');
   let meetingTime = $state('14:15');

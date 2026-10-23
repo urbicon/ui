@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
   import ArrowDownIconDefault from '#lib/icons/ArrowDownIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import MessageSquareIconDefault from '#lib/icons/MessageSquareIcon.svelte';
   import { Badge } from '#lib/primitives/Badge/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { EmptyState } from '../../EmptyState';
-  import type { ChatMessageData, ChatMessageStatus } from '../chat.types';
   import ChatMessage from '../ChatMessage/ChatMessage.svelte';
+  import type { ChatMessageData, ChatMessageStatus } from '../chat.types';
   import { chatMessageListVariants } from './chat-message-list.variants';
   import {
     appendedCount,

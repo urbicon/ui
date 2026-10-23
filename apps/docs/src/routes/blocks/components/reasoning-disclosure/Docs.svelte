@@ -1,13 +1,13 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import Settled from './examples/Settled.svelte';
-  import StreamingSim from './examples/StreamingSim.svelte';
   import Localized from './examples/Localized.svelte';
+  import localizedCode from './examples/Localized.svelte?raw';
+  import Settled from './examples/Settled.svelte';
 
   import settledCode from './examples/Settled.svelte?raw';
+  import StreamingSim from './examples/StreamingSim.svelte';
   import streamingSimCode from './examples/StreamingSim.svelte?raw';
-  import localizedCode from './examples/Localized.svelte?raw';
 </script>
 
 <Section marker id="examples" title="Examples">

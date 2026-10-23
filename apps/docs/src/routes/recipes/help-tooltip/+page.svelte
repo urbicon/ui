@@ -1,17 +1,17 @@
 <script lang="ts">
   import { InfoCircleIcon, Input, Slider, Tooltip } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { glossary } from './glossary';
+  import glossaryCode from './glossary.ts?raw';
   // The two files the page shows are real siblings: the demo imports them and
   // the code panels render their source (?raw), so neither can drift. Real is
   // also what Vite's dependency scanner needs — it resolves the
   // `.svelte`-suffixed import it regex-finds inside the recipeCode literal,
   // and a path with no file behind it fails the whole scan with ENOENT.
   import HelpTooltip from './HelpTooltip.svelte';
-  import { glossary } from './glossary';
   import helpTooltipCode from './HelpTooltip.svelte?raw';
-  import glossaryCode from './glossary.ts?raw';
+  import { recipeMeta } from './meta';
 
   let consumptionShare = $state(70);
   let temperature = $state(60);

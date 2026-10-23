@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
   import { BlocksProvider } from '@urbicon-ui/blocks';
+  import { untrack } from 'svelte';
   import { DEFAULT_LIVERY, LIVERIES, liveryById } from '#lib/livery/index.js';
   // Livery-Tokens + Container-Shim reisen mit der Kachel — nur Routen, die eine
   // Livery zeigen, laden das CSS (in chat-demo lag es global in app.css).

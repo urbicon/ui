@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import type { GuideTour } from '@urbicon-ui/blocks';
   import {
     Button,
     Guide,
@@ -12,7 +12,7 @@
     GuideRef,
     Kbd
   } from '@urbicon-ui/blocks';
-  import type { GuideTour } from '@urbicon-ui/blocks';
+  import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   // Each demo owns an isolated controller (one engine per provider). dev:false keeps the
   // docs console quiet; once:false on the demo tour/beacon makes them endlessly repeatable.

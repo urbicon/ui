@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { A2UI_CATALOG_ID, A2UIView, type A2uiActionEvent, Button } from '@urbicon-ui/blocks';
   import { onDestroy } from 'svelte';
-  import { A2UIView, A2UI_CATALOG_ID, Button, type A2uiActionEvent } from '@urbicon-ui/blocks';
 
   // A golden-file replay: the agent's JSONL envelopes arrive one line at a time.
   // The consumer's only job is to extend the payload array immutably — A2UIView

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Button, ConfirmDialog, Input } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
   // The hook is a real sibling file, shown from source (?raw): the code panel
   // cannot drift from it, and Vite's dependency scanner — which resolves the
   // `.svelte`-suffixed import it regex-finds inside the recipeCode literal —

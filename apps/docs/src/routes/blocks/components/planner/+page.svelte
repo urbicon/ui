@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { asset } from '$app/paths';
+  import { Planner } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -7,10 +7,10 @@
     Section
   } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset } from '$app/paths';
+  import { componentData } from './api';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
-  import { componentData } from './api';
-  import { Planner } from '@urbicon-ui/blocks';
 </script>
 
 <SeoMeta

@@ -1,27 +1,27 @@
 <script lang="ts">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
+  import { useBlocksI18n } from '#lib';
+  import type { CalendarSelection, DateRange } from '#lib/components/Calendar/index.js';
+  import { Calendar } from '#lib/components/Calendar/index.js';
+  import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   // ⚠ Mirror non-trivial changes to DatePicker.svelte (or vice versa)
   // — these two pickers share ~90% of state-machine logic.
   import { Input } from '#lib/primitives/Input/index.js';
   import { Popover } from '#lib/primitives/Popover/index.js';
-  import { Calendar } from '#lib/components/Calendar/index.js';
-  import type { CalendarSelection, DateRange } from '#lib/components/Calendar/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import {
-    datePickerIconButtonClass,
-    datePickerVariants,
-    type DatePickerSlots
-  } from './datepicker.variants';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import CalendarIconDefault from '#lib/icons/CalendarIcon.svelte';
-  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
-  import { useBlocksI18n } from '#lib';
-  import { formatDateRangeInput, parseDateRangeInput, isDateAllowed } from './datepicker.engine';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { toDateInputValue } from '#lib/utils/date.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { composeHandlers } from '#lib/utils/compose-handlers.js';
-  import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
   import type { DateRangePickerProps } from '.';
+  import { formatDateRangeInput, isDateAllowed, parseDateRangeInput } from './datepicker.engine';
+  import {
+    type DatePickerSlots,
+    datePickerIconButtonClass,
+    datePickerVariants
+  } from './datepicker.variants';
 
   const bt = useBlocksI18n();
 

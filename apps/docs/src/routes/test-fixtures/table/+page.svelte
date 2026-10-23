@@ -5,9 +5,9 @@
   // names, cycling categories, and a (i * 37) % 101 score whose order deliberately
   // differs from insertion order so a sort visibly reorders rows. No Math.random.
   import {
+    type Column,
     Table,
     TableColumns,
-    type Column,
     type TablePage,
     type TableViewSnapshot
   } from '@urbicon-ui/table';

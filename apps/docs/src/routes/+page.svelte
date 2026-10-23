@@ -51,35 +51,30 @@
      last of both, and the engine reports a pragma that matches nothing — a stale
      exemption is a claim about the file that is no longer true. -->
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '#lib/hotel-tools.js';
+  import AgentReplay from '#lib/landing/AgentReplay.svelte';
   import { VALIDATE_OK, VALIDATE_SCORE } from '#lib/landing/agent-output.js';
-  import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '#lib/landing/channels.js';
+  import { CHANNELS, type Channel, channelForFamily, TILE_CHANNEL } from '#lib/landing/channels.js';
   import HeroSpecimen from '#lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '#lib/landing/hero.js';
+  import LandingHeader from '#lib/landing/LandingHeader.svelte';
   import {
     buildOccupancy,
     freeRoomsOn,
     type OccupancyHouse,
     ROOM_CATEGORIES
   } from '#lib/landing/occupancy.js';
-  import { HOUSES as GROUP_HOUSES, GROUP_NAME, ROOM_TYPES } from '#lib/hotel-tools.js';
-  import AgentReplay from '#lib/landing/AgentReplay.svelte';
-  import LandingHeader from '#lib/landing/LandingHeader.svelte';
   import { BRAND, BRAND_SUFFIX, CLAIM, PROOF } from '#lib/landing/wordmark.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   // Die Schreibmaschine des Anspruchs — self-hosted wie Mono und Grotesk im
   // Root-Layout (keine Drittanfragen, siehe /privacy), aber route-lokal
   // importiert: außer der Namens-Kachel (und dem OG-Fixture) spricht niemand
   // diese Schrift, also lädt sie auch nur hier.
   import '@fontsource/special-elite/400.css';
-  import { asset, resolve } from '$app/paths';
-  import { r as resolveDynamic } from '#lib/route.js';
-  import { REPO_URL } from '#lib/seo.js';
-  import BookingCard from '#lib/hotel/BookingCard.svelte';
-  import LiveryTile from '#lib/hotel/LiveryTile.svelte';
   import {
     AreaChart,
-    type AvatarProps,
     AvatarGroup,
+    type AvatarProps,
     Badge,
     type CartesianDatum,
     type ChartSeries,
@@ -97,10 +92,15 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
-  import { MediaQuery } from 'svelte/reactivity';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
   import { createTableView, Table, type TableProps } from '@urbicon-ui/table';
   import type { Component } from 'svelte';
+  import { MediaQuery } from 'svelte/reactivity';
+  import BookingCard from '#lib/hotel/BookingCard.svelte';
+  import LiveryTile from '#lib/hotel/LiveryTile.svelte';
+  import { r as resolveDynamic } from '#lib/route.js';
+  import { REPO_URL } from '#lib/seo.js';
+  import { asset, resolve } from '$app/paths';
   import type { PageData } from './$types';
   // Nur für `.room-accent` (primary-Familie aus --room-accent/--room-accent-fg
   // abgeleitet) — der Rest der Rooms-Klassen bleibt ungenutzt.

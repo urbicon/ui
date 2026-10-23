@@ -1,11 +1,11 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
+  import { type GuideRefVariants, guideRefVariants } from './guide.variants';
   import { getGuidePanelContext } from './guide-panel.context';
-  import { guideRefVariants, type GuideRefVariants } from './guide.variants';
   import type { GuideRefProps } from './index';
 
   let {

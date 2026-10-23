@@ -1,19 +1,20 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { A2UIView } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';
-  import { A2UIView } from '@urbicon-ui/blocks';
-  import PrevNextNav from '#lib/PrevNextNav.svelte';
-  import CustomDocs from './Docs.svelte';
-  import Playground from './Playground.svelte';
-  import { componentData } from './api';
   import { buildRelatedLinks } from '#lib/component-links.js';
+  import PrevNextNav from '#lib/PrevNextNav.svelte';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
+  import { componentData } from './api';
+  import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
+
   const relatedLinks = buildRelatedLinks(componentData);
 </script>
 

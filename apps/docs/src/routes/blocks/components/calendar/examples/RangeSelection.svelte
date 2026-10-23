@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Calendar } from '@urbicon-ui/blocks';
   import type { DateRange } from '@urbicon-ui/blocks';
+  import { Calendar } from '@urbicon-ui/blocks';
 
   let value = $state<DateRange | undefined>(undefined);
 

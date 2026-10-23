@@ -1,10 +1,10 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib/i18n/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
-  import { guideBeaconVariants, type GuideBeaconVariants } from './guide.variants';
+  import { type GuideBeaconVariants, guideBeaconVariants } from './guide.variants';
   import type { GuideBeaconProps } from './index';
 
   const bt = useBlocksI18n();

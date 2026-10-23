@@ -1,17 +1,17 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { resolveIcon } from '#lib/icons/index.js';
+  import { mintAttachment } from '#lib';
   import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
   import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
-  import { mintAttachment } from '#lib';
+  import { resolveIcon } from '#lib/icons/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { getMenuContext, setMenuParentId } from './menu.context';
-  import { groupMenuItems, menuEntryKey, type MenuGroupEntry } from './menu.grouping';
-  import { menuIconVariants } from './menu.variants';
+  import type { MenuItemType, MenuObjectOption } from './index';
   import MenuDivider from './MenuDivider.svelte';
   import MenuItemComp from './MenuItem.svelte';
   import MenuSection from './MenuSection.svelte';
-  import type { MenuItemType, MenuObjectOption } from './index';
+  import { getMenuContext, setMenuParentId } from './menu.context';
+  import { groupMenuItems, type MenuGroupEntry, menuEntryKey } from './menu.grouping';
+  import { menuIconVariants } from './menu.variants';
 
   const CheckIcon = resolveIcon('check', CheckIconDefault);
   const ChevronRightIcon = resolveIcon('chevronRight', ChevronRightIconDefault);

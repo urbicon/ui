@@ -8,8 +8,8 @@
   import type { SidebarForwardKey, SidebarLayoutProps } from './index';
   import {
     SIDEBAR_TOGGLE_GUTTER,
-    sidebarLayoutVariants,
-    type SidebarLayoutVariants
+    type SidebarLayoutVariants,
+    sidebarLayoutVariants
   } from './sidebar-layout.variants';
 
   let {

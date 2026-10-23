@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DatePicker from '../../components/DatePicker/DatePicker.svelte';
   // Test-only composition: a real Select, Combobox, Popover, Menu or
   // DatePicker inside a real Dialog or Drawer — or inside a plain `<dialog>`
   // opened with `showModal()`, the consumer-built surface Popover's manual
@@ -7,7 +8,6 @@
   // `createRawSnippet` of plain HTML cannot render a component, and the point
   // here is the field's own Escape handling, not a stand-in for it.
   import Combobox from '../../primitives/Combobox/Combobox.svelte';
-  import DatePicker from '../../components/DatePicker/DatePicker.svelte';
   import Dialog from '../../primitives/Dialog/Dialog.svelte';
   import Drawer from '../../primitives/Drawer/Drawer.svelte';
   import Menu from '../../primitives/Menu/Menu.svelte';

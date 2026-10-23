@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { structuralColumns } from '#lib/core/structural-columns.js';
+  import { getTableStyleConfig, resolveSlotClass } from '#lib/core/table-style-context.js';
   import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import { resolveColumnId } from '#lib/utils/index.js';
   import { SUMMARY_TYPE_GLYPH } from '#lib/utils/summary-types.js';
   import { summaryRowVariants } from '#lib/variants/index.js';
-  import { getTableStyleConfig, resolveSlotClass } from '#lib/core/table-style-context.js';
-  import { structuralColumns } from '#lib/core/structural-columns.js';
 
   let {
     expandable = false,

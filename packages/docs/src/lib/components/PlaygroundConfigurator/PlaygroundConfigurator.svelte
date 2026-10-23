@@ -1,6 +1,4 @@
 <script lang="ts" generics="TValues extends Record<string, unknown>">
-  import { InlineCode } from '#lib';
-  import { useDocsI18n } from '#lib/i18n/index.js';
   import {
     Input,
     resolveClassChain,
@@ -11,36 +9,38 @@
     Toggle,
     Tooltip
   } from '@urbicon-ui/blocks';
+  import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
   import { onMount } from 'svelte';
   import { on } from 'svelte/events';
+  import { InlineCode } from '#lib';
+  import { useDocsI18n } from '#lib/i18n/index.js';
+  import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
   import CodePanel from '../CodePanel/CodePanel.svelte';
-  import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
+  import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
+  import {
+    computeComponentDefaults,
+    computeDemoOnlyKeys,
+    computeOmittableDefaults,
+    countModified,
+    filterVisibleControls,
+    generateDefaultCode,
+    isDefaultValue as isDefaultValueImpl,
+    normalizeControls,
+    numberFieldValue,
+    readNumberField,
+    reconcileNumberField,
+    resolveSegmentValue,
+    resolveSelectValue,
+    selectDisplayValue,
+    sortControlsByType
+  } from './code-gen.js';
+  import { extractChildMarkup } from './extract-markup.js';
+  import type { PlaygroundConfiguratorProps } from './index.js';
   import {
     type PlaygroundConfiguratorSlots,
     playgroundConfiguratorVariants
   } from './playground-configurator.variants';
-  import type { PlaygroundConfiguratorProps } from './index.js';
-  import {
-    generateDefaultCode,
-    normalizeControls,
-    filterVisibleControls,
-    sortControlsByType,
-    computeComponentDefaults,
-    computeDemoOnlyKeys,
-    computeOmittableDefaults,
-    isDefaultValue as isDefaultValueImpl,
-    countModified,
-    numberFieldValue,
-    readNumberField,
-    reconcileNumberField,
-    selectDisplayValue,
-    resolveSegmentValue,
-    resolveSelectValue
-  } from './code-gen.js';
-  import { extractChildMarkup } from './extract-markup.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
-  import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
-  import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
 
   const dt = useDocsI18n();
 

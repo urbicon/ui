@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -7,10 +6,11 @@
     Section
   } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
-  import Playground from './Playground.svelte';
-  import { componentData } from './api';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { asset, resolve } from '$app/paths';
-  import { employees, factoryColumns, scriptOpen, scriptClose } from '../_data';
+  import { employees, factoryColumns, scriptClose, scriptOpen } from '../_data';
+  import { componentData } from './api';
+  import Playground from './Playground.svelte';
 
   const codeFactoryTable = `${scriptOpen}
   import { Table, TableColumns, type Column } from '@urbicon-ui/table';

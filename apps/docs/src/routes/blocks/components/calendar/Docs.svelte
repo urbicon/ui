@@ -2,15 +2,15 @@
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
-    BasicMonth,
-    YearView,
-    WeekTimeGrid,
     AgendaView,
-    MultiDayEvents,
-    RecurringEvents,
-    RangeSelection,
+    BasicMonth,
+    CustomDayCell,
     DisabledDates,
-    CustomDayCell
+    MultiDayEvents,
+    RangeSelection,
+    RecurringEvents,
+    WeekTimeGrid,
+    YearView
   } from './examples';
 
   import customDayCellCode from './examples/CustomDayCell.svelte?raw';

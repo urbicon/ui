@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { SegmentGroup, SegmentItem, Slider } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
-  import { SegmentGroup, SegmentItem, Slider } from '@urbicon-ui/blocks';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns } from '../_data';
+  import { basicColumns, employees } from '../_data';
 
   let stickyMode = $state<'false' | 'toolbar' | 'header' | 'both'>('both');
   let stickyOffset = $state(48);

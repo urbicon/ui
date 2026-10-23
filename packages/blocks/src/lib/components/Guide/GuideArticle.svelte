@@ -2,8 +2,8 @@
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
+  import { type GuideArticleVariants, guideArticleVariants } from './guide.variants';
   import { getGuidePanelContext } from './guide-panel.context';
-  import { guideArticleVariants, type GuideArticleVariants } from './guide.variants';
   import type { GuideArticleProps } from './index';
 
   let {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Locale } from '@urbicon-ui/i18n';
   // Test-only consumer of CommandPalette through a real `bind:open` and
   // `bind:query`: a `$state` props object handed to `mount()` has no setter for
   // a bindable prop, so the palette would keep its own copy and neither a
@@ -8,7 +9,6 @@
   // a request-scoped i18n state (`provideI18n`, the primitive behind
   // <I18nProvider>); the caller eager-registers the bundle.
   import { provideI18n } from '@urbicon-ui/i18n';
-  import type { Locale } from '@urbicon-ui/i18n';
   import CommandPalette from '../CommandPalette.svelte';
   import type { CommandPaletteItem } from '../index';
 

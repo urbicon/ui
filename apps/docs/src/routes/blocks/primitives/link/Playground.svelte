@@ -9,7 +9,6 @@
   `breadcrumb/Playground.svelte`: sonst trüge die Demo den Leser fort.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Link } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -17,6 +16,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

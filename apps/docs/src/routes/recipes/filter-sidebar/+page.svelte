@@ -1,26 +1,26 @@
 <script lang="ts">
   import {
-    Sidebar,
+    Badge,
+    BedIcon,
+    Button,
+    Card,
+    Checkbox,
+    CloseIcon,
+    FunnelIcon,
     Input,
+    MapPinIcon,
     RadioGroup,
     RadioItem,
+    SearchIcon,
     SegmentGroup,
     SegmentItem,
-    Slider,
-    Checkbox,
-    Card,
-    Badge,
-    Button,
-    FunnelIcon,
-    SearchIcon,
-    CloseIcon,
-    BedIcon,
-    MapPinIcon
+    Sidebar,
+    Slider
   } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   type ListingType = 'apartment' | 'house' | 'studio';
   interface Listing {

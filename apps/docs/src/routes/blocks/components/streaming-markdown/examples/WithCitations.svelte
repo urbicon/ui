@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { StreamingMarkdown, type CitationSource } from '@urbicon-ui/blocks';
+  import { type CitationSource, StreamingMarkdown } from '@urbicon-ui/blocks';
 
   // Ids activate the matching `[id]` markers in the text; the markers render as
   // CitationChip (1-based, in array order). `[3]` below has no source, so it

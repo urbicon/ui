@@ -7,8 +7,6 @@
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import { SET_FAMILIES } from '#lib/landing/set-facts.js';
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { BarChart, type BarChartDatum, type ChartSeries } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -16,6 +14,8 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import { SET_FAMILIES } from '#lib/landing/set-facts.js';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

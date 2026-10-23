@@ -1,28 +1,24 @@
 <script lang="ts" generics="T = unknown">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { stripTime } from '#lib/date/index.js';
   import {
     DateGridController,
     DateGridScaffold,
-    setDateGridContext,
-    type DateRange,
     type DateGridSelection,
     type DateGridView,
+    type DateRange,
     type DayCellInfo,
-    type DayHeaderInfo
+    type DayHeaderInfo,
+    setDateGridContext
   } from '#lib/internal/date-grid/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { warnRemovedDisabledDates } from '#lib/internal/date-grid/removed-disabled-dates.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
+  import type { PlannerProps } from './index';
+  import PlannerHeader from './PlannerHeader.svelte';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
-  import {
-    type PlannerCellState,
-    plannerVariants,
-    type PlannerVariants,
-    plannerWeekStacking
-  } from './planner.variants';
   import type {
     PlannerCellContext,
     PlannerContext,
@@ -30,8 +26,12 @@
     PlannerHeaderContext,
     PlannerSlotName
   } from './planner.types';
-  import PlannerHeader from './PlannerHeader.svelte';
-  import type { PlannerProps } from './index';
+  import {
+    type PlannerCellState,
+    type PlannerVariants,
+    plannerVariants,
+    plannerWeekStacking
+  } from './planner.variants';
 
   const theme = useThemeProps('Planner', () => preset);
 

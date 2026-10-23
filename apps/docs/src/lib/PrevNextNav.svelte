@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { r } from '#lib/route.js';
-  import { useAppI18n } from '#lib/i18n/index.js';
-  import { useI18n } from '@urbicon-ui/i18n';
   import { ChevronLeftIcon, ChevronRightIcon } from '@urbicon-ui/blocks';
-  import { navigationItems, useNavLabel, type NavItem } from './navigation';
+  import { useI18n } from '@urbicon-ui/i18n';
+  import { useAppI18n } from '#lib/i18n/index.js';
+  import { r } from '#lib/route.js';
+  import { type NavItem, navigationItems, useNavLabel } from './navigation';
 
   let { currentPath }: { currentPath: string } = $props();
 

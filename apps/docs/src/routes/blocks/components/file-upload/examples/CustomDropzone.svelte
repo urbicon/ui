@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileUpload, UploadCloudIcon, type FileUploadFile } from '@urbicon-ui/blocks';
+  import { FileUpload, type FileUploadFile, UploadCloudIcon } from '@urbicon-ui/blocks';
 
   let files = $state<FileUploadFile[]>([]);
 </script>

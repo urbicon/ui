@@ -1,16 +1,16 @@
 <script lang="ts">
   import {
     A2UIView,
+    type A2uiActionEvent,
     A2uiStreamSplitter,
     A2uiSurfaceRouter,
     ChatMessage,
+    type ChatMessageData,
     ChatMessageList,
+    type ChatMessagePart,
     PromptInput,
     routeMessageParts,
-    urbiconA2uiCatalog,
-    type A2uiActionEvent,
-    type ChatMessageData,
-    type ChatMessagePart
+    urbiconA2uiCatalog
   } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';

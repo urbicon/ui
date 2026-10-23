@@ -2,7 +2,7 @@
   import { mintAttachment } from '#lib';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { cardVariants, type CardVariants } from './card.variants';
+  import { type CardVariants, cardVariants } from './card.variants';
   import type { CardProps } from './index';
 
   const theme = useThemeProps('Card', () => preset);

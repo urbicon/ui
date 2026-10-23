@@ -4,9 +4,9 @@
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { tabVariants, type TabVariants } from './tab.variants';
-  import { setTabContext } from './tab.context';
   import type { RegisteredTab, TabContext, TabProps } from './index';
+  import { setTabContext } from './tab.context';
+  import { type TabVariants, tabVariants } from './tab.variants';
 
   const theme = useThemeProps('Tab', () => preset);
 

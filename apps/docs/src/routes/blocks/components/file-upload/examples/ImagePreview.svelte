@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileUpload, IMAGE_MIME_TYPES, type FileUploadFile } from '@urbicon-ui/blocks';
+  import { FileUpload, type FileUploadFile, IMAGE_MIME_TYPES } from '@urbicon-ui/blocks';
 
   let files = $state<FileUploadFile[]>([]);
 </script>

@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { useBlocksI18n, mintAttachment, createPersistentState } from '#lib';
+  import { createPersistentState, mintAttachment, useBlocksI18n } from '#lib';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
-  import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import { useFormField, getTierContext } from '#lib/utils/index.js';
-  import type { InputProps } from '.';
-  import { inputVariants, type InputVariants } from './input.variants';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { getTierContext, useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import type { InputProps } from '.';
+  import { type InputVariants, inputVariants } from './input.variants';
 
   const bt = useBlocksI18n();
 

@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { type DateRange, DateRangePicker, Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { DateRangePicker, Kbd, type DateRange } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let stay = $state<DateRange | undefined>(undefined);

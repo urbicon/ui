@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { type Column, Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, type Employee } from '../_data';
+  import { basicColumns, type Employee, employees } from '../_data';
 
   const summaryColumns: Column<Employee>[] = [
     { accessor: 'name', title: 'Name', sortable: true },

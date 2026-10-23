@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { resolve } from '$app/paths';
   import { Alert, Button, Card, Textarea } from '@urbicon-ui/blocks';
   import type { SessionState } from '#lib/events.js';
+  import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

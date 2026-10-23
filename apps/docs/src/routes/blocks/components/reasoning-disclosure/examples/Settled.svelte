@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ReasoningDisclosure, type ChatReasoningPart } from '@urbicon-ui/blocks';
+  import { type ChatReasoningPart, ReasoningDisclosure } from '@urbicon-ui/blocks';
 
   // A finished reasoning trace. `durationMs` drives the "Thought for Xs" label;
   // the body stays collapsed by default so it never crowds the answer.

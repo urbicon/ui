@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -8,11 +7,12 @@
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';
-  import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '#lib/component-links.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset, resolve } from '$app/paths';
   import { componentData } from './api';
-  import BasicDemo from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';
+  import BasicDemo from './examples/BasicDemo.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
 </script>

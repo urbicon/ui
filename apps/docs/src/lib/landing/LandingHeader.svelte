@@ -20,12 +20,12 @@
   Türen gelassen hätten.
 -->
 <script lang="ts">
-  import { resolve } from '$app/paths';
   import { SearchIcon, ThemeSwitcher } from '@urbicon-ui/blocks';
   import { getCommandSearchToggle } from '#lib/command-search.context.js';
   import { CHANNELS, TILE_CHANNEL } from '#lib/landing/channels.js';
   import { BRAND, BRAND_SUFFIX, EYEBROW } from '#lib/landing/wordmark.js';
   import { REPO_URL } from '#lib/seo.js';
+  import { resolve } from '$app/paths';
 
   interface Props {
     /** Das Element, dessen Verschwinden die Marken-Einblendung schaltet. */

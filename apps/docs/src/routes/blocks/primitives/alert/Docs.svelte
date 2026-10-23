@@ -4,7 +4,6 @@
      the token palette has no equivalent for. Every other section on this page stays under the
      rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Alert,
     Button,
@@ -13,6 +12,7 @@
     Kbd,
     WarningTriangleIcon
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let dismissedSoft = $state(false);

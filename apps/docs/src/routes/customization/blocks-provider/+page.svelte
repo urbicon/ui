@@ -1,6 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import {
     Badge,
     BlocksProvider,
@@ -13,6 +11,8 @@
   } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { precedenceChain } from '#lib/customization-data.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { resolve } from '$app/paths';
 
   const description =
     'One context provider for app-wide styling: underline every field with the shipped variant, round every Card, register a named stat-card look, add a border only on variant="outlined", or strip all default styles and bring your own.';

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Locale } from '@urbicon-ui/i18n';
   // Test-only harness for the DatePicker/DateRangePicker locale chain. Both resolve
   // `locale="auto"` through `useI18n()`, which reads the request-scoped I18nState from
   // context — so proving the chain needs a parent that installs one. `provideI18n` is
@@ -9,7 +10,6 @@
   // the same code path (the file pair is kept in deliberate mirror), and a second harness
   // would just be a place for the two to drift.
   import { provideI18n } from '@urbicon-ui/i18n';
-  import type { Locale } from '@urbicon-ui/i18n';
   import DatePicker from '../DatePicker.svelte';
   import DateRangePicker from '../DateRangePicker.svelte';
 

@@ -1,19 +1,19 @@
 <script lang="ts">
-  import { Alert } from '#lib/primitives/index.js';
   import { untrack } from 'svelte';
+  import { Alert } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
   import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
+  import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
   import {
     type A2uiProcessor,
     collectGraphIssues,
     createA2uiProcessor,
     normalizeA2uiPayload
   } from './a2ui-validate';
-  import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
   import { a2uiViewVariants } from './a2ui-view.variants';
   import type { A2UIViewProps } from './index';
 

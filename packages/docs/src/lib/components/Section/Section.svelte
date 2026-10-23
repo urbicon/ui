@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onDestroy, untrack } from 'svelte';
-  import { type SectionSlots, sectionVariants } from './section.variants';
-  import type { SectionProps } from './index.js';
   import { Badge, headingTag, resolveClassChain } from '@urbicon-ui/blocks';
+  import { onDestroy, untrack } from 'svelte';
+  import type { SectionProps } from './index.js';
+  import { type SectionSlots, sectionVariants } from './section.variants';
   import { getSectionRegistry, setSectionRegistry } from './section-registry.svelte.js';
 
   let {

@@ -13,7 +13,6 @@
   Komponente, die auch diese Doku-Seite trägt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { MenuIcon, SidebarLayout } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -21,6 +20,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
   import playgroundSource from './Playground.svelte?raw';
 

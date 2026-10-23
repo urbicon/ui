@@ -11,8 +11,8 @@
     Tooltip
   } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   let billing = $state<'monthly' | 'annual'>('annual');
   let annual = $derived(billing === 'annual');

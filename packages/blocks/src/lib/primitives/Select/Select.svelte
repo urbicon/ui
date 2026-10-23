@@ -1,21 +1,21 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
-  import { useBlocksI18n, mintAttachment } from '#lib';
+  import { mintAttachment, useBlocksI18n } from '#lib';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
-  import {
-    useFormField,
-    getTierContext,
-    useFloatingPanel,
-    floatingPanelHidden
-  } from '#lib/utils/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { consumeWrapperCascade } from '#lib/provider/wrapper-cascade.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
-  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
-  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import {
+    floatingPanelHidden,
+    getTierContext,
+    useFloatingPanel,
+    useFormField
+  } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import type { SelectProps, SelectOption } from './index';
-  import { selectVariants, type SelectVariants } from './select.variants';
+  import type { SelectOption, SelectProps } from './index';
+  import { type SelectVariants, selectVariants } from './select.variants';
 
   const bt = useBlocksI18n();
 

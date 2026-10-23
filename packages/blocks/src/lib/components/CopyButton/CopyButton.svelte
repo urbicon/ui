@@ -1,8 +1,8 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { resolveIcon } from '#lib/icons/index.js';
   import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
   import CopyIconDefault from '#lib/icons/CopyIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import { createCopyState } from '#lib/internal/copy-state.svelte.js';
   import { Button } from '#lib/primitives/Button/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';

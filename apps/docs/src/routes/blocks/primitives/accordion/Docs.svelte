@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Accordion,
     AccordionItem,
@@ -11,6 +9,8 @@
     Kbd,
     ZapIcon
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { resolve } from '$app/paths';
 
   let faqValue = $state<string>('what-is');
 </script>

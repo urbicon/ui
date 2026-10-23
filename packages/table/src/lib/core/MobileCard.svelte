@@ -1,23 +1,24 @@
 <script lang="ts">
   import {
-    resolveIcon,
     Checkbox,
-    ChevronDownIcon as ChevronDownIconDefault
+    ChevronDownIcon as ChevronDownIconDefault,
+    resolveIcon
   } from '@urbicon-ui/blocks';
-  import { getCellLocale, getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import { useTableI18n } from '#lib/i18n/index.js';
+  import { getCellLocale, getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
 
   // See TableCell: the default `Date` branch must not reach `Intl` with
   // `undefined`, which follows the runtime and diverges across SSR.
   const cellLocale = $derived(getCellLocale());
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
-  import { formatCellValue, resolveColumnId, resolveColumnValue, resolveRowItemId } from '../utils';
-  import { resolveMobileCardShape } from './mobile-card-shape';
+
+  import type { Snippet } from 'svelte';
   import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import { mobileCardVariants } from '#lib/variants/index.js';
+  import { formatCellValue, resolveColumnId, resolveColumnValue, resolveRowItemId } from '../utils';
+  import { resolveMobileCardShape } from './mobile-card-shape';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
-  import type { Snippet } from 'svelte';
 
   export type MobileCardProps = {
     item: TableItem;

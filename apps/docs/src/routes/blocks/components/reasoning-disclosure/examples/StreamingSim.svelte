@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Button, type ChatReasoningPart, ReasoningDisclosure } from '@urbicon-ui/blocks';
   import { onDestroy } from 'svelte';
-  import { Button, ReasoningDisclosure, type ChatReasoningPart } from '@urbicon-ui/blocks';
 
   const full = `Let me work through the layout.
 

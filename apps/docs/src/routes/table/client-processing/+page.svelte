@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -7,7 +6,8 @@
     NoteList,
     Section
   } from '@urbicon-ui/docs';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { type Column, Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { type Employee, employees, scriptClose } from '../_data';
 

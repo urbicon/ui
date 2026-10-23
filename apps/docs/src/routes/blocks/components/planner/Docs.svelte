@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd } from '@urbicon-ui/blocks';
-  import { WeekMealPlan, MonthShiftPlan, CustomStyling } from './examples';
-
-  import weekMealPlanCode from './examples/WeekMealPlan.svelte?raw';
-  import monthShiftPlanCode from './examples/MonthShiftPlan.svelte?raw';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { CustomStyling, MonthShiftPlan, WeekMealPlan } from './examples';
   import customStylingCode from './examples/CustomStyling.svelte?raw';
+  import monthShiftPlanCode from './examples/MonthShiftPlan.svelte?raw';
+  import weekMealPlanCode from './examples/WeekMealPlan.svelte?raw';
 </script>
 
 <!-- ─── Examples ─── -->
