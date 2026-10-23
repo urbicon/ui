@@ -566,6 +566,7 @@
     </span>
   {/if}
 
+  <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
   <div
     bind:this={fieldEl}
     role="group"

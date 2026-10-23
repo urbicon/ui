@@ -9,9 +9,15 @@
   let value = $state<string | null>('13:30');
 </script>
 
-<button data-testid="flip-format" onclick={() => (format = format === '24h' ? '12h' : '24h')}>
+<button
+  type="button"
+  data-testid="flip-format"
+  onclick={() => (format = format === '24h' ? '12h' : '24h')}
+>
   flip
 </button>
-<button data-testid="toggle-seconds" onclick={() => (withSeconds = !withSeconds)}>seconds</button>
+<button type="button" data-testid="toggle-seconds" onclick={() => (withSeconds = !withSeconds)}
+  >seconds</button
+>
 <TimeInput label="Time" {format} {withSeconds} bind:value />
 <span data-testid="value">{value ?? 'null'}</span>

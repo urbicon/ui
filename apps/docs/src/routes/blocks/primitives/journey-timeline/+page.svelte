@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { type JourneyNode, JourneyTimeline } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,30 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  // A utility-billing run — the issue's driving consumer, as a chronicle.
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const defaults: Record<string, unknown> = {
-      orientation: 'vertical',
-      size: 'md',
-      detail: 'inline'
-    };
-    const props = Object.entries(vals)
-      .filter(([key, value]) => {
-        if (value === null || value === undefined) return false;
-        if (key in defaults && value === defaults[key]) return false;
-        if (value === false) return false;
-        return true;
-      })
-      .map(([key, value]) => (typeof value === 'boolean' ? key : `${key}="${value}"`));
-    const propsStr = props.length > 0 ? ` ${props.join(' ')}` : '';
-    return `<JourneyTimeline {items}${propsStr} bind:focusId>
-  {#snippet node(item)}
-    <p>Full record for {item.title}…</p>
-  {/snippet}
-</JourneyTimeline>`;
-  }
 </script>
 
 <SeoMeta

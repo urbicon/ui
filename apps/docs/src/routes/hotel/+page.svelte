@@ -362,6 +362,7 @@
   >
     <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
       <span class="text-2xs text-text-secondary shrink-0 tracking-[0.2em] uppercase">House</span>
+      <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
       <div class="flex flex-wrap gap-2" role="group" aria-label="House">
         {#each LIVERIES as option (option.id)}
           <button

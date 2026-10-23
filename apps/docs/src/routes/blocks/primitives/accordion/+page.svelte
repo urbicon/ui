@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Accordion, AccordionItem } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,

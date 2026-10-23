@@ -84,6 +84,9 @@
   }
 </script>
 
+<!-- The view takes focus so the arrow keys can move it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+<!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
 <div
   class={slot('agendaView', className)}
   role="region"

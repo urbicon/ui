@@ -174,6 +174,7 @@
     {@attach attachStepNode}
   >
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
     <div
       class={slot('step')}
       role={isClickable ? 'button' : undefined}
@@ -196,6 +197,7 @@
     {@attach attachStepNode}
   >
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
     <div
       class={slot('step')}
       role={isClickable ? 'button' : undefined}

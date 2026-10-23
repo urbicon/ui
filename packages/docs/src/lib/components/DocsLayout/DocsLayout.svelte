@@ -190,6 +190,7 @@
           : 'text-danger-text border-danger/40'}
     <span
       class="font-meta rounded-modify ml-2 inline-flex items-center border px-1.5 py-0.5 align-middle text-xs tracking-wider uppercase {stabilityIntent}"
+      role="img"
       aria-label={dt('stabilityLabel', { stability })}
     >
       {stability}

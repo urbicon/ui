@@ -167,7 +167,7 @@ toaster.clear();`}
             intent="primary"
             onclick={() =>
               toaster.success('Saved', {
-                description: 'Draft saved at ' + new Date().toLocaleTimeString('en-US')
+                description: `Draft saved at ${new Date().toLocaleTimeString('en-US')}`
               })}
           >
             Save Draft

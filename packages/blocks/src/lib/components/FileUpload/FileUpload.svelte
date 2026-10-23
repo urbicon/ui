@@ -150,8 +150,8 @@
   // are identical to the pre-refactor inline `bt('fileUpload.*')` calls.
   const messages: FileIntakeMessages = {
     invalidType: (type) => bt('fileUpload.invalidType', { type }),
-    tooLarge: (size) => bt('fileUpload.tooLarge', { size }),
-    tooSmall: (size) => bt('fileUpload.tooSmall', { size }),
+    tooLarge: (limit) => bt('fileUpload.tooLarge', { size: limit }),
+    tooSmall: (limit) => bt('fileUpload.tooSmall', { size: limit }),
     exists: () => bt('fileUpload.exists'),
     tooMany: (count) => bt('fileUpload.tooMany', { count: String(count) })
   };
@@ -355,6 +355,7 @@
   any unpositioned scroller the upload sits in, so the scroller stays put while the page or an
   `overflow-hidden` ancestor scrolls. A position class of the consumer's still replaces it.
 -->
+<!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
 <div
   {...restProps}
   class={resolveClassChain(
@@ -379,6 +380,7 @@
     names an unlabelled file input by its button text ("Choose File" / "Choose Files") and ranks
     that above `title`.
   -->
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: ARIA in HTML allows aria-required on input type=file, which has no implicit role -->
   <input
     bind:this={inputEl}
     id={idProp}
@@ -409,6 +411,7 @@
       exempts from contrast; without it axe's `color-contrast` reports a disabled dropzone.
     -->
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: pointer and drop surface only; the keyboard path is the input above (see the comment) -->
     <div
       bind:this={dropzoneEl}
       id={dropzoneId}
@@ -446,8 +449,10 @@
 
   <!-- File list -->
   {#if files.length > 0}
+    <!-- biome-ignore lint/a11y/useSemanticElements: a ul styled list-style: none loses its list role in WebKit unless the role is repeated; the div states it once -->
     <div class={slot('fileList')} role="list" aria-live="polite" aria-relevant="additions removals">
       {#each files as entry (entry.id)}
+        <!-- biome-ignore lint/a11y/useSemanticElements: an li outside a ul is invalid, and the list is a div (see the role=list above) -->
         <div
           class={slot('fileItem')}
           role="listitem"

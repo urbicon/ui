@@ -6,7 +6,7 @@
   import { customCellVariants } from '#lib/variants/index.js';
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
 
-  const { state: tableState, view: tableView } = getTableContext();
+  const { view: tableView } = getTableContext();
 
   // The default `Date` branch of `formatCellValue` needs a resolved tag —
   // `undefined` there follows the runtime and diverges across the SSR

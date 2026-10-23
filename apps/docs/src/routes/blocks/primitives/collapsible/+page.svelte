@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Collapsible } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,35 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const defaults: Record<string, unknown> = {
-      variant: 'default',
-      size: 'md',
-      disabled: false,
-      defaultOpen: false
-    };
-
-    const props = Object.entries(vals)
-      .filter(([key, value]) => {
-        if (value === null || value === undefined) return false;
-        if (key in defaults && value === defaults[key]) return false;
-        if (value === false) return false;
-        return true;
-      })
-      .map(([key, value]) => {
-        if (typeof value === 'boolean') return value ? key : '';
-        if (typeof value === 'string') return `${key}="${value}"`;
-        return `${key}={${JSON.stringify(value)}}`;
-      })
-      .filter(Boolean);
-
-    const propsStr = props.length > 0 ? ` ${props.join(' ')}` : '';
-
-    return `<Collapsible${propsStr} title="Click to reveal">
-  <p>Content that can be expanded or collapsed.</p>
-</Collapsible>`;
-  }
 </script>
 
 <SeoMeta

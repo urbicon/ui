@@ -146,7 +146,7 @@ ${scriptClose}
         <code class="text-text-primary">loading</code> and
         <code class="text-text-primary">error</code> yourself, or give it a
         <code class="text-text-primary">query</code> and it manages both (<a
-          href={resolve('/table/client-processing') + '#fetching'}>While the rows are loading</a
+          href={`${resolve('/table/client-processing')}#fetching`}>While the rows are loading</a
         >).
       </p>
     </div>
@@ -174,7 +174,7 @@ ${scriptClose}
       <p class="text-text-secondary text-sm">
         Seventeen slots, one per element the table renders, are listed with what each one wraps
         under
-        <a href={resolve('/table/table') + '#type-TableSlotClasses'}>TableSlotClasses</a>: the frame
+        <a href={`${resolve('/table/table')}#type-TableSlotClasses`}>TableSlotClasses</a>: the frame
         around the table (<code class="text-text-primary">container</code>,
         <code class="text-text-primary">toolbar</code>,
         <code class="text-text-primary">scrollArea</code>), every part of the grid down to the
@@ -226,7 +226,7 @@ ${scriptClose}
         Tailwind bucket, so a preset's <code class="text-text-primary">cell: 'py-1'</code> gives way
         to
         <code class="text-text-primary">py-3</code> on the instance (<a
-          href={resolve('/customization/blocks-provider') + '#merge-behavior'}>Merge behavior</a
+          href={`${resolve('/customization/blocks-provider')}#merge-behavior`}>Merge behavior</a
         >). The table resolves the layers once, so a preset reaches the header, the rows and the
         card list alike.
       </p>

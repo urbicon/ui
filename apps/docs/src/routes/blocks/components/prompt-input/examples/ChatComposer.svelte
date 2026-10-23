@@ -16,7 +16,7 @@
     timer = setTimeout(() => {
       messages = [
         ...messages,
-        { id: crypto.randomUUID(), role: 'assistant', text: 'Here is a reply to: ' + text }
+        { id: crypto.randomUUID(), role: 'assistant', text: `Here is a reply to: ${text}` }
       ];
       busy = false;
     }, 2200);

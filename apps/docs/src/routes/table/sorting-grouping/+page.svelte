@@ -87,7 +87,7 @@
       <p class="text-text-secondary text-sm">
         A sort is view state: a shared link or a view restored from storage carries it, and either
         one overrides this baseline.
-        <a href={resolve('/table/url-state') + '#phases'}>URL State &amp; Persistence</a> sets out which
+        <a href={`${resolve('/table/url-state')}#phases`}>URL State &amp; Persistence</a> sets out which
         of the three wins.
       </p>
 
@@ -178,7 +178,7 @@
         A summary is <code class="text-text-primary">{'{ column, type }'}</code> plus an optional
         <code class="text-text-primary">{'formatter: (value: number) => string'}</code>; the full
         shape is
-        <a href={resolve('/table/table') + '#type-SummaryConfig'}>SummaryConfig</a>.
+        <a href={`${resolve('/table/table')}#type-SummaryConfig`}>SummaryConfig</a>.
         <code class="text-text-primary">type</code> is
         <code class="text-text-primary">sum</code>, <code class="text-text-primary">avg</code>,
         <code class="text-text-primary">min</code>, <code class="text-text-primary">max</code> or
@@ -192,7 +192,7 @@
         A summary covers every row matching the current search and filters, not the page on screen.
         The pager moves under a total that stays put. A table that leaves the work to the server
         only holds the page it was handed, so there the total is that page's:
-        <a href={resolve('/table/server-processing') + '#controls'}>Server Processing</a> says what to
+        <a href={`${resolve('/table/server-processing')}#controls`}>Server Processing</a> says what to
         do instead.
       </p>
 
@@ -207,7 +207,7 @@
           >prefs=&#123;&#123; storage: 'employees', defaults: &#123; summaries &#125; &#125;&#125;</code
         >), and then summary choices survive reloads alongside column visibility and column order.
         What the reader last chose wins over your defaults, an empty choice included:
-        <a href={resolve('/table/customization') + '#persistence'}>What the table remembers</a> has the
+        <a href={`${resolve('/table/customization')}#persistence`}>What the table remembers</a> has the
         rest of the channel.
       </p>
 

@@ -11,7 +11,6 @@
   import CommandSearch from '#lib/CommandSearch.svelte';
   import { setCommandSearchToggle } from '#lib/command-search.context.js';
   import DocsPageNavProvider from '#lib/DocsPageNavProvider.svelte';
-  import DocsThemeToggle from '#lib/DocsThemeToggle.svelte';
   import { useAppI18n } from '#lib/i18n/index.js';
   import { channelNameForRoute } from '#lib/landing/route-channel.gen.js';
   import { navigationItems } from '#lib/navigation.js';
@@ -203,6 +202,7 @@
     -->
           <div class="px-3 pt-3">
             <button
+              type="button"
               onclick={() => commandSearch?.toggle()}
               class="border-border-default bg-surface-base text-text-tertiary hover:border-border-emphasis hover:text-text-primary rounded-contain flex w-full items-center gap-2 border px-3 py-2 text-sm transition-colors"
             >

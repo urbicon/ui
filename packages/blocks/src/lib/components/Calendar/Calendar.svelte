@@ -8,7 +8,6 @@
     daysInMonth,
     formatDateRange,
     formatDayTitle,
-    formatMonthYear,
     getYearMonths,
     isInMonth,
     stripTime,
@@ -322,9 +321,9 @@
     // (undefined) initial, the only type-correct "no selection"; without a
     // binding Svelte 5 keeps the write local until the parent passes a new
     // prop value, so uncontrolled and callback-driven usage work unchanged.
-    const next = selection as CalendarProps['value'];
+    const next = selection as NonNullable<CalendarProps['value']>;
     value = next;
-    onValueChange?.(next!);
+    onValueChange?.(next);
   }
 
   // Midnight refresh for `today` — re-arms after each update via the reactive read.

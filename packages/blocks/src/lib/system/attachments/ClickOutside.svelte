@@ -10,17 +10,17 @@
 
   let { ignore = [], children, onoutclick = () => {} }: Props = $props();
 
-  function clickOutside(ignore: Element | Element[]): Attachment {
+  function clickOutside(ignoreTargets: Element | Element[]): Attachment {
     return (node: Element) => {
       const handleClick = (event: MouseEvent) => {
         if (!node || event.defaultPrevented) return;
 
         if (node.contains(event.target as Node)) return;
 
-        if (ignore) {
-          const ignoreElements = Array.isArray(ignore) ? ignore : [ignore];
-          const isInsideIgnored = ignoreElements.some(
-            (element: Element) => element && element.contains(event.target as Node)
+        if (ignoreTargets) {
+          const ignoreElements = Array.isArray(ignoreTargets) ? ignoreTargets : [ignoreTargets];
+          const isInsideIgnored = ignoreElements.some((element: Element) =>
+            element?.contains(event.target as Node)
           );
           if (isInsideIgnored) return;
         }

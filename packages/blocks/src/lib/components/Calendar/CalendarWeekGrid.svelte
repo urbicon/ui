@@ -114,6 +114,7 @@
   group itself takes no focus.
 -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
 <div
   class={slot('weekTimeLayout', className)}
   role="group"

@@ -22,7 +22,7 @@
     expectedRange: [12000, 13500],
     tolerancePercent: 15,
     helpOnDanger: 'Typo or meter replaced?',
-    formatRange: (n) => n.toLocaleString('en-US') + ' kWh'
+    formatRange: (n) => `${n.toLocaleString('en-US')} kWh`
   };
   let meterValue = $state<number | null>(null);
 
@@ -31,7 +31,7 @@
     expectedRange: [800, 1200],
     tolerancePercent: 10,
     helpOnDanger: 'One-off purchase, or a typo?',
-    formatRange: (n) => '€' + n.toLocaleString('en-US')
+    formatRange: (n) => `€${n.toLocaleString('en-US')}`
   };
   let budgetValue = $state<number | null>(null);
 
@@ -39,7 +39,7 @@
     label: 'Hours on the project this week',
     expectedRange: [7, 9],
     tolerancePercent: 25,
-    formatRange: (n) => n + ' h'
+    formatRange: (n) => `${n} h`
   };
   let timeValue = $state<number | null>(null);
 
@@ -61,7 +61,7 @@
     if (status === 'success') return `Plausible. Expected: ${range}.`;
     if (status === 'warning') return `Slightly outside. Expected: ${range}.`;
     if (status === 'danger') {
-      const help = config.helpOnDanger ? ' ' + config.helpOnDanger : '';
+      const help = config.helpOnDanger ? ` ${config.helpOnDanger}` : '';
       return `Unusual. Expected: ${range}.${help}`;
     }
     return `Expected: ${range}.`;
@@ -74,7 +74,7 @@
   const timeStatus = $derived(classifyStatus(timeValue, timeConfig));
   const timeHelper = $derived(formatHelper(timeConfig, timeStatus));
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { Input } from '@urbicon-ui/blocks';
 
   // Input's own intent names: a status feeds intent with no mapping layer.

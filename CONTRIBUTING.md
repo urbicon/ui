@@ -19,7 +19,7 @@ Requires [Bun](https://bun.sh) v1.4.4+ and Node.js 22.17+.
 
 ```bash
 bun run check      # type checks (svelte-check)
-bun run lint       # Biome (.ts/.js/.json/.yml, six Svelte rules on .svelte)
+bun run lint       # Biome (.ts/.js/.json/.yml; .svelte linted, not formatted)
 bun run fmt:check  # bun fmt (.svelte, .md)
 bun run test       # unit tests (Vitest)
 ```

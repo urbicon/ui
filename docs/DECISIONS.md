@@ -23,18 +23,30 @@ promises and similar issues are caught by TypeScript itself (`strict`, `noImplic
 `svelte/prefer-svelte-reactivity`, `svelte/no-navigation-without-resolve`. Biome 2.6 has all
 four as nursery rules (`noSvelteAtHtmlTags`, `useSvelteRequireEachKey`,
 `useSvelteReactiveClasses`, `useSvelteKitResolve`), plus `noSvelteClassDirective` and
-`noSvelteExportLet`, and `biome.json` enforces these six on `.svelte` and nothing else: no
-recommended preset, no assist, no formatter — `bun fmt` formats `.svelte`. They need
+`noSvelteExportLet`. `biome.json` enforces these six on `.svelte` on top of everything `.ts`
+gets — the recommended preset, the base config's rules, `organizeImports` — but no formatter:
+`bun fmt` formats `.svelte`. They need
 `html.experimentalFullSupportEnabled`, which takes effect only at the top level of
 `biome.json`; inside an `overrides` entry Biome 2.6.2 ignores it and lints the `<script>`
 alone. Nursery rules behind an experimental flag can change in any Biome release; the lockfile
 pins Biome, so that happens in a deliberate upgrade, not silently. In markup a suppression is
-`<!-- biome-ignore lint/nursery/<rule>: <reason> -->`, and Biome rejects one without a reason;
+`<!-- biome-ignore lint/<group>/<rule>: <reason> -->`, and Biome rejects one without a reason;
 at an `{@html}` it shares the tag's line, under a bare
 `<!-- eslint-disable-next-line svelte/no-at-html-tags -->` that the Svelte autofixer reads.
 Biome's parsers gate every `<script>` and `<style>` (`css.parser.tailwindDirectives` lets
 `@apply` and `@reference` through), and a parse error has no suppression, so a construct Biome
 cannot parse gets rewritten.
+
+Two rules are off for `.svelte`, because they are wrong there. `noUselessEscapeInString` flags
+the `<\/script>` of a code sample inside `<script>`, and its fix ends the element early: the
+file stops compiling (`Unterminated template`). `noInvalidGridAreas` compares the length of
+each `grid-template-areas` string instead of its cells, so it rejects the valid
+`'title view' 'scope scope'`. A deliberate site everywhere else carries a `biome-ignore` with
+its reason, most of them at a blind spot: the a11y rules read a `role` given as an expression
+as no role, see no attribute a spread may carry, take a component for a DOM element, and find
+no text inside `{#if}` or `{@render}`; `useAnchorContent` counts no `aria-label`. A suppression
+in markup covers the line below it, so an attribute flagged further down a multi-line tag takes
+a `biome-ignore-start`/`-end` range, closed as the element's first child.
 
 ## Pre-commit runs neither `check` nor the tests
 
@@ -57,6 +69,10 @@ such a commit, read `git diff` before staging what it shows.
 
 `bun fmt` formats every tracked `.svelte` and `.md` file and Biome everything else;
 `scripts/fmt.ts` is the scoped entry point, and `bun run fmt:check` gates it in the `lint` job.
+`biome.json` keeps Biome's Markdown formatter and linter off, because Biome 2.6.2 formats
+Markdown differently — on `README.md` it rewrites a CSS fence's `'tailwindcss'` to double quotes
+and drops the blank line before a list — so with both on, two formatters would rewrite every
+`.md` against each other.
 
 **Known consequence:** CI installs the latest Bun (`oven-sh/setup-bun` without a version), so
 a Bun release that formats differently turns `lint` red on every PR until one `bun run fmt`

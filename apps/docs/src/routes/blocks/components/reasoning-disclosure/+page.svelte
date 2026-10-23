@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { type ChatReasoningPart, ReasoningDisclosure } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,16 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const streaming = Boolean(vals.streaming);
-    const durationMs = Number(vals.durationMs ?? 0);
-    const durationLine = !streaming && durationMs > 0 ? `, durationMs: ${durationMs}` : '';
-    return `<ReasoningDisclosure
-  reasoning={{ type: 'reasoning', text${durationLine} }}
-  streaming={${streaming}}
-/>`;
-  }
 </script>
 
 <SeoMeta

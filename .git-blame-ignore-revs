@@ -3,3 +3,6 @@
 
 # style: format markdown and svelte with bun fmt
 27e055aa1f3b6f64c5016e75cbe330a23bfb0517
+
+# style: sort .svelte imports with biome's organizeImports
+0000000000000000000000000000000000000000

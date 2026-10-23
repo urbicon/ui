@@ -82,9 +82,9 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const styles = $derived(unstyled ? undefined : datePickerVariants());
 
-  function slot(name: DatePickerSlots, extra?: string): string {
-    const overrides = resolveClassChain(slotClasses?.[name], extra);
-    return styles?.[name]({ class: overrides }) ?? overrides;
+  function slot(slotName: DatePickerSlots, extra?: string): string {
+    const overrides = resolveClassChain(slotClasses?.[slotName], extra);
+    return styles?.[slotName]({ class: overrides }) ?? overrides;
   }
 
   // --- Locale resolution ---
@@ -340,6 +340,7 @@
   }
 </script>
 
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: listens for keydown and focusout bubbling from the input inside -->
 <div
   {...restProps}
   bind:this={triggerEl}

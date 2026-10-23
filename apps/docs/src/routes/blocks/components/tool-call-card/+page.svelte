@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { type ChatToolCallPart, ToolCallCard } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,20 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  type ToolState = ChatToolCallPart['state'];
-
-  // Build a representative tool-call part for the chosen lifecycle state — a
-  // pending/running call has input only, complete adds output, error adds a
-  // message.
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const state = (vals.state as ToolState) ?? 'running';
-    return `<ToolCallCard toolCall={call} />
-
-<!-- where the consumer owns and updates \`call\` -->
-<!-- call.state === '${state}' -->`;
-  }
 </script>
 
 <SeoMeta

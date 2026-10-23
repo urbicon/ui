@@ -21,11 +21,13 @@
     ...metaModules[`./${slug}/meta.ts`].recipeMeta
   }));
 
-  const categories = ['All', ...new Set(recipes.map((r) => r.category))];
+  const categories = ['All', ...new Set(recipes.map((recipe) => recipe.category))];
   let activeCategory = $state('All');
 
   let filtered = $derived(
-    activeCategory === 'All' ? recipes : recipes.filter((r) => r.category === activeCategory)
+    activeCategory === 'All'
+      ? recipes
+      : recipes.filter((recipe) => recipe.category === activeCategory)
   );
 </script>
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Spinner } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,

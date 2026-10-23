@@ -76,11 +76,11 @@
 
   const styles = $derived(unstyled ? undefined : numberInputVariants());
 
-  function slot(name: NumberInputSlots): string {
+  function slot(slotName: NumberInputSlots): string {
     // Reached only from the `stepper` snippet, which Input renders as its
     // `rightIcon` — so Input has run and published by the time this is called.
-    const overrides = cascade.resolved()[name] ?? '';
-    return styles?.[name]({ class: overrides }) ?? overrides;
+    const overrides = cascade.resolved()[slotName] ?? '';
+    return styles?.[slotName]({ class: overrides }) ?? overrides;
   }
 
   // Tracks focus so the wheel handler only steers a focused field (scrolling the
@@ -218,6 +218,7 @@
        `pointer-events-none` decoration container (input.variants.ts), so without
        this the stepper buttons would be dead to mouse clicks in a real browser. -->
   <span class={slot('stepper')}>
+    <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: pointer-only stepper; keyboard users step with the arrow keys on the input -->
     <button
       type="button"
       class={slot('stepperButton')}
@@ -229,6 +230,7 @@
     >
       <ChevronIcon class="h-3.5 w-3.5 rotate-180" />
     </button>
+    <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: pointer-only stepper; keyboard users step with the arrow keys on the input -->
     <button
       type="button"
       class={slot('stepperButton')}

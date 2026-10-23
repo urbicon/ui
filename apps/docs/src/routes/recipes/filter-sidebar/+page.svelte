@@ -165,7 +165,7 @@
   // Live client-side filtering — recomputes on every control change, no Apply step.
   const results = $derived(
     listings.filter((l) => {
-      if (search && !(l.title + ' ' + l.neighborhood).toLowerCase().includes(search.toLowerCase()))
+      if (search && !`${l.title} ${l.neighborhood}`.toLowerCase().includes(search.toLowerCase()))
         return false;
       if (propertyType !== 'any' && l.type !== propertyType) return false;
       if (l.rent < rentRange[0] || l.rent > rentRange[1]) return false;
@@ -188,7 +188,7 @@
 
   function bedsLabel(beds: number): string {
     if (beds === 0) return 'Studio';
-    return beds + ' bed' + (beds > 1 ? 's' : '');
+    return `${beds} bed${beds > 1 ? 's' : ''}`;
   }
 
   function amenityLabel(id: string): string {
@@ -202,7 +202,7 @@
   // it, and the main region scrolls itself (`h-full overflow-y-auto`, content
   // slot stretched to `h-full`). Docs furniture only — none of it is in the
   // copyable code.
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Sidebar, Input, RadioGroup, RadioItem, SegmentGroup, SegmentItem,
     Slider, Checkbox, Card, Badge, Button,
@@ -494,8 +494,8 @@
               showValue
               formatValue={(v) =>
                 Array.isArray(v)
-                  ? '€' + v[0].toLocaleString('en-US') + ' – €' + v[1].toLocaleString('en-US')
-                  : '€' + v}
+                  ? `€${v[0].toLocaleString('en-US')} – €${v[1].toLocaleString('en-US')}`
+                  : `€${v}`}
             />
 
             <div class="space-y-2">
@@ -529,7 +529,7 @@
                 onclick={reset}
                 disabled={activeCount === 0}
               >
-                Reset{activeCount ? ' (' + activeCount + ')' : ''}
+                Reset{activeCount ? ` (${activeCount})` : ''}
               </Button>
               <Button
                 intent="primary"
@@ -552,7 +552,7 @@
               size="sm"
               onclick={() => (filtersOpen = true)}
             >
-              <FunnelIcon size={16} /> Filters{activeCount ? ' (' + activeCount + ')' : ''}
+              <FunnelIcon size={16} /> Filters{activeCount ? ` (${activeCount})` : ''}
             </Button>
             <span class="text-text-tertiary text-sm">{results.length} homes</span>
           </div>

@@ -61,7 +61,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Coding Conventions
 
 - Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **`bun fmt`** for `.svelte` and `.md` (`.prettierrc`: single quotes, width 100, no trailing commas) + `svelte-check`.
-- **Biome lints `.svelte` with six rules, nothing else** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; `bun fmt` formats them. They are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
+- **Biome lints `.svelte` like `.ts`, plus six Svelte rules** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; `bun fmt` formats them. Those six are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome. Two rules are off for `.svelte`, and a deliberate site carries a `biome-ignore` with its reason ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`

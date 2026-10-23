@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { AvatarGroup } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,

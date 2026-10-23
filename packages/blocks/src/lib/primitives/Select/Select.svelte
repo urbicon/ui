@@ -76,14 +76,15 @@
   // `<Select bind:value={x: T | null}>` narrow correctly. Internally we
   // dispatch through a loose alias so the component code can hand either
   // shape into `onValueChange` without per-branch casts at every call site.
+  // biome-ignore lint/suspicious/noExplicitAny: the loose alias described above
   const dispatchValueChange = $derived(onValueChange as ((v: any) => void) | undefined);
 
   /** Resolved null option config — `null` when prop is unset or `groups` is in use. */
   const nullOptionConfig = $derived.by(() => {
     if (!nullOption || groups || multiple) return null;
-    const label = typeof nullOption === 'string' ? nullOption : nullOption.label;
+    const nullLabel = typeof nullOption === 'string' ? nullOption : nullOption.label;
     const disabledOpt = typeof nullOption === 'string' ? false : (nullOption.disabled ?? false);
-    return { label, disabled: disabledOpt };
+    return { label: nullLabel, disabled: disabledOpt };
   });
 
   /**
@@ -558,6 +559,7 @@
   >
     {#if customTrigger}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- biome-ignore lint/a11y/noStaticElementInteractions: catches keydown bubbling from the custom trigger inside -->
       <span
         bind:this={triggerRef}
         {@attach mintAttachment(mint, { enabled: !disabled })}
@@ -679,6 +681,7 @@
       {#if open}
         {#if groups}
           {#each groups as group, i (`${group.label}-${i}`)}
+            <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
             <div
               class={unstyled
                 ? (slotClasses?.group ?? '')
@@ -705,6 +708,7 @@
                 -->
                 <!-- svelte-ignore a11y_interactive_supports_focus -->
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useKeyWithClickEvents: an option under aria-activedescendant: focus and keys stay on the listbox (APG listbox) -->
                 <div
                   id={getOptionId(position)}
                   role="option"
@@ -741,6 +745,7 @@
             <!-- Options stay out of the tab order — see ARIA Listbox note above. -->
             <!-- svelte-ignore a11y_interactive_supports_focus -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useKeyWithClickEvents: an option under aria-activedescendant: focus and keys stay on the listbox (APG listbox) -->
             <div
               id={getOptionId(position)}
               role="option"
@@ -794,6 +799,7 @@
         can see is the `error` prop's job — the same channel every other field
         in this library uses, wired to the trigger through `aria-describedby`.
       -->
+      <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: the validation proxy for `required`; its focus is forwarded to the trigger -->
       <input
         type="text"
         required

@@ -121,7 +121,7 @@
     warning: 'bg-warning-subtle'
   };
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     ArchiveIcon,
     Avatar,
@@ -315,6 +315,7 @@
             {#if !notification.read}
               <Tooltip label="Mark as read">
                 <button
+                  type="button"
                   class="text-text-tertiary hover:bg-surface-hover hover:text-primary focus-visible:ring-primary/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                   onclick={() => markAsRead(notification.id)}
                   aria-label="Mark as read"
@@ -325,6 +326,7 @@
             {/if}
             <Tooltip label="Archive">
               <button
+                type="button"
                 class="text-text-tertiary hover:bg-surface-hover hover:text-primary focus-visible:ring-primary/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 onclick={() => archiveNotification(notification.id)}
                 aria-label="Archive"

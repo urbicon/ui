@@ -39,6 +39,7 @@
     // `Component<BarChartProps>` is no `Component<Record<string, unknown>>`
     // and no one concrete type takes every chart hosted here. The caller types
     // `props`.
+    // biome-ignore lint/suspicious/noExplicitAny: see above
     chart: Component<any>;
     props: Record<string, unknown>;
   } = $props();

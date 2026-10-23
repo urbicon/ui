@@ -1,6 +1,7 @@
 <!-- urbicon-ignore hardcoded-z-index — the two z values are local to a cell that
      sets `isolate` (line 177), so they order the overlay link against the specimen
      inside one stacking context and can never meet the global overlay scale. -->
+<!-- biome-ignore-all lint/a11y/useAnchorContent: each cell link is an empty overlay (`cellLink`) named by its aria-label, which the rule does not count as content -->
 <!--
   Blocks overview — the "specimen book". A printed-catalogue take on the
   component index: cells share hairlines (1px grid gaps) instead of floating
@@ -1078,8 +1079,10 @@ Tokens switch light and dark automatically:
               </div>
               <div class="bg-text-tertiary/10 h-1.5 w-12 rounded"></div>
             </div>
-            <svg class="text-surface-overlay h-2 w-3 rotate-180" viewBox="0 0 12 8"
-              ><path fill="currentColor" d="M6 8 0 0h12z" /></svg
+            <svg
+              aria-hidden="true"
+              class="text-surface-overlay h-2 w-3 rotate-180"
+              viewBox="0 0 12 8"><path fill="currentColor" d="M6 8 0 0h12z" /></svg
             >
             <Button variant="outlined" size="xs" intent="primary">Trigger</Button>
           </div>
@@ -1885,7 +1888,7 @@ Tokens switch light and dark automatically:
             >
               Copy to clipboard
             </div>
-            <svg class="text-surface-inverted h-2 w-3" viewBox="0 0 12 8"
+            <svg aria-hidden="true" class="text-surface-inverted h-2 w-3" viewBox="0 0 12 8"
               ><path fill="currentColor" d="M6 8 0 0h12z" /></svg
             >
             <Button variant="outlined" size="xs">Copy</Button>

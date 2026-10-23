@@ -176,6 +176,7 @@
            column exists, the cell just isn't content. -->
       <td class="{rowStyles.controlCell()} {structural.widthClass}" aria-hidden="true"></td>
     {:else if structural.key === 'selection'}
+      <!-- biome-ignore lint/a11y/useKeyWithClickEvents: the click target around the row checkbox; keyboard users toggle the checkbox itself -->
       <td
         class="{rowStyles.controlCell()} {structural.widthClass}"
         role={interactive ? 'gridcell' : undefined}
@@ -208,6 +209,7 @@
              a change to the control, not to an inset. -->
         <div class="flex h-full w-full items-center justify-center px-2 py-2">
           <button
+            type="button"
             class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isExpanded
               ? 'rotate-180'
               : ''}"

@@ -323,6 +323,7 @@
   const iconSize = $derived(size === 'sm' ? 16 : 18);
 </script>
 
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: drop target for dragged files; keyboard users attach through the attach button -->
 <div
   bind:this={rootEl}
   {...restProps}
@@ -333,6 +334,7 @@
   ondrop={allowAttachments ? handleDrop : undefined}
 >
   {#if allowAttachments}
+    <!-- biome-ignore lint/a11y/noAriaHiddenOnFocusable: the hidden file input the attach button opens; tabindex=-1 keeps it out of the tab order -->
     <input
       bind:this={fileInputEl}
       type="file"

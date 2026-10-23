@@ -63,7 +63,9 @@
   />
 {/if}
 <span data-testid="value">{show(value)}</span>
-<button data-testid="set-null" onclick={() => (value = null)}>null</button>
-<button data-testid="set-undefined" onclick={() => (value = undefined)}>undefined</button>
-<button data-testid="set-empty" onclick={() => (value = '')}>empty</button>
-<button data-testid="set-time" onclick={() => (value = '10:45')}>10:45</button>
+<button type="button" data-testid="set-null" onclick={() => (value = null)}>null</button>
+<button type="button" data-testid="set-undefined" onclick={() => (value = undefined)}
+  >undefined</button
+>
+<button type="button" data-testid="set-empty" onclick={() => (value = '')}>empty</button>
+<button type="button" data-testid="set-time" onclick={() => (value = '10:45')}>10:45</button>

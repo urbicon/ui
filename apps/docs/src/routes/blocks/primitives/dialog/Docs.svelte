@@ -118,6 +118,7 @@
         <div class="space-y-1 pt-3">
           {#each ['Create new project', 'Open settings', 'Switch workspace', 'View documentation'] as item (item)}
             <button
+              type="button"
               class="text-text-secondary hover:bg-surface-hover rounded-modify w-full px-2 py-1.5 text-left text-sm transition-colors"
               onclick={() => (topOpen = false)}
             >
@@ -223,12 +224,14 @@
         </p>
         <div class="mt-4 flex gap-2">
           <button
+            type="button"
             class="flex-1 cursor-pointer rounded-none border border-green-500/30 bg-transparent px-3 py-1.5 font-mono text-xs text-green-400 transition-colors hover:bg-green-500/10"
             onclick={() => (terminalOpen = false)}
           >
             [n] Abort
           </button>
           <button
+            type="button"
             class="flex-1 cursor-pointer rounded-none border border-green-500 bg-green-500/10 px-3 py-1.5 font-mono text-xs text-green-400 transition-colors hover:bg-green-500/20"
             onclick={() => (terminalOpen = false)}
           >

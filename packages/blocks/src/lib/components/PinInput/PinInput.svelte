@@ -140,6 +140,11 @@
     }
   }
 
+  function clearInput(index: number) {
+    const el = inputs[index];
+    if (el) el.value = '';
+  }
+
   function emit() {
     const joined = cells.join('');
     if (joined !== value) {
@@ -203,11 +208,11 @@
         event.preventDefault();
         if (cells[index]) {
           cells[index] = '';
-          if (inputs[index]) inputs[index]!.value = '';
+          clearInput(index);
           emit();
         } else if (index > 0) {
           cells[index - 1] = '';
-          if (inputs[index - 1]) inputs[index - 1]!.value = '';
+          clearInput(index - 1);
           emit();
           focusCell(index - 1);
         }
@@ -217,7 +222,7 @@
         event.preventDefault();
         if (cells[index]) {
           cells[index] = '';
-          if (inputs[index]) inputs[index]!.value = '';
+          clearInput(index);
           emit();
         }
         break;
@@ -289,6 +294,7 @@
     </span>
   {/if}
 
+  <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
   <div
     role="group"
     aria-labelledby={label ? labelId : undefined}

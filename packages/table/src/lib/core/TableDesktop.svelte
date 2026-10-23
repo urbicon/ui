@@ -611,12 +611,12 @@
           e.preventDefault();
           const { theadH, tfootH } = pinnedHeights();
           const band = Math.max(1, Math.floor((viewportHeight - theadH - tfootH) / rowHeight));
-          const target = Math.max(
+          const targetRow = Math.max(
             0,
             Math.min(itemCount - 1, tableContext.focusedRowIndex + direction * band)
           );
-          tableContext.setFocusedRow(target);
-          focusRow(target);
+          tableContext.setFocusedRow(targetRow);
+          focusRow(targetRow);
         }
         break;
       }
@@ -696,6 +696,7 @@
   <!-- Virtualized mode: one table in one scroll box of `virtualHeight`, the
        header pinned to the top of the box and the summary to its bottom, the
        offset of the rendered window carried by two spacer rows. -->
+  <!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
   <div
     class={resolveSlotClass(
       tableStyles.scrollArea,
@@ -789,6 +790,7 @@
   </div>
 {:else}
   <!-- Standard mode: normal table rendering -->
+  <!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
   <div
     class={resolveSlotClass(
       tableStyles.scrollArea,

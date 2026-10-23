@@ -142,6 +142,7 @@
     sanctioned exception here.
   -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <!-- biome-ignore lint/a11y/noNoninteractiveTabindex lint/a11y/useSemanticElements: a scrollable pre takes tabindex=0 so keyboard users can scroll it, and the region is the pre itself -->
   <pre class={cls('pre')} tabindex="0" role="region" aria-label={regionLabel}><code
       class={cls('code')}>{code}</code
     ></pre>

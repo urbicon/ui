@@ -1,3 +1,4 @@
+<!-- biome-ignore-all lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: an ARIA grid on div/span by design, laid out as a CSS grid that table elements would turn into table layout; focus moves inside the grid (APG grid pattern), so its rows, headers and cells take no tabindex of their own -->
 <script lang="ts" generics="T = unknown">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '#lib';
@@ -111,8 +112,8 @@
   // rules) and folds BEFORE the consumer's `slotClasses` entry; `className` is
   // the consumer's `class` prop and folds after it. Each is one source, so the
   // ladder holds in both directions instead of the library winning by position.
-  function slot(name: ResourceTimelineSlotName, structural?: string, className?: string): string {
-    const sources = [structural, slotClasses?.[name], className];
+  function slot(name: ResourceTimelineSlotName, structural?: string, extraClass?: string): string {
+    const sources = [structural, slotClasses?.[name], extraClass];
     if (unstyled) return resolveClassChain(...sources);
     const fn = styles[name] as ((args: { class: (string | undefined)[] }) => string) | undefined;
     return fn?.({ class: sources }) ?? resolveClassChain(...sources);

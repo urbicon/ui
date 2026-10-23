@@ -448,6 +448,7 @@
             <div class={sc(styles, 'card')}>
               {@render headerRow(item, index, focused, styles)}
               {#if detailMode === 'inline' && node && item.focusable !== false}
+                <!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
                 <div
                   id={detailDomId(index)}
                   role="region"
@@ -476,6 +477,7 @@
   </ol>
 
   {#if detailMode === 'panel' && node && focusedItem}
+    <!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
     <div
       id={panelId}
       role="region"

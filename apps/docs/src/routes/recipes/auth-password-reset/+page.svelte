@@ -16,7 +16,7 @@ export const { POST } = createForgotPasswordHandler(authDeps);
 //    hooks: { onPasswordResetFailed: (email, err) => reportError(err) }
 
 // 3. src/routes/auth/forgot-password/+page.svelte
-<\script lang="ts">
+<script lang="ts">
   import { ForgotPasswordPage } from '@urbicon-ui/auth';
   import { en } from '@urbicon-ui/auth/i18n/en';
 <\/script>
@@ -29,7 +29,7 @@ import { authDeps } from '#lib/server/auth-setup.js';
 export const { POST } = createResetPasswordHandler(authDeps);
 
 // 2. src/routes/auth/reset-password/+page.svelte — the token arrives as ?token=...
-<\script lang="ts">
+<script lang="ts">
   import { ResetPasswordPage } from '@urbicon-ui/auth';
   import { en } from '@urbicon-ui/auth/i18n/en';
   import { page } from '$app/state';

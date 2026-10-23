@@ -49,35 +49,35 @@
   }: LinkCellProps<Item> = $props();
 
   // Extract URL from item or prop
-  const extractUrl = (item: Item): string | null => {
+  const extractUrl = (row: Item): string | null => {
     if (typeof href === 'function') {
-      return href(item);
+      return href(row);
     }
     if (typeof href === 'string') {
       return href;
     }
     if (urlKey) {
-      const value = getNestedValue(item, String(urlKey));
+      const value = getNestedValue(row, String(urlKey));
       return typeof value === 'string' ? value : null;
     }
     return null;
   };
 
   // Extract display text from item or prop
-  const extractText = (item: Item): string => {
+  const extractText = (row: Item): string => {
     if (typeof text === 'function') {
-      return text(item);
+      return text(row);
     }
     if (typeof text === 'string') {
       return text;
     }
     if (textKey) {
-      const value = getNestedValue(item, String(textKey));
+      const value = getNestedValue(row, String(textKey));
       if (typeof value === 'string') return value;
     }
 
     // Fallback to URL if no text specified
-    const url = extractUrl(item);
+    const url = extractUrl(row);
     if (url) {
       try {
         const urlObj = new URL(url);
@@ -125,25 +125,25 @@
 
   // Truncate text if maxLength is specified
   const displayText = $derived.by(() => {
-    const text = computedText();
-    if (!maxLength || text.length <= maxLength) {
-      return text;
+    const label = computedText();
+    if (!maxLength || label.length <= maxLength) {
+      return label;
     }
-    return text.substring(0, maxLength - 3) + '...';
+    return `${label.substring(0, maxLength - 3)}...`;
   });
 
   // Generate tooltip
   const tooltipText = $derived.by(() => {
     const url = computedHref();
-    const text = computedText();
+    const label = computedText();
 
     if (!url) return undefined;
 
-    if (maxLength && text.length > maxLength) {
-      return `${text}\n${url}`;
+    if (maxLength && label.length > maxLength) {
+      return `${label}\n${url}`;
     }
 
-    if (text !== url) {
+    if (label !== url) {
       return url;
     }
 

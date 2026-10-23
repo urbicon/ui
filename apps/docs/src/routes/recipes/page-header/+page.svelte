@@ -14,7 +14,7 @@
   // h1 in the shell header, and the recipe's first rule (one h1 per page)
   // binds this page too.
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { Button } from '@urbicon-ui/blocks';
 <\/script>
 
@@ -35,7 +35,7 @@
   </div>
 </header>`;
 
-  const detailCode = `<\script lang="ts">
+  const detailCode = `<script lang="ts">
   import { Breadcrumb, Button } from '@urbicon-ui/blocks';
 <\/script>
 
@@ -56,7 +56,7 @@
   </div>
 </header>`;
 
-  const tabCode = `<\script lang="ts">
+  const tabCode = `<script lang="ts">
   import { Button, Tab, TabItem } from '@urbicon-ui/blocks';
 
   let activeTab = $state('overview');

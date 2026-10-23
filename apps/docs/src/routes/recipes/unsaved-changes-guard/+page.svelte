@@ -66,7 +66,7 @@
     resolveLeave = null;
   }
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { goto } from '$app/navigation';
   import { Button, ConfirmDialog, Input } from '@urbicon-ui/blocks';
   import { useUnsavedGuard } from './use-unsaved-guard.svelte';

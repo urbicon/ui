@@ -45,6 +45,7 @@
       "formatter": { "enabled": false },
       "linter": {
         "rules": {
+          "correctness": { "noInvalidGridAreas": "off" },
           "nursery": {
             "noSvelteAtHtmlTags": "error",
             "noSvelteClassDirective": "error",
@@ -52,17 +53,8 @@
             "useSvelteKitResolve": "error",
             "useSvelteReactiveClasses": "error",
             "useSvelteRequireEachKey": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["**/*.svelte"],
-      "linter": {
-        "rules": {
-          "preset": "none",
-          "correctness": { "noUnusedVariables": "off" },
-          "suspicious": { "noShadow": "off" }
+          },
+          "suspicious": { "noUselessEscapeInString": "off" }
         }
       }
     }

@@ -118,6 +118,7 @@
   data-testid={computedTestId}
   id={`grouped-item-${groupName}`}
 >
+  <!-- biome-ignore-start lint/a11y/noNoninteractiveElementToInteractiveRole lint/a11y/useSemanticElements: known gap: the cell itself is the group toggle; the fix is a button inside the td -->
   <td
     colspan={colSpan}
     class={styles.cell()}
@@ -130,6 +131,7 @@
       ? tt('header.collapseGroup')
       : tt('header.expandGroup')}"
   >
+    <!-- biome-ignore-end lint/a11y/noNoninteractiveElementToInteractiveRole lint/a11y/useSemanticElements: closes the range above -->
     <div class={styles.content()}>
       <!-- Expand/Collapse Icon -->
       <div class={styles.chevron()}>

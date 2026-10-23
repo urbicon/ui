@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { LocaleSwitcher } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';

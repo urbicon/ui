@@ -9,24 +9,24 @@
   const ta = useAppI18n();
 
   // Prefix-active: this item's subtree contains the current page.
-  function isActive(href: string | undefined, path: string) {
+  function isActive(href: string | undefined, pathname: string) {
     if (!href) return false;
-    if (href === '/') return path === '/';
-    return path === href || path.startsWith(href + '/');
+    if (href === '/') return pathname === '/';
+    return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  function hasActiveDescendant(node: NavItem, path: string): boolean {
+  function hasActiveDescendant(node: NavItem, pathname: string): boolean {
     if (!node.children) return false;
     return node.children.some(
-      (child) => isActive(child.href, path) || hasActiveDescendant(child, path)
+      (child) => isActive(child.href, pathname) || hasActiveDescendant(child, pathname)
     );
   }
 
   // A section expands IN PLACE while the reader is anywhere inside it; all
   // other sections stay single rows, so the list keeps its poster calm.
-  function isExpanded(node: NavItem, path: string): boolean {
+  function isExpanded(node: NavItem, pathname: string): boolean {
     if (!node.children?.length) return false;
-    return isActive(node.href, path) || hasActiveDescendant(node, path);
+    return isActive(node.href, pathname) || hasActiveDescendant(node, pathname);
   }
 
   const path = $derived(page.url.pathname);

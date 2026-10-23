@@ -140,6 +140,7 @@
   <!-- The one gesture. -->
   <div class="border-border-subtle flex flex-wrap items-center gap-2 border-t px-4 py-3">
     <span class="text-3xs text-text-tertiary tracking-[0.2em] uppercase">House</span>
+    <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
     <div class="flex flex-wrap gap-1.5" role="group" aria-label="House">
       {#each LIVERIES as option (option.id)}
         <button

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { r } from '#lib/route.js';
 </script>
 
 <!-- ─── Examples ─── -->

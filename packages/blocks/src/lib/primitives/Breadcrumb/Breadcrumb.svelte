@@ -162,6 +162,7 @@
             despite its generic role — checked in the a11y tree, where it reads
             back as the element's name.
           -->
+          <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: Chrome exposes this name on the span, see the comment above -->
           <span
             class={unstyled
               ? (slotClasses?.currentPage ?? '')

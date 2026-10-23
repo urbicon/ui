@@ -64,7 +64,6 @@
   let hoveredKey = $state<string | null>(null);
 
   const itemsSum = $derived(items.reduce((s, i) => s + Math.max(0, i.value), 0));
-  const hasExplicitTotal = $derived(totalOverride !== undefined);
 
   // Console warning when an explicit total < Σ items.value
   let warnedKey = '';
@@ -72,7 +71,7 @@
     const key = `${totalOverride}|${itemsSum}`;
     if (key === warnedKey) return;
     warnedKey = key;
-    if (hasExplicitTotal && totalOverride! > 0 && totalOverride! < itemsSum) {
+    if (totalOverride !== undefined && totalOverride > 0 && totalOverride < itemsSum) {
       console.warn(
         `[CompositionBar] total (${totalOverride}) < Σ items.value (${itemsSum}). ` +
           'Bar is scaled to 100 % of the items; the total override is ignored.'
@@ -83,9 +82,9 @@
   // Effective scaling base: for total<Σ the sum is used (override ignored),
   // for total>Σ the remainder is rendered as a neutral rest segment.
   const scaleBase = $derived.by(() => {
-    if (!hasExplicitTotal) return itemsSum || 1;
-    if (totalOverride! <= 0) return itemsSum || 1;
-    return Math.max(totalOverride!, itemsSum) || 1;
+    if (totalOverride === undefined) return itemsSum || 1;
+    if (totalOverride <= 0) return itemsSum || 1;
+    return Math.max(totalOverride, itemsSum) || 1;
   });
 
   const restValue = $derived(Math.max(0, scaleBase - itemsSum));
@@ -270,6 +269,7 @@
          inside. Convention: interactive charts (Sankey, CompositionBar) are a
          named group; purely static charts (ChartFrame, DonutChart) keep
          role="img" — atomic is only correct without interactive descendants. -->
+    <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
     <div
       bind:this={barRef}
       role="group"

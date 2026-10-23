@@ -1,3 +1,4 @@
+<!-- biome-ignore-all lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: an ARIA grid on div/span by design, laid out as a CSS grid that table elements would turn into table layout; focus moves inside the grid (APG grid pattern), so its rows, headers and cells take no tabindex of their own -->
 <!--
   DateGridScaffold — the shared cell-grid chrome for date-grid views.
 
@@ -75,7 +76,7 @@
   const shouldAnimate = $derived(animated && !reducedMotion.current);
 
   // A stable identity for the visible window — drives the navigate transition.
-  const navKey = $derived(toIso(ctx.rangeStart) + '|' + ctx.view);
+  const navKey = $derived(`${toIso(ctx.rangeStart)}|${ctx.view}`);
 
   const headerInfos = $derived.by<DayHeaderInfo[]>(() => {
     const singleWeek = ctx.view === 'week';

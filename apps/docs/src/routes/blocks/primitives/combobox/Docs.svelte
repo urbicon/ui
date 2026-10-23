@@ -111,8 +111,8 @@
   // real `fetch(url, { signal })` produces. The Combobox swallows these
   // AbortError rejections; only genuine failures reach `onError`.
   function delay(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(resolve, ms);
+    return new Promise((settle, reject) => {
+      const timer = setTimeout(settle, ms);
       signal.addEventListener(
         'abort',
         () => {

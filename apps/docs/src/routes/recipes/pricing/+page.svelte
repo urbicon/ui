@@ -70,7 +70,7 @@
     }
   ];
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Badge,
     Button,

@@ -113,7 +113,7 @@
     currentStep = 0;
   }
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Alert,
     Button,

@@ -134,6 +134,7 @@
           <div class="py-1">
             {#each [{ icon: UserIcon, label: 'Profile' }, { icon: SettingsIcon, label: 'Settings' }, { icon: BarChartIcon, label: 'Analytics' }] as item (item.label)}
               <button
+                type="button"
                 class="text-text-secondary hover:bg-surface-hover hover:text-text-primary flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors"
               >
                 <item.icon size={16} />
@@ -143,6 +144,7 @@
           </div>
           <div class="border-border-subtle border-t py-1">
             <button
+              type="button"
               class="text-danger hover:bg-danger/5 flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors"
             >
               <LogOutIcon size={16} />

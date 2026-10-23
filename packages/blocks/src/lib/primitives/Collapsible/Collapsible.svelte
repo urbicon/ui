@@ -137,6 +137,7 @@
        The role and its name are Collapsible's own: the hook hands out no role,
        because a bare `<div>` is `generic` and would not expose a name at all.
        This panel is a section worth landing on, so it takes both. -->
+  <!-- biome-ignore lint/a11y/useSemanticElements: tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
   <div
     id={contentProps.id}
     role="region"

@@ -397,6 +397,7 @@
     plain div (generic role) would be ignored anyway.
   -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
   <div
     bind:this={viewportRef}
     class={unstyled

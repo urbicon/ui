@@ -1,3 +1,4 @@
+<!-- biome-ignore-all lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: an ARIA grid on div/span by design, laid out as a CSS grid that table elements would turn into table layout; focus moves inside the grid (APG grid pattern), so its rows, headers and cells take no tabindex of their own -->
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
   import {
@@ -111,8 +112,9 @@
         miniMonth = newDate.getMonth();
         miniYear = newDate.getFullYear();
       }
+      const landed = newDate;
       requestAnimationFrame(() => {
-        const dateStr = `${newDate!.getFullYear()}-${String(newDate!.getMonth() + 1).padStart(2, '0')}-${String(newDate!.getDate()).padStart(2, '0')}`;
+        const dateStr = `${landed.getFullYear()}-${String(landed.getMonth() + 1).padStart(2, '0')}-${String(landed.getDate()).padStart(2, '0')}`;
         const btn = grid.querySelector(`[data-mini-date="${dateStr}"]`) as HTMLElement | null;
         btn?.focus();
       });

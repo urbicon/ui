@@ -159,6 +159,7 @@
   `type`/`disabled`/`class`/`onclick` are destructured (never in restProps);
   a consumer onclick is composed inside handleClick.
 -->
+<!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
 <button
   bind:this={buttonElement}
   {@attach mintAttachment(effectiveMint, {

@@ -100,7 +100,7 @@
   // shows none of this — a pasted copy owns the real viewport with the
   // layout's defaults. Two more demo liberties: the logo link is defused, and
   // the page's h1/h2 render as h2/h3 under the docs page's own outline.
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Avatar,
     Badge,

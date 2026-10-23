@@ -484,6 +484,7 @@
 {:else if component === 'Column'}
   <!-- A plain <div> is role=generic, which forbids aria-label (axe
        aria-prohibited-attr, ignored by SR); a labelled group needs role="group". -->
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
   <div
     class={[
       context.classes.column,
@@ -499,6 +500,7 @@
     {/each}
   </div>
 {:else if component === 'Row'}
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
   <div
     class={[
       context.classes.row,
@@ -636,6 +638,7 @@
       <path d={iconSvgPath} />
     </svg>
   {:else}
+    <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
     <span
       class={context.classes.icon}
       style={weightStyle}
@@ -700,6 +703,7 @@
   />
 {:else if component === 'ChoicePicker'}
   {#if enumOr('variant', 'mutuallyExclusive') === 'multipleSelection'}
+    <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
     <div
       class={context.classes.choiceGroup}
       style={weightStyle}
@@ -750,6 +754,7 @@
   {#if dtMode === 'datetime'}
     <!-- The visible label sits on the date field; the group name gives the
          time segments their context (TimeInput's segments are self-labelled). -->
+    <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
     <div
       class={[context.classes.row, 'flex-wrap']}
       style={weightStyle}
@@ -778,6 +783,7 @@
          forwards both: its root is w-full, so as a Row child its flex basis
          would be the whole row, and its group drops aria-label whenever the
          visible label names it. role=group only when the wrapper has a name. -->
+    <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
     <div style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
       <TimeInput
         unstyled={context.unstyled}

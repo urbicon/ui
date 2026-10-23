@@ -80,6 +80,7 @@
   }
 </script>
 
+<!-- biome-ignore lint/a11y/noLabelWithoutControl: the input is nested; the text is `{label}` inside an {#if}, which the rule does not read -->
 <label
   class={unstyled
     ? resolveClassChain(slotClasses?.item, className)

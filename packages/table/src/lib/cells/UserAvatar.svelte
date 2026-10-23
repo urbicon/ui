@@ -49,12 +49,21 @@
       onClick(item);
     }
   }
+
+  function handleKeyDown(event: KeyboardEvent) {
+    if (clickable && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      handleClick();
+    }
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
 <div
   class={styles.container()}
   onclick={handleClick}
+  onkeydown={handleKeyDown}
   role={clickable ? 'button' : undefined}
   tabindex={clickable ? 0 : undefined}
 >

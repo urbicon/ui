@@ -20,7 +20,7 @@
   // so the KB label below must be measured on this string and no other.
   const tokensJSON = generateFigmaTokensJSON(true);
 
-  const previewLines = tokensJSON.split('\n').slice(0, 30).join('\n') + '\n  ...';
+  const previewLines = `${tokensJSON.split('\n').slice(0, 30).join('\n')}\n  ...`;
 
   async function copyTokens() {
     await navigator.clipboard.writeText(tokensJSON);

@@ -1,6 +1,4 @@
 <script lang="ts">
-  import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';
-  import { Calendar } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -15,43 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const defaults: Record<string, unknown> = {
-      variant: 'default',
-      size: 'md',
-      selectionMode: 'single',
-      showWeekNumbers: false,
-      showOutsideDays: true,
-      fixedWeeks: false,
-      eventPopover: false,
-      showMiniCalendar: false,
-      animated: true,
-      disabled: false
-    };
-
-    const props = Object.entries(vals)
-      .filter(([key, value]) => {
-        if (value === null || value === undefined) return false;
-        if (key in defaults && value === defaults[key]) return false;
-        if (value === false) return false;
-        return true;
-      })
-      .map(([key, value]) => {
-        if (typeof value === 'boolean') return value ? key : '';
-        if (typeof value === 'string') return `${key}="${value}"`;
-        return `${key}={${JSON.stringify(value)}}`;
-      })
-      .filter(Boolean);
-
-    const propsStr = props.length > 0 ? `\n  ${props.join('\n  ')}\n` : ' ';
-
-    return `<Calendar${propsStr}  events={events}
-  categories={categories}
-  onEventClick={handleEventClick}
-  showLegend
-/>`;
-  }
 </script>
 
 <SeoMeta

@@ -94,6 +94,7 @@
   }
 </script>
 
+<!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
 <span
   {...rest}
   class={slot('root', className)}
@@ -103,6 +104,7 @@
   aria-hidden={named ? undefined : 'true'}
 >
   <svg
+    aria-hidden="true"
     class={slot('svg')}
     width={fluid ? undefined : width}
     height={fluid ? undefined : height}

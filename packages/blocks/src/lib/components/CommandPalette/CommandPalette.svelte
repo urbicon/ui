@@ -376,6 +376,7 @@
       />
       {#if query}
         <button
+          type="button"
           class={unstyled
             ? (slotClasses?.clearButton ?? '')
             : styles.clearButton({ class: slotClasses?.clearButton })}
@@ -480,6 +481,7 @@
               </div>
             {:else}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- biome-ignore lint/a11y/useKeyWithClickEvents: an option under aria-activedescendant: keys are handled on the input (APG combobox) -->
               <div
                 id={itemId(flatIdx)}
                 role="option"

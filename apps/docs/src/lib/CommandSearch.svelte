@@ -44,7 +44,8 @@
   let indexRequest: Promise<void> | undefined;
 
   function loadIndex(): void {
-    indexRequest ??= fetch('/search-index.json')
+    if (indexRequest) return;
+    indexRequest = fetch('/search-index.json')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((records: SearchRecord[]) => {
         index = records;

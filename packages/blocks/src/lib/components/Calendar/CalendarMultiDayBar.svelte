@@ -1,3 +1,4 @@
+<!-- biome-ignore-all lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: an ARIA grid on div/span by design, laid out as a CSS grid that table elements would turn into table layout; focus moves inside the grid (APG grid pattern), so its rows, headers and cells take no tabindex of their own -->
 <script lang="ts">
   import { formatDateRange } from '#lib/date/index.js';
   import { createSlotHelper, getCalendarContext } from './calendar.context';

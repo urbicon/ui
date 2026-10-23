@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Button, ButtonGroup } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,

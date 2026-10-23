@@ -560,6 +560,7 @@
                 : ctlId(control.key)}
             <div class={slot('controlItem')}>
               {#if labelFor}
+                <!-- biome-ignore lint/a11y/noLabelWithoutControl: the text comes from {@render controlCaption}, which the rule does not read -->
                 <label for={labelFor} class={slot('controlLabel')}>
                   {@render controlCaption(control, undefined)}
                 </label>

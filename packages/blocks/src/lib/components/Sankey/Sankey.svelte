@@ -261,6 +261,7 @@
   });
 </script>
 
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: tracks the pointer for the tooltip; nodes and links take focus on their own -->
 <div
   bind:this={wrapperRef}
   class={unstyled
@@ -275,6 +276,7 @@
        Convention: interactive charts (Sankey, CompositionBar) are a named
        group; purely static charts (ChartFrame, DonutChart) keep role="img" —
        atomic is only correct without interactive descendants. -->
+  <!-- biome-ignore lint/a11y/useSemanticElements: the svg root; HTML grouping elements do not exist in SVG -->
   <svg
     role="group"
     aria-label={ariaSummary}
@@ -293,6 +295,7 @@
         {#if linkContentSnippet}
           {@render linkContentSnippet(link as SankeyLaidOutLinkWithMeta)}
         {:else}
+          <!-- biome-ignore lint/a11y/useSemanticElements: an SVG shape; an HTML button cannot live inside an svg -->
           <path
             tabindex="0"
             role="button"
@@ -326,6 +329,7 @@
       {#each layout.nodes as node (node.id)}
         {@const highlighted = isNodeHighlighted(node)}
         {@const dimmed = hovered !== null && !highlighted}
+        <!-- biome-ignore lint/a11y/useSemanticElements: an SVG shape; an HTML button cannot live inside an svg -->
         <g
           tabindex="0"
           role="button"

@@ -188,7 +188,7 @@
   }
 
   function hidePopoverSafe() {
-    if (containerEl && containerEl.matches(':popover-open')) {
+    if (containerEl?.matches(':popover-open')) {
       try {
         containerEl.hidePopover();
       } catch (err) {

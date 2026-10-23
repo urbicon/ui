@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { SplitPane } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,38 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const defaults: Record<string, unknown> = {
-      orientation: 'horizontal',
-      collapsible: false,
-      disabled: false
-    };
-
-    const props = Object.entries(vals)
-      .filter(([key, value]) => {
-        if (value === null || value === undefined) return false;
-        if (key in defaults && value === defaults[key]) return false;
-        if (value === false) return false;
-        return true;
-      })
-      .map(([key, value]) => {
-        if (typeof value === 'boolean') return value ? key : '';
-        return `${key}="${value}"`;
-      })
-      .filter(Boolean);
-
-    const propsStr = props.length > 0 ? ` ${props.join(' ')}` : '';
-
-    return `<SplitPane${propsStr} defaultRatio={0.4} min="20%" max="80%">
-  {#snippet start()}
-    <nav aria-label="Demo sidebar" class="h-full overflow-auto p-4">Sidebar</nav>
-  {/snippet}
-  {#snippet end()}
-    <main class="h-full overflow-auto p-4">Content</main>
-  {/snippet}
-</SplitPane>`;
-  }
 </script>
 
 <SeoMeta

@@ -72,6 +72,7 @@
   }
 </script>
 
+<!-- biome-ignore lint/a11y/useSemanticElements: a segment button in a radiogroup (APG); an input type=radio cannot hold its content -->
 <button
   bind:this={itemElement}
   {@attach mintAttachment(ctx.mint, { enabled: !isDisabled })}

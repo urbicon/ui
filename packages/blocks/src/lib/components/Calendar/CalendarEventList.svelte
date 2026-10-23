@@ -45,7 +45,13 @@
 </script>
 
 {#if selectedDate}
-  <div class={slot('list', className)} aria-live="polite" aria-label={bt('calendar.events')}>
+  <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
+  <div
+    class={slot('list', className)}
+    role="group"
+    aria-live="polite"
+    aria-label={bt('calendar.events')}
+  >
     <div class={slot('dateHeader')}>{dateLabel}</div>
 
     {#if eventsWithInfo.length === 0}

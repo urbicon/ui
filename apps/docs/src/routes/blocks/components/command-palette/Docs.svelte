@@ -128,6 +128,7 @@
       isolate
     >
       <button
+        type="button"
         class="border-border-default bg-surface-base text-text-tertiary hover:border-border-emphasis hover:text-text-secondary rounded-modify flex items-center gap-2 border px-4 py-2.5 text-sm shadow-[var(--blocks-shadow-sm)] transition-all"
         onclick={() => (customOpen = true)}
       >

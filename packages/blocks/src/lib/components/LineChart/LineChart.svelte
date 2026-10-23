@@ -141,7 +141,7 @@
 
     <!-- category axis -->
     <g class={slot('axis')} aria-hidden="true">
-      {#each data as datum, i (datum.label + ' ' + i)}
+      {#each data as datum, i (`${datum.label} ${i}`)}
         <text
           x={xAt(i, plot.innerWidth)}
           y={plot.innerHeight + 16}
@@ -154,7 +154,7 @@
     </g>
 
     <!-- series -->
-    {#each lines as line, si (line.label + ' ' + si)}
+    {#each lines as line, si (`${line.label} ${si}`)}
       <path
         class={slot('mark')}
         d={line.d}
@@ -181,7 +181,7 @@
   {#snippet legend()}
     {#if showLegend && resolvedSeries.length > 1}
       <ul class={slot('legend')}>
-        {#each resolvedSeries as s, i (s.label + ' ' + i)}
+        {#each resolvedSeries as s, i (`${s.label} ${i}`)}
           <li class={slot('legendItem')}>
             <span class={slot('legendSwatch')} style="background-color: {seriesColor(i, s.color)}"
             ></span>
@@ -198,13 +198,13 @@
       <thead>
         <tr>
           <th scope="col">{bt('chart.category')}</th>
-          {#each resolvedSeries as s, i (s.label + ' ' + i)}
+          {#each resolvedSeries as s, i (`${s.label} ${i}`)}
             <th scope="col">{s.label || bt('chart.series', { index: i + 1 })}</th>
           {/each}
         </tr>
       </thead>
       <tbody>
-        {#each data as datum, di (datum.label + ' ' + di)}
+        {#each data as datum, di (`${datum.label} ${di}`)}
           {@const cells = resolvedSeries.map((_s, si) => datum.values[si] ?? 0)}
           <tr>
             <th scope="row">{datum.label}</th>

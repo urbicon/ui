@@ -72,7 +72,7 @@
     setTimeout(() => (saved = false), 3000);
   }
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Accordion,
     AccordionItem,

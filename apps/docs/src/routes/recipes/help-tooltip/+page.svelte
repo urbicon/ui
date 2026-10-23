@@ -16,7 +16,7 @@
   let consumptionShare = $state(70);
   let temperature = $state(60);
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { InfoCircleIcon, Input, Slider, Tooltip } from '@urbicon-ui/blocks';
   // Both live beside this page; move them to #lib once more pages need them.
   import HelpTooltip from './HelpTooltip.svelte';
@@ -172,10 +172,12 @@
             System efficiency is reported via the
             <Tooltip label={glossary.spf.text}>
               <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+              <!-- biome-ignore-start lint/a11y/noNoninteractiveTabindex: the tooltip trigger takes focus so keyboard users can open the tooltip -->
               <span
                 tabindex="0"
                 class="text-primary border-primary/40 inline-flex cursor-help items-baseline gap-0.5 border-b border-dotted"
               >
+                <!-- biome-ignore-end lint/a11y/noNoninteractiveTabindex: closes the range above -->
                 seasonal performance factor
                 <InfoCircleIcon class="h-3 w-3" />
               </span>

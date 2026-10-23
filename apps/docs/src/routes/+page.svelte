@@ -249,14 +249,14 @@
     firn: { load: 94, guests: 64, returning: 41, mix: [40, 22, 18, 20] },
     duna: { load: 71, guests: 148, returning: 87, mix: [32, 25, 22, 21] }
   };
-  const HOUSES: House[] = GROUP_HOUSES.map((house) => ({
-    id: house.id,
-    name: house.name,
-    city: house.place,
-    stock: house.stock,
-    size: Object.values(house.stock).reduce((a, b) => a + b, 0),
-    team: house.hosts.map((host): AvatarProps => ({ name: host.name, status: host.status })),
-    ...OPS[house.id]
+  const HOUSES: House[] = GROUP_HOUSES.map((groupHouse) => ({
+    id: groupHouse.id,
+    name: groupHouse.name,
+    city: groupHouse.place,
+    stock: groupHouse.stock,
+    size: Object.values(groupHouse.stock).reduce((a, b) => a + b, 0),
+    team: groupHouse.hosts.map((host): AvatarProps => ({ name: host.name, status: host.status })),
+    ...OPS[groupHouse.id]
   }));
   const GROUP_GUESTS = HOUSES.reduce((n, h) => n + h.guests, 0); // 344
   /** Die Chip-Zeile über den Ansichten: die Gruppe plus je ein Haus. */
@@ -840,7 +840,9 @@
                pins the name to the wordmark; the five buttons stay in the tree,
                focusable and individually named. -->
           <h1 class="brand" aria-label={`${BRAND} ${BRAND_SUFFIX}`} bind:this={brandEl}>
-            {BRAND} <span class="brand-suffix">{BRAND_SUFFIX}</span><span
+            {BRAND}
+            <span class="brand-suffix">{BRAND_SUFFIX}</span
+            ><!-- biome-ignore lint/a11y/useSemanticElements: an inline group inside the heading; a fieldset is a block with UA border and padding --><span
               class="ticks"
               role="group"
               aria-label="Highlights"
@@ -945,6 +947,7 @@
                           <SegmentItem value="flow">Flow</SegmentItem>
                         </SegmentGroup>
                       </div>
+                      <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
                       <div class="scope" role="group" aria-label="House">
                         {#each SCOPES as s (s.key)}
                           <button
@@ -1655,6 +1658,7 @@
 {/snippet}
 
 <style>
+  /* biome-ignore-all lint/style/noDescendingSpecificity: rules are grouped by section, a base rule beside its explanation; a later, less specific rule loses to the earlier one whatever their order */
   .proto {
     --paper: light-dark(#f4f4f2, #0d0d0d);
     --ink: light-dark(#111111, #f4f4f2);

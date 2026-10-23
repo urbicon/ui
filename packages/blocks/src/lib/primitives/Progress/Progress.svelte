@@ -99,6 +99,7 @@
     {...restProps}
   >
     <svg
+      aria-hidden="true"
       width={effectiveCircularSize}
       height={effectiveCircularSize}
       viewBox="0 0 {effectiveCircularSize} {effectiveCircularSize}"
@@ -220,6 +221,7 @@
   @media (prefers-reduced-motion: reduce) {
     :global(.animate-progress-indeterminate),
     :global(.animate-progress-striped) {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion wins over any other animation on the bar, a consumer class included */
       animation: none !important;
     }
   }
