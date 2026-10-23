@@ -65,12 +65,12 @@ function renderTable(): { context: () => TableContext } {
   };
 }
 
-// The menu content lives in a native popover; jsdom has no top layer, hence
-// `{ hidden: true }` — see the blocks-testing skill.
-const trigger = () => screen.getByRole('button', { name: 'Summary', hidden: true });
-const columnGroup = (name: string) => screen.getByRole('group', { name, hidden: true });
+// The absence check passes `{ hidden: true }`, so a menu left rendered but
+// hidden still fails it.
+const trigger = () => screen.getByRole('button', { name: 'Summary' });
+const columnGroup = (name: string) => screen.getByRole('group', { name });
 const radioIn = (group: HTMLElement, name: string) =>
-  within(group).getByRole('menuitemradio', { name, hidden: true });
+  within(group).getByRole('menuitemradio', { name });
 
 describe('SummaryMenu — a menu of radio groups', () => {
   it('offers the six states per summable column, grouped under the column title', async () => {
@@ -99,7 +99,7 @@ describe('SummaryMenu — a menu of radio groups', () => {
     expect(screen.queryByRole('menu', { hidden: true })).toBeNull();
 
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
+    expect(screen.getByRole('menu')).toBeTruthy();
   });
 
   it('marks the active combination aria-checked — still clickable, not the old disabled hack', async () => {

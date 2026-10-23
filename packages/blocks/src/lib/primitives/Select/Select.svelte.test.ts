@@ -17,10 +17,8 @@ import { selectVariants } from './select.variants';
 // Conventions match Combobox.svelte.test.ts: Svelte's own `mount`/`unmount`
 // (never @testing-library/svelte — a second svelte instance breaks svelte-check),
 // @testing-library/dom + user-event for queries/interaction, and vitest's native
-// matchers (no jest-dom). The listbox renders in a native popover with no top
-// layer in jsdom, so options are queried with `{ hidden: true }`; these tests
-// assert selection *logic* (aria, callbacks, focus), not visual visibility —
-// that is Playwright's job.
+// matchers (no jest-dom). Absence checks pass `{ hidden: true }`, so they also
+// catch an option left rendered but hidden.
 
 const OPTIONS = [
   { label: 'Germany', value: 'de' },
@@ -46,7 +44,7 @@ function renderSelect(props: SelectProps<string | number | boolean>) {
 }
 
 const trigger = () => screen.getByRole('combobox');
-const option = (name: string) => screen.getByRole('option', { name, hidden: true });
+const option = (name: string) => screen.getByRole('option', { name });
 const expanded = () => trigger().getAttribute('aria-expanded');
 
 describe('Select (component interaction)', () => {
@@ -62,7 +60,7 @@ describe('Select (component interaction)', () => {
 
     expect(expanded()).toBe('true');
     expect(option('Germany')).toBeTruthy();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
   });
 
   it('selects an option, fires onValueChange, closes, and restores focus to the trigger', async () => {
@@ -195,6 +193,7 @@ describe('Select (component interaction)', () => {
     const user = userEvent.setup();
     renderSelect({ options: OPTIONS });
 
+    // Taken while still closed, so `hidden: true`.
     const listbox = screen.getByRole('listbox', { hidden: true });
     await user.click(trigger());
 
@@ -227,6 +226,7 @@ describe('Select (component interaction)', () => {
       dispose = () => unmount(instance);
       flushSync();
 
+      // Taken while still closed, so `hidden: true`.
       const listbox = screen.getByRole('listbox', { hidden: true });
       await user.click(trigger());
 
@@ -365,7 +365,7 @@ const SELECT_GROUPS = [
 ];
 
 describe('Select (groups)', () => {
-  const group = (name: string) => screen.getByRole('group', { name, hidden: true });
+  const group = (name: string) => screen.getByRole('group', { name });
 
   it('renders section headers and every grouped option', async () => {
     const user = userEvent.setup();
@@ -374,7 +374,7 @@ describe('Select (groups)', () => {
     await user.click(trigger());
     expect(group('Europe')).toBeTruthy();
     expect(group('Americas')).toBeTruthy();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(4);
+    expect(screen.getAllByRole('option')).toHaveLength(4);
   });
 
   it('flows keyboard navigation across group boundaries and selects the crossed option', async () => {
@@ -406,8 +406,8 @@ describe('Select (groups)', () => {
         { label: 'Team', options: [{ label: 'Bob', value: 'b' }] }
       ]
     });
-    expect(screen.getAllByRole('group', { name: 'Team', hidden: true })).toHaveLength(2);
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('group', { name: 'Team' })).toHaveLength(2);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
   });
 });
 
@@ -442,16 +442,14 @@ describe('Select (active highlight)', () => {
 // be one per rendered row, numbered by position, or `aria-activedescendant` and
 // `getElementById` resolve to whichever duplicate comes first.
 describe('Select (option ids)', () => {
-  const ids = () => screen.getAllByRole('option', { hidden: true }).map((o) => o.id);
+  const ids = () => screen.getAllByRole('option').map((o) => o.id);
   const optionId = (position: number) =>
     `${trigger().id.replace('-trigger', '')}-option-${position}`;
   const activeDescendant = () => trigger().getAttribute('aria-activedescendant');
   const activeOption = () => document.getElementById(activeDescendant() ?? '');
   // Select marks the cursor's row with the highlight class and nothing else.
   const highlighted = () =>
-    screen
-      .getAllByRole('option', { hidden: true })
-      .filter((o) => o.classList.contains('bg-surface-hover'));
+    screen.getAllByRole('option').filter((o) => o.classList.contains('bg-surface-hover'));
   const WITH_DISABLED = [
     { label: 'Germany', value: 'de', disabled: true },
     { label: 'France', value: 'fr' },
@@ -510,7 +508,7 @@ describe('Select (option ids)', () => {
     await user.click(trigger());
     expect(ids()).toEqual([0, 1, 2].map(optionId));
 
-    const [recent, all] = screen.getAllByRole('option', { name: 'France', hidden: true });
+    const [recent, all] = screen.getAllByRole('option', { name: 'France' });
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
     expect(activeOption()).toBe(all);
     expect(all.classList.contains('bg-surface-hover')).toBe(true);
@@ -875,7 +873,7 @@ describe('Select (option hints)', () => {
     });
 
     await user.click(trigger());
-    const opt = screen.getAllByRole('option', { hidden: true })[0];
+    const opt = screen.getAllByRole('option')[0];
     expect(flat(opt)).toBe('own row');
     expect(opt.querySelector('.tabular-nums')).toBeNull();
   });

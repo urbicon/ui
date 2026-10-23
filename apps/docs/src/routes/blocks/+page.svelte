@@ -2012,7 +2012,7 @@ Tokens switch light and dark automatically:
         <div class={inner} inert>
           {@render heading('StreamingMarkdown')}
           <div class="flex flex-1 flex-col justify-center overflow-hidden">
-            <StreamingMarkdown content={streamingMarkdownDemo} size="sm" headingLevelStart={4} />
+            <StreamingMarkdown content={streamingMarkdownDemo} size="sm" />
           </div>
         </div>
       </div>

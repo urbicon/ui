@@ -62,6 +62,16 @@ export interface AccountSettingsProps {
   policyPath?: string | null;
   /** Show the real-time password requirements checklist under the new password. @default true */
   showRequirements?: boolean;
+  /**
+   * Heading level of the component's title, clamped to 1..6; its section
+   * headings render one level below. `h2` fits a manager placed directly on a
+   * settings page under its `h1`; pass the rank that continues the embedding
+   * page's outline where it sits deeper — inside a titled card or tab. Its
+   * headings are styled by class, not by tag, so the level changes none of the component's own
+   * styling.
+   * @default 2
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. */

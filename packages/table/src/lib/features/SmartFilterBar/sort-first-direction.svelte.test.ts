@@ -71,9 +71,7 @@ function renderTable(): { ctx: () => InternalTableContext } {
 
 const sortPanel = () => within(screen.getByTestId('sheet-sort'));
 const columnRadio = (name: string) => sortPanel().getByRole('radio', { name });
-// Menu and Select content renders in a native popover; jsdom has no top layer,
-// hence `{ hidden: true }` — see the blocks-testing skill.
-const barTrigger = (name: string) => screen.getByRole('button', { name, hidden: true });
+const barTrigger = (name: string) => screen.getByRole('button', { name });
 const names = (rows: unknown[]) => rows.map((row) => (row as Row).name);
 
 describe('the sort panel starts a newly chosen column in its own first direction', () => {
@@ -181,7 +179,7 @@ describe('controls that name a direction keep saying exactly what they say', () 
     // its direction. Ascending on a `sortDescFirst` column is a legitimate,
     // reachable choice and must survive the pick.
     await user.click(barTrigger('Sort'));
-    await user.click(screen.getByRole('option', { name: 'Created · Ascending', hidden: true }));
+    await user.click(screen.getByRole('option', { name: 'Created · Ascending' }));
     flushSync();
 
     expect(ctx().view.sort).toEqual({ column: 'created', direction: 'asc' });

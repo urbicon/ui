@@ -26,9 +26,7 @@ import DateRangePickerHarness from './__fixtures__/DateRangePickerHarness.svelte
 // Mounted through a harness that binds `value` and projects it onto
 // data-start / data-end, because the in-progress range is — by design — not
 // reported via onValueChange. Same stack as the Combobox pilot: svelte's own
-// mount/unmount, @testing-library/dom + user-event, native matchers. The calendar
-// renders in a native popover with no top layer in jsdom, so day buttons are
-// reached by their deterministic `data-date="YYYY-MM-DD"` attribute.
+// mount/unmount, @testing-library/dom + user-event, native matchers.
 
 let dispose: (() => void) | undefined;
 

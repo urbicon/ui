@@ -57,13 +57,11 @@ function renderTable() {
 // the filter bar's "Summary" tool holds via the role: that one is a `button`,
 // the row here is a `menuitem`.
 //
-// `{ hidden: true }` on every role query: the menu lives in a native popover,
-// which jsdom has no top layer for — see the blocks-testing skill. These
-// assertions are about the interaction logic, not about visibility; that is
-// Playwright's job.
+// The absence checks pass `{ hidden: true }`, so a menu or row left rendered
+// but hidden still fails them.
 const menuTrigger = () => screen.getByTestId('header-menu-trigger-amount');
-const summaryRow = () => screen.getByRole('menuitem', { name: 'Summary', hidden: true });
-const typeItem = (name: string) => screen.getByRole('menuitemradio', { name, hidden: true });
+const summaryRow = () => screen.getByRole('menuitem', { name: 'Summary' });
+const typeItem = (name: string) => screen.getByRole('menuitemradio', { name });
 
 async function openSummary(user: ReturnType<typeof userEvent.setup>) {
   await user.click(menuTrigger());
@@ -79,7 +77,7 @@ describe('HeaderMenu — menu semantics', () => {
 
     await user.click(menuTrigger());
 
-    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
+    expect(screen.getByRole('menu')).toBeTruthy();
 
     // Positive control for the keyboard model: pointer-open parks focus on the
     // panel; ArrowDown must then actually MOVE focus row by row — including
@@ -105,7 +103,7 @@ describe('HeaderMenu — menu semantics', () => {
     // APG menu button: plain ArrowDown opens (Menu's default trigger can do
     // this; the customTrigger has to repeat it).
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
+    expect(screen.getByRole('menu')).toBeTruthy();
   });
 
   it('announces the effective sort direction as aria-checked, not just a tint', async () => {

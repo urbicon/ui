@@ -16,8 +16,8 @@ import Menu from './Menu.svelte';
 // built the APG pattern. The pin is that all three now agree, so the roles
 // cannot drift apart again one call form at a time.
 //
-// Menu renders through Popover; in jsdom there is no top layer, so panel
-// content reads as hidden and every query passes `{ hidden: true }`.
+// The separator absence checks pass `{ hidden: true }`, so a separator left
+// rendered but hidden still fails them.
 
 let dispose: (() => void) | undefined;
 
@@ -97,14 +97,14 @@ describe('Menu (section roles across the three call forms)', () => {
 
       // Runs the real accessible-name computation, not a text lookup: the
       // heading's text only reaches assistive tech through this reference.
-      expect(scope.getByRole('group', { name: 'Group A', hidden: true })).toBeTruthy();
+      expect(scope.getByRole('group', { name: 'Group A' })).toBeTruthy();
 
-      const group = scope.getByRole('group', { hidden: true });
+      const group = scope.getByRole('group');
       const heading = document.getElementById(group.getAttribute('aria-labelledby') as string);
       expect(heading?.getAttribute('role')).toBe('presentation');
 
       // The one separator is MenuDivider's rule — empty, and never the heading.
-      const separators = scope.getAllByRole('separator', { hidden: true });
+      const separators = scope.getAllByRole('separator');
       expect(separators).toHaveLength(1);
       expect(separators[0].textContent).toBe('');
       expect(scope.queryAllByRole('separator', { name: 'Group A', hidden: true })).toHaveLength(0);
@@ -120,9 +120,9 @@ describe('Menu (section roles across the three call forms)', () => {
     flushSync();
 
     const scope = within(document.querySelector('[role="menu"]') as HTMLElement);
-    expect(scope.getAllByRole('menuitem', { hidden: true }).map((el) => el.textContent?.trim())) //
+    expect(scope.getAllByRole('menuitem').map((el) => el.textContent?.trim())) //
       .toEqual(['a', 'b']);
-    expect(scope.getAllByRole('separator', { hidden: true })).toHaveLength(1);
+    expect(scope.getAllByRole('separator')).toHaveLength(1);
   });
 
   it('lets `isDivider` claim back a row whose own `type` reads "divider"', async () => {
@@ -144,10 +144,10 @@ describe('Menu (section roles across the three call forms)', () => {
     });
     flushSync();
     let scope = within(document.querySelector('[role="menu"]') as HTMLElement);
-    expect(scope.getAllByRole('menuitem', { hidden: true }).map((el) => el.textContent?.trim())) //
+    expect(scope.getAllByRole('menuitem').map((el) => el.textContent?.trim())) //
       .toEqual(['Merge cells', 'Divide cells', 'Split cells']);
     expect(scope.queryAllByRole('separator', { hidden: true })).toHaveLength(0);
-    await user.click(scope.getByRole('menuitem', { name: 'Divide cells', hidden: true }));
+    await user.click(scope.getByRole('menuitem', { name: 'Divide cells' }));
     expect(onDivide).toHaveBeenCalledTimes(1);
     unmount(claimed);
     document.body.replaceChildren();
@@ -161,9 +161,9 @@ describe('Menu (section roles across the three call forms)', () => {
     dispose = () => unmount(structural);
     flushSync();
     scope = within(document.querySelector('[role="menu"]') as HTMLElement);
-    expect(scope.getAllByRole('menuitem', { hidden: true }).map((el) => el.textContent?.trim())) //
+    expect(scope.getAllByRole('menuitem').map((el) => el.textContent?.trim())) //
       .toEqual(['Merge cells', 'Split cells']);
-    expect(scope.getAllByRole('separator', { hidden: true })).toHaveLength(1);
+    expect(scope.getAllByRole('separator')).toHaveLength(1);
   });
 
   it('renders a rule before the next header between the groups, not inside the first', () => {
@@ -216,8 +216,7 @@ describe('Menu (section roles across the three call forms)', () => {
     flushSync();
     expect(
       within(document.querySelector('[role="menu"]') as HTMLElement).getByRole('group', {
-        name: 'Group A',
-        hidden: true
+        name: 'Group A'
       })
     ).toBeTruthy();
   });

@@ -138,6 +138,22 @@ describe('TwoFactorManager — focus across steps', () => {
     );
   });
 
+  it('finds the step heading at the clamp, where it shares the panel heading rank', async () => {
+    render({
+      headingLevel: 6,
+      fetcher: fetcherReturning(
+        jsonResponse(200, { secret: 'JBSWY3DPEHPK3PXP', otpauthUri: 'otpauth://totp/x?secret=J' })
+      )
+    });
+
+    await userEvent.click(enableButton());
+    await settle();
+
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Set up two-factor authentication' })
+    );
+  });
+
   it('leaves the caret in the code field when the code is refused', async () => {
     render({ fetcher: setupThenCode() });
 

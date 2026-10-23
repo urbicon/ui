@@ -2,7 +2,7 @@
   import { onDestroy, untrack } from 'svelte';
   import { type SectionSlots, sectionVariants } from './section.variants';
   import type { SectionProps } from './index.js';
-  import { Badge, resolveClassChain } from '@urbicon-ui/blocks';
+  import { Badge, headingTag, resolveClassChain } from '@urbicon-ui/blocks';
   import { getSectionRegistry, setSectionRegistry } from './section-registry.svelte.js';
 
   let {
@@ -53,13 +53,7 @@
   // `aria-labelledby` at it would be a dangling IDREF.
   const hasHeading = $derived(!!(title || titleSnippet));
 
-  const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
-  type HeadingTag = (typeof HEADING_TAGS)[number];
-
-  const headingTag: HeadingTag = $derived.by(() => {
-    const level = Math.min(6, Math.max(1, headingLevel));
-    return HEADING_TAGS[level - 1];
-  });
+  const tag = $derived(headingTag(headingLevel));
 
   const headingId = $derived.by(() => `${id}-title`);
 
@@ -120,7 +114,7 @@
     <header class={[titleHidden ? 'sr-only' : slot('header')]}>
       <div class={slot('headerRow')}>
         {#if hasHeading}
-          <svelte:element this={headingTag} id={headingId} class={slot('title')}>
+          <svelte:element this={tag} id={headingId} class={slot('title')}>
             {#if resolvedMarker}<span class={slot('marker')}>{resolvedMarker}</span>{/if}
             {@render headingContent()}
           </svelte:element>

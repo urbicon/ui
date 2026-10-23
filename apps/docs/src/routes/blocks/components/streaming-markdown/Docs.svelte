@@ -12,7 +12,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Static markdown — tables and task lists"
-      description="A settled answer renders GFM tables and task lists the same whether the text arrived all at once or streamed chunk by chunk. Set headingLevelStart so message headings stay out of the page outline."
+      description="A settled answer renders GFM tables and task lists the same whether the text arrived all at once or streamed chunk by chunk. headingLevelStart continues the page outline: at 3, the answer's ## renders as an h4 under this example's h3 title."
       code={staticMarkdownCode}
     >
       <StaticMarkdown />
@@ -69,10 +69,11 @@
       <p>
         Markdown <code class="text-text-primary">#</code> maps to the DOM level set by
         <code class="text-text-primary">headingLevelStart</code> (deeper levels shift along, clamped
-        at <code class="text-text-primary">h6</code>). In a chat, set it to
-        <code class="text-text-primary">3</code> so a message's own headings slot beneath the page
-        <code class="text-text-primary">&lt;h1&gt;</code> instead of competing with it. Visual sizing
-        keeps following the author's level independently.
+        at <code class="text-text-primary">h6</code>). Set it to the rank that continues the outline
+        the message sits in — <code class="text-text-primary">3</code> under a chat panel's
+        <code class="text-text-primary">&lt;h2&gt;</code>. No level keeps a message's headings out
+        of the page outline; one set too deep leaves a gap in it instead. Visual sizing keeps
+        following the author's level independently.
       </p>
     </Note>
     <Note title="Streaming cursor">

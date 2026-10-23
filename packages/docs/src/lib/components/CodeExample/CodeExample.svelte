@@ -2,7 +2,7 @@
   import { InfoCard, InlineCode } from '#lib';
   import { useDocsI18n } from '#lib/i18n/index.js';
   import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
-  import { resolveClassChain } from '@urbicon-ui/blocks';
+  import { headingTag, resolveClassChain } from '@urbicon-ui/blocks';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
   import { type CodeExampleSlots, codeExampleVariants } from './codeexample.variants';
@@ -55,9 +55,7 @@
     return fns[name]({ class: slotClasses[name] });
   };
 
-  // Same clamp as Section, Note and InfoCard: an out-of-range level would emit
-  // `<h0>`, which is not a heading at all.
-  const tag = $derived(`h${Math.min(6, Math.max(1, headingLevel))}` as const);
+  const tag = $derived(headingTag(headingLevel));
 
   const visibilityStore = getCodeVisibilityContext();
 

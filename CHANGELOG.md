@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.34.0](https://github.com/urbicon/ui/compare/v8.33.0...v8.34.0) - 2026-10-23
+
+### Breaking Changes
+- **i18n**: Audit a package against the base its factory names ([#574](https://github.com/urbicon/ui/issues/574))
+> **BREAKING:** validatePackageTranslations is removed from @urbicon-ui/i18n. Replace a validatePackageTranslations(name, bundles) call with await auditPackage(yourI18n) from @urbicon-ui/i18n/audit on the createPackageI18n result, or with auditTranslations(name, bundles) for bundles outside a package; isValid is now ok, and the findings are TranslationFinding objects (the old message is .detail).
+- **blocks**: Drop the computed field axes from the props types ([#573](https://github.com/urbicon/ui/issues/573))
+> **BREAKING:** InputProps, and with it NumberInputProps and CurrencyInputProps, no longer accepts hasLeftIcon, hasRightIcon or iconPosition; SelectProps (and with it LocaleSwitcherProps), TextareaProps, PinInputProps, TimeInputProps and SliderProps no longer accept messageType, which InputProps already left out. None of these props was ever read; delete them. See packages/blocks/docs/MIGRATION.md.
+- Let a page set the heading rank of the components it embeds ([#576](https://github.com/urbicon/ui/issues/576))
+> **BREAKING:** three table headings render at a new rank by default. The filter popover's title is an h2 (was h3), the column sections of the filter form in the popover and in the tools sheet are h3 (were h4), and the card list's total summary of an ungrouped table is an h3 (was h4), at `headingLevel` like the group headers. Their appearance is unchanged. A selector on the tag or on getByRole('heading', { level }) has to follow, and the popover is now named "Add filter" by its heading.
+
+### Bug Fixes
+- **auth**: Put the security headers on the handle's own refusals ([#571](https://github.com/urbicon/ui/issues/571))
+- **blocks,table**: Key consumer lists so a repeated id cannot throw ([#572](https://github.com/urbicon/ui/issues/572))
+- **blocks**: Measure flip, shift and size against the scroll boxes that clip a panel ([#575](https://github.com/urbicon/ui/issues/575))
+- **docs**: State the types count once and catch a repeated section id again ([#579](https://github.com/urbicon/ui/issues/579))
+- **blocks**: Restore persisted number entries and pin which old versions are deleted ([#577](https://github.com/urbicon/ui/issues/577))
+
+### Miscellaneous
+- **deps**: Raise every dependency to latest, biome 2.6 ([#578](https://github.com/urbicon/ui/issues/578))
+
+### Testing
+- **blocks,table**: Show an opened popover to jsdom and unpin jsdom ([#580](https://github.com/urbicon/ui/issues/580))
+
 ## [8.33.0](https://github.com/urbicon/ui/compare/v8.32.0...v8.33.0) - 2026-10-21
 
 ### Breaking Changes
@@ -670,35 +693,11 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ## [6.51.0](https://github.com/urbicon/ui/compare/v6.50.0...v6.51.0) - 2026-08-03
 
 ### Breaking Changes
+- **docs**: Drop the TOC order field nothing ever read
 - **docs**: Restore the tv fold the slot() helper had dropped, and guard it
 > **BREAKING:** eine `slotClasses`-Angabe verdraengt jetzt den Default, mit dem sie im selben Tailwind-Bucket kollidiert, statt zusaetzlich zu ihm zu gelten. Wer sich auf die Verkettung verlassen hat (nur innerhalb dieses Branches moeglich), sieht eine Klasse weniger auf dem Element.
 
 ### Bug Fixes
-- **blocks**: Let an inner Escape dismiss only what handled it
-- **blocks**: Treat an empty-string radio value as a real selection
-- **blocks**: Stop the calendar header from scrolling the page sideways
-- **blocks**: Line the calendar's chevrons up on a narrow header
-- **docs**: Make the internal ids instance-local and fill the two empty Default columns
-- **docs**: Repair what the adversarial review found in my own fold commit
-- **docs,docs-app**: Finish the @default sweep and stop the three-way id clash
-- **docs**: Put the note card back on the container radius token
-
-### Documentation
-- Correct the measured claims that live in files rather than in the log
-
-### Features
-- **table**: Move the narrow bar's tools into a sheet
-
-## [6.50.0](https://github.com/urbicon/ui/compare/v6.49.0...v6.50.0) - 2026-08-02
-
-### Breaking Changes
-- **docs**: Drop the TOC order field nothing ever read
-
-### Bug Fixes
-- **design**: Stop nudging projects that decided shape at the tier
-- **blocks**: Move the Drawer panel onto the contain tier
-- **blocks**: Default purpose="tag" badges to the neutral intent
-- **docs-gen**: Point the llms-full install at the public npm registry
 - **docs**: Make lineNumbers work, name the TOC landmarks, stop leaking a listener
 - **docs**: Localize the last hardcoded strings in the package
 - **docs-gen,mcp-server**: Filter the internal catalog by package, not by name
@@ -709,6 +708,45 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **docs,docs-app**: Name the regions and navigations the docs site never named
 - **docs-app,auth**: Give the top-level pages the headings and names they lacked
 - **docs-app,docs**: Hold the ten docs meta pages to the guide they document
+- **blocks**: Let an inner Escape dismiss only what handled it
+- **blocks**: Treat an empty-string radio value as a real selection
+- **blocks**: Stop the calendar header from scrolling the page sideways
+- **blocks**: Line the calendar's chevrons up on a narrow header
+- **docs**: Make the internal ids instance-local and fill the two empty Default columns
+- **docs**: Repair what the adversarial review found in my own fold commit
+- **docs,docs-app**: Finish the @default sweep and stop the three-way id clash
+- **docs**: Put the note card back on the container radius token
+
+### Build
+- Run the ESM-specifier pass in every package that emits with svelte-package
+
+### Documentation
+- Correct the measured claims that live in files rather than in the log
+
+### Features
+- **docs**: Put Section, InfoCard and CodeExample on the standard styling API
+- **docs**: Expose the variants values, slot types and i18n at the package entry
+- **docs-gen**: Fill the docs catalog and gate its metadata
+- **docs**: Add NoteList/Note for the card every docs page hand-copies
+- **table**: Move the narrow bar's tools into a sheet
+
+### Miscellaneous
+- **docs**: Drop the dead variants barrel, the dead slot and an unused devDep
+
+### Refactoring
+- **docs**: Make every ApiReference slot overridable
+- **docs**: Finish the slotClasses contract across the remaining components
+
+### Testing
+- **docs**: Give the package its first DOM tests (closes #35)
+
+## [6.50.0](https://github.com/urbicon/ui/compare/v6.49.0...v6.50.0) - 2026-08-02
+
+### Bug Fixes
+- **design**: Stop nudging projects that decided shape at the tier
+- **blocks**: Move the Drawer panel onto the contain tier
+- **blocks**: Default purpose="tag" badges to the neutral intent
+- **docs-gen**: Point the llms-full install at the public npm registry
 - Drop the unfounded @sveltejs/kit peer dependency
 - **blocks**: Render the tooltip panel as a span so it is legal inline
 - **blocks,docs**: Answer the adversarial review of the tooltip span fix
@@ -721,7 +759,6 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Build
 - Keep the incremental type-check cache out of the tarballs
-- Run the ESM-specifier pass in every package that emits with svelte-package
 
 ### Documentation
 - Correct the publishing facts, record the token-only theme contract
@@ -733,24 +770,12 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **design-engine**: Rank radius by role in the rubric, rename the ux axis
 - **design-engine**: Ship the radius tiers and the category-vs-status rule
 - **blocks**: Give Card a container tier for small content surfaces
-- **docs**: Put Section, InfoCard and CodeExample on the standard styling API
-- **docs**: Expose the variants values, slot types and i18n at the package entry
-- **docs-gen**: Fill the docs catalog and gate its metadata
-- **docs**: Add NoteList/Note for the card every docs page hand-copies
 - **blocks**: Guard every namespace by asking the compiler, not a model
-
-### Miscellaneous
-- **docs**: Drop the dead variants barrel, the dead slot and an unused devDep
 
 ### Performance
 - **table**: Resolve the cell locale once per table, not once per cell
 
-### Refactoring
-- **docs**: Make every ApiReference slot overridable
-- **docs**: Finish the slotClasses contract across the remaining components
-
 ### Testing
-- **docs**: Give the package its first DOM tests (closes #35)
 - **blocks**: Read the config and ask the compiler, not a list
 - **blocks**: Give the display probe a positive control
 - **blocks**: Assert every GLOB root reaches the emitted-CSS guard
@@ -759,26 +784,32 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ## [6.49.0](https://github.com/urbicon/ui/compare/v6.48.1...v6.49.0) - 2026-08-02
 
 ### Bug Fixes
+- **auth**: Make the Prisma adapter answer misses instead of throwing
+- **auth**: Say "revoke all" outright instead of keeping an empty family
+- **auth**: Guard the Prisma client through a proxy, not a copy
+- **auth**: Narrow the id guard to the error it claims to catch
+- **auth**: Stop accepting P2023, and never let classification throw
 - **design**: Deliver the context block to Claude Code
 
 ### Documentation
+- **auth**: Say which id column types an adapter may use
 - **design**: Group --help by purpose, knowledge first
 - **design-engine**: Teach landmarks and the text-*-emphasis rung
 
 ### Features
+- **auth**: Pin what an adapter does with an id it cannot represent
 - **mcp-server**: Bind loopback by default, add --host
 - **design**: Get-component takes a batch of slugs
+
+### Miscellaneous
+- Reformat the three files biome 2.5.6 wants differently
 
 ## [6.48.1](https://github.com/urbicon/ui/compare/v6.48.0...v6.48.1) - 2026-08-01
 
 ### Bug Fixes
-- **auth**: Stop accepting P2023, and never let classification throw
 - **deps**: Unblock the release lint gate after the Biome 2.5.6 upgrade
 - **design**: Make the installed hook actually run, and name the real stylesheet
 - **blocks,table**: Give the table toolbar and pagination arrows accessible names
-
-### Miscellaneous
-- Reformat the three files biome 2.5.6 wants differently
 
 ### Styling
 - **design**: Keep the tailwindSteps doc comment on tailwindSteps
@@ -786,21 +817,13 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ## [6.48.0](https://github.com/urbicon/ui/compare/v6.47.2...v6.48.0) - 2026-08-01
 
 ### Bug Fixes
-- **auth**: Make the Prisma adapter answer misses instead of throwing
-- **auth**: Say "revoke all" outright instead of keeping an empty family
-- **auth**: Guard the Prisma client through a proxy, not a copy
-- **auth**: Narrow the id guard to the error it claims to catch
 - **blocks**: Keep the Toggle track at its nominal width
 - **blocks**: Stop the month name from setting the calendar's width
-
-### Documentation
-- **auth**: Say which id column types an adapter may use
 
 ### Features
 - **design**: Version-stamp the context block, content-based staleness
 - **sv**: Add the @urbicon-ui/sv Svelte-CLI community add-on (beta)
 - **auth**: Make the adapter conformance suite runnable for third-party adapters ([#71](https://github.com/urbicon/ui/issues/71))
-- **auth**: Pin what an adapter does with an id it cannot represent
 - **table**: Collapse mobile cards, fold the filter tools into one menu
 
 ### Miscellaneous
@@ -907,6 +930,9 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ## [6.43.2](https://github.com/urbicon/ui/compare/v6.43.1...v6.43.2) - 2026-07-26
 
 ### Bug Fixes
+- **blocks,docs**: Give interaction fills a real hover step and disabled text a legible tone
+- **table**: Wire keyboard navigation through groups, split the mobile state snippets
+- **design-engine,blocks,docs**: Finish rolling out the interaction-fill hover rung
 - **blocks**: Put the ChatMessage bubble on the bridge radius tier
 - **blocks**: Hang the ChatMessage footer off the bubble's own column
 - **blocks,table**: Spread the light surface ladder at the ramp
@@ -917,21 +943,16 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **blocks**: Share one clipboard state machine across the copy affordances
 - **blocks**: Render the chat icon controls through CoreIconButton
 
-## [6.43.1](https://github.com/urbicon/ui/compare/v6.43.0...v6.43.1) - 2026-07-24
+### Testing
+- **i18n**: Stop the audit-scanner suites timing out on loaded hardware
 
-### Bug Fixes
-- **blocks,docs**: Give interaction fills a real hover step and disabled text a legible tone
-- **table**: Wire keyboard navigation through groups, split the mobile state snippets
-- **design-engine,blocks,docs**: Finish rolling out the interaction-fill hover rung
+## [6.43.1](https://github.com/urbicon/ui/compare/v6.43.0...v6.43.1) - 2026-07-24
 
 ### Documentation
 - Trim AGENTS.md to gotchas, move procedures into skills
 
 ### Refactoring
 - **design**: Slim the consumer context block to an entry point
-
-### Testing
-- **i18n**: Stop the audit-scanner suites timing out on loaded hardware
 
 ## [6.43.0](https://github.com/urbicon/ui/compare/v6.42.0...v6.43.0) - 2026-07-24
 
@@ -1060,6 +1081,11 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Miscellaneous
 - **blocks**: Record the component trio in the bundle-size baseline
 
+## [6.37.0](https://github.com/urbicon/ui/compare/v6.36.0...v6.37.0) - 2026-07-23
+
+### Features
+- **blocks**: Add PinInput, TimeInput and QRCode components
+
 ## [6.36.0](https://github.com/urbicon/ui/compare/v6.35.0...v6.36.0) - 2026-07-23
 
 ### Bug Fixes
@@ -1070,7 +1096,6 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Features
 - **blocks**: Bundle-size --entry — ad-hoc combined measurement for marginal cost
-- **blocks**: Add PinInput, TimeInput and QRCode components
 - **blocks**: Streaming-markdown parser core (AI-Kit P0 spike)
 - **blocks**: Add SplitPane primitive (resizable two-pane layout)
 - **blocks**: Streaming markdown renderer, CodeBlock, CitationChip (AI-Kit P1)
@@ -1188,12 +1213,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ### Documentation
 - **auth**: Ship the canonical AUTH.md inside the package
 
-## [6.26.3](https://github.com/urbicon/ui/compare/v6.26.2...v6.26.3) - 2026-07-20
-
-### Miscellaneous
-- Vendor the LICENSE into every published package
-
-## [6.26.1](https://github.com/urbicon/ui/compare/v6.26.0...v6.26.1) - 2026-07-20
+## [6.27.0](https://github.com/urbicon/ui/compare/v6.26.3...v6.27.0) - 2026-07-20
 
 ### Bug Fixes
 - **blocks**: Clickable Card kept the UA button font — font-inherit is not a Tailwind utility
@@ -1207,22 +1227,31 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Documentation
 - **docs-gen**: Close the JSDoc coverage gap on the config surface
-- **auth**: Correct the kernel-CSRF off-switch to checkOrigin:false
-- **auth**: Scope the kernel-CSRF availability note to Kit versions
-- **auth**: Drop the pre-2.70 kernel-CSRF caveats
 
 ### Features
 - **blocks**: Variants:lint now verifies theme-key existence for scale-suffixed classes
 - **blocks**: Surface Combobox queryFn failures via onError
 - **auth**: Purpose-bound signed tokens, verifier input caps, per-config logging, unlink
 
-### Miscellaneous
-- Ship LICENSE and drop tsbuildinfo in published tarballs
-
 ### Refactoring
 - **docs-gen**: Drop the dead typeAnchor/typePreview emission
 - **docs**: Drop the dead ApiProp.typeAnchor/typePreview fields
 - Tokenise the remaining sub-xs type sites outside blocks
+
+## [6.26.3](https://github.com/urbicon/ui/compare/v6.26.2...v6.26.3) - 2026-07-20
+
+### Miscellaneous
+- Vendor the LICENSE into every published package
+
+## [6.26.1](https://github.com/urbicon/ui/compare/v6.26.0...v6.26.1) - 2026-07-20
+
+### Documentation
+- **auth**: Correct the kernel-CSRF off-switch to checkOrigin:false
+- **auth**: Scope the kernel-CSRF availability note to Kit versions
+- **auth**: Drop the pre-2.70 kernel-CSRF caveats
+
+### Miscellaneous
+- Ship LICENSE and drop tsbuildinfo in published tarballs
 
 ## [6.26.0](https://github.com/urbicon/ui/compare/v6.25.0...v6.26.0) - 2026-07-20
 

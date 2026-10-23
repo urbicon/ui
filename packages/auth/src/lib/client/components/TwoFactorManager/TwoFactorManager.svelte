@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { Button, getBlocksConfig, Input, resolveClassChain, Separator } from '@urbicon-ui/blocks';
+  import {
+    Button,
+    getBlocksConfig,
+    headingTag,
+    Input,
+    resolveClassChain,
+    Separator
+  } from '@urbicon-ui/blocks';
   import { tick, untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { TwoFactorManagerProps } from './index.js';
@@ -16,6 +23,7 @@
     qr,
     onEnabled,
     onDisabled,
+    headingLevel = 2,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -70,8 +78,11 @@
     // Queried after the swap, not bound: exactly one step heading exists at a
     // time, and a query cannot be left holding the outgoing branch's element.
     // The enable step is a lone button, so it falls back to the panel heading.
+    // By attribute, not by tag: the rank follows `headingLevel`, and at the
+    // clamp the panel and step headings are both `h6`.
     const target =
-      panel?.querySelector<HTMLElement>('h3') ?? panel?.querySelector<HTMLElement>('h2');
+      panel?.querySelector<HTMLElement>('[data-step-heading]') ??
+      panel?.querySelector<HTMLElement>('[data-panel-heading]');
     target?.focus();
   }
 
@@ -207,12 +218,14 @@
     bind:this={panel}
     class={cls('flex flex-col gap-4', resolveClassChain(slotClasses.root, className))}
   >
-    <h2
+    <svelte:element
+      this={headingTag(headingLevel)}
+      data-panel-heading
       tabindex="-1"
       class={cls(`text-text-primary text-lg font-semibold ${STEP_HEADING}`, slotClasses.title)}
     >
       {t.twoFactor.title}
-    </h2>
+    </svelte:element>
 
     <FormErrorAlert {error} {unstyled} class={slotClasses.error} />
 
@@ -224,7 +237,9 @@
       {#if enabled}
         <!-- Disable: password re-auth -->
         <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={disable}>
-          <h3
+          <svelte:element
+            this={headingTag(headingLevel, { offset: 1 })}
+            data-step-heading
             tabindex="-1"
             class={cls(
               `text-text-primary text-sm font-semibold ${STEP_HEADING}`,
@@ -232,7 +247,7 @@
             )}
           >
             {t.twoFactor.disableTitle}
-          </h3>
+          </svelte:element>
           <p class={cls('text-text-tertiary text-sm', undefined)}>
             {t.twoFactor.disableDescription}
           </p>
@@ -274,7 +289,9 @@
       {/if}
     {:else if view === 'setup'}
       <!-- Setup: scan the QR / enter the key, then confirm a code -->
-      <h3
+      <svelte:element
+        this={headingTag(headingLevel, { offset: 1 })}
+        data-step-heading
         tabindex="-1"
         class={cls(
           `text-text-primary text-sm font-semibold ${STEP_HEADING}`,
@@ -282,7 +299,7 @@
         )}
       >
         {t.twoFactor.setupTitle}
-      </h3>
+      </svelte:element>
       <p class={cls('text-text-secondary text-sm', undefined)}>
         {t.twoFactor.setupScan}
       </p>
@@ -343,7 +360,9 @@
       </form>
     {:else if view === 'backup'}
       <!-- One-time backup codes -->
-      <h3
+      <svelte:element
+        this={headingTag(headingLevel, { offset: 1 })}
+        data-step-heading
         tabindex="-1"
         class={cls(
           `text-text-primary text-sm font-semibold ${STEP_HEADING}`,
@@ -351,7 +370,7 @@
         )}
       >
         {t.twoFactor.backupTitle}
-      </h3>
+      </svelte:element>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
         {t.twoFactor.backupDescription}
       </p>

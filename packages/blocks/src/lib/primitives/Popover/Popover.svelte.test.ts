@@ -23,8 +23,7 @@ import Popover from './Popover.svelte';
 // (any closeOn* false / external trigger) use the component's own document
 // listeners and are driven organically. Outside-click sequences use fireEvent
 // (pointerdown-based logic; user-event's single-pointer model can false-pass).
-// Content queries use data-testid / `{ hidden: true }` semantics per the
-// repo's popover convention.
+// Content queries use data-testid.
 
 // Content carries a focusable control so the focus-restore tests can move
 // focus INTO the panel before dismissing — otherwise the trigger is trivially

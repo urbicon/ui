@@ -19,7 +19,7 @@
 >
   {#snippet children()}
     <div class="mx-auto w-full max-w-md">
-      <BasicDemo />
+      <BasicDemo headingLevel={3} />
     </div>
   {/snippet}
 </PlaygroundConfigurator>
