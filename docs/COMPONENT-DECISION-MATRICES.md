@@ -12,17 +12,17 @@ Four components occupy overlapping territory: **Sidebar** (primitive, semantic l
 
 ### Decision matrix
 
-| Use-case                                                          | Recommended                                                                       | Why                                                                                                   |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| App-shell with persistent left nav (responsive overlay on mobile) | **`SidebarLayout`**                                                               | App-shell concern. Wires Sidebar + main + mobile hamburger; consumer only supplies items.             |
-| App-shell with custom grid (header bar, multi-region content)     | **`Sidebar`**                                                                     | Use the primitive directly so you own the surrounding layout.                                         |
-| Transient detail panel (click → slide-in → close after action)    | **`Drawer`** with `placement="right"`                                             | Modal semantics, focus trap, backdrop — all the things a sidebar should not do for a transient panel. |
-| Mobile bottom sheet                                               | **`Drawer`** with `placement="bottom"`                                            | Drawer supports all four edges; Sidebar is left/right only.                                           |
-| Filter panel (persistent on desktop, overlay on mobile)           | **`Sidebar`** with `mode="responsive"`                                            | Hybrid lifecycle is exactly Sidebar's purpose.                                                        |
-| Collapsible side panel (toggleable on desktop too)                | **`Sidebar`** with `mode="collapsible"` or **`SidebarLayout`** with the same mode | Width-animation behaviour, no backdrop on desktop.                                                    |
-| Anchored picker (date, action menu, autocomplete)                 | **`Popover`**                                                                     | Floating-UI positioning, not modal.                                                                   |
+| Use-case                                                          | Recommended                                                                       | Why                                                                                                                                                                                                       |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App-shell with persistent left nav (responsive overlay on mobile) | **`SidebarLayout`**                                                               | App-shell concern. Wires Sidebar + main + mobile hamburger; consumer only supplies items.                                                                                                                 |
+| App-shell with custom grid (header bar, multi-region content)     | **`Sidebar`**                                                                     | Use the primitive directly so you own the surrounding layout.                                                                                                                                             |
+| Transient detail panel (click → slide-in → close after action)    | **`Drawer`** with `placement="right"`                                             | Modal semantics, focus trap, backdrop — all the things a sidebar should not do for a transient panel.                                                                                                     |
+| Mobile bottom sheet                                               | **`Drawer`** with `placement="bottom"`                                            | Drawer supports all four edges; Sidebar is left/right only.                                                                                                                                               |
+| Filter panel (persistent on desktop, overlay on mobile)           | **`Sidebar`** with `mode="responsive"`                                            | Hybrid lifecycle is exactly Sidebar's purpose.                                                                                                                                                            |
+| Collapsible side panel (toggleable on desktop too)                | **`Sidebar`** with `mode="collapsible"` or **`SidebarLayout`** with the same mode | Width-animation behaviour, no backdrop on desktop.                                                                                                                                                        |
+| Anchored picker (date, action menu, autocomplete)                 | **`Popover`**                                                                     | Floating-UI positioning, not modal.                                                                                                                                                                       |
 | Hover description for an inline target                            | **`Tooltip`**                                                                     | `aria-describedby` pattern, no click trigger. Renders as phrasing content (all spans), so it is legal inside a `<p>` — see [COMPONENT-FAMILIES.md §Phrasing content](COMPONENT-FAMILIES.md#conversation). |
-| Stack of system notifications                                     | **`Toast`**                                                                       | Auto-dismiss, stacking, not modal.                                                                    |
+| Stack of system notifications                                     | **`Toast`**                                                                       | Auto-dismiss, stacking, not modal.                                                                                                                                                                        |
 
 ### Sidebar vs. Drawer — semantic difference
 
@@ -48,15 +48,15 @@ The axis count is the fastest way to tell them apart: Calendar and Planner lay o
 
 ### Decision matrix
 
-| Question                                            | → Calendar                          | → Planner                                            | → ResourceTimeline                                   |
-| --------------------------------------------------- | ----------------------------------- | --------------------------------------------------- | ---------------------------------------------------- |
-| Does the content have a **clock time**?             | yes (a 14:00–15:00 appointment)     | no (a meal / shift / day note)                      | no (whole days / nights)                             |
-| Should items **span multiple days**?                | yes (holiday, trip)                 | no (single-date bucketing)                          | yes — the span is the unit (`getRange`, inclusive)   |
-| Is there a **second axis** beside the date?         | no                                  | no                                                   | yes — one lane per room / vehicle / person           |
-| Is the cell content **your** domain markup + actions? | no — event list / bars            | yes — a `cell` snippet over your `T`                | yes — `span` and `cell` snippets over your `T`       |
-| Do you need **time-grid / recurrence / drag-resize**? | yes                               | no                                                   | no                                                    |
-| Datatype in the snippet                             | `CalendarEvent`                     | your `T`                                             | your `T`                                              |
-| Typical cases                                       | booking calendar, bin collection, appointments | weekly meal / menu plan, shift roster, content calendar | room occupancy, fleet utilisation, chair or staff scheduling |
+| Question                                              | → Calendar                                     | → Planner                                               | → ResourceTimeline                                           |
+| ----------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| Does the content have a **clock time**?               | yes (a 14:00–15:00 appointment)                | no (a meal / shift / day note)                          | no (whole days / nights)                                     |
+| Should items **span multiple days**?                  | yes (holiday, trip)                            | no (single-date bucketing)                              | yes — the span is the unit (`getRange`, inclusive)           |
+| Is there a **second axis** beside the date?           | no                                             | no                                                      | yes — one lane per room / vehicle / person                   |
+| Is the cell content **your** domain markup + actions? | no — event list / bars                         | yes — a `cell` snippet over your `T`                    | yes — `span` and `cell` snippets over your `T`               |
+| Do you need **time-grid / recurrence / drag-resize**? | yes                                            | no                                                      | no                                                           |
+| Datatype in the snippet                               | `CalendarEvent`                                | your `T`                                                | your `T`                                                     |
+| Typical cases                                         | booking calendar, bin collection, appointments | weekly meal / menu plan, shift roster, content calendar | room occupancy, fleet utilisation, chair or staff scheduling |
 
 ### When it's still ambiguous
 
@@ -86,33 +86,33 @@ The reverse direction does cost a map: `Calendar.events` takes the fixed `Calend
 ## Form-input layer — Select vs. Combobox vs. Menu
 
 Three components open an anchored floating panel from a trigger and look deceptively
-interchangeable. They are not: **Select** and **Combobox** are Form-family *value holders*
+interchangeable. They are not: **Select** and **Combobox** are Form-family _value holders_
 (`bind:value` + `onValueChange`, label/helper/error/required chrome), while **Menu** is an
-Action-family *verb dispatcher* — items fire `onSelect`, and Menu holds no value afterwards (an
+Action-family _verb dispatcher_ — items fire `onSelect`, and Menu holds no value afterwards (an
 item's `checked` displays a consumer-owned setting as `menuitemradio`, it stores none). The family
 split (border source, tiers, ARIA doctrine) is documented in
 [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md); this matrix answers the day-to-day "which one here?".
 
 ### Decision matrix
 
-| Use-case                                                        | Recommended                        | Why                                                                                                       |
-| --------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Pick one value from a short, known list (≲ 12 options)          | **`Select`**                       | Value semantics plus full form chrome (label, helper, error, required); no search input in the way.        |
-| Pick a value from a long or unfamiliar list (country, user, tag) | **`Combobox`**                     | The trigger *is* the `<input>` — type-to-filter beats scrolling a long listbox.                            |
-| Pick a value the server has to find                              | **`Combobox`** with `queryFn`      | Built-in debounced async search with stale-response handling; a Select has no query to send.               |
-| Pick multiple values, compact field                              | **`Select multiple`**              | Listbox stays open across picks; the trigger summarises (or build a count badge via `customTriggerContent`). |
-| Pick multiple values, picks should stay visible                  | **`Combobox multiple`**            | Selections render as removable tag chips inline with the search input.                                     |
-| One-off actions on a record (Edit / Duplicate / Delete)         | **`Menu`**                         | Items are verbs firing `onSelect` — Menu stores no selection. Closes on activation.                        |
-| Mark the active setting among a menu's entries (sort order, density) | **`Menu`** with per-item `checked` | Renders `role="menuitemradio"` + `aria-checked`; the state stays consumer-owned display — still not a form value. |
-| Right-click / long-press context actions                        | **`Menu`** with `contextTrigger`   | Same action semantics, panel parked at the pointer position.                                               |
-| Nested action groups (Export → CSV / JSON / PDF)                | **`Menu`** with nested `items`     | Submenus are a Menu capability. Select/Combobox `groups` label sections but deliberately don't nest.       |
-| Global "jump to anything / run any command"                     | **`CommandPalette`**               | Modal, keyboard-first (Cmd+K), searches verbs *and* destinations — a different scale than a field picker.  |
-| 2–5 choices that should stay visible                            | **`RadioGroup`** / **`SegmentGroup`** | Don't hide a handful of options behind a dropdown — showing them costs little and saves a click.        |
-| Free text where the value may be outside the list               | **`Input`** (+ own suggestion UI)  | Select/Combobox are pick-from-list: `value` is always one of `options` — a Combobox never commits arbitrary text. |
+| Use-case                                                             | Recommended                           | Why                                                                                                               |
+| -------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Pick one value from a short, known list (≲ 12 options)               | **`Select`**                          | Value semantics plus full form chrome (label, helper, error, required); no search input in the way.               |
+| Pick a value from a long or unfamiliar list (country, user, tag)     | **`Combobox`**                        | The trigger _is_ the `<input>` — type-to-filter beats scrolling a long listbox.                                   |
+| Pick a value the server has to find                                  | **`Combobox`** with `queryFn`         | Built-in debounced async search with stale-response handling; a Select has no query to send.                      |
+| Pick multiple values, compact field                                  | **`Select multiple`**                 | Listbox stays open across picks; the trigger summarises (or build a count badge via `customTriggerContent`).      |
+| Pick multiple values, picks should stay visible                      | **`Combobox multiple`**               | Selections render as removable tag chips inline with the search input.                                            |
+| One-off actions on a record (Edit / Duplicate / Delete)              | **`Menu`**                            | Items are verbs firing `onSelect` — Menu stores no selection. Closes on activation.                               |
+| Mark the active setting among a menu's entries (sort order, density) | **`Menu`** with per-item `checked`    | Renders `role="menuitemradio"` + `aria-checked`; the state stays consumer-owned display — still not a form value. |
+| Right-click / long-press context actions                             | **`Menu`** with `contextTrigger`      | Same action semantics, panel parked at the pointer position.                                                      |
+| Nested action groups (Export → CSV / JSON / PDF)                     | **`Menu`** with nested `items`        | Submenus are a Menu capability. Select/Combobox `groups` label sections but deliberately don't nest.              |
+| Global "jump to anything / run any command"                          | **`CommandPalette`**                  | Modal, keyboard-first (Cmd+K), searches verbs _and_ destinations — a different scale than a field picker.         |
+| 2–5 choices that should stay visible                                 | **`RadioGroup`** / **`SegmentGroup`** | Don't hide a handful of options behind a dropdown — showing them costs little and saves a click.                  |
+| Free text where the value may be outside the list                    | **`Input`** (+ own suggestion UI)     | Select/Combobox are pick-from-list: `value` is always one of `options` — a Combobox never commits arbitrary text. |
 
 ### The two questions that settle most cases
 
-1. **Does the control hold a value afterwards?** No — the click *does* something → **Menu**.
+1. **Does the control hold a value afterwards?** No — the click _does_ something → **Menu**.
    Yes → question 2.
 2. **Does the user know the list, or do they need to search it?** Short/known → **`Select`**.
    Long, unfamiliar, or server-backed → **`Combobox`**.
@@ -121,17 +121,17 @@ Corollary (the family doc states it, the matrix repeats it): pick **multiple val
 `Select multiple` / `Combobox multiple`, never with a Menu — `checked` renders `menuitemradio`,
 the single-choice role, and Menu deliberately ships no `menuitemcheckbox`: multi-pick is value
 commitment and belongs to the Form family. A Menu also closes on activation. Menu's per-item
-`keepOpen` exists for genuine *verb* lists that shouldn't dismiss ("toggle grid", "toggle
+`keepOpen` exists for genuine _verb_ lists that shouldn't dismiss ("toggle grid", "toggle
 rulers"), not for value picking.
 
 ### What a screen reader hears (why the split is not cosmetic)
 
-| Surface        | `Select`                                        | `Combobox`                                     | `Menu`                          |
-| -------------- | ----------------------------------------------- | ---------------------------------------------- | ------------------------------- |
-| Trigger        | `role="combobox"` + `aria-haspopup="listbox"`   | the `<input>` itself, `role="combobox"`        | Button + `aria-haspopup="menu"` |
-| Panel          | `role="listbox"` (+ `role="group"` per group)   | `role="listbox"` (+ `role="status"` for async) | `role="menu"` (+ `role="group"` per top-level array section; a submenu panel is its own `role="menu"` scope) |
-| Items          | `role="option"` + `aria-selected`               | `role="option"` + `aria-selected`              | `role="menuitem"`; `checked` items `role="menuitemradio"` + `aria-checked` |
-| Keyboard focus | stays on the trigger, `aria-activedescendant`   | stays on the input, `aria-activedescendant`    | roving focus across items       |
+| Surface        | `Select`                                      | `Combobox`                                     | `Menu`                                                                                                       |
+| -------------- | --------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Trigger        | `role="combobox"` + `aria-haspopup="listbox"` | the `<input>` itself, `role="combobox"`        | Button + `aria-haspopup="menu"`                                                                              |
+| Panel          | `role="listbox"` (+ `role="group"` per group) | `role="listbox"` (+ `role="status"` for async) | `role="menu"` (+ `role="group"` per top-level array section; a submenu panel is its own `role="menu"` scope) |
+| Items          | `role="option"` + `aria-selected`             | `role="option"` + `aria-selected`              | `role="menuitem"`; `checked` items `role="menuitemradio"` + `aria-checked`                                   |
+| Keyboard focus | stays on the trigger, `aria-activedescendant` | stays on the input, `aria-activedescendant`    | roving focus across items                                                                                    |
 
 A screen reader user told "menu" expects verbs; told "listbox" expects a value commit. Using the
 wrong component isn't a styling nuance — it mis-announces the interaction contract.
@@ -170,13 +170,13 @@ Tooltip and Toast almost never collide with the four above — Tooltip is descri
 How the floating components stack up under the hood, so contributors picking patterns or
 adding new primitives know what to mirror:
 
-| Primitive    | Top-layer strategy           | Positioning                 | Composes                   | Notes                                                          |
-| ------------ | ---------------------------- | --------------------------- | -------------------------- | -------------------------------------------------------------- |
-| **Tooltip**  | `popover="manual"`           | Floating UI `strategy:fixed` | —                          | Hover/focus driven; no light dismiss; not click-toggle-able.   |
-| **Popover**  | `popover="auto"` or `"manual"` (derived) | Floating UI `strategy:fixed` | —                          | Auto when `closeOnEscape && closeOnClickOutside` (default); manual otherwise so the consumer can veto either path. |
-| **Menu**     | (inherits from Popover)      | (via Popover)               | wraps **Popover** internally | Owns keyboard nav + item registry; positioning + dismiss come from Popover. |
-| **Select**   | `popover="manual"`           | Floating UI `strategy:fixed` | —                          | Form input with a listbox panel. Manual mode so existing keydown/outside-click handlers stay in control. |
-| **Combobox** | `popover="manual"`           | Floating UI `strategy:fixed` | —                          | Like Select, but the trigger is the `<input>` itself and `aria-activedescendant` keeps DOM focus on the input. |
+| Primitive    | Top-layer strategy                       | Positioning                  | Composes                     | Notes                                                                                                              |
+| ------------ | ---------------------------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Tooltip**  | `popover="manual"`                       | Floating UI `strategy:fixed` | —                            | Hover/focus driven; no light dismiss; not click-toggle-able.                                                       |
+| **Popover**  | `popover="auto"` or `"manual"` (derived) | Floating UI `strategy:fixed` | —                            | Auto when `closeOnEscape && closeOnClickOutside` (default); manual otherwise so the consumer can veto either path. |
+| **Menu**     | (inherits from Popover)                  | (via Popover)                | wraps **Popover** internally | Owns keyboard nav + item registry; positioning + dismiss come from Popover.                                        |
+| **Select**   | `popover="manual"`                       | Floating UI `strategy:fixed` | —                            | Form input with a listbox panel. Manual mode so existing keydown/outside-click handlers stay in control.           |
+| **Combobox** | `popover="manual"`                       | Floating UI `strategy:fixed` | —                            | Like Select, but the trigger is the `<input>` itself and `aria-activedescendant` keeps DOM focus on the input.     |
 
 **Why `popover="manual"` for form inputs (Select/Combobox):** the native light-dismiss in `popover="auto"`
 fights with our pointerdown-on-trigger toggle flow. Manual mode plus our own outside-click /
@@ -190,12 +190,12 @@ disables one of those paths via `closeOnEscape` / `closeOnClickOutside`.
 
 All three (Popover / Select / Combobox) accept the same dismiss surface:
 
-| Prop                   | Type            | Default | Effect                                       |
-| ---------------------- | --------------- | ------- | -------------------------------------------- |
-| `closeOnEscape`        | `boolean`       | `true`  | Close on Escape key.                          |
-| `closeOnClickOutside`  | `boolean`       | `true`  | Close on pointerdown outside the panel.       |
-| `onEscape`             | `() => void`    | —       | Fires after Escape closes. Notification only — does **not** govern whether close happens. |
-| `onClickOutside`       | `() => void`    | —       | Fires after an outside click closes. Same semantics as `onEscape`. |
+| Prop                  | Type         | Default | Effect                                                                                    |
+| --------------------- | ------------ | ------- | ----------------------------------------------------------------------------------------- |
+| `closeOnEscape`       | `boolean`    | `true`  | Close on Escape key.                                                                      |
+| `closeOnClickOutside` | `boolean`    | `true`  | Close on pointerdown outside the panel.                                                   |
+| `onEscape`            | `() => void` | —       | Fires after Escape closes. Notification only — does **not** govern whether close happens. |
+| `onClickOutside`      | `() => void` | —       | Fires after an outside click closes. Same semantics as `onEscape`.                        |
 
 **Modal primitives (Dialog/Drawer/ConfirmDialog/Sidebar)** keep the older `closeOnBackdropClick` + `closeOnEscape`
 naming. The wording reflects the explicit `<backdrop>` element these components render — "click outside" is
@@ -215,12 +215,12 @@ the right abstraction only when no scrim exists.
 
 ### Focus-restoration policy (non-modal)
 
-| Path                     | Tooltip | Popover         | Select / Combobox |
-| ------------------------ | ------- | --------------- | ----------------- |
-| Selection / commit       | —       | (consumer)      | → trigger / input |
-| Escape                   | trigger | → trigger       | → trigger / input |
-| Outside click            | trigger | → trigger       | **stay** (user explicitly clicked elsewhere) |
-| Trigger click while open | —       | stay (no-op); → trigger if focus was inside the panel | → trigger / input |
+| Path                     | Tooltip | Popover                                               | Select / Combobox                            |
+| ------------------------ | ------- | ----------------------------------------------------- | -------------------------------------------- |
+| Selection / commit       | —       | (consumer)                                            | → trigger / input                            |
+| Escape                   | trigger | → trigger                                             | → trigger / input                            |
+| Outside click            | trigger | → trigger                                             | **stay** (user explicitly clicked elsewhere) |
+| Trigger click while open | —       | stay (no-op); → trigger if focus was inside the panel | → trigger / input                            |
 
 The "stay on outside click" policy for Select/Combobox is intentional: form inputs are most commonly
 dismissed by clicking another field, and stealing focus back to the trigger would override the user's

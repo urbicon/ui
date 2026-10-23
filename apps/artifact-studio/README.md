@@ -67,17 +67,17 @@ nicht die CSP. Genau diese Zeile zeigt, was welche Maßnahme beiträgt.
 
 ## Was wo liegt
 
-| Teil | Datei |
-| --- | --- |
-| Loop (Modell, Werkzeuge, Lint, Fix-Runden) | `src/lib/server/session.ts` |
-| Der `urbicon init`-Block als System-Prompt | `src/lib/server/grounding.ts` |
-| Die CLI als Werkzeug | `src/lib/server/cli-tool.ts` |
-| Der Editor (patchen statt neu schreiben) | `src/lib/server/editor-tool.ts` |
-| Vite-Build je Version (eigener Prozess) | `src/lib/server/build-version.ts` |
-| Sandbox-Server (zweite Origin) | `src/lib/server/sandbox.ts` |
-| CSP-Negativtest (acht Sonden + Gegenprobe) | `scripts/csp-check.ts` |
-| Ereignisstrom-Kontrakt | `src/lib/events.ts` |
-| Oberfläche | `src/lib/Studio.svelte` |
+| Teil                                       | Datei                             |
+| ------------------------------------------ | --------------------------------- |
+| Loop (Modell, Werkzeuge, Lint, Fix-Runden) | `src/lib/server/session.ts`       |
+| Der `urbicon init`-Block als System-Prompt | `src/lib/server/grounding.ts`     |
+| Die CLI als Werkzeug                       | `src/lib/server/cli-tool.ts`      |
+| Der Editor (patchen statt neu schreiben)   | `src/lib/server/editor-tool.ts`   |
+| Vite-Build je Version (eigener Prozess)    | `src/lib/server/build-version.ts` |
+| Sandbox-Server (zweite Origin)             | `src/lib/server/sandbox.ts`       |
+| CSP-Negativtest (acht Sonden + Gegenprobe) | `scripts/csp-check.ts`            |
+| Ereignisstrom-Kontrakt                     | `src/lib/events.ts`               |
+| Oberfläche                                 | `src/lib/Studio.svelte`           |
 
 `cli-tool.ts` und `editor-tool.ts` sind die einzige Fassung dieser Werkzeuge: ein lokaler,
 git-ignorierter Fixture-Recorder importiert sie von hier, statt eine zweite zu pflegen.
@@ -98,7 +98,7 @@ Erstes und schreibt mit `record-decision` zurück, was er als produktweite Vorga
 hat. Verifiziert an einem echten Lauf — die Nebenbemerkung „Karten sollen luftig sein" wurde
 als ADR festgehalten und im Folge-Turn befolgt.
 
-Gesperrt bleiben `init` und `hook`: die schreiben in ein *Projekt* (AGENTS.md,
+Gesperrt bleiben `init` und `hook`: die schreiben in ein _Projekt_ (AGENTS.md,
 `.claude/settings.json`) und hätten in einer Sitzung nichts zu tun.
 
 ## Entscheidungen, die nicht offensichtlich sind

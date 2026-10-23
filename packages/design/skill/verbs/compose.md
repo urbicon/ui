@@ -7,17 +7,17 @@ synthesise loop so a single-shot answer can't regress to a generic template.
 Do not skip steps. The value is in the loop, not any one generation.
 
 1. **Context.** `urbicon context` (or read `./design.manifest.md`) — honour the
-   paradigm, theme, density, the Product Intent (design *toward* its voice and
-   references, *away* from its anti-references), and the recorded ADRs. Then
+   paradigm, theme, density, the Product Intent (design _toward_ its voice and
+   references, _away_ from its anti-references), and the recorded ADRs. Then
    `urbicon pattern` (no name) to see which composition patterns exist, and
    `urbicon pattern <name>` for the one that fits the brief — follow its layout,
    component-selection, and behavioural rules.
 2. **Ground rules.** `urbicon principles` for the heuristics, `urbicon principles
-   --topic theming` for the paradigm's token profile, and `urbicon css-reference`
+--topic theming` for the paradigm's token profile, and `urbicon css-reference`
    for the exact token names. `urbicon find` / `get-component` to pick the right
    primitives rather than reinventing them.
 3. **Generate variants.** Produce a few genuinely different implementations (2–5;
-   default 3), each a distinct compositional approach *within* the paradigm — vary
+   default 3), each a distinct compositional approach _within_ the paradigm — vary
    density, hierarchy emphasis, and the one signature moment. Do not let them
    converge. Use only real semantic tokens (no `bg-status-*`, no `*-foreground`, no
    invented names); if the project defines its own, they're in `## Token Overrides`.

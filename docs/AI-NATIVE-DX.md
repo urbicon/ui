@@ -5,11 +5,11 @@ surface is the one consumers actually install.
 
 ## The three surfaces
 
-| Surface | What it is |
-| --- | --- |
-| `llms.txt` | Brief library overview (llms.txt standard) — generated from the component catalog + a small template, tracked, checked by `llms:check` |
-| `llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
-| **`urbicon` CLI** (`packages/design`) | **The consumer surface**: one dev-dependency, version-pinned knowledge |
+| Surface                               | What it is                                                                                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `llms.txt`                            | Brief library overview (llms.txt standard) — generated from the component catalog + a small template, tracked, checked by `llms:check` |
+| `llms-full.txt`                       | Complete API reference with examples, tokens and patterns — generated                                                                  |
+| **`urbicon` CLI** (`packages/design`) | **The consumer surface**: one dev-dependency, version-pinned knowledge                                                                 |
 
 There is no remote tool server: the MCP server that once mirrored the CLI was retired.
 Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-was-retired).

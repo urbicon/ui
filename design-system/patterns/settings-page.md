@@ -5,9 +5,9 @@ pattern covers both the small (tabbed) and the large (sidebar) shape.
 
 ## Choosing the navigation
 
-| Settings shape | Navigation | Why |
-|---|---|---|
-| **Small & flat** — up to ~5 co-equal groups, one Save for the whole page, no nested subsections | `Tab` (client-side, `bind:value`) | The groups are peer sections at one hierarchy level; a full sidebar shell is heavier than the content warrants. The `settings` recipe is this case. |
+| Settings shape                                                                                                     | Navigation                           | Why                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Small & flat** — up to ~5 co-equal groups, one Save for the whole page, no nested subsections                    | `Tab` (client-side, `bind:value`)    | The groups are peer sections at one hierarchy level; a full sidebar shell is heavier than the content warrants. The `settings` recipe is this case.                   |
 | **Large, hierarchical, or per-section save** — many sections, nested groups, or each section commits independently | `Sidebar` (+ `Accordion` for groups) | Scales vertically past what a tab bar can hold, expresses nesting, gives each section its own URL, and fits the free-switch model that per-section save/cancel needs. |
 
 Rule of thumb: reach for `Sidebar` the moment a section owns its Save/Cancel, the
@@ -30,20 +30,20 @@ choice — don't force a sidebar onto three flat panels.
 
 ## Component Selection
 
-| UI Need | Component | Configuration |
-|---|---|---|
-| Section navigation (small / flat) | `Tab` | Client-side `bind:value`, one panel per section |
-| Section navigation (large / hierarchical) | `Sidebar` + `Accordion` | Grouped links, highlight active section |
-| Section container | `Card` | `variant="outlined"` |
-| Section heading | Native `h2` | `text-text-primary font-semibold text-lg` |
-| Subsection heading | Native `h3` | `text-text-secondary font-medium text-base` |
-| Boolean setting | `Toggle` | With label, not `Checkbox` |
-| Enum setting (3-6) | `Select` | Labeled via `FormField` |
-| Enum setting (7+) | `Combobox` | Searchable, labeled via `FormField` |
-| Free text | `Input` or `Textarea` | Labeled via `FormField` |
-| Save/cancel | `Button` pair | Sticky bottom bar when form exceeds viewport |
-| Destructive action | `Button intent="danger"` | Separated at bottom, requires `ConfirmDialog` |
-| Status feedback | `Toast` | On save success/failure |
+| UI Need                                   | Component                | Configuration                                   |
+| ----------------------------------------- | ------------------------ | ----------------------------------------------- |
+| Section navigation (small / flat)         | `Tab`                    | Client-side `bind:value`, one panel per section |
+| Section navigation (large / hierarchical) | `Sidebar` + `Accordion`  | Grouped links, highlight active section         |
+| Section container                         | `Card`                   | `variant="outlined"`                            |
+| Section heading                           | Native `h2`              | `text-text-primary font-semibold text-lg`       |
+| Subsection heading                        | Native `h3`              | `text-text-secondary font-medium text-base`     |
+| Boolean setting                           | `Toggle`                 | With label, not `Checkbox`                      |
+| Enum setting (3-6)                        | `Select`                 | Labeled via `FormField`                         |
+| Enum setting (7+)                         | `Combobox`               | Searchable, labeled via `FormField`             |
+| Free text                                 | `Input` or `Textarea`    | Labeled via `FormField`                         |
+| Save/cancel                               | `Button` pair            | Sticky bottom bar when form exceeds viewport    |
+| Destructive action                        | `Button intent="danger"` | Separated at bottom, requires `ConfirmDialog`   |
+| Status feedback                           | `Toast`                  | On save success/failure                         |
 
 ## Behavioral Rules
 

@@ -7,10 +7,10 @@ conventions and responsive guidelines live in the repo's `docs/` directory.
 
 The table offers **two scroll models**, picked per instance:
 
-| Model | Prop | Scroll context | Use when |
-|---|---|---|---|
-| **Page-relative sticky** | `sticky` | The page (or nearest scroll ancestor) scrolls; layers pin to its top | The table is one of several blocks on a scrolling page |
-| **Contained scroll** | `fit="viewport"` | The table is its own scroll box, capped to the viewport | The table is the primary content of a full-height list page, especially when it is wider than the viewport |
+| Model                    | Prop             | Scroll context                                                       | Use when                                                                                                   |
+| ------------------------ | ---------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Page-relative sticky** | `sticky`         | The page (or nearest scroll ancestor) scrolls; layers pin to its top | The table is one of several blocks on a scrolling page                                                     |
+| **Contained scroll**     | `fit="viewport"` | The table is its own scroll box, capped to the viewport              | The table is the primary content of a full-height list page, especially when it is wider than the viewport |
 
 They are mutually exclusive in practice: `fit="viewport"` supersedes `sticky` (see §3).
 
@@ -20,14 +20,14 @@ They are mutually exclusive in practice: `fit="viewport"` supersedes `sticky` (s
 
 `position: sticky` anchors to the nearest **scrollable** ancestor. But `overflow-x: auto`
 (needed for in-table horizontal scroll) turns an element into a scroll ancestor for
-**both** axes — so a single element cannot be both a sticky-pin host *and* an in-table
+**both** axes — so a single element cannot be both a sticky-pin host _and_ an in-table
 horizontal scroller. This forces the two-model split:
 
 - **Page-relative sticky** deliberately omits `overflow` on the visible frame, so the
-  header pins against the *page*. Trade-off: a table wider than the viewport pushes its
+  header pins against the _page_. Trade-off: a table wider than the viewport pushes its
   horizontal overflow onto the page (the whole layout scrolls sideways).
 - **Contained scroll** makes the table its own `overflow: auto` box. The header then pins
-  against *that box*, and both axes scroll inside it — at the cost of the table no longer
+  against _that box_, and both axes scroll inside it — at the cost of the table no longer
   growing with the page (it is viewport-height-capped).
 
 ---
@@ -59,12 +59,12 @@ cells' height (40px at `md`), and that is the value `--blocks-table-thead-h` rep
 
 `resolveStickyMode(sticky)` (`core/sticky-context.svelte.ts`) maps the prop to per-layer flags:
 
-| `sticky` value | toolbar | header (thead + group header) |
-|---|---|---|
-| `false` (default) | ❌ | ❌ |
-| `true` / `'both'` | ✅ | ✅ |
-| `'toolbar'` | ✅ | ❌ |
-| `'header'` | ❌ | ✅ |
+| `sticky` value    | toolbar | header (thead + group header) |
+| ----------------- | ------- | ----------------------------- |
+| `false` (default) | ❌      | ❌                            |
+| `true` / `'both'` | ✅      | ✅                            |
+| `'toolbar'`       | ✅      | ❌                            |
+| `'header'`        | ❌      | ✅                            |
 
 Two flags, not three: the group header is the contextual section marker of the "header"
 semantic, so L2 and L3 are one decision and no configuration pins one without the other. The L3
@@ -87,10 +87,10 @@ without a pinned-state style and `data-stuck` appears on the toolbar wrapper alo
 ## 3. Contained scroll (`fit="viewport"`)
 
 `fit="viewport"` makes the table its own scroll container so wide **and** long lists scroll
-*within* the table. It is opt-in (default `fit="content"` keeps the page-relative model).
+_within_ the table. It is opt-in (default `fit="content"` keeps the page-relative model).
 
 **It is an assertion, not a measurement.** `fit="viewport"` tells the table it owns the page
-height, and it is honoured at every width. Set it only on a table that *is* the page's primary
+height, and it is honoured at every width. Set it only on a table that _is_ the page's primary
 content — on a table embedded in a scrolling article it will cap itself against the viewport all
 the same and give you a second scroller.
 
@@ -125,7 +125,7 @@ scrolls. No magic `max-height` is needed in the consumer.
 
 The value cannot change when anything scrolls, which is why nothing listens to a scroll: it
 re-measures on viewport resize and on a resize of the body or of the container's parent. Offsets
-*inside* the container (a growing toolbar / filter chips) need no measurement either; the flex
+_inside_ the container (a growing toolbar / filter chips) need no measurement either; the flex
 layout absorbs them. No magic `max-height` is needed in the consumer.
 
 **Header pinning is intrinsic to the box, and so is the summary.** `resolveStickyMode(sticky,
@@ -133,7 +133,7 @@ contained=true)` forces `{ toolbar: false, header: true }` regardless of the `st
 contained box whose header scrolls away is never useful — and the total summary `<tfoot>` pins to
 the box's bottom edge on the same terms. That is one rule with `virtualized`, not a second one:
 the axis is whether the table owns a bounded scroller, which is the only thing with a bottom edge
-to pin against (§6). A short list is no exception *here*: this box hugs its content below the
+to pin against (§6). A short list is no exception _here_: this box hugs its content below the
 cap, so its bottom edge is the last row's anyway. In the `virtualized` box, whose height is
 declared rather than measured, the two can come apart — §6. The thead/group `top: calc(sticky-top + toolbar-h + …)` formulas
 resolve to **box-relative** offsets (`0` for the thead, `thead-h` for the group header) because
@@ -143,7 +143,7 @@ sibling, not pinned). So no per-layer variant change is needed — only the CSS-
 **Interactions:**
 
 - **Supersedes `sticky`** (ignored). **`stickyOffset` still counts**, as a floor under the
-  measured reservation: an app-shell bar that is an *ancestor* of the table is measured, a fixed
+  measured reservation: an app-shell bar that is an _ancestor_ of the table is measured, a fixed
   bar that is only a sibling is not — declare its height and the cap leaves room for it (§6).
 - **Mutually exclusive with `virtualized`**, which keeps its own bounded scroll via
   `virtualHeight` — a box of that height, pinning its column header and its summary the same way
@@ -198,12 +198,12 @@ toolbar?: Snippet;
 
 ## 5. CSS custom properties & slot overrides
 
-| Property | Written when | Set by | Consumed by |
-|---|---|---|---|
-| `--blocks-table-sticky-top` | **always** | `Table.svelte`, as an inline style on every container: `stickyOffset` px, forced `0` when contained | L1 toolbar `top`; folds into L2 and L3 |
-| `--blocks-table-toolbar-h` | toolbar pinned **and** a toolbar renders | `ResizeObserver` on the toolbar wrapper (border box, unrounded) | L2 thead `top` **and** L3 group-header `top` |
-| `--blocks-table-thead-h` | thead pinned (page-relative, contained, or in the virtualized box) **and** the built-in `TableHead` renders | `ResizeObserver` on `<thead>` (border box, unrounded) | L3 group-header `top` |
-| `--blocks-table-avail-top` | `fit="viewport"` and not `virtualized` | `measureViewportOffsetTop` on the container — the space above it that cannot scroll away: its place in the document (or in its scroll pane), stopping at a pinned ancestor's pin line | container `max-height` cap |
+| Property                    | Written when                                                                                                | Set by                                                                                                                                                                                | Consumed by                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `--blocks-table-sticky-top` | **always**                                                                                                  | `Table.svelte`, as an inline style on every container: `stickyOffset` px, forced `0` when contained                                                                                   | L1 toolbar `top`; folds into L2 and L3       |
+| `--blocks-table-toolbar-h`  | toolbar pinned **and** a toolbar renders                                                                    | `ResizeObserver` on the toolbar wrapper (border box, unrounded)                                                                                                                       | L2 thead `top` **and** L3 group-header `top` |
+| `--blocks-table-thead-h`    | thead pinned (page-relative, contained, or in the virtualized box) **and** the built-in `TableHead` renders | `ResizeObserver` on `<thead>` (border box, unrounded)                                                                                                                                 | L3 group-header `top`                        |
+| `--blocks-table-avail-top`  | `fit="viewport"` and not `virtualized`                                                                      | `measureViewportOffsetTop` on the container — the space above it that cannot scroll away: its place in the document (or in its scroll pane), stopping at a pinned ancestor's pin line | container `max-height` cap                   |
 
 The three measured properties fall back to `0px` in the `calc()` chains when their condition does
 not hold, which is the neutral value — a layer that is not pinned adds nothing to the layer below
@@ -219,18 +219,18 @@ in opposite ways.
 
 - **`unstyled`** concatenates: the slot's look is dropped, and what is left is `slotClasses`, the
   call site's own utilities, and the config's structural classes — today exactly the desktop/card
-  layout switch, which decides which markup is *visible* rather than how it looks. Nothing is
+  layout switch, which decides which markup is _visible_ rather than how it looks. Nothing is
   merged, so what you write is what renders.
 - **Styled** (the default) routes `slotClasses` through the `class` option of the `tv()` slot
-  function, where the conflict fold lets an override *replace* the base class that shares its
+  function, where the conflict fold lets an override _replace_ the base class that shares its
   Tailwind bucket. That is what makes `slotClasses={{ table: 'w-auto' }}` beat the slot's own
   `w-full` — and on a pinned slot it subtracts:
 
-| Override | What is left |
-|---|---|
-| `slotClasses.toolbar = 'static'` | `sticky` is gone; `z-30` and `top-[var(--blocks-table-sticky-top,0px)]` stay behind with nothing to position |
-| `slotClasses.thead = 'top-0'` | the `top: calc(sticky-top + toolbar-h)` formula is gone — the thead pins at the very top, where the `z-30` toolbar covers it |
-| `slotClasses.thead = 'z-[var(--z-sticky)]'` | `z-20` is gone — at `--z-sticky: 1100` the thead now stacks *above* the toolbar |
+| Override                                    | What is left                                                                                                                 |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `slotClasses.toolbar = 'static'`            | `sticky` is gone; `z-30` and `top-[var(--blocks-table-sticky-top,0px)]` stay behind with nothing to position                 |
+| `slotClasses.thead = 'top-0'`               | the `top: calc(sticky-top + toolbar-h)` formula is gone — the thead pins at the very top, where the `z-30` toolbar covers it |
+| `slotClasses.thead = 'z-[var(--z-sticky)]'` | `z-20` is gone — at `--z-sticky: 1100` the thead now stacks _above_ the toolbar                                              |
 
 So an override on a pinned slot is a replacement, not an addition. Add to a pin by restating the
 whole property (`top-[calc(var(--blocks-table-sticky-top,0px)+2rem)]`), not by putting a bare
@@ -269,49 +269,49 @@ things to know when rebuilding the pins:
 
 ## 6. Edge cases & caveats
 
-| Case | Behavior |
-|---|---|
-| Wide table + `sticky="header"` | Horizontal overflow falls back to the **page** (no in-table h-scroll). Switch to `fit="viewport"` to contain it. |
-| Wide table + `fit="viewport"` | Horizontal scrollbar appears **inside** the table; the page never scrolls sideways. |
-| Short table + `fit="viewport"` | Container hugs content (`< max-height`); no forced viewport-tall box, no scrollbar. |
-| Ancestor bottom-padding + `fit="viewport"` | Box reaches `100dvh`, so a padded wrapper/sibling adds a second page scrollbar. Drop the inset via the `data-fit="viewport"` hook (see §3). |
-| `view.groupBy` + sticky/contained | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`. |
-| Summary row | The total summary is a `<tfoot>`, and it pins to the bottom edge of the table's own scroll box whenever the table has one (`virtualized` or `fit="viewport"`). Page-relative tables do not pin it: it rides in the flow behind the last row, where it always was. Group summaries belong to their group and never pin. |
-| Summary row + a list that does not fill the box | It sits under the last row instead of at the bottom edge. `position: sticky` cannot leave its containing block, and that is the `<table>` — a table shorter than the scrollport has no bottom edge down there to hold. Reachable only with `virtualized`, whose box is a declared `virtualHeight` (a filter that matches few rows, a short result): the `fit="viewport"` box hugs its content when it is short, so the two edges coincide. |
-| `virtualized` | Manages its own bounded scroll: one `<table>` in a box of `virtualHeight`, the `<thead>` pinned to the top edge of that box and the summary `<tfoot>` to its bottom edge (to the last row's, while the list is too short to fill the box — the row above) — whatever `sticky` says, because a bounded box whose header scrolls away is never wanted. The pin is box-relative (`top: 0`, `tableHeaderVariants` → `sticky: 'box'`): `stickyOffset` and a page-pinned toolbar's height lie outside the box and do not move it. `fit` is ignored (a DEV warning says so). |
-| `unstyled` | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5. |
-| Nested scroll ancestor | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is the box's place in that ancestor's content plus what the ancestor itself reserves, and scrolling the ancestor changes neither. |
-| Fixed top bar that is a **sibling** of the table | Not measured — only *ancestors* are. Declare its height as `stickyOffset`: with `fit="viewport"` that figure is a floor under the reservation, so the cap leaves room for the bar. |
-| Chrome added/removed above the table inside a **fixed-height** pane | Resizes no observed box, so the reading holds until the next resize: the box is then too tall by that much (reaching past the viewport bottom) or too short by it (empty space below). Chrome whose height you know goes into `stickyOffset` instead, which needs no observer. |
-| SSR / first paint + `fit="viewport"` | `--blocks-table-avail-top` is written by an attachment, and attachments do not run on the server, so the cap resolves to `calc(100dvh - 0px)` until hydration: a table N px down the document is N px too tall for one frame. Where the offset is known ahead of time (a fixed app-shell header), declare `--blocks-table-avail-top` on the container in your own CSS — nothing declares it in the server output, so your value holds the first paint and the measured one takes over at hydration. |
+| Case                                                                | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wide table + `sticky="header"`                                      | Horizontal overflow falls back to the **page** (no in-table h-scroll). Switch to `fit="viewport"` to contain it.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Wide table + `fit="viewport"`                                       | Horizontal scrollbar appears **inside** the table; the page never scrolls sideways.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Short table + `fit="viewport"`                                      | Container hugs content (`< max-height`); no forced viewport-tall box, no scrollbar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Ancestor bottom-padding + `fit="viewport"`                          | Box reaches `100dvh`, so a padded wrapper/sibling adds a second page scrollbar. Drop the inset via the `data-fit="viewport"` hook (see §3).                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `view.groupBy` + sticky/contained                                   | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Summary row                                                         | The total summary is a `<tfoot>`, and it pins to the bottom edge of the table's own scroll box whenever the table has one (`virtualized` or `fit="viewport"`). Page-relative tables do not pin it: it rides in the flow behind the last row, where it always was. Group summaries belong to their group and never pin.                                                                                                                                                                                                                                                |
+| Summary row + a list that does not fill the box                     | It sits under the last row instead of at the bottom edge. `position: sticky` cannot leave its containing block, and that is the `<table>` — a table shorter than the scrollport has no bottom edge down there to hold. Reachable only with `virtualized`, whose box is a declared `virtualHeight` (a filter that matches few rows, a short result): the `fit="viewport"` box hugs its content when it is short, so the two edges coincide.                                                                                                                            |
+| `virtualized`                                                       | Manages its own bounded scroll: one `<table>` in a box of `virtualHeight`, the `<thead>` pinned to the top edge of that box and the summary `<tfoot>` to its bottom edge (to the last row's, while the list is too short to fill the box — the row above) — whatever `sticky` says, because a bounded box whose header scrolls away is never wanted. The pin is box-relative (`top: 0`, `tableHeaderVariants` → `sticky: 'box'`): `stickyOffset` and a page-pinned toolbar's height lie outside the box and do not move it. `fit` is ignored (a DEV warning says so). |
+| `unstyled`                                                          | Strips the sticky/contained classes on every slot, `container` included — but not the props that drive the measurements. Rebuilding it: §5.                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Nested scroll ancestor                                              | Page-relative sticky binds to it — intended inside a `Drawer` body, surprising inside an accidental `overflow` wrapper. With `fit="viewport"` it is supported without a listener: the reserved space is the box's place in that ancestor's content plus what the ancestor itself reserves, and scrolling the ancestor changes neither.                                                                                                                                                                                                                                |
+| Fixed top bar that is a **sibling** of the table                    | Not measured — only _ancestors_ are. Declare its height as `stickyOffset`: with `fit="viewport"` that figure is a floor under the reservation, so the cap leaves room for the bar.                                                                                                                                                                                                                                                                                                                                                                                    |
+| Chrome added/removed above the table inside a **fixed-height** pane | Resizes no observed box, so the reading holds until the next resize: the box is then too tall by that much (reaching past the viewport bottom) or too short by it (empty space below). Chrome whose height you know goes into `stickyOffset` instead, which needs no observer.                                                                                                                                                                                                                                                                                        |
+| SSR / first paint + `fit="viewport"`                                | `--blocks-table-avail-top` is written by an attachment, and attachments do not run on the server, so the cap resolves to `calc(100dvh - 0px)` until hydration: a table N px down the document is N px too tall for one frame. Where the offset is known ahead of time (a fixed app-shell header), declare `--blocks-table-avail-top` on the container in your own CSS — nothing declares it in the server output, so your value holds the first paint and the measured one takes over at hydration.                                                                   |
 
 ---
 
 ## 7. Breaking-change history
 
-| Change | From | To | Migration |
-|---|---|---|---|
-| Frame slot | `slotClasses.wrapper` (had hardcoded `overflow-hidden`, which blocked sticky) | `slotClasses.scrollArea` (no `overflow` in the base) | Rename `slotClasses.wrapper` → `slotClasses.scrollArea`. A DEV warning fires on the old key. |
+| Change            | From                                                                                                                                                                             | To                                                       | Migration                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frame slot        | `slotClasses.wrapper` (had hardcoded `overflow-hidden`, which blocked sticky)                                                                                                    | `slotClasses.scrollArea` (no `overflow` in the base)     | Rename `slotClasses.wrapper` → `slotClasses.scrollArea`. A DEV warning fires on the old key.                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Total summary row | last `<tr>` of the `<tbody>` — in a page-relative table and in a `fit="viewport"` one. The `virtualized` branch moved to a `<tfoot>` in 8.10.0 already and is unchanged by this. | a `<tr>` in the table's `<tfoot>`, in every scroll model | Style the row through `slotClasses.summaryRow`, which reaches it in either position. Two things stop reaching it on their own: a descendant or child rule under `slotClasses.tbody` (`divide-y` compiles to `tbody > * + *`, so it no longer draws the summary's top edge — where the foot does not pin, the row's own `border-t-2` still does; where it pins, the rule is a shadow on the row and the border is folded away), and `tbody tr:last-child`, which now selects the last **data** row. Group summary rows are unchanged and stay in the `<tbody>`. |
 
 ---
 
 ## 8. Source map
 
-| Concern | File |
-|---|---|
-| Per-layer mode resolution, reactive context | `packages/table/src/lib/core/sticky-context.svelte.ts` |
-| Container / toolbar / scrollArea slots + `contained` variant | `packages/table/src/lib/variants/table.variants.ts` |
-| Thead `sticky` variant | `packages/table/src/lib/variants/table.variants.ts` (`tableHeaderVariants`) |
-| Summary `<tfoot>` `pinnedSummary` variant, and the row's `pinned` rule | `packages/table/src/lib/variants/table.variants.ts`, `table-features.variants.ts` (`summaryRowVariants`) |
-| Group-header `sticky` variant | `packages/table/src/lib/variants/table-features.variants.ts` (`groupHeaderVariants`) |
-| Prop wiring, var setup, measurement attach | `packages/table/src/lib/core/table/Table.svelte` |
-| `measureToCssVar`, `measureViewportOffsetTop`, `observeStuck` | `packages/table/src/lib/utils/sticky-measure.ts` |
-| `unstyled` / `slotClasses` merge (`resolveSlotClass`) | `packages/table/src/lib/core/table-style-context.ts` |
-| Tests: emitted classes | `packages/table/src/lib/variants/table.sticky.test.ts` |
-| Tests: what the attachments write | `packages/table/src/lib/utils/sticky-measure.test.ts` |
-| Tests: what a mounted `<Table>` attaches where | `packages/table/src/lib/core/Table.sticky.svelte.test.ts` |
-| Tests: where the total summary renders, and when it pins | `packages/table/src/lib/core/Table.summaryfoot.svelte.test.ts` |
-| Tests: the contained box in a real browser | `e2e/table-contained.spec.ts` |
-| Tests: the virtualized box in a real browser (gutter, pinned head and foot, keyboard) | `e2e/table-virtualized.spec.ts` |
-| Live docs | `apps/docs/src/routes/table/sticky-pinning/+page.svelte`, and the full-page `fit="viewport"` demo at `apps/docs/src/routes/table/sticky-pinning/contained/+page.svelte` |
+| Concern                                                                               | File                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-layer mode resolution, reactive context                                           | `packages/table/src/lib/core/sticky-context.svelte.ts`                                                                                                                  |
+| Container / toolbar / scrollArea slots + `contained` variant                          | `packages/table/src/lib/variants/table.variants.ts`                                                                                                                     |
+| Thead `sticky` variant                                                                | `packages/table/src/lib/variants/table.variants.ts` (`tableHeaderVariants`)                                                                                             |
+| Summary `<tfoot>` `pinnedSummary` variant, and the row's `pinned` rule                | `packages/table/src/lib/variants/table.variants.ts`, `table-features.variants.ts` (`summaryRowVariants`)                                                                |
+| Group-header `sticky` variant                                                         | `packages/table/src/lib/variants/table-features.variants.ts` (`groupHeaderVariants`)                                                                                    |
+| Prop wiring, var setup, measurement attach                                            | `packages/table/src/lib/core/table/Table.svelte`                                                                                                                        |
+| `measureToCssVar`, `measureViewportOffsetTop`, `observeStuck`                         | `packages/table/src/lib/utils/sticky-measure.ts`                                                                                                                        |
+| `unstyled` / `slotClasses` merge (`resolveSlotClass`)                                 | `packages/table/src/lib/core/table-style-context.ts`                                                                                                                    |
+| Tests: emitted classes                                                                | `packages/table/src/lib/variants/table.sticky.test.ts`                                                                                                                  |
+| Tests: what the attachments write                                                     | `packages/table/src/lib/utils/sticky-measure.test.ts`                                                                                                                   |
+| Tests: what a mounted `<Table>` attaches where                                        | `packages/table/src/lib/core/Table.sticky.svelte.test.ts`                                                                                                               |
+| Tests: where the total summary renders, and when it pins                              | `packages/table/src/lib/core/Table.summaryfoot.svelte.test.ts`                                                                                                          |
+| Tests: the contained box in a real browser                                            | `e2e/table-contained.spec.ts`                                                                                                                                           |
+| Tests: the virtualized box in a real browser (gutter, pinned head and foot, keyboard) | `e2e/table-virtualized.spec.ts`                                                                                                                                         |
+| Live docs                                                                             | `apps/docs/src/routes/table/sticky-pinning/+page.svelte`, and the full-page `fit="viewport"` demo at `apps/docs/src/routes/table/sticky-pinning/contained/+page.svelte` |

@@ -24,15 +24,14 @@
   - Cross-Referencing erfolgt im `APIDataGenerator` via `seeAlso`.
 
 ## Stats
+
 ## Types Section
 
 - If local types are detected for a component, an additional `Types` section is rendered automatically.
 - The section lists exported `type`/`interface` definitions with code blocks and anchor IDs `type-<Name>`.
 - Prop type links (`seeAlso`) to local types will jump to these anchors.
 
-
 - `enrichedComponents` übernehmen Statistikwerte aus `apiData` (Single Source of Truth).
-
 
 ## API Reference UI (V2)
 

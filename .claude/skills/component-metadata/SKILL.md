@@ -46,7 +46,7 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 
 - **Optional by design.** Most props say all they need in one sentence and get no summary; `extractPlaygroundDocs` reads `summary ?? description`, so leaving it out changes nothing. A required second field would mean hundreds of copies of the first.
 - **Required past 120 characters when the prop is a playground knob** — gated by `bun run playgrounds:lint`, which reports the component, the knob and the character count. The budget is measured: the hint column is 336 px at `text-xs`, which fits 57 characters on a line in the best case and ~38 with real word breaking, so 120 is three lines. Past that a hint is a wall beside a switch.
-- **Only *direct* props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary. The first version of the gate missed this and reported 56 knobs that show nothing to anyone.
+- **Only _direct_ props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary. The first version of the gate missed this and reported 56 knobs that show nothing to anyone.
 - The API table on the docs page keeps showing the **description** — that is where the contract belongs. Measured on Dialog: 53 characters beside the knob, 375 in the table, same prop.
 
 ## A prop's `@default` is copied, never checked
@@ -68,7 +68,7 @@ A tv() value is a bare key (`dot: {}`), so its meaning lives in the JSDoc block 
     },
 ```
 
-- **The JSDoc block on the key, as for a prop.** A `//` line is a maintainer's note (the comment policy: constraints, not prose for a consumer) and is never read; a block on the *axis* key belongs to the axis.
+- **The JSDoc block on the key, as for a prop.** A `//` line is a maintainer's note (the comment policy: constraints, not prose for a consumer) and is never read; a block on the _axis_ key belongs to the axis.
 - **Ships only where the axis is a prop.** A value description reaches the catalog only for an axis that is a prop of the component, read from its `<name>Variants` declaration — on an axis the Props interface `Omit`s, or in a sibling `tv()` config (`smartFilterBarVariants` next to `tableFeaturesVariants`), the block is documentation for maintainers only.
 - **Optional.** No block → no description, not an error. Most values (`sm`, `primary`) need none; write one where the value's name does not carry its meaning (`dot`, `ghost`, `proximity`).
 - **Said once.** The prop's JSDoc keeps the contract — what the prop selects, its default, when to reach for a value in one clause if you must; it does not restate what a value block says.
@@ -80,7 +80,7 @@ structure, not a single JSDoc block) apply in JSDoc unchanged. What belongs wher
 
 - **The JSDoc carries the full contract of its prop** — every rule a caller needs at the call
   site, including the exceptions a page would push into a note. Agents read the generated output
-  *instead of* the page and follow no links, so nothing may live "on the page instead".
+  _instead of_ the page and follow no links, so nothing may live "on the page instead".
 - **The page carries what no single JSDoc can:** which of several props to reach for, how they
   resolve against each other, the worked wiring.
 - **The test is the subject.** A sentence about one prop and its rules → JSDoc. A sentence about

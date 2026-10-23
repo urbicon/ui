@@ -35,7 +35,7 @@ imitated verbatim; pointers do not.
   between props.
 - Information must not drop. Misplaced facts move; they are not cut.
 - Gates before reporting: prettier on the page, `bun --filter='@urbicon-ui/docs-app' run
-  examples:budget`. No commits, no staging.
+examples:budget`. No commits, no staging.
 
 ## Migration (existing page)
 

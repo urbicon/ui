@@ -34,7 +34,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo on Bun workspaces.
 - **Z-Index**: CSS custom property tokens (`--z-modal`, `--z-dropdown`, etc.) via `z-[var(--z-*)]`
 - **Components**: All support `unstyled` + `slotClasses` + `preset` props for style overrides; `BlocksProvider` additionally accepts prop-conditional `overrides` (style only a specific variant/intent/state, e.g. the `outlined` variant)
 - **Internal core layer**: Public blocks components never import each other for trivial embedded controls (close ×, loading spinner, icon-only nav button) — they use the never-exported cores in `src/lib/internal/core/` (`ls` it for the roster). Essential compositions (ConfirmDialog→Dialog) stay direct imports but need a justified allowlist entry in `packages/blocks/scripts/imports-lint.ts`; `imports:lint` errors on unknown edges AND stale entries. Canon: [ARCHITECTURE.md § The internal core layer](docs/ARCHITECTURE.md#the-internal-core-layer).
-- **A gate is the last resort, not the first**: before adding a lint, ask whether the state it would report can be made *unrepresentable* instead — a value derived from one source cannot disagree with itself, and a gate that keeps two hand-written copies of one list agreeing is paying rent on the duplication rather than removing it (#146, #147, #148). When a gate genuinely is the answer, it must ask a real system — the compiler, Tailwind, the bundler, axe, a generator plus `--check` (`a2ui:axes:check` is the model).
+- **A gate is the last resort, not the first**: before adding a lint, ask whether the state it would report can be made _unrepresentable_ instead — a value derived from one source cannot disagree with itself, and a gate that keeps two hand-written copies of one list agreeing is paying rent on the duplication rather than removing it (#146, #147, #148). When a gate genuinely is the answer, it must ask a real system — the compiler, Tailwind, the bundler, axe, a generator plus `--check` (`a2ui:axes:check` is the model).
 
 For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -66,7 +66,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
 - Use semantic design tokens over primitive Tailwind classes
-- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show *and* what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
+- **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show _and_ what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
 
 Full references: [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md) (props, callbacks, styling) · [ComponentStructureStandard.md](docs/ComponentStructureStandard.md) (file structure).
 
@@ -74,18 +74,18 @@ Full references: [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.m
 
 Full reference with examples, role models and grep targets: [docs/SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md).
 
-| Pattern | Replacement | Severity |
-| --- | --- | --- |
-| `Math.random()` for IDs | `$props.id()` — two-step pattern (see below) | 🔴 |
-| `setContext('string', …)` | `createContext<T>()` from `svelte` (≥ 5.40) | 🟠 |
-| `$state(new Map())` / `$state(new Set())` | `SvelteMap` / `SvelteSet` from `svelte/reactivity` | 🟠 |
-| `onMount + matchMedia(…)` | `MediaQuery` from `svelte/reactivity` | 🟡 |
-| Index as key in `{#each}` | Stable unique key (`item.id`, ISO date, `${a}-${b}-${i}`) | 🟠 |
-| `class:foo={bar}` directive | Array in `class={['foo', bar && 'bar']}` | 🟡 |
-| `use:action` | `{@attach action(…)}` | 🟡 |
-| `<svelte:component this={X}>` | `<X />` directly | 🟡 |
-| `<slot />` / `<svelte:fragment>` | `{@render children()}` + snippets | 🟠 |
-| `export let foo`, `on:click=`, `$:`, `$$props` | `$props()`, `onclick=`, `$derived`/`$effect`, `let { ...rest } = $props()` | 🔴 |
+| Pattern                                        | Replacement                                                                | Severity |
+| ---------------------------------------------- | -------------------------------------------------------------------------- | -------- |
+| `Math.random()` for IDs                        | `$props.id()` — two-step pattern (see below)                               | 🔴       |
+| `setContext('string', …)`                      | `createContext<T>()` from `svelte` (≥ 5.40)                                | 🟠       |
+| `$state(new Map())` / `$state(new Set())`      | `SvelteMap` / `SvelteSet` from `svelte/reactivity`                         | 🟠       |
+| `onMount + matchMedia(…)`                      | `MediaQuery` from `svelte/reactivity`                                      | 🟡       |
+| Index as key in `{#each}`                      | Stable unique key (`item.id`, ISO date, `${a}-${b}-${i}`)                  | 🟠       |
+| `class:foo={bar}` directive                    | Array in `class={['foo', bar && 'bar']}`                                   | 🟡       |
+| `use:action`                                   | `{@attach action(…)}`                                                      | 🟡       |
+| `<svelte:component this={X}>`                  | `<X />` directly                                                           | 🟡       |
+| `<slot />` / `<svelte:fragment>`               | `{@render children()}` + snippets                                          | 🟠       |
+| `export let foo`, `on:click=`, `$:`, `$$props` | `$props()`, `onclick=`, `$derived`/`$effect`, `let { ...rest } = $props()` | 🔴       |
 
 **Svelte MCP** (`mcp__svelte__*`):
 
@@ -128,7 +128,7 @@ The library ships its own knowledge to agents: `llms.txt` / `llms-full.txt` and 
 **`urbicon` CLI** (`packages/design`, the consumer surface). `urbicon validate` gates the
 loop by linting generated markup. In this repo it runs only in CI, against
 `packages/docs/src/lib/components` and `apps/docs/src` (`.github/workflows/ci.yml`); the
-`PostToolUse` hook is what `urbicon init --hook` installs for *consumers*, not something this
+`PostToolUse` hook is what `urbicon init --hook` installs for _consumers_, not something this
 repo uses.
 
 Which command serves what and the `init` contract: [docs/AI-NATIVE-DX.md](docs/AI-NATIVE-DX.md).
@@ -168,12 +168,12 @@ One unified version across all packages, bumped once at the end of a coherent se
 
 - **Every issue carries four label axes**, set when it is opened (`enhancement` issues carry no `debt:` axis) — a new issue with only a `debt:` label erodes the taxonomy:
 
-  | axis | values | meaning |
-  | --- | --- | --- |
-  | `debt:<area>` | the existing values as in `gh label list` | the topic |
-  | `pkg:<package>` | the package name as in `gh label list` | where it lives (multiple allowed) |
-  | `prio:P1\|P2\|P3` | **P1 = someone comes to harm**: a security hole, wrong data, a crash, a keyboard trap. Not "touches shipped code" — in a library every line does | the order |
-  | `size:S\|M\|L` | a session · about a day · a wave | the cost |
+  | axis              | values                                                                                                                                           | meaning                           |
+  | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+  | `debt:<area>`     | the existing values as in `gh label list`                                                                                                        | the topic                         |
+  | `pkg:<package>`   | the package name as in `gh label list`                                                                                                           | where it lives (multiple allowed) |
+  | `prio:P1\|P2\|P3` | **P1 = someone comes to harm**: a security hole, wrong data, a crash, a keyboard trap. Not "touches shipped code" — in a library every line does | the order                         |
+  | `size:S\|M\|L`    | a session · about a day · a wave                                                                                                                 | the cost                          |
 
   Plus two state labels: **`ready`** — the path is clear, no open design decision — and `blocked:upstream`. **`ready` is deliberately the positive label**: nearly every deferred finding ends in "wants a decision", so a `needs-decision` label would sit on ~75 % of the backlog and sort nothing. The useful question is what can be picked up right now (`gh issue list --label ready`). There is no P0; that channel stays free for an actual fire.
 

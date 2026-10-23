@@ -22,15 +22,15 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 
 ## The seven families
 
-| Family | Members | ARIA role | Tier behaviour | Border source |
-|---|---|---|---|---|
-| [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | `commit`, read from the tier context — except `Toolbar`, which **sets** it and is itself `contain` | **Intent** (`border-neutral` etc.) |
-| [Form](#form) | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | `modify` from the context; `Slider` and `FormField` opt out | **Surface** (`border-border-subtle`) |
-| [Navigation](#navigation) | Breadcrumb · Link · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | `commit` or `modify` per component, from the context; `Breadcrumb`, `JourneyTimeline` and `Link` opt out | mixed (route-context dependent) |
-| [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline** |
-| [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge | `status`, `alert`, `progressbar` | **not tier-aware** — fixed geometry; `Badge` is the one exception | **Intent** (status-tinted) or **none** |
-| [Identity](#identity) | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`) | none (avatar is its own surface) |
-| [Conversation](#conversation) | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `textbox`, `region` | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | **Surface**, and only on the OUTERMOST frame |
+| Family                                   | Members                                                                                                                                           | ARIA role                                             | Tier behaviour                                                                                            | Border source                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| [Action](#action)                        | Button · ButtonGroup · Menu · Toolbar · Toggle                                                                                                    | `button`, `menu`, `menuitem`, `toolbar`               | `commit`, read from the tier context — except `Toolbar`, which **sets** it and is itself `contain`        | **Intent** (`border-neutral` etc.)           |
+| [Form](#form)                            | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField                                                                 | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | `modify` from the context; `Slider` and `FormField` opt out                                               | **Surface** (`border-border-subtle`)         |
+| [Navigation](#navigation)                | Breadcrumb · Link · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline                                                                   | `navigation`, `tablist`, `tab`                        | `commit` or `modify` per component, from the context; `Breadcrumb`, `JourneyTimeline` and `Link` opt out  | mixed (route-context dependent)              |
+| [Container](#container)                  | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog                                | `dialog`, `region`, `tooltip`, etc.                   | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline**                  |
+| [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge                                                                                                     | `status`, `alert`, `progressbar`                      | **not tier-aware** — fixed geometry; `Badge` is the one exception                                         | **Intent** (status-tinted) or **none**       |
+| [Identity](#identity)                    | Avatar                                                                                                                                            | `img` or `button`                                     | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`)                                         | none (avatar is its own surface)             |
+| [Conversation](#conversation)            | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `textbox`, `region`                            | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer               | **Surface**, and only on the OUTERMOST frame |
 
 The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and catalog filtering, the family decides architecture.
 
@@ -49,6 +49,7 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 **Industry analogue:** Radix `DropdownMenu`, Headless UI `Menu`, Material `MenuItem`. The key trait: items dispatch `onSelect` callbacks; nothing holds a value.
 
 **When to reach for:**
+
 - "Click this and something happens" → `Button`.
 - "Open a list of one-off actions" → `Menu`.
 - "Group several action triggers" → `ButtonGroup` (single/multi-select segmentation) or `Toolbar` (free-form toolbar).
@@ -73,6 +74,7 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 **Industry analogue:** Radix `Select`/`Combobox`, Headless UI `Listbox`/`Combobox`, MUI `TextField`. The key trait: the control holds a value and emits `onValueChange` / `bind:value`.
 
 **Picker disambiguation:**
+
 - Pick a value → `Select`.
 - Pick a value with search → `Combobox`.
 - Pick multiple values → `Select multiple` (not `Menu multiple`).
@@ -84,17 +86,17 @@ Full decision matrix with edge cases (search threshold, multi-select, async sour
 
 ### How `error` shows on the control
 
-Three shapes, picked by what the control's own colour already means. Getting this wrong is not a style slip: on a boolean control a danger *fill* reads as "not selected", which is the opposite of the truth.
+Three shapes, picked by what the control's own colour already means. Getting this wrong is not a style slip: on a boolean control a danger _fill_ reads as "not selected", which is the opposite of the truth.
 
-| Control shape | `error` renders as | Why |
-| --- | --- | --- |
-| **Text-entry** — `Input`, `Textarea`, `Select`, `Combobox`, `PinInput`, `TimeInput` | Danger **frame**, as its own compound step after every axis (`fieldErrorFrame`) | The border carries no other meaning, so the error can simply own it. The compound step (rather than an axis) keeps precedence independent of the order axes are declared in — see the comment in `input.variants.ts`. |
-| **Boolean** — `Checkbox`, `RadioGroup`, `Toggle` | **Unselected:** danger border, with the hover bucket pinned. **Selected:** danger **ring** on top of the unchanged intent fill. | An error on a boolean usually means "must be switched on", so the off state carries the mark on its boundary. But an error on an *already selected* control is real too ("this option is not available on your plan", "this consent was withdrawn") — there the fill must keep saying *what is selected* while a ring on a separate layer says *this selection is the problem*. |
-| **Continuous** — `Slider` | Danger **ring** on the thumb, unconditionally | A slider always holds a value, so it has no unselected state to paint. Same layering as the selected boolean case. |
+| Control shape                                                                       | `error` renders as                                                                                                              | Why                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Text-entry** — `Input`, `Textarea`, `Select`, `Combobox`, `PinInput`, `TimeInput` | Danger **frame**, as its own compound step after every axis (`fieldErrorFrame`)                                                 | The border carries no other meaning, so the error can simply own it. The compound step (rather than an axis) keeps precedence independent of the order axes are declared in — see the comment in `input.variants.ts`.                                                                                                                                                           |
+| **Boolean** — `Checkbox`, `RadioGroup`, `Toggle`                                    | **Unselected:** danger border, with the hover bucket pinned. **Selected:** danger **ring** on top of the unchanged intent fill. | An error on a boolean usually means "must be switched on", so the off state carries the mark on its boundary. But an error on an _already selected_ control is real too ("this option is not available on your plan", "this consent was withdrawn") — there the fill must keep saying _what is selected_ while a ring on a separate layer says _this selection is the problem_. |
+| **Continuous** — `Slider`                                                           | Danger **ring** on the thumb, unconditionally                                                                                   | A slider always holds a value, so it has no unselected state to paint. Same layering as the selected boolean case.                                                                                                                                                                                                                                                              |
 
 The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and it pins the focus bucket to danger as well (`peer-focus-visible:ring-danger/60`, or `focus-visible:` where the control is itself focusable). Without that pin the focus ring repaints the mark primary exactly while the user is on the control — the same trap the hover pin closes on the unselected side.
 
-`intent` stays orthogonal to all of this: it says what a *healthy* control means (a success-green field, a warning-amber one) and it colours the border on text-entry controls and the fill on booleans. `error` is not an intent value and never competes with one.
+`intent` stays orthogonal to all of this: it says what a _healthy_ control means (a success-green field, a warning-amber one) and it colours the border on text-entry controls and the fill on booleans. `error` is not an intent value and never competes with one.
 
 ---
 
@@ -111,10 +113,11 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 **Industry analogue:** Radix `Tabs`, Material `BottomNavigation`, Linear `SegmentedControl`. The key trait: a selection that persists and can be read back; not "click and dispatch". Persisting is not the same as navigating — see the split below.
 
 **When to reach for:**
-- Section selection *inside one document* — panels that swap in place, no URL involved → `Tab` with `TabItem` / `TabPanel` and `bind:value` (`variant="line"` for editorial). `SegmentGroup` with `SegmentItem` for an inline value picker (list / grid, a filter) on the same page.
+
+- Section selection _inside one document_ — panels that swap in place, no URL involved → `Tab` with `TabItem` / `TabPanel` and `bind:value` (`variant="line"` for editorial). `SegmentGroup` with `SegmentItem` for an inline value picker (list / grid, a filter) on the same page.
 - Route and sub-route navigation → a `<nav aria-label>` of `Link`s carrying `active`, which is the `aria-current="page"` the current section needs. `TabItem` renders a `<button role="tab">`, so an `<a>` inside a trigger is an interactive element inside another one and `role="tab"` promises a panel that never arrives; `SegmentGroup` is a `radiogroup` announcing a chosen value, not a location. See the `tab-navigation` pattern.
-- Linear progress through a process the user *completes* (wizard, checkout) → `Stepper`.
-- Retrospective record of a sequence the user *observes* (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
+- Linear progress through a process the user _completes_ (wizard, checkout) → `Stepper`.
+- Retrospective record of a sequence the user _observes_ (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
 - Position context inside a route → `Breadcrumb`.
 - Paginated list → `Pagination`.
 
@@ -153,6 +156,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 **Industry analogue:** Radix `Toast`, Material `Skeleton`, Sonner. The key trait: ephemeral status communication; pulled in by the framework, not arranged by the consumer.
 
 **When to reach for:**
+
 - System-wide notification → `Toast`.
 - In-page status banner → `Alert`.
 - "Working on it" indicator → `Spinner` for unknown-duration, `Progress` for known-duration, `Skeleton` for placeholder content while data loads.
@@ -180,14 +184,14 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **ARIA:** `role="log"` with `aria-live="off"` for the conversation (token-by-token live output would flood a screen reader — a separate polite region announces start and completion once each), `<textarea>` for the composer, `role="region"` for the scrollable code body. A message is a plain `<div>` carrying `data-role` and `data-status`, not an `<article>`: it is a turn in one conversation, not a self-contained document.
 
-**Tier:** Mixed, and deliberately so — this family is the one place where three tiers meet inside one component tree. The bubble is `bridge` (6 px): it is *content*, and `contain` at 2 px reads as a rectangle at bubble size, because optical radius scales with the area it turns. The framed blocks (a standalone CodeBlock, `ToolCallCard variant="card"`) are `contain` — they are panels. The composer is `modify`, like any other editable surface. The parts that report **how** an answer was produced draw no frame at all by default: `ToolCallCard`'s default variant is `plain` (the other is `card`) and `ReasoningDisclosure` is a muted single line, because machinery is not content.
+**Tier:** Mixed, and deliberately so — this family is the one place where three tiers meet inside one component tree. The bubble is `bridge` (6 px): it is _content_, and `contain` at 2 px reads as a rectangle at bubble size, because optical radius scales with the area it turns. The framed blocks (a standalone CodeBlock, `ToolCallCard variant="card"`) are `contain` — they are panels. The composer is `modify`, like any other editable surface. The parts that report **how** an answer was produced draw no frame at all by default: `ToolCallCard`'s default variant is `plain` (the other is `card`) and `ReasoningDisclosure` is a muted single line, because machinery is not content.
 
 **Phrasing content.** This is the family where the rule first came up — `MdInline` puts a `CitationChip` in the middle of `MdBlock`'s `<p>` — but it is not confined here: `Tooltip` (Container) is documented for inline targets, so the rule below governs it too. A `<div>` start tag closes an open `<p>` while the parser repairs the document, so an SSR'd answer that cites a source used to emit invalid HTML and diverge from the client tree (`node_invalid_placement_ssr` → `hydration_mismatch`). A `<span>` wrapper alone does not suffice, because the rule is about the whole subtree, not the immediate element — and which remedy that leaves you depends on one question: **is the panel's content phrasing by construction?**
 
 - **No — the content is the consumer's.** Then no element can make the subtree legal, and the panel has to leave the server render. `Popover`'s `inline` mode does this: the trigger wrapper becomes a `<span>` and the panel appears on mount. `CitationChip` sets it. The cost is stated in the prop's own JSDoc: a non-rendering crawler never sees the panel, so it is opt-in rather than the default.
-- **Yes — the component's own API constrains it.** Then the panel can simply *be* a `<span>` and stay in the SSR output, with no prop and no cost. `Tooltip` is this case: `label` is typed `string`, so its panel, arrow and trigger are all spans unconditionally (2026-08-02). Note what does the blockifying there — the panel's inline `position: fixed`, never a `display` utility, which would beat `[popover]:not(:popover-open) { display: none }` and leave a closed tooltip laid out. Valid inside a `<p>` is not the same as *flowing* with it: Tooltip's trigger wrapper is `inline-flex` and therefore atomic, so a multi-word trigger occupies one unbreakable box.
+- **Yes — the component's own API constrains it.** Then the panel can simply _be_ a `<span>` and stay in the SSR output, with no prop and no cost. `Tooltip` is this case: `label` is typed `string`, so its panel, arrow and trigger are all spans unconditionally (2026-08-02). Note what does the blockifying there — the panel's inline `position: fixed`, never a `display` utility, which would beat `[popover]:not(:popover-open) { display: none }` and leave a closed tooltip laid out. Valid inside a `<p>` is not the same as _flowing_ with it: Tooltip's trigger wrapper is `inline-flex` and therefore atomic, so a multi-word trigger occupies one unbreakable box.
 
-**Border source:** **Surface**, and here the family adds a rule the others do not need: **only the outermost frame draws one.** A conversation nests deeper than any other family — shell → message → tool call → payload — so a component that frames itself *and* is framed by its parent stacks outlines at the same radius, which reads as depth that is not there. Hence `CodeBlock` has a `variant="plain"` that drops surface, outline, radius and padding for exactly this case, and `ToolCallCard` uses it for its payloads — under `variant="card"` because the parent already drew the frame, under the default `plain` because nothing in that path draws one at all. When you nest a block, the parent owns the framing decision and the child owns the content.
+**Border source:** **Surface**, and here the family adds a rule the others do not need: **only the outermost frame draws one.** A conversation nests deeper than any other family — shell → message → tool call → payload — so a component that frames itself _and_ is framed by its parent stacks outlines at the same radius, which reads as depth that is not there. Hence `CodeBlock` has a `variant="plain"` that drops surface, outline, radius and padding for exactly this case, and `ToolCallCard` uses it for its payloads — under `variant="card"` because the parent already drew the frame, under the default `plain` because nothing in that path draws one at all. When you nest a block, the parent owns the framing decision and the child owns the content.
 
 **Also specific to this family:**
 
@@ -203,14 +207,14 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 Some surfaces sit close to each other and consumers regularly ask "which one". The canonical disambiguations:
 
-| Pair | Choose | Because |
-|---|---|---|
-| `Menu` vs `Select` | Menu for one-off actions, Select for value pickers | Different ARIA pattern (`menu`/`menuitem` vs `listbox`/`option`), different border family. |
-| `ButtonGroup` vs `SegmentGroup` | ButtonGroup for action triggers, SegmentGroup for value selection | Holds value → Navigation family. Dispatches actions → Action family. |
-| `Sidebar` vs `Drawer` | Sidebar for persistent layout, Drawer for transient modal | See [COMPONENT-DECISION-MATRICES.md §Overlay & Layout Surfaces](COMPONENT-DECISION-MATRICES.md#overlay--layout-surfaces). |
-| `Popover` vs `Tooltip` | Popover for click-interactions, Tooltip for hover-descriptions | Tooltip is non-focusable; Popover hosts a focus-trapped panel. |
-| `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert announces in place, at the urgency its `intent` implies; Toast is system-level + stacking. |
-| `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
+| Pair                            | Choose                                                            | Because                                                                                                                   |
+| ------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `Menu` vs `Select`              | Menu for one-off actions, Select for value pickers                | Different ARIA pattern (`menu`/`menuitem` vs `listbox`/`option`), different border family.                                |
+| `ButtonGroup` vs `SegmentGroup` | ButtonGroup for action triggers, SegmentGroup for value selection | Holds value → Navigation family. Dispatches actions → Action family.                                                      |
+| `Sidebar` vs `Drawer`           | Sidebar for persistent layout, Drawer for transient modal         | See [COMPONENT-DECISION-MATRICES.md §Overlay & Layout Surfaces](COMPONENT-DECISION-MATRICES.md#overlay--layout-surfaces). |
+| `Popover` vs `Tooltip`          | Popover for click-interactions, Tooltip for hover-descriptions    | Tooltip is non-focusable; Popover hosts a focus-trapped panel.                                                            |
+| `Alert` vs `Toast`              | Alert for in-page banners, Toast for ephemeral notifications      | Alert announces in place, at the urgency its `intent` implies; Toast is system-level + stacking.                          |
+| `Badge` vs `Chip`               | Badge today does both via `purpose` patterns                      | A dedicated `Chip` for filter/removable use cases is possible but not planned.                                            |
 
 **Accent by default** (decided 2026-09-08, second consumer to revert the same defaults): the accent belongs in a component's defaults only on the **primary action of its surface** — the CommandPalette's keyboard cursor ("Enter runs this", see Listbox item rhythm above), the active tab. Everything else rests in the neutral tone, and a product that wants the accent there asks for it:
 
@@ -222,7 +226,7 @@ The consumer-facing sentence is in `design-system/principles.md` § Visual Hiera
 
 **Where the intent lands** — on the surface, or only on its markers — follows what the component carries, not its family:
 
-- **A component that *is* the message tints its own surface.** `Alert` (its `soft` and `filled` variants), `Badge`, and `Tooltip`, whose body is its `label` string and never foreign markup.
+- **A component that _is_ the message tints its own surface.** `Alert` (its `soft` and `filled` variants), `Badge`, and `Tooltip`, whose body is its `label` string and never foreign markup.
 - **A component that frames arbitrary content tints only its markers** and keeps the surface neutral. `Toast` colours its icon and progress bar on `bg-surface-overlay`, `Dialog` its title and header icon, `Drawer` at most an accent edge (`accentEdge`); Dialog and Drawer also expose the value as `data-intent` on the panel. A tinted surface under a consumer's form, table or code block would take over that content's contrast ratios.
 
 The split cuts across families: Alert is a Container and tints, Toast is Feedback and does not.
@@ -231,7 +235,7 @@ The split cuts across families: Alert is a Container and tints, Toast is Feedbac
 
 ## Listbox item rhythm
 
-Four surfaces render option/item rows inside a floating panel: `Select` and `Combobox` (Form, `role="listbox"`), `Menu` (Action, `role="menu"`), and `CommandPalette` (a filtered `role="listbox"` command surface). They share **one structural rhythm**; only the *voice* differs by family. A fifth listbox-shaped surface must adopt the shared rhythm and pick its family voice deliberately.
+Four surfaces render option/item rows inside a floating panel: `Select` and `Combobox` (Form, `role="listbox"`), `Menu` (Action, `role="menu"`), and `CommandPalette` (a filtered `role="listbox"` command surface). They share **one structural rhythm**; only the _voice_ differs by family. A fifth listbox-shaped surface must adopt the shared rhythm and pick its family voice deliberately.
 
 **Shared structure (all four):**
 
@@ -242,30 +246,30 @@ Four surfaces render option/item rows inside a floating panel: `Select` and `Com
 
 **Family voice (deliberate contrasts — do not flatten):**
 
-| | Form (Select / Combobox) | Action (Menu) | CommandPalette |
-|---|---|---|---|
-| Row typography | one step under the trigger: `text-xs/sm/sm/base/lg` (xs–xl) — options are data, quieter than the control | the Button ladder: `text-sm/base/lg` (sm–lg) — items read like the Button that opened them | `text-sm` fixed, rows `text-text-secondary` |
-| Selected | `bg-surface-selected font-medium` + trailing `text-primary-text` check (space reserved, opacity fade — no layout shift) | none — items dispatch, nothing holds a value | none — actions run and dismiss |
-| Header voice | uppercase `text-xs font-medium tracking-wider text-text-tertiary` | plain `text-xs font-medium text-text-tertiary` — sections label actions, not data groups | uppercase `text-2xs font-semibold text-text-quaternary` — micro command voice |
-| Keyboard cursor | `bg-surface-hover` via `aria-activedescendant` | `bg-surface-hover` + real roving focus (`focus-visible` ring) | `bg-primary-subtle text-primary-text` — "Enter runs this" |
-| Empty/loading rows | `text-sm text-text-tertiary` centered, `py-4` | n/a (static action lists) | same signature, `py-8` (larger surface) |
-| Trailing hint | `hint` on the option — `text-text-tertiary tabular-nums`, a text node **inside** the accessible name ("Noir 24"): a count decides the click | `detail` on the item — the sub-menu's current value, `aria-hidden` and reached by `aria-describedby`, so it reads as the row's **description**, not its name | `shortcut` on the item — a `<kbd>` **inside** the accessible name |
+|                    | Form (Select / Combobox)                                                                                                                    | Action (Menu)                                                                                                                                                | CommandPalette                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Row typography     | one step under the trigger: `text-xs/sm/sm/base/lg` (xs–xl) — options are data, quieter than the control                                    | the Button ladder: `text-sm/base/lg` (sm–lg) — items read like the Button that opened them                                                                   | `text-sm` fixed, rows `text-text-secondary`                                   |
+| Selected           | `bg-surface-selected font-medium` + trailing `text-primary-text` check (space reserved, opacity fade — no layout shift)                     | none — items dispatch, nothing holds a value                                                                                                                 | none — actions run and dismiss                                                |
+| Header voice       | uppercase `text-xs font-medium tracking-wider text-text-tertiary`                                                                           | plain `text-xs font-medium text-text-tertiary` — sections label actions, not data groups                                                                     | uppercase `text-2xs font-semibold text-text-quaternary` — micro command voice |
+| Keyboard cursor    | `bg-surface-hover` via `aria-activedescendant`                                                                                              | `bg-surface-hover` + real roving focus (`focus-visible` ring)                                                                                                | `bg-primary-subtle text-primary-text` — "Enter runs this"                     |
+| Empty/loading rows | `text-sm text-text-tertiary` centered, `py-4`                                                                                               | n/a (static action lists)                                                                                                                                    | same signature, `py-8` (larger surface)                                       |
+| Trailing hint      | `hint` on the option — `text-text-tertiary tabular-nums`, a text node **inside** the accessible name ("Noir 24"): a count decides the click | `detail` on the item — the sub-menu's current value, `aria-hidden` and reached by `aria-describedby`, so it reads as the row's **description**, not its name | `shortcut` on the item — a `<kbd>` **inside** the accessible name             |
 
 ---
 
 ## How JSDoc tags map to families
 
-The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/primitives/*/index.ts` drive doc-generation and catalog filtering. They are *finer-grained* than families:
+The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/primitives/*/index.ts` drive doc-generation and catalog filtering. They are _finer-grained_ than families:
 
-| JSDoc tag | Family | Notes |
-|---|---|---|
-| `action` | Action | Button, ButtonGroup, Menu, Toolbar |
-| `form` | Form | Toggle is form-tagged but in Action by behaviour (bistable switch) — see the table at top for canonical family. |
-| `navigation` | Navigation | Breadcrumb, Link, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline (also `display`-tagged) |
-| `layout` | Container | Accordion, Card, Collapsible, Separator, Sidebar |
-| `overlay` | Container | ConfirmDialog, Dialog, Drawer, Popover |
-| `feedback` | Feedback / Ambient | Alert, Badge, Progress, Skeleton, Spinner, Toast |
-| `display` | Identity (Avatar) / Container (Tooltip) | Tooltip is display-tagged but lives in Container by behaviour — see canonical family. |
+| JSDoc tag    | Family                                  | Notes                                                                                                           |
+| ------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `action`     | Action                                  | Button, ButtonGroup, Menu, Toolbar                                                                              |
+| `form`       | Form                                    | Toggle is form-tagged but in Action by behaviour (bistable switch) — see the table at top for canonical family. |
+| `navigation` | Navigation                              | Breadcrumb, Link, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline (also `display`-tagged)               |
+| `layout`     | Container                               | Accordion, Card, Collapsible, Separator, Sidebar                                                                |
+| `overlay`    | Container                               | ConfirmDialog, Dialog, Drawer, Popover                                                                          |
+| `feedback`   | Feedback / Ambient                      | Alert, Badge, Progress, Skeleton, Spinner, Toast                                                                |
+| `display`    | Identity (Avatar) / Container (Tooltip) | Tooltip is display-tagged but lives in Container by behaviour — see canonical family.                           |
 
 When the tag and the family disagree (Toggle, Tooltip), the family rules — JSDoc tags exist for fine-grained catalog filtering (`urbicon find --tag form`), not as the architectural source of truth.
 

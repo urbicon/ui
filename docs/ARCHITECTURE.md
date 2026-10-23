@@ -65,19 +65,19 @@ graph TD
 
 ### What lives where
 
-| Package | Does | Start reading at |
-| --- | --- | --- |
-| `shared-types` | Docs-tooling types (playground, docs-config, navigation) for `docs` and `docs-gen`, no runtime code | `src/index.ts` |
-| `i18n` | Runes-based localization + translation audit | `src/lib/i18n/registry.svelte.ts` |
-| `blocks` | 39 primitives + 27 components, the token system, the `tv()` engine | `src/lib/index.ts` |
-| `table` | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode | `src/lib/stores/TableStore.svelte.ts` |
-| `auth` | JWT sessions, refresh rotation, passkeys, Web Push, notifications | `src/lib/server/index.ts` |
-| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes). No arrow in the map: nothing peer-depends on it, and its table-view types are a deliberate mirror guarded by a parity test rather than an import | `src/lib/index.ts` |
-| `docs` | Reusable documentation UI components | `src/lib/index.ts` |
-| `docs-gen` | AST-based documentation generator (CLI) | `src/cli/index.ts` |
-| `design-engine` | Zero-dep design linter, manifest parser, rubric | `src/linter/index.ts` |
-| `design-content` | Versioned design-knowledge bundle (`content/` is a build artifact) | `src/content-loader.ts` |
-| `design` | The `urbicon` CLI — the consumer-facing surface | `src/cli/index.ts` |
+| Package           | Does                                                                                                                                                                                                      | Start reading at                      |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `shared-types`    | Docs-tooling types (playground, docs-config, navigation) for `docs` and `docs-gen`, no runtime code                                                                                                       | `src/index.ts`                        |
+| `i18n`            | Runes-based localization + translation audit                                                                                                                                                              | `src/lib/i18n/registry.svelte.ts`     |
+| `blocks`          | 39 primitives + 27 components, the token system, the `tv()` engine                                                                                                                                        | `src/lib/index.ts`                    |
+| `table`           | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode                                                                                                            | `src/lib/stores/TableStore.svelte.ts` |
+| `auth`            | JWT sessions, refresh rotation, passkeys, Web Push, notifications                                                                                                                                         | `src/lib/server/index.ts`             |
+| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes). No arrow in the map: nothing peer-depends on it, and its table-view types are a deliberate mirror guarded by a parity test rather than an import | `src/lib/index.ts`                    |
+| `docs`            | Reusable documentation UI components                                                                                                                                                                      | `src/lib/index.ts`                    |
+| `docs-gen`        | AST-based documentation generator (CLI)                                                                                                                                                                   | `src/cli/index.ts`                    |
+| `design-engine`   | Zero-dep design linter, manifest parser, rubric                                                                                                                                                           | `src/linter/index.ts`                 |
+| `design-content`  | Versioned design-knowledge bundle (`content/` is a build artifact)                                                                                                                                        | `src/content-loader.ts`               |
+| `design`          | The `urbicon` CLI — the consumer-facing surface                                                                                                                                                           | `src/cli/index.ts`                    |
 
 Applications live in `apps/`: [`apps/docs`](../apps/docs/README.md) is the documentation
 site. End-to-end suites live in `e2e/`.
@@ -137,11 +137,11 @@ graph LR
 
 All in `packages/blocks/src/lib/style/`:
 
-| Layer | File | Purpose |
-| --- | --- | --- |
-| Foundation | `foundation.css` | OKLCH colour palette, spacing, radii, z-index scale, breakpoints |
-| Semantic | `semantic.css` | Context-aware tokens (`surface-*`, `text-*`, `border-*`) with automatic dark mode via the CSS `light-dark()` function |
-| Interaction | `interaction.css` | Hover/focus/active states, duration tokens, easing tokens, shadow tokens |
+| Layer       | File              | Purpose                                                                                                               |
+| ----------- | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Foundation  | `foundation.css`  | OKLCH colour palette, spacing, radii, z-index scale, breakpoints                                                      |
+| Semantic    | `semantic.css`    | Context-aware tokens (`surface-*`, `text-*`, `border-*`) with automatic dark mode via the CSS `light-dark()` function |
+| Interaction | `interaction.css` | Hover/focus/active states, duration tokens, easing tokens, shadow tokens                                              |
 
 Foundation defines raw values. Semantic maps them to UI purposes and handles light/dark
 switching. Interaction defines motion and visual feedback.
@@ -161,14 +161,14 @@ container variant means is documented in the shipped
 > of the contract is [VARIANT-CONTRACT § 7](../packages/blocks/docs/VARIANT-CONTRACT.md#7--border-tokens-hairline-vs-subtle).
 > Other docs link here instead of restating the rules.
 
-Radius semantics follow a three-tier model. A component picks the tier whose *semantics*
+Radius semantics follow a three-tier model. A component picks the tier whose _semantics_
 match its purpose, never a fixed pixel value — so a brand can re-tune a tier's physical
 radius without touching component code.
 
-| Tier | Token | Purpose | Default geometry |
-| --- | --- | --- | --- |
-| `commit` | `--radius-commit` | Action surfaces — buttons, menu triggers, toolbar items, toggle tracks. Declares identity ("press me"). | Pill (`9999px`) |
-| `modify` | `--radius-modify` | Tap surfaces — inputs, selects, checkboxes, tabs. Reads as editable, not as a commit-decision. | Soft (`var(--radius-sm)`) |
+| Tier      | Token              | Purpose                                                                                                                                                                                                         | Default geometry            |
+| --------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `commit`  | `--radius-commit`  | Action surfaces — buttons, menu triggers, toolbar items, toggle tracks. Declares identity ("press me").                                                                                                         | Pill (`9999px`)             |
+| `modify`  | `--radius-modify`  | Tap surfaces — inputs, selects, checkboxes, tabs. Reads as editable, not as a commit-decision.                                                                                                                  | Soft (`var(--radius-sm)`)   |
 | `contain` | `--radius-contain` | Architectural surfaces — cards, dialogs, drawers, alerts, popovers, tooltips. Reads as a frame holding content. (`Sidebar` sits outside: a full-height panel flush to the viewport edge has no corner to turn.) | Subtle (`var(--radius-xs)`) |
 
 **Two axes share the name `tier`, deliberately — same vocabulary, different values.** The
@@ -215,7 +215,8 @@ the strip, never the strip.
 
 ```svelte
 <Toolbar tier="modify">
-  <Button />   <!-- now rounded-modify instead of the commit pill -->
+  <Button />
+  <!-- now rounded-modify instead of the commit pill -->
   <Toggle />
 </Toolbar>
 ```
@@ -227,19 +228,19 @@ const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // or 'modify
 
 Per-instance `tier` beats context; context beats the family default.
 
-**The bridge token.** `--radius-bridge` is the *middle* rung — 6px by default, living in
+**The bridge token.** `--radius-bridge` is the _middle_ rung — 6px by default, living in
 `foundation.css` — for the two cases where `contain` is too hard and `commit` too soft:
 
 1. **Adjacency.** A floating panel anchored to a pill (`commit`) trigger sits between the pill
    edge and the `contain`-tier surface beneath — the `Menu` panel is the canonical case.
 2. **Optical size.** Radius scales with the area it turns: 2px on a 600px Card reads as a
    precise edge, the same 2px on a ~200px tile reads as a plain rectangle. A small tinted
-   surface is *content*, not architecture — the `ChatMessage` bubble, `Textarea` at
+   surface is _content_, not architecture — the `ChatMessage` bubble, `Textarea` at
    `tier="commit"` (a pill would be absurd on a multi-line field), and `Card tier="bridge"`,
    which is how a consumer says "this tile is too small for the container radius" without
    hand-setting a `rounded-*` class and splitting the contain family.
 
-Anything that genuinely *is* a panel, dialog or container stays on `contain`.
+Anything that genuinely _is_ a panel, dialog or container stays on `contain`.
 
 ### The tv() variant engine
 
@@ -273,13 +274,13 @@ the same key (`bg-color`, `border-t-width`, `text-size`, `opacity`, …). Modifi
 isolate naturally: `hover:bg-red` and `bg-blue` coexist. The modifier/base split is
 bracket-aware, and arbitrary properties bucket per CSS property name (`[gap:inherit]` shares
 the `gap` bucket; `[--spinner-speed:1s]` conflicts only with the same custom property).
-Within a *single* class string nothing is stripped, so intentional pairings like
+Within a _single_ class string nothing is stripped, so intentional pairings like
 `rounded-md rounded-t-none` survive.
 
 **Directional shorthand dominance** (a subset of `twMerge`'s map): a later shorthand strips
 the longhands it fully covers — `p-0` defeats an earlier `px-4`/`pl-10`, `rounded-none`
 defeats `rounded-t-*`, `inset-0` defeats `top-*`, `size-8` defeats `w-*`/`h-*`. The reverse
-never strips: a later `pl-2` *refines* an earlier `p-4`.
+never strips: a later `pl-2` _refines_ an earlier `p-4`.
 
 **Fail-loud configs.** Slot-map keys are compile-checked against declared slots (a
 `wrapeer` typo is a type error), and every config is validated once at module init —
@@ -361,7 +362,12 @@ the classification behind it are
 [COMPONENT-API-CONVENTIONS.md § Theme props](COMPONENT-API-CONVENTIONS.md#theme-props-style-in-the-theme-behaviour-at-the-call-site).
 
 ```svelte
-<BlocksProvider defaults={{ Input: { props: { variant: 'underline' } }, Card: { props: { variant: 'outlined' } } }}>
+<BlocksProvider
+  defaults={{
+    Input: { props: { variant: 'underline' } },
+    Card: { props: { variant: 'outlined' } }
+  }}
+>
   <!-- every Input without a variant of its own is the shipped underline: 2px edge, no focus ring -->
 </BlocksProvider>
 ```
@@ -387,7 +393,7 @@ fallback of their own, which would read as an instance value.
 What holds the two halves together. The type derives each component's admissible keys and values
 from its own props (`ThemePropsOf` in `provider/component-slots.ts`, the same barrel query the slot
 map uses), so `Card: { props: { size } }` — a key Card does not declare — does not compile. Whether
-the component *reads* a key it declares is not a type question; `provider/theme-props-sweep.svelte.test.ts` mounts
+the component _reads_ a key it declares is not a type question; `provider/theme-props-sweep.svelte.test.ts` mounts
 every component of the cascade registry with every value the checker says `ThemePropsOf` admits, and
 requires the theme mount to render what the call-site mount renders, plus the preset rung and the
 instance-beats-theme order. Its population comes from the type, so a style prop a component
@@ -407,7 +413,9 @@ development build reports a `props` key that is no style prop at all, once per c
 its classes join the cascade and the resolver strips the library's conflicting class:
 
 ```svelte
-<BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
+<BlocksProvider
+  defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}
+>
   <!-- every outlined Badge gets a 1px border; filled / soft / dot untouched -->
 </BlocksProvider>
 ```
@@ -450,7 +458,7 @@ A–C of `provider/provider-cascade.svelte.test.ts` pin what that leaves unaddre
 
 The name is not always the component's own. A **compound part** — `CalendarHeader`,
 `MenuItem`, `CalendarDay` — renders only inside another component and is addressed under
-*that* component's name: `defaults.Calendar.slotClasses` reaches CalendarHeader's header,
+_that_ component's name: `defaults.Calendar.slotClasses` reaches CalendarHeader's header,
 nav and title. A **wrapper** carries both names at once instead, and resolves neither
 itself: it hands its name, `preset` and instance `slotClasses` down the context
 (`provider/wrapper-cascade.ts`), and the component it wraps resolves that cascade under the
@@ -458,7 +466,7 @@ wrapper's name against its **own** `variantProps` — which is where the axes ar
 `tier` (off a context), `messageType` and the coerced `error` are not knowable above it at
 all, and Select's `open` not in time — it is `$bindable`, so a wrapper may hold the value,
 but the wrapper's own `$derived` runs before the child ever writes to it. So
-`defaults.NumberInput` reaches its own stepper *and* that field, while
+`defaults.NumberInput` reaches its own stepper _and_ that field, while
 `defaults.Input` reaches the field alone — both measured, and the fold order with them, by
 `provider/wrapper-cascade-order.svelte.test.ts`. The `preset` travels too; resolving it
 under the wrapper's name is the point, because forwarded as the inner component's own
@@ -496,7 +504,7 @@ belongs **before** the consumer's rungs (`Button`'s `pressCueClass`), never afte
 a thing the sweep asserts (route G) rather than a thing the shape guarantees: a one-line edit
 to either branch parts them, and only route G notices.
 
-An element with **state slots** carries a library default *and* a consumer entry on each,
+An element with **state slots** carries a library default _and_ a consumer entry on each,
 and all of them share that one array. The order is every library state first, then the
 consumer's base slot, then the consumer's states in the same order the library's are in —
 never the two halves of one state folded together, which puts a library class after a
@@ -522,7 +530,7 @@ Which components that covers is measured rather than listed: route H of
 flag to remove exactly what the provider flag removes. It answers for the markup that mount
 renders and no more — measured, it is blind to a child that appears only in a state the mount
 does not reach: `AvatarGroup`'s avatars (no `items`), `CalendarHeader`'s overlays and
-`FileUpload`'s progress bar (both closed). That is why the roster is *also* derived from the
+`FileUpload`'s progress bar (both closed). That is why the roster is _also_ derived from the
 source rather than read off the sweep, and why those three are listed as `ROUTE_H_BLIND` in
 the sweep itself — a mount fixture that reaches the child takes a component off that list, as
 `Guide`'s tour fixture did.
@@ -589,7 +597,7 @@ host's variants slot (`removeButton`, `closeButton`, `navButton`, `spinner`), wh
 never were the documented path.
 
 Genuine compositions (ConfirmDialog = Dialog + Buttons, Menu → Popover, DatePicker →
-Calendar, PaginationItem *is a* Button) remain public-to-public — the rule targets
+Calendar, PaginationItem _is a_ Button) remain public-to-public — the rule targets
 fixed-configuration utility embeds, not essence. `bun run imports:lint` enforces the
 boundary: every cross-component edge needs a justified allowlist entry, and stale entries
 error too, so the list only shrinks deliberately. Nothing under `internal/` is exported or
@@ -617,7 +625,11 @@ const ff = useFormField(() => ({
 ```
 
 ```svelte
-<input id={ff.fieldId} aria-invalid={ff.invalid ? 'true' : undefined} aria-describedby={ff.describedBy} />
+<input
+  id={ff.fieldId}
+  aria-invalid={ff.invalid ? 'true' : undefined}
+  aria-describedby={ff.describedBy}
+/>
 {#if ff.errorId}<div id={ff.errorId} role="alert">{error}</div>
 {:else if ff.helperId}<div id={ff.helperId}>{helper}</div>{/if}
 ```
@@ -666,15 +678,15 @@ source order and consumer overrides don't have to fight per-component duplicates
 The `glow` effect reads its colour from `--blocks-mint-glow-color`, set by **intent hooks**
 on the root element:
 
-| Hook class | Resolves to |
-| --- | --- |
-| `.blocks-intent-primary` | `color-mix(var(--color-primary) 50%, transparent)` |
+| Hook class                 | Resolves to                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `.blocks-intent-primary`   | `color-mix(var(--color-primary) 50%, transparent)`   |
 | `.blocks-intent-secondary` | `color-mix(var(--color-secondary) 50%, transparent)` |
-| `.blocks-intent-success` | `color-mix(var(--color-success) 50%, transparent)` |
-| `.blocks-intent-warning` | `color-mix(var(--color-warning) 50%, transparent)` |
-| `.blocks-intent-danger` | `color-mix(var(--color-danger) 50%, transparent)` |
-| `.blocks-intent-neutral` | `color-mix(var(--color-neutral) 40%, transparent)` |
-| *no hook* | primary (the `:root` default) |
+| `.blocks-intent-success`   | `color-mix(var(--color-success) 50%, transparent)`   |
+| `.blocks-intent-warning`   | `color-mix(var(--color-warning) 50%, transparent)`   |
+| `.blocks-intent-danger`    | `color-mix(var(--color-danger) 50%, transparent)`    |
+| `.blocks-intent-neutral`   | `color-mix(var(--color-neutral) 40%, transparent)`   |
+| _no hook_                  | primary (the `:root` default)                        |
 
 Components that propagate `intent` to their root attach the matching class; the glow picks
 up the right colour via the cascade with no per-component `box-shadow`. **Do not** redefine
@@ -687,16 +699,16 @@ The **modal/panel overlays** (Dialog, Drawer, ConfirmDialog, Toast) share one
 Svelte-transition-driven contract. Tokens live in `style/interaction.css`, mirrored as JS
 constants in `utils/overlay-tokens.ts`:
 
-| Custom property | Default | Purpose |
-| --- | --- | --- |
-| `--blocks-overlay-enter-duration` | `200ms` | Panel enter |
-| `--blocks-overlay-exit-duration` | `180ms` | Panel exit |
-| `--blocks-overlay-backdrop-enter-duration` | `200ms` | Backdrop fade-in |
-| `--blocks-overlay-backdrop-exit-duration` | `180ms` | Backdrop fade-out |
-| `--blocks-overlay-easing` | `cubic-bezier(0.83, 0, 0.17, 1)` | Shared easing |
-| `--blocks-overlay-panel-scale-start` | `0.96` | Scale-in start (1 disables) |
-| `--blocks-overlay-panel-fly-distance` | `320px` | Fly-in distance along the placement axis |
-| `--blocks-overlay-backdrop-blur` | `8px` | Backdrop `backdrop-filter` (Dialog, Drawer, Sidebar) |
+| Custom property                            | Default                          | Purpose                                              |
+| ------------------------------------------ | -------------------------------- | ---------------------------------------------------- |
+| `--blocks-overlay-enter-duration`          | `200ms`                          | Panel enter                                          |
+| `--blocks-overlay-exit-duration`           | `180ms`                          | Panel exit                                           |
+| `--blocks-overlay-backdrop-enter-duration` | `200ms`                          | Backdrop fade-in                                     |
+| `--blocks-overlay-backdrop-exit-duration`  | `180ms`                          | Backdrop fade-out                                    |
+| `--blocks-overlay-easing`                  | `cubic-bezier(0.83, 0, 0.17, 1)` | Shared easing                                        |
+| `--blocks-overlay-panel-scale-start`       | `0.96`                           | Scale-in start (1 disables)                          |
+| `--blocks-overlay-panel-fly-distance`      | `320px`                          | Fly-in distance along the placement axis             |
+| `--blocks-overlay-backdrop-blur`           | `8px`                            | Backdrop `backdrop-filter` (Dialog, Drawer, Sidebar) |
 
 `prefers-reduced-motion: reduce` collapses every duration to `1ms`, scale to `1` and
 fly-distance to `0px` in a single media-query block — components never check the query
@@ -710,9 +722,9 @@ parses ms/s/px, and falls back to the JS defaults on the server.
 
 One more motion token sits outside that family, in the same file:
 
-| Custom property | Default | Purpose |
-| --- | --- | --- |
-| `--blocks-press-scale` | `0.98` | How far a held control dips (`1` disables) |
+| Custom property        | Default | Purpose                                    |
+| ---------------------- | ------- | ------------------------------------------ |
+| `--blocks-press-scale` | `0.98`  | How far a held control dips (`1` disables) |
 
 Read by Button (its `active:` cue and its modelled `pressed` state), Badge's remove
 control and the Drawer / Dialog close buttons — the same ghost-Button fold. Three things
@@ -723,7 +735,7 @@ step keeps reporting the press, which matters on the flat variants that have no 
 darken. Interactive Badge/Avatar (`0.95`) and Table rows (`0.995`) are separate gestures
 and stay literals.
 
-The **anchored, native-popover surfaces** deliberately do *not* run Svelte transitions —
+The **anchored, native-popover surfaces** deliberately do _not_ run Svelte transitions —
 their show/hide is owned by `showPopover()`/`hidePopover()` and native light dismiss, which
 no JS transition can animate. They run CSS-native motion on faster token pairs, both
 defaulting through `--blocks-duration-fast`:
@@ -864,7 +876,7 @@ items → filteredItems → sortedItems → grouped → paginatedItems
 Each stage depends on the previous one plus the relevant state (search term, active
 filters, sort column, group key, page).
 
-**View state (v8).** The six axes that decide *which* rows are shown — search, sort, page,
+**View state (v8).** The six axes that decide _which_ rows are shown — search, sort, page,
 pageSize, filters, groupBy — live in one consumer-constructed `TableView` under a single
 name scheme, resolved against its `defaults` at construction (SSR-safe, no effects). Where
 they live is decided by bindings applied to that object, not by props of the table:
@@ -984,17 +996,17 @@ Conventions: `packages/docs-gen/docs/component-structure-guidelines.md`.
 Beyond Biome and `svelte-check`, the repo runs purpose-built gates. Each exists because the
 failure it catches was silent:
 
-| Gate | Catches |
-| --- | --- |
-| `variants:lint` | Dead tokens — classes a reachable source contributes that never survive the fold. Also arbitrary transition lists omitting a discrete property (`scale`/`translate`/`rotate` are not `transform` in Tailwind 4). |
-| `imports:lint` | Cross-component imports outside the allowlist — and stale allowlist entries |
-| `icons:lint` | Icon geometry contract, 0.5-grid, radius scale, registry integrity |
-| `summary:lint` | Component `@summary` budget |
-| `playgrounds:lint` | Playground snippets and the knob-hint budget |
-| `registry:lint` | A docs page missing from any of its three hand-maintained registration points |
-| `examples:lint` | Every `@example` block type-checked as a real `.svelte` file; every `svelte` fence of `design-system/patterns/*.md` compiled as a whole component |
-| `i18n:check` | Unused / used-but-undefined keys, hardcoded strings |
-| `size --check` | Per-component bundle growth against the baseline — runs in `scripts/bump.sh` before the release commit, not per PR; CI's `size-report` job prints the table without `--check` |
+| Gate               | Catches                                                                                                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `variants:lint`    | Dead tokens — classes a reachable source contributes that never survive the fold. Also arbitrary transition lists omitting a discrete property (`scale`/`translate`/`rotate` are not `transform` in Tailwind 4). |
+| `imports:lint`     | Cross-component imports outside the allowlist — and stale allowlist entries                                                                                                                                      |
+| `icons:lint`       | Icon geometry contract, 0.5-grid, radius scale, registry integrity                                                                                                                                               |
+| `summary:lint`     | Component `@summary` budget                                                                                                                                                                                      |
+| `playgrounds:lint` | Playground snippets and the knob-hint budget                                                                                                                                                                     |
+| `registry:lint`    | A docs page missing from any of its three hand-maintained registration points                                                                                                                                    |
+| `examples:lint`    | Every `@example` block type-checked as a real `.svelte` file; every `svelte` fence of `design-system/patterns/*.md` compiled as a whole component                                                                |
+| `i18n:check`       | Unused / used-but-undefined keys, hardcoded strings                                                                                                                                                              |
+| `size --check`     | Per-component bundle growth against the baseline — runs in `scripts/bump.sh` before the release commit, not per PR; CI's `size-report` job prints the table without `--check`                                    |
 
 `registry:lint`, `playgrounds:lint` and `summary:lint` read the generated catalogs — run
 `docs:gen:all` first. `examples:lint` is slow (two `svelte-check` passes per package) and is
@@ -1022,12 +1034,12 @@ at build time) and the full changelog at `/changelog` (via the `virtual:changelo
 
 ### AI-native developer surface
 
-| Artifact | Purpose |
-| --- | --- |
-| `/llms.txt` | Brief library overview (llms.txt standard) — generated from the catalog, tracked, `llms:check`-gated |
-| `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
-| `urbicon` CLI | The consumer surface — see §4 |
-| `design-system/` | Design principles and composition patterns, served by the CLI |
+| Artifact         | Purpose                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `/llms.txt`      | Brief library overview (llms.txt standard) — generated from the catalog, tracked, `llms:check`-gated |
+| `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated                                |
+| `urbicon` CLI    | The consumer surface — see §4                                                                        |
+| `design-system/` | Design principles and composition patterns, served by the CLI                                        |
 
 ---
 

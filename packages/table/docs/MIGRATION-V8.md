@@ -1,10 +1,10 @@
 # Migrating the Table to v8
 
 v8 replaces eleven view-state props and two ownership mechanisms with **one object you
-own**. Everything that decides *which rows a reader is looking at* — search, sort, page,
+own**. Everything that decides _which rows a reader is looking at_ — search, sort, page,
 page size, filters, grouping — lives in a `TableView` you construct, under one name scheme,
 fully resolved against its defaults. Where those axes live (the URL, web storage, nowhere)
-is decided by *bindings you apply to the object*, not by props of the table.
+is decided by _bindings you apply to the object_, not by props of the table.
 
 Nothing about columns, cells, selection, virtualization, styling or snippets changed.
 
@@ -13,7 +13,7 @@ Nothing about columns, cells, selection, virtualization, styling or snippets cha
 8.1.0 tightened four things 8.0 shipped with, 8.7.0 deleted two CSS files that never did anything,
 and 8.35.0 stopped parsing consumer strings in `CustomCell` and `EmptyState` as HTML.
 All the 8.1.0 API changes are quick, and TypeScript names every call site that has to move. In
-plain JavaScript there is no compiler to do that, so the two changes that alter a *shape* —
+plain JavaScript there is no compiler to do that, so the two changes that alter a _shape_ —
 the dropped array arm and the required `processing` — throw on the first render with a
 message that names them. The two renames cannot: a `{ items, totalItems }` your query still
 returns simply leaves `total` undefined, and the pager reads "1 / NaN". Grep for
@@ -28,8 +28,10 @@ same thing as `{ items }`, so "how do I pass rows?" had three correct answers an
 for choosing.
 
 ```svelte
-<Table {columns} source={rows} />           <!-- 8.0 -->
-<Table {columns} source={{ processing: 'client', items: rows }} /> <!-- 8.1.0 — or items={rows} -->
+<Table {columns} source={rows} />
+<!-- 8.0 -->
+<Table {columns} source={{ processing: 'client', items: rows }} />
+<!-- 8.1.0 — or items={rows} -->
 ```
 
 The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
@@ -39,22 +41,22 @@ arrive (loading, error, a server total, a fetch function).
 the same six axes had two spellings depending on which side of `source.query` you stood on —
 and the row count was `total` going in, `totalItems` coming out. There is one vocabulary now:
 
-| 8.0 | 8.1.0 |
-| --- | --- |
-| `q.searchTerm` | `q.search` |
-| `q.itemsPerPage` | `q.pageSize` |
-| `q.activeFilters` | `q.filters` |
-| `q.groupByKey` | `q.groupBy` |
+| 8.0                                | 8.1.0                                        |
+| ---------------------------------- | -------------------------------------------- |
+| `q.searchTerm`                     | `q.search`                                   |
+| `q.itemsPerPage`                   | `q.pageSize`                                 |
+| `q.activeFilters`                  | `q.filters`                                  |
+| `q.groupByKey`                     | `q.groupBy`                                  |
 | `q.sortColumn` + `q.sortDirection` | `q.sort` — `{ column, direction }` or `null` |
-| `return { items, totalItems }` | `return { items, total }` |
+| `return { items, totalItems }`     | `return { items, total }`                    |
 
-`TableQuery` is gone as a type: what `source.query` receives *is* a `TableViewSnapshot`. So
+`TableQuery` is gone as a type: what `source.query` receives _is_ a `TableViewSnapshot`. So
 is `viewToQuery`, which had nothing left to project — `observeView(view, cb)` hands `cb`
 the snapshot, and you pass it straight on:
 
 ```ts
 observeView(view, (snapshot) => fetchPage(viewToQuery(snapshot))); // 8.0
-observeView(view, (snapshot) => fetchPage(snapshot));              // 8.1.0
+observeView(view, (snapshot) => fetchPage(snapshot)); // 8.1.0
 ```
 
 The one axis that changed shape rather than name is `sort`. `sortColumn: ''` was a sentinel
@@ -65,26 +67,26 @@ In `@urbicon-ui/sveltekit-utils` the `./table-query` subpath is gone with the vo
 served. Its codec was the same URL scheme under the old spellings, so it now lives in
 `./table-view` (also exported from the package root):
 
-| 8.0 | 8.1.0 |
-| --- | --- |
-| `searchParamsToTableQuery` · `searchParamsToViewQuery` | `searchParamsToViewSnapshot` |
-| `tableQueryToSearchParams` | `viewSnapshotToSearchParams` |
-| `applyTableQueryToSearchParams` | `applyViewToSearchParams` (axis-scoped) |
-| `viewSnapshotToTableQuery` | gone — it was the identity |
-| `TableQueryParams` | `TableViewSnapshot` |
-| `TableQueryFilter` · `TABLE_QUERY_FILTER_OPERATORS` | `TableViewFilter` · `TABLE_VIEW_FILTER_OPERATORS` |
+| 8.0                                                    | 8.1.0                                                    |
+| ------------------------------------------------------ | -------------------------------------------------------- |
+| `searchParamsToTableQuery` · `searchParamsToViewQuery` | `searchParamsToViewSnapshot`                             |
+| `tableQueryToSearchParams`                             | `viewSnapshotToSearchParams`                             |
+| `applyTableQueryToSearchParams`                        | `applyViewToSearchParams` (axis-scoped)                  |
+| `viewSnapshotToTableQuery`                             | gone — it was the identity                               |
+| `TableQueryParams`                                     | `TableViewSnapshot`                                      |
+| `TableQueryFilter` · `TABLE_QUERY_FILTER_OPERATORS`    | `TableViewFilter` · `TABLE_VIEW_FILTER_OPERATORS`        |
 | `TableQuerySortDirection` · `TableQueryFilterOperator` | `TableViewSort['direction']` · `TableViewFilterOperator` |
-| `TableQueryDefaults` · `TableQueryUrlOptions` | no successor — see below |
+| `TableQueryDefaults` · `TableQueryUrlOptions`          | no successor — see below                                 |
 
 **The options object became positional parameters**, so this is not a pure rename:
 
 ```ts
-tableQueryToSearchParams(q, { defaults, prefix });                  // 8.0
-viewSnapshotToSearchParams(snapshot, defaults, axes, prefix);       // 8.1.0
+tableQueryToSearchParams(q, { defaults, prefix }); // 8.0
+viewSnapshotToSearchParams(snapshot, defaults, axes, prefix); // 8.1.0
 ```
 
 `defaults` is required now rather than optional, and it is a full snapshot rather than the
-partial `TableQueryDefaults` — which is what lets a default *filter set* participate in
+partial `TableQueryDefaults` — which is what lets a default _filter set_ participate in
 elision at all, the one axis the old baseline had no field for. `axes` is new: pass a subset
 to restrict the output to one binding's axes, or omit it for all six. TypeScript flags every
 call site, but the shape of the fix is worth knowing before you start.
@@ -103,14 +105,20 @@ that. It read as a statement about where the data comes from, which is a differe
 and one the tag never answered: the client variant fetches from a server too.
 
 ```svelte
-<Table {columns} source={{ items: rows }} />                              <!-- 8.0 -->
-<Table {columns} source={{ processing: 'client', items: rows }} />        <!-- 8.1.0 -->
+<Table {columns} source={{ items: rows }} />
+<!-- 8.0 -->
+<Table {columns} source={{ processing: 'client', items: rows }} />
+<!-- 8.1.0 -->
 
-<Table {columns} source={{ kind: 'server', items, total }} />             <!-- 8.0 -->
-<Table {columns} source={{ processing: 'server', items, total }} />       <!-- 8.1.0 -->
+<Table {columns} source={{ kind: 'server', items, total }} />
+<!-- 8.0 -->
+<Table {columns} source={{ processing: 'server', items, total }} />
+<!-- 8.1.0 -->
 
-<Table {columns} source={{ query: loadUsers }} />                         <!-- 8.0 -->
-<Table {columns} source={{ processing: 'server', query: loadUsers }} />   <!-- 8.1.0 -->
+<Table {columns} source={{ query: loadUsers }} />
+<!-- 8.0 -->
+<Table {columns} source={{ processing: 'server', query: loadUsers }} />
+<!-- 8.1.0 -->
 ```
 
 `items={rows}` is untouched — it is still the shorthand for a client source, and still the
@@ -118,7 +126,7 @@ right prop when rows are all you have to say.
 
 Required is the point, not the spelling. In 8.0 the tag sat on one variant out of three, so
 the union leaned on `?: never` fields to keep a tagless server config — `{ items, total }` —
-from matching the *client* variant structurally. That worked: it was a compile error in 8.0,
+from matching the _client_ variant structurally. That worked: it was a compile error in 8.0,
 and it still is. What the required tag adds is a second, independent line under the same
 shape, and one thing the `never` fields could never provide — a consumer writing plain
 JavaScript now gets a named error at the first render instead of a table that quietly sorts
@@ -130,20 +138,20 @@ spelling of all six — `state.searchTerm`, `state.currentPage`, `state.sortColu
 `state.sortDirection`, `state.activeFilters`, `state.itemsPerPage`, `state.groupByKey` — as
 getters onto the very same view. `context.view` is the one address now:
 
-| 8.0 | 8.1.0 |
-| --- | --- |
-| `ctx.state.searchTerm` | `ctx.view.search` |
-| `ctx.state.currentPage` | `ctx.view.page` |
-| `ctx.state.itemsPerPage` | `ctx.view.pageSize` |
-| `ctx.state.activeFilters` | `ctx.view.filters` |
-| `ctx.state.sortColumn` + `.sortDirection` | `ctx.view.sort` — `{ column, direction }` or `null` |
-| `ctx.state.groupByKey` | **`ctx.effectiveGroupBy`** — the drop-in; `ctx.view.groupBy` is the *requested* one, see below |
-| `ctx.totalItems` | `ctx.total` |
-| `ctx.setSearchTerm(t)` | `ctx.setSearch(t)` |
-| `ctx.setItemsPerPage(n)` | `ctx.setPageSize(n)` |
-| `ctx.setGroupByKey(k)` | `ctx.setGroupBy(k)` |
-| `ctx.setSort(column, direction)` | `ctx.setSort({ column, direction })`, or `setSort(null)` |
-| `ctx.state.serverTotalItems` | `ctx.state.serverTotal` |
+| 8.0                                       | 8.1.0                                                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `ctx.state.searchTerm`                    | `ctx.view.search`                                                                              |
+| `ctx.state.currentPage`                   | `ctx.view.page`                                                                                |
+| `ctx.state.itemsPerPage`                  | `ctx.view.pageSize`                                                                            |
+| `ctx.state.activeFilters`                 | `ctx.view.filters`                                                                             |
+| `ctx.state.sortColumn` + `.sortDirection` | `ctx.view.sort` — `{ column, direction }` or `null`                                            |
+| `ctx.state.groupByKey`                    | **`ctx.effectiveGroupBy`** — the drop-in; `ctx.view.groupBy` is the _requested_ one, see below |
+| `ctx.totalItems`                          | `ctx.total`                                                                                    |
+| `ctx.setSearchTerm(t)`                    | `ctx.setSearch(t)`                                                                             |
+| `ctx.setItemsPerPage(n)`                  | `ctx.setPageSize(n)`                                                                           |
+| `ctx.setGroupByKey(k)`                    | `ctx.setGroupBy(k)`                                                                            |
+| `ctx.setSort(column, direction)`          | `ctx.setSort({ column, direction })`, or `setSort(null)`                                       |
+| `ctx.state.serverTotalItems`              | `ctx.state.serverTotal`                                                                        |
 
 Everything else on `state` is untouched — `items`, `columns`, `loading`, `error`,
 `selectedIds`, the expansion, grouping and summary chrome, the prop-driven switches. Those
@@ -165,7 +173,7 @@ and `…/compact.css` no longer exist, and the `./style/themes/*` export with th
 `@theme` custom properties — `--table-row-height`, `--table-header-height`,
 `--table-cell-padding-x` / `-y`, `--filter-bar-height` / `-padding` / `-gap` — that no rule in
 the shipped CSS reads, so Tailwind tree-shook them and importing either file moved no pixel.
-`compact` hid it best: the 40px row it claimed is the *default* `md` row, so the import
+`compact` hid it best: the 40px row it claimed is the _default_ `md` row, so the import
 looked like it had taken. The seven base declarations are gone from `style/table-theme.css`
 too. If your own CSS referenced one, replace the reference with the literal you actually
 want: their values never described the table — the base `--table-row-height` said 3.5rem
@@ -219,8 +227,8 @@ The table itself never passes `icon`, so a `<Table>` renders its empty state as 
     defaults: { pageSize: 25, sort: { column: 'date', direction: 'desc' } }
   });
 
-  bindViewToUrl(view);                           // shareable, server-visible
-  bindViewToStorage(view, { key: 'invoices' });  // "yesterday's view is still there"
+  bindViewToUrl(view); // shareable, server-visible
+  bindViewToStorage(view, { key: 'invoices' }); // "yesterday's view is still there"
 </script>
 
 <Table {items} {columns} {view} prefs={{ storage: 'invoices' }} />
@@ -233,24 +241,30 @@ unbound view of its own.
 
 ### View state
 
-| v7 | v8 |
-| --- | --- |
-| `itemsPerPage={25}` | `viewDefaults={{ pageSize: 25 }}` |
-| `initialPage={2}` | `viewDefaults={{ page: 2 }}` |
-| `initialSort={{ column: 'date', direction: 'desc' }}` | `viewDefaults={{ sort: { column: 'date', direction: 'desc' } }}` |
-| `initialFilters={[…]}` | `viewDefaults={{ filters: […] }}` |
-| `initialGroupBy="team"` | `viewDefaults={{ groupBy: 'team' }}` |
-| `searchTerm={term}` + `onSearchTermChange={…}` | `view.search` — read it, write it |
-| `groupByKey` (on `TableProvider`) | `view.groupBy` |
-| `query={sync.viewState}` + `onQueryChange={sync.syncQuery}` | `bindViewToUrl(view)` |
-| `queryDebounceMs={300}` | `bindViewToUrl(view, { debounceMs: 300 })` / `source={{ processing: 'server', query, debounceMs: 300 }}` |
-| `initialSummaryConfigs={[…]}` | `prefs={{ defaults: { summaries: […] } }}` — summaries are a preference, not a view axis |
+| v7                                                          | v8                                                                                                       |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `itemsPerPage={25}`                                         | `viewDefaults={{ pageSize: 25 }}`                                                                        |
+| `initialPage={2}`                                           | `viewDefaults={{ page: 2 }}`                                                                             |
+| `initialSort={{ column: 'date', direction: 'desc' }}`       | `viewDefaults={{ sort: { column: 'date', direction: 'desc' } }}`                                         |
+| `initialFilters={[…]}`                                      | `viewDefaults={{ filters: […] }}`                                                                        |
+| `initialGroupBy="team"`                                     | `viewDefaults={{ groupBy: 'team' }}`                                                                     |
+| `searchTerm={term}` + `onSearchTermChange={…}`              | `view.search` — read it, write it                                                                        |
+| `groupByKey` (on `TableProvider`)                           | `view.groupBy`                                                                                           |
+| `query={sync.viewState}` + `onQueryChange={sync.syncQuery}` | `bindViewToUrl(view)`                                                                                    |
+| `queryDebounceMs={300}`                                     | `bindViewToUrl(view, { debounceMs: 300 })` / `source={{ processing: 'server', query, debounceMs: 300 }}` |
+| `initialSummaryConfigs={[…]}`                               | `prefs={{ defaults: { summaries: […] } }}` — summaries are a preference, not a view axis                 |
 
 Several axes collapse into **one** `viewDefaults` object rather than several props:
 
 ```svelte
-<!-- v7 --> <Table {items} {columns} itemsPerPage={5} initialSort={{ column: 'salary', direction: 'desc' }} />
-<!-- v8 --> <Table {items} {columns} viewDefaults={{ pageSize: 5, sort: { column: 'salary', direction: 'desc' } }} />
+<!-- v7 -->
+<Table {items} {columns} itemsPerPage={5} initialSort={{ column: 'salary', direction: 'desc' }} />
+<!-- v8 -->
+<Table
+  {items}
+  {columns}
+  viewDefaults={{ pageSize: 5, sort: { column: 'salary', direction: 'desc' } }}
+/>
 ```
 
 `viewDefaults` is the shorthand for a table that owns its view; it is **mutually exclusive**
@@ -265,12 +279,12 @@ is a value now, not a convention.
 The `mode`/`queryFn`/`loading`/`error`/`serverTotalItems` combinations became one union of
 three object shapes, in which the invalid combinations are not expressible:
 
-| v7 | v8 |
-| --- | --- |
-| `items={rows}` | `items={rows}` (unchanged) or `source={{ processing: 'client', items: rows }}` |
-| `{items}` + `{loading}` + `{error}` in client mode | `source={{ processing: 'client', items, loading, error }}` |
+| v7                                                                                           | v8                                                                                          |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `items={rows}`                                                                               | `items={rows}` (unchanged) or `source={{ processing: 'client', items: rows }}`              |
+| `{items}` + `{loading}` + `{error}` in client mode                                           | `source={{ processing: 'client', items, loading, error }}`                                  |
 | `mode="server"` + `serverTotalItems` + `{items}` + `{loading}` + `{error}` + `onQueryChange` | `source={{ processing: 'server', items, total, loading, error }}` + `observeView(view, cb)` |
-| `mode="server"` + `queryFn` + `queryDebounceMs` | `source={{ processing: 'server', query, debounceMs }}` |
+| `mode="server"` + `queryFn` + `queryDebounceMs`                                              | `source={{ processing: 'server', query, debounceMs }}`                                      |
 
 `processing: 'server'` is mandatory on both server sources. It hands sorting and
 filtering to the server, so it has to be a decision you took, not a shape you fell into —
@@ -293,15 +307,15 @@ its result through `processing: 'server'` with rows and a total.
 because they answer to different owners: **view** state belongs to the consumer and can be
 shared, **preferences** belong to the table and never leave the browser.
 
-| v7 | v8 |
-| --- | --- |
-| `persistenceConfig={{ tableId: 'x' }}` (view axes: sort, search, filters, group) | `bindViewToStorage(view, { key: 'x' })` |
-| `persistSort` / `persistSearch` / `persistFilters` / `persistGroupByKey` | `bindViewToStorage(view, { key: 'x', axes: […] })` |
-| `persistColumnVisibility` / `persistColumnOrder` / `persistSummaryConfigs` | `prefs={{ storage: 'x' }}` |
-| `persistSelection: true` | `prefs={{ storage: 'x', persistSelection: true }}` |
-| `storage: 'sessionStorage'` | `prefs={{ storage: { key: 'x', kind: 'sessionStorage' } }}`, and `bindViewToStorage(view, { key: 'x', storage: sessionStorage })` |
-| `persistControlled: true` | gone — the combination is now just the two independent lines above |
-| `debounceMs` | per binding: `bindViewToStorage(…, { debounceMs })`, `prefs={{ storage: { key, debounceMs } }}` |
+| v7                                                                               | v8                                                                                                                                |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `persistenceConfig={{ tableId: 'x' }}` (view axes: sort, search, filters, group) | `bindViewToStorage(view, { key: 'x' })`                                                                                           |
+| `persistSort` / `persistSearch` / `persistFilters` / `persistGroupByKey`         | `bindViewToStorage(view, { key: 'x', axes: […] })`                                                                                |
+| `persistColumnVisibility` / `persistColumnOrder` / `persistSummaryConfigs`       | `prefs={{ storage: 'x' }}`                                                                                                        |
+| `persistSelection: true`                                                         | `prefs={{ storage: 'x', persistSelection: true }}`                                                                                |
+| `storage: 'sessionStorage'`                                                      | `prefs={{ storage: { key: 'x', kind: 'sessionStorage' } }}`, and `bindViewToStorage(view, { key: 'x', storage: sessionStorage })` |
+| `persistControlled: true`                                                        | gone — the combination is now just the two independent lines above                                                                |
+| `debounceMs`                                                                     | per binding: `bindViewToStorage(…, { debounceMs })`, `prefs={{ storage: { key, debounceMs } }}`                                   |
 
 `bindViewToStorage` returns two affordances v7 had no place for: `clear()` removes this
 table's stored view (the "reset my saved view" button) and `flush()` writes pending changes
@@ -334,7 +348,7 @@ bindViewToUrl(view);
 <Table {items} {columns} {view} />
 ```
 
-The defaults are written once. They are the elision baseline *and* the table's starting
+The defaults are written once. They are the elision baseline _and_ the table's starting
 state, so they cannot disagree with each other.
 
 `bindViewToUrl(view, { axes?, debounceMs?, replaceState?, prefix?, reflectExternal? })`.
@@ -343,7 +357,7 @@ for readers: existing deep links keep working.
 
 The pure serializers are still SvelteKit-free. For the load path, use
 `searchParamsToViewSnapshot` from `@urbicon-ui/sveltekit-utils/table-view`: it takes the
-*same* defaults object the component hands `createTableView`, so the server cannot resolve
+_same_ defaults object the component hands `createTableView`, so the server cannot resolve
 an absent param differently from the client.
 
 ```ts
@@ -353,6 +367,7 @@ export const invoiceView = { pageSize: 25, sort: { column: 'date', direction: 'd
 ```
 
 <!-- typecheck -->
+
 ```ts
 // src/routes/invoices/+page.server.ts
 import { searchParamsToViewSnapshot } from '@urbicon-ui/sveltekit-utils/table-view';
@@ -392,24 +407,24 @@ breaking change. v8 keeps the parts that were meant for consumers:
 
 What no longer appears on the type, and where its job went:
 
-| v7 context member | v8 |
-| --- | --- |
-| `setItems` / `setLoading` / `setError` | the `source` union: `source={{ processing: 'client', items, loading, error }}` |
-| `setServerResult` / `setServerError` / `setServerLoading` | a `processing: 'server'` source, with rows or with a `query` |
-| `query` / `queryKey` | `view.snapshot()`, or `observeView(view, cb)` |
-| `setColumns` | the `columns` prop |
-| `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `hiddenColumnKeys` | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns` |
-| `allColumns` | `state.allColumns` — every column you declared, hidden ones included. `state.columns` stays the visible subset, which is what the grid draws |
-| `reorderColumn` / `resetColumnOrder` / `orderedColumns` / `columnOrder` / `getColumnIndex` / `initColumnOrder` | `enableColumnReorder` (drag + keyboard), initial order via `prefs.defaults.columnOrder` |
-| `focusedRowIndex` / `resetFocus` / `setFocusedRow` / `moveFocus` / `isFocusedRow` | keyboard navigation is built in |
-| `toggleExpand` / `isItemExpanded` | the built-in expansion chevron (`expandedRowContent`) |
-| `toggleGroup` / `toggleGroupExpand` / `toggleAllGroups` | the built-in group headers |
-| `setPage` | `goToPage(page)` (range-checked), or write `view.page` |
-| `setGroupOrder` | the `groupOrder` prop |
-| `toggleAdvancedSearch` | gone — nothing read it since the tools sheet replaced the advanced-search panel |
-| `getNestedValue` / `resolveColumnId` / `resolveColumnValue` / `resolveValueById` / `findColumnById` | the standalone package exports of the same names |
-| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData` | preference persistence is the table's own lifecycle. To reset a table's **preferences**, remove its `urbicon_table_*_<tableId>_v1` entries — `urbicon_table_summary_configs_<tableId>_v1`, `urbicon_table_hidden_columns_<tableId>_v1`, `urbicon_table_column_order_<tableId>_v1`, `urbicon_table_selection_<tableId>_v1`. `createPersistentState` builds every key as `` `urbicon_${key}_v${version}` ``, so the name passed at the call site is the middle of the stored key, not the whole of it. Preferences are a separate channel from the **view** entry (`urbicon_table_view_<key>_v1`), which a storage binding owns and its `reset()` clears |
-| `setTableContext()` | gone — `<Table>` (via its `TableProvider`) is what establishes the context |
+| v7 context member                                                                                              | v8                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `setItems` / `setLoading` / `setError`                                                                         | the `source` union: `source={{ processing: 'client', items, loading, error }}`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `setServerResult` / `setServerError` / `setServerLoading`                                                      | a `processing: 'server'` source, with rows or with a `query`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `query` / `queryKey`                                                                                           | `view.snapshot()`, or `observeView(view, cb)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `setColumns`                                                                                                   | the `columns` prop                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `hideColumn` / `showColumn` / `toggleColumnVisibility` / `showAllColumns` / `hiddenColumnKeys`                 | the built-in visibility UI (`enableColumnVisibility`), initial state via `prefs.defaults.hiddenColumns`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `allColumns`                                                                                                   | `state.allColumns` — every column you declared, hidden ones included. `state.columns` stays the visible subset, which is what the grid draws                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `reorderColumn` / `resetColumnOrder` / `orderedColumns` / `columnOrder` / `getColumnIndex` / `initColumnOrder` | `enableColumnReorder` (drag + keyboard), initial order via `prefs.defaults.columnOrder`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `focusedRowIndex` / `resetFocus` / `setFocusedRow` / `moveFocus` / `isFocusedRow`                              | keyboard navigation is built in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `toggleExpand` / `isItemExpanded`                                                                              | the built-in expansion chevron (`expandedRowContent`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `toggleGroup` / `toggleGroupExpand` / `toggleAllGroups`                                                        | the built-in group headers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `setPage`                                                                                                      | `goToPage(page)` (range-checked), or write `view.page`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `setGroupOrder`                                                                                                | the `groupOrder` prop                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `toggleAdvancedSearch`                                                                                         | gone — nothing read it since the tools sheet replaced the advanced-search panel                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `getNestedValue` / `resolveColumnId` / `resolveColumnValue` / `resolveValueById` / `findColumnById`            | the standalone package exports of the same names                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `applyPersistedState` / `clearPersisted*` / `forceSavePersistentData`                                          | preference persistence is the table's own lifecycle. To reset a table's **preferences**, remove its `urbicon_table_*_<tableId>_v1` entries — `urbicon_table_summary_configs_<tableId>_v1`, `urbicon_table_hidden_columns_<tableId>_v1`, `urbicon_table_column_order_<tableId>_v1`, `urbicon_table_selection_<tableId>_v1`. `createPersistentState` builds every key as `` `urbicon_${key}_v${version}` ``, so the name passed at the call site is the middle of the stored key, not the whole of it. Preferences are a separate channel from the **view** entry (`urbicon_table_view_<key>_v1`), which a storage binding owns and its `reset()` clears |
+| `setTableContext()`                                                                                            | gone — `<Table>` (via its `TableProvider`) is what establishes the context                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 The store barrel also stopped re-exporting its wiring wholesale: `createTableState`,
 `attachTableContext`, `attachCellLocale`, `TablePropSources`, `TableSeedState` and
@@ -417,7 +432,7 @@ The store barrel also stopped re-exporting its wiring wholesale: `createTableSta
 are internal now. If you constructed table state yourself, `<Table>` plus the context
 above is the supported path.
 
-The object behind the interface is unchanged and alive — nothing about *when* you get it
+The object behind the interface is unchanged and alive — nothing about _when_ you get it
 (`onReady` once, `getTableContext()` inside the tree) moved. If a member you relied on is
 missing from the narrow surface, that is a conversation worth having rather than a cast:
 widening the interface later is additive, the cast freezes an internal.
@@ -481,7 +496,7 @@ What follows from it:
 
 ## Consumers who used `onQueryChange` without a URL
 
-Analytics, a manual fetch, a server sync — anything that wanted to *observe* the view rather
+Analytics, a manual fetch, a server sync — anything that wanted to _observe_ the view rather
 than put it in the address bar:
 
 ```ts
@@ -509,7 +524,7 @@ console warning on the virtualized table so the mismatch is visible while develo
 One limit is worth knowing:
 
 - **A shared view is not a shared cache.** A managed source (`{ query }`) on both tables
-  fetches once *per table* per interaction. If one fetch should serve both, run it yourself
+  fetches once _per table_ per interaction. If one fetch should serve both, run it yourself
   (`observeView` + your fetch) and hand each table a manual `processing: 'server'` source.
 
 ## Where to construct the view

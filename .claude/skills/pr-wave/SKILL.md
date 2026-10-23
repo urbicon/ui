@@ -48,7 +48,7 @@ squash merges into `main`.
   (blocks, docs-app) → `bun run build:packages`.
 - Worktree hygiene: no commits, no pushes, leave the package clean.
 - `svelte-autofixer` after every `.svelte` edit; `bun --filter='<pkg>' run
-  test`, never bare `bun test`.
+test`, never bare `bun test`.
 - **Derive the gate list from `.github/workflows/ci.yml`, not from
   memory.** `bun --filter='@urbicon-ui/docs-app' run test` (counting
   oracles over blocks sources — a new `text-xs` use fails a published

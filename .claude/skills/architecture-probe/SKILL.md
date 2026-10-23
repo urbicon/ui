@@ -28,7 +28,7 @@ yet most of its findings were decidable in jsdom.
    control in the opposite case. This is roughly a third of the total effort and it is the
    difference between a report and an opinion.
 
-Finder agents must be told: *no overall judgement, no grade, no praise, only lists.* They
+Finder agents must be told: _no overall judgement, no grade, no praise, only lists._ They
 volunteer a verdict otherwise, and the verdict is what you are trying not to get.
 
 ## The order
@@ -45,7 +45,7 @@ Ask: which cause was repaired more than once, and did each fix change the **mode
 state source, unified a write path) or add a **special case** (another branch, another guard,
 another flag)?
 
-Recurring fix *series* are the finding, not individual fixes. This is the only sonde that
+Recurring fix _series_ are the finding, not individual fixes. This is the only sonde that
 produces an explanation rather than symptoms — on `packages/table` it produced the whole
 diagnosis (unfinished migrations: the right answer was found and applied, and each rollout
 stopped halfway).
@@ -59,8 +59,8 @@ Pick the concerns from what step 1 surfaced. On table these were: state ownershi
 paths, client vs. server processing, value/identity resolution, and render duality
 (desktop/mobile/grouped).
 
-**The prompt must enforce two phases:** first collect *every* site mechanically — the working
-phrasing is *"list every site and how it does it — do not judge"* — and only then derive the
+**The prompt must enforce two phases:** first collect _every_ site mechanically — the working
+phrasing is _"list every site and how it does it — do not judge"_ — and only then derive the
 inconsistencies. The deviation then falls out of the table instead of being invented or missed.
 Highest hit rate for concrete bugs of all five sondes.
 
@@ -85,7 +85,7 @@ no `@testing-library/svelte`, no `jest-dom`. Give the agents:
 - **`NOT_DECIDABLE` as a permitted verdict.** jsdom does not lay out; `offsetHeight` is 0. Where
   layout is needed, stub `clientHeight` (pattern in the `stubLayoutProp` helper,
   `Table.render.svelte.test.ts:44`). Anything pixel-shaped stays unclaimed.
-- **an adversarial brief**: the job is to *refute*. A refuted finding is a valuable result.
+- **an adversarial brief**: the job is to _refute_. A refuted finding is a valuable result.
 - **a unique temp filename per agent** (parallel verifications otherwise overwrite each other),
   delete it afterwards, commit nothing.
 - **a warning about a dirty tree**: other sessions may have unrelated changes staged. Tell the
@@ -99,8 +99,8 @@ corrections mattered, and one of them moved the cause of a defect.
 
 Have the change planned in detail, never implemented. The question is not "is this possible" but
 **"at how many places would the same decision have to be carried independently?"** Demand a
-count, the file list, and a split into *unavoidable requirement complexity* vs. *structural
-cost*, each with evidence. Require honesty in both directions — "surprisingly cheap" is a result.
+count, the file list, and a split into _unavoidable requirement complexity_ vs. _structural
+cost_, each with evidence. Require honesty in both directions — "surprisingly cheap" is a result.
 
 Pick at least one item that is actually on the roadmap, and at least one combination the package
 explicitly refuses; the refusal machinery is often more expensive than the thing refused.
@@ -142,7 +142,7 @@ do not replace each other.
   leave `ready` off and put the options in the body. That is what `ready` is for.
 - **The architecture diagnosis** → a document under `docs/internal/`, not issues. "The row
   renderer exists three times" is a state, not a task; as an issue it sits open for a year. Issue
-  the *work* that ends the state, and let it link back.
+  the _work_ that ends the state, and let it link back.
 - **Method learnings** → this file.
 - **The probe is not the last instrument.** Sondes measure state; the class "shows only when you
   change it" surfaces during implementation — table's migration waves found defects the probe had
@@ -173,7 +173,7 @@ instruments that return a number or a yes/no — table's v8 view object was deci
   pixel-shaped.** Have the matrix agents tag each finding `jsdom_verifiable`
   or not; pipe only the former into DOM-test verification and measure the
   rest yourself in Chrome. On features/ the browser pass also produced the
-  probe's only *exonerations* (a summary row that aligns exactly, a sheet
+  probe's only _exonerations_ (a summary row that aligns exactly, a sheet
   write path that works) — jsdom can confirm defects but rarely clears them.
 - **Coordinate clicks are not an instrument.** One synthetic click landed on
   the wrong element and produced a phantom "store resets my selection"

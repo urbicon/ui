@@ -12,23 +12,23 @@ Standalone form for data entry — registration, creation, multi-step wizards.
 
 ## Component Selection
 
-| UI Need | Component | Configuration |
-|---|---|---|
-| Text input | `Input` | Wrapped in `FormField` |
-| Multi-line text | `Textarea` | Wrapped in `FormField`, with character count if limited |
-| Email/password | `Input` | `type="email"` / `type="password"`, wrapped in `FormField` |
-| Enum selection | `Select` or `RadioGroup` | Select for 4+, RadioGroup for 2-3 visible options |
-| Searchable selection | `Combobox` | 7+ options, wrapped in `FormField` |
-| Boolean consent | `Checkbox` | For agreements ("I accept the terms") |
-| Boolean toggle | `Toggle` | For preference settings within a form |
-| Date input | `DatePicker` | Wrapped in `FormField` |
-| Currency | `CurrencyInput` | Locale-aware, wrapped in `FormField` |
-| File | `FileUpload` | Drag-and-drop zone, clear accepted formats |
-| Form group | `Card` or visual separator | Card for distinct sections, `Separator` for light division |
-| Submit action | `Button intent="primary"` | Loading state during submission |
-| Multi-step | `Stepper` | Shows progress, validates per step |
-| Validation feedback | `FormField` error prop | Inline, under the field |
-| Submit feedback | `Toast` | Success/error after submission |
+| UI Need              | Component                  | Configuration                                              |
+| -------------------- | -------------------------- | ---------------------------------------------------------- |
+| Text input           | `Input`                    | Wrapped in `FormField`                                     |
+| Multi-line text      | `Textarea`                 | Wrapped in `FormField`, with character count if limited    |
+| Email/password       | `Input`                    | `type="email"` / `type="password"`, wrapped in `FormField` |
+| Enum selection       | `Select` or `RadioGroup`   | Select for 4+, RadioGroup for 2-3 visible options          |
+| Searchable selection | `Combobox`                 | 7+ options, wrapped in `FormField`                         |
+| Boolean consent      | `Checkbox`                 | For agreements ("I accept the terms")                      |
+| Boolean toggle       | `Toggle`                   | For preference settings within a form                      |
+| Date input           | `DatePicker`               | Wrapped in `FormField`                                     |
+| Currency             | `CurrencyInput`            | Locale-aware, wrapped in `FormField`                       |
+| File                 | `FileUpload`               | Drag-and-drop zone, clear accepted formats                 |
+| Form group           | `Card` or visual separator | Card for distinct sections, `Separator` for light division |
+| Submit action        | `Button intent="primary"`  | Loading state during submission                            |
+| Multi-step           | `Stepper`                  | Shows progress, validates per step                         |
+| Validation feedback  | `FormField` error prop     | Inline, under the field                                    |
+| Submit feedback      | `Toast`                    | Success/error after submission                             |
 
 ## Validation Rules
 
