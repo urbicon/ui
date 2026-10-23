@@ -53,9 +53,10 @@ export const { POST } = createResetPasswordHandler(authDeps);
         language="svelte"
         headingLevel={2}
       >
-        <!-- Preview-only link target and width cap — see auth-invitation-register. -->
+        <!-- Preview-only link target, width cap and heading rank — see auth-invitation-register. -->
         <ForgotPasswordPage
           class="w-full max-w-md"
+          headingLevel={3}
           loginUrl={resolve('/auth/components/login-page')}
         />
       </CodeExample>

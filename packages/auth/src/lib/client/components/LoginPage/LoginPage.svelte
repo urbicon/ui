@@ -31,6 +31,7 @@
     header: headerSnippet,
     footer: footerSnippet,
     links: linksSnippet,
+    headingLevel = 1,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -240,6 +241,7 @@
   title={awaitingTwoFactor ? t.twoFactor.loginTitle : t.auth.login.title}
   {error}
   header={headerSnippet}
+  {headingLevel}
   {unstyled}
   {slotClasses}
   class={className}

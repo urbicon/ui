@@ -86,10 +86,11 @@ if (tokens > 0) { tokens--; allow(); } else reject();
     pick: ['size', 'streaming', 'headingLevelStart'],
     overrides: {
       streaming: { label: 'Streaming cursor', defaultValue: true },
-      // Die Bühne setzte 3 fest, damit die Demo-Überschriften nicht in die
-      // Gliederung der Doku-Seite rutschen. Als Regler steht dieselbe Zahl im
-      // Schnipsel — und der Leser sieht, dass es eine Stellschraube ist.
-      headingLevelStart: { label: 'Heading level start', defaultValue: 3 }
+      // 2, weil die Demo mit `##` beginnt: Das wird h3 unter dem h2 der
+      // Sektion. Aus der Gliederung hält keine Zahl eine Überschrift heraus,
+      // eine zu hohe überspringt nur einen Rang. Als Regler steht die Zahl im
+      // Schnipsel, und der Leser sieht, dass es eine Stellschraube ist.
+      headingLevelStart: { label: 'Heading level start', defaultValue: 2 }
     }
   });
 </script>
@@ -133,7 +134,7 @@ if (tokens > 0) { tokens--; allow(); } else reject();
           content={started ? content : DEMO}
           streaming={playing || (values.streaming as boolean)}
           size={values.size as 'sm' | 'md'}
-          headingLevelStart={Number(values.headingLevelStart ?? 3) as 1 | 2 | 3 | 4 | 5 | 6}
+          headingLevelStart={Number(values.headingLevelStart ?? 2) as 1 | 2 | 3 | 4 | 5 | 6}
         />
       </div>
     </div>

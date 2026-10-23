@@ -65,10 +65,12 @@ export interface StreamingMarkdownProps
   autolink?: boolean;
   /**
    * DOM heading level that markdown `#` maps to (deeper levels shift along,
-   * clamped at h6). Visual sizing keeps following the author's level. Set to
-   * 3 in a chat so message headings stay out of the page outline.
+   * clamped at h6). Visual sizing keeps following the author's level. Set it to
+   * the rank that continues the outline the message sits in — 3 under a chat
+   * panel's h2. No level keeps a message heading out of the page outline; one
+   * set too deep leaves a gap in it instead.
    * @default 1
-   * @summary Which DOM heading level a markdown hash maps to, keeping message headings out of the page outline.
+   * @summary Which DOM heading level a markdown hash maps to, so message headings continue the page outline.
    */
   headingLevelStart?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Target for rendered links; `rel="noopener noreferrer"` is added for `_blank` @default '_blank' */

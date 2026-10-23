@@ -681,6 +681,19 @@ export interface TableProps<T = TableItem> {
   noDataText?: string;
 
   /**
+   * Heading level of the headings the table renders itself, clamped to 1..6:
+   * the titles of the built-in empty, loading and error states and, in the
+   * card list, each group's header and the total summary — a group's own
+   * summary renders one level below its header. `h3` fits a table inside a
+   * titled section; pass the rank that continues the embedding page's outline,
+   * `2` directly under the page's `h1`. The headings are styled by class, not
+   * by tag, so the level changes none of the component's own styling. A custom `emptyState`,
+   * `loadingState` or `errorState` snippet sets its own rank.
+   * @default 3
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+
+  /**
    * Global cell snippet that overrides rendering for ALL columns.
    * For per-column customization, prefer `column.cell` instead.
    * @default undefined

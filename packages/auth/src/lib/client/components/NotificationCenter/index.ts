@@ -46,6 +46,15 @@ export interface NotificationCenterProps {
   ) => void;
   /** Custom notification item renderer. */
   item?: Snippet<[import('../../../server/adapters/types.js').NotificationRecord]>;
+  /**
+   * Heading level of the component's title, clamped to 1..6. `h2` fits a
+   * component placed directly on a page under its `h1`; pass the rank that
+   * continues the embedding page's outline where it sits deeper — inside a
+   * titled card, tab or popover. The title is styled by class, not by tag,
+   * so the level changes none of the component's own styling.
+   * @default 2
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. */

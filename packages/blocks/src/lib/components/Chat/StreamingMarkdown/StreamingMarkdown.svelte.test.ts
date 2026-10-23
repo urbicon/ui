@@ -45,6 +45,15 @@ describe('StreamingMarkdown (renderer)', () => {
     expect(document.querySelector('h1')).toBeNull();
   });
 
+  it('reads a headingLevelStart that is no number as h6 for every level, never as h1', () => {
+    // TypeScript refuses it; plain JavaScript and a nullable CMS field pass it.
+    render({ content: '# Title\n\n## Sub', headingLevelStart: null as unknown as 1 });
+    expect([...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map((h) => h.tagName)).toEqual([
+      'H6',
+      'H6'
+    ]);
+  });
+
   it('defaults headings to their literal level', () => {
     render({ content: '# Title' });
     expect(document.querySelector('h1')?.textContent).toBe('Title');

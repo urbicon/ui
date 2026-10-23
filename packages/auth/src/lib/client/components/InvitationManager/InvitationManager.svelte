@@ -4,6 +4,7 @@
     Button,
     Checkbox,
     getBlocksConfig,
+    headingTag,
     Input,
     resolveClassChain,
     Select,
@@ -32,6 +33,7 @@
     apiPath = '/api/invitations',
     csrf,
     fetcher,
+    headingLevel = 2,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
@@ -172,9 +174,12 @@
 </script>
 
 <div class={cls('flex flex-col gap-6', resolveClassChain(slotClasses.root, className))}>
-  <h2 class={cls('text-text-primary text-xl font-semibold', slotClasses.title)}>
+  <svelte:element
+    this={headingTag(headingLevel)}
+    class={cls('text-text-primary text-xl font-semibold', slotClasses.title)}
+  >
     {t.invitations.title}
-  </h2>
+  </svelte:element>
 
   <FormErrorAlert {error} {unstyled} class={slotClasses.error} />
 

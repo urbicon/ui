@@ -65,9 +65,10 @@ export const POST = passkey.authenticationVerify.POST;
       language="svelte"
       headingLevel={2}
     >
-      <!-- Preview-only link targets and width cap — see auth-invitation-register. -->
+      <!-- Preview-only link targets, width cap and heading rank — see auth-invitation-register. -->
       <LoginPage
         class="w-full max-w-md"
+        headingLevel={3}
         mode="both"
         passkeyApiPath="/api/auth/passkey"
         registerUrl={resolve('/auth/components/register-page')}
