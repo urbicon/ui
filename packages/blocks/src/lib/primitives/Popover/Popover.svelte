@@ -416,40 +416,70 @@
   // re-show runs in the same flush as the template's attribute write, so no
   // frame paints the hidden panel, and the browser folds the hide's queued
   // `toggle` and the show's into one `open → open`, which the toggle handler
-  // does not read as a dismiss. The focused element has to be read before the
-  // write — hence the `$effect.pre`. A change to `null` takes the panel out of
-  // the top layer on purpose: it renders in place from then on.
+  // does not read as a dismiss. What the write changes is read before it, in
+  // the `$effect.pre`: whether the panel was showing (a panel
+  // `useFloatingPanel` hid for a lost anchor stays hidden), where focus was,
+  // and which transitions were already running.
+  //
+  // The show puts the panel last in the top layer, above every popover opened
+  // from inside it (a listbox, a tooltip, a nested manual Popover), so those
+  // are shown again after it. A nested `auto` Popover is lost on auto → manual:
+  // the write itself closes it, and it reports a click outside. The control
+  // focus is put back on has seen a blur and now sees a focus, and a Combobox
+  // reopens its listbox on that focus. A change to `null` renders the panel in
+  // place, and focus is put back there too.
   const popoverAttribute = $derived(panel.topLayer ? popoverMode : null);
   let prevPopoverAttribute = untrack(() => popoverAttribute);
-  let focusedBeforeAttributeChange: HTMLElement | null = null;
+  let beforeAttributeChange: { focused: HTMLElement | null; running: Set<Animation> } | null = null;
   $effect.pre(() => {
     if (popoverAttribute === prevPopoverAttribute) return;
+    const el = untrack(() => popoverElement);
+    if (!el?.matches(':popover-open')) {
+      beforeAttributeChange = null;
+      return;
+    }
     const active = document.activeElement;
-    focusedBeforeAttributeChange =
-      active instanceof HTMLElement && untrack(() => popoverElement)?.contains(active)
-        ? active
-        : null;
+    beforeAttributeChange = {
+      focused: active instanceof HTMLElement && el.contains(active) ? active : null,
+      // jsdom has no `getAnimations`, and a Popover stub that keeps the panel
+      // showing through the write (this repo's does) gets here.
+      running: new Set(el.getAnimations?.() ?? [])
+    };
   });
   $effect(() => {
     if (popoverAttribute === prevPopoverAttribute) return;
     prevPopoverAttribute = popoverAttribute;
-    const refocus = focusedBeforeAttributeChange;
-    focusedBeforeAttributeChange = null;
-    if (popoverAttribute === null || !open || !popoverElement) return;
+    const before = beforeAttributeChange;
+    beforeAttributeChange = null;
+    if (!before || !open || !popoverElement) return;
+    const refocus = () => {
+      if (before.focused && document.activeElement !== before.focused)
+        before.focused.focus({ preventScroll: true });
+    };
+    if (popoverAttribute === null) {
+      refocus();
+      return;
+    }
     if (popoverElement.matches(':popover-open')) return;
+    const inner = [...popoverElement.querySelectorAll<HTMLElement>(':popover-open')];
     try {
       popoverElement.showPopover();
+      for (const popover of inner) {
+        popover.hidePopover();
+        popover.showPopover();
+      }
     } catch (err) {
       console.warn('[Popover] showPopover after a mode change failed', err);
       return;
     }
-    if (refocus && document.activeElement !== refocus) refocus.focus({ preventScroll: true });
+    refocus();
     // Firefox has already computed the hidden panel at this point (the focus
     // hand-back forces a style update), so the show replays the enter
     // transition from its `@starting-style` and the panel blinks to
-    // transparent; finishing that transition paints the shown state instead.
+    // transparent. Finishing what the show started paints the shown state; an
+    // enter transition that was already running keeps running.
     for (const animation of popoverElement.getAnimations()) {
-      if (animation instanceof CSSTransition) animation.finish();
+      if (animation instanceof CSSTransition && !before.running.has(animation)) animation.finish();
     }
   });
 

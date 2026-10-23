@@ -64,7 +64,7 @@ const transitioning = (f: Frame) => f.transitions > 0;
 
 async function openPanel(page: Page, query: string) {
   await page.goto(`${URL}${query}`, { waitUntil: 'load' });
-  const trigger = page.getByRole('button', { name: 'Open' });
+  const trigger = page.getByRole('button', { name: 'Open', exact: true });
   // aria-expanded is stamped by a client effect: its presence proves hydration.
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   await trigger.click();
@@ -145,5 +145,95 @@ test.describe('Popover mode change while open', () => {
     );
     expect(await isShowing(page)).toBe(false);
     await expect(trigger).toBeFocused();
+  });
+
+  test('a pick that locks the panel leaves the open listbox painted above it', async ({ page }) => {
+    await openPanel(page, '?s=tags');
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
+    const combobox = page.getByRole('combobox', { name: 'Fruit' });
+    await combobox.click();
+    await expect(page.getByRole('listbox')).toBeVisible();
+
+    // A multi-select pick keeps the listbox open and locks the panel
+    // (`closeOnClickOutside` off), so the panel is shown again under it.
+    await page.getByRole('option', { name: 'Banana' }).click();
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'manual');
+    await expect(page.getByRole('listbox')).toBeVisible();
+
+    // What is painted at each option's centre. The panel is tall enough to lie
+    // under the whole listbox, so a panel shown above it covers every option.
+    const hits = await page.evaluate((selector) => {
+      const panel = document.querySelector(selector) as HTMLElement;
+      const box = panel.getBoundingClientRect();
+      return [...document.querySelectorAll('[role="option"]')].map((option) => {
+        const r = option.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const hit = document.elementFromPoint(x, y);
+        return {
+          overPanel: x >= box.left && x <= box.right && y >= box.top && y <= box.bottom,
+          onTop: !!hit && option.contains(hit)
+        };
+      });
+    }, PANEL);
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.every((h) => h.overPanel)).toBe(true);
+    expect(hits.filter((h) => !h.onTop).length, 'options painted under the panel').toBe(0);
+    await expectStillOpen(page);
+    await expect(combobox).toBeFocused();
+  });
+
+  test('a mode change during the enter transition lets it run out', async ({ page }) => {
+    await page.goto(`${URL}?duration=1000`, { waitUntil: 'load' });
+    await page.waitForSelector('html[data-hydrated]');
+
+    // Open, then flip 100ms into the 1s enter. Driven from the page so the
+    // flip cannot miss the transition it is about to meet.
+    const run = await page.evaluate(async (selector) => {
+      const panel = document.querySelector(selector) as HTMLElement;
+      const trigger = [...document.querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === 'Open'
+      ) as HTMLElement;
+      trigger.click();
+      await new Promise((r) => setTimeout(r, 100));
+      const enterRunning = panel.getAnimations().length > 0;
+      (panel.querySelector('input[type="checkbox"]') as HTMLInputElement).click();
+      const opacities: number[] = [];
+      await new Promise<void>((resolve) => {
+        const start = performance.now();
+        const tick = (now: number) => {
+          opacities.push(Number(getComputedStyle(panel).opacity));
+          if (now - start < 300) requestAnimationFrame(tick);
+          else resolve();
+        };
+        requestAnimationFrame(tick);
+      });
+      return { enterRunning, attribute: panel.getAttribute('popover'), opacities };
+    }, PANEL);
+
+    expect(run.enterRunning).toBe(true);
+    expect(run.attribute).toBe('manual');
+    // Still fading in after the flip, not cut to its end.
+    expect(run.opacities[0]).toBeLessThan(1);
+    expect(run.opacities.filter((o) => o < 1).length).toBeGreaterThan(1);
+  });
+
+  test('a mode change leaves a panel hidden for its lost anchor hidden', async ({ page }) => {
+    await page.goto(`${URL}?s=anchor`, { waitUntil: 'load' });
+    await page.waitForSelector('html[data-hydrated]');
+    await page.getByRole('button', { name: 'Show' }).click();
+    await expect(page.locator(PANEL)).toBeVisible();
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'manual');
+
+    // Locked, so a click outside does not dismiss; the anchor goes, and
+    // `useFloatingPanel` hides the still-open panel.
+    await page.getByRole('button', { name: 'Remove anchor' }).click();
+    await expect.poll(() => isShowing(page)).toBe(false);
+    await expect(page.getByTestId('popover-mode-open')).toHaveText('true');
+
+    await page.getByRole('button', { name: 'Unlock' }).click();
+    await expect(page.locator(PANEL)).toHaveAttribute('popover', 'auto');
+    await settle(page);
+    expect(await isShowing(page)).toBe(false);
   });
 });
