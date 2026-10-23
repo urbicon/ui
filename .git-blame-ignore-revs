@@ -1,5 +1,7 @@
 # Commits that only reformat. GitHub's blame skips them on its own; locally:
 #   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# git-cliff (2.14.2) leaves every commit listed here out of CHANGELOG.md as well, so a
+# commit belongs here only when a consumer would find nothing in it to read about.
 
 # style: format markdown and svelte with bun fmt
 27e055aa1f3b6f64c5016e75cbe330a23bfb0517
