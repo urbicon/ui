@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { useTableI18n } from '../i18n';
   import {
     emptyStateVariants,
@@ -22,7 +23,11 @@
   export type EmptyStateProps = {
     message?: string;
     description?: string;
-    icon?: string;
+    /**
+     * The icon above the message: `'search'`, `'database'` or `'inbox'` draws that library
+     * icon, a snippet renders your own. Omit it for no icon.
+     */
+    icon?: 'search' | 'database' | 'inbox' | Snippet;
     actionText?: string;
     onAction?: () => void;
     colSpan?: number;
@@ -108,9 +113,7 @@
           {:else if icon === 'inbox'}
             <InboxIcon class={styles.iconSvg()} />
           {:else}
-            <!-- Consumer-provided SVG markup; they are responsible for
-                 sanitisation (same contract as the other icon slots). -->
-            {@html icon}
+            {@render icon()}
           {/if}
         </div>
       {/if}
