@@ -73,6 +73,7 @@
     loadingText = tt('data.loading'),
     errorText = tt('error.loadingError'),
     noDataText = tt('data.empty'),
+    headingLevel = 3,
 
     cell = undefined,
     header = undefined,
@@ -362,6 +363,7 @@
       {loadingText}
       {errorText}
       {noDataText}
+      {headingLevel}
       onRowClick={onRowClickErased}
       {virtualized}
       {contained}
@@ -383,6 +385,7 @@
       {noDataText}
       {loadingText}
       {errorText}
+      {headingLevel}
       onRowClick={onRowClickErased}
     />
 

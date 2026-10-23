@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { useTableI18n } from '../i18n';
   import {
     emptyStateVariants,
@@ -7,6 +8,7 @@
   } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import {
+    headingTag,
     resolveIcon,
     DatabaseIcon as DatabaseIconDefault,
     InboxIcon as InboxIconDefault,
@@ -21,8 +23,14 @@
 
   export type EmptyStateProps = {
     message?: string;
+    /** Heading level of the message, clamped to 1..6. @default 3 */
+    headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
     description?: string;
-    icon?: string;
+    /**
+     * The icon above the message: `'search'`, `'database'` or `'inbox'` draws that library
+     * icon, a snippet renders your own. Omit it for no icon.
+     */
+    icon?: 'search' | 'database' | 'inbox' | Snippet;
     actionText?: string;
     onAction?: () => void;
     colSpan?: number;
@@ -34,6 +42,7 @@
 
   let {
     message = undefined,
+    headingLevel = 3,
     description = undefined,
     icon = undefined,
     actionText = undefined,
@@ -46,6 +55,16 @@
   }: EmptyStateProps = $props();
 
   const styleConfig = getTableStyleConfig();
+
+  // TypeScript rejects any other string; this names the mistake for a JavaScript caller (a markup
+  // string, a mistyped name) instead of failing as an anonymous call inside the template.
+  const ownIcon = $derived.by(() => {
+    if (!icon || icon === 'search' || icon === 'database' || icon === 'inbox') return undefined;
+    if (typeof icon === 'function') return icon;
+    throw new TypeError(
+      `[EmptyState] icon must be 'search', 'database', 'inbox' or a snippet, got ${JSON.stringify(icon)}. A markup string does not render as HTML; pass a snippet.`
+    );
+  });
 
   // Smart message with I18n fallback
   const displayMessage = $derived.by(() => {
@@ -108,17 +127,15 @@
           {:else if icon === 'inbox'}
             <InboxIcon class={styles.iconSvg()} />
           {:else}
-            <!-- Consumer-provided SVG markup; they are responsible for
-                 sanitisation (same contract as the other icon slots). -->
-            {@html icon}
+            {@render ownIcon?.()}
           {/if}
         </div>
       {/if}
 
       <div class={styles.content()}>
-        <h3 class={styles.title()}>
+        <svelte:element this={headingTag(headingLevel)} class={styles.title()}>
           {displayMessage}
-        </h3>
+        </svelte:element>
 
         {#if description}
           <p class={styles.description()}>

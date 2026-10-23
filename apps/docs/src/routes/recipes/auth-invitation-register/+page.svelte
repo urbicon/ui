@@ -76,9 +76,12 @@ export const DELETE = invitations.DELETE;
            route, so the default would 404 on click. The snippet keeps the
            real-world defaults, plus t and onSuccess (the demo inherits the
            site locale and has nowhere to navigate). The width cap is the
-           stage's; in an app the component centres its own card. -->
+           stage's; in an app the component centres its own card. The heading
+           rank is the page's: here the card sits under the example's h2, where
+           an app gives it a route of its own and the h1. -->
       <RegisterPage
         class="w-full max-w-md"
+        headingLevel={3}
         token=""
         loginUrl={resolve('/auth/components/login-page')}
       />

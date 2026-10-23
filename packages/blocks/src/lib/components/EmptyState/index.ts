@@ -42,6 +42,15 @@ export interface EmptyStateProps
   /** Heading line. */
   title: string;
 
+  /**
+   * Heading level of the title, clamped to 1..6. `h3` fits an empty state
+   * inside a titled section or card; pass the rank that continues the
+   * embedding page's outline — `2` directly under the page's `h1`. The title
+   * is styled by class, not by tag, so the level changes none of the component's own styling.
+   * @default 3
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+
   /** Supporting paragraph below the title. */
   description?: string;
 

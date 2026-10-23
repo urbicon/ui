@@ -1,19 +1,21 @@
 <!--
-  Internal: the one page skeleton (wrapper → Card → h1 → the pair of outcome
+  Internal: the one page skeleton (wrapper → Card → heading → the pair of outcome
   regions) every auth page renders through, so their spacing cannot drift
   apart. Owns the `root`/`card`/`title`/`error` slots; page-specific content
   renders as children. Not exported from the package.
 -->
 <script lang="ts">
-  import { Card, resolveClassChain } from '@urbicon-ui/blocks';
+  import { Card, headingTag, resolveClassChain } from '@urbicon-ui/blocks';
   import type { Snippet } from 'svelte';
   import { slotClass } from '../../utils/slot-class.js';
   import type { AuthPageSlotClasses } from '../types.js';
   import FormErrorAlert from './FormErrorAlert.svelte';
 
   interface Props {
-    /** Page heading (h1). */
+    /** Page heading. */
     title: string;
+    /** Rank of the page heading, clamped to 1..6. */
+    headingLevel: number;
     /**
      * Error text for the assertive `role="alert"` region below the heading.
      * Pass the page's error state (empty string = the region renders empty, as
@@ -39,6 +41,7 @@
 
   let {
     title,
+    headingLevel,
     error,
     success = '',
     centered = false,
@@ -67,9 +70,12 @@
     {unstyled}
     class={cls(centered ? 'w-full max-w-md text-center' : 'w-full max-w-md', slotClasses.card)}
   >
-    <h1 class={cls('text-text-primary mb-6 text-2xl font-semibold', slotClasses.title)}>
+    <svelte:element
+      this={headingTag(headingLevel)}
+      class={cls('text-text-primary mb-6 text-2xl font-semibold', slotClasses.title)}
+    >
       {title}
-    </h1>
+    </svelte:element>
 
     {#if header}
       {@render header()}

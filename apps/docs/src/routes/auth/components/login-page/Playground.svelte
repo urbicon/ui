@@ -64,6 +64,7 @@
         `onSuccess` und `passkeyApiPath`, wie in `examples/Basic.svelte`.
       -->
       <LoginPage
+        headingLevel={3}
         mode={values.mode}
         rememberMe={values.rememberMe}
         onSuccess={() => goto(resolve('/'))}

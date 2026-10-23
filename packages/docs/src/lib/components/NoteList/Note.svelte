@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { NoteProps } from './index.js';
-  import { resolveClassChain } from '@urbicon-ui/blocks';
+  import { headingTag, resolveClassChain } from '@urbicon-ui/blocks';
   import { type NoteSlots, noteVariants } from './notelist.variants';
 
   let {
@@ -29,9 +29,7 @@
     return fns[name]({ class: slotClasses[name] });
   };
 
-  // Same clamp as Section: an out-of-range level would emit `<h0>`/`<h9>`,
-  // which is not a heading at all.
-  const tag = $derived(`h${Math.min(6, Math.max(1, headingLevel))}` as const);
+  const tag = $derived(headingTag(headingLevel));
 </script>
 
 <div {...restProps} class={resolveClassChain(slot('root'), className)}>

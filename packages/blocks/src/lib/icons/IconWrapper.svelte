@@ -94,8 +94,10 @@
   {...restProps}
 >
   {#if content}
-    <!-- eslint-disable-next-line svelte/no-at-html-tags — trusted, see the `content` prop -->
-    <g {transform}>{@html geometry}</g>
+    <g {transform}>
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+      <!-- biome-ignore lint/nursery/noSvelteAtHtmlTags: trusted markup, see the `content` prop -->{@html geometry}
+    </g>
   {:else if children}
     <g {transform}>
       {@render children()}

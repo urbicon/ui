@@ -186,6 +186,7 @@
   // outside the reactive graph, so adding to it never invalidates the derived —
   // makes it one warn per orphan value for the instance's lifetime (mirrors
   // Select).
+  // biome-ignore lint/nursery/useSvelteReactiveClasses: plain on purpose, see "Warn dedup" above
   const warnedOrphanValues = new Set<T>();
   const selectedTags = $derived.by<ComboboxOption<T>[]>(() =>
     selectedValues.map((v) => {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { Alert, Button, Card, Textarea } from '@urbicon-ui/blocks';
   import type { SessionState } from '#lib/events.js';
   import type { PageData } from './$types';
@@ -27,7 +28,7 @@
       // Der erste Wunsch reist als Query mit: die Sitzung existiert schon, aber
       // der Turn soll erst auf der Studio-Seite laufen — dort steht die
       // Oberfläche, die ihn anzeigt.
-      await goto(`/s/${session.id}?first=${encodeURIComponent(wish)}`);
+      await goto(resolve(`/s/[id]?first=${encodeURIComponent(wish)}`, { id: session.id }));
     } catch (e) {
       failure = e instanceof Error ? e.message : String(e);
       starting = false;
@@ -74,7 +75,7 @@
       <ul class="flex flex-col gap-2">
         {#each data.sessions as session (session.id)}
           <li>
-            <Card href="/s/{session.id}" variant="outlined" padding="sm">
+            <Card href={resolve('/s/[id]', { id: session.id })} variant="outlined" padding="sm">
               <div class="flex items-baseline justify-between gap-4">
                 <span class="truncate">{session.title}</span>
                 <span class="text-text-tertiary shrink-0 font-mono text-xs">

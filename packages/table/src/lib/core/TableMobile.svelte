@@ -8,6 +8,7 @@
   import { groupCountText } from './group-count';
   import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import type { Snippet } from 'svelte';
+  import { headingTag } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
 
@@ -21,6 +22,7 @@
     noDataText = '',
     loadingText = '',
     errorText = '',
+    headingLevel = 3,
     onRowClick = undefined as ((item: TableItem) => void) | undefined
   }: {
     /** The resolved `tableContainerVariants` slots, shared with `TableDesktop`. */
@@ -36,6 +38,8 @@
     noDataText?: string;
     loadingText?: string;
     errorText?: string;
+    /** Rank of a group header and of the total summary; a group's summary sits one below. */
+    headingLevel?: number;
     onRowClick?: (item: TableItem) => void;
   } = $props();
 
@@ -74,9 +78,11 @@
   const columnTitle = (columnId: string) => resolveColumnLabelById(tableState.allColumns, columnId);
 </script>
 
-{#snippet summaryBand(title: string, values: Record<string, number>)}
+{#snippet summaryBand(title: string, values: Record<string, number>, offset: number)}
   <div class={listStyles.summary()}>
-    <h4 class={listStyles.summaryTitle()}>{title}</h4>
+    <svelte:element this={headingTag(headingLevel, { offset })} class={listStyles.summaryTitle()}
+      >{title}</svelte:element
+    >
     {#each summaryConfigs as config (config.column)}
       {#if values[config.column] !== undefined}
         <div class={listStyles.summaryRow()}>
@@ -142,12 +148,12 @@
   {:else if tableState.effectiveGroupBy}
     {#each Object.entries(grouped) as [groupName, groupItems] (groupName)}
       <div class={listStyles.group()}>
-        <h3 class={listStyles.groupHeader()}>
+        <svelte:element this={headingTag(headingLevel)} class={listStyles.groupHeader()}>
           <span class={listStyles.groupTitle()}>{groupName}</span>
           <span class={listStyles.groupCount()}>
             {groupCountText(groupItems.length, tableState.mode, tt)}
           </span>
-        </h3>
+        </svelte:element>
         <!-- Same identity rule as every renderer — a loop-local key collided
              across groups for id-less rows (see GroupedRow). -->
         {#each groupItems as item (resolveRowItemId(item))}
@@ -167,7 +173,8 @@
                uppercase register, not a sentence introducing the rows. -->
           {@render summaryBand(
             `${tt('group.summaryFor')} ${groupName}`,
-            groupedSummaryData[groupName]
+            groupedSummaryData[groupName],
+            1
           )}
         {/if}
       </div>
@@ -186,7 +193,7 @@
     {/each}
 
     {#if hasSummary}
-      {@render summaryBand(tt('table.summary.totalSummary'), tableContext.summaryData)}
+      {@render summaryBand(tt('table.summary.totalSummary'), tableContext.summaryData, 0)}
     {/if}
   {/if}
 </div>

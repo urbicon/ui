@@ -48,6 +48,7 @@ export {
   type GuideTopicMeta,
   type GuideTour
 } from './guide.svelte';
+export { headingTag } from './heading';
 export * from './id';
 export { observeTargetResolution } from './observe-target';
 export { createOptionalContext } from './optional-context';
