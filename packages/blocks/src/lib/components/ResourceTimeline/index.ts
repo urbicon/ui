@@ -86,9 +86,10 @@ import type { ResourceTimelineSlots, ResourceTimelineVariants } from './resource
  *   getResourceId={(s) => s.chairId}
  *   getCategoryId={(s) => s.serviceId}
  *   getRange={(s) => ({ start: s.day, end: s.day })}
+ *   getLabel={(s) => `${s.client}, ${s.day}`}
  * >
- *   {#snippet span({ item, totalDays })}
- *     <span class="truncate">{item.client} · {totalDays}d</span>
+ *   {#snippet span({ item })}
+ *     <span class="truncate font-medium">{item.client}</span>
  *   {/snippet}
  * </ResourceTimeline>
  * ```
@@ -239,7 +240,12 @@ export interface ResourceTimelineProps<T = unknown>
   resourceLabel?: Snippet<[TimelineResourceContext]>;
   /** Customise a group heading row. */
   groupLabel?: Snippet<[TimelineGroupContext]>;
-  /** Render a bar's content: receives the clipped geometry and the typed item. */
+  /**
+   * Render a bar's content: receives the clipped geometry and the typed item. The bar's
+   * accessible name stays `getLabel` (without it, the localized "Occupied"), so `getLabel`
+   * has to contain the text the snippet shows, or speech input cannot reach the bar by
+   * what it says (WCAG 2.5.3).
+   */
   span?: Snippet<[TimelineSpanContext<T>]>;
   /** Render extra content inside every (resource, day) cell, e.g. an "add" affordance on free days. */
   cell?: Snippet<[TimelineCellContext]>;

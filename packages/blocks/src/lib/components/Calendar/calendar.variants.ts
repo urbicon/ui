@@ -129,12 +129,20 @@ export const calendarVariants = tv({
     yearGrid: 'w-full',
     yearMonth: [
       'flex flex-col items-center rounded-lg',
-      'cursor-pointer select-none',
+      'select-none',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'hover:bg-surface-hover',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
+      // The tile is not the focus target, its month-name button is: the ring follows it.
+      'has-focus-visible:ring-2 has-focus-visible:ring-primary/50 has-focus-visible:ring-offset-1'
     ],
-    yearMonthTitle: 'font-medium text-text-primary text-center',
+    // The cursor sits here, not on the tile: the button's ::after covers the tile, so the
+    // pointer is always over the button, and the UA stylesheet gives a button `cursor: default`.
+    // Keep this slot unpositioned and untransformed: a `relative`, `transform`, `filter` or
+    // `contain` makes the button the ::after's containing block, shrinking the tile's hit area.
+    yearMonthTitle: [
+      'cursor-pointer font-medium text-text-primary text-center',
+      'focus-visible:outline-none'
+    ],
     yearMiniDay: 'text-text-tertiary text-center tabular-nums leading-tight select-none',
     yearMiniDot: 'rounded-full mx-auto',
 

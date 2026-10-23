@@ -136,18 +136,26 @@
 </div>
 
 {#snippet monthCell(mini: (typeof miniMonths)[number])}
-  <button
-    type="button"
+  <!-- Only the month name is the button: an accessible name has to contain all of
+       its control's visible text (WCAG 2.5.3), and the day numbers are not "Jan 2026".
+       The button's ::after spans the tile, so the whole tile still takes the click;
+       `relative` and `after:` sit outside the slots so an unstyled tile keeps it. -->
+  <div
     role="gridcell"
-    class="{slot('yearMonth')} {mini.isCurrent ? 'bg-primary-subtle ring-primary ring-1' : ''}"
-    data-month={mini.month}
-    onclick={() => handleMonthClick(mini.month)}
-    aria-label="{mini.label} {ctx.displayedYear}"
+    class="relative {slot('yearMonth')} {mini.isCurrent
+      ? 'bg-primary-subtle ring-primary ring-1'
+      : ''}"
   >
-    <span class="{slot('yearMonthTitle')} {mini.isCurrent ? 'text-primary-text font-bold' : ''}"
-      >{mini.label}</span
+    <button
+      type="button"
+      class="after:absolute after:inset-0 {slot('yearMonthTitle')} {mini.isCurrent
+        ? 'text-primary-text font-bold'
+        : ''}"
+      data-month={mini.month}
+      onclick={() => handleMonthClick(mini.month)}
+      aria-label="{mini.label} {ctx.displayedYear}">{mini.label}</button
     >
-    <div class="grid w-full grid-cols-7 gap-px">
+    <div class="grid w-full grid-cols-7 gap-px" aria-hidden="true">
       {#each mini.grid.flat() as date (date.toISOString())}
         {@const inMonth = date.getMonth() === mini.month}
         {@const events = ctx.getEventsForDate(date)}
@@ -171,5 +179,5 @@
         </span>
       {/each}
     </div>
-  </button>
+  </div>
 {/snippet}

@@ -139,7 +139,9 @@ export interface CompositionBarProps
 
   /**
    * Custom rendering of a legend entry. Receives the item and its percentage.
-   * Fully replaces the default rendering (dot + label + value/percent).
+   * Fully replaces the default rendering (dot + label + value/percent). The entry's
+   * accessible name stays `label: value, percent`, so the text the snippet shows has to
+   * be contained in it (WCAG 2.5.3).
    */
   legendItem?: Snippet<[item: CompositionItem, percent: number]>;
 

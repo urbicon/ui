@@ -141,6 +141,13 @@
   const fmtValue = (v: number) => (formatValue ? formatValue(v) : v.toString());
   const fmtPercent = (p: number) => (formatPercent ? formatPercent(p) : defaultPercentFmt(p));
 
+  // The accessible name of an item's segment and of its legend row. It has to
+  // contain the row's visible text, label, value and percent in that order
+  // (WCAG 2.5.3). No parentheses around the percent: axe drops a parenthetical
+  // before it compares, so "Gas: 60 (60.0%)" fails against "Gas 60 · 60.0%".
+  const itemName = (item: CompositionItem, percent: number) =>
+    `${item.label}: ${fmtValue(item.value)}, ${fmtPercent(percent)}`;
+
   // One key per item for the three loops and the hover, distinct even when ids
   // repeat or one equals the position an item without an id falls back to.
   // `typeof` keeps the id `1` apart from `'1'`.
@@ -298,7 +305,7 @@
             ]
               .filter(Boolean)
               .join('; ')}
-            aria-label={`${item.label}: ${fmtValue(item.value)} (${fmtPercent(rawPct)})`}
+            aria-label={itemName(item, rawPct)}
             tabindex="0"
             onmouseenter={() => (hoveredKey = k)}
             onmouseleave={() => (hoveredKey = null)}
@@ -422,7 +429,7 @@
                   dimmed: hoveredKey !== null && !isHovered,
                   class: slotClasses?.legendItem
                 })}
-            aria-label={`${item.label}: ${fmtValue(item.value)} (${fmtPercent(rawPct)})`}
+            aria-label={itemName(item, rawPct)}
             onmouseenter={() => (hoveredKey = k)}
             onmouseleave={() => (hoveredKey = null)}
             onfocus={() => (hoveredKey = k)}
@@ -451,8 +458,7 @@
                   ? (slotClasses?.legendValue ?? '')
                   : styles.legendValue({ class: slotClasses?.legendValue })}
               >
-                {fmtValue(item.value)}{#if showPercentages}
-                  · {fmtPercent(rawPct)}{/if}
+                {fmtValue(item.value)}{showPercentages ? ` · ${fmtPercent(rawPct)}` : ''}
               </span>
             {/if}
           </button>

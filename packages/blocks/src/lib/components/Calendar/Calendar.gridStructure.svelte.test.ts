@@ -303,6 +303,24 @@ describe('year view', () => {
     fireEvent.keyDown(month(4), { key: 'ArrowUp' });
     expect(document.activeElement).toBe(month(1));
   });
+
+  // WCAG 2.5.3: a control's accessible name contains its visible text, so a
+  // tile's day numbers sit beside its button, not inside it.
+  it.each([
+    ['en-US', 'Mar', 'Mar 2026'],
+    ['de-DE', 'Mär', 'Mär 2026']
+  ])('names each month button with the text it shows, in %s', (locale, text, name) => {
+    renderCalendar({ view: 'year', locale });
+
+    const buttons = Array.from(document.querySelectorAll<HTMLElement>('[data-month]'));
+    expect(buttons).toHaveLength(12);
+    expect(buttons[2].tagName).toBe('BUTTON');
+    expect(buttons[2].textContent?.trim()).toBe(text);
+    expect(buttons[2].getAttribute('aria-label')).toBe(name);
+    for (const button of buttons) {
+      expect(button.getAttribute('aria-label')).toContain(button.textContent?.trim());
+    }
+  });
 });
 
 describe('week view', () => {
