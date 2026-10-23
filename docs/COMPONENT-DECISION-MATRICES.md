@@ -208,8 +208,10 @@ the right abstraction only when no scrim exists.
   top-layer rendering, including the UA-stylesheet pitfalls (overflow:auto clipping the arrow, restProps
   reordering for load-bearing attributes, `Number.isFinite` guards on Floating UI output).
 - **Popover dismiss-API** (`packages/blocks/src/lib/primitives/Popover/Popover.svelte`) — derived
-  `popoverMode` (auto/manual) with re-cycle on mode flip, capture-phase pointerdown listener but
-  bubble-phase Escape listener so inner widgets can preventDefault.
+  `popoverMode` (auto/manual), re-shown when a flip while open makes the browser hide it (and
+  the popovers open inside it shown again after it, so they stay above it in the top layer),
+  capture-phase pointerdown listener but bubble-phase Escape listener so inner widgets can
+  preventDefault.
 
 ### Focus-restoration policy (non-modal)
 
@@ -218,7 +220,7 @@ the right abstraction only when no scrim exists.
 | Selection / commit       | —       | (consumer)      | → trigger / input |
 | Escape                   | trigger | → trigger       | → trigger / input |
 | Outside click            | trigger | → trigger       | **stay** (user explicitly clicked elsewhere) |
-| Trigger click while open | —       | stay (no-op)    | → trigger / input |
+| Trigger click while open | —       | stay (no-op); → trigger if focus was inside the panel | → trigger / input |
 
 The "stay on outside click" policy for Select/Combobox is intentional: form inputs are most commonly
 dismissed by clicking another field, and stealing focus back to the trigger would override the user's

@@ -124,7 +124,7 @@
   // `$effect.pre` matters: the flag must be `true` in the SAME flush that
   // renders `open === false`, otherwise the children unmount one frame before
   // the lag starts. The `prevOpenForExit` tracker (non-reactive, seeded via
-  // `untrack` like `prevPopoverMode` below) keeps the effect keyed on real
+  // `untrack` like `prevPopoverAttribute` below) keeps the effect keyed on real
   // transitions — without it, the `bind:this` assignment would re-run the
   // effect on mount and flash a closed-by-default popover open for one lag.
   const EXIT_MOTION_BUFFER_MS = 50;
@@ -248,6 +248,10 @@
   // Track if the dismiss was caused by clicking the trigger (pointerdown → light dismiss).
   // This prevents the click handler from re-opening the popover after light dismiss closed it.
   let dismissedByTrigger = false;
+  // Whether focus was inside the panel when that press began. Read at the
+  // press: by the dismiss's `beforetoggle`, WebKit's press has moved focus to
+  // the document and Chromium's and Firefox's to the trigger.
+  let triggerPressedFromInside = false;
 
   // Track Escape key to distinguish from click-outside in the toggle handler,
   // so we fire onEscape vs onClickOutside correctly.
@@ -266,32 +270,58 @@
   // Only relevant in `auto` mode — in manual mode the browser doesn't fire
   // toggle events for outside clicks or Escape, so the dismiss callbacks
   // come from our own listeners below.
+  //
+  // A close is a dismiss only if this listener saw it begin: `beforetoggle`
+  // records its cause and the `toggle` consumes it. The cause is read at the
+  // hide itself because the `toggle` task runs after the gesture's `click`,
+  // which has consumed `dismissedByTrigger` by then, and after a click outside
+  // may have removed the anchor too. Not a dismiss: the hide `useFloatingPanel`
+  // makes when the anchor is gone (the panel stays open, hidden, and shows
+  // again when an anchor returns, as in manual mode), and a close that began
+  // before this listener existed, while the panel was manual. A press on the
+  // trigger reports no click outside, and moves focus to the trigger only when
+  // the press began with focus inside the panel.
   $effect(() => {
     if (!popoverElement || popoverMode !== 'auto') return;
+    const el = popoverElement;
+    let pendingClose: { withoutAnchor: boolean; byTrigger: boolean; fromInside: boolean } | null =
+      null;
+    function handleBeforeToggle(e: Event) {
+      if ((e as ToggleEvent).newState !== 'closed') return;
+      pendingClose = {
+        withoutAnchor: !effectiveTriggerElement,
+        byTrigger: dismissedByTrigger,
+        fromInside: dismissedByTrigger && triggerPressedFromInside
+      };
+    }
     function handleToggle(e: Event) {
-      const toggle = e as ToggleEvent;
-      if (toggle.newState === 'closed' && open) {
-        const wasEscape = escapePending;
-        const wasTrigger = dismissedByTrigger;
-        escapePending = false;
-        // Don't reset dismissedByTrigger here — the click handler still needs it
+      const cause = pendingClose;
+      pendingClose = null;
+      if ((e as ToggleEvent).newState !== 'closed' || !open || !cause || cause.withoutAnchor) {
+        return;
+      }
+      const wasEscape = escapePending;
+      escapePending = false;
 
-        open = false;
-        onOpenChange?.(false);
+      open = false;
+      onOpenChange?.(false);
 
-        if (wasEscape) {
-          onEscapeProp?.();
-        } else if (!wasTrigger) {
-          onClickOutsideProp?.();
-        }
+      if (wasEscape) {
+        onEscapeProp?.();
+      } else if (!cause.byTrigger) {
+        onClickOutsideProp?.();
+      }
 
-        if (!wasTrigger) {
-          focusTrigger();
-        }
+      if (!cause.byTrigger || cause.fromInside) {
+        focusTrigger();
       }
     }
-    popoverElement.addEventListener('toggle', handleToggle);
-    return () => popoverElement?.removeEventListener('toggle', handleToggle);
+    el.addEventListener('beforetoggle', handleBeforeToggle);
+    el.addEventListener('toggle', handleToggle);
+    return () => {
+      el.removeEventListener('beforetoggle', handleBeforeToggle);
+      el.removeEventListener('toggle', handleToggle);
+    };
   });
 
   // ── Manual-mode dismiss listeners ─────────────────────────
@@ -406,28 +436,86 @@
     return () => document.removeEventListener('pointerdown', handlePointerDown, true);
   });
 
-  // ── Mode-change re-cycle ───────────────────────────────────
+  // ── Mode change while open ─────────────────────────────────
   //
-  // The browser binds a popover's dismiss semantics (Escape / light
-  // dismiss / focus restoration) at `showPopover()` time based on the
-  // `popover` attribute value AT THAT MOMENT. Changing the attribute
-  // afterward updates the DOM but does NOT rebind the semantics — the
-  // browser keeps routing Escape natively even though we switched to
-  // `popover="manual"`. To pick up the new mode while the popover is
-  // open, hide + re-show.
-  // `prevPopoverMode` is a non-reactive tracker — we deliberately want the
-  // *previous* value of `popoverMode`, not the current one, so we seed it
-  // via `untrack` and update it manually inside the effect.
-  let prevPopoverMode: 'auto' | 'manual' = untrack(() => popoverMode);
+  // Writing `popover="manual"` over `"auto"` (or back) on a showing panel makes
+  // the browser hide it: the attribute-change steps run the hide-popover
+  // algorithm, and a panel that was shown as `auto` hands focus back to the
+  // element focused before it opened. `open` is unchanged, so the panel is
+  // shown again under the new value and focus put back where it was. The
+  // re-show runs in the same flush as the template's attribute write, so no
+  // frame paints the hidden panel, and the browser folds the hide's queued
+  // `toggle` and the show's into one `open → open`, which the toggle handler
+  // does not read as a dismiss. What the write changes is read before it, in
+  // the `$effect.pre`: whether the panel was showing, where focus was, and
+  // which transitions were already running. A panel without an anchor is not
+  // shown again, as `useFloatingPanel` keeps it hidden, also when the anchor
+  // goes in the same flush as the write: the `$effect.pre` still sees that
+  // panel showing.
+  //
+  // The show puts the panel last in the top layer, above every popover opened
+  // from inside it (a listbox, a tooltip, a nested manual Popover), so those
+  // are shown again after it. Other top-layer elements stay under it: a modal
+  // `<dialog>` opened from inside the panel (`close()` + `showModal()` would
+  // fire `close`; only the paint is wrong, the modal keeps the panel inert),
+  // and top-layer elements outside the panel shown after it, such as a Guide
+  // step. A nested `auto` Popover is lost on auto → manual: the write itself
+  // closes it, and it reports a click outside. The control focus is put back
+  // on has seen a blur and now sees a focus, and a Combobox reopens its
+  // listbox on that focus. A change to `null` renders the panel in place, and
+  // focus is put back there too.
+  const popoverAttribute = $derived(panel.topLayer ? popoverMode : null);
+  let prevPopoverAttribute = untrack(() => popoverAttribute);
+  let beforeAttributeChange: { focused: HTMLElement | null; running: Set<Animation> } | null = null;
+  $effect.pre(() => {
+    if (popoverAttribute === prevPopoverAttribute) return;
+    const el = untrack(() => popoverElement);
+    if (!el?.matches(':popover-open')) {
+      beforeAttributeChange = null;
+      return;
+    }
+    const active = document.activeElement;
+    beforeAttributeChange = {
+      focused: active instanceof HTMLElement && el.contains(active) ? active : null,
+      // jsdom has no `getAnimations`, and a Popover stub that keeps the panel
+      // showing through the write (this repo's does) gets here.
+      running: new Set(el.getAnimations?.() ?? [])
+    };
+  });
   $effect(() => {
-    if (popoverMode === prevPopoverMode) return;
-    prevPopoverMode = popoverMode;
-    if (!open || !popoverElement?.matches(':popover-open')) return;
+    if (popoverAttribute === prevPopoverAttribute) return;
+    prevPopoverAttribute = popoverAttribute;
+    const before = beforeAttributeChange;
+    beforeAttributeChange = null;
+    if (!before || !open || !popoverElement) return;
+    const refocus = () => {
+      if (before.focused && document.activeElement !== before.focused)
+        before.focused.focus({ preventScroll: true });
+    };
+    if (popoverAttribute === null) {
+      refocus();
+      return;
+    }
+    if (popoverElement.matches(':popover-open') || !effectiveTriggerElement) return;
+    const inner = [...popoverElement.querySelectorAll<HTMLElement>(':popover-open')];
     try {
-      popoverElement.hidePopover();
       popoverElement.showPopover();
+      for (const popover of inner) {
+        popover.hidePopover();
+        popover.showPopover();
+      }
     } catch (err) {
-      console.warn('[Popover] re-cycle on mode change failed', err);
+      console.warn('[Popover] showPopover after a mode change failed', err);
+      return;
+    }
+    refocus();
+    // Firefox has already computed the hidden panel at this point (the focus
+    // hand-back forces a style update), so the show replays the enter
+    // transition from its `@starting-style` and the panel blinks to
+    // transparent. Finishing what the show started paints the shown state; an
+    // enter transition that was already running keeps running.
+    for (const animation of popoverElement.getAnimations()) {
+      if (animation instanceof CSSTransition && !before.running.has(animation)) animation.finish();
     }
   });
 
@@ -478,6 +566,7 @@
     // unable to close its own popover.
     if (open && popoverMode === 'auto') {
       dismissedByTrigger = true;
+      triggerPressedFromInside = !!popoverElement?.contains(document.activeElement);
       // This event has already passed the document's capture phase, so the
       // listener can only fire on a LATER pointerdown.
       document.addEventListener('pointerdown', disarmDismissedByTrigger, {
@@ -576,7 +665,7 @@
     class={popoverClasses}
     {...restProps}
     onkeydown={composeHandlers(handleEscapeKeydown, onkeydownProp)}
-    popover={panel.topLayer ? popoverMode : null}
+    popover={popoverAttribute}
     style={style || null}
     style:position={panel.strategy}
     style:inset="auto"

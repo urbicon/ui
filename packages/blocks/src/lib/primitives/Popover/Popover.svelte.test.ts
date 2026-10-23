@@ -57,12 +57,16 @@ const trigger = () => screen.getByRole('button', { name: 'Open' });
 const isOpen = () => screen.queryByTestId('pop-content') !== null;
 const panel = () => document.querySelector('[role="dialog"]') as HTMLElement;
 
-// The browser reports native (auto-mode) dismisses via a `toggle` event on the
-// popover element; jsdom never emits it, so tests dispatch the equivalent.
+// The browser reports a native (auto-mode) dismiss with a `beforetoggle` at the
+// hide and a queued `toggle` after it; jsdom emits neither, so tests dispatch
+// both. The Popover reads the dismiss's cause in the `beforetoggle` and treats a
+// `toggle` without one as no dismiss.
 const dispatchNativeDismiss = () => {
-  const ev = new Event('toggle');
-  Object.assign(ev, { newState: 'closed', oldState: 'open' });
-  panel().dispatchEvent(ev);
+  for (const type of ['beforetoggle', 'toggle']) {
+    const ev = new Event(type);
+    Object.assign(ev, { newState: 'closed', oldState: 'open' });
+    panel().dispatchEvent(ev);
+  }
   flushSync();
 };
 
