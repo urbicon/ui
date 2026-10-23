@@ -31,6 +31,7 @@
   ],
   "sideEffects": false,
   "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
     "build": "bun build ./src/cli/index.ts --target node --outfile dist/cli.js --external @urbicon-ui/i18n",
     "dev": "bun run --watch src/cli/index.ts",
     "start": "bun run src/cli/index.ts",

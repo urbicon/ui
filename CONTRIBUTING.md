@@ -13,17 +13,20 @@ bun install
 bun run dev        # all packages in watch mode
 ```
 
-Requires [Bun](https://bun.sh) v1.1+ and Node.js 22.17+.
+Requires [Bun](https://bun.sh) v1.4.4+ and Node.js 22.17+.
 
 ## Before You Submit
 
 ```bash
 bun run check      # type checks (svelte-check)
 bun run lint       # Biome (.ts/.js/.json/.yml, six Svelte rules on .svelte)
+bun run fmt:check  # bun fmt (.svelte, .md)
 bun run test       # unit tests (Vitest)
 ```
 
 A pre-commit hook (lefthook) formats and lints staged files automatically.
+
+The repo has no Prettier: turn off your editor's Prettier format-on-save here, and format a `.svelte` or `.md` file with `bun fmt --no-script <file>` or let the hook do it.
 
 ## Commits
 

@@ -42,6 +42,7 @@
     }
   },
   "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
     "build": "tsc -b",
     "clean": "rm -rf dist",
     "clean-all": "bun --bun run clean && rm -rf node_modules",

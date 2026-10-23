@@ -61,6 +61,7 @@
     "src"
   ],
   "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
     "build": "tsc -b",
     "dev": "tsc -b --watch",
     "clean": "rm -rf dist .svelte-kit tsconfig.tsbuildinfo",

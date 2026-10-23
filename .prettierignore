@@ -1,37 +1,6 @@
-# Package Managers
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-bun.lock
-bun.lockb
-
-# SvelteKit build output
-.svelte-kit/
-
-# Build outputs
-dist/
-out/
-build/
-.output/
-
-# Generated files
-**/llm.txt
-
-# Dependencies
-node_modules/
-
-# Caches
-.eslintcache
-.cache/
-*.tsbuildinfo
-.turbo/
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Files whose exact bytes are a contract
+# Files whose exact bytes are a contract, each with its reason. Nothing else:
+# scripts/fmt.ts takes its scope from git, so a build-output pattern here can
+# only hide a tracked file.
 # byte-identical copies of upstream svelte.dev pages
 apps/docs/canon/effect.md
 apps/docs/canon/getting-started.md

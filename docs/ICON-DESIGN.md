@@ -69,8 +69,13 @@ site:
   `IconProvider` override still wins when present; the direct import is only the fallback.
 
   ```svelte
-  import {resolveIcon} from '#lib/icons/index.js'; import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
-  // ← the static edge const CloseIcon = resolveIcon('close', CloseIconDefault);
+  <script>
+    import { resolveIcon } from '#lib/icons/index.js';
+    import CloseIconDefault from '#lib/icons/CloseIcon.svelte'; // ← the static edge
+
+    const CloseIcon = resolveIcon('close', CloseIconDefault);
+  </script>
+
   <!-- render unchanged: <CloseIcon class="h-4 w-4" /> -->
   ```
 

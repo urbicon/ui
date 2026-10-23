@@ -34,6 +34,7 @@
     "access": "public"
   },
   "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
     "build": "bun build ./src/index.ts --target node --format esm --external sv --outfile dist/index.mjs",
     "check": "tsc --noEmit",
     "test": "bunx --bun vitest run",

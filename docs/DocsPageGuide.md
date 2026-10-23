@@ -350,13 +350,14 @@ Only use the manual `code` prop when the displayed code should **intentionally**
 > prop (or any attribute) whose value contains double quotes MUST be a
 > template-literal (`code={`…`}`) or come from `isolate` / a `?raw` import — never
 > a single-quoted attribute like `code='<X a="b" />'`. `prettier-plugin-svelte`
-> (the lefthook pre-commit formatter for `.svelte`) rewrites the outer single
-> quotes to double quotes **without escaping the inner ones** — `code="<X a="b" />"`
-> — which no longer parses ("Expected token ="). Verified 2026-07-13 on the
-> info-card page. Template-literal `code={`…`}` and `isolate` both sidestep it;
-> this is why every example on the pages uses one of them. (Upstream
-> `prettier-plugin-svelte` bug — a minimal repro is still to be filed; the
-> convention is the working mitigation.)
+> rewrites the outer single quotes to double quotes **without escaping the inner
+> ones** — `code="<X a="b" />"` — which no longer parses ("Expected token =");
+> still so in prettier 3.9.10 with the plugin at 4.1.1. The repo's formatter,
+> `bun fmt`, keeps such an attribute intact, but an editor that formats `.svelte`
+> through `prettier-plugin-svelte` on save does not. Template-literal `code={`…`}`
+> and `isolate` both sidestep it; this is why every example on the pages uses one
+> of them. (Upstream `prettier-plugin-svelte` bug — a minimal repro is still to be
+> filed; the convention is the working mitigation.)
 
 ### CodeExample with `?raw` import (code-only, no live preview)
 

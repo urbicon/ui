@@ -28,10 +28,10 @@ same thing as `{ items }`, so "how do I pass rows?" had three correct answers an
 for choosing.
 
 ```svelte
-<Table {columns} source={rows} />
 <!-- 8.0 -->
-<Table {columns} source={{ processing: 'client', items: rows }} />
+<Table {columns} source={rows} />
 <!-- 8.1.0 — or items={rows} -->
+<Table {columns} source={{ processing: 'client', items: rows }} />
 ```
 
 The rule that remains: `items` for rows and nothing else, `source` for rows plus how they
@@ -105,20 +105,20 @@ that. It read as a statement about where the data comes from, which is a differe
 and one the tag never answered: the client variant fetches from a server too.
 
 ```svelte
+<!-- 8.0 -->
 <Table {columns} source={{ items: rows }} />
-<!-- 8.0 -->
+<!-- 8.1.0 -->
 <Table {columns} source={{ processing: 'client', items: rows }} />
-<!-- 8.1.0 -->
 
+<!-- 8.0 -->
 <Table {columns} source={{ kind: 'server', items, total }} />
-<!-- 8.0 -->
+<!-- 8.1.0 -->
 <Table {columns} source={{ processing: 'server', items, total }} />
-<!-- 8.1.0 -->
 
-<Table {columns} source={{ query: loadUsers }} />
 <!-- 8.0 -->
-<Table {columns} source={{ processing: 'server', query: loadUsers }} />
+<Table {columns} source={{ query: loadUsers }} />
 <!-- 8.1.0 -->
+<Table {columns} source={{ processing: 'server', query: loadUsers }} />
 ```
 
 `items={rows}` is untouched — it is still the shorthand for a client source, and still the
