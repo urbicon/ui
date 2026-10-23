@@ -108,7 +108,7 @@
     aria-labelledby={ariaLabelledby}
     style="max-width: {size}px; height: auto;"
   >
-    {#each segments as seg, i (seg.label + ' ' + i)}
+    {#each segments as seg, i (`${seg.label} ${i}`)}
       {#if seg.d}
         <path class={slot('arc')} d={seg.d} fill={seg.color}>
           <title>{seg.label}: {fmt(seg.value)} ({pct(seg.percent)})</title>
@@ -142,7 +142,7 @@
 
   {#if showLegend}
     <ul class={slot('legend')}>
-      {#each data as d, i (d.label + ' ' + i)}
+      {#each data as d, i (`${d.label} ${i}`)}
         <li class={slot('legendItem')}>
           <span class={slot('legendSwatch')} style="background-color: {seriesColor(i, d.color)}"
           ></span>
@@ -163,7 +163,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each data as d, i (d.label + ' ' + i)}
+        {#each data as d, i (`${d.label} ${i}`)}
           <tr>
             <th scope="row">{d.label}</th>
             <td>{fmt(ringValues[i])}</td>

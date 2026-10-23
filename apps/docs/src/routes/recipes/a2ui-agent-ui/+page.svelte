@@ -112,7 +112,7 @@ const system = [
   'Call get_hotel_info before you offer any room or rate. Never invent one.'
 ].join('\\n\\n');`;
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     A2UIView,
     A2uiStreamSplitter,

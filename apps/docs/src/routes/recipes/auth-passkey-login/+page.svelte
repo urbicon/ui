@@ -42,7 +42,7 @@ export const POST = passkey.authenticationVerify.POST;
 // passkey.item for the PasskeyManager) wire up identically on sibling routes.
 
 // 4. src/routes/auth/login/+page.svelte
-<\script lang="ts">
+<script lang="ts">
   import { LoginPage } from '@urbicon-ui/auth';
   import { en } from '@urbicon-ui/auth/i18n/en';
   import { goto } from '$app/navigation';

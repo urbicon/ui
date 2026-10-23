@@ -119,6 +119,7 @@
       </div>
     {:else}
       <svg
+        aria-hidden="true"
         class={unstyled ? (slotClasses?.svg ?? '') : styles.svg({ class: slotClasses?.svg })}
         viewBox="0 0 24 24"
         fill="none"
@@ -197,6 +198,7 @@
      renders. */
   @media print {
     [role='status'] {
+      /* biome-ignore lint/complexity/noImportantStyles: print hides the status root over any display utility or consumer class on it */
       display: none !important;
     }
   }

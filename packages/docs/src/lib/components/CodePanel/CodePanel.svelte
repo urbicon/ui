@@ -110,6 +110,7 @@
   <div class={slot('codeCollapse')} style="grid-template-rows: {isExpanded ? '1fr' : '0fr'}">
     <div class="overflow-hidden">
       <div class={slot('codeDisplay')}>
+        <!-- biome-ignore lint/a11y/useSemanticElements: read-only highlighted code; a textarea cannot hold the highlighted markup -->
         <div
           class={[slot('codeContent'), showLineNumbers && 'has-line-numbers']
             .filter(Boolean)
@@ -154,6 +155,7 @@
   :global(.shiki) {
     border-radius: 0;
     border: none;
+    /* biome-ignore lint/complexity/noImportantStyles: beats the background Shiki writes inline on the pre */
     background-color: transparent !important;
   }
 
@@ -179,6 +181,7 @@
    * toggle (the default) got the light theme's near-black text on the dark
    * surface — every code block on the site unreadable at ~1.05:1.
    */
+  /* biome-ignore-start lint/complexity/noImportantStyles: the overrides below beat the colours Shiki writes inline, see above */
   :global(.dark .shiki span) {
     color: var(--shiki-dark) !important;
     background-color: var(--shiki-dark-bg) !important;
@@ -196,6 +199,7 @@
       text-decoration: var(--shiki-dark-text-decoration) !important;
     }
   }
+  /* biome-ignore-end lint/complexity/noImportantStyles: closes the range above */
 
   /*
    * Removed here: a `:global(.shiki pre)` rule (padding/overflow/font) and four

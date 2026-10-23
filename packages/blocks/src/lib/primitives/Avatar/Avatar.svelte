@@ -68,22 +68,22 @@
   // Deterministic name → slot. The same name must always land on the same hue,
   // so this stays a pure function of `name` with no randomness despite the
   // `randomColor` prop name.
-  function getIdentityColor(name?: string): string | undefined {
+  function getIdentityColor(fullName?: string): string | undefined {
     // No name means no identity to encode — fall through to the `frame` slot's
     // neutral surface tokens instead of inventing a grey.
-    if (!name) return undefined;
+    if (!fullName) return undefined;
 
     let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < fullName.length; i++) {
+      hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
     }
 
     return identityPalette[Math.abs(hash) % identityPalette.length];
   }
 
-  function getInitials(name?: string): string {
-    if (!name) return '?';
-    return name
+  function getInitials(fullName?: string): string {
+    if (!fullName) return '?';
+    return fullName
       .split(' ')
       .map((word) => word.charAt(0))
       .join('')
@@ -166,6 +166,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
 <div
   {@attach mintAttachment(mint, { enabled: isInteractive })}
   class={[

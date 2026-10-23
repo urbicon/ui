@@ -54,6 +54,7 @@
   );
 </script>
 
+<!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
 <div class={baseClass} role="group" aria-label={bt('accessibility.avatarGroup')} {...restProps}>
   {#each shown as avatar, i (`${avatar.name ?? avatar.src ?? ''}-${i}`)}
     <Avatar {...avatar} {unstyled} {size} ring ringColor={borderColor} />

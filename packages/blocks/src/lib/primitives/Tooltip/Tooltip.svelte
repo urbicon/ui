@@ -78,7 +78,7 @@
 
   let showTimeout: number;
   let hideTimeout: number;
-  let cleanup: (() => void) | undefined = undefined;
+  let cleanup: (() => void) | undefined;
 
   // Clear pending show/hide timers on unmount — a hover followed by a
   // teardown within `showDelay` (route change, {#if} removal) would
@@ -255,6 +255,7 @@
   and the tooltip silently skipped its WCAG 1.4.13 focus-open path;
   focusin/focusout bubble and cover any focusable descendant.
 -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: sees the events bubbling from the trigger it wraps -->
 <span
   class="inline-flex"
   bind:this={triggerElement}

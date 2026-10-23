@@ -133,6 +133,7 @@
     ? resolveClassChain(slotClasses?.wrapper, className)
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
 >
+  <!-- biome-ignore lint/a11y/noLabelWithoutControl: the input is nested; the text is `{label}` inside an {#if}, which the rule does not read -->
   <label
     class={unstyled
       ? (slotClasses?.control ?? '')

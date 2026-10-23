@@ -261,6 +261,7 @@
        (tabindex) with aria-value* + keyboard resize. Svelte's a11y rules treat
        any separator as non-interactive; this pattern is the sanctioned exception. -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+  <!-- biome-ignore lint/a11y/useSemanticElements: a focusable window splitter with a value and children; hr is void and takes no focus -->
   <div
     bind:this={handleRef}
     {@attach mintAttachment(mint, { enabled: !disabled })}

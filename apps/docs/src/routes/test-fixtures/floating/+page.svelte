@@ -30,8 +30,10 @@
     *,
     *::before,
     *::after {
+      /* biome-ignore-start lint/complexity/noImportantStyles: a fixture freezes motion, so it has to beat every transition and animation a utility class sets */
       transition-duration: 0ms !important;
       animation-duration: 0ms !important;
+      /* biome-ignore-end lint/complexity/noImportantStyles: closes the range above */
     }
   </style>
 </svelte:head>

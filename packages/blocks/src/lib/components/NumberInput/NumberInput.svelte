@@ -76,11 +76,11 @@
 
   const styles = $derived(unstyled ? undefined : numberInputVariants());
 
-  function slot(name: NumberInputSlots): string {
+  function slot(slotName: NumberInputSlots): string {
     // Reached only from the `stepper` snippet, which Input renders as its
     // `rightIcon` — so Input has run and published by the time this is called.
-    const overrides = cascade.resolved()[name] ?? '';
-    return styles?.[name]({ class: overrides }) ?? overrides;
+    const overrides = cascade.resolved()[slotName] ?? '';
+    return styles?.[slotName]({ class: overrides }) ?? overrides;
   }
 
   // Tracks focus so the wheel handler only steers a focused field (scrolling the
@@ -221,7 +221,7 @@
     <button
       type="button"
       class={slot('stepperButton')}
-      tabindex={-1}
+      tabindex="-1"
       aria-hidden="true"
       disabled={disabled || readonly || atMax}
       onmousedown={(e) => e.preventDefault()}
@@ -232,7 +232,7 @@
     <button
       type="button"
       class={slot('stepperButton')}
-      tabindex={-1}
+      tabindex="-1"
       aria-hidden="true"
       disabled={disabled || readonly || atMin}
       onmousedown={(e) => e.preventDefault()}

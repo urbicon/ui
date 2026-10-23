@@ -105,6 +105,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
 <div
   class="{styles.container()} {className}"
   {style}

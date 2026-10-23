@@ -149,18 +149,21 @@
   {/if}
 
   {#if isResizable && eventEl}
-    <div
-      class="absolute right-0 bottom-0 left-0 h-1.5 cursor-row-resize rounded-b-md hover:bg-white/30"
-      {@attach resizableEvent({
-        event,
-        dayColumnEl: getDayColumnEl() ?? eventEl.parentElement!,
-        eventEl,
-        startHour: ctx.timeGridStartHour,
-        endHour: ctx.timeGridEndHour,
-        disabled: !isResizable,
-        onResizeEnd: handleResizeEnd
-      })}
-    ></div>
+    {@const dayColumnEl = getDayColumnEl()}
+    {#if dayColumnEl}
+      <div
+        class="absolute right-0 bottom-0 left-0 h-1.5 cursor-row-resize rounded-b-md hover:bg-white/30"
+        {@attach resizableEvent({
+          event,
+          dayColumnEl,
+          eventEl,
+          startHour: ctx.timeGridStartHour,
+          endHour: ctx.timeGridEndHour,
+          disabled: !isResizable,
+          onResizeEnd: handleResizeEnd
+        })}
+      ></div>
+    {/if}
   {/if}
 </button>
 

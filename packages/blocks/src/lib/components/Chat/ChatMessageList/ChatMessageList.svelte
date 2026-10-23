@@ -247,6 +247,7 @@
 >
   <!-- Focusable scroll container (axe: scrollable-region-focusable) -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <!-- biome-ignore-start lint/a11y/noNoninteractiveTabindex lint/a11y/useSemanticElements: a scroll container takes tabindex=0 so keyboard users can scroll it; tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
   <div
     bind:this={viewportRef}
     class={slot('viewport')}
@@ -255,6 +256,7 @@
     tabindex="0"
     onscroll={handleScroll}
   >
+    <!-- biome-ignore-end lint/a11y/noNoninteractiveTabindex lint/a11y/useSemanticElements: closes the range above -->
     {#if messages.length === 0}
       <div class={slot('empty')}>
         {#if empty}

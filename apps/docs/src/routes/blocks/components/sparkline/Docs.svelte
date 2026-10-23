@@ -3,7 +3,6 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const up = [4, 6, 5, 8, 7, 10, 9, 12, 14];
-  const down = [14, 12, 13, 9, 10, 7, 8, 5, 4];
 
   const rows = [
     { name: 'Acme Corp', trend: [12, 14, 13, 18, 22, 21, 26], color: 'var(--color-success)' },

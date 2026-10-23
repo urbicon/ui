@@ -12,6 +12,7 @@
   not borrow it: two divs a line apart with the same role, one carrying text and
   one empty, is a role collision — MenuSection renders `presentation` + `group`.
 -->
+<!-- biome-ignore lint/a11y/useSemanticElements: an hr brings UA border and margin to a divider drawn by its own classes -->
 <div
   class={ctx.unstyled
     ? (ctx.slotClasses?.divider ?? '')

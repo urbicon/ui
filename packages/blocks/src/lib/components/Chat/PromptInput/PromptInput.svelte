@@ -323,6 +323,7 @@
   const iconSize = $derived(size === 'sm' ? 16 : 18);
 </script>
 
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: drop target for dragged files; keyboard users attach through the attach button -->
 <div
   bind:this={rootEl}
   {...restProps}
@@ -340,7 +341,7 @@
       multiple={maxFiles !== 1}
       {disabled}
       class="sr-only"
-      tabindex={-1}
+      tabindex="-1"
       aria-hidden="true"
       onchange={handleFileInputChange}
     />

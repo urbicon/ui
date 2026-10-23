@@ -1,3 +1,4 @@
+<!-- biome-ignore-all lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: an ARIA grid on div/span by design, laid out as a CSS grid that table elements would turn into table layout; focus moves inside the grid (APG grid pattern), so its rows, headers and cells take no tabindex of their own -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
@@ -129,7 +130,7 @@
               role="row"
               style="grid-template-columns: repeat({ctx.showWeekNumbers ? 8 : 7}, minmax(0, 1fr));"
             >
-              {#each line.segments as seg (seg.eventId + '-' + weekIdx)}
+              {#each line.segments as seg (`${seg.eventId}-${weekIdx}`)}
                 {@const event = eventById.get(seg.eventId)}
                 {@const colOffset = ctx.showWeekNumbers ? 1 : 0}
                 {#if event}

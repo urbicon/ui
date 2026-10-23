@@ -140,6 +140,7 @@
   const itemSizeVariant = $derived<'sm' | 'md' | 'lg'>(ctx.itemSizeForDepth(parentId ? 1 : 0));
 </script>
 
+<!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
 <button
   bind:this={buttonRef}
   id={`${ctx.rootId}-item-${itemId}`}

@@ -244,6 +244,7 @@
     <GuideProvider controller={hintGuide}>
       <div class="flex flex-wrap items-center gap-3">
         <button
+          type="button"
           data-guide="ex-export"
           class="border-border-default text-text-secondary rounded-lg border px-3 py-2 text-sm"
         >
@@ -301,12 +302,14 @@
           </div>
           <div class="flex flex-wrap gap-3">
             <button
+              type="button"
               data-guide="tour-filters"
               class="border-border-default text-text-secondary rounded-lg border px-3 py-2 text-sm"
             >
               Filters
             </button>
             <button
+              type="button"
               data-guide="tour-export"
               class="border-border-default text-text-secondary rounded-lg border px-3 py-2 text-sm"
             >

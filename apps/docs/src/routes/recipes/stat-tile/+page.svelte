@@ -77,7 +77,7 @@
     neutral: 'bg-surface-subtle text-text-secondary'
   };
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -192,7 +192,7 @@
   {/each}
 </div>`;
 
-  const stripCode = `<\script lang="ts">
+  const stripCode = `<script lang="ts">
   import { Card } from '@urbicon-ui/blocks';
 <\/script>
 
@@ -215,7 +215,7 @@
   </div>
 </Card>`;
 
-  const heroCode = `<\script lang="ts">
+  const heroCode = `<script lang="ts">
   import { Card, UsersIcon } from '@urbicon-ui/blocks';
 <\/script>
 

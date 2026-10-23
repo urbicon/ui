@@ -50,16 +50,16 @@
   const resolvedLocale = $derived(resolveDateLocale(locale, i18n.locale));
 
   // Extract date value from item
-  const extractDate = (item: Item, key?: keyof Item): Date | null => {
+  const extractDate = (row: Item, key?: keyof Item): Date | null => {
     if (!key) return null;
 
-    const value = getNestedValue(item, String(key));
+    const value = getNestedValue(row, String(key));
     if (!value) return null;
 
     if (value instanceof Date) return value;
     if (typeof value === 'string' || typeof value === 'number') {
       const parsed = new Date(value);
-      return isNaN(parsed.getTime()) ? null : parsed;
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
     return null;
@@ -197,6 +197,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
 <div
   class="{styles.container()} {className}"
   title={tooltipValue}

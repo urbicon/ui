@@ -229,7 +229,7 @@
     new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', timeZone: 'UTC' })
   );
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
   import { Avatar, Badge, Card, Drawer } from '@urbicon-ui/blocks';
   import { Table, TableColumns, type Column } from '@urbicon-ui/table';
@@ -436,7 +436,7 @@
         <aside class="hidden lg:block">
           <Card variant="elevated">
             <h2 class="text-text-primary mb-4 text-base font-semibold">
-              {shown ? 'Order ' + shown.id : 'Order detail'}
+              {shown ? `Order ${shown.id}` : 'Order detail'}
             </h2>
             {#if shown}
               {@render detail(shown)}
@@ -450,7 +450,7 @@
       <Drawer
         open={narrow.current && sheetOpen}
         onClose={() => (sheetOpen = false)}
-        title={shown ? 'Order ' + shown.id : ''}
+        title={shown ? `Order ${shown.id}` : ''}
         placement="right"
         size="lg"
       >

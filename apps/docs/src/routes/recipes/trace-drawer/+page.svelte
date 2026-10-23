@@ -78,7 +78,7 @@
 
   let drawerOpen = $state(false);
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { Badge, Button, Card, Drawer } from '@urbicon-ui/blocks';
 
   interface TraceNode {

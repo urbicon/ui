@@ -32,7 +32,7 @@ import { invitations } from '#lib/server/invitations.js';
 export const DELETE = invitations.DELETE;
 
 // 3. src/routes/auth/register/+page.svelte
-<\script lang="ts">
+<script lang="ts">
   import { RegisterPage } from '@urbicon-ui/auth';
   import { en } from '@urbicon-ui/auth/i18n/en';
   import { goto } from '$app/navigation';
@@ -49,7 +49,7 @@ export const DELETE = invitations.DELETE;
 />
 
 // 4. src/routes/admin/invitations/+page.svelte — admin panel
-<\script lang="ts">
+<script lang="ts">
   import { InvitationManager } from '@urbicon-ui/auth';
   import { en } from '@urbicon-ui/auth/i18n/en';
 

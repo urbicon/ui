@@ -49,12 +49,23 @@
       onClick(item);
     }
   }
+
+  function handleKeyDown(event: KeyboardEvent) {
+    if (!clickable || (event.key !== 'Enter' && event.key !== ' ')) return;
+    // Claimed even when ignored, so the grid's Space does not run instead.
+    event.preventDefault();
+    // A held Space activates a native button once; Enter repeats.
+    if (event.key === ' ' && event.repeat) return;
+    handleClick();
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
 <div
   class={styles.container()}
   onclick={handleClick}
+  onkeydown={handleKeyDown}
   role={clickable ? 'button' : undefined}
   tabindex={clickable ? 0 : undefined}
 >

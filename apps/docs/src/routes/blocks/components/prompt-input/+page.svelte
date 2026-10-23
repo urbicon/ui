@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { type FileIntakeEntry, PromptInput } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,36 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const defaults: Record<string, unknown> = {
-      busy: false,
-      allowAttachments: false,
-      disabled: false,
-      submitOn: 'enter',
-      placeholder: ''
-    };
-
-    const props = Object.entries(vals)
-      .filter(([key, value]) => {
-        if (value === null || value === undefined || value === '') return false;
-        if (key in defaults && value === defaults[key]) return false;
-        if (value === false) return false;
-        return true;
-      })
-      .map(([key, value]) => {
-        if (typeof value === 'boolean') return value ? key : '';
-        return `${key}="${value}"`;
-      })
-      .filter(Boolean);
-
-    const propsStr = props.length > 0 ? `\n  ${props.join('\n  ')}` : '';
-
-    return `<PromptInput
-  bind:value={draft}${propsStr}
-  onSubmit={({ text, attachments }) => send(text, attachments)}
-/>`;
-  }
 </script>
 
 <SeoMeta

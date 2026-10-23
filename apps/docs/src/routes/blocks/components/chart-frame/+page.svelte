@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { ChartFrame } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,23 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  // Demo data for the playground mark.
-
-  // ChartFrame's substance is the `children` snippet, not its props — so the
-  // generated code keeps the snippet (with a placeholder) rather than emitting a
-  // misleading self-closing `<ChartFrame />` that would render nothing.
-  function codeGenerator(vals: Record<string, unknown>): string {
-    return `<ChartFrame
-  height={${vals.height}}
-  margin={{ left: ${vals.marginLeft}, bottom: ${vals.marginBottom} }}
-  ariaLabel="Weekly values"
->
-  {#snippet children({ innerWidth, innerHeight })}
-    <!-- map your data onto innerWidth / innerHeight and draw SVG marks -->
-  {/snippet}
-</ChartFrame>`;
-  }
 </script>
 
 <SeoMeta

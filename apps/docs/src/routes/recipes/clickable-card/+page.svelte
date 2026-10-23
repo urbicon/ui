@@ -13,7 +13,7 @@
     { id: '3', name: 'Cara Lentz', role: 'Caretaker' }
   ];
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { ArrowRightIcon, BuildingIcon, Card } from '@urbicon-ui/blocks';
 <\/script>
 
@@ -42,7 +42,7 @@
   </Card>
 </div>`;
 
-  const listCode = `<\script lang="ts">
+  const listCode = `<script lang="ts">
   import { ArrowRightIcon, Avatar, Card } from '@urbicon-ui/blocks';
 
   // Stand-in for your action — open the user, start a selection; the demo

@@ -79,7 +79,7 @@
   });
 
   function getComponentName(name: IconName): string {
-    return name.charAt(0).toUpperCase() + name.slice(1) + 'Icon';
+    return `${name.charAt(0).toUpperCase() + name.slice(1)}Icon`;
   }
 
   const currentComponentName = $derived(getComponentName(selectedIcon));
@@ -227,6 +227,7 @@
   <div class="mb-6 flex flex-wrap items-center gap-2">
     {#each categories as cat (cat)}
       <button
+        type="button"
         class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors
           {activeCategories.has(cat)
           ? 'bg-primary text-text-on-primary border-primary'
@@ -246,6 +247,7 @@
     {/each}
     {#if activeCategories.size > 0}
       <button
+        type="button"
         class="text-text-secondary hover:text-text-primary text-xs underline"
         onclick={() => activeCategories.clear()}
       >
@@ -263,6 +265,7 @@
         {@const IconComp = DEFAULT_ICONS[name] as IconComponent}
         {@const meta = ICON_METADATA[name]}
         <button
+          type="button"
           class="group flex flex-col items-center gap-2 rounded-xl border p-3.5 transition-[border-color,background-color,box-shadow]
             {selectedIcon === name
             ? 'border-primary bg-primary/5 ring-primary/20 ring-2'

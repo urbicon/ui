@@ -114,7 +114,7 @@
     );
     if (radios.length === 0) return;
 
-    const currentIndex = radios.findIndex((r) => r === document.activeElement);
+    const currentIndex = radios.indexOf(document.activeElement as HTMLInputElement);
     let nextIndex: number;
 
     if (event.key === nextKey) {

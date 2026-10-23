@@ -482,6 +482,7 @@
 {:else if !renders}
   {@render faultChip(`${context.labels.unsupported}: ${component || node.id}`)}
 {:else if component === 'Column'}
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
   <div
     class={[
       context.classes.column,
@@ -497,6 +498,7 @@
     {/each}
   </div>
 {:else if component === 'Row'}
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
   <div
     class={[
       context.classes.row,
@@ -549,6 +551,7 @@
     style={weightStyle}
   />
 {:else if component === 'Section'}
+  {@const sectionChild = childByKey('child')}
   <section class={styles.section()} style={weightStyle} aria-label={ariaLabel}>
     <div class={styles.sectionHeader()}>
       <h3 class={styles.sectionTitle()}>{resolvedText('title')}</h3>
@@ -556,8 +559,8 @@
         <p class={styles.sectionDescription()}>{resolvedText('description')}</p>
       {/if}
     </div>
-    {#if childByKey('child')}
-      {@render renderChild(childByKey('child')!, blockCtx)}
+    {#if sectionChild}
+      {@render renderChild(sectionChild, blockCtx)}
     {/if}
   </section>
 {:else if component === 'EmptyState'}
@@ -729,6 +732,7 @@
   </div>
 {:else if component === 'TimeInput'}
   {@const label = resolvedText('label')}
+  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
   <div
     class={styles.field()}
     style={weightStyle}
@@ -848,6 +852,7 @@
       <path d={iconSvgPath} />
     </svg>
   {:else}
+    <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
     <span
       class={context.classes.icon}
       style={weightStyle}

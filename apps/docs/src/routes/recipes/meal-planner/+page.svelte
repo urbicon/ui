@@ -44,7 +44,7 @@
     });
   }
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import { Badge, Button, Planner, PlusIcon } from '@urbicon-ui/blocks';
 
   type MealType = 'breakfast' | 'lunch' | 'dinner';

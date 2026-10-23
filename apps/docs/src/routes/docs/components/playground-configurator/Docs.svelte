@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Badge, Button, CloseIcon, Input } from '@urbicon-ui/blocks';
-  import { CodeExample, InfoCard, PlaygroundConfigurator, Section } from '@urbicon-ui/docs';
+  import { CodeExample, PlaygroundConfigurator, Section } from '@urbicon-ui/docs';
 
   const buttonCode = (v: Record<string, unknown>) =>
     `<Button variant="${v.variant}" intent="${v.intent}" size="${v.size}"${v.disabled ? ' disabled' : ''}>${v.label}</Button>`;

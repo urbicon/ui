@@ -6,7 +6,7 @@
   import { getTierContext, setTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import { setButtonGroupContext } from './buttonGroup.context';
-  import type { ButtonGroupContext, ButtonGroupProps } from './index';
+  import type { ButtonGroupProps } from './index';
 
   const theme = useThemeProps('ButtonGroup', () => preset);
 
@@ -319,6 +319,7 @@
   - onkeydown is destructured (never in restProps) and composed: the roving
     keyboard nav always runs, a consumer handler runs after it.
 -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useAriaPropsSupportedByRole: the role is an expression (group or radiogroup), which the rule reads as no role -->
 <div
   bind:this={containerElement}
   {...restProps}

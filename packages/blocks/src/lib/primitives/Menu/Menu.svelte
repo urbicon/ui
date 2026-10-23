@@ -369,29 +369,30 @@
   }
 
   function focusNextItem(current: HTMLElement) {
-    const items = getFocusableItems();
-    if (items.length === 0) return;
-    const idx = items.indexOf(current);
-    const next = items[(idx + 1) % items.length] ?? items[0];
+    const focusable = getFocusableItems();
+    if (focusable.length === 0) return;
+    const idx = focusable.indexOf(current);
+    const next = focusable[(idx + 1) % focusable.length] ?? focusable[0];
     next.focus();
   }
 
   function focusPrevItem(current: HTMLElement) {
-    const items = getFocusableItems();
-    if (items.length === 0) return;
-    const idx = items.indexOf(current);
-    const prev = items[(idx - 1 + items.length) % items.length] ?? items[items.length - 1];
+    const focusable = getFocusableItems();
+    if (focusable.length === 0) return;
+    const idx = focusable.indexOf(current);
+    const prev =
+      focusable[(idx - 1 + focusable.length) % focusable.length] ?? focusable[focusable.length - 1];
     prev.focus();
   }
 
   function focusFirstItem() {
-    const items = getFocusableItems();
-    items[0]?.focus();
+    const focusable = getFocusableItems();
+    focusable[0]?.focus();
   }
 
   function focusLastItem() {
-    const items = getFocusableItems();
-    items[items.length - 1]?.focus();
+    const focusable = getFocusableItems();
+    focusable[focusable.length - 1]?.focus();
   }
 
   // Sub-menu disclosure state resets on the OPENING edge, not on close:
@@ -603,6 +604,7 @@
          the consumer's own element controls sizing; the contextmenu event still
          bubbles to the handler. -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: the context-menu wrapper; keyboard users open the menu from its trigger -->
     <div class="contents" oncontextmenu={handleContextMenu}>
       {@render contextTrigger()}
     </div>

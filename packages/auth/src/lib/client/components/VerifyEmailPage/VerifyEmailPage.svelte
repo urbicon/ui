@@ -88,6 +88,7 @@
            already sits inside the page's. Stripped here so the pending state is
            announced once: what is read out is the sr-only label plus the line
            below it, from the region that also carries the outcome. -->
+      <!-- biome-ignore lint/a11y/useValidAriaRole lint/a11y/useValidAriaValues: a prop of the Svelte component, not a DOM attribute; `undefined` drops the component default -->
       <Spinner size="lg" role={undefined} aria-live={undefined} {unstyled} />
       <p class={cls('text-text-secondary text-sm')}>
         {t.auth.verifyEmail.verifying}

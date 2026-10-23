@@ -235,6 +235,7 @@
           <nav class="space-y-1 p-3">
             {#each [{ label: 'Overview', active: true }, { label: 'Analytics' }, { label: 'Customers' }, { label: 'Products' }, { label: 'Settings' }] as item (item.label)}
               <button
+                type="button"
                 class={item.active
                   ? 'w-full rounded-lg bg-indigo-500/20 px-3 py-2 text-left text-sm font-medium text-indigo-400 transition-colors'
                   : 'w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-200'}

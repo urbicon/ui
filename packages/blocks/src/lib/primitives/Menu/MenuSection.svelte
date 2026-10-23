@@ -59,6 +59,7 @@
   posinset/setsize are computed over the whole menu, browser-dependently.
   `role="presentation"` on the heading does not stop it labelling the group.
 -->
+<!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
 <div
   role="group"
   aria-labelledby={headingId}

@@ -60,6 +60,7 @@
 <div>
   <div role="alert">
     {#if error}
+      <!-- biome-ignore lint/a11y/useValidAriaRole: a prop of the Svelte component, not a DOM attribute; `undefined` drops the component default -->
       <Alert intent="danger" role={undefined} {size} {unstyled} class={className}>
         {error}
       </Alert>
@@ -68,6 +69,7 @@
   <div role="status">
     {#if !error}
       {#if success}
+        <!-- biome-ignore lint/a11y/useValidAriaRole: a prop of the Svelte component, not a DOM attribute; `undefined` drops the component default -->
         <Alert intent="success" role={undefined} {size} {unstyled} class={successClass}>
           {success}
         </Alert>

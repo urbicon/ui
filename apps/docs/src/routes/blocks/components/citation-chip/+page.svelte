@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { CitationChip, type CitationSource } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -14,15 +13,6 @@
   import Playground from './Playground.svelte';
 
   const relatedLinks = buildRelatedLinks(componentData);
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const parts = ['{source}'];
-    if (vals.index) parts.push(`index={${vals.index}}`);
-    if (vals.citationStyle && vals.citationStyle !== 'numeric')
-      parts.push(`citationStyle="${vals.citationStyle}"`);
-    if (vals.openLabel) parts.push(`openLabel="${vals.openLabel}"`);
-    return `<CitationChip ${parts.join(' ')} />`;
-  }
 </script>
 
 <SeoMeta

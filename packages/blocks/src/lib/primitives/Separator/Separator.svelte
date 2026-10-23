@@ -37,6 +37,7 @@
   );
 </script>
 
+<!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
 <div
   class={classes}
   role={decorative ? 'none' : 'separator'}

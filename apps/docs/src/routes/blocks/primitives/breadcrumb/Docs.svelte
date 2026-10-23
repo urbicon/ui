@@ -42,7 +42,7 @@
     const segments = pathname.split('/').filter(Boolean);
     return segments.map((segment, i) => ({
       label: segment.replace(/-/g, ' ').replace(/^[a-z]/, (c) => c.toUpperCase()),
-      href: '/' + segments.slice(0, i + 1).join('/')
+      href: `/${segments.slice(0, i + 1).join('/')}`
     }));
   }
 

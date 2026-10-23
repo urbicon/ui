@@ -448,7 +448,10 @@
       <!-- No cell snippet: a language-neutral count so bucketing is visible. -->
       <span
         class="bg-primary-subtle text-primary-text inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-medium tabular-nums"
-        aria-label={bt('planner.itemCount', { count: p.items.length })}
+        role="img"
+        aria-label={bt(p.items.length === 1 ? 'planner.itemCountOne' : 'planner.itemCount', {
+          count: p.items.length
+        })}
       >
         {p.items.length}
       </span>

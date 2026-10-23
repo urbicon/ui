@@ -180,7 +180,7 @@ ${scriptClose}
         <code class="text-text-primary">groupBy</code>. Every
         <code class="text-text-primary">column</code> is a column id. Projecting those six onto your
         backend's parameters happens inside your fetch, and
-        <a href={resolve('/table/query') + '#params'}>parameter translation</a> walks through one.
+        <a href={`${resolve('/table/query')}#params`}>parameter translation</a> walks through one.
       </p>
 
       <p class="text-text-secondary text-sm">
@@ -282,7 +282,7 @@ ${scriptClose}
         and <code class="text-text-primary">onSelectionChange</code> does not fire on a page change.
         This is why its second argument matters here — the ids are the whole selection, the rows
         only the ones currently loaded, so a
-        <a href={resolve('/table/selection') + '#controlled'}>controlled selection</a> writes the ids
+        <a href={`${resolve('/table/selection')}#controlled`}>controlled selection</a> writes the ids
         back. For an action across the whole result set, send the query instead of the selection.
       </p>
     </div>

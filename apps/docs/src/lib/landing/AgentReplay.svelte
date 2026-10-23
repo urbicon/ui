@@ -168,6 +168,7 @@
 
       <!-- The one gesture — same bar anatomy as the LiveryTile's livery switch. -->
       <div class="border-border-subtle flex flex-wrap items-center gap-2 border-t px-4 py-3">
+        <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
         <div class="flex gap-1.5" role="group" aria-label="Stage view">
           {#each VIEWS as option (option.id)}
             <button

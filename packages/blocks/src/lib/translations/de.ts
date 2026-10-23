@@ -125,7 +125,8 @@ export default {
     nextRange: 'Nächster Zeitraum',
     today: 'Heute',
     grid: 'Planer',
-    itemCount: '{{count}} Einträge'
+    itemCount: '{{count}} Einträge',
+    itemCountOne: '{{count}} Eintrag'
   },
   resourceTimeline: {
     previousWeek: 'Vorherige Woche',

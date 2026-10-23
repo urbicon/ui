@@ -168,7 +168,7 @@ function toParams(view: TableViewSnapshot) {
         In the browser the table reads <code class="text-text-primary">greaterThan</code> and
         <code class="text-text-primary">lessThan</code> as a number first and as a date second;
         match that if the same columns are also filtered client-side somewhere. The full type is
-        <a href={resolve('/table/table') + '#type-TableViewSnapshot'}>TableViewSnapshot</a>.
+        <a href={`${resolve('/table/table')}#type-TableViewSnapshot`}>TableViewSnapshot</a>.
       </p>
 
       <p class="text-text-secondary text-sm">

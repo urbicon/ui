@@ -102,6 +102,7 @@
       {#if event.recurrence}
         <span
           class="text-text-tertiary shrink-0"
+          role="img"
           aria-label={bt('calendar.recurring')}
           title={bt('calendar.recurring')}>↻</span
         >

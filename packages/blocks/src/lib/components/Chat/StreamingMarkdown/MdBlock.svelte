@@ -78,12 +78,14 @@
 {:else if block.kind === 'table'}
   <!-- Focusable scroll container (axe: scrollable-region-focusable) -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <!-- biome-ignore-start lint/a11y/noNoninteractiveTabindex lint/a11y/useSemanticElements: a scroll container takes tabindex=0 so keyboard users can scroll it; tests and consumers select `[role="region"]`; a section would drop that attribute or repeat it as a redundant role -->
   <div
     class={ctx.classes.tableWrapper}
     role="region"
     aria-label={ctx.tableRegionLabel}
     tabindex="0"
   >
+    <!-- biome-ignore-end lint/a11y/noNoninteractiveTabindex lint/a11y/useSemanticElements: closes the range above -->
     <table class={ctx.classes.table}>
       <thead>
         <tr class={ctx.classes.tableRow}>

@@ -190,6 +190,7 @@
           class="{headerStyles.cell()} {structural.widthClass} text-center"
         >
           <button
+            type="button"
             onclick={() => toggleAllGroups()}
             class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify flex h-6 w-6 items-center justify-center transition-colors"
             aria-label={tableState.allGroupsExpanded
@@ -325,6 +326,7 @@
                `role` stays unset when the column cannot be sorted: `button`
                would promise that Enter does something, and here it does not. -->
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
           <div
             class="{columnStyles.titleContainer()} {isSortable ? 'cursor-pointer' : ''}"
             onclick={() => isSortable && handleSort(columnId)}
@@ -369,7 +371,7 @@
                   {#if columnHasSummary}
                     <div
                       class={headerIndicatorVariants({ type: 'summary', state: 'default' })}
-                      title={tt('header.summarizedColumn') + ': ' + summaryTypes.join(', ')}
+                      title={`${tt('header.summarizedColumn')}: ${summaryTypes.join(', ')}`}
                       data-testid={`summary-indicator-${columnId}`}
                     ></div>
                   {/if}

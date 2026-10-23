@@ -105,6 +105,7 @@
 
         {#snippet mobileHeader({ openSidebar })}
           <button
+            type="button"
             class="text-text-secondary hover:text-text-primary -m-2 p-2 transition-colors"
             onclick={openSidebar}
             aria-label="Open navigation"
@@ -123,7 +124,11 @@
         <!-- `collapsible` hides the rail on every viewport; without an opener in the
              content, the mode is a dead end. -->
         {#if values.mode === 'collapsible' && !open}
-          <button class="text-primary mt-4 text-sm hover:underline" onclick={() => (open = true)}>
+          <button
+            type="button"
+            class="text-primary mt-4 text-sm hover:underline"
+            onclick={() => (open = true)}
+          >
             Show sidebar
           </button>
         {/if}

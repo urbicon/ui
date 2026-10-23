@@ -101,7 +101,7 @@
     return String(v);
   };
 
-  const displayValue = $derived(formatValue ? formatValue(value!) : defaultFormat(value!));
+  const displayValue = $derived(formatValue ? formatValue(value) : defaultFormat(value));
 
   // ─── Range-Constraints ──────────────────────────────────────────────────
   type ZoneStatus =
@@ -443,6 +443,7 @@
   {/if}
 
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a click on the track moves the thumb; the thumb is the keyboard control -->
   <div
     bind:this={trackRef}
     {@attach mintAttachment(mint, { enabled: !disabled })}

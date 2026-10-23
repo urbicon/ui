@@ -1,7 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import type { CitationSource } from '../CitationChip';
   import { createIncrementalParser } from '../markdown/blocks';
   import type { MarkdownParseOptions, MarkdownUrlPolicy } from '../markdown/types';
   import type { StreamingMarkdownProps } from './index';

@@ -184,6 +184,7 @@ html.add('dark');             // force dark; add('light') forces light`;
   <div class="mb-8 flex flex-wrap gap-3">
     {#each themes as theme, i (theme.name)}
       <button
+        type="button"
         class="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors {activeTheme ===
         i
           ? 'border-primary bg-primary-subtle text-primary'

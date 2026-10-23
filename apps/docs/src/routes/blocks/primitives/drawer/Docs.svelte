@@ -93,6 +93,7 @@
         <nav class="flex flex-col gap-1">
           {#each ['Dashboard', 'Projects', 'Team', 'Settings', 'Help'] as item (item)}
             <button
+              type="button"
               class="text-text-primary hover:bg-surface-hover rounded-modify px-3 py-2.5 text-left text-sm transition-colors"
               onclick={() => (navOpen = false)}
             >

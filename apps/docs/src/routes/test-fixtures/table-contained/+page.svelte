@@ -108,8 +108,10 @@
     /* No motion: the seam reading compares a pixel column of the pinned foot at
        two scroll positions, and a mid-transition frame is not a layout state. */
     * {
+      /* biome-ignore-start lint/complexity/noImportantStyles: a fixture freezes motion, so it has to beat every transition and animation a utility class sets */
       transition: none !important;
       animation: none !important;
+      /* biome-ignore-end lint/complexity/noImportantStyles: closes the range above */
     }
   </style>
 </svelte:head>

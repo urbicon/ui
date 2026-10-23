@@ -38,6 +38,7 @@
 
 <span class={['inline-flex items-center justify-center text-current', sizeClass[size], className]}>
   <svg
+    aria-hidden="true"
     class="h-full w-full animate-spin [animation-duration:1s] motion-reduce:animate-none"
     viewBox="0 0 24 24"
     fill="none"

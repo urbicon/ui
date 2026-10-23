@@ -748,6 +748,7 @@
         as tags wrap. Single mode keeps the input-as-frame layout untouched.
       -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- biome-ignore lint/a11y/noStaticElementInteractions: a mousedown on the frame focuses the input, which keyboard users reach directly -->
       <div
         class={unstyled
           ? (slotClasses?.control ?? '')
@@ -903,6 +904,7 @@
           </div>
         {:else if filteredGroups}
           {#each filteredGroups as group, i (`${group.label}-${i}`)}
+            <!-- biome-ignore lint/a11y/useSemanticElements: a fieldset would add its UA border, padding and min-inline-size for the same group role and name -->
             <div
               class={unstyled
                 ? (slotClasses?.group ?? '')

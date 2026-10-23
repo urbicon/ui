@@ -75,7 +75,7 @@
     skip: 'text-warning'
   };
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Guide,
     GuideArticle,

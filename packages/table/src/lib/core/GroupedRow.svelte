@@ -97,13 +97,6 @@
   function handleToggleGroup() {
     toggleGroup(groupName);
   }
-
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleToggleGroup();
-    }
-  }
 </script>
 
 <!-- Group Header Row -->
@@ -118,33 +111,36 @@
   data-testid={computedTestId}
   id={`grouped-item-${groupName}`}
 >
-  <td
-    colspan={colSpan}
-    class={styles.cell()}
-    onclick={handleToggleGroup}
-    onkeydown={handleKeyDown}
-    role="button"
-    tabindex="0"
-    aria-expanded={isExpanded}
-    aria-label="{displayGroupName} {itemCountText} {isExpanded
-      ? tt('header.collapseGroup')
-      : tt('header.expandGroup')}"
-  >
+  <!-- The whole band toggles on a click; the button inside is the keyboard path and the
+       name, and it stays a sibling of `groupHeaderContent`, which may hold the consumer's
+       own buttons. The band, not the button, draws the focus ring. -->
+  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: a pointer target around the toggle button, which takes the keys -->
+  <td colspan={colSpan} class={styles.cell()} onclick={handleToggleGroup}>
     <div class={styles.content()}>
-      <!-- Expand/Collapse Icon -->
-      <div class={styles.chevron()}>
-        <ChevronDownIcon class={styles.chevron()} size={16} />
-      </div>
+      <button
+        type="button"
+        class="{styles.content()} cursor-pointer focus-visible:outline-none"
+        data-group-toggle
+        aria-expanded={isExpanded}
+        aria-label="{displayGroupName} {itemCountText} {isExpanded
+          ? tt('header.collapseGroup')
+          : tt('header.expandGroup')}"
+      >
+        <!-- Expand/Collapse Icon -->
+        <span class={styles.chevron()}>
+          <ChevronDownIcon class={styles.chevron()} size={16} />
+        </span>
 
-      <!-- Group Name and Count -->
-      <div class={styles.content()}>
-        <span class={styles.title()}>
-          {displayGroupName}
+        <!-- Group Name and Count -->
+        <span class={styles.content()}>
+          <span class={styles.title()}>
+            {displayGroupName}
+          </span>
+          <span class={styles.count()}>
+            {itemCountText}
+          </span>
         </span>
-        <span class={styles.count()}>
-          {itemCountText}
-        </span>
-      </div>
+      </button>
 
       <!-- Custom header content or actions -->
       <div class={styles.actions()}>

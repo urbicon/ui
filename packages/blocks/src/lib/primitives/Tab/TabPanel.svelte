@@ -101,6 +101,7 @@
 
 <style>
   [hidden] {
+    /* biome-ignore lint/complexity/noImportantStyles: the hidden attribute has to win over a display utility on the panel */
     display: none !important;
   }
 

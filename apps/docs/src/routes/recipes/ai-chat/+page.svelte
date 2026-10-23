@@ -51,6 +51,7 @@ Scroll up while I type — the list stops following and shows a jump-back pill. 
   let timer: ReturnType<typeof setInterval> | undefined;
 
   let idSeq = 0;
+  // biome-ignore lint/style/useTemplate: `urbicon validate` reads `m-${` as an interpolated margin class; the recipe sample below spells the same line
   const nextId = () => 'm-' + ++idSeq;
 
   function patch(id: string, next: Partial<ChatMessageData>) {
@@ -121,7 +122,7 @@ Scroll up while I type — the list stops following and shows a jump-back pill. 
 
   $effect(() => () => stopTimer());
 
-  const recipeCode = `<\script lang="ts">
+  const recipeCode = `<script lang="ts">
   import {
     Badge,
     Card,

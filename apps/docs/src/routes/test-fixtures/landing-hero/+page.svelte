@@ -28,7 +28,6 @@
   import type { Component } from 'svelte';
   import HeroSpecimen from '#lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '#lib/landing/hero.js';
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

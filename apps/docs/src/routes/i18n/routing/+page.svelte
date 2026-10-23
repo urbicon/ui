@@ -2,7 +2,6 @@
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const rerouteCode = `// src/hooks.ts — a universal hook: runs on both server and client, before
 // 'handle'. It maps the visible URL to an internal route, so the locale prefix

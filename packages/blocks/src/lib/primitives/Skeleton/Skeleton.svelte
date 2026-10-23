@@ -115,6 +115,7 @@
      status Badge. Both roots above carry the role, so both are covered. */
   @media print {
     [role='status'] {
+      /* biome-ignore lint/complexity/noImportantStyles: print hides the status root over any display utility or consumer class on it */
       display: none !important;
     }
   }

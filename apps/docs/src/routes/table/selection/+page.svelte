@@ -160,7 +160,7 @@ ${scriptClose}
       the same ids back is a no-op, so the Clear button below settles rather than looping. A
       controlled selection is never written to storage:
       <code class="text-text-primary">persistSelection</code> in the
-      <a href={resolve('/table/customization') + '#persistence'}>preference channel</a> restores only
+      <a href={`${resolve('/table/customization')}#persistence`}>preference channel</a> restores only
       a table-owned one.
     </p>
 

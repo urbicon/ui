@@ -133,7 +133,7 @@
   <div data-testid="centre-images" class="max-w-xl min-w-0">
     <Scroller label="Photos" itemBasis="auto" align="center" gap="sm" indicator="dots">
       {#each photoWidths as width, index (width)}
-        <img src={photo(width)} alt="Photo {index + 1}" class="h-32 w-auto" />
+        <img src={photo(width)} alt="Sample {index + 1}" class="h-32 w-auto" />
       {/each}
     </Scroller>
   </div>

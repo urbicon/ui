@@ -142,6 +142,7 @@
       {#if filters.length === 0}
         <span class="text-text-tertiary text-sm">No filters · </span>
         <button
+          type="button"
           class="text-primary text-sm underline"
           onclick={() => (filters = ['Active', 'Premium', 'Last 7 days'])}
         >

@@ -190,13 +190,12 @@ export class CatalogAssembler {
   /**
    * Resolve template-literal escape sequences the way JS does when the page
    * renders the string. The literals escape more than the backtick: the
-   * closing `<\/script>` and — since the 2026-08-16 rollout — the OPENING
-   * `<\script` too (Vite's dependency scanner extracts script blocks from
-   * .svelte files with an HTML lexer, so a raw `<script` inside a string
-   * literal starts a phantom module whose `#lib/…` imports then fail the
-   * whole scan with ENOENT). Shipping the raw source would hand consumers
-   * those backslashes verbatim; what `urbicon recipe` must serve is the cooked
-   * string — exactly what the code panel displays.
+   * closing `<\/script>` stays escaped, because Svelte's parser ends the
+   * `<script>` block at the first raw `</script>`, inside a string or not.
+   * The opener needs no escape: Vite 8's dependency scanner finds the same
+   * script blocks as Svelte's parser. Shipping the raw source would hand
+   * consumers those backslashes verbatim; what `urbicon recipe` must serve is
+   * the cooked string — exactly what the code panel displays.
    */
   static cookTemplateLiteral(source: string): string {
     let out = '';

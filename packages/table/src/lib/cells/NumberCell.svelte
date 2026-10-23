@@ -68,19 +68,19 @@
   const resolvedLocale = $derived(resolveDateLocale(locale, i18n.locale));
 
   // Extract numeric value from item or prop
-  const extractValue = (item: Item): number | null => {
+  const extractValue = (row: Item): number | null => {
     if (typeof value === 'function') {
-      return value(item);
+      return value(row);
     }
     if (typeof value === 'number') {
       return value;
     }
     if (valueKey) {
-      const extractedValue = getNestedValue(item, String(valueKey));
+      const extractedValue = getNestedValue(row, String(valueKey));
       if (typeof extractedValue === 'number') return extractedValue;
       if (typeof extractedValue === 'string') {
         const parsed = parseFloat(extractedValue);
-        return isNaN(parsed) ? null : parsed;
+        return Number.isNaN(parsed) ? null : parsed;
       }
     }
     return null;
@@ -227,6 +227,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: the role is an expression, which the rule reads as no role; it is set whenever the element needs it -->
 <div
   class="{styles.container()} {className}"
   title={tooltipValue}

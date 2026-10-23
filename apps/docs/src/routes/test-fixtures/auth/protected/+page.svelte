@@ -15,7 +15,7 @@
 <main>
   <h1>Protected</h1>
   <p data-testid="protected-user">Signed in as {data.user?.email}</p>
-  <button data-testid="logout-btn" onclick={logout} disabled={pending}>
+  <button type="button" data-testid="logout-btn" onclick={logout} disabled={pending}>
     {pending ? 'Signing out…' : 'Sign out'}
   </button>
 </main>
