@@ -304,7 +304,10 @@ export const groupHeaderVariants = tv({
     cell: [
       'cursor-pointer',
       'transition-colors duration-[var(--blocks-duration-fast)]',
-      'hover:bg-surface-hover'
+      'hover:bg-surface-hover',
+      // The row's focus ring, drawn on the band while its toggle button has
+      // keyboard focus — scoped to the toggle, not to the consumer's actions.
+      'has-[[data-group-toggle]:focus-visible]:ring-2 has-[[data-group-toggle]:focus-visible]:ring-inset has-[[data-group-toggle]:focus-visible]:ring-primary/50'
     ],
     content: ['flex items-center gap-3 w-full'],
     chevron: [

@@ -166,8 +166,8 @@
               ? (slotClasses?.currentPage ?? '')
               : styles.currentPage({ class: slotClasses?.currentPage })}
             aria-current="page"
-            >{@render crumbIcon(entry.item)}{#if entry.item['aria-label']}<span class="sr-only"
-                >{entry.item['aria-label']}</span
+            >{@render crumbIcon(entry.item)}{#if entry.item['aria-label']}<span
+                class="sr-only select-none">{entry.item['aria-label']}</span
               >{#if entry.item.label}<span aria-hidden="true">{entry.item.label}</span
                 >{/if}{:else}{entry.item.label}{/if}</span
           >

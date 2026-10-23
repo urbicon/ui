@@ -34,6 +34,8 @@ export interface BreadcrumbItem {
    * On a linked crumb this is an `aria-label` on the `<a>`. On the current
    * page, a generic element that ARIA allows no name, it renders as visually
    * hidden text and the visible `label` is hidden from assistive technology.
+   * That text is page text for assistive technology and in `innerText`, and it
+   * stays out of a copied selection.
    */
   'aria-label'?: string;
 }

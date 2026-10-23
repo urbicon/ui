@@ -113,18 +113,9 @@
 >
   <!-- The whole band toggles on a click; the button inside is the keyboard path and the
        name, and it stays a sibling of `groupHeaderContent`, which may hold the consumer's
-       own buttons. The band draws the button's focus ring, so keyboard focus outlines the
-       whole band; `outline: auto` alone would take the text colour, not the platform's. -->
+       own buttons. The band, not the button, draws the focus ring. -->
   <!-- biome-ignore lint/a11y/useKeyWithClickEvents: a pointer target around the toggle button, which takes the keys -->
-  <td
-    colspan={colSpan}
-    class={[
-      styles.cell(),
-      'has-[[data-group-toggle]:focus-visible]:[outline:auto]',
-      'has-[[data-group-toggle]:focus-visible]:[outline-color:-webkit-focus-ring-color]'
-    ]}
-    onclick={handleToggleGroup}
-  >
+  <td colspan={colSpan} class={styles.cell()} onclick={handleToggleGroup}>
     <div class={styles.content()}>
       <button
         type="button"
