@@ -32,6 +32,9 @@ pins Biome, so that happens in a deliberate upgrade, not silently. In markup a s
 `<!-- biome-ignore lint/nursery/<rule>: <reason> -->`, and Biome rejects one without a reason;
 at an `{@html}` it shares the tag's line, under a bare
 `<!-- eslint-disable-next-line svelte/no-at-html-tags -->` that the Svelte autofixer reads.
+Biome's parsers gate every `<script>` and `<style>` (`css.parser.tailwindDirectives` lets
+`@apply` and `@reference` through), and a parse error has no suppression, so a construct Biome
+cannot parse gets rewritten.
 
 ## Pre-commit runs neither `check` nor the tests
 

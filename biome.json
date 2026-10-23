@@ -13,6 +13,7 @@
   "markdown": { "formatter": { "enabled": false }, "linter": { "enabled": false } },
   "yaml": { "formatter": { "quoteStyle": "single" } },
   "html": { "experimentalFullSupportEnabled": true },
+  "css": { "parser": { "tailwindDirectives": true } },
   "linter": {
     "rules": {
       "performance": { "useTopLevelRegex": "off" },

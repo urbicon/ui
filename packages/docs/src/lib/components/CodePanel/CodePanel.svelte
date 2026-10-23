@@ -121,7 +121,7 @@
           tabindex="0"
         >
           <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-          <!-- biome-ignore lint/nursery/noSvelteAtHtmlTags: Shiki output or the escapeHtml fallback; `code` arrives escaped -->{@html highlightedCode}
+          <!-- biome-ignore lint/nursery/noSvelteAtHtmlTags: Shiki output or the escapeHtml fallback; both escape `code` -->{@html highlightedCode}
         </div>
       </div>
     </div>
