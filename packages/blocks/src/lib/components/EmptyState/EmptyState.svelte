@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { headingTag } from '#lib/utils/heading.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { EmptyStateProps } from './index';
   import { emptyStateVariants, type EmptyStateVariants } from './emptyState.variants';
@@ -10,6 +11,7 @@
     preset,
     icon: IconComponent,
     title,
+    headingLevel = 3,
     description,
     cta,
     children,
@@ -56,9 +58,9 @@
     </div>
   {/if}
 
-  <h3 class={slot('title')}>
+  <svelte:element this={headingTag(headingLevel)} class={slot('title')}>
     {title}
-  </h3>
+  </svelte:element>
 
   {#if description}
     <p class={slot('description')}>

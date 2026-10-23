@@ -314,6 +314,25 @@ const isActivatable = $derived(!!onclick && !disabled);
 
 For anything new, prefer a native `<button>` root to `role="button"` on a `<div>`. The two above predate that preference and keep it for their own reasons: an Avatar is an image first, a Badge is text in a flow.
 
+## Heading rank (`headingLevel`)
+
+A component that renders a heading of its own takes the heading's rank from one prop, spelled the same in every package:
+
+```ts
+headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+```
+
+- **The default is the rank the component's title rendered before it took the prop.** A sub-heading that renders at a new rank once it is derived from the title is a breaking change like any other (last point). A new component defaults to the rank of its usual placement.
+- **One prop per component.** A heading below the title — a manager's section, a group's summary in the table's card list — renders one rank below it, derived and never exposed: a consumer able to set it separately could skip a rank inside one widget.
+- **The tag comes from `headingTag(headingLevel, { offset })`** (`@urbicon-ui/blocks`), never from `` `h${level}` `` written by hand, and a sub-heading passes `offset` instead of adding to the level. The function owns the clamp and what a rank that is no number becomes (its JSDoc says which values and why): a rank that is no number can leave a gap in the outline but never adds an `h1`; one below 1 clamps to `h1`.
+- **No context.** The rank is passed, never inherited from an ancestor: dialogs, drawers, portals and snippets render away from the DOM position a context would derive it from.
+- **The rank changes the semantics, not the look.** Headings are styled by class, never by tag, so the rank changes none of the component's own styling.
+- **A rendered rank is contract.** A consumer's `getByRole('heading', { level })` selects on it, so changing a default rank — or a fixed one, like the filter dialog's `h2` title in the table — is a breaking change ([§ Promotion: beta → stable](#promotion-beta--stable), criterion 3).
+
+Fixed ranks remain where the heading titles a surface of its own, whose label it is: `Dialog`, `Drawer` and the table's filter dialog render an `h2`, `GuidePanel` an `h2` with `h3` groups. The A2UI `Section` renders a fixed `h3` and takes no prop yet.
+
+`StreamingMarkdown`'s `headingLevelStart` is not a second spelling: it shifts the ranks the markdown's author chose instead of fixing one title's rank, and `Start` says so.
+
 ## Styling props (`class`, `unstyled`, `slotClasses`, `preset`)
 
 > **Canon.** The prop surface — which props a component ships, how each is typed, which

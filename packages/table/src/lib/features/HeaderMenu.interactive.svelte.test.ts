@@ -102,9 +102,12 @@ describe('HeaderMenu on an interactive grid — the menu owns its keys', () => {
     expect(context().selectedItems).toHaveLength(2);
 
     await user.click(menuTrigger());
+    const panel = screen.getByRole('menu').closest('[popover]') as HTMLElement;
     await user.keyboard('{Escape}');
 
     expect(screen.queryByRole('menu', { hidden: true }), 'menu closed').toBeNull();
+    // The popover element outlives the close, so it has to leave the top layer as well.
+    expect(panel.matches(':popover-open'), ':popover-open after Escape').toBe(false);
     expect(context().selectedItems, 'selection survives').toHaveLength(2);
   });
 

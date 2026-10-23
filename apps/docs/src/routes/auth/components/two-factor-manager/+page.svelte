@@ -78,8 +78,7 @@
       <Note title="Advancing a step moves focus to its heading">
         <p>
           Moving from idle to setup to backup codes swaps the content in place, so the button that
-          was pressed is gone. Each step opens with an
-          <code class="text-text-primary">&lt;h3&gt;</code> carrying
+          was pressed is gone. Each step opens with a heading one rank below the panel's, carrying
           <code class="text-text-primary">tabindex="-1"</code>, and focus lands there once the new
           step has rendered — the reader hears "Save your backup codes" instead of falling to
           <code class="text-text-primary">&lt;body&gt;</code>. Turning 2FA off does the same: the

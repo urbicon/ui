@@ -1231,8 +1231,8 @@ describe.each(
 // dismiss mode (`isAnchoredInModalDialog`) — and, open, joins the overlay
 // stack. jsdom has no `:modal`, so the pseudo-class is answered from the `open`
 // attribute the showModal stub sets — without it the Popover would stay in
-// `auto` mode, where jsdom's no-op showPopover never closes anything, and these
-// tests would measure nothing.
+// `auto` mode, where nothing light-dismisses or fires `toggle` in jsdom, and
+// these tests would measure nothing.
 function answerModalFromOpenAttribute() {
   const matches = Element.prototype.matches;
   vi.spyOn(Element.prototype, 'matches').mockImplementation(function (

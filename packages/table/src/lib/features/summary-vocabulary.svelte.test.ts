@@ -82,10 +82,9 @@ function renderTable(props: Record<string, unknown>): { context: () => TableCont
 }
 
 // The filter-bar triggers carry their tool's name as `aria-label`
-// (MenuTrigger); the options live in a native popover, which jsdom has no top
-// layer for, hence `{ hidden: true }` — see the blocks-testing skill.
-const barButton = (name: string) => screen.getByRole('button', { name, hidden: true });
-const option = (name: string) => screen.getByRole('option', { name, hidden: true });
+// (MenuTrigger).
+const barButton = (name: string) => screen.getByRole('button', { name });
+const option = (name: string) => screen.getByRole('option', { name });
 
 describe('prefs hydration: a stored aggregation type outside the vocabulary', () => {
   it('drops the config and mounts a usable table instead of crashing (P1)', () => {
@@ -105,7 +104,7 @@ describe('prefs hydration: a stored aggregation type outside the vocabulary', ()
 
     // The mount survived and the grid is there. `getAllBy`: the responsive
     // table renders its rows twice (table + mobile card layout).
-    expect(screen.getByRole('table', { hidden: true })).toBeTruthy();
+    expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getAllByText('Ada').length).toBeGreaterThan(0);
     // The poisoned config was dropped, not hydrated.
     expect(context().state.summaryConfigs).toEqual([]);
@@ -203,7 +202,7 @@ describe('compound option values vs a column id containing ":"', () => {
     // The summary menu is a `role="menu"` since #240 — its rows are
     // menuitemradio, not listbox options.
     await user.click(barButton('Summary'));
-    await user.click(screen.getByRole('menuitemradio', { name: '∑ Sum', hidden: true }));
+    await user.click(screen.getByRole('menuitemradio', { name: '∑ Sum' }));
 
     // The id survived the round trip un-severed…
     expect(context().state.summaryConfigs).toEqual([{ column: 'metrics:revenue', type: 'sum' }]);
@@ -223,7 +222,7 @@ describe('compound option values vs a column id containing ":"', () => {
     await user.click(option('Revenue · Ascending'));
 
     expect(context().view.sort).toEqual({ column: 'metrics:revenue', direction: 'asc' });
-    const header = screen.getByRole('columnheader', { name: /Revenue/, hidden: true });
+    const header = screen.getByRole('columnheader', { name: /Revenue/ });
     expect(header.getAttribute('aria-sort')).toBe('ascending');
   });
 });

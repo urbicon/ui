@@ -1,6 +1,6 @@
 {
   "name": "urbicon-ui",
-  "version": "8.33.0",
+  "version": "8.34.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -40,7 +40,7 @@
       "@types/bun": "^1.4.3",
       "@biomejs/biome": "^2.6.2",
       "lefthook": "^2.2.2",
-      "jsdom": "30.1.1",
+      "jsdom": "^30.1.3",
       "@testing-library/dom": "^10.4.2",
       "@testing-library/user-event": "^14.6.8"
     }

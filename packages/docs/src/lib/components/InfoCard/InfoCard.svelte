@@ -2,7 +2,7 @@
   import { type InfoCardSlots, infoCardVariants } from './infocard.variants';
   import type { InfoCardProps } from './index.js';
   import { useDocsI18n } from '#lib/i18n/index.js';
-  import { resolveClassChain } from '@urbicon-ui/blocks';
+  import { headingTag, resolveClassChain } from '@urbicon-ui/blocks';
 
   const dt = useDocsI18n();
 
@@ -35,9 +35,7 @@
     return fns[name]({ class: slotClasses[name] });
   };
 
-  // Same clamp as Section and Note: an out-of-range level would emit `<h0>`,
-  // which is not a heading at all.
-  const tag = $derived(`h${Math.min(6, Math.max(1, headingLevel))}` as const);
+  const tag = $derived(headingTag(headingLevel));
 </script>
 
 {#snippet body()}

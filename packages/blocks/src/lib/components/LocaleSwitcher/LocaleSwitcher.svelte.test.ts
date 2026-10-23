@@ -14,10 +14,9 @@ import LocaleSwitcherHarness from './__fixtures__/LocaleSwitcherHarness.svelte';
 // glue. It needs a request-scoped i18n state (setLocale throws without a provider), so the test
 // mounts it under a provideI18n harness that hands the I18nState back (onReady) to prove the locale
 // actually moved — not just that the callback fired. Same stack as the Combobox pilot: svelte's own
-// mount/unmount, @testing-library/dom + user-event, native matchers. Select renders options in a
-// native popover with no top layer in jsdom, so they are queried with { hidden: true }. Options are
-// chosen by index (locale order is preserved) rather than by translated label, so the tests don't
-// couple to the language-name translation data.
+// mount/unmount, @testing-library/dom + user-event, native matchers. Options are chosen by index
+// (locale order is preserved) rather than by translated label, so the tests don't couple to the
+// language-name translation data.
 
 type HarnessState = Parameters<
   NonNullable<ComponentProps<typeof LocaleSwitcherHarness>['onReady']>
@@ -38,7 +37,7 @@ function renderSwitcher(props: Partial<ComponentProps<typeof LocaleSwitcherHarne
 }
 
 const trigger = () => screen.getByRole('combobox');
-const options = () => screen.getAllByRole('option', { hidden: true });
+const options = () => screen.getAllByRole('option');
 
 // Since the en-eager/de-lazy split, mounting under a non-base initialLocale kicks off the
 // de chunk load (provider mount effect) and LocaleSwitcher disables its trigger while

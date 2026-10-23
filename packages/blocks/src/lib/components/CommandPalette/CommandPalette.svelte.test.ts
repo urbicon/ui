@@ -17,10 +17,6 @@ import type { CommandPaletteHint, CommandPaletteItem, CommandPaletteProps } from
 // a written geometry contract (hero-review point 25b / S6). It is a component
 // now, and this is the DOM guard for that: a variants test cannot tell whether
 // the item's icon reaches an element.
-//
-// The palette renders inside a native popover/dialog, which jsdom has no top
-// layer for — queries pass `{ hidden: true }` and assert structure, not
-// visibility (that is Playwright's job).
 
 let dispose: (() => void) | undefined;
 
@@ -49,7 +45,7 @@ describe('CommandPalette (item icons)', () => {
     render({ items: withIcon });
     await tick();
 
-    const option = screen.getByRole('option', { name: /Search files/, hidden: true });
+    const option = screen.getByRole('option', { name: /Search files/ });
     const svg = option.querySelector('svg');
     expect(svg).not.toBeNull();
     // The slot's own sizing reaches the component through its `class` prop —
@@ -63,7 +59,7 @@ describe('CommandPalette (item icons)', () => {
 
     // Negative half: without it, a rule that always renders an icon would pass
     // the assertion above and still be wrong.
-    const option = screen.getByRole('option', { name: /No icon here/, hidden: true });
+    const option = screen.getByRole('option', { name: /No icon here/ });
     expect(option.querySelector('svg')).toBeNull();
   });
 });
@@ -77,7 +73,7 @@ const ROW_STATES: CommandPaletteItem[] = [
 
 /** Class tokens of one rendered option row. */
 function rowTokens(index: number): string[] {
-  const rows = screen.getAllByRole('option', { hidden: true });
+  const rows = screen.getAllByRole('option');
   const row = rows[index];
   if (!row) throw new Error(`no option row at ${index}; the palette rendered ${rows.length}`);
   return (row.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
@@ -154,7 +150,7 @@ const ROVING_ITEMS: CommandPaletteItem[] = [
 ];
 
 function paletteInput(): HTMLInputElement {
-  return screen.getByRole('combobox', { hidden: true }) as HTMLInputElement;
+  return screen.getByRole('combobox') as HTMLInputElement;
 }
 
 /** The results container, reached the way assistive tech reaches it: the input's `aria-controls`. */
@@ -185,7 +181,7 @@ function type(value: string) {
 
 /** Flat index of the highlighted row, -1 when no row is highlighted. */
 function highlighted(): number {
-  const rows = screen.getAllByRole('option', { hidden: true });
+  const rows = screen.getAllByRole('option');
   return rows.findIndex((row) => row.getAttribute('aria-selected') === 'true');
 }
 
@@ -322,7 +318,7 @@ describe('CommandPalette (keyboard navigation over disabled rows)', () => {
 
     expect(highlighted()).toBe(0);
     expect(
-      screen.getAllByRole('option', { hidden: true })[2].getAttribute('aria-disabled'),
+      screen.getAllByRole('option')[2].getAttribute('aria-disabled'),
       'the row is still disabled'
     ).toBe('true');
   });
@@ -418,7 +414,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     expect(drawn).not.toBeNull();
     expect(drawn?.parentElement).toBe(active);
     expect(active?.querySelector('[role="option"]')).toBeNull();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
   });
 
   it('moves the highlight when a custom row is hovered', async () => {
@@ -426,7 +422,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     await tick();
     expect(highlighted()).toBe(0);
 
-    screen.getAllByRole('option', { hidden: true })[1].dispatchEvent(new MouseEvent('mouseenter'));
+    screen.getAllByRole('option')[1].dispatchEvent(new MouseEvent('mouseenter'));
     flushSync();
 
     expect(highlighted()).toBe(1);
@@ -437,7 +433,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
     render({ items: ROW_STATES, customItem: customRow() });
     await tick();
 
-    screen.getAllByRole('option', { hidden: true })[2].dispatchEvent(new MouseEvent('mouseenter'));
+    screen.getAllByRole('option')[2].dispatchEvent(new MouseEvent('mouseenter'));
     flushSync();
 
     expect(highlighted()).toBe(0);
@@ -526,7 +522,7 @@ describe('CommandPalette (customItem draws content, not the container)', () => {
 describe('CommandPalette (restProps)', () => {
   const ITEMS: CommandPaletteItem[] = [{ id: 'a', label: 'Alpha' }];
   const dialog = () => document.querySelector('dialog') as HTMLDialogElement;
-  const search = () => screen.getByRole('combobox', { hidden: true });
+  const search = () => screen.getByRole('combobox');
 
   it('passes an unmodelled attribute through to the dialog', async () => {
     render({ items: ITEMS, 'data-testid': 'palette', 'aria-label': 'Command palette' });
@@ -611,7 +607,7 @@ describe('CommandPalette (onClosed)', () => {
     const onClosed = vi.fn();
     const { animations } = await openPalette({ onSelect, onClosed });
     try {
-      screen.getByRole('combobox', { hidden: true }).focus();
+      screen.getByRole('combobox').focus();
       await userEvent.setup().keyboard('{Enter}');
       expect(onSelect).toHaveBeenCalledOnce();
       expect(onClosed).not.toHaveBeenCalled();
@@ -943,7 +939,7 @@ describe('CommandPalette (info rows)', () => {
     render({ items: WITH_INFO });
     await tick();
 
-    const options = screen.getAllByRole('option', { hidden: true });
+    const options = screen.getAllByRole('option');
     expect(options.map((o) => o.textContent?.trim())).toEqual(['Alpha', 'Beta']);
     expect(paletteList().getAttribute('role')).toBe('listbox');
     expect(paletteInput().getAttribute('aria-expanded')).toBe('true');
@@ -1004,7 +1000,7 @@ describe('CommandPalette (info rows)', () => {
     render({ items: [{ id: 'i', label: 'Both', kind: 'info', disabled: true }, ...ROW_STATES] });
     await tick();
 
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    expect(screen.getAllByRole('option')).toHaveLength(3);
     expect(infoRows()[0].hasAttribute('aria-disabled')).toBe(false);
     expect(infoRows()[0].classList.contains('opacity-50')).toBe(false);
   });
@@ -1082,7 +1078,7 @@ describe('CommandPalette (info rows)', () => {
 
     type('beta');
     expect(activeIndex()).toBe(1);
-    expect(screen.getAllByRole('option', { hidden: true })[0].textContent?.trim()).toBe('Beta');
+    expect(screen.getAllByRole('option')[0].textContent?.trim()).toBe('Beta');
   });
 
   it('draws an info row through customItem, never highlighted, with a select that does nothing', async () => {
@@ -1115,8 +1111,7 @@ describe('CommandPalette (info rows)', () => {
     // The option the input's aria-activedescendant names carries the excerpt
     // in its accessible name; an info row is never that option.
     const option = screen.getByRole('option', {
-      name: /^Undo\s*Nothing to undo yet$/,
-      hidden: true
+      name: /^Undo\s*Nothing to undo yet$/
     });
     expect(option.id).toBe(paletteInput().getAttribute('aria-activedescendant'));
   });
@@ -1218,6 +1213,7 @@ describe('CommandPalette (two on one page)', () => {
       for (const instance of instances) unmount(instance);
     };
     flushSync();
+    // Taken before the dialogs' showModal() has run, so `hidden: true`.
     return screen.getAllByRole('combobox', { hidden: true }) as HTMLInputElement[];
   }
 
@@ -1367,8 +1363,7 @@ describe('CommandPalette (footer)', () => {
  * whose `id` repeats, or matches the label of a row without one, still renders.
  */
 describe('CommandPalette (row identity)', () => {
-  const optionLabels = () =>
-    screen.getAllByRole('option', { hidden: true }).map((row) => row.textContent?.trim());
+  const optionLabels = () => screen.getAllByRole('option').map((row) => row.textContent?.trim());
 
   it.each<[string, CommandPaletteItem[]]>([
     [
@@ -1392,7 +1387,7 @@ describe('CommandPalette (row identity)', () => {
   ])('renders %s', async (_, items) => {
     render({ items });
     await tick();
-    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
   });
 
   it.each<[string, CommandPaletteItem[]]>([
@@ -1419,11 +1414,11 @@ describe('CommandPalette (row identity)', () => {
   ])("keeps a row's node %s while the query filters the list", async (_, items) => {
     render({ items });
     await tick();
-    const beta = screen.getByRole('option', { name: 'Beta', hidden: true });
+    const beta = screen.getByRole('option', { name: 'Beta' });
 
     type('Beta');
 
     expect(optionLabels()).toEqual(['Beta']);
-    expect(screen.getByRole('option', { name: 'Beta', hidden: true })).toBe(beta);
+    expect(screen.getByRole('option', { name: 'Beta' })).toBe(beta);
   });
 });

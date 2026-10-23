@@ -1,3 +1,5 @@
+import '../../scripts/vitest-popover';
+
 // Global vitest setup for @urbicon-ui/table.
 //
 // Mirrors `packages/blocks/vitest-setup.ts` — same reasoning, smaller surface: the table
@@ -37,13 +39,9 @@ if (typeof window !== 'undefined') {
     } as unknown as typeof IntersectionObserver;
   }
 
-  // Header menu / column visibility / filter panels render in the native top layer,
-  // which jsdom has no concept of. Content still renders from the component's `open`
-  // state, so the items are in the DOM and queryable with `{ hidden: true }`.
-  if (!HTMLElement.prototype.showPopover) {
-    HTMLElement.prototype.showPopover = () => {};
-    HTMLElement.prototype.hidePopover = () => {};
-  }
+  // Header menu / column visibility / filter panels render in the native top layer: the
+  // Popover API is installed by `scripts/vitest-popover.ts` (imported at the top), the
+  // one implementation for blocks and table.
 
   // The narrow bar's tools sheet is a `Drawer`, i.e. a native modal `<dialog>`
   // that enters the top layer through `showModal()` — which jsdom does not

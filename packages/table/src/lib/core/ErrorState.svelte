@@ -7,6 +7,7 @@
   } from '#lib/variants/index.js';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import {
+    headingTag,
     resolveIcon,
     ChevronDownIcon as ChevronDownIconDefault,
     DangerCircleIcon as DangerCircleIconDefault,
@@ -21,6 +22,8 @@
 
   export type ErrorStateProps = {
     title?: string;
+    /** Heading level of the title, clamped to 1..6. @default 3 */
+    headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
     message?: string;
     details?: string;
     retryText?: string;
@@ -33,6 +36,7 @@
 
   let {
     title = tt('error.loadingError'),
+    headingLevel = 3,
     message = tt('error.genericMessage'),
     details = undefined,
     retryText = tt('error.retry'),
@@ -94,9 +98,9 @@
       </div>
 
       <div class={styles.content()}>
-        <h3 class={styles.title()}>
+        <svelte:element this={headingTag(headingLevel)} class={styles.title()}>
           {title}
-        </h3>
+        </svelte:element>
 
         <p class={styles.message()}>
           {message}

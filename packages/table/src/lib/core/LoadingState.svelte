@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useTableI18n } from '../i18n';
-  import { Spinner } from '@urbicon-ui/blocks';
+  import { headingTag, Spinner } from '@urbicon-ui/blocks';
   import {
     loadingStateVariants,
     tableRowVariants,
@@ -12,6 +12,8 @@
 
   export type LoadingStateProps = {
     text?: string;
+    /** Heading level of the text, clamped to 1..6. @default 3 */
+    headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
     description?: string;
     showSpinner?: boolean;
     colSpan?: number;
@@ -23,6 +25,7 @@
 
   let {
     text = undefined,
+    headingLevel = 3,
     description = undefined,
     showSpinner = true,
     colSpan = 1,
@@ -65,9 +68,9 @@
       {/if}
 
       <div class={styles.content()}>
-        <h3 class={styles.text()}>
+        <svelte:element this={headingTag(headingLevel)} class={styles.text()}>
           {displayText}
-        </h3>
+        </svelte:element>
 
         {#if description}
           <p class={styles.description()}>

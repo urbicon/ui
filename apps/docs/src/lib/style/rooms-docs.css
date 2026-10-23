@@ -707,14 +707,25 @@
 /* Three levels, three jobs: the section names the topic, the example labels an
  * exhibit, the body carries the argument. The example label sits *below* body
  * weight on purpose — before this it was 16px bold under a full-width rule and
- * read as a second section heading. */
-.docs-rooms #main-content section:not(#playground) h2 {
+ * read as a second section heading.
+ *
+ * Demo markup is out of reach: a stage frame or a landing specimen shows a
+ * component as it ships, and a rule keyed on the tag would restyle whatever
+ * heading rank the demo's component was given. The CodeExample label sits
+ * outside its frame, so it keeps this type. */
+.docs-rooms
+  #main-content
+  section:not(#playground)
+  h2:not([data-docs-stage-frame] *, [data-specimen] *) {
   font-size: 1.375rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.docs-rooms #main-content section:not(#playground) h3 {
+.docs-rooms
+  #main-content
+  section:not(#playground)
+  h3:not([data-docs-stage-frame] *, [data-specimen] *) {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--docs-soft);
