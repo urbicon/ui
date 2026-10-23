@@ -60,12 +60,15 @@ describe('Menu (component interaction)', () => {
     });
 
     await user.click(trigger());
+    const panel = document.querySelector('[popover]') as HTMLElement;
     await user.click(item('Edit'));
 
     expect(onEdit).toHaveBeenCalledOnce();
     // Default activation closes the menu (keepOpen unset).
     expect(expanded()).toBe('false');
     expect(screen.queryByRole('menuitem', { hidden: true })).toBeNull();
+    // The popover element outlives the close, so it has to leave the top layer as well.
+    expect(panel.matches(':popover-open'), ':popover-open after close').toBe(false);
   });
 
   it('keeps the menu open after activating a keepOpen item', async () => {

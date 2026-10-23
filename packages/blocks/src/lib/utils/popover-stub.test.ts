@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
+// The setup already installs the stub; this import is what puts `scripts/vitest-popover.ts` under
+// blocks' svelte-check — no tsconfig includes the root `scripts/`.
+import '../../../../../scripts/vitest-popover';
 
 /**
  * The suite's Popover API is the shared stub in `scripts/vitest-popover.ts`. jsdom keeps every

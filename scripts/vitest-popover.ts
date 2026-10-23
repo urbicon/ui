@@ -26,7 +26,10 @@
 //   engine, never these methods — which is why the cascade needs a rule of its own.
 //
 // Show/hide fire no `beforetoggle`/`toggle` events and never throw, and `showPopover()` on an
-// element without the `popover` attribute shows nothing.
+// element without the `popover` attribute shows nothing. Unlike a browser, the stub keeps a panel
+// open across a `popover` attribute change, a move or a detach (and opens a detached one), never
+// closes other `auto` popovers, and rewrites `:popover-open` as text — inside an attribute value
+// too, and never an escaped or upper-case spelling.
 const SHOWN = 'data-vitest-popover-open';
 const OPEN_SELECTOR = `[popover][${SHOWN}]`;
 const OPEN_RULE = `${OPEN_SELECTOR}:not(dialog[open]) { display: block; }`;

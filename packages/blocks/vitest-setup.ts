@@ -5,9 +5,8 @@ import '../../scripts/vitest-popover';
 //
 // jsdom omits several layout/overlay APIs that the primitives call while mounted (there is no real
 // layout or top layer). Stub the ones our components touch so a mounted component doesn't crash on
-// them; the components drive their open/visible state from reactive `state`, not these APIs, so
-// no-ops are enough for interaction tests. Guarded on `window` so the node-environment tests that
-// share this setup file skip the block entirely.
+// them. Guarded on `window` so the node-environment tests that share this setup file skip the block
+// entirely.
 //
 // Assertions use vitest's own matchers (toBe, toBeNull, document.activeElement, getAttribute, …)
 // rather than @testing-library/jest-dom: jest-dom 6's expect augmentation does not compose cleanly
