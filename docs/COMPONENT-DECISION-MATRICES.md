@@ -208,8 +208,9 @@ the right abstraction only when no scrim exists.
   top-layer rendering, including the UA-stylesheet pitfalls (overflow:auto clipping the arrow, restProps
   reordering for load-bearing attributes, `Number.isFinite` guards on Floating UI output).
 - **Popover dismiss-API** (`packages/blocks/src/lib/primitives/Popover/Popover.svelte`) — derived
-  `popoverMode` (auto/manual) with re-cycle on mode flip, capture-phase pointerdown listener but
-  bubble-phase Escape listener so inner widgets can preventDefault.
+  `popoverMode` (auto/manual), re-shown when a flip while open makes the browser hide it,
+  capture-phase pointerdown listener but bubble-phase Escape listener so inner widgets can
+  preventDefault.
 
 ### Focus-restoration policy (non-modal)
 

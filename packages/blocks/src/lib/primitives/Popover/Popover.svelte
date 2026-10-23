@@ -124,7 +124,7 @@
   // `$effect.pre` matters: the flag must be `true` in the SAME flush that
   // renders `open === false`, otherwise the children unmount one frame before
   // the lag starts. The `prevOpenForExit` tracker (non-reactive, seeded via
-  // `untrack` like `prevPopoverMode` below) keeps the effect keyed on real
+  // `untrack` like `prevPopoverAttribute` below) keeps the effect keyed on real
   // transitions — without it, the `bind:this` assignment would re-run the
   // effect on mount and flash a closed-by-default popover open for one lag.
   const EXIT_MOTION_BUFFER_MS = 50;
@@ -406,28 +406,50 @@
     return () => document.removeEventListener('pointerdown', handlePointerDown, true);
   });
 
-  // ── Mode-change re-cycle ───────────────────────────────────
+  // ── Mode change while open ─────────────────────────────────
   //
-  // The browser binds a popover's dismiss semantics (Escape / light
-  // dismiss / focus restoration) at `showPopover()` time based on the
-  // `popover` attribute value AT THAT MOMENT. Changing the attribute
-  // afterward updates the DOM but does NOT rebind the semantics — the
-  // browser keeps routing Escape natively even though we switched to
-  // `popover="manual"`. To pick up the new mode while the popover is
-  // open, hide + re-show.
-  // `prevPopoverMode` is a non-reactive tracker — we deliberately want the
-  // *previous* value of `popoverMode`, not the current one, so we seed it
-  // via `untrack` and update it manually inside the effect.
-  let prevPopoverMode: 'auto' | 'manual' = untrack(() => popoverMode);
+  // Writing `popover="manual"` over `"auto"` (or back) on a showing panel makes
+  // the browser hide it: the attribute-change steps run the hide-popover
+  // algorithm, and a panel that was shown as `auto` hands focus back to the
+  // element focused before it opened. `open` is unchanged, so the panel is
+  // shown again under the new value and focus put back where it was. The
+  // re-show runs in the same flush as the template's attribute write, so no
+  // frame paints the hidden panel, and the browser folds the hide's queued
+  // `toggle` and the show's into one `open → open`, which the toggle handler
+  // does not read as a dismiss. The focused element has to be read before the
+  // write — hence the `$effect.pre`. A change to `null` takes the panel out of
+  // the top layer on purpose: it renders in place from then on.
+  const popoverAttribute = $derived(panel.topLayer ? popoverMode : null);
+  let prevPopoverAttribute = untrack(() => popoverAttribute);
+  let focusedBeforeAttributeChange: HTMLElement | null = null;
+  $effect.pre(() => {
+    if (popoverAttribute === prevPopoverAttribute) return;
+    const active = document.activeElement;
+    focusedBeforeAttributeChange =
+      active instanceof HTMLElement && untrack(() => popoverElement)?.contains(active)
+        ? active
+        : null;
+  });
   $effect(() => {
-    if (popoverMode === prevPopoverMode) return;
-    prevPopoverMode = popoverMode;
-    if (!open || !popoverElement?.matches(':popover-open')) return;
+    if (popoverAttribute === prevPopoverAttribute) return;
+    prevPopoverAttribute = popoverAttribute;
+    const refocus = focusedBeforeAttributeChange;
+    focusedBeforeAttributeChange = null;
+    if (popoverAttribute === null || !open || !popoverElement) return;
+    if (popoverElement.matches(':popover-open')) return;
     try {
-      popoverElement.hidePopover();
       popoverElement.showPopover();
     } catch (err) {
-      console.warn('[Popover] re-cycle on mode change failed', err);
+      console.warn('[Popover] showPopover after a mode change failed', err);
+      return;
+    }
+    if (refocus && document.activeElement !== refocus) refocus.focus({ preventScroll: true });
+    // Firefox has already computed the hidden panel at this point (the focus
+    // hand-back forces a style update), so the show replays the enter
+    // transition from its `@starting-style` and the panel blinks to
+    // transparent; finishing that transition paints the shown state instead.
+    for (const animation of popoverElement.getAnimations()) {
+      if (animation instanceof CSSTransition) animation.finish();
     }
   });
 
@@ -576,7 +598,7 @@
     class={popoverClasses}
     {...restProps}
     onkeydown={composeHandlers(handleEscapeKeydown, onkeydownProp)}
-    popover={panel.topLayer ? popoverMode : null}
+    popover={popoverAttribute}
     style={style || null}
     style:position={panel.strategy}
     style:inset="auto"
