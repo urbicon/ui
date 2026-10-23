@@ -9,6 +9,6 @@
   <title>Artifact Studio</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-surface-base text-text-primary">
+<div class="bg-surface-base text-text-primary min-h-dvh">
   {@render children()}
 </div>

@@ -8,30 +8,30 @@ Mandatory best practices for the Urbicon UI codebase. This file is the detailed 
 
 ## Anti-Patterns (do NOT do)
 
-| Pattern                                                                                                                           | Replacement                                                          | Severity |
-| --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------- |
-| `$:` reactive blocks                                                                                                              | `$derived` / `$effect`                                               | 🔴       |
-| `export let foo`                                                                                                                  | `let { foo } = $props()`                                             | 🔴       |
-| `$$props` / `$$restProps`                                                                                                         | `let { ...rest } = $props()`                                         | 🔴       |
-| `on:click={handler}`                                                                                                              | `onclick={handler}`                                                  | 🔴       |
-| `Math.random()` for IDs                                                                                                           | `$props.id()` (see below)                                            | 🔴       |
-| `<slot />` / `$$slots` / `<svelte:fragment>`                                                                                      | `{@render children()}` + snippets                                    | 🟠       |
-| Stores from `svelte/store` for component state                                                                                    | `class { … = $state(...) }`                                          | 🟠       |
-| `setContext('string', …)` (≥ 5.40)                                                                                                | `createContext<T>()`                                                 | 🟠       |
-| `$state(new Map())` / `$state(new Set())`                                                                                         | `new SvelteMap(...)` / `new SvelteSet(...)` from `svelte/reactivity` | 🟠       |
-| Index as key in `{#each}`                                                                                                        | Stable unique key (ID, ISO date, slug)                              | 🟠       |
-| State sync via `$effect` (`foo = bar` inside the effect)                                                                          | `$derived` — **including when the value has other writers**, see below | 🟠       |
-| `bind:this` + `$effect` only to decorate/measure an element                                                                       | `{@attach …}` — no ref, no null guard, teardown built in            | 🟠       |
-| `$effect` to observe an external source (listener, observer, socket)                                                              | `createSubscriber` from `svelte/reactivity`                          | 🟠       |
-| `if (browser)` inside `$effect`                                                                                                   | `$effect` runs client-only — the guard is redundant                 | 🟠       |
-| `<svelte:component this={X}>`                                                                                                     | `<X />` (Svelte 5 allows dynamic components directly)               | 🟡       |
-| `<svelte:self>`                                                                                                                   | `import Self from './ThisComponent.svelte'`                          | 🟡       |
-| `use:action`                                                                                                                      | `{@attach …}`                                                        | 🟡       |
-| `class:foo={bar}`                                                                                                                 | Array/object in `class={[...]}`                                      | 🟡       |
-| `onMount + addEventListener('window', …)`                                                                                         | `<svelte:window onkeydown={…}>`                                      | 🟡       |
-| `onMount + matchMedia(…)`                                                                                                         | `new MediaQuery('(...)')` from `svelte/reactivity`                   | 🟡       |
-| `console.log($state(...))`                                                                                                        | `$inspect(...)` or `$state.snapshot(...)`                            | 🟡       |
-| Late-init singleton (`export const x = new ReactiveClass()`) dereferenced from another module at **module eval** time            | Side effect on first use + hoisted lazy getter (see below)          | 🟠       |
+| Pattern                                                                                                               | Replacement                                                            | Severity |
+| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
+| `$:` reactive blocks                                                                                                  | `$derived` / `$effect`                                                 | 🔴       |
+| `export let foo`                                                                                                      | `let { foo } = $props()`                                               | 🔴       |
+| `$$props` / `$$restProps`                                                                                             | `let { ...rest } = $props()`                                           | 🔴       |
+| `on:click={handler}`                                                                                                  | `onclick={handler}`                                                    | 🔴       |
+| `Math.random()` for IDs                                                                                               | `$props.id()` (see below)                                              | 🔴       |
+| `<slot />` / `$$slots` / `<svelte:fragment>`                                                                          | `{@render children()}` + snippets                                      | 🟠       |
+| Stores from `svelte/store` for component state                                                                        | `class { … = $state(...) }`                                            | 🟠       |
+| `setContext('string', …)` (≥ 5.40)                                                                                    | `createContext<T>()`                                                   | 🟠       |
+| `$state(new Map())` / `$state(new Set())`                                                                             | `new SvelteMap(...)` / `new SvelteSet(...)` from `svelte/reactivity`   | 🟠       |
+| Index as key in `{#each}`                                                                                             | Stable unique key (ID, ISO date, slug)                                 | 🟠       |
+| State sync via `$effect` (`foo = bar` inside the effect)                                                              | `$derived` — **including when the value has other writers**, see below | 🟠       |
+| `bind:this` + `$effect` only to decorate/measure an element                                                           | `{@attach …}` — no ref, no null guard, teardown built in               | 🟠       |
+| `$effect` to observe an external source (listener, observer, socket)                                                  | `createSubscriber` from `svelte/reactivity`                            | 🟠       |
+| `if (browser)` inside `$effect`                                                                                       | `$effect` runs client-only — the guard is redundant                    | 🟠       |
+| `<svelte:component this={X}>`                                                                                         | `<X />` (Svelte 5 allows dynamic components directly)                  | 🟡       |
+| `<svelte:self>`                                                                                                       | `import Self from './ThisComponent.svelte'`                            | 🟡       |
+| `use:action`                                                                                                          | `{@attach …}`                                                          | 🟡       |
+| `class:foo={bar}`                                                                                                     | Array/object in `class={[...]}`                                        | 🟡       |
+| `onMount + addEventListener('window', …)`                                                                             | `<svelte:window onkeydown={…}>`                                        | 🟡       |
+| `onMount + matchMedia(…)`                                                                                             | `new MediaQuery('(...)')` from `svelte/reactivity`                     | 🟡       |
+| `console.log($state(...))`                                                                                            | `$inspect(...)` or `$state.snapshot(...)`                              | 🟡       |
+| Late-init singleton (`export const x = new ReactiveClass()`) dereferenced from another module at **module eval** time | Side effect on first use + hoisted lazy getter (see below)             | 🟠       |
 
 ## Positive Patterns (do!)
 
@@ -67,14 +67,14 @@ Never use `Math.random()`, `Date.now()`, or a module-global `let counter = 0` fo
 
 ### Reactive collections from `svelte/reactivity`
 
-| Instead of                         | Use                                                                                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `$state(new Map())`                | `import { SvelteMap } from 'svelte/reactivity'; new SvelteMap()`                                                                      |
-| `$state(new Set())`                | `import { SvelteSet } from 'svelte/reactivity'; new SvelteSet()`                                                                      |
-| `$state(new Date())`               | `import { SvelteDate } from 'svelte/reactivity'; new SvelteDate()`                                                                    |
-| `$state(new URL(...))`             | `import { SvelteURL } from 'svelte/reactivity'; new SvelteURL(...)`                                                                   |
-| `onMount + matchMedia(...)`        | `import { MediaQuery } from 'svelte/reactivity'; new MediaQuery('(max-width: 1023px)')` — `query.current` is a reactive `boolean`     |
-| `onMount + window-resize-listener` | `import { innerWidth, innerHeight } from 'svelte/reactivity/window'`                                                                  |
+| Instead of                         | Use                                                                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `$state(new Map())`                | `import { SvelteMap } from 'svelte/reactivity'; new SvelteMap()`                                                                  |
+| `$state(new Set())`                | `import { SvelteSet } from 'svelte/reactivity'; new SvelteSet()`                                                                  |
+| `$state(new Date())`               | `import { SvelteDate } from 'svelte/reactivity'; new SvelteDate()`                                                                |
+| `$state(new URL(...))`             | `import { SvelteURL } from 'svelte/reactivity'; new SvelteURL(...)`                                                               |
+| `onMount + matchMedia(...)`        | `import { MediaQuery } from 'svelte/reactivity'; new MediaQuery('(max-width: 1023px)')` — `query.current` is a reactive `boolean` |
+| `onMount + window-resize-listener` | `import { innerWidth, innerHeight } from 'svelte/reactivity/window'`                                                              |
 
 Role models in the repo: `Tab.svelte` (`SvelteMap`), `Calendar.svelte` (`SvelteMap`), `Sidebar.svelte` + `Pagination.svelte` (`MediaQuery`, instance-local — deliberately chosen over the module-global `svelte/reactivity/window`).
 
@@ -220,7 +220,7 @@ An `$effect` that only exists to decorate or measure an element — `bind:this`,
 
 Deriveds have been **overridable since 5.25** ([docs](https://svelte.dev/docs/svelte/$derived#Overriding-derived-values)), which is what makes them work even where a second writer exists. Assigning to a derived holds until one of its dependencies changes — then it re-seeds. That is exactly the semantics of "the prop seeds it, local interaction then owns it".
 
-**That lifetime only exists under client codegen.** Measured in a controlled matrix (2026-08-20, Svelte 5.56.10 — [sveltejs/svelte#18681](https://github.com/sveltejs/svelte/issues/18681), repro linked there): under **server codegen** a reassigned derived is never evaluated again — the override survives every dependency change, permanently. Client codegen honours the documented discard in every context (owned and unowned, flat and chained; the per-read re-evaluation of [#15934](https://github.com/sveltejs/svelte/issues/15934)/[#15414](https://github.com/sveltejs/svelte/issues/15414) does not break it). The sharp edges: a universal `.svelte.ts` store silently has *two override semantics* — client vs. SSR — and test setups fall into the server world unnoticed (Vitest `environment: 'node'` = server codegen; jsdom **without** `resolve.conditions: ['browser']` = client codegen but the server `svelte` entry, where `flushSync` and `$effect.root` are silent no-ops). **Rule:** a store that also runs under server codegen (anything that SSRs, or is tested in node) must not rely on the built-in discard for an override lifetime — especially when two states seed the *same value*, where value-based invalidation has nothing to discard on. Make the lifetime explicit instead: memoise a seed box per (epoch, seed-value) episode in a plain closure and bind the override to the box identity with `$state.raw` — see the role model below, whose comments record the two measured traps (deep `$state` proxies the box so identity comparison always fails; an unmemoised box derived dies per unowned read).
+**That lifetime only exists under client codegen.** Measured in a controlled matrix (2026-08-20, Svelte 5.56.10 — [sveltejs/svelte#18681](https://github.com/sveltejs/svelte/issues/18681), repro linked there): under **server codegen** a reassigned derived is never evaluated again — the override survives every dependency change, permanently. Client codegen honours the documented discard in every context (owned and unowned, flat and chained; the per-read re-evaluation of [#15934](https://github.com/sveltejs/svelte/issues/15934)/[#15414](https://github.com/sveltejs/svelte/issues/15414) does not break it). The sharp edges: a universal `.svelte.ts` store silently has _two override semantics_ — client vs. SSR — and test setups fall into the server world unnoticed (Vitest `environment: 'node'` = server codegen; jsdom **without** `resolve.conditions: ['browser']` = client codegen but the server `svelte` entry, where `flushSync` and `$effect.root` are silent no-ops). **Rule:** a store that also runs under server codegen (anything that SSRs, or is tested in node) must not rely on the built-in discard for an override lifetime — especially when two states seed the _same value_, where value-based invalidation has nothing to discard on. Make the lifetime explicit instead: memoise a seed box per (epoch, seed-value) episode in a plain closure and bind the override to the box identity with `$state.raw` — see the role model below, whose comments record the two measured traps (deep `$state` proxies the box so identity comparison always fails; an unmemoised box derived dies per unowned read).
 
 **1. Plain mirror — no other writer:**
 
@@ -254,7 +254,7 @@ $effect(() => { void query; selectedIndex = 0; });
 let selectedIndex = $derived.by(() => { query; return 0; });
 ```
 
-**4. The value lives in a shared store.** A `$state({ … })` bucket **cannot hold a derivation** — that, not carelessness, is why a provider ends up mirroring every prop in an effect. Hand the store getters instead of values; a getter inside a `$state` literal stays reactive *and* is visible during SSR:
+**4. The value lives in a shared store.** A `$state({ … })` bucket **cannot hold a derivation** — that, not carelessness, is why a provider ends up mirroring every prop in an effect. Hand the store getters instead of values; a getter inside a `$state` literal stays reactive _and_ is visible during SSR:
 
 ```ts
 // ❌ the bucket must be filled from outside, so it needs ~14 effects
@@ -262,8 +262,12 @@ const state = $state({ mode: 'client', selectionMode: 'none' });
 
 // ✅ nothing to fill
 const state = $state({
-  get mode() { return props.mode; },
-  get selectionMode() { return props.selectionMode; }
+  get mode() {
+    return props.mode;
+  },
+  get selectionMode() {
+    return props.selectionMode;
+  }
 });
 ```
 
@@ -342,16 +346,16 @@ rg "\(\s*i\s*\)\s*\}" packages/ -t svelte
 
 ## Role models in the repo
 
-| Pattern                                                                   | Role-model file                                                          |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Class with a `$state` field + **lazily consumed** singleton + `untrack`   | `packages/blocks/src/lib/utils/overlay-stack.svelte.ts`                   |
-| Registration on first use, never at module eval                           | `packages/i18n/src/lib/i18n/package-integration.ts` (`createPackageI18n`) |
-| Hoisted lazy getter (defers the `new`; not enough alone at module eval)   | `packages/i18n/src/lib/i18n/registry.svelte.ts` (`getRegistry()`)         |
-| `createContext<T>()` for compounds                                        | `packages/blocks/src/lib/primitives/Tab/tab.context.ts`                   |
-| `SvelteMap` + reactive `$effect`                                          | `packages/blocks/src/lib/primitives/Tab/Tab.svelte`                       |
-| `MediaQuery` from `svelte/reactivity` (instance-local, deliberately over `svelte/reactivity/window`) | `Sidebar/Sidebar.svelte`, `Pagination/Pagination.svelte`               |
-| Generic component                                                         | `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`             |
-| Attachment factory instead of `bind:this` + `$effect`                     | `packages/blocks/src/lib/mint/svelte.ts` (`mintAttachment`)              |
-| `createSubscriber` for an external event source                           | `packages/docs/src/lib/stores/scroll-spy.svelte.ts`                       |
-| Explicit override lifetime for a server-writable slot (owned/unowned/SSR-consistent) | `packages/table/src/lib/stores/TableStore.svelte.ts` (`createServerSlot`) |
-| `$props.id()` two-step pattern                                           | every primitive with an `id` prop (e.g. `Checkbox`, `RadioItem`, `FormField`) |
+| Pattern                                                                                              | Role-model file                                                               |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Class with a `$state` field + **lazily consumed** singleton + `untrack`                              | `packages/blocks/src/lib/utils/overlay-stack.svelte.ts`                       |
+| Registration on first use, never at module eval                                                      | `packages/i18n/src/lib/i18n/package-integration.ts` (`createPackageI18n`)     |
+| Hoisted lazy getter (defers the `new`; not enough alone at module eval)                              | `packages/i18n/src/lib/i18n/registry.svelte.ts` (`getRegistry()`)             |
+| `createContext<T>()` for compounds                                                                   | `packages/blocks/src/lib/primitives/Tab/tab.context.ts`                       |
+| `SvelteMap` + reactive `$effect`                                                                     | `packages/blocks/src/lib/primitives/Tab/Tab.svelte`                           |
+| `MediaQuery` from `svelte/reactivity` (instance-local, deliberately over `svelte/reactivity/window`) | `Sidebar/Sidebar.svelte`, `Pagination/Pagination.svelte`                      |
+| Generic component                                                                                    | `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`                 |
+| Attachment factory instead of `bind:this` + `$effect`                                                | `packages/blocks/src/lib/mint/svelte.ts` (`mintAttachment`)                   |
+| `createSubscriber` for an external event source                                                      | `packages/docs/src/lib/stores/scroll-spy.svelte.ts`                           |
+| Explicit override lifetime for a server-writable slot (owned/unowned/SSR-consistent)                 | `packages/table/src/lib/stores/TableStore.svelte.ts` (`createServerSlot`)     |
+| `$props.id()` two-step pattern                                                                       | every primitive with an `id` prop (e.g. `Checkbox`, `RadioItem`, `FormField`) |

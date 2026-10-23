@@ -59,7 +59,7 @@ yet justified.
 
 ## `import.meta.env?.DEV` instead of `esm-env`
 
-The library build emits a `@sveltejs/package` advisory: *"Avoid usage of `import.meta.env`"*.
+The library build emits a `@sveltejs/package` advisory: _"Avoid usage of `import.meta.env`"_.
 It is intentional and harmless.
 
 `blocks` uses optional-chained `import.meta.env?.DEV` (safe in non-Vite consumers) rather
@@ -168,12 +168,12 @@ the Guide — are placed by `packages/blocks/src/lib/utils/floating.ts`, a zero-
 `computePosition` with middleware and `autoUpdate`. Two platform features would replace parts
 of it and are held back:
 
-- **CSS Anchor Positioning** is Baseline only as *newly* available. Browsers without it are
+- **CSS Anchor Positioning** is Baseline only as _newly_ available. Browsers without it are
   still in use, so the JS path would have to stay beside it — adopting it now adds a second
   positioning path instead of removing one.
 - **`popover="hint"`** for Tooltip is blocked by Safari, which does not ship it.
 
-**Revisit only if:** Anchor Positioning is Baseline *widely* available (then replace, do not
+**Revisit only if:** Anchor Positioning is Baseline _widely_ available (then replace, do not
 add), or Safari ships `popover="hint"` (then Tooltip migrates).
 
 ## The MCP server was retired
@@ -185,7 +185,7 @@ endpoint, and no local-install consumer path was documented.
 
 It was **retired** (#500, decided 2026-09-24): next to the CLI, which is the consumer surface,
 it had no use case of its own. The CLI serves the knowledge of the version a project
-installed, where the remote served *latest*, and it does what a stateless remote server
+installed, where the remote served _latest_, and it does what a stateless remote server
 structurally cannot — read and write the project's `design.manifest.md`, and tell an
 importable component from one whose package is not installed. The engine and the content
 bundle stay, behind the CLI.
@@ -205,7 +205,7 @@ Before the split, a single job carried `NPM_TOKEN` in its job-level `env`, which
 scope for `bun install` and every transitive `postinstall`.
 
 Authentication is npm **trusted publishing** (OIDC), so there is no long-lived token: the job
-mints a short-lived credential bound to this repository *and* this workflow file, useless
+mints a short-lived credential bound to this repository _and_ this workflow file, useless
 anywhere else. It needs `id-token: write`, npm ≥ 11.5.1, Node ≥ 22.14, and a trusted publisher
 configured per package on npmjs.com. Provenance attestations are automatic — the
 `--provenance` flag is not needed. The surviving `NPM_TOKEN` fallback is dead weight kept as
@@ -270,7 +270,7 @@ table server-renderable: the URL binding applies synchronously at init, storage 
 hydration.
 
 **Known consequence:** combining the two needs a rule about who wins, and v8 spends exactly
-one — precedence comes from *phases*, not from registration order. Defaults → URL (at init) →
+one — precedence comes from _phases_, not from registration order. Defaults → URL (at init) →
 storage (after hydration); at runtime only the URL applies, storage only writes, and an axis
 is stored when its last change came from the reader, which is what keeps someone else's link
 out of storage. v7 needed two mechanisms for this (presence-based reads, prop-wiring-based
@@ -329,7 +329,7 @@ A two-day spike (local branch `experiment/domain-projection`, tip `9b8afdb6`, ne
 AI-driven meta-system that projects a consumer's domain model onto the library, keeping
 changes cheap as that model evolves, is worth building. **Decision: no round-trip/codegen
 tool.** Determinism belongs in verification — drift linters, types, `urbicon validate` as
-gates — not in generation; the AI sits at the upper seam as the *executor* of changes, never
+gates — not in generation; the AI sits at the upper seam as the _executor_ of changes, never
 as a generator whose output then has to be kept in sync with hand edits.
 
 A UI's skeleton falls out almost entirely from the schema (Drizzle + Zod); the value that is

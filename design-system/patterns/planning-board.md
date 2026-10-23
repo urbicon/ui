@@ -12,16 +12,16 @@ Date-indexed board that lays domain items — meals, shifts, bookings, content s
 
 ## Component Selection
 
-| UI Need | Component | Configuration |
-|---|---|---|
-| The board itself | `Planner` | `view`, `items`, `getDate`; `sort` for intra-day order |
-| Per-day content | `cell` snippet | Receives typed `items: T[]`, `isoDate`, `isToday`, `selectDate()` |
-| An item card | `Card` or a plain `div` | One per item, kept to a line or two |
-| Item category / status | `Badge` | `intent` per category (`success`/`warning`/`primary`…) |
-| Add-on-a-day affordance | `Button variant="ghost" size="sm"` | Inside `cell` — rendered for empty days too |
-| Empty-day placeholder | `empty` snippet | Optional; omit it to let `cell` handle empty days |
-| Custom toolbar | `header` snippet | Replaces prev/next/today/title |
-| Timed appointments instead | `Calendar` | Use Calendar, not Planner, when items have a clock time |
+| UI Need                    | Component                          | Configuration                                                     |
+| -------------------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| The board itself           | `Planner`                          | `view`, `items`, `getDate`; `sort` for intra-day order            |
+| Per-day content            | `cell` snippet                     | Receives typed `items: T[]`, `isoDate`, `isToday`, `selectDate()` |
+| An item card               | `Card` or a plain `div`            | One per item, kept to a line or two                               |
+| Item category / status     | `Badge`                            | `intent` per category (`success`/`warning`/`primary`…)            |
+| Add-on-a-day affordance    | `Button variant="ghost" size="sm"` | Inside `cell` — rendered for empty days too                       |
+| Empty-day placeholder      | `empty` snippet                    | Optional; omit it to let `cell` handle empty days                 |
+| Custom toolbar             | `header` snippet                   | Replaces prev/next/today/title                                    |
+| Timed appointments instead | `Calendar`                         | Use Calendar, not Planner, when items have a clock time           |
 
 ## Behavioral Rules
 

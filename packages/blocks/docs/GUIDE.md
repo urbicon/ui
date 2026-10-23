@@ -1,7 +1,7 @@
 # Guide System
 
 The **`Guide`** component family is a bidirectional in-app help system: a non-modal help
-panel, contextual hints, UI↔guide links, and an opt-in guided tour — all over *one* headless
+panel, contextual hints, UI↔guide links, and an opt-in guided tour — all over _one_ headless
 engine. Shipped in **v5.8.0**, stability **beta**. Lives on `@urbicon-ui/blocks` (no separate
 package).
 
@@ -16,14 +16,14 @@ restated in place.
 ## 1. What it is
 
 `Guide` is the library's first **sequential, system-driven** overlay pattern. Every other
-overlay (Tooltip, Popover, Dialog, Menu) is *spatial and event-driven* — the user clicks,
-something appears *there*. `Guide` inverts that: the system decides *when*, *in what order*,
-and *in which mode* help appears.
+overlay (Tooltip, Popover, Dialog, Menu) is _spatial and event-driven_ — the user clicks,
+something appears _there_. `Guide` inverts that: the system decides _when_, _in what order_,
+and _in which mode_ help appears.
 
 The value is **not** the tour mechanic (product tours are rightly distrusted) but three design
 principles:
 
-1. **Helpful, not intrusive.** The defaults are the *callable* help panel and the *waiting*
+1. **Helpful, not intrusive.** The defaults are the _callable_ help panel and the _waiting_
    hint — not a modal forced tour. The scrim-modal guided tour is the most aggressive mode and
    stays **opt-in**.
 2. **One shared namespace.** Every UI spot with a help identity carries `data-guide="<topic-id>"`.
@@ -34,12 +34,12 @@ principles:
 
 ### Modes (surfaces over one engine)
 
-| Mode | Intrusiveness | Purpose |
-|---|---|---|
-| **Sidebar help panel** (`GuidePanel`) | callable, self-directed | Structured in-app reference (the main focus) |
-| **Contextual hint** (`GuideHint`) | waiting, non-blocking | Micro-help at the right element at the right time |
-| **Bidirectional link** (`GuideMarker` ↔ `GuideMention`) | passive | UI explains itself; the article points back at the UI |
-| **Guided tour + spotlight** (`Guide`, `GuideBeacon`) | modal/blocking | Critical first-run flows, **opt-in** |
+| Mode                                                    | Intrusiveness           | Purpose                                               |
+| ------------------------------------------------------- | ----------------------- | ----------------------------------------------------- |
+| **Sidebar help panel** (`GuidePanel`)                   | callable, self-directed | Structured in-app reference (the main focus)          |
+| **Contextual hint** (`GuideHint`)                       | waiting, non-blocking   | Micro-help at the right element at the right time     |
+| **Bidirectional link** (`GuideMarker` ↔ `GuideMention`) | passive                 | UI explains itself; the article points back at the UI |
+| **Guided tour + spotlight** (`Guide`, `GuideBeacon`)    | modal/blocking          | Critical first-run flows, **opt-in**                  |
 
 ---
 
@@ -86,7 +86,7 @@ principles:
 
 ### Boundary: engine/UI in the library, content in the consumer app
 
-The library ships **engine + presentation**. The guide *definition* (which steps, which texts,
+The library ships **engine + presentation**. The guide _definition_ (which steps, which texts,
 which selectors, which articles) belongs in the **consumer app**. This keeps consumer i18n
 content out of the library and prevents over-engineering. `GuideTour` / `GuideStep` /
 `GuideArticle` content is authored by the consumer.
@@ -96,13 +96,13 @@ content out of the library and prevents over-engineering. `GuideTour` / `GuideSt
 `packages/blocks` has no runtime dependencies, so an external tour library (driver.js, Shepherd)
 is out — and unnecessary, because the expensive parts already exist:
 
-| Guide needs… | Existing building block |
-|---|---|
-| Anchor a bubble/hint to a target (flip/shift/arrow) | `utils/floating.ts` (`computePosition` + `autoUpdate`) |
-| Coexist with / pause around foreign overlays | `utils/overlay-stack.svelte.ts` (`depth`, `isTop`, `register`) |
-| Position the panel as a sidebar | `Sidebar` mechanics + `Drawer` styling (D1) |
-| Localize next/prev/skip/done | `@urbicon-ui/i18n` (runes-based, keys under `guide.*`) |
-| Engine state (class + `$state` + `untrack`) | model: `overlay-stack.svelte.ts` |
+| Guide needs…                                        | Existing building block                                        |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| Anchor a bubble/hint to a target (flip/shift/arrow) | `utils/floating.ts` (`computePosition` + `autoUpdate`)         |
+| Coexist with / pause around foreign overlays        | `utils/overlay-stack.svelte.ts` (`depth`, `isTop`, `register`) |
+| Position the panel as a sidebar                     | `Sidebar` mechanics + `Drawer` styling (D1)                    |
+| Localize next/prev/skip/done                        | `@urbicon-ui/i18n` (runes-based, keys under `guide.*`)         |
+| Engine state (class + `$state` + `untrack`)         | model: `overlay-stack.svelte.ts`                               |
 
 **Genuinely new:** only the **engine/registry** (state machine + topic resolution + persistence)
 and the **spotlight mask** for the tour. Everything else is composition.
@@ -156,18 +156,18 @@ so uni- or bidirectional is a deliberate option, resolved by `resolveDirection(i
 **Direction A — UI → Guide** (`GuideMarker`): a discreet "ⓘ" trigger on a UI element. Activation
 (click/Enter/Space) opens the `GuidePanel` at the matching article. A real `<button>` with
 `aria-controls` (the panel's published id) + `aria-expanded`. Inert when the direction is
-`'to-ui'`. → *"I see this element and want to know what it does."*
+`'to-ui'`. → _"I see this element and want to know what it does."_
 
 **Direction B — Guide → UI** (`GuideMention`): an inline reference inside a `GuideArticle`. Hover
 **or focus** (keyboard parity) highlights the real element (`[data-guide="…"]`) with a light
 ring/glow + optional scroll-into-view; clicking scrolls it into view. Degrades to plain text when
-the direction is `'to-guide'`. → *"I'm reading the article and want to see where the element is."*
+the direction is `'to-guide'`. → _"I'm reading the article and want to see where the element is."_
 
 **Article → article** (`GuideRef`): an inline link inside a `GuideArticle` body that navigates the
-panel to another article (`setArticle`) — the help-internal analogue of `GuideMention`. It is *not*
+panel to another article (`setArticle`) — the help-internal analogue of `GuideMention`. It is _not_
 a `data-guide`/highlight link: it resolves against the panel's article registry (`hasArticle`), so
-it degrades to plain text for an unknown article id (or without a provider/panel). → *"I'm reading
-this article and want to jump to a related one."*
+it degrades to plain text for an unknown article id (or without a provider/panel). → _"I'm reading
+this article and want to jump to a related one."_
 
 **Highlight principle (D5):** **Tour = subtractive** (full scrim, the surroundings disappear)
 · **Highlight = additive** (an `outline` ring + soft glow, the target is emphasized, nothing is
@@ -178,17 +178,17 @@ the target), `prefers-reduced-motion`-aware. The full scrim is reserved for the 
 
 ## 5. Component inventory
 
-| Name | `@tag`s | Role |
-|---|---|---|
-| `GuideProvider` | overlay, feedback | Context root; instantiates `GuideController`, injects the StorageAdapter (analogous to `BlocksProvider`) |
-| `GuidePanel` | overlay, navigation | Callable, **non-modal** sidebar help panel |
-| `GuideArticle` | display | Structured article in the panel (contains `GuideMention`s); optional `group` buckets it under a section header in the index |
-| `GuideMention` | navigation | Inline article→UI reference (direction B) |
-| `GuideRef` | navigation | Inline article→article link inside an article body (panel-internal navigation) |
-| `GuideMarker` | action, feedback | "ⓘ" UI→panel trigger (direction A) — *not* a status `Badge` |
-| `GuideHint` | overlay, feedback | Contextual, non-blocking hint at an element |
-| `Guide` | overlay, feedback | Tour renderer: bubble (`floating.ts`) + spotlight mask |
-| `GuideBeacon` | feedback, action | Waiting hotspot — unobtrusive tour entry point |
+| Name            | `@tag`s             | Role                                                                                                                        |
+| --------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `GuideProvider` | overlay, feedback   | Context root; instantiates `GuideController`, injects the StorageAdapter (analogous to `BlocksProvider`)                    |
+| `GuidePanel`    | overlay, navigation | Callable, **non-modal** sidebar help panel                                                                                  |
+| `GuideArticle`  | display             | Structured article in the panel (contains `GuideMention`s); optional `group` buckets it under a section header in the index |
+| `GuideMention`  | navigation          | Inline article→UI reference (direction B)                                                                                   |
+| `GuideRef`      | navigation          | Inline article→article link inside an article body (panel-internal navigation)                                              |
+| `GuideMarker`   | action, feedback    | "ⓘ" UI→panel trigger (direction A) — _not_ a status `Badge`                                                                 |
+| `GuideHint`     | overlay, feedback   | Contextual, non-blocking hint at an element                                                                                 |
+| `Guide`         | overlay, feedback   | Tour renderer: bubble (`floating.ts`) + spotlight mask                                                                      |
+| `GuideBeacon`   | feedback, action    | Waiting hotspot — unobtrusive tour entry point                                                                              |
 
 Plus `controller.target(id, meta?)` — the attachment that registers/binds an element
 programmatically.
@@ -210,10 +210,10 @@ surfaces carry `@tag`s; the architecture lives here.
 ## 6. Tokens, z-index & top-layer discipline
 
 `Dialog` uses a native `<dialog>` → a real top layer. A portaled tour bubble with an ordinary
-z-index would vanish *behind* an open dialog. Therefore:
+z-index would vanish _behind_ an open dialog. Therefore:
 
 - Active tours/spotlight register in the `overlayStack`.
-- The engine **pauses/dims** (`paused` getter) when `overlayStack.depth` grows from a *foreign*
+- The engine **pauses/dims** (`paused` getter) when `overlayStack.depth` grows from a _foreign_
   overlay; non-modal surfaces (`GuideHint`) hide while `overlayDepth > 0`.
 - z-index is token-only. **`--z-guide: 1550`** (D4), between `--z-popover` (1500) and
   `--z-skiplink` (1600), drives the spotlight tour. `GuidePanel` inherits `--z-sidebar` (1350),
@@ -230,12 +230,12 @@ rule in `index.css`):
 
 ## 7. Key decisions (D1–D6)
 
-- **D1 — Panel placement: a standalone, *non-modal* `GuidePanel`.** It takes the `Sidebar`
+- **D1 — Panel placement: a standalone, _non-modal_ `GuidePanel`.** It takes the `Sidebar`
   mechanics (coexists with the app) and only the `Drawer` styling/`slotClasses` pattern. `Drawer`
   is modal (`<dialog>.showModal()`, backdrop, focus trap) — that would break direction B (§4),
-  which must hover a mention *and simultaneously* highlight the element behind the panel.
+  which must hover a mention _and simultaneously_ highlight the element behind the panel.
 - **D2 — Marker naming: `GuideMarker`.** The interactive "ⓘ" is **not** a "Badge" (collision with
-  the non-interactive status `Badge` primitive). It may still *look* like "ⓘ".
+  the non-interactive status `Badge` primitive). It may still _look_ like "ⓘ".
 - **D3 — Topic definition: declarative anchors.** Anchors stay declarative & distributed;
   structure comes from typed `GuideTour` objects whose steps reference `data-guide` ids, and
   from `GuideArticle` components mounted inside `GuidePanel` (§3). The `defineGuide([...])`
@@ -255,7 +255,7 @@ The build deviated from the original plan in ways that are now the intended cont
 - **`createOptionalContext`** (not `createContext`): surfaces render inert without a provider.
 - **Controller-driven panel visibility** (`panelOpen`), not `bind:open` — single source of truth.
   The panel uses `inert` (not `aria-hidden`) when closed, and focus-sensitive Escape (non-modal
-  courtesy). Closing from *within* returns focus to the opener (`aria-labelledby` on the header).
+  courtesy). Closing from _within_ returns focus to the opener (`aria-labelledby` on the header).
 - **Native Popover API top-layer** (not `Portal`) for `GuideHint` and `Guide` — mirrors
   `Tooltip`/`Popover`. The tour is one `popover="manual"` shell (`pointer-events:none`) with an
   SVG even-odd scrim **and** the bubble inside.
@@ -263,7 +263,7 @@ The build deviated from the original plan in ways that are now the intended cont
   `GuideMention` has **no** `aria-describedby` (the visible text is the accessible name).
 - **Tour progress = dot row + "Step X of Y"** (not the `Stepper` primitive — too heavy for a
   ~22rem bubble). Step announcement via an always-present polite `aria-live` region (a sibling of
-  the popover, so the first step is announced as a content *change*). Interactive steps use a
+  the popover, so the first step is announced as a content _change_). Interactive steps use a
   two-zone Tab cycle (bubble ⇄ target) so the spotlit target stays keyboard-reachable; `aria-modal`
   is dropped on those steps.
 - **Spotlight = SVG even-odd hole** following the target via `autoUpdate`; a non-interactive step
@@ -278,7 +278,7 @@ The build deviated from the original plan in ways that are now the intended cont
   `interactive: true`). The gate lives purely in the `Guide` renderer — the engine's `next()`
   is never blocked. Back/Skip stay available; the live region announces the gate per step.
 - **Phase-8 hardening:** `observeTargetResolution` (rAF-coalesced MutationObserver) +
-  `reapplyStepHighlight()` re-anchor and re-spotlight a target that renders *after* a step begins,
+  `reapplyStepHighlight()` re-anchor and re-spotlight a target that renders _after_ a step begins,
   and fall back to the centered scrim when one vanishes. The tour exit fades via a
   `view = liveView ?? heldView` snapshot that holds the last step's content through the popover
   transition. `GuidePanel` returns focus to its opener on close.
@@ -297,7 +297,7 @@ The build deviated from the original plan in ways that are now the intended cont
   headers (a `<ul aria-labelledby>` per section in first-occurrence order; ungrouped articles in
   one headerless block; a flat list when no article sets a group — unchanged for existing
   consumers). `GuidePanel.searchable` adds an opt-in case-insensitive title filter that runs
-  *before* grouping (non-empty sections keep their headers, empty ones disappear; an empty result
+  _before_ grouping (non-empty sections keep their headers, empty ones disappear; an empty result
   shows the i18n `guide.noResults` status). `GuideRef` (§4) is the inline article→article link,
   resolving against the panel's article registry (`hasArticle`) so it degrades to plain text for an
   unknown id — hydration-safe because the registry is empty during SSR and the first client render
@@ -347,7 +347,7 @@ appears on the new page:
 How it behaves:
 
 - **Tour-internal vs. foreign navigation.** A navigation the tour itself triggers (a `step.route`)
-  keeps it running. A *foreign* navigation — the user leaving the flow on their own, or a
+  keeps it running. A _foreign_ navigation — the user leaving the flow on their own, or a
   youngest-gesture-wins race during a pending step navigation — stops it via `stopTour()`
   (analytics-silent, so it can surface again; no `onSkip`). The engine subscribes to navigation
   only for tours that declare at least one `route`, so a tour that does its own routing (below) is
@@ -362,17 +362,17 @@ How it behaves:
 - **Missing hook is safe.** A `route` step with no `navigate` wired DEV-warns and stays on the
   current route — no crash.
 - **Path comparison.** `route` is compared against `window.location.pathname` by default, so use a
-  normalized path (no query/hash, preferably the router's *actual* landed path). An asynchronously
+  normalized path (no query/hash, preferably the router's _actual_ landed path). An asynchronously
   observed landing that is merely a normalized form of the step's route (trailing slash, base/locale
   prefix) is recognized as the tour's own — the tour keeps running, DEV-warned so you can make the
   route exact; an unrelated landing (e.g. an auth redirect) stops the tour as foreign. A
   synchronous, re-entrant `navigationSource` (the `afterNavigate` one below) doesn't need the
-  heuristic — a same-tick report is recognized as the tour's own by *timing*, not by path.
+  heuristic — a same-tick report is recognized as the tour's own by _timing_, not by path.
 
 > **Reliable foreign-navigation detection.** The default `navigationSource` observes navigations via
 > the Navigation API, which catches link clicks, `goto`, and back/forward in Chromium and recent
 > Safari. In a browser without it the source falls back to `popstate` — back/forward only, **not**
-> `pushState` — so a foreign *forward* navigation (an in-app link click) may go unobserved and the
+> `pushState` — so a foreign _forward_ navigation (an in-app link click) may go unobserved and the
 > tour won't stop (it DEV-warns once when it takes the fallback). For detection that works in every
 > browser, inject a `navigationSource` backed by your router. SvelteKit (`afterNavigate` fires for
 > every client navigation):
@@ -401,9 +401,9 @@ How it behaves:
 >
 > This source fires **synchronously inside `goto`** — re-entrant, while the controller's own
 > `navigate` hook is still on the stack. The engine treats such a same-tick report as the tour's own
-> navigation (recognized by *timing*, not by path), so a plain synchronous `notify` is correct — no
+> navigation (recognized by _timing_, not by path), so a plain synchronous `notify` is correct — no
 > `queueMicrotask` deferral is needed. Because the match is by timing, a router-normalized landing
-> (trailing slash, base/locale prefix) keeps the tour running; a synchronous *redirect* off the
+> (trailing slash, base/locale prefix) keeps the tour running; a synchronous _redirect_ off the
 > step's route also keeps it running (DEV-warned, not stopped), so stop the tour explicitly from a
 > router guard if a redirect should end it.
 
@@ -445,7 +445,7 @@ Rules of thumb (both patterns):
   tears down without marking the tour seen and stays analytics-silent, so it can surface again. The
   declarative pattern does this for foreign navigation automatically.
 - Steps that land right after a navigation pair well with `advance: 'action'` (§8) when the
-  navigation itself *is* the action being taught — together they yield learning-by-doing across
+  navigation itself _is_ the action being taught — together they yield learning-by-doing across
   routes.
 
 ---
@@ -456,9 +456,9 @@ Deliberately **out** of the first cut (avoiding over-engineering):
 
 - Branching / conditional steps (branched tours by user answer)
 - Cross-route **resume state** (surviving a full page reload / deep-link into the middle of a
-  tour) — client-side cross-route touring *is* supported now, both declaratively (`GuideStep.route`
-  + the `navigate` hook) and imperatively (the `onStep` recipe), §9; persisting progress across a
-  hard reload is what stays out
+  tour) — client-side cross-route touring _is_ supported now, both declaratively (`GuideStep.route`
+  - the `navigate` hook) and imperatively (the `onStep` recipe), §9; persisting progress across a
+    hard reload is what stays out
 - WYSIWYG tour editor / no-code authoring
 - Built-in analytics persistence (we ship only the hooks, no backend)
 - Server-driven remote guides (content from a CMS) — an adapter is conceivable, not v1
@@ -467,18 +467,18 @@ Deliberately **out** of the first cut (avoiding over-engineering):
 
 ## 11. Where things live & how it's tested
 
-| Concern | Location |
-|---|---|
-| Engine (state machine, registry, persistence, analytics) | `packages/blocks/src/lib/utils/guide.svelte.ts` |
-| Lazy/vanishing-target watcher | `packages/blocks/src/lib/utils/observe-target.ts` |
-| Surfaces | `packages/blocks/src/lib/components/Guide/*.svelte` |
-| Context + panel context | `components/Guide/guide.context.ts`, `guide-panel.context.ts` |
-| Variants | `components/Guide/guide.variants.ts` |
-| Tokens / highlight CSS | `blocks/src/lib/style/{interaction,index,foundation}.css` |
-| i18n keys (`guide.*`) | `blocks/src/lib/translations/{en,de}.ts` |
-| Doc page (live examples) | `apps/docs/src/routes/blocks/components/guide/` |
-| Recipe (Onboarding Flow + live analytics log) | `apps/docs/src/routes/recipes/onboarding-flow/` |
-| Composition pattern (`urbicon pattern onboarding-guide`) | `design-system/patterns/onboarding-guide.md` |
+| Concern                                                  | Location                                                      |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| Engine (state machine, registry, persistence, analytics) | `packages/blocks/src/lib/utils/guide.svelte.ts`               |
+| Lazy/vanishing-target watcher                            | `packages/blocks/src/lib/utils/observe-target.ts`             |
+| Surfaces                                                 | `packages/blocks/src/lib/components/Guide/*.svelte`           |
+| Context + panel context                                  | `components/Guide/guide.context.ts`, `guide-panel.context.ts` |
+| Variants                                                 | `components/Guide/guide.variants.ts`                          |
+| Tokens / highlight CSS                                   | `blocks/src/lib/style/{interaction,index,foundation}.css`     |
+| i18n keys (`guide.*`)                                    | `blocks/src/lib/translations/{en,de}.ts`                      |
+| Doc page (live examples)                                 | `apps/docs/src/routes/blocks/components/guide/`               |
+| Recipe (Onboarding Flow + live analytics log)            | `apps/docs/src/routes/recipes/onboarding-flow/`               |
+| Composition pattern (`urbicon pattern onboarding-guide`) | `design-system/patterns/onboarding-guide.md`                  |
 
 **Tests.** Engine logic is node-unit-tested (`utils/guide.svelte.test.ts`,
 `utils/observe-target.test.ts`). Component behaviour + a11y (axe) + light/dark visual snapshots

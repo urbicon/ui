@@ -11,18 +11,18 @@ Data-rich overview page with metrics, charts, and action shortcuts.
 
 ## Component Selection
 
-| UI Need | Component | Configuration |
-|---|---|---|
-| Stat/KPI tile | `Card` | Compact padding, prominent number + label + trend indicator |
-| Trend direction | `Badge` | `intent="success"` for up, `intent="danger"` for down |
-| Proportional data | `CompositionBar` | Horizontal bar with legend |
-| Flow visualization | `Sankey` | Multi-level relationship flows |
-| Data table | `Table` | With sorting, filtering; limit visible rows (5-10), link to full view |
-| Quick actions | `ButtonGroup` or `Toolbar` | Top-right of page or section |
-| Date range filter | `DatePicker` or `Select` | Top of page, controls all widgets below |
-| Empty widget | `EmptyState` | In Card, with action to configure/populate |
-| Loading state | `Skeleton` | Match widget dimensions, not generic spinners |
-| Notifications | `Alert` | Persistent, at page top, for system status |
+| UI Need            | Component                  | Configuration                                                         |
+| ------------------ | -------------------------- | --------------------------------------------------------------------- |
+| Stat/KPI tile      | `Card`                     | Compact padding, prominent number + label + trend indicator           |
+| Trend direction    | `Badge`                    | `intent="success"` for up, `intent="danger"` for down                 |
+| Proportional data  | `CompositionBar`           | Horizontal bar with legend                                            |
+| Flow visualization | `Sankey`                   | Multi-level relationship flows                                        |
+| Data table         | `Table`                    | With sorting, filtering; limit visible rows (5-10), link to full view |
+| Quick actions      | `ButtonGroup` or `Toolbar` | Top-right of page or section                                          |
+| Date range filter  | `DatePicker` or `Select`   | Top of page, controls all widgets below                               |
+| Empty widget       | `EmptyState`               | In Card, with action to configure/populate                            |
+| Loading state      | `Skeleton`                 | Match widget dimensions, not generic spinners                         |
+| Notifications      | `Alert`                    | Persistent, at page top, for system status                            |
 
 ## Section Ordering
 

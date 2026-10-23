@@ -11,25 +11,25 @@ Conversational surface for an LLM assistant or copilot — a streaming message l
 
 ## Component Selection
 
-| UI Need | Component | Configuration |
-|---|---|---|
-| The whole surface | `Chat` | `header` / `children` / `composer` snippets — pure structure, no state |
-| The conversation log | `ChatMessageList` | `messages`, `onRegenerate`, `onRetry`, `onStickChange`; `layout` / `density` passed through to each message |
-| One message | `ChatMessage` | Rendered per entry by default; override the `message` snippet only for a bespoke row |
-| The composer | `PromptInput` | `onSubmit({ text, attachments })`, `onStop`, `busy`; `allowAttachments` + `accept` / `maxFiles` for files |
-| Markdown answer | `StreamingMarkdown` | The default text-part renderer — settles block by block, repairs the streaming tail, no `{@html}` |
-| A tool invocation | `ToolCallCard` | The default tool-call-part renderer — a muted status row, JSON input/output, auto-open on error; `variant="card"` frames it for a trace view; replaceable via `partRenderers['tool-call']` |
-| Model reasoning | `ReasoningDisclosure` | The default reasoning-part renderer — collapsed "Thought for Xs", pulsing while streaming; replaceable via `partRenderers['reasoning']` |
-| A cited source | `CitationChip` | `[n]` markers in markdown resolve to chips when `sources` are supplied; policy-checked link |
-| Chat + artifact layout | `SplitPane` | Chat in one pane, the live artifact (editor / preview / table) in the other |
-| Empty state | `ChatMessageList` `empty` snippet | Or `emptyTitle` / `emptyDescription` — a prompt to start |
+| UI Need                | Component                         | Configuration                                                                                                                                                                              |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The whole surface      | `Chat`                            | `header` / `children` / `composer` snippets — pure structure, no state                                                                                                                     |
+| The conversation log   | `ChatMessageList`                 | `messages`, `onRegenerate`, `onRetry`, `onStickChange`; `layout` / `density` passed through to each message                                                                                |
+| One message            | `ChatMessage`                     | Rendered per entry by default; override the `message` snippet only for a bespoke row                                                                                                       |
+| The composer           | `PromptInput`                     | `onSubmit({ text, attachments })`, `onStop`, `busy`; `allowAttachments` + `accept` / `maxFiles` for files                                                                                  |
+| Markdown answer        | `StreamingMarkdown`               | The default text-part renderer — settles block by block, repairs the streaming tail, no `{@html}`                                                                                          |
+| A tool invocation      | `ToolCallCard`                    | The default tool-call-part renderer — a muted status row, JSON input/output, auto-open on error; `variant="card"` frames it for a trace view; replaceable via `partRenderers['tool-call']` |
+| Model reasoning        | `ReasoningDisclosure`             | The default reasoning-part renderer — collapsed "Thought for Xs", pulsing while streaming; replaceable via `partRenderers['reasoning']`                                                    |
+| A cited source         | `CitationChip`                    | `[n]` markers in markdown resolve to chips when `sources` are supplied; policy-checked link                                                                                                |
+| Chat + artifact layout | `SplitPane`                       | Chat in one pane, the live artifact (editor / preview / table) in the other                                                                                                                |
+| Empty state            | `ChatMessageList` `empty` snippet | Or `emptyTitle` / `emptyDescription` — a prompt to start                                                                                                                                   |
 
 ## Visual composition
 
 A conversation nests deeper than any other surface in this library — shell → message → tool call → payload — which makes it the one place where framing mistakes compound. Three rules keep it readable.
 
-- **Only the outermost frame draws an outline.** A block that frames itself *and* is framed by its parent stacks two outlines at the same radius, which reads as depth that is not there. `CodeBlock` has `variant="plain"` (no surface, outline, radius or padding) for exactly this: `ToolCallCard` renders its JSON payloads with it, and any custom `partRenderers` block inside a card should too. The parent owns the frame, the child owns the content.
-- **Machinery is not content.** A reader following an answer is not reading the tool calls, so the two parts that report *how* the answer was produced share one register, down to the numbers: `ToolCallCard` (default `variant="plain"`) and `ReasoningDisclosure` are both text-width rows — `inline-flex w-fit`, `py-1`, tertiary ink hovering to `primary-text`, a 14 px chevron — with their expanded body indented by `pl-3` instead of boxed. Change one, change the other. Reach for `variant="card"` only on a surface someone opened to read the calls themselves — an agent trace, a run log.
+- **Only the outermost frame draws an outline.** A block that frames itself _and_ is framed by its parent stacks two outlines at the same radius, which reads as depth that is not there. `CodeBlock` has `variant="plain"` (no surface, outline, radius or padding) for exactly this: `ToolCallCard` renders its JSON payloads with it, and any custom `partRenderers` block inside a card should too. The parent owns the frame, the child owns the content.
+- **Machinery is not content.** A reader following an answer is not reading the tool calls, so the two parts that report _how_ the answer was produced share one register, down to the numbers: `ToolCallCard` (default `variant="plain"`) and `ReasoningDisclosure` are both text-width rows — `inline-flex w-fit`, `py-1`, tertiary ink hovering to `primary-text`, a 14 px chevron — with their expanded body indented by `pl-3` instead of boxed. Change one, change the other. Reach for `variant="card"` only on a surface someone opened to read the calls themselves — an agent trace, a run log.
 - **Differentiate message surfaces by tint, not by border.** `ChatMessage` tints the assistant bubble (`surface-elevated`) and the user's (`primary-subtle`) and draws no outline on either. Adding one per message turns a conversation into a stack of boxes.
 - **One caption per thing.** A section heading above a block whose own header repeats the same fact ("Input" over "json") is one chrome row too many. Pass `label` to the block instead.
 
@@ -47,7 +47,7 @@ A message's `status` is the state machine; the consumer owns `ChatMessageData[]`
 
 ## Scroll behavior
 
-- **Stick-to-bottom:** the list follows new content *only* while the reader is at the bottom. Scroll up mid-stream and it stops following, surfacing a floating jump-back button with a new-message count. `onStickChange(stuck)` reports the transition.
+- **Stick-to-bottom:** the list follows new content _only_ while the reader is at the bottom. Scroll up mid-stream and it stops following, surfacing a floating jump-back button with a new-message count. `onStickChange(stuck)` reports the transition.
 - **Prepend history:** loading older messages above anchors the scroll position — the reader's current message stays put instead of jumping. Prepend to the front of `messages`; the engine handles the anchor.
 - **Announcements:** generation start and the completed answer are each announced once to screen readers — not every token.
 

@@ -818,6 +818,7 @@ Two consequences, both print-only; nothing changes on screen:
 
 If your app relied on the old rule to keep some other `role="status"` element off the page, that
 element now prints; give it your own `@media print` rule.
+
 ### An icon without `size` is `1em` instead of nothing
 
 `<LogOutIcon />` used to emit an `<svg>` with no `width` and no `height`. An svg with a `viewBox`
@@ -869,6 +870,7 @@ A passed `size` still wins over the default, and a CSS size still wins over both
 The default is two attributes, one for each, so a class that sets only one (`w-6`, `h-5`) leaves the
 other at `1em` and the icon stops being square. Grep for a `w-*` or an `h-*` on an icon without its
 partner and give it `size-*`, or both axes.
+
 ### A `neutral` ConfirmDialog gets a `filled neutral` confirm button
 
 `ConfirmDialog` used to promote a `neutral` `intent` to `primary` on its confirm button, and
@@ -912,6 +914,7 @@ For a fill that always reads, or for the accent back, per instance:
 or once for the whole app through `defaults.EmptyState.slotClasses.iconWrapper` on
 `<BlocksProvider>`. A consumer that had already overridden the container to a neutral tone can delete
 that override — grep for `iconWrapper` to find them.
+
 ### `CommandPalette`'s `customItem` draws the row's contents, not the row
 
 The snippet used to replace the whole option row. Everything the palette's keyboard and pointer
@@ -1024,8 +1027,8 @@ for `after:content-` and your `slotClasses` for a `label` entry carrying `after:
 `required` Checkbox that previously showed nothing shows an asterisk.
 `slotClasses={{ requiredMark: 'hidden' }}` is the way back.
 
-**One test query sees the glyph.** `getByLabelText('Email')` matches the label element's *text
-content*, which now ends in `*` on a required field. The accessible name is unchanged — the span is
+**One test query sees the glyph.** `getByLabelText('Email')` matches the label element's _text
+content_, which now ends in `*` on a required field. The accessible name is unchanged — the span is
 `aria-hidden`, so `getByRole('textbox', { name: 'Email' })` is unaffected — but the text query is
 not, and it fails with "Unable to find a label with the text of". Match the marker or drop the
 anchor:
@@ -1170,8 +1173,8 @@ under a name that matched nothing.
 ```
 
 **A compile error, not a silent no-op**: `sidebar` has left the union, so every call site and
-every `<BlocksProvider>` entry naming it fails to build. Grep for `sidebar:` *inside a
-`slotClasses` object* — the snippet props `sidebar`, `sidebarHeader` and `sidebarFooter` are a
+every `<BlocksProvider>` entry naming it fails to build. Grep for `sidebar:` _inside a
+`slotClasses` object_ — the snippet props `sidebar`, `sidebarHeader` and `sidebarFooter` are a
 different namespace and are unchanged.
 
 The rename is what makes the forwarding derivable: the union is now
@@ -1216,7 +1219,7 @@ unaffected, as are the components of `@urbicon-ui/auth`. The cost is that a **mi
 component name** is indistinguishable from one of those: `defaults={{ Butoon: … }}` is still
 accepted and still reaches nobody.
 
-Two names are worse than that, because the compiler *confirms* them. `CalendarHeader` and
+Two names are worse than that, because the compiler _confirms_ them. `CalendarHeader` and
 `FormField` declare a `slotClasses` prop but never resolve it through the provider —
 `CalendarHeader` takes its classes off the Calendar context, `FormField` reads its own prop
 directly — so an entry under either narrows to the right slot names, completes in your editor,
@@ -1224,24 +1227,24 @@ and reaches no element. Neither accepted provider configuration before this rele
 style them at the call site.
 
 **Where it is blind.** These records are weak types — every property optional — so the base
-rule is that only an object with *no* key in common is rejected. What catches a wrong key
-*beside* a right one is excess-property checking, and that applies to a **fresh object
+rule is that only an object with _no_ key in common is rejected. What catches a wrong key
+_beside_ a right one is excess-property checking, and that applies to a **fresh object
 literal**. How your config reaches the attribute therefore decides how much of it is checked:
 
-| how the config reaches the provider | wrong key alone | wrong key beside a right one |
-| --- | --- | --- |
-| written inline in the attribute | error | error |
-| inline but spread in — `{ mark: 'ok', ...rest }` | error | **accepted** |
-| a plain `const`, no type annotation | error | **accepted** |
-| a `const` with `satisfies Record<string, ComponentDefaults>` | error | **accepted** |
-| a `const` with `as const` | error | **accepted** |
-| returned from a function | error | **accepted** |
-| a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` | **accepted** | **accepted** |
+| how the config reaches the provider                                    | wrong key alone | wrong key beside a right one |
+| ---------------------------------------------------------------------- | --------------- | ---------------------------- |
+| written inline in the attribute                                        | error           | error                        |
+| inline but spread in — `{ mark: 'ok', ...rest }`                       | error           | **accepted**                 |
+| a plain `const`, no type annotation                                    | error           | **accepted**                 |
+| a `const` with `satisfies Record<string, ComponentDefaults>`           | error           | **accepted**                 |
+| a `const` with `as const`                                              | error           | **accepted**                 |
+| returned from a function                                               | error           | **accepted**                 |
+| a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` | **accepted**    | **accepted**                 |
 
 Measured on `<BlocksProvider defaults={{ LineChart: … }}>`, every cell. The
-wrong-key-*beside*-a-right-one column needs excess-property checking, which only reaches a
+wrong-key-_beside_-a-right-one column needs excess-property checking, which only reaches a
 **fresh object literal** written into the attribute; without it the weak-type rule is all that is
-left, and that rejects only an object sharing *no* key with the target. Rows three to six are one
+left, and that rejects only an object sharing _no_ key with the target. Rows three to six are one
 way of losing it — they put the record in a variable first, `satisfies` and `as const` included,
 which check the value and still leave a variable behind. Row two loses it for a second reason:
 excess-property checking does not apply to properties brought in by a spread, so a fresh literal
@@ -1280,16 +1283,16 @@ the rest in from the inner `tv()` config's defaults — and three kinds of axis 
 reconstructable that way. Two of them made a rule paint a state the component was never in,
 which looks like a success. **Eight axes change their answer**, measured:
 
-| kind | axis | before | now |
-| --- | --- | --- | --- |
-| derived — computed inside | `tier`, in a `commit` tier context | `{ tier: 'modify' }` fired; `{ tier: 'commit' }` did not | the rendered tier answers |
-| derived — computed inside | `messageType`, on `<NumberInput error="…">` | `{ messageType: 'helper' }` fired; `{ messageType: 'error' }` did not | `error` answers |
-| derived — computed inside | `hasRightIcon`, on every `<NumberInput>` and `<CurrencyInput>` | `{ hasRightIcon: false }` fired on **every** one of them | the rendered field answers — `true` wherever a stepper or a suffix symbol is drawn |
-| derived — computed inside | `hasLeftIcon`, e.g. `<CurrencyInput symbolPosition="prefix">` | `{ hasLeftIcon: false }` fired even with a left symbol | `true` wherever a left icon or symbol is drawn |
-| coerced | `error` (a `string` prop, a boolean axis) | `{ error: 'too large' }` fired; `{ error: true }` never did | `{ error: true }` fires, the string does not |
-| owned | `open` on Select | `{ open: false }` fired even while open | the listbox state answers |
-| per slot call | `iconPosition` on Input | fired under the wrapper's name, never under `Input` | fires under neither |
-| per slot call | `selected` on Select | fired under `LocaleSwitcher`, never under `Select` | fires under neither |
+| kind                      | axis                                                           | before                                                                | now                                                                                |
+| ------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| derived — computed inside | `tier`, in a `commit` tier context                             | `{ tier: 'modify' }` fired; `{ tier: 'commit' }` did not              | the rendered tier answers                                                          |
+| derived — computed inside | `messageType`, on `<NumberInput error="…">`                    | `{ messageType: 'helper' }` fired; `{ messageType: 'error' }` did not | `error` answers                                                                    |
+| derived — computed inside | `hasRightIcon`, on every `<NumberInput>` and `<CurrencyInput>` | `{ hasRightIcon: false }` fired on **every** one of them              | the rendered field answers — `true` wherever a stepper or a suffix symbol is drawn |
+| derived — computed inside | `hasLeftIcon`, e.g. `<CurrencyInput symbolPosition="prefix">`  | `{ hasLeftIcon: false }` fired even with a left symbol                | `true` wherever a left icon or symbol is drawn                                     |
+| coerced                   | `error` (a `string` prop, a boolean axis)                      | `{ error: 'too large' }` fired; `{ error: true }` never did           | `{ error: true }` fires, the string does not                                       |
+| owned                     | `open` on Select                                               | `{ open: false }` fired even while open                               | the listbox state answers                                                          |
+| per slot call             | `iconPosition` on Input                                        | fired under the wrapper's name, never under `Input`                   | fires under neither                                                                |
+| per slot call             | `selected` on Select                                           | fired under `LocaleSwitcher`, never under `Select`                    | fires under neither                                                                |
 
 The two `has*Icon` rows are the ones most likely to be holding a style up today, because a
 wrapper could never write those axis names — its props are `leftIcon` / `rightIcon` — so the
@@ -1315,6 +1318,7 @@ with it, `resolveSlotClasses` is unchanged and still exported — hand it the co
 you want matched instead of the helper's reconstruction:
 
 <!-- typecheck -->
+
 ```ts
 import {
   getBlocksConfig,
@@ -1361,7 +1365,7 @@ const slotClasses = resolveSlotClasses(
 
 **What you can still reach, and the two things you cannot.** The mechanism the library's own
 wrappers now use is internal, but most of what it buys them is not: an axis the inner component
-*derives from a value you hold* you can derive too, as above. `hasLeftIcon` belongs in that
+_derives from a value you hold_ you can derive too, as above. `hasLeftIcon` belongs in that
 group — it is `!!leftIcon` and nothing else feeds it, so a wrapper holding that prop writes the
 axis exactly.
 
@@ -1370,7 +1374,7 @@ above it can read it. `hasRightIcon` is the boundary case, and not for the reaso
 with `clearable` set and a value present, Input renders a clear button, and that **creates** a
 right icon where the wrapper passed none — measured, `<Input clearable value="x">` with no
 `rightIcon` is `hasRightIcon: true`, so a wrapper writing `!!rightIcon` answers `false` for a
-field that is `true`. Swapping a passed `rightIcon` *for* the clear button is not a divergence:
+field that is `true`. Swapping a passed `rightIcon` _for_ the clear button is not a divergence:
 the axis reads `true` either way. For those two, register the rule under the inner component's
 own name (`Input`, `Select`) and keep your wrapper's name for the unconditional `slotClasses`
 and presets.
@@ -1393,7 +1397,7 @@ nobody passed a `size` to.
 **Nothing reports this.** Not the compiler — `ConditionalOverride`'s index signature accepts
 any key — and not the runtime, which skips a non-matching rule without a word. The only
 signal is visual. Before you ship, walk the `overrides:` arrays in your `defaults` and
-`presets` and ask of each rule: *is this condition true of more components than I meant?* The
+`presets` and ask of each rule: _is this condition true of more components than I meant?_ The
 two that changed most:
 
 - a rule keyed on a value that is also the config default (`{ variant: 'outlined' }` where
@@ -1425,7 +1429,7 @@ handed to a slot function per element rather than carried per component; …
 **Read the two lists as the different things they are.** `stepperVariants` declares `state`,
 but `Stepper` hands it to a slot function per step rather than carrying it for itself — so
 `{ state: 'active' }` under the `Stepper` key matches nothing either, and that rule belongs
-under `StepperStep`. Only the keys after *"Keys that can match here"* are worth rewriting to.
+under `StepperStep`. Only the keys after _"Keys that can match here"_ are worth rewriting to.
 
 The report needs the component to render under the provider, so a rule under a component that
 no page you opened mounts stays quiet. Grep for `stepState` and `stepDisabled` across your own
@@ -1465,21 +1469,29 @@ against the wrong axes.
 Two `slotClasses` keys on `<Sparkline>` are spelled differently. `root`, `svg` and `area` are
 unchanged.
 
-| before | after | reaches |
-| --- | --- | --- |
-| `line` | `mark` | the stroked trend path |
+| before  | after      | reaches                                                  |
+| ------- | ---------- | -------------------------------------------------------- |
+| `line`  | `mark`     | the stroked trend path                                   |
 | `point` | `endPoint` | the one dot at the last value, drawn with `showEndPoint` |
 
 ```svelte
 <!-- before -->
-<Sparkline data={values} area showEndPoint
-  slotClasses={{ line: 'opacity-70', point: 'stroke-surface-base stroke-[2px]' }} />
+<Sparkline
+  data={values}
+  area
+  showEndPoint
+  slotClasses={{ line: 'opacity-70', point: 'stroke-surface-base stroke-[2px]' }}
+/>
 ```
 
 ```svelte
 <!-- after -->
-<Sparkline data={values} area showEndPoint
-  slotClasses={{ mark: 'opacity-70', endPoint: 'stroke-surface-base stroke-[2px]' }} />
+<Sparkline
+  data={values}
+  area
+  showEndPoint
+  slotClasses={{ mark: 'opacity-70', endPoint: 'stroke-surface-base stroke-[2px]' }}
+/>
 ```
 
 `mark` is what `<LineChart>` and `<AreaChart>` already call their stroked series path, so a
@@ -1489,7 +1501,7 @@ top edge, so an entry there reaches two paths per series — use `areaOutline` f
 alone and `area` for the band. A sparkline's `mark` reaches the trend path only; its band is
 `area`.
 
-The end marker did **not** become `point`. On a chart `point` is one circle per series *and*
+The end marker did **not** become `point`. On a chart `point` is one circle per series _and_
 datum under `showPoints` — three series over twelve values is 36 circles — while on a
 sparkline it is a single circle at the last value. Reusing the word would have made a class
 written for one read as portable to the other while landing on a different number of
@@ -1499,17 +1511,17 @@ elements, and nothing reports that: the key resolves either way.
 old key fails against the same slot names: `'line' does not exist in type
 'Partial<Record<SparklineSlots, string>>'`. Measured, all five:
 
-| where the key sits | written inline | reached through a variable |
-| --- | --- | --- |
-| the `slotClasses` prop | error | only if no key is in common |
-| `defaults={{ Sparkline: { slotClasses } }}` | error | only if no key is in common |
-| `defaults={{ Sparkline: { overrides } }}` (its `class` record) | error | only if no key is in common |
-| `presets={{ Sparkline: { … : { slotClasses } } }}` | error | only if no key is in common |
-| `presets={{ Sparkline: { … : { overrides } } }}` | error | only if no key is in common |
+| where the key sits                                             | written inline | reached through a variable  |
+| -------------------------------------------------------------- | -------------- | --------------------------- |
+| the `slotClasses` prop                                         | error          | only if no key is in common |
+| `defaults={{ Sparkline: { slotClasses } }}`                    | error          | only if no key is in common |
+| `defaults={{ Sparkline: { overrides } }}` (its `class` record) | error          | only if no key is in common |
+| `presets={{ Sparkline: { … : { slotClasses } } }}`             | error          | only if no key is in common |
+| `presets={{ Sparkline: { … : { overrides } } }}`               | error          | only if no key is in common |
 
 The second column is one rule, not five: a target whose properties are all optional rejects
-only an object with *no* key in common, and the excess-property check that catches a wrong key
-*beside* a right one applies to a fresh object literal. So `{ root, line, point }` written into
+only an object with _no_ key in common, and the excess-property check that catches a wrong key
+_beside_ a right one applies to a fresh object literal. So `{ root, line, point }` written into
 the attribute is an error, and the same object held in a `const` is not. One form is quieter
 still — a `const` annotated `Record<string, ComponentDefaults>` or `PresetMap` reports nothing
 at all; see the table under
@@ -1524,7 +1536,7 @@ The four provider rows are also why grepping your markup alone is not enough for
 second column lets through. That config sits under the string key `'Sparkline'`, nowhere near a
 `<Sparkline>` tag.
 
-A development build reports all five for you. The component checks the *resolved* slot map,
+A development build reports all five for you. The component checks the _resolved_ slot map,
 downstream of every source, and warns when a sparkline mounts with a stale key in reach:
 
 ```
@@ -1537,7 +1549,7 @@ The check runs at mount. Changing a provider config under an already-mounted spa
 restyles it without warning again, so re-mount — or reload — after editing one. Production
 builds drop the check entirely.
 
-Reading the *resolved* map is what buys the four provider rows, and it is also the check's one
+Reading the _resolved_ map is what buys the four provider rows, and it is also the check's one
 blind spot: a stale key inside an `overrides` rule is only in the resolved map when that rule
 **matches**. A rule whose condition is never true carries its stale key silently — measured,
 by keying one on an axis `Sparkline` does not name. That costs nothing here, because the rule

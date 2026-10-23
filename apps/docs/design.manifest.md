@@ -60,4 +60,3 @@ _None yet._
 **Decision:** The docs site uses the Minimal paradigm with an editorial layer: vertical rhythm, restrained chrome, typographic hierarchy over colour.
 
 **Rationale:** A component library's docs must read as a designed artifact, not a generic dashboard.
-

@@ -1,7 +1,7 @@
 # Editorial Guide
 
 How the prose that reaches a consumer developer is written: docs-site pages and package
-READMEs. Page *structure* is [DocsPageGuide.md](DocsPageGuide.md); prop JSDoc is the
+READMEs. Page _structure_ is [DocsPageGuide.md](DocsPageGuide.md); prop JSDoc is the
 `component-metadata` skill; `docs/internal/` is exempt.
 
 ## Who we write for
@@ -45,8 +45,8 @@ What they do that we copy:
 - **The most common mistake is the second thing on the page,** in plain prose with a link
   to the alternative, instead of a warning box at the bottom.
 - **Code teaches, prose introduces.** One or two sentences lead into a snippet; the actual
-  learning happens in the snippet, carried by comments like *this will re-run whenever
-  `color` changes*.
+  learning happens in the snippet, carried by comments like _this will re-run whenever
+  `color` changes_.
 - **Permission sentences.** "You don't need X for now; come back to it later." One line,
   and it takes weight off the reader.
 - **Advanced features say they're advanced** and sit at the bottom of the page.
@@ -110,25 +110,25 @@ vendored and frozen while pages keep moving.
 
 ## Voice
 
-- Second person, present tense. The subject of the sentence is *you* or the code you write.
+- Second person, present tense. The subject of the sentence is _you_ or the code you write.
 - The API's own names: `source.query`, `total`. Never a noun invented for the page.
-- Plain words before precise-sounding ones: *file* over *ledger*, *setting* over *axis*.
-- Name the visible thing, not a category for it: *the calendar*, *the legend*, *the bar* over
-  *the surface*, *the element*, *the control*. "Surface" fits every component and so points at
-  none; say which grid, panel or list you mean. A shared family term (the *date surfaces*:
+- Plain words before precise-sounding ones: _file_ over _ledger_, _setting_ over _axis_.
+- Name the visible thing, not a category for it: _the calendar_, _the legend_, _the bar_ over
+  _the surface_, _the element_, _the control_. "Surface" fits every component and so points at
+  none; say which grid, panel or list you mean. A shared family term (the _date surfaces_:
   Calendar, Planner, ResourceTimeline) earns its place only where the concrete names sit in the
   same sentence.
 - Every sentence should survive being said out loud to a colleague. If it sounds like a
   spec, rewrite it. If it sounds like marketing, cut it.
-- State what happens. A sentence about what does *not* happen earns its place only when
+- State what happens. A sentence about what does _not_ happen earns its place only when
   the behaviour contradicts a reasonable expectation, and a component that regularly
   contradicts expectations has an API problem, not a documentation problem.
 - No dash rhythm. An em-dash that sets up a contrast or delivers a verdict reads as
   generated prose. Use a period, a colon, a semicolon or parentheses.
 - Internals appear only when the reader writes different code once they know them. The
   dependency-tracking section of the `$effect` page is the calibration point: it describes
-  internals, and it stays, because you structure your code around it. *What the library
-  compares before re-running* is the kind that goes.
+  internals, and it stays, because you structure your code around it. _What the library
+  compares before re-running_ is the kind that goes.
 
 ## Process
 
@@ -139,9 +139,9 @@ catches them. Three steps:
    server data in the table?"). Write the answer the way you'd type it to a colleague in
    chat, with the model paragraphs and the canon open next to you. Structure it afterwards.
 2. **Fresh reader with a task.** A context that has never seen the draft, the canon or
-   this guide gets the page with one instruction: *"Get this running from zero. Note every
+   this guide gets the page with one instruction: _"Get this running from zero. Note every
    point where you stall, every sentence you skip, everything you needed and didn't
-   find."* Skipped sentences mark the passages that describe instead of enable.
+   find."_ Skipped sentences mark the passages that describe instead of enable.
 3. **Checklist.** Sentence hygiene, last.
 
 Steps 2 and 3, together with a fact-verification pass against the component source and a fourth

@@ -17,13 +17,13 @@ Standards for responsive and mobile behavior across all Urbicon UI components.
 
 ### Standard Breakpoints (Tailwind 4 defaults)
 
-| Token | Width | Prefix | Typical use |
-|-------|-------|--------|-------------|
-| Mobile | 0–639px | (base) | Single column, stacked layouts |
-| Tablet | 640px | `sm:` | Side-by-side elements, expanded controls |
-| Desktop | 768px | `md:` | Multi-column layouts, full toolbars |
-| Wide | 1024px | `lg:` | Sidebars, expanded navigation |
-| Ultra | 1280px | `xl:` | Maximum content width, dashboard grids |
+| Token   | Width   | Prefix | Typical use                              |
+| ------- | ------- | ------ | ---------------------------------------- |
+| Mobile  | 0–639px | (base) | Single column, stacked layouts           |
+| Tablet  | 640px   | `sm:`  | Side-by-side elements, expanded controls |
+| Desktop | 768px   | `md:`  | Multi-column layouts, full toolbars      |
+| Wide    | 1024px  | `lg:`  | Sidebars, expanded navigation            |
+| Ultra   | 1280px  | `xl:`  | Maximum content width, dashboard grids   |
 
 ### Container Queries
 
@@ -36,6 +36,7 @@ Tokens defined in `foundation.css`:
 ```
 
 **When to use which:**
+
 - **Viewport breakpoints** (`sm:`, `md:`): Page-level layout, sidebar visibility, navigation
 - **Container queries**: Embedded components (SmartFilterBar, Toolbar, Card grids) in varying-width containers
 
@@ -45,29 +46,29 @@ Tokens defined in `foundation.css`:
 
 ### Minimum Sizes
 
-| Level | Minimum | Application |
-|-------|---------|-------------|
-| **Required** (WCAG 2.5.8 AA) | 24×24px | All interactive elements |
+| Level                            | Minimum | Application                      |
+| -------------------------------- | ------- | -------------------------------- |
+| **Required** (WCAG 2.5.8 AA)     | 24×24px | All interactive elements         |
 | **Recommended** (WCAG 2.5.5 AAA) | 44×44px | Primary actions on touch devices |
 
 ### Touch-Specific Tokens (`interaction.css`)
 
 ```css
 @media (pointer: coarse) {
-  --blocks-touch-target-min: 2.75rem;  /* 44px */
-  --blocks-touch-spacing: 0.5rem;      /* 8px */
+  --blocks-touch-target-min: 2.75rem; /* 44px */
+  --blocks-touch-spacing: 0.5rem; /* 8px */
 }
 ```
 
 ### Per-Component Rules
 
-| Component | Strategy |
-|-----------|----------|
-| **Checkbox, Toggle** | `control` wrapper has `min-h-11` (44px) |
-| **Select / Combobox / Menu items** | Per-size token: `sm` 2rem · `md` 2.5rem · `lg` 3rem. Touch-target ≥ 44 px is guaranteed by the parent `control` wrappers (button/input) on coarse pointers, not by individual list rows — list density is optimised for desktop scanning. |
+| Component                                                             | Strategy                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Checkbox, Toggle**                                                  | `control` wrapper has `min-h-11` (44px)                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Select / Combobox / Menu items**                                    | Per-size token: `sm` 2rem · `md` 2.5rem · `lg` 3rem. Touch-target ≥ 44 px is guaranteed by the parent `control` wrappers (button/input) on coarse pointers, not by individual list rows — list density is optimised for desktop scanning.                                                                                                                                                                                        |
 | **Focusable text inputs (Input, Combobox, Textarea, CommandPalette)** | Font-size floored to **≥16px on coarse pointers** via `pointer-coarse:text-base` on the sub-16px `xs`/`sm` variants. Below 16px iOS Safari auto-zooms the field on focus and never restores the zoom (page stays scrolled sideways). Fine pointers keep the designed 12/14px. **Any new focusable text input must carry this floor** — never use `maximum-scale`/`user-scalable=no` on the viewport, which breaks accessibility. |
-| **Breadcrumb links** | **No touch padding today** — `breadcrumb.variants.ts` sets neither a `min-h` nor vertical padding, so a crumb is only as tall as its line box. Treat a breadcrumb trail as a desktop affordance, and give it padding yourself where it has to be the primary touch target |
-| **Button** | `md` (40px) acceptable for desktop; avoid `2xs`/`xs` as sole touch targets |
+| **Breadcrumb links**                                                  | **No touch padding today** — `breadcrumb.variants.ts` sets neither a `min-h` nor vertical padding, so a crumb is only as tall as its line box. Treat a breadcrumb trail as a desktop affordance, and give it padding yourself where it has to be the primary touch target                                                                                                                                                        |
+| **Button**                                                            | `md` (40px) acceptable for desktop; avoid `2xs`/`xs` as sole touch targets                                                                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -100,13 +101,13 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 
 ## Layout Patterns
 
-| Pattern | Use for | Implementation |
-|---------|---------|----------------|
-| **Horizontal scroll** | Tab lists, Toolbar | `overflow-x-auto` with hidden scrollbar |
-| **Wrap** | Button groups, filter chips, Calendar header (from `sm` up) | `flex-wrap gap-2` |
-| **Re-place** | Control rows whose groups must line up rather than break wherever the width runs out — Calendar header below `sm` | `max-sm:grid max-sm:grid-cols-[auto_1fr_auto]` + an explicit `col-start`/`row-start` per control |
-| **Stack** | Side-by-side → vertical | `flex-col sm:flex-row` |
-| **Truncate** | Long text in constrained space | `truncate max-w-48` + Tooltip |
+| Pattern               | Use for                                                                                                           | Implementation                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Horizontal scroll** | Tab lists, Toolbar                                                                                                | `overflow-x-auto` with hidden scrollbar                                                          |
+| **Wrap**              | Button groups, filter chips, Calendar header (from `sm` up)                                                       | `flex-wrap gap-2`                                                                                |
+| **Re-place**          | Control rows whose groups must line up rather than break wherever the width runs out — Calendar header below `sm` | `max-sm:grid max-sm:grid-cols-[auto_1fr_auto]` + an explicit `col-start`/`row-start` per control |
+| **Stack**             | Side-by-side → vertical                                                                                           | `flex-col sm:flex-row`                                                                           |
+| **Truncate**          | Long text in constrained space                                                                                    | `truncate max-w-48` + Tooltip                                                                    |
 
 ---
 
@@ -117,11 +118,11 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 A Table column's `priority` controls how it appears in the **mobile card** layout. The
 desktop table always shows every column.
 
-| Priority | Mobile card | Use for |
-|----------|-------------|---------|
-| 1 (or unset) | Primary — the first such column becomes the card title, others are prominent fields | Primary identifier (name, title) |
-| 2 | Secondary — a normal detail field | Key info (status, date) |
-| 3 | Desktop-only — omitted from the card | Info worth showing only on wide screens |
+| Priority     | Mobile card                                                                         | Use for                                 |
+| ------------ | ----------------------------------------------------------------------------------- | --------------------------------------- |
+| 1 (or unset) | Primary — the first such column becomes the card title, others are prominent fields | Primary identifier (name, title)        |
+| 2            | Secondary — a normal detail field                                                   | Key info (status, date)                 |
+| 3            | Desktop-only — omitted from the card                                                | Info worth showing only on wide screens |
 
 The split lives in `MobileCard` (it renders the unset/1/2 columns in source order and omits
 priority 3); there is no desktop CSS column-hiding.
@@ -149,7 +150,7 @@ Every new component must address before merge:
 All variant files use specific CSS transition properties instead of `transition-all`:
 
 ```typescript
-'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]'
+'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]';
 ```
 
 Exceptions: Tab indicator and Toast progress bar use `transition-all` (animate position/size).
