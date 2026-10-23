@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ResourceTimeline } from '@urbicon-ui/blocks';
+  import { daysBetween, isoToDate } from '@urbicon-ui/blocks/date';
 
   interface Stay {
     id: string;
@@ -38,6 +39,12 @@
       lastNight: '2026-06-19'
     }
   ];
+
+  // What a bar shows, built from the stay alone because `getLabel` sees only the
+  // item. It opens the bar's accessible name: a name has to contain the text its
+  // control shows (WCAG 2.5.3), or speech input cannot reach the bar by it.
+  const barText = (stay: Stay) =>
+    `${stay.guest} · ${daysBetween(isoToDate(stay.firstNight), isoToDate(stay.lastNight)) + 1} nights`;
 </script>
 
 <ResourceTimeline
@@ -48,11 +55,11 @@
   items={stays}
   getResourceId={(stay) => stay.roomId}
   getRange={(stay) => ({ start: stay.firstNight, end: stay.lastNight })}
-  getLabel={(stay) => `${stay.guest}, ${stay.firstNight} to ${stay.lastNight}`}
+  getLabel={(stay) => `${barText(stay)}, ${stay.firstNight} to ${stay.lastNight}`}
 >
-  {#snippet span({ item, totalDays, isStart, isEnd })}
+  {#snippet span({ item, isStart, isEnd })}
     <span class="truncate">
-      {isStart ? '' : '… '}{item.guest} · {totalDays} nights{isEnd ? '' : ' …'}
+      {isStart ? '' : '… '}{barText(item)}{isEnd ? '' : ' …'}
     </span>
   {/snippet}
 </ResourceTimeline>

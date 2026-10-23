@@ -98,7 +98,7 @@
       description="A popover carries structured content a Menu cannot. You provide the trigger button in the `trigger` snippet, and the panel is whatever markup you put inside."
       code={`<Popover placement="bottom-end">
   {#snippet trigger()}
-    <button aria-label="Open user menu">JD</button>
+    <button aria-label="JD, open user menu">JD</button>
   {/snippet}
   <div class="w-64">
     <!-- profile header, actions, sign-out -->
@@ -110,7 +110,7 @@
         {#snippet trigger()}
           <button
             type="button"
-            aria-label="Open user menu"
+            aria-label="JD, open user menu"
             class="bg-primary/10 text-primary-emphasis hover:ring-primary/30 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm font-semibold transition hover:ring-2"
           >
             JD

@@ -61,6 +61,34 @@ describe('CompositionBar (accessibility contract)', () => {
   });
 });
 
+describe('CompositionBar (label in name)', () => {
+  // WCAG 2.5.3, compared the way axe's label-content-name-mismatch does: a
+  // parenthetical is dropped, then the words of the visible text have to run
+  // on, in order, inside the words of the name.
+  const words = (text: string) =>
+    text
+      .replace(/\([^()]*\)/g, '')
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean)
+      .join(' ');
+
+  it.each<[string, Locale | undefined]>([
+    ['the base locale', undefined],
+    ['German', 'de']
+  ])('names each legend row with the text it shows, in %s', (_, locale) => {
+    renderBar({ items: shares }, locale);
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('ul > li > button'));
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(` ${words(row.getAttribute('aria-label') ?? '')} `).toContain(
+        ` ${words(row.textContent ?? '')} `
+      );
+    }
+    // One name per item, whichever of its two controls a speech user addresses.
+    expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(segmentLabels());
+  });
+});
+
 describe('CompositionBar (item identity)', () => {
   const segments = () =>
     Array.from(document.querySelectorAll<HTMLElement>('button[data-composition-segment]'));
@@ -78,7 +106,7 @@ describe('CompositionBar (item identity)', () => {
       ],
       formatValue: (v) => String(v)
     });
-    expect(segmentLabels()).toEqual(['Gas: 60 (60.0%)', 'Power: 40 (40.0%)']);
+    expect(segmentLabels()).toEqual(['Gas: 60, 60.0%', 'Power: 40, 40.0%']);
     expect(legendRows()).toHaveLength(2);
     expect(tableRows()).toEqual([
       ['Gas', '60', '60.0%'],
@@ -93,7 +121,7 @@ describe('CompositionBar (item identity)', () => {
         { label: 'Power', value: 40, id: 'energy' }
       ]
     });
-    expect(segmentLabels()).toEqual(['Gas: 60 (60.0%)', 'Power: 40 (40.0%)']);
+    expect(segmentLabels()).toEqual(['Gas: 60, 60.0%', 'Power: 40, 40.0%']);
     expect(legendRows()).toHaveLength(2);
     expect(tableRows()).toHaveLength(2);
   });
@@ -129,7 +157,7 @@ describe('CompositionBar (item identity)', () => {
     props.items = [props.items[1], props.items[0]];
     flushSync();
 
-    expect(segmentLabels()).toEqual(['Power: 40 (40.0%)', 'Gas: 60 (60.0%)']);
+    expect(segmentLabels()).toEqual(['Power: 40, 40.0%', 'Gas: 60, 60.0%']);
     expect(segments()).toEqual([powerSegment, gasSegment]);
     expect(legendRows()).toEqual([powerRow, gasRow]);
   });
@@ -138,7 +166,7 @@ describe('CompositionBar (item identity)', () => {
 describe('CompositionBar (default percent format)', () => {
   it('writes the percent sign the way the active locale does', () => {
     renderBar({ items: shares });
-    expect(segmentLabels()).toEqual(['Gas: 60 (60.0%)', 'Power: 40 (40.0%)']);
+    expect(segmentLabels()).toEqual(['Gas: 60, 60.0%', 'Power: 40, 40.0%']);
     expect(document.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe(
       'Composition: 100 (2 shares) — Gas 60.0%, Power 40.0%'
     );
@@ -146,13 +174,13 @@ describe('CompositionBar (default percent format)', () => {
 
   it('follows a non-base locale', () => {
     renderBar({ items: shares }, 'de');
-    expect(segmentLabels()).toEqual(['Gas: 60 (60,0\u00a0%)', 'Power: 40 (40,0\u00a0%)']);
+    expect(segmentLabels()).toEqual(['Gas: 60, 60,0\u00a0%', 'Power: 40, 40,0\u00a0%']);
   });
 
   // A provider does not validate its locale; `Intl` throws on these two.
   it.each(['de_DE', ''])('renders in English under the provider locale %j', (locale) => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     renderBar({ items: shares }, locale as Locale);
-    expect(segmentLabels()).toEqual(['Gas: 60 (60.0%)', 'Power: 40 (40.0%)']);
+    expect(segmentLabels()).toEqual(['Gas: 60, 60.0%', 'Power: 40, 40.0%']);
   });
 });
