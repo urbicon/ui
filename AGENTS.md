@@ -60,8 +60,8 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Coding Conventions
 
-- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`. Biome does not parse `.svelte`.
-- **Four `.svelte` lint rules are unenforced** — Biome cannot parse `.svelte`, so the `{@html}` XSS guard, each-key, `prefer-svelte-reactivity` and `no-navigation-without-resolve` are on you; re-add a `.svelte`-only ESLint pass if they regress ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
+- Lint/format: **Biome** for `.ts`/`.js`/`.json`/`.yml` (`biome.json` extends `@urbicon-ui/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`.
+- **Biome lints `.svelte` with six rules, nothing else** — the `{@html}` XSS guard, each-key, reactive classes, `resolve()` navigation, `class:`, `export let`; formatting stays with Prettier. They are nursery rules behind an experimental flag, so a Biome bump can change them; the lockfile pins Biome ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware)).
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
 - **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`

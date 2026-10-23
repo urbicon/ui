@@ -3,7 +3,6 @@
   "extends": ["@urbicon-ui/biome-config/biome-base.json"],
   "files": {
     "includes": [
-      "!**/*.svelte",
       "!**/*.svg",
       "!**/*.css",
       "!**/*.gen.ts",
@@ -13,6 +12,7 @@
   },
   "markdown": { "formatter": { "enabled": false }, "linter": { "enabled": false } },
   "yaml": { "formatter": { "quoteStyle": "single" } },
+  "html": { "experimentalFullSupportEnabled": true },
   "linter": {
     "rules": {
       "performance": { "useTopLevelRegex": "off" },
@@ -36,6 +36,33 @@
         "rules": {
           "complexity": { "noBannedTypes": "off" },
           "suspicious": { "noEmptyInterface": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.svelte"],
+      "formatter": { "enabled": false },
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noSvelteAtHtmlTags": "error",
+            "noSvelteClassDirective": "error",
+            "noSvelteExportLet": "error",
+            "useSvelteKitResolve": "error",
+            "useSvelteReactiveClasses": "error",
+            "useSvelteRequireEachKey": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.svelte"],
+      "assist": { "enabled": false },
+      "linter": {
+        "rules": {
+          "preset": "none",
+          "correctness": { "noUnusedVariables": "off" },
+          "suspicious": { "noShadow": "off" }
         }
       }
     }

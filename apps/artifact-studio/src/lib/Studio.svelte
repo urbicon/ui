@@ -186,7 +186,8 @@
     class="border-border-subtle flex shrink-0 items-baseline justify-between gap-4 border-b px-5 py-3"
   >
     <div class="flex items-baseline gap-3 overflow-hidden">
-      <a href="/" class="text-text-tertiary hover:text-text-primary shrink-0 text-sm">← Sitzungen</a
+      <a href={resolve('/')} class="text-text-tertiary hover:text-text-primary shrink-0 text-sm"
+        >← Sitzungen</a
       >
       <h1 class="truncate font-medium">{session.title}</h1>
     </div>

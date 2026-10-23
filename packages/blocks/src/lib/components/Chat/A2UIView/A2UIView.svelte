@@ -50,7 +50,9 @@
     basicA2uiCatalog,
     ...(untrack(() => catalogsProp) ?? [])
   ];
+  // biome-ignore lint/nursery/useSvelteReactiveClasses: init-only like `catalogs`; the loop below is its only writer
   const catalogById = new Map<string, A2uiCatalog>();
+  // biome-ignore lint/nursery/useSvelteReactiveClasses: init-only like `catalogs`; the loop below is its only writer
   const iconsByCatalog = new Map<string, ReturnType<A2uiCatalog['createIcons']>>();
   for (const catalog of catalogs) {
     if (catalogById.has(catalog.catalogId)) continue;

@@ -37,8 +37,8 @@
   {/if}
 
   <article class="guide-prose mt-10" data-docs-content>
-    <!-- eslint-disable-next-line svelte/no-at-html-tags — our own shipped doc, rendered at build time -->
-    {@html data.html}
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    <!-- biome-ignore lint/nursery/noSvelteAtHtmlTags: prerendered marked output of the repo's own packages/auth/docs/AUTH.md -->{@html data.html}
   </article>
 </div>
 

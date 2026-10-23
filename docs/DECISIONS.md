@@ -18,11 +18,20 @@ linting would make every `lint` run and the pre-commit hook several times slower
 promises and similar issues are caught by TypeScript itself (`strict`, `noImplicitAny`,
 `strictNullChecks`) and in review.
 
-**Known consequence:** Biome cannot parse `.svelte` at all. Four rules were lost in the
-ESLint → Biome migration and are not currently enforced anywhere: `svelte/no-at-html-tags`
-(the `{@html}` XSS guard), `svelte/require-each-key`, `svelte/prefer-svelte-reactivity`,
-`svelte/no-navigation-without-resolve`. If these regress, the fix is a `.svelte`-only
-ESLint pass alongside Biome — not abandoning Biome.
+**Known consequence:** four rules were lost in the ESLint → Biome migration:
+`svelte/no-at-html-tags` (the `{@html}` XSS guard), `svelte/require-each-key`,
+`svelte/prefer-svelte-reactivity`, `svelte/no-navigation-without-resolve`. Biome 2.6 has all
+four as nursery rules (`noSvelteAtHtmlTags`, `useSvelteRequireEachKey`,
+`useSvelteReactiveClasses`, `useSvelteKitResolve`), plus `noSvelteClassDirective` and
+`noSvelteExportLet`, and `biome.json` enforces these six on `.svelte` and nothing else: no
+recommended preset, no assist, no formatter — Prettier still formats `.svelte`. They need
+`html.experimentalFullSupportEnabled`, which takes effect only at the top level of
+`biome.json`; inside an `overrides` entry Biome 2.6.2 ignores it and lints the `<script>`
+alone. Nursery rules behind an experimental flag can change in any Biome release; the lockfile
+pins Biome, so that happens in a deliberate upgrade, not silently. In markup a suppression is
+`<!-- biome-ignore lint/nursery/<rule>: <reason> -->`, and Biome rejects one without a reason;
+at an `{@html}` it shares the tag's line, under a bare
+`<!-- eslint-disable-next-line svelte/no-at-html-tags -->` that the Svelte autofixer reads.
 
 ## Pre-commit runs neither `check` nor the tests
 

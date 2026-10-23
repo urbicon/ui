@@ -72,6 +72,7 @@
   // diese Schrift, also lädt sie auch nur hier.
   import '@fontsource/special-elite/400.css';
   import { asset, resolve } from '$app/paths';
+  import { r as resolveDynamic } from '#lib/route.js';
   import { REPO_URL } from '#lib/seo.js';
   import BookingCard from '#lib/hotel/BookingCard.svelte';
   import LiveryTile from '#lib/hotel/LiveryTile.svelte';
@@ -145,7 +146,7 @@
       title: 'A2UI',
       line: 'AI chat creates interactive components on the fly. Tool-controlled, safe, custom-themed.',
       channel: CHANNELS[TILE_CHANNEL.a2ui],
-      href: '/hotel',
+      href: resolve('/hotel'),
       linkLabel: 'Visit the demo hotel'
     },
     {
@@ -649,18 +650,18 @@
 
   // ── Treppe: die restlichen Register — jede Stufe ist eine Tür ───
   const STEPS = $derived([
-    { label: `${data.counts.components} components`, href: '/blocks' },
-    { label: `${data.counts.icons} icons`, href: '/icons' },
-    { label: 'calendar', href: '/blocks/components/calendar' },
-    { label: 'guide', href: '/blocks/components/guide' },
-    { label: 'sankey', href: '/blocks/components/sankey' },
-    { label: 'charts', href: '/blocks/components/area-chart' },
-    { label: 'toast', href: '/blocks/primitives/toast' },
-    { label: 'chat', href: '/blocks/components/chat' },
-    { label: 'auth', href: '/auth' },
-    { label: 'i18n', href: '/i18n' },
-    { label: 'recipes', href: '/recipes' },
-    { label: 'theming', href: '/customization' }
+    { label: `${data.counts.components} components`, href: resolve('/blocks') },
+    { label: `${data.counts.icons} icons`, href: resolve('/icons') },
+    { label: 'calendar', href: resolve('/blocks/components/calendar') },
+    { label: 'guide', href: resolve('/blocks/components/guide') },
+    { label: 'sankey', href: resolve('/blocks/components/sankey') },
+    { label: 'charts', href: resolve('/blocks/components/area-chart') },
+    { label: 'toast', href: resolve('/blocks/primitives/toast') },
+    { label: 'chat', href: resolve('/blocks/components/chat') },
+    { label: 'auth', href: resolve('/auth') },
+    { label: 'i18n', href: resolve('/i18n') },
+    { label: 'recipes', href: resolve('/recipes') },
+    { label: 'theming', href: resolve('/customization') }
   ]);
 
   // ── Zeile 2: das Hero-Inventar als niedrigere Zeile ────────────────
@@ -1435,7 +1436,7 @@
           <div class="title-row">
             <h2>
               {#if specimen}
-                <a href={specimen.docsHref}>
+                <a href={resolveDynamic(specimen.docsHref)}>
                   {selected.name}<span class="arrow" aria-hidden="true">→</span>
                 </a>
               {:else}
@@ -1605,11 +1606,11 @@
         <p class="foot-meta">© 2026 Urbicon · Felix Urban · v{__APP_VERSION__}</p>
       </div>
       <nav class="foot-nav" aria-label="Footer">
-        <a href="/blocks">Components</a>
-        <a href="/recipes">Recipes</a>
-        <a href="/getting-started">Getting started</a>
-        <a href="/changelog">Changelog</a>
-        <a href="/ai">AI &amp; DX</a>
+        <a href={resolve('/blocks')}>Components</a>
+        <a href={resolve('/recipes')}>Recipes</a>
+        <a href={resolve('/getting-started')}>Getting started</a>
+        <a href={resolve('/changelog')}>Changelog</a>
+        <a href={resolve('/ai')}>AI &amp; DX</a>
         <!-- Die Seite behauptet AI-native — die maschinenlesbaren Artefakte
              gehören darum als Türen hierher, wie im Sidebar-Chrome. `asset()`
              statt Route: das sind statische Dateien, kein Client-Routing. -->
@@ -1619,8 +1620,8 @@
         <!-- Wer hinter der Bibliothek steht: die Tür zurück zur Firmenseite.
              Extern wie GitHub, darum dieselbe Behandlung. -->
         <a href="https://urbicon.de" target="_blank" rel="noopener">Urbicon</a>
-        <a href="/imprint">Imprint</a>
-        <a href="/privacy">Privacy</a>
+        <a href={resolve('/imprint')}>Imprint</a>
+        <a href={resolve('/privacy')}>Privacy</a>
       </nav>
     </footer>
   </main>
@@ -2507,7 +2508,7 @@
      (Schatten, siehe PLAYGROUND_SLOTS), ist die obere Linie eine zweite Kante
      an derselben Stelle — und die untere zieht eine Fuge quer durch eine Zeile,
      die sonst fugenlos ist. */
-  .stage :global(> section > div) {
+  .stage > :global(section > div) {
     border-block: 0;
   }
   .preview code {

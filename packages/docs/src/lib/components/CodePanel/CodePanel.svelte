@@ -120,7 +120,8 @@
           aria-label={codeLabel}
           tabindex="0"
         >
-          {@html highlightedCode}
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+          <!-- biome-ignore lint/nursery/noSvelteAtHtmlTags: Shiki output or the escapeHtml fallback; `code` arrives escaped -->{@html highlightedCode}
         </div>
       </div>
     </div>
