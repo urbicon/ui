@@ -40,7 +40,7 @@ describe('EmptyState icon', () => {
     const markup = '<img src=x onerror="window.__emptyStateXss = true">';
     // @ts-expect-error a string other than the three icon names is not an icon
     const props: EmptyStateProps = { icon: markup };
-    expect(() => render(props)).toThrow();
+    expect(() => render(props)).toThrow(/\[EmptyState\] icon must be/);
     expect(document.querySelector('img')).toBeNull();
   });
 });

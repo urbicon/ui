@@ -52,6 +52,16 @@
 
   const styleConfig = getTableStyleConfig();
 
+  // TypeScript rejects any other string; this names the mistake for a JavaScript caller (a markup
+  // string, a mistyped name) instead of failing as an anonymous call inside the template.
+  const ownIcon = $derived.by(() => {
+    if (!icon || icon === 'search' || icon === 'database' || icon === 'inbox') return undefined;
+    if (typeof icon === 'function') return icon;
+    throw new TypeError(
+      `[EmptyState] icon must be 'search', 'database', 'inbox' or a snippet, got ${JSON.stringify(icon)}. A markup string does not render as HTML; pass a snippet.`
+    );
+  });
+
   // Smart message with I18n fallback
   const displayMessage = $derived.by(() => {
     if (message) return message;
@@ -113,7 +123,7 @@
           {:else if icon === 'inbox'}
             <InboxIcon class={styles.iconSvg()} />
           {:else}
-            {@render icon()}
+            {@render ownIcon?.()}
           {/if}
         </div>
       {/if}

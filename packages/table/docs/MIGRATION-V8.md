@@ -191,8 +191,9 @@ itself, where your own linter sees it. Rich content without HTML strings is a `c
 **`EmptyState`'s `icon` is a name or a snippet (8.35.0).** `icon` took any string:
 `'search'`, `'database'` and `'inbox'` drew a library icon, and every other string was inserted
 as HTML, unsanitised. It is now `'search' | 'database' | 'inbox' | Snippet`, so TypeScript names
-every call site that passes another string. In plain JavaScript such a string throws on render
-instead of reaching the DOM. Pass your own icon as a snippet:
+every call site that passes another string. In plain JavaScript such a string throws on the
+first render with `[EmptyState] icon must be 'search', 'database', 'inbox' or a snippet` instead
+of reaching the DOM. Pass your own icon as a snippet:
 
 ```svelte
 <!-- before 8.35.0 -->
