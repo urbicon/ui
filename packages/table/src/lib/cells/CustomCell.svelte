@@ -7,6 +7,13 @@
 
   export type CustomCellProps<Item> = {
     item: Item;
+    /**
+     * The cell's text, computed per row. The string renders as text: markup in it shows as
+     * written and is never parsed as HTML. For rich content pass `component` (wins over
+     * `content`) or the `children` snippet; HTML you trust goes into your own snippet's
+     * `{@html}`. With neither `component`, `content` nor `children` the cell shows the row
+     * as JSON.
+     */
     content?: (item: Item) => string;
     component?: Component<Record<string, unknown>>;
     componentProps?: Record<string, unknown>;
@@ -116,11 +123,8 @@
       {@const Component = component}
       <Component {item} {...componentProps} />
     {:else if content}
-      <!-- HTML Content Function — consumers opt into this API explicitly
-           and are responsible for sanitising the output; the `content`
-           callback is their authoring surface. -->
       <div class={styles.text()}>
-        {@html content(item)}
+        {content(item)}
       </div>
     {:else if children}
       <!-- Snippet-based Content -->

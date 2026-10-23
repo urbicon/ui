@@ -68,6 +68,10 @@ export class TypedColumnBuilder<Item> {
     return this;
   }
 
+  /**
+   * Appends a {@link TableColumns.custom} column: `options.content(item)` is the cell's text,
+   * rendered as text and never parsed as HTML.
+   */
   customCell(
     accessor: DataAccessor<Item>,
     title: string,
