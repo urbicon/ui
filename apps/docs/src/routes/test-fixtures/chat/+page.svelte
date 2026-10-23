@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChatMessageList, type ChatMessageData } from '@urbicon-ui/blocks';
+  import { type ChatMessageData, ChatMessageList } from '@urbicon-ui/blocks';
 
   // Deterministic driver page for the e2e chat-list spec: every scroll-engine
   // behaviour (stick / interrupt / jump-back / prepend anchor / announcements)

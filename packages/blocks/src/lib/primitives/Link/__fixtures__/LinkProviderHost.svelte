@@ -1,8 +1,8 @@
 <script lang="ts">
   import BlocksProvider from '#lib/provider/BlocksProvider.svelte';
   import type { ComponentDefaults, ComponentPreset } from '#lib/provider/blocks-context.js';
-  import Link from '../Link.svelte';
   import type { LinkProps } from '../index';
+  import Link from '../Link.svelte';
 
   // One mount point for the three provider-side inputs a Link resolves against.
   // Declarative primitive, so the link's own props are handed through as one

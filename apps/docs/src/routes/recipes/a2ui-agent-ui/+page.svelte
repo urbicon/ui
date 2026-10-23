@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { A2UIView, Button, urbiconA2uiCatalog, type A2uiActionEvent } from '@urbicon-ui/blocks';
+  import { A2UIView, type A2uiActionEvent, Button, urbiconA2uiCatalog } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   // The seam between demo and code: the chat client below reads its envelopes
   // off a stream, the demo feeds the same wire payloads to A2UIView from these

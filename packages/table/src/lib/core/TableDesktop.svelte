@@ -1,21 +1,21 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { tick, untrack } from 'svelte';
-  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
   import { useTableI18n } from '#lib/i18n/index.js';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import { resolveColumnId, resolveRowItemId } from '#lib/utils/index.js';
+  import { computeVirtualItems, ROW_HEIGHTS } from '#lib/utils/virtualizer.js';
+  import SummaryRow from '../features/SummaryRow.svelte';
   import EmptyState from './EmptyState.svelte';
   import ErrorState from './ErrorState.svelte';
   import GroupedRow from './GroupedRow.svelte';
   import LoadingState from './LoadingState.svelte';
-  import TableHead from './TableHead.svelte';
-  import TableRow from './TableRow.svelte';
-  import SummaryRow from '../features/SummaryRow.svelte';
-  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
-  import { computeVirtualItems, ROW_HEIGHTS } from '#lib/utils/virtualizer.js';
-  import { resolveColumnId, resolveRowItemId } from '#lib/utils/index.js';
   import { getStickyContext } from './sticky-context.svelte';
   import { structuralColumns } from './structural-columns';
-  import type { Column, TableItem } from '#lib/types/tableTypes.js';
-  import type { Snippet } from 'svelte';
+  import TableHead from './TableHead.svelte';
+  import TableRow from './TableRow.svelte';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();
 

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { BasicUsage, TrackCopy, HeaderActions } from './examples';
+  import { BasicUsage, HeaderActions, TrackCopy } from './examples';
 
   import basicUsageCode from './examples/BasicUsage.svelte?raw';
-  import trackCopyCode from './examples/TrackCopy.svelte?raw';
   import headerActionsCode from './examples/HeaderActions.svelte?raw';
+  import trackCopyCode from './examples/TrackCopy.svelte?raw';
 </script>
 
 <Section marker id="examples" title="Examples">

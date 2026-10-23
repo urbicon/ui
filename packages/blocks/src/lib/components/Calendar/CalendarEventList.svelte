@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
   import type { Snippet } from 'svelte';
-  import { Button } from '#lib/primitives/Button/index.js';
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
+  import { useBlocksI18n } from '#lib';
   import { formatDate } from '#lib/date/index.js';
-  import type { CalendarEvent, EventItemContext } from './calendar.types';
+  import { Button } from '#lib/primitives/Button/index.js';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
+  import type { CalendarEvent, EventItemContext } from './calendar.types';
 
   const bt = useBlocksI18n();
 

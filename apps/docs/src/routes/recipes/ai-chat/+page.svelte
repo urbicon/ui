@@ -3,13 +3,13 @@
     Badge,
     Card,
     Chat,
-    ChatMessageList,
     type ChatMessageData,
+    ChatMessageList,
     PromptInput
   } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   // ── The demo stages the transport, nothing else ────────────────────────────
   // The recipe code is the real client: fetch to the SSE endpoint below, a

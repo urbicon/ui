@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { linkVariants, type LinkVariants } from './link.variants';
   import type { LinkProps } from './index';
+  import { type LinkVariants, linkVariants } from './link.variants';
 
   const theme = useThemeProps('Link', () => preset);
 

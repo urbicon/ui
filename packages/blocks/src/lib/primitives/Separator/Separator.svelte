@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { separatorVariants } from './separator.variants';
   import type { SeparatorProps } from './index';
+  import { separatorVariants } from './separator.variants';
 
   const theme = useThemeProps('Separator', () => preset);
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { QRCode, Textarea } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const eclLevels = ['L', 'M', 'Q', 'H'] as const;
   const sizes = [120, 160, 220];

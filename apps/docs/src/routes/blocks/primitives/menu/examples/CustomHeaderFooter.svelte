@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Menu, Button, type MenuObjectOption } from '@urbicon-ui/blocks';
+  import { Button, Menu, type MenuObjectOption } from '@urbicon-ui/blocks';
 
   let lastAction = $state('—');
 

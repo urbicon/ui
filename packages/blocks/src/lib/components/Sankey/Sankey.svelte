@@ -1,22 +1,22 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { useBlocksI18n } from '#lib';
+  import { percentFormatter } from '#lib/internal/percent.js';
   import {
     computeSankeyLayout,
-    sankeyLinkPath,
     type SankeyLaidOutLink,
-    type SankeyLaidOutNode
+    type SankeyLaidOutNode,
+    sankeyLinkPath
   } from '#lib/internal/sankey/layout.js';
-  import { percentFormatter } from '#lib/internal/percent.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type {
-    SankeyProps,
     SankeyIntent,
     SankeyLaidOutLinkWithMeta,
-    SankeyLaidOutNodeWithMeta
+    SankeyLaidOutNodeWithMeta,
+    SankeyProps
   } from './index';
-  import { sankeyVariants, type SankeyVariants } from './sankey.variants';
+  import { type SankeyVariants, sankeyVariants } from './sankey.variants';
 
   const bt = useBlocksI18n();
   const i18n = useI18n();

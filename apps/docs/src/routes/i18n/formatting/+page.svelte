@@ -1,7 +1,7 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { useI18n } from '@urbicon-ui/i18n';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
 
   // Real i18n hook — the docs app mounts a provider at its root, so these

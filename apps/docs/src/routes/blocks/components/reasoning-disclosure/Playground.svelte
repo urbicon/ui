@@ -11,14 +11,14 @@
   ihn anfasst. So druckt der Schnipsel genau das Objekt, das die Bühne rendert.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
-  import { ReasoningDisclosure, type ChatReasoningPart } from '@urbicon-ui/blocks';
+  import { type ChatReasoningPart, ReasoningDisclosure } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

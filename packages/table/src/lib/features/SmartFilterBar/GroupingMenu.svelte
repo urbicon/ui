@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { ListTreeIcon as ListTreeIconDefault, resolveIcon, Select } from '@urbicon-ui/blocks';
   import { getTableContext, useTableI18n } from '#lib';
   import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
-  import { Select, resolveIcon, ListTreeIcon as ListTreeIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
   import { buildGroupingEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 

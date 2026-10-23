@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Badge, Button, Planner, PlusIcon } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   type MealType = 'breakfast' | 'lunch' | 'dinner';
   interface MealEntry {

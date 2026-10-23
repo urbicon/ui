@@ -13,9 +13,9 @@
   keine zweite, driftende Kopie entsteht.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Scroller } from '@urbicon-ui/blocks';
   import { extractPlaygroundDocs, PlaygroundConfigurator } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
   import playgroundSource from './Playground.svelte?raw';
 

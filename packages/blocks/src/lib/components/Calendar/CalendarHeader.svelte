@@ -1,18 +1,18 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  import { Tooltip } from '#lib/primitives/Tooltip/index.js';
-  import { Popover } from '#lib/primitives/Popover/index.js';
-  import { SegmentGroup, SegmentItem } from '#lib/primitives/SegmentGroup/index.js';
-  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { formatMonthShort, formatMonthYear } from '#lib/date/index.js';
+  import CalendarIcon from '#lib/icons/CalendarIcon.svelte';
+  import ChevronDownIcon from '#lib/icons/ChevronDownIcon.svelte';
   import ChevronLeftIcon from '#lib/icons/ChevronLeftIcon.svelte';
   import ChevronRightIcon from '#lib/icons/ChevronRightIcon.svelte';
-  import ChevronDownIcon from '#lib/icons/ChevronDownIcon.svelte';
-  import CalendarIcon from '#lib/icons/CalendarIcon.svelte';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { Popover } from '#lib/primitives/Popover/index.js';
+  import { SegmentGroup, SegmentItem } from '#lib/primitives/SegmentGroup/index.js';
+  import { Tooltip } from '#lib/primitives/Tooltip/index.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getCalendarContext } from './calendar.context';
   import type { CalendarVariants } from './calendar.variants';
-  import { formatMonthShort, formatMonthYear } from '#lib/date/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CalendarHeaderProps, CalendarSlotName, CalendarViewMode } from './index';
 
   const bt = useBlocksI18n();

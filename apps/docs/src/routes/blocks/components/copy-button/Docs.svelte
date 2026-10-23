@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Card, CopyButton } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const variants = ['ghost', 'outlined', 'filled'] as const;
 

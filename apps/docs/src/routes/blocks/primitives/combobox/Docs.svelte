@@ -3,9 +3,9 @@
      behaviour, and only the fill, border and blur are raw — a frosted-glass look the token palette
      has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Avatar, Badge, CheckIcon, Combobox, Kbd } from '@urbicon-ui/blocks';
   import type { ComboboxOption } from '@urbicon-ui/blocks';
+  import { Avatar, Badge, CheckIcon, Combobox, Kbd } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   const timezones: ComboboxOption[] = [

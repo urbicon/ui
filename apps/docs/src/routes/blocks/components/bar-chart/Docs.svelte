@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { BarChart, type BarChartDatum, type ChartSeries } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const quarterly: BarChartDatum[] = [
     { label: 'Q1', values: [42, 30] },

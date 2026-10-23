@@ -1,9 +1,9 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
-  import { guideMentionVariants, type GuideMentionVariants } from './guide.variants';
+  import { type GuideMentionVariants, guideMentionVariants } from './guide.variants';
   import type { GuideMentionProps } from './index';
 
   let {

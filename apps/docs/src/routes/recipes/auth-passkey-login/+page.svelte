@@ -2,8 +2,8 @@
   import { LoginPage } from '@urbicon-ui/auth';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   const recipeCode = `// 1. src/lib/server/auth-setup.ts — auth deps + shared WebAuthn ceremony config
 import { createAuthDeps, createPasskeyHandlers } from '@urbicon-ui/auth/server';

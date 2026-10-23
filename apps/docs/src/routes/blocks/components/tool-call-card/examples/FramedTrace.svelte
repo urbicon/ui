@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ToolCallCard, type ChatToolCallPart } from '@urbicon-ui/blocks';
+  import { type ChatToolCallPart, ToolCallCard } from '@urbicon-ui/blocks';
 
   // A run log: here the calls ARE the content, so each one gets a frame of its
   // own instead of the quiet line the chat stream uses.

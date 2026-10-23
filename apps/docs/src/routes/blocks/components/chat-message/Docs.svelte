@@ -2,11 +2,10 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '#lib/route.js';
   import AgenticMessage from './examples/AgenticMessage.svelte';
-  import CustomToolRenderer from './examples/CustomToolRenderer.svelte';
-  import ErrorState from './examples/ErrorState.svelte';
-
   import agenticMessageCode from './examples/AgenticMessage.svelte?raw';
+  import CustomToolRenderer from './examples/CustomToolRenderer.svelte';
   import customToolRendererCode from './examples/CustomToolRenderer.svelte?raw';
+  import ErrorState from './examples/ErrorState.svelte';
   import errorStateCode from './examples/ErrorState.svelte?raw';
 </script>
 

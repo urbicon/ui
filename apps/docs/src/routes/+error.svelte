@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import { resolve } from '$app/paths';
   import { Button } from '@urbicon-ui/blocks';
   import { SITE_NAME } from '#lib/seo.js';
+  import { resolve } from '$app/paths';
+  import { page } from '$app/state';
 
   const is404 = $derived(page.status === 404);
   const heading = $derived(is404 ? 'Page not found' : 'Something went wrong');

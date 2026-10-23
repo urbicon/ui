@@ -1,33 +1,35 @@
 <script lang="ts" generics="TItem extends MenuItemType = MenuItemType">
   import { tick, untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { Button, menuVariants, type MenuVariants } from '#lib/primitives/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
   import ChevronDownIconDefault from '#lib/icons/ChevronDownIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import { Button, type MenuVariants, menuVariants } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
+
   import Popover from '../Popover/Popover.svelte';
   import { popoverMotion } from '../Popover/popover.variants';
-  import { setMenuContext, type MenuContext, type MenuRegistryItem } from './menu.context';
-  import {
-    groupMenuItems,
-    isMenuDividerItem,
-    menuEntryKey,
-    type MenuGroupEntry
-  } from './menu.grouping';
-  import MenuDivider from './MenuDivider.svelte';
-  import MenuItemComp from './MenuItem.svelte';
-  import MenuSection from './MenuSection.svelte';
-  import MenuSubmenu from './MenuSubmenu.svelte';
   import type {
     MenuDividerItem,
     MenuItemType,
     MenuObjectOption,
-    MenuSectionHeader,
-    MenuProps
+    MenuProps,
+    MenuSectionHeader
   } from './index';
+  import MenuDivider from './MenuDivider.svelte';
+  import MenuItemComp from './MenuItem.svelte';
+  import MenuSection from './MenuSection.svelte';
+  import MenuSubmenu from './MenuSubmenu.svelte';
+  import { type MenuContext, type MenuRegistryItem, setMenuContext } from './menu.context';
+  import {
+    groupMenuItems,
+    isMenuDividerItem,
+    type MenuGroupEntry,
+    menuEntryKey
+  } from './menu.grouping';
 
   const bt = useBlocksI18n();
 

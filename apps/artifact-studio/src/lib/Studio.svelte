@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
-  import { page } from '$app/state';
-  import { goto } from '$app/navigation';
-  import { resolve } from '$app/paths';
   import { Alert, Button, SegmentGroup, SegmentItem, Spinner, Textarea } from '@urbicon-ui/blocks';
+  import { onMount, untrack } from 'svelte';
   import type { SessionState, StudioEvent, VersionInfo } from '#lib/events.js';
   import { runTurn } from '#lib/stream.js';
+  import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
+  import { page } from '$app/state';
 
   let { session }: { session: SessionState } = $props();
 

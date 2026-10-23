@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { useBlocksI18n } from '#lib';
   import { eachKeys } from '#lib/internal/each-keys.js';
   import { percentFormatter } from '#lib/internal/percent.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
-  import { compositionBarVariants, type CompositionBarVariants } from './composition-bar.variants';
+  import { type CompositionBarVariants, compositionBarVariants } from './composition-bar.variants';
+  import type { CompositionBarIntent, CompositionBarProps, CompositionItem } from './index';
 
   const bt = useBlocksI18n();
   const i18n = useI18n();

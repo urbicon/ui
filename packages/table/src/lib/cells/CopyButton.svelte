@@ -1,16 +1,17 @@
 <script lang="ts" generics="Item">
   import {
     Button,
-    resolveIcon,
     CheckCircleIcon as CheckCircleIconDefault,
-    CopyIcon as CopyIconDefault
+    CopyIcon as CopyIconDefault,
+    resolveIcon
   } from '@urbicon-ui/blocks';
 
   const CheckCircleIcon = resolveIcon('checkCircle', CheckCircleIconDefault);
   const CopyIcon = resolveIcon('copy', CopyIconDefault);
-  import { useTableI18n } from '../i18n';
-  import { type CopyButtonVariantProps, copyButtonVariants } from '#lib/variants/index.js';
+
   import { getNestedValue } from '#lib/utils/index.js';
+  import { type CopyButtonVariantProps, copyButtonVariants } from '#lib/variants/index.js';
+  import { useTableI18n } from '../i18n';
 
   const tt = useTableI18n();
 

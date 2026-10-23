@@ -1,8 +1,8 @@
 <script lang="ts">
+  import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
   import { tick } from 'svelte';
   import { getTableContext, useTableI18n } from '#lib';
   import { isSummaryType, SUMMARY_TYPES } from '#lib/utils/summary-types.js';
-  import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
   import ToolEmptyNote from './ToolEmptyNote.svelte';
   import { buildSummaryEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 

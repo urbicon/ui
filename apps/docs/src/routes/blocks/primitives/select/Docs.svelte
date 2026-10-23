@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Kbd, Select } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let country = $state<string | null>(null);

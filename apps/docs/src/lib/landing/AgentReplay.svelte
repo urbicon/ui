@@ -22,11 +22,11 @@
   switch bar at the bottom) so tiles three and four read as one family.
 -->
 <script lang="ts">
-  import { MediaQuery } from 'svelte/reactivity';
   import { CodePanel } from '@urbicon-ui/docs';
-  import { VALIDATE_OK, VALIDATE_SCORE } from '#lib/landing/agent-output.js';
+  import { MediaQuery } from 'svelte/reactivity';
   import BookingCard from '#lib/hotel/BookingCard.svelte';
   import bookingCardSource from '#lib/hotel/BookingCard.svelte?raw';
+  import { VALIDATE_OK, VALIDATE_SCORE } from '#lib/landing/agent-output.js';
 
   interface Frame {
     text: string;

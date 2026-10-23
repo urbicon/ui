@@ -3,7 +3,6 @@
      the border, text and glow are raw — a neon hue the token palette has no equivalent for. Every
      other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     ArrowRightIcon,
     Button,
@@ -12,6 +11,7 @@
     Kbd,
     PlusIcon
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   // The wrapper the page shows. `<\/script>` is escaped: an unescaped closing

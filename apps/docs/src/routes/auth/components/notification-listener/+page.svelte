@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -8,15 +7,16 @@
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';
-  import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '#lib/component-links.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset, resolve } from '$app/paths';
   import { componentData } from './api';
+  import basicCode from './examples/Basic.svelte?raw';
   // Die Vorschau zeigt `BasicDemo`, nicht `Basic`: Letzteres mountet den echten
   // Listener, der beim Mount einen SSE-Stream gegen einen Endpunkt öffnet, den
   // diese Seite nicht hat. Gedruckt wird trotzdem `Basic` — der Aufruf, den ein
   // Leser übernimmt.
   import BasicExample from './examples/BasicDemo.svelte';
-  import basicCode from './examples/Basic.svelte?raw';
 
   const relatedLinks = buildRelatedLinks(componentData);
 </script>

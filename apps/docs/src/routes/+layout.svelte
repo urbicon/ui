@@ -1,28 +1,28 @@
 <script lang="ts">
-  import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import { REPO_URL } from '#lib/seo.js';
-  import { afterNavigate } from '$app/navigation';
-  import SidebarNavigation from '#lib/SidebarNavigation.svelte';
-  import CommandSearch from '#lib/CommandSearch.svelte';
-  import { setCommandSearchToggle } from '#lib/command-search.context.js';
-  import DocsThemeToggle from '#lib/DocsThemeToggle.svelte';
-  import { navigationItems } from '#lib/navigation.js';
-  import { channelNameForRoute } from '#lib/landing/route-channel.gen.js';
-  import PrevNextNav from '#lib/PrevNextNav.svelte';
-  import Wordmark from '#lib/Wordmark.svelte';
-  import DocsPageNavProvider from '#lib/DocsPageNavProvider.svelte';
   import {
     LocaleSwitcher,
-    ThemeSwitcher,
-    SidebarLayout,
     MenuIcon,
-    SearchIcon
+    SearchIcon,
+    SidebarLayout,
+    ThemeSwitcher
   } from '@urbicon-ui/blocks';
   import { provideI18n } from '@urbicon-ui/i18n';
-  import { useAppI18n } from '#lib/i18n/index.js';
-  import { readStored, writeStored } from '#lib/storage.js';
   import { onMount } from 'svelte';
+  import CommandSearch from '#lib/CommandSearch.svelte';
+  import { setCommandSearchToggle } from '#lib/command-search.context.js';
+  import DocsPageNavProvider from '#lib/DocsPageNavProvider.svelte';
+  import DocsThemeToggle from '#lib/DocsThemeToggle.svelte';
+  import { useAppI18n } from '#lib/i18n/index.js';
+  import { channelNameForRoute } from '#lib/landing/route-channel.gen.js';
+  import { navigationItems } from '#lib/navigation.js';
+  import PrevNextNav from '#lib/PrevNextNav.svelte';
+  import SidebarNavigation from '#lib/SidebarNavigation.svelte';
+  import { REPO_URL } from '#lib/seo.js';
+  import { readStored, writeStored } from '#lib/storage.js';
+  import Wordmark from '#lib/Wordmark.svelte';
+  import { afterNavigate } from '$app/navigation';
+  import { asset, resolve } from '$app/paths';
+  import { page } from '$app/state';
   // JetBrains Mono self-hosted (instead of Google Fonts) — no third-party requests,
   // see the privacy policy (/privacy).
   import '@fontsource/jetbrains-mono/400.css';

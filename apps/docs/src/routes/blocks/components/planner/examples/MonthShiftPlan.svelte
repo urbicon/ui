@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Planner, Badge } from '@urbicon-ui/blocks';
+  import { Badge, Planner } from '@urbicon-ui/blocks';
 
   type Shift = 'early' | 'late' | 'night';
   interface Assignment {

@@ -9,8 +9,8 @@
     StepperStep
   } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   // One object holds every answer. The step list, the recommendation and the
   // Next gate all derive from it, so revising an earlier answer reshapes the

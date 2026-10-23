@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import { fade, fly } from 'svelte/transition';
-  import { composeHandlers } from '#lib/utils/compose-handlers.js';
-  import { getOverlayMotion } from '#lib/utils/index.js';
-  import { createModalSurface } from '#lib/internal/modal-surface.svelte.js';
+  import { useBlocksI18n } from '#lib';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { createModalSurface } from '#lib/internal/modal-surface.svelte.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { getOverlayMotion } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { type DrawerVariants, drawerVariants } from './drawer.variants';
   import type { DrawerProps } from './index';
-  import { drawerVariants, type DrawerVariants } from './drawer.variants';
 
   const bt = useBlocksI18n();
 

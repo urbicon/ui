@@ -7,14 +7,14 @@
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
-  import { Dialog, Button } from '@urbicon-ui/blocks';
+  import { Button, Dialog } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
   import playgroundSource from './Playground.svelte?raw';
 

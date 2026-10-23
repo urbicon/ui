@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { A2UIView, A2UI_CATALOG_ID, type A2uiValidationIssue } from '@urbicon-ui/blocks';
+  import { A2UI_CATALOG_ID, A2UIView, type A2uiValidationIssue } from '@urbicon-ui/blocks';
 
   // Whitelist-only and fail-loud: a component outside the mapped subset never
   // reaches the DOM. `Video` is not in the basic subset, so it renders as a

@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Badge,
     Button,
-    JourneyTimeline,
-    Kbd,
     type JourneyNode,
-    type JourneyStatus
+    type JourneyStatus,
+    JourneyTimeline,
+    Kbd
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   // A utility-billing run — a retrospective chronicle with a time axis.

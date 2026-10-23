@@ -1,19 +1,19 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     A2UIView,
-    URBICON_A2UI_CATALOG_ID,
-    urbiconA2uiCatalog,
     type A2uiActionEvent,
     Badge,
     Button,
     Chat,
-    ChatMessageList,
     type ChatMessageData,
+    ChatMessageList,
     type ChatMessagePart,
     PromptInput,
-    Select
+    Select,
+    URBICON_A2UI_CATALOG_ID,
+    urbiconA2uiCatalog
   } from '@urbicon-ui/blocks';
+  import SeoMeta from '#lib/SeoMeta.svelte';
 
   // ── Simulated model replies (rotating) ─────────────────────────────────────
 

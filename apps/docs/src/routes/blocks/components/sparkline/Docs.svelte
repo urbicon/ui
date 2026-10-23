@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Sparkline } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const up = [4, 6, 5, 8, 7, 10, 9, 12, 14];
   const down = [14, 12, 13, 9, 10, 7, 8, 5, 4];

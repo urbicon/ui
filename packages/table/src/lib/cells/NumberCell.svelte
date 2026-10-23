@@ -1,8 +1,8 @@
 <script lang="ts" generics="Item">
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useTableI18n } from '#lib/i18n/index.js';
-  import { numberCellVariants, type NumberCellVariantProps } from '#lib/variants/index.js';
   import { getNestedValue } from '#lib/utils/index.js';
+  import { type NumberCellVariantProps, numberCellVariants } from '#lib/variants/index.js';
 
   const tt = useTableI18n();
   const i18n = useI18n();

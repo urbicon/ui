@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Badge,
     BarChartIcon,
@@ -10,6 +9,7 @@
     SettingsIcon,
     UserIcon
   } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   let controlledOpen = $state(false);

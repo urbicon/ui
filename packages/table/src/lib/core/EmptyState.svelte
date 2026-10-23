@@ -1,19 +1,19 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import { useTableI18n } from '../i18n';
   import {
-    emptyStateVariants,
-    tableRowVariants,
-    type EmptyStateVariantProps
-  } from '#lib/variants/index.js';
-  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
-  import {
-    headingTag,
-    resolveIcon,
     DatabaseIcon as DatabaseIconDefault,
+    headingTag,
     InboxIcon as InboxIconDefault,
+    resolveIcon,
     SearchIcon as SearchIconDefault
   } from '@urbicon-ui/blocks';
+  import type { Snippet } from 'svelte';
+  import {
+    type EmptyStateVariantProps,
+    emptyStateVariants,
+    tableRowVariants
+  } from '#lib/variants/index.js';
+  import { useTableI18n } from '../i18n';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();
 

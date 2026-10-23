@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Badge, Button } from '@urbicon-ui/blocks';
+  import { CodeExample, Section } from '@urbicon-ui/docs';
 </script>
 
 <Section marker id="examples" title="Examples" subtitle="The core props in action">

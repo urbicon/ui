@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
   import {
     A2UIView,
+    type A2uiActionEvent,
+    type A2uiDataSchema,
     Button,
     URBICON_A2UI_CATALOG_ID,
-    urbiconA2uiCatalog,
-    type A2uiActionEvent,
-    type A2uiDataSchema
+    urbiconA2uiCatalog
   } from '@urbicon-ui/blocks';
+  import { onDestroy } from 'svelte';
 
   // The SAME golden-replay pattern as the Basic specimen, but against the
   // Urbicon-native catalog: real intents, a Section structure layer, RichText

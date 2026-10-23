@@ -21,14 +21,14 @@
   Kopfkommentar von src/routes/+page.svelte.
 -->
 <script lang="ts">
-  import HeroSpecimen from '#lib/landing/HeroSpecimen.svelte';
-  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '#lib/landing/hero.js';
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Input } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
   import { createTableView, Table } from '@urbicon-ui/table';
   import type { Component } from 'svelte';
+  import HeroSpecimen from '#lib/landing/HeroSpecimen.svelte';
+  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '#lib/landing/hero.js';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

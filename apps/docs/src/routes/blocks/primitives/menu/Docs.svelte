@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { Kbd, Menu } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import { resolve } from '$app/paths';
   import {
     BasicSingle,
     CustomHeaderFooter,
@@ -9,10 +12,6 @@
   import customHeaderFooterCode from './examples/CustomHeaderFooter.svelte?raw';
   import customTriggerContentCode from './examples/CustomTriggerContent.svelte?raw';
   import selectableItemsCode from './examples/SelectableItems.svelte?raw';
-
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Kbd, Menu } from '@urbicon-ui/blocks';
-  import { resolve } from '$app/paths';
 </script>
 
 <!-- ─── When to use Menu ─── -->

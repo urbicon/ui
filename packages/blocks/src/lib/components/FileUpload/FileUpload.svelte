@@ -1,31 +1,30 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
-  import type { FileUploadProps, FileUploadFile, FileUploadSlotName } from './index';
-  import { fileUploadVariants, type FileUploadVariants } from './fileUpload.variants';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
+  import { onDestroy } from 'svelte';
+  import { quintOut } from 'svelte/easing';
+  import { fly } from 'svelte/transition';
+  import { mintAttachment, useBlocksI18n } from '#lib';
+  import CheckCircleIconDefault from '#lib/icons/CheckCircleIcon.svelte';
+  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import FileIconDefault from '#lib/icons/FileIcon.svelte';
   import { resolveIcon } from '#lib/icons/index.js';
   import UploadCloudIconDefault from '#lib/icons/UploadCloudIcon.svelte';
-  import FileIconDefault from '#lib/icons/FileIcon.svelte';
-  import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
-  import CheckCircleIconDefault from '#lib/icons/CheckCircleIcon.svelte';
-  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
-  import { mintAttachment } from '#lib';
-  import { Progress } from '#lib/primitives/Progress/index.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import CoreSpinner from '#lib/internal/core/CoreSpinner.svelte';
-  import { fly } from 'svelte/transition';
-  import { quintOut } from 'svelte/easing';
-  import { onDestroy } from 'svelte';
+  import { Progress } from '#lib/primitives/Progress/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
     createIntakeEntry,
     dragItemsMatchAccept,
+    type FileIntakeConstraints,
+    type FileIntakeMessages,
     formatFileSize,
     partitionIntake,
-    revokeIntakePreviews,
-    type FileIntakeConstraints,
-    type FileIntakeMessages
+    revokeIntakePreviews
   } from '#lib/utils/file-intake.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { type FileUploadVariants, fileUploadVariants } from './fileUpload.variants';
+  import type { FileUploadFile, FileUploadProps, FileUploadSlotName } from './index';
 
   const bt = useBlocksI18n();
 

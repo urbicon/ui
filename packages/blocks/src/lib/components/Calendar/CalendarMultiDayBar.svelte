@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getContrastTextColor } from './calendar.engine';
   import { formatDateRange } from '#lib/date/index.js';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
+  import { getContrastTextColor } from './calendar.engine';
   import type { CalendarEvent } from './calendar.types';
 
   interface CalendarMultiDayBarProps {

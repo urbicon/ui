@@ -4,8 +4,6 @@
   `#lib/playground-host.ts`.
 -->
 <script lang="ts">
-  import { SET_FAMILIES, SET_FAMILY_MATURITY, SET_PACKAGE_FAMILY } from '#lib/landing/set-facts.js';
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Sankey, type SankeyLink, type SankeyNode } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -13,6 +11,8 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import { SET_FAMILIES, SET_FAMILY_MATURITY, SET_PACKAGE_FAMILY } from '#lib/landing/set-facts.js';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

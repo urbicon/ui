@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { useBlocksI18n } from '#lib';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
+  import { useBlocksI18n } from '#lib';
   import { percentFormatter } from '#lib/internal/percent.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ProgressProps } from './index';
-  import { progressVariants, type ProgressVariants } from './progress.variants';
+  import { type ProgressVariants, progressVariants } from './progress.variants';
 
   const bt = useBlocksI18n();
   const i18n = useI18n();

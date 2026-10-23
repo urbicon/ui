@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { SITE_NAME, SITE_URL, DEFAULT_TITLE, DEFAULT_DESCRIPTION, OG_IMAGE_PATH } from './seo';
+  import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, OG_IMAGE_PATH, SITE_NAME, SITE_URL } from './seo';
 
   interface Props {
     /** Page title without the site suffix — becomes "<title> – Urbicon UI". Without the prop: the site's default title. */

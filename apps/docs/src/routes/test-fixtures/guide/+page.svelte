@@ -1,23 +1,23 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   // E2E fixture for the Guide system (Playwright). Exercises every surface in controllable
   // states with stable data-testid hooks: the bidirectional Marker↔Mention link, the panel,
   // a contextual hint, the guided tour (centered + anchored + interactive steps), the beacon,
   // and a lazily-rendered target (Phase-8 hardening). Not part of the docs nav.
   import {
-    GuideProvider,
-    GuidePanel,
-    GuideArticle,
-    GuideMarker,
-    GuideMention,
-    GuideRef,
-    GuideHint,
+    Button,
     Guide,
+    GuideArticle,
     GuideBeacon,
     GuideController,
-    Button,
+    GuideHint,
+    GuideMarker,
+    GuideMention,
+    GuidePanel,
+    GuideProvider,
+    GuideRef,
     type GuideTour
   } from '@urbicon-ui/blocks';
+  import SeoMeta from '#lib/SeoMeta.svelte';
 
   // In-memory storage so "seen" state never persists across page loads — each Playwright
   // test starts from a clean slate (no localStorage carry-over between specs).

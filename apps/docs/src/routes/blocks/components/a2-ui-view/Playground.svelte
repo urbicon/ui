@@ -34,13 +34,12 @@
   die er schon geschickt hat, statt nur darunter zu antworten.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import {
-    A2UIView,
     A2UI_CATALOG_ID,
+    A2UIView,
+    type A2uiActionEvent,
     Button,
     ChatMessage,
-    type A2uiActionEvent,
     type ChatMessageData
   } from '@urbicon-ui/blocks';
   import {
@@ -50,6 +49,7 @@
     PlaygroundConfigurator,
     serializeValue
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

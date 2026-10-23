@@ -1,11 +1,11 @@
 <script lang="ts">
+  import type { CommandPaletteItem } from '@urbicon-ui/blocks';
   // E2E fixture for e2e/command-palette.spec.ts: an info row above and below
   // more commands than the palette's list shows at once, so the spec can watch
   // which rows Home, End and the wraps bring into view, and a second palette
   // whose info rows above the first command are taller than the list. The page
   // keeps the docs chrome, whose search is one more CommandPalette.
   import { Button, CommandPalette } from '@urbicon-ui/blocks';
-  import type { CommandPaletteItem } from '@urbicon-ui/blocks';
 
   const commands = Array.from({ length: 30 }, (_, i) => ({
     id: `c${i}`,

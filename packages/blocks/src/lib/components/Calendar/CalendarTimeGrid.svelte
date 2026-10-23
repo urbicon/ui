@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { isSameDay, toIso } from '#lib/date/index.js';
+  import CalendarTimeEvent from './CalendarTimeEvent.svelte';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
   import { generateTimeSlots, positionEvents } from './calendar.engine';
   import type { CalendarEvent, PositionedEvent } from './calendar.types';
-  import CalendarTimeEvent from './CalendarTimeEvent.svelte';
 
   interface CalendarTimeGridInternalProps {
     dates: Date[];

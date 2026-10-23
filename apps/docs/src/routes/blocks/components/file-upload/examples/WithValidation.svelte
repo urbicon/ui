@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileUpload, Alert, type FileUploadFile, type FileRejection } from '@urbicon-ui/blocks';
+  import { Alert, type FileRejection, FileUpload, type FileUploadFile } from '@urbicon-ui/blocks';
 
   let files = $state<FileUploadFile[]>([]);
   let rejections = $state<FileRejection[]>([]);

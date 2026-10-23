@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Badge, ToolCallCard, type ChatToolCallPart } from '@urbicon-ui/blocks';
+  import { Badge, type ChatToolCallPart, ToolCallCard } from '@urbicon-ui/blocks';
 
   type SearchHit = { title: string; url: string; score: number };
 

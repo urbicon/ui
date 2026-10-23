@@ -1,18 +1,18 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
-    DEFAULT_ICONS,
-    ICON_METADATA,
-    getAllIconNames,
-    Icon,
-    Input,
     Badge,
-    type IconName,
+    DEFAULT_ICONS,
+    getAllIconNames,
+    ICON_METADATA,
+    Icon,
     type IconCategory,
-    type IconComponent
+    type IconComponent,
+    type IconName,
+    Input
   } from '@urbicon-ui/blocks';
   import { PlaygroundConfigurator, Section } from '@urbicon-ui/docs';
   import { SvelteSet } from 'svelte/reactivity';
+  import SeoMeta from '#lib/SeoMeta.svelte';
 
   let searchQuery = $state('');
   let activeCategories = new SvelteSet<IconCategory>();

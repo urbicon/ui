@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { PromptInput, Alert } from '@urbicon-ui/blocks';
   import type { FileIntakeEntry, FileIntakeRejection } from '@urbicon-ui/blocks';
+  import { Alert, PromptInput } from '@urbicon-ui/blocks';
 
   let draft = $state('');
   let attachments = $state<FileIntakeEntry[]>([]);

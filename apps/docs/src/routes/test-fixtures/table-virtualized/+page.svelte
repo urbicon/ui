@@ -12,7 +12,7 @@
   // width is the same pixel count on either side of a gutter, so only the
   // proportional columns can show the drift — and the summary row is here
   // because the totals used to sit at the far end of the virtual scroll.
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { type Column, Table } from '@urbicon-ui/table';
 
   type Row = { id: number; name: string; role: string; city: string; score: number };
 

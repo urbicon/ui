@@ -3,7 +3,7 @@
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { QRCodeProps } from './index';
-  import { qrCodeVariants, type QRCodeVariants } from './qr-code.variants';
+  import { type QRCodeVariants, qrCodeVariants } from './qr-code.variants';
   import { encodeQr } from './qr-encode';
 
   const bt = useBlocksI18n();

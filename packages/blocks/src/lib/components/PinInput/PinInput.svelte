@@ -6,7 +6,7 @@
   import { getTierContext } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { PinInputProps } from './index';
-  import { pinInputVariants, type PinInputVariants } from './pin-input.variants';
+  import { type PinInputVariants, pinInputVariants } from './pin-input.variants';
 
   const bt = useBlocksI18n();
 

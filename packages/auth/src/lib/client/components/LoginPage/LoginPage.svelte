@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { Button, Checkbox, Input, Link, Separator, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, Checkbox, getBlocksConfig, Input, Link, Separator } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
-  import type { LoginPageProps } from './index.js';
-  import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import {
     errorTextFromBody,
     parseJsonBody,
@@ -14,7 +12,9 @@
     wireError
   } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
+  import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
+  import type { LoginPageProps } from './index.js';
 
   let {
     t: tProp,

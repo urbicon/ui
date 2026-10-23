@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { NoteProps } from './index.js';
   import { headingTag, resolveClassChain } from '@urbicon-ui/blocks';
+  import type { NoteProps } from './index.js';
   import { type NoteSlots, noteVariants } from './notelist.variants';
 
   let {

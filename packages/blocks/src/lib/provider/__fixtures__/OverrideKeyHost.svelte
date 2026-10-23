@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Component } from 'svelte';
-  import type { ComponentDefaults, PresetMap } from '../blocks-context';
   import BlocksProvider from '../BlocksProvider.svelte';
+  import type { ComponentDefaults, PresetMap } from '../blocks-context';
 
   // `CascadeHost` carries no `presets`, and the condition-key check has to be
   // measured on both `overrides` sources — a provider default and a named

@@ -8,9 +8,6 @@
   `#lib/playground-host.ts`.
 -->
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { resolve } from '$app/paths';
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { LoginPage } from '@urbicon-ui/auth';
   import {
     defaultValuesOf,
@@ -18,6 +15,9 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
+  import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

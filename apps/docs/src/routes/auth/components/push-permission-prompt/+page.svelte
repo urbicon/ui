@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { Kbd } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
@@ -8,9 +8,9 @@
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';
-  import { Kbd } from '@urbicon-ui/blocks';
-  import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '#lib/component-links.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset, resolve } from '$app/paths';
   import { componentData } from './api';
   import BasicExample from './examples/Basic.svelte';
   import basicCode from './examples/Basic.svelte?raw';

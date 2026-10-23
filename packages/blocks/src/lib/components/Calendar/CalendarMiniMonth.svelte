@@ -1,15 +1,15 @@
 <script lang="ts">
   import { useBlocksI18n } from '#lib';
-  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
-  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
   import {
+    formatDateFull,
+    formatMonthYear,
     getMonthGrid,
     getWeekdayNames,
-    formatMonthYear,
-    formatDateFull,
     isSameDay
   } from '#lib/date/index.js';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
 
   const bt = useBlocksI18n();
 

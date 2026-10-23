@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { AreaChart, type CartesianDatum, type ChartSeries } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const single: CartesianDatum[] = [
     { label: 'W1', values: [20] },

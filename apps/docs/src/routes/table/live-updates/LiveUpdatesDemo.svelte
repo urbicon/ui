@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Table, SmartFilterBar, type Column, type TableContext } from '@urbicon-ui/table';
   import { Button, Toggle } from '@urbicon-ui/blocks';
+  import { type Column, SmartFilterBar, Table, type TableContext } from '@urbicon-ui/table';
 
   type Order = {
     id: number;

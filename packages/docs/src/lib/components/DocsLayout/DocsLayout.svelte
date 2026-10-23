@@ -1,17 +1,17 @@
 <script lang="ts">
+  import { Breadcrumb, ListIcon, Popover, resolveClassChain } from '@urbicon-ui/blocks';
+  import type { Snippet } from 'svelte';
+  import { useDocsI18n } from '#lib/i18n/index.js';
   import {
     CodeVisibilityStore,
     setCodeVisibilityContext
   } from '#lib/stores/code-visibility.svelte.js';
   import { ScrollSpy } from '#lib/stores/scroll-spy.svelte.js';
-  import type { Snippet } from 'svelte';
-  import { Breadcrumb, ListIcon, Popover, resolveClassChain } from '@urbicon-ui/blocks';
-  import { useDocsI18n } from '#lib/i18n/index.js';
-  import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
+  import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { docsLayoutVariants } from './docslayout.variants';
-  import { getPageNav } from './page-nav';
   import type { DocsLayoutProps } from './index.js';
+  import { getPageNav } from './page-nav';
 
   const dt = useDocsI18n();
 

@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Avatar, Button, Card, Separator } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Separator, Button, Avatar, Card } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 

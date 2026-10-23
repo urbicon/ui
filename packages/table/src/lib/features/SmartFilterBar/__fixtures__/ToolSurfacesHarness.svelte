@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Column } from '#lib/types/tableTypes.js';
   import Table from '#lib/core/table/Table.svelte';
+  import type { Column } from '#lib/types/tableTypes.js';
   import ColumnVisibilityPanel from '../ColumnVisibilityPanel.svelte';
   import FilterPanel from '../FilterPanel.svelte';
   import GroupingPanel from '../GroupingPanel.svelte';

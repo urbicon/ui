@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Link } from '@urbicon-ui/blocks';
-  import { page } from '$app/state';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
+  import { page } from '$app/state';
 
   // Real routes, so the strip below is the pattern rather than a picture of it:
   // the handles navigate, and the lit one is the page being read.

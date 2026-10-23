@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileUpload, Button, type FileUploadFile } from '@urbicon-ui/blocks';
+  import { Button, FileUpload, type FileUploadFile } from '@urbicon-ui/blocks';
 
   let files = $state<FileUploadFile[]>([]);
   let uploading = $state(false);

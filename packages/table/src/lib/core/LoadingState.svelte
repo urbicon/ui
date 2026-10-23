@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { useTableI18n } from '../i18n';
   import { headingTag, Spinner } from '@urbicon-ui/blocks';
   import {
+    type LoadingStateVariantProps,
     loadingStateVariants,
-    tableRowVariants,
-    type LoadingStateVariantProps
+    tableRowVariants
   } from '#lib/variants/index.js';
+  import { useTableI18n } from '../i18n';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();

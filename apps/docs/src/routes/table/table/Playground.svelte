@@ -17,14 +17,14 @@
   now.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import {
     defaultValuesOf,
     deriveControls,
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
-  import { createTableView, Table, type Column } from '@urbicon-ui/table';
+  import { type Column, createTableView, Table } from '@urbicon-ui/table';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

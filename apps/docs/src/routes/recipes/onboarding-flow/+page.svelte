@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { GuideTour } from '@urbicon-ui/blocks';
   import {
     Button,
     Card,
@@ -15,11 +16,10 @@
     KeyIcon,
     UsersIcon
   } from '@urbicon-ui/blocks';
-  import type { GuideTour } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   // Demo = code, with the seam drawn here: the Guide parts — the tour object,
   // beacon, marker, panel + article, hint and <Guide /> — are identical in the

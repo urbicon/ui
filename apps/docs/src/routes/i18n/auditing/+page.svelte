@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
-  import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
 
   const parityCode = `// translations.test.ts — pure, deterministic, zero false positives.

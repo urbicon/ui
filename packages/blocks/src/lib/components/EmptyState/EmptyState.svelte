@@ -2,8 +2,8 @@
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { headingTag } from '#lib/utils/heading.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { type EmptyStateVariants, emptyStateVariants } from './emptyState.variants';
   import type { EmptyStateProps } from './index';
-  import { emptyStateVariants, type EmptyStateVariants } from './emptyState.variants';
 
   const theme = useThemeProps('EmptyState', () => preset);
 

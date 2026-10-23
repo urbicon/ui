@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd, Sankey, type SankeyLink, type SankeyNode } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   const formatEur = (cents: number) =>
     new Intl.NumberFormat('en-US', {

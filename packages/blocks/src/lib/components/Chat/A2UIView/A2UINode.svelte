@@ -1,4 +1,7 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
+  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import {
     Button,
     Card,
@@ -14,15 +17,13 @@
     TabPanel,
     Textarea
   } from '#lib/primitives/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import DangerCircleIconDefault from '#lib/icons/DangerCircleIcon.svelte';
   import { fromDateInputValue, toDateInputValue } from '#lib/utils/date.js';
-  import type { Snippet } from 'svelte';
   import DatePicker from '../../DatePicker/DatePicker.svelte';
   import TimeInput from '../../TimeInput/TimeInput.svelte';
-  import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
+  import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import type { A2uiActionEvent } from './a2ui.types';
+  import { dedupeOptions, splitDateTime } from './a2ui-node-common';
   import {
     A2UI_REGISTRY,
     A2UI_SVG_PATH_RE,
@@ -30,7 +31,6 @@
     ownEntry,
     rendersAsComponent
   } from './a2ui-registry';
-  import { dedupeOptions, splitDateTime } from './a2ui-node-common';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from './a2ui-render';
 

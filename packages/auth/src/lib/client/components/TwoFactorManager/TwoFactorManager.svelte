@@ -9,10 +9,10 @@
   } from '@urbicon-ui/blocks';
   import { tick, untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
-  import type { TwoFactorManagerProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
   import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
+  import type { TwoFactorManagerProps } from './index.js';
 
   let {
     user,

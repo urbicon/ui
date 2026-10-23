@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Button, ConfirmDialog, Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { ConfirmDialog, Button, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let dangerOpen = $state(false);

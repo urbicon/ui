@@ -1,16 +1,16 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { resolveIcon } from '#lib/icons/index.js';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import SearchIconDefault from '#lib/icons/SearchIcon.svelte';
   import { eachKeys } from '#lib/internal/each-keys.js';
   import { Dialog, Kbd, Separator } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { type CommandPaletteVariants, commandPaletteVariants } from './commandPalette.variants';
   import type { CommandPaletteHint, CommandPaletteItem, CommandPaletteProps } from './index';
-  import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 
   const bt = useBlocksI18n();
 

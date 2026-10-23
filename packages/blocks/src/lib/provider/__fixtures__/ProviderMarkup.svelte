@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { ComponentDefaults } from '../blocks-context';
   import BlocksProvider from '../BlocksProvider.svelte';
+  import type { ComponentDefaults } from '../blocks-context';
 
   /**
    * Provider shapes a consumer is allowed to write, at a real

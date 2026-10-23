@@ -7,14 +7,14 @@
   exact-textContent test in StreamingMarkdown.svelte.test.ts.
 -->
 <script lang="ts">
-  import { resolveIcon } from '#lib/icons/index.js';
   import ImageIconDefault from '#lib/icons/ImageIcon.svelte';
-  import CitationChip from '../CitationChip/CitationChip.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import type { CitationSource } from '../CitationChip';
+  import CitationChip from '../CitationChip/CitationChip.svelte';
   import type { InlineNode } from '../markdown/types';
   import { checkLinkUrl } from '../markdown/url-policy';
-  import type { MdRenderContext } from './md-context';
   import MdInlineSelf from './MdInline.svelte';
+  import type { MdRenderContext } from './md-context';
 
   const ImageIcon = resolveIcon('image', ImageIconDefault);
 

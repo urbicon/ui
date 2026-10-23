@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { useTableI18n } from '../i18n';
   import {
-    errorStateVariants,
-    tableRowVariants,
-    type ErrorStateVariantProps
-  } from '#lib/variants/index.js';
-  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
-  import {
-    headingTag,
-    resolveIcon,
     ChevronDownIcon as ChevronDownIconDefault,
     DangerCircleIcon as DangerCircleIconDefault,
-    RefreshIcon as RefreshIconDefault
+    headingTag,
+    RefreshIcon as RefreshIconDefault,
+    resolveIcon
   } from '@urbicon-ui/blocks';
+  import {
+    type ErrorStateVariantProps,
+    errorStateVariants,
+    tableRowVariants
+  } from '#lib/variants/index.js';
+  import { useTableI18n } from '../i18n';
+  import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   const tt = useTableI18n();
 

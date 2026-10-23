@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
-  import { resolveColumnId, Table, type Column } from '@urbicon-ui/table';
   import { Badge } from '@urbicon-ui/blocks';
+  import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import { type Column, resolveColumnId, Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, type Employee } from '../_data';
+  import { basicColumns, type Employee, employees } from '../_data';
 </script>
 
 {#snippet statusCell(_item: unknown, value: unknown)}

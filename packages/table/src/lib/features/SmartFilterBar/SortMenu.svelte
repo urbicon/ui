@@ -1,11 +1,11 @@
 <script lang="ts">
+  import {
+    ArrowUpDownIcon as ArrowUpDownIconDefault,
+    resolveIcon,
+    Select
+  } from '@urbicon-ui/blocks';
   import { getTableContext, useTableI18n } from '#lib';
   import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
-  import {
-    Select,
-    resolveIcon,
-    ArrowUpDownIcon as ArrowUpDownIconDefault
-  } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
   import { buildSortEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 

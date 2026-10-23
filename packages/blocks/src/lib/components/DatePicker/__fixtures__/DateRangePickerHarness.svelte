@@ -1,4 +1,7 @@
 <script lang="ts">
+  import type { ComponentProps } from 'svelte';
+  import { toDateInputValue } from '#lib/utils/date.js';
+  import type { DateRange } from '..';
   // Test harness for DateRangePicker. It binds `value` so the tests can observe the
   // *in-progress* range that the component's JSDoc promises `bind:value` exposes:
   // the first calendar click sets `{ start: X, end: X }` and deliberately does NOT
@@ -8,9 +11,6 @@
   // declarative, reconciliation-safe read — no reliance on a callback that, by
   // contract, stays silent mid-selection.
   import DateRangePicker from '../DateRangePicker.svelte';
-  import type { DateRange } from '..';
-  import { toDateInputValue } from '#lib/utils/date.js';
-  import type { ComponentProps } from 'svelte';
 
   let {
     value: initialValue = undefined,

@@ -2,8 +2,8 @@
      contribution-heatmap day cell, where four fixed opacity steps of one hue encode
      the count. A semantic token has one value and cannot express a scale. -->
 <script lang="ts">
-  import { Calendar } from '@urbicon-ui/blocks';
   import type { CalendarEvent, DayCellContext } from '@urbicon-ui/blocks';
+  import { Calendar } from '@urbicon-ui/blocks';
 
   // Realistic activity data spread across the month
   const events: CalendarEvent[] = [

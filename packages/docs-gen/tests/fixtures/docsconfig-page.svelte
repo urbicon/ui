@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { Button, Drawer } from '@urbicon-ui/blocks';
+  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {

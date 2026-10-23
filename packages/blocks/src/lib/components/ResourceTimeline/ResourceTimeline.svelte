@@ -5,12 +5,13 @@
   import { getContrastTextColor } from '#lib/internal/contrast.js';
   import {
     DateGridController,
-    type DateRange,
-    type DateGridView
+    type DateGridView,
+    type DateRange
   } from '#lib/internal/date-grid/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { ResourceTimelineProps } from './index';
+  import ResourceTimelineHeader from './ResourceTimelineHeader.svelte';
   import { setResourceTimelineContext } from './resource-timeline.context';
   import { getTimelineDays, getTimelineWindow, layoutTimeline } from './resource-timeline.engine';
   import {
@@ -27,10 +28,9 @@
     TimelineSpanContext
   } from './resource-timeline.types';
   import {
-    resourceTimelineVariants,
-    type ResourceTimelineVariants
+    type ResourceTimelineVariants,
+    resourceTimelineVariants
   } from './resource-timeline.variants';
-  import ResourceTimelineHeader from './ResourceTimelineHeader.svelte';
 
   const theme = useThemeProps('ResourceTimeline', () => preset);
 

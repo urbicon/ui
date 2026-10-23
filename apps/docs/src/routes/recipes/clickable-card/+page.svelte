@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ArrowRightIcon, Avatar, BuildingIcon, Card } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   // What the list demo shows after a click — the recipe's stand-in for a real action.
   let lastClicked = $state<string | null>(null);

@@ -1,15 +1,14 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import Lifecycle from './examples/Lifecycle.svelte';
-  import ErrorState from './examples/ErrorState.svelte';
-  import FramedTrace from './examples/FramedTrace.svelte';
   import CustomBody from './examples/CustomBody.svelte';
-
-  import lifecycleCode from './examples/Lifecycle.svelte?raw';
-  import errorStateCode from './examples/ErrorState.svelte?raw';
-  import framedTraceCode from './examples/FramedTrace.svelte?raw';
   import customBodyCode from './examples/CustomBody.svelte?raw';
+  import ErrorState from './examples/ErrorState.svelte';
+  import errorStateCode from './examples/ErrorState.svelte?raw';
+  import FramedTrace from './examples/FramedTrace.svelte';
+  import framedTraceCode from './examples/FramedTrace.svelte?raw';
+  import Lifecycle from './examples/Lifecycle.svelte';
+  import lifecycleCode from './examples/Lifecycle.svelte?raw';
 </script>
 
 <Section marker id="examples" title="Examples">

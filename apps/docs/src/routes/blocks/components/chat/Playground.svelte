@@ -7,13 +7,12 @@
   steht hier nur, was sich nicht ableiten lässt.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import {
     Badge,
     Chat,
+    type ChatMessageData,
     ChatMessageList,
-    PromptInput,
-    type ChatMessageData
+    PromptInput
   } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -21,6 +20,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
   import playgroundSource from './Playground.svelte?raw';
 

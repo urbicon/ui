@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import CopyIconDefault from '#lib/icons/CopyIcon.svelte';
   import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import CopyIconDefault from '#lib/icons/CopyIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import { createCopyState } from '#lib/internal/copy-state.svelte.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { codeBlockVariants, type CodeBlockVariants } from './code-block.variants';
+  import { type CodeBlockVariants, codeBlockVariants } from './code-block.variants';
   import type { CodeBlockProps } from './index';
 
   const theme = useThemeProps('CodeBlock', () => preset);

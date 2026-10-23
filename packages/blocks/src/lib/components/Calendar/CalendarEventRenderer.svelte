@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import CalendarEventItem from './CalendarEventItem.svelte';
   import { getCalendarContext } from './calendar.context';
   import type { CalendarEvent, EventDayInfo, EventItemContext } from './calendar.types';
-  import CalendarEventItem from './CalendarEventItem.svelte';
 
   interface CalendarEventRendererInternalProps {
     info: EventDayInfo;

@@ -4,8 +4,8 @@
      glass look the token palette has no equivalent for. Every other section on this page stays
      under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Drawer, Input, Kbd, Separator, Toggle } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '#lib/route.js';
 
   let settingsOpen = $state(false);

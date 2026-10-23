@@ -4,9 +4,9 @@
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { stepperVariants, type StepperVariants } from './stepper.variants';
+  import type { StepperContext, StepperProps } from './index';
   import { setStepperContext } from './stepper.context';
-  import type { StepperProps, StepperContext } from './index';
+  import { type StepperVariants, stepperVariants } from './stepper.variants';
 
   const bt = useBlocksI18n();
 

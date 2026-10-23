@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { tooltipVariants } from './tooltip.variants';
-  import type { VariantProps } from '#lib/utils/variants.js';
-  import type { TooltipProps } from './index';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
-    computePosition,
     autoUpdate,
+    computePosition,
     flip,
-    shift,
+    arrow as floatingArrow,
     offset,
-    arrow as floatingArrow
+    shift
   } from '#lib/utils/floating.js';
   import { isAnchoredInModalDialog } from '#lib/utils/overlay.js';
+  import type { VariantProps } from '#lib/utils/variants.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import type { TooltipProps } from './index';
+  import { tooltipVariants } from './tooltip.variants';
 
   const theme = useThemeProps('Tooltip', () => preset);
 

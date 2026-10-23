@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { CodeExample, Section, TypesReference } from '@urbicon-ui/docs';
   import type { LocalTypeDef } from '@urbicon-ui/docs';
+  import { CodeExample, Section, TypesReference } from '@urbicon-ui/docs';
 
   const sampleTypes: LocalTypeDef[] = [
     {

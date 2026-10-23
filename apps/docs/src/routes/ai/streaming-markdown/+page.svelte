@@ -1,21 +1,21 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     Badge,
     Button,
+    type CitationSource,
     Select,
     Slider,
     SplitPane,
-    StreamingMarkdown,
-    type CitationSource
+    StreamingMarkdown
   } from '@urbicon-ui/blocks';
-  import citations from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/11-citations.md?raw';
-  import codeInList from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/04-code-in-list.md?raw';
-  import evilPolicy from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/12-evil-policy.md?raw';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import gfmTable from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/01-gfm-table.md?raw';
-  import longMixed from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/14-long-mixed.md?raw';
+  import codeInList from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/04-code-in-list.md?raw';
   import multiCodefence from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/05-multi-codefence.md?raw';
   import refLinks from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/07-ref-links-trailing.md?raw';
+  import citations from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/11-citations.md?raw';
+  import evilPolicy from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/12-evil-policy.md?raw';
+  import longMixed from '../../../../../../packages/blocks/src/lib/components/Chat/markdown/__fixtures__/corpus/14-long-mixed.md?raw';
 
   const CITATION_SOURCES: CitationSource[] = [
     {

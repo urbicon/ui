@@ -3,8 +3,8 @@
      indigo accent (the logo tile and the active item) is raw — a brand hue the intent palette
      has no equivalent for. Every other section on this page stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar, Badge, Button, CloseIcon, Kbd, Separator, Sidebar } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '#lib/route.js';
 
   let detailOpen = $state(false);

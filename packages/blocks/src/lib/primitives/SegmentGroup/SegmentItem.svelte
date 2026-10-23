@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { mintAttachment } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
-  import { getSegmentGroupContext } from './segmentGroup.context';
   import type { SegmentItemProps } from './index';
+  import { getSegmentGroupContext } from './segmentGroup.context';
+  import { type SegmentGroupVariants, segmentGroupVariants } from './segmentgroup.variants';
 
   let {
     value,

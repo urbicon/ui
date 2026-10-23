@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Link, getBlocksConfig } from '@urbicon-ui/blocks';
+  import { Button, getBlocksConfig, Input, Link } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { unmetPasswordRules } from '../../../password-policy.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
@@ -10,9 +10,9 @@
     usePasswordPolicy
   } from '../../utils/password-policy.svelte.js';
   import { resolveAuthSlotClasses, slotClass } from '../../utils/slot-class.js';
-  import type { ResetPasswordPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
   import PasswordRequirements from '../_shared/PasswordRequirements.svelte';
+  import type { ResetPasswordPageProps } from './index.js';
 
   let {
     t: tProp,

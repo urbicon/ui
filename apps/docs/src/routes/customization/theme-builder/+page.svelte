@@ -1,6 +1,4 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import {
     Alert,
     Avatar,
@@ -12,6 +10,7 @@
     Toggle
   } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import {
     baseRadiusScale,
     generateChassis,
@@ -19,6 +18,7 @@
     previewVars,
     rampDeclarations
   } from '#lib/theme-preview.js';
+  import { resolve } from '$app/paths';
 
   let brandHue = $state(240);
   let brandChroma = $state(0.15);

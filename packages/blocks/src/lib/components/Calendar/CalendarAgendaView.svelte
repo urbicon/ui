@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
+  import { useBlocksI18n } from '#lib';
   import { formatDate, toIso } from '#lib/date/index.js';
   import { swipeable } from '#lib/utils/swipeable.js';
-  import type { CalendarEvent, EventDayInfo, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
+  import type { CalendarEvent, EventDayInfo, EventItemContext } from './calendar.types';
 
   const bt = useBlocksI18n();
 

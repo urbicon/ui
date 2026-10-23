@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section, InfoCard } from '@urbicon-ui/docs';
+  import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
 </script>
 
 <Section marker id="examples" title="Examples" subtitle="Page-level layout, shown as code">

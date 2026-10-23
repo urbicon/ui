@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { getTableContext, useTableI18n } from '#lib';
-  import { SUMMARY_TYPES } from '#lib/utils/summary-types.js';
-  import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import {
     Badge,
     Menu,
+    type MenuItemType,
     resolveIcon,
-    SquareSigmaIcon as SquareSigmaIconDefault,
-    type MenuItemType
+    SquareSigmaIcon as SquareSigmaIconDefault
   } from '@urbicon-ui/blocks';
+  import { getTableContext, useTableI18n } from '#lib';
+  import { SUMMARY_TYPES } from '#lib/utils/summary-types.js';
+  import { smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import MenuTrigger from './MenuTrigger.svelte';
   import { buildSummaryEntries, toolColumnScope, toolEmptyKey } from './tool-columns';
 

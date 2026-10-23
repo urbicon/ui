@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { useI18n } from '@urbicon-ui/i18n';
   import { Input } from '#lib/primitives/Input/index.js';
   import { useThemeProps } from '#lib/provider/index.js';
   import { setWrapperCascade } from '#lib/provider/wrapper-cascade.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { getTierContext } from '#lib/utils/tier-context.js';
-  import { useI18n } from '@urbicon-ui/i18n';
   import {
     applyEdit,
     type CurrencyMask,

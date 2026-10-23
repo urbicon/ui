@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { MediaQuery } from 'svelte/reactivity';
   import { quintOut } from 'svelte/easing';
+  import { MediaQuery } from 'svelte/reactivity';
   import { fade } from 'svelte/transition';
-  import type { SidebarProps } from './index';
-  import { sidebarVariants, type SidebarVariants } from './sidebar.variants';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
-  import { lockBodyScroll } from '#lib/utils/overlay.js';
   import { overlayStack } from '#lib/utils/index.js';
+  import { lockBodyScroll } from '#lib/utils/overlay.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import type { SidebarProps } from './index';
+  import { type SidebarVariants, sidebarVariants } from './sidebar.variants';
 
   let {
     open = $bindable(false),

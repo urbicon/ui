@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
   import { SPINNER_ARC_PATH } from '#lib/internal/core/spinner-geometry.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { spinnerVariants, type SpinnerVariants } from './spinner.variants';
   import type { SpinnerProps } from './index';
+  import { type SpinnerVariants, spinnerVariants } from './spinner.variants';
 
   const theme = useThemeProps('Spinner', () => preset);
 

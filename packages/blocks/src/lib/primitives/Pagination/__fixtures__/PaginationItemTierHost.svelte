@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { setTierContext } from '#lib/utils/tier-context.js';
   import type { InteractiveTier } from '#lib/utils/tier-context.js';
-  import PaginationItem from '../PaginationItem.svelte';
+  import { setTierContext } from '#lib/utils/tier-context.js';
   import type { PaginationItemProps } from '..';
+  import PaginationItem from '../PaginationItem.svelte';
 
   // What a Toolbar or ButtonGroup puts around its children. The context is set
   // from a component, so a `createRawSnippet` of plain HTML cannot supply it.

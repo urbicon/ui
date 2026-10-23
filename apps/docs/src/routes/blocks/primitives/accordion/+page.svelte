@@ -1,17 +1,18 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { Accordion, AccordionItem } from '@urbicon-ui/blocks';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';
-  import { Accordion, AccordionItem } from '@urbicon-ui/blocks';
+  import { buildRelatedLinks } from '#lib/component-links.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset, resolve } from '$app/paths';
+  import { componentData } from './api';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
-  import { componentData } from './api';
-  import { buildRelatedLinks } from '#lib/component-links.js';
-  import { asset, resolve } from '$app/paths';
+
   const relatedLinks = buildRelatedLinks(componentData);
 </script>
 

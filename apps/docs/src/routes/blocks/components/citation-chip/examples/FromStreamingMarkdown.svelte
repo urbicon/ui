@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { StreamingMarkdown, type CitationSource } from '@urbicon-ui/blocks';
+  import { type CitationSource, StreamingMarkdown } from '@urbicon-ui/blocks';
 
   // In a streamed answer you rarely construct chips yourself: StreamingMarkdown
   // wires them up from its `sources` prop. Each in-text [id] marker whose id

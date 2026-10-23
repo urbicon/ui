@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button, Checkbox, Combobox, Popover } from '@urbicon-ui/blocks';
   // E2E fixture for a Popover whose dismiss mode changes while it is open (Playwright). Every
   // variant moves the panel between `popover="auto"` and `"manual"`, and appends each callback
   // the Popover fires to the `popover-mode-calls` log. `?s=` picks the variant:
@@ -13,7 +14,6 @@
   //    same flush, or in the microtask after it.
   // Not part of the docs nav.
   import { page } from '$app/state';
-  import { Button, Checkbox, Combobox, Popover } from '@urbicon-ui/blocks';
 
   const variant = page.url.searchParams.get('s');
   const duration = Number(page.url.searchParams.get('duration')) || undefined;

@@ -13,7 +13,6 @@
   aus dem Tag, `consts` legt das umgewandelte Array daneben.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { Kbd } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
@@ -21,6 +20,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

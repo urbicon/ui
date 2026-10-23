@@ -8,7 +8,6 @@
   Demodaten.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { ResourceTimeline } from '@urbicon-ui/blocks';
   import { addDays, isoToDate } from '@urbicon-ui/blocks/date';
   import {
@@ -17,6 +16,7 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
   import playgroundSource from './Playground.svelte?raw';
 

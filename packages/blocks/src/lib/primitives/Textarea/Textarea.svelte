@@ -2,11 +2,11 @@
   import { mintAttachment } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { useFormField, getTierContext } from '#lib/utils/index.js';
+  import { getTierContext, useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TextareaProps } from './index';
   import { autoResizeHeight, readAutosizeMetrics } from './textarea.autosize';
-  import { textareaVariants, type TextareaVariants } from './textarea.variants';
+  import { type TextareaVariants, textareaVariants } from './textarea.variants';
 
   const theme = useThemeProps('Textarea', () => preset);
 

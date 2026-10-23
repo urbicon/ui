@@ -1,25 +1,25 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
   import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import SendIconDefault from '#lib/icons/SendIcon.svelte';
-  import SquareIconDefault from '#lib/icons/SquareIcon.svelte';
-  import PaperclipIconDefault from '#lib/icons/PaperclipIcon.svelte';
   import CloseIconDefault from '#lib/icons/CloseIcon.svelte';
   import FileIconDefault from '#lib/icons/FileIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import PaperclipIconDefault from '#lib/icons/PaperclipIcon.svelte';
+  import SendIconDefault from '#lib/icons/SendIcon.svelte';
+  import SquareIconDefault from '#lib/icons/SquareIcon.svelte';
+  import CoreIconButton from '#lib/internal/core/CoreIconButton.svelte';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import {
-    partitionIntake,
-    revokeIntakePreviews,
-    formatFileSize,
-    type FileIntakeEntry,
     type FileIntakeConstraints,
-    type FileIntakeMessages
+    type FileIntakeEntry,
+    type FileIntakeMessages,
+    formatFileSize,
+    partitionIntake,
+    revokeIntakePreviews
   } from '#lib/utils/file-intake.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { promptInputVariants, type PromptInputVariants } from './prompt-input.variants';
   import type { PromptInputProps } from './index';
+  import { type PromptInputVariants, promptInputVariants } from './prompt-input.variants';
 
   const theme = useThemeProps('PromptInput', () => preset);
 

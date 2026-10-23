@@ -1,8 +1,8 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import { Badge, Button, Checkbox, SegmentGroup, SegmentItem, Toolbar } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { resolve } from '$app/paths';
 
   let demoTier = $state<'commit' | 'modify'>('commit');
   let commitOverride = $state('9999px');

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { InlineCodeProps } from './index';
-  import { parseInlineRuns, type InlineRun } from './inline-runs';
+  import { type InlineRun, parseInlineRuns } from './inline-runs';
 
   let { text = '', codeClass = 'text-text-primary font-mono' }: InlineCodeProps = $props();
 

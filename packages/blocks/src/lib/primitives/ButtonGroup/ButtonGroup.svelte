@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { buttonGroupVariants, type ButtonGroupVariants } from '#lib/primitives/index.js';
+  import { type ButtonGroupVariants, buttonGroupVariants } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
   import { edgeEnabledIndex, nextEnabledIndex } from '#lib/utils/index.js';
   import { getTierContext, setTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import type { ButtonGroupContext, ButtonGroupProps } from './index';
   import { setButtonGroupContext } from './buttonGroup.context';
+  import type { ButtonGroupContext, ButtonGroupProps } from './index';
 
   const theme = useThemeProps('ButtonGroup', () => preset);
 

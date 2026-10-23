@@ -2,10 +2,10 @@
   import { useBlocksI18n } from '#lib/i18n/index.js';
   import { InfoCircleIcon } from '#lib/icons/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
   import { getGuideContext } from './guide.context';
-  import { guideMarkerVariants, type GuideMarkerVariants } from './guide.variants';
+  import { type GuideMarkerVariants, guideMarkerVariants } from './guide.variants';
   import type { GuideMarkerProps } from './index';
 
   const bt = useBlocksI18n();

@@ -4,7 +4,7 @@
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { RadioItemProps } from './index';
   import { getRadioGroupContext } from './radioGroup.context';
-  import { radioItemVariants, type RadioItemVariants } from './radioGroup.variants';
+  import { type RadioItemVariants, radioItemVariants } from './radioGroup.variants';
 
   let {
     value,

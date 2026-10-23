@@ -58,7 +58,6 @@
     },
     {
       "includes": ["**/*.svelte"],
-      "assist": { "enabled": false },
       "linter": {
         "rules": {
           "preset": "none",

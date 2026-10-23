@@ -26,10 +26,10 @@
   INTERNAL — never exported from the package barrel, no docs/catalog entry.
 -->
 <script lang="ts">
-  import { resolveIcon } from '#lib/icons/index.js';
   import CalendarDaysIconDefault from '#lib/icons/CalendarDaysIcon.svelte';
   import ChevronLeftIconDefault from '#lib/icons/ChevronLeftIcon.svelte';
   import ChevronRightIconDefault from '#lib/icons/ChevronRightIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
   import { Tooltip } from '#lib/primitives/Tooltip/index.js';
   import CoreIconButton from './CoreIconButton.svelte';
 

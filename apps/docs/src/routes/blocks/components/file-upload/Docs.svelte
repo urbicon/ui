@@ -3,17 +3,17 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicUpload,
+    CustomDropzone,
     ImagePreview,
-    WithValidation,
     UploadProgress,
-    CustomDropzone
+    WithValidation
   } from './examples';
 
   import basicUploadCode from './examples/BasicUpload.svelte?raw';
-  import imagePreviewCode from './examples/ImagePreview.svelte?raw';
-  import withValidationCode from './examples/WithValidation.svelte?raw';
-  import uploadProgressCode from './examples/UploadProgress.svelte?raw';
   import customDropzoneCode from './examples/CustomDropzone.svelte?raw';
+  import imagePreviewCode from './examples/ImagePreview.svelte?raw';
+  import uploadProgressCode from './examples/UploadProgress.svelte?raw';
+  import withValidationCode from './examples/WithValidation.svelte?raw';
 </script>
 
 <!-- ─── Examples ─── -->

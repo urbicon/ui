@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { asset } from '$app/paths';
   import {
     CodeExample,
     DocsLayout as DocsPageLayout,
     ReferenceSections,
     Section
   } from '@urbicon-ui/docs';
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { buildRelatedLinks } from '#lib/component-links.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { asset } from '$app/paths';
+  import { componentData } from './api';
   import CustomDocs from './Docs.svelte';
   import Playground from './Playground.svelte';
-  import { componentData } from './api';
 
   const relatedLinks = buildRelatedLinks(componentData);
 </script>

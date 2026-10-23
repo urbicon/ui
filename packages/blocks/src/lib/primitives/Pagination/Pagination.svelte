@@ -1,14 +1,14 @@
 <script lang="ts">
-  import PaginationItem from './PaginationItem.svelte';
-  import { useBlocksI18n } from '#lib';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { paginationVariants } from '#lib/primitives/index.js';
-  import type { PaginationVariants } from './pagination.variants';
   import { MediaQuery } from 'svelte/reactivity';
+  import { useBlocksI18n } from '#lib';
+  import { paginationVariants } from '#lib/primitives/index.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext } from '#lib/utils/tier-context.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { computeEllipsisState, computeVisiblePageNumbers } from './pagination.engine';
   import type { PaginationProps } from '.';
+  import PaginationItem from './PaginationItem.svelte';
+  import { computeEllipsisState, computeVisiblePageNumbers } from './pagination.engine';
+  import type { PaginationVariants } from './pagination.variants';
 
   const bt = useBlocksI18n();
 

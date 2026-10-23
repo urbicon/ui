@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { NoteListProps } from './index.js';
   import { resolveClassChain } from '@urbicon-ui/blocks';
+  import type { NoteListProps } from './index.js';
   import { type NoteListSlots, noteListVariants } from './notelist.variants';
 
   let {

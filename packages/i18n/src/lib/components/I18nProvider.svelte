@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack, type Snippet } from 'svelte';
+  import { type Snippet, untrack } from 'svelte';
   import { provideI18n } from '#lib/i18n/context.svelte.js';
   import type { Locale } from '#lib/i18n/types.js';
 

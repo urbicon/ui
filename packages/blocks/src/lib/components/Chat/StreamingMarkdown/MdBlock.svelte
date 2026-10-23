@@ -3,9 +3,9 @@
   import { headingTag } from '#lib/utils/heading.js';
   import CodeBlock from '../CodeBlock/CodeBlock.svelte';
   import type { BlockNode } from '../markdown/types';
-  import type { MdRenderContext } from './md-context';
   import MdBlockSelf from './MdBlock.svelte';
   import MdInline from './MdInline.svelte';
+  import type { MdRenderContext } from './md-context';
 
   let { block, ctx }: { block: BlockNode; ctx: MdRenderContext } = $props();
 

@@ -1,18 +1,19 @@
 <script lang="ts">
-  import { resolveIcon, ChevronDownIcon as ChevronDownIconDefault } from '@urbicon-ui/blocks';
-  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { ChevronDownIcon as ChevronDownIconDefault, resolveIcon } from '@urbicon-ui/blocks';
   import { useTableI18n } from '#lib/i18n/index.js';
+  import { getInternalTableContext } from '#lib/stores/TableStore.svelte.js';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
-  import { groupHeaderVariants, type GroupHeaderVariantProps } from '#lib/variants/index.js';
+
+  import type { Snippet } from 'svelte';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import { resolveRowItemId } from '#lib/utils/index.js';
+  import { type GroupHeaderVariantProps, groupHeaderVariants } from '#lib/variants/index.js';
+  import { groupCountText } from './group-count';
+  import { getStickyContext } from './sticky-context.svelte';
+  import { leadingStructuralColumns } from './structural-columns';
   import TableRow from './TableRow.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
-  import { getStickyContext } from './sticky-context.svelte';
-  import { resolveRowItemId } from '#lib/utils/index.js';
-  import { groupCountText } from './group-count';
-  import { leadingStructuralColumns } from './structural-columns';
-  import type { Column, TableItem } from '#lib/types/tableTypes.js';
-  import type { Snippet } from 'svelte';
 
   const tt = useTableI18n();
 

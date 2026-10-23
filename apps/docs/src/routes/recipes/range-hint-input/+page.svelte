@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Input } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   // Input's own intent names: a status feeds intent with no mapping layer.
   type RangeStatus = 'default' | 'success' | 'warning' | 'danger';

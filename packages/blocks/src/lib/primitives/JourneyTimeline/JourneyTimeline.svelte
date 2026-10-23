@@ -2,12 +2,12 @@
   import { useBlocksI18n } from '#lib';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import {
-    journeyTimelineVariants,
-    type JourneyTimelineSlots,
-    type JourneyTimelineVariants
-  } from './journey-timeline.variants';
   import type { JourneyNode, JourneyStatus, JourneyTimelineProps } from './index';
+  import {
+    type JourneyTimelineSlots,
+    type JourneyTimelineVariants,
+    journeyTimelineVariants
+  } from './journey-timeline.variants';
 
   const bt = useBlocksI18n();
 

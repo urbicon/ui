@@ -4,7 +4,7 @@
      outline. Tokenising them would delete the example. Every other section on this page
      stays under the rule. -->
 <script lang="ts">
-  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
+  import type { CommandPaletteItem } from '@urbicon-ui/blocks';
   import {
     Badge,
     Button,
@@ -20,7 +20,7 @@
     SettingsIcon,
     TerminalIcon
   } from '@urbicon-ui/blocks';
-  import type { CommandPaletteItem } from '@urbicon-ui/blocks';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
 
   let basicOpen = $state(false);
   let iconsOpen = $state(false);

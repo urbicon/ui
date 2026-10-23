@@ -20,11 +20,11 @@
   --room-accent, so the real library components repaint live.
 -->
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import { ArrowRightIcon, Badge, Button, Input, Select } from '@urbicon-ui/blocks';
   import { CodeExample, ScrollSpy } from '@urbicon-ui/docs';
   import { CHANNELS, FAMILY_CHANNEL } from '#lib/landing/channels.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { resolve } from '$app/paths';
   import '#lib/style/rooms.css';
 
   // ── The five steps — ids feed the scrollspy, numerals the poster marks ──

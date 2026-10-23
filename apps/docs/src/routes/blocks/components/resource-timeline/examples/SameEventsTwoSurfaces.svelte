@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Calendar, ResourceTimeline } from '@urbicon-ui/blocks';
   import type { CalendarEvent, DateCategory, TimelineResource } from '@urbicon-ui/blocks';
+  import { Calendar, ResourceTimeline } from '@urbicon-ui/blocks';
 
   // One array, two views. These are `CalendarEvent`s (the shape a Calendar
   // already holds), and the timeline reads them through its accessors instead of

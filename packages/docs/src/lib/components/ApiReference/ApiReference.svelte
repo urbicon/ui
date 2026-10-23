@@ -6,7 +6,7 @@
   import { revealTableRow } from '#lib/utils/cross-reference.js';
   import { tokenizeTypeExpression } from '#lib/utils/type-links.js';
   import { type ApiReferenceSlots, apiReferenceVariants } from './apireference.variants';
-  import type { ApiReferenceProps, ApiProp } from './index.js';
+  import type { ApiProp, ApiReferenceProps } from './index.js';
   import { deduplicateProps, SEARCH_ABOVE_ROWS } from './reference-table.js';
 
   const dt = useDocsI18n();

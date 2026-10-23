@@ -12,14 +12,14 @@
   so druckt der Schnipsel den, den die Bühne gerade rendert.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
-  import { ToolCallCard, type ChatToolCallPart } from '@urbicon-ui/blocks';
+  import { type ChatToolCallPart, ToolCallCard } from '@urbicon-ui/blocks';
   import {
     defaultValuesOf,
     deriveControls,
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();

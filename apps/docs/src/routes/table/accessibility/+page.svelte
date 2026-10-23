@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Kbd } from '@urbicon-ui/blocks';
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Note, NoteList } from '@urbicon-ui/docs';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
 </script>
 

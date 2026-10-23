@@ -1,18 +1,18 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import { Alert, Badge, Button, Card, Checkbox, Separator, Toggle } from '@urbicon-ui/blocks';
-  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { parseTheme, previewVars } from '#lib/theme-preview.js';
+  import forestThemeSource from '@urbicon-ui/blocks/style/themes/forest.css?raw';
+  import neutralTheme from '@urbicon-ui/blocks/style/themes/neutral.css?raw';
   // The shipped themes themselves, not retyped excerpts — hand-copied palette
   // data drifted twice (a primary-only forest excerpt; Sunset/Rose chroma and
   // Neutral's 600 disagreeing with the package). Swatch dot, palette strip and
   // live preview all parse the same files the consumer imports.
   import oceanTheme from '@urbicon-ui/blocks/style/themes/ocean.css?raw';
-  import forestThemeSource from '@urbicon-ui/blocks/style/themes/forest.css?raw';
-  import sunsetTheme from '@urbicon-ui/blocks/style/themes/sunset.css?raw';
   import roseTheme from '@urbicon-ui/blocks/style/themes/rose.css?raw';
-  import neutralTheme from '@urbicon-ui/blocks/style/themes/neutral.css?raw';
+  import sunsetTheme from '@urbicon-ui/blocks/style/themes/sunset.css?raw';
+  import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { parseTheme, previewVars } from '#lib/theme-preview.js';
+  import { resolve } from '$app/paths';
 
   const description =
     'Swap palettes with a single CSS import: each theme re-colors the primary and secondary accents and the neutral chassis. The four colored themes match the chassis to the accent’s temperature; Neutral strips it to grey.';

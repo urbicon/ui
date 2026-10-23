@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeBlock, Button } from '@urbicon-ui/blocks';
+  import { Button, CodeBlock } from '@urbicon-ui/blocks';
 
   // The `actions` snippet renders extra controls in the header, before the copy
   // button — e.g. "Run in playground", "Open in editor".

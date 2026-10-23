@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { page } from '$app/state';
   import { useAppI18n } from '#lib/i18n/index.js';
-  import { resolveNav, useNavLabel, type NavItem } from '#lib/navigation.js';
+  import { type NavItem, resolveNav, useNavLabel } from '#lib/navigation.js';
+  import { page } from '$app/state';
 
   let { items }: { items: NavItem[] } = $props();
 

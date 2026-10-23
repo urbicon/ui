@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Calendar } from '@urbicon-ui/blocks';
   import type { CalendarEvent, DateCategory } from '@urbicon-ui/blocks';
+  import { Calendar } from '@urbicon-ui/blocks';
 
   const categories: DateCategory[] = [
     { id: 'conf', label: 'Conference', color: '#8b5cf6' },

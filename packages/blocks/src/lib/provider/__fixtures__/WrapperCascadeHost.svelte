@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Component } from 'svelte';
-  import { setTierContext, type InteractiveTier } from '#lib/utils/tier-context.js';
-  import type { ComponentDefaults, PresetMap } from '../blocks-context';
+  import { type InteractiveTier, setTierContext } from '#lib/utils/tier-context.js';
   import BlocksProvider from '../BlocksProvider.svelte';
+  import type { ComponentDefaults, PresetMap } from '../blocks-context';
 
   // A wrapper and a plain instance of the component it wraps, under one
   // provider carrying both `overrides` sources, optionally inside a tier

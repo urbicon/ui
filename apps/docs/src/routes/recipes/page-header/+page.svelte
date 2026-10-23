@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Breadcrumb, Button, Tab, TabItem } from '@urbicon-ui/blocks';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { recipeMeta } from './meta';
   import RecipeShell from '../RecipeShell.svelte';
+  import { recipeMeta } from './meta';
 
   let activeTab = $state('overview');
 

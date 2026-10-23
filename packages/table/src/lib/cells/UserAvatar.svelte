@@ -1,9 +1,9 @@
 <script lang="ts" generics="Item">
   // Use our own Avatar component instead of Flowbite
   import { Avatar } from '@urbicon-ui/blocks';
-  import SearchHighlight from '../features/SearchHighlight.svelte';
-  import { userCellVariants, type UserCellVariantProps } from '#lib/variants/index.js';
   import { getNestedValue } from '#lib/utils/index.js';
+  import { type UserCellVariantProps, userCellVariants } from '#lib/variants/index.js';
+  import SearchHighlight from '../features/SearchHighlight.svelte';
 
   export type UserAvatarProps<Item> = {
     item: Item;

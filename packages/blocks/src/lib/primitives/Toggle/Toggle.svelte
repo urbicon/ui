@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { useBlocksI18n, mintAttachment } from '#lib';
+  import { mintAttachment, useBlocksI18n } from '#lib';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext, useFormField } from '#lib/utils/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { toggleVariants, type ToggleVariants } from './toggle.variants';
   import type { ToggleProps } from './index';
+  import { type ToggleVariants, toggleVariants } from './toggle.variants';
 
   const bt = useBlocksI18n();
 

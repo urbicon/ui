@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { ChevronRightIcon, CommandPalette, FileTextIcon } from '@urbicon-ui/blocks';
   import type { CommandPaletteItem } from '@urbicon-ui/blocks';
-  import { nav } from '#lib/route.js';
+  import { ChevronRightIcon, CommandPalette, FileTextIcon } from '@urbicon-ui/blocks';
   import { useAppI18n } from '#lib/i18n/index.js';
-  import { navigationItems, useNavLabel, type NavItem } from './navigation';
-  import { searchRecords, type SearchRecord } from './search';
+  import { nav } from '#lib/route.js';
+  import { type NavItem, navigationItems, useNavLabel } from './navigation';
+  import { type SearchRecord, searchRecords } from './search';
 
   const ta = useAppI18n();
   const navLabel = useNavLabel();

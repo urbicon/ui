@@ -1,7 +1,7 @@
 <script lang="ts">
   import I18nProvider from '../../components/I18nProvider.svelte';
-  import SsrChild from './SsrChild.svelte';
   import type { Locale } from '../types';
+  import SsrChild from './SsrChild.svelte';
 
   let { locale }: { locale?: Locale } = $props();
 </script>

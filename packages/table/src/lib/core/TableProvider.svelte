@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { untrack, type Snippet } from 'svelte';
-  import { SvelteSet } from 'svelte/reactivity';
   import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
+  import { type Snippet, untrack } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { findColumnById } from '#lib';
-  import { useTableI18n } from '#lib/i18n/index.js';
   import { ColumnValidation } from '#lib/factories/ColumnValidation.js';
-  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import { useTableI18n } from '#lib/i18n/index.js';
   import {
     attachCellLocale,
     attachTableContext,
     createTableState,
     type TablePrefsConfig
   } from '#lib/stores/TableStore.svelte.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import { createManagedFetch } from '#lib/view/observe.svelte.js';
   import type { TableSource } from '#lib/view/source.js';
   import {

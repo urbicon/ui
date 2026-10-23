@@ -7,8 +7,8 @@
   // (package.json `files`) and never collected as a test file.
   import Button from '../../Button/Button.svelte';
   import type { ButtonProps } from '../../Button/index';
-  import type { ButtonGroupProps } from '../index';
   import ButtonGroup from '../ButtonGroup.svelte';
+  import type { ButtonGroupProps } from '../index';
 
   // `value` is optional so a test can mix a value-less action button (no
   // selection role) into a selection group. Labels are unique per composition,

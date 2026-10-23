@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
-  import { resolve } from '$app/paths';
   import { Card, Input, Separator } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { classCaveat, precedenceChain } from '#lib/customization-data.js';
+  import SeoMeta from '#lib/SeoMeta.svelte';
+  import { resolve } from '$app/paths';
 
   // The decision table (narrow → broad). Each row answers one concrete
   // "I want to…" goal so consumers stop guessing which tool to reach for.

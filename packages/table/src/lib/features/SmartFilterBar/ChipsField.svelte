@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { Badge } from '@urbicon-ui/blocks';
   import { getTableContext, type TableAction, useTableI18n } from '#lib';
   import type { SummaryConfig } from '#lib/stores/TableStore.svelte.js';
   import { resolveColumnLabelById } from '#lib/utils/index.js';
   import { SUMMARY_TYPE_LABEL_KEY } from '#lib/utils/summary-types.js';
-  import { Badge } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
 

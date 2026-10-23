@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { useBlocksI18n } from '#lib';
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
-  import { getCalendarContext, createSlotHelper } from './calendar.context';
+  import { useBlocksI18n } from '#lib';
   import { getWeekNumber, isoToDate, isSameDay, toIso } from '#lib/date/index.js';
   import { focusDayCell, handleDateGridKeydown } from '#lib/internal/date-grid/index.js';
-  import { getMultiDayEventLayout } from './calendar.engine';
   import { swipeable } from '#lib/utils/swipeable.js';
-  import type { CalendarEvent, DayCellContext } from './calendar.types';
-  import CalendarWeekdayHeader from './CalendarWeekdayHeader.svelte';
   import CalendarDay from './CalendarDay.svelte';
   import CalendarMultiDayBar from './CalendarMultiDayBar.svelte';
+  import CalendarWeekdayHeader from './CalendarWeekdayHeader.svelte';
+  import { createSlotHelper, getCalendarContext } from './calendar.context';
+  import { getMultiDayEventLayout } from './calendar.engine';
+  import type { CalendarEvent, DayCellContext } from './calendar.types';
 
   const bt = useBlocksI18n();
 

@@ -1,8 +1,8 @@
 <script lang="ts">
+  import { headingTag, resolveClassChain } from '@urbicon-ui/blocks';
   import { InfoCard, InlineCode } from '#lib';
   import { useDocsI18n } from '#lib/i18n/index.js';
   import { getCodeVisibilityContext } from '#lib/stores/code-visibility.svelte.js';
-  import { headingTag, resolveClassChain } from '@urbicon-ui/blocks';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import { provideSectionRegistry } from '../Section/section-registry.svelte.js';
   import { type CodeExampleSlots, codeExampleVariants } from './codeexample.variants';

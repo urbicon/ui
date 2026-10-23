@@ -1,9 +1,9 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { type Column, Table } from '@urbicon-ui/table';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { employees, richColumns, type Employee } from '../_data';
+  import { type Employee, employees, richColumns } from '../_data';
 
   // How the six per-column flags relate — which is page material, not per-prop
   // material: three of them fall back to another flag, and a reader deciding

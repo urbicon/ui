@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { useTableI18n } from '#lib';
-  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
-  import { filterMenuVariants, smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import {
     Badge,
     Button,
-    Popover,
-    resolveIcon,
+    CloseIcon as CloseIconDefault,
     FunnelIcon as FunnelIconDefault,
-    CloseIcon as CloseIconDefault
+    Popover,
+    resolveIcon
   } from '@urbicon-ui/blocks';
+  import { useTableI18n } from '#lib';
+  import { getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import { filterMenuVariants, smartFilterBarTriggerVariants } from '#lib/variants/index.js';
   import FilterPanel from './FilterPanel.svelte';
   import MenuTrigger from './MenuTrigger.svelte';
   import { buildFilterEntries, toolColumnScope, toolEmptyKey } from './tool-columns';

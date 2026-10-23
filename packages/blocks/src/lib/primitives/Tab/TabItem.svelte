@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { mintAttachment } from '#lib';
+  import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { TabItemProps } from './index';
   import { getTabContext } from './tab.context';
-  import { tabVariants, type TabVariants } from './tab.variants';
+  import { type TabVariants, tabVariants } from './tab.variants';
 
   let {
     value,

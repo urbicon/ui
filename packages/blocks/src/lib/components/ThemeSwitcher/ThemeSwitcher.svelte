@@ -1,17 +1,17 @@
 <script lang="ts">
-  import type { ThemeSwitcherProps, Theme } from './index';
-  import { themeSwitcherVariants, type ThemeSwitcherVariants } from './themeSwitcher.variants';
   import { onMount } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
-  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import SunIconDefault from '#lib/icons/SunIcon.svelte';
-  import MoonIconDefault from '#lib/icons/MoonIcon.svelte';
-  import MonitorIconDefault from '#lib/icons/MonitorIcon.svelte';
   import { useBlocksI18n } from '#lib/i18n/index.js';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import MonitorIconDefault from '#lib/icons/MonitorIcon.svelte';
+  import MoonIconDefault from '#lib/icons/MoonIcon.svelte';
+  import SunIconDefault from '#lib/icons/SunIcon.svelte';
   import { getStorage } from '#lib/internal/storage.js';
-  import { resolveClassChain } from '#lib/utils/variants.js';
+  import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { composeHandlers } from '#lib/utils/compose-handlers.js';
+  import { resolveClassChain } from '#lib/utils/variants.js';
+  import type { Theme, ThemeSwitcherProps } from './index';
+  import { type ThemeSwitcherVariants, themeSwitcherVariants } from './themeSwitcher.variants';
 
   const bt = useBlocksI18n();
 

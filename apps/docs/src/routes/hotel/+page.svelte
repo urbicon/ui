@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
   import { BlocksProvider, Button } from '@urbicon-ui/blocks';
   import { DEFAULT_LIVERY, LIVERIES, liveryById } from '#lib/livery/index.js';
+  import { resolve } from '$app/paths';
   // Livery-CSS route-lokal statt global (anders als in chat-demo): Tokens,
   // Container-Shim und die Layout-Schicht der Vollseite.
   import '#lib/livery/liveries.css';

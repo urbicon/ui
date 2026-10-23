@@ -1,8 +1,8 @@
 <script lang="ts">
-  import SeoMeta from '#lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
+  import SeoMeta from '#lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { scriptOpen, scriptClose } from '../_data';
+  import { scriptClose, scriptOpen } from '../_data';
   import LiveUpdatesDemo from './LiveUpdatesDemo.svelte';
 
   const codeEnable = `<Table

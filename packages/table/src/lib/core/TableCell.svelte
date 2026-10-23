@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
-  import { customCellVariants } from '#lib/variants/index.js';
-  import { getCellLocale, getTableContext } from '#lib/stores/TableStore.svelte.js';
-  import SearchHighlight from '#lib/features/SearchHighlight.svelte';
-  import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import type { Snippet } from 'svelte';
+  import SearchHighlight from '#lib/features/SearchHighlight.svelte';
+  import { getCellLocale, getTableContext } from '#lib/stores/TableStore.svelte.js';
+  import type { Column, TableItem } from '#lib/types/tableTypes.js';
+  import { customCellVariants } from '#lib/variants/index.js';
+  import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
 
   const { state: tableState, view: tableView } = getTableContext();
 

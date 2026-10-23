@@ -1,12 +1,12 @@
 <script lang="ts">
   import { mintAttachment } from '#lib';
+  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
+  import { resolveIcon } from '#lib/icons/index.js';
+  import MinusIconDefault from '#lib/icons/MinusIcon.svelte';
   import CoreFieldMessage from '#lib/internal/core/CoreFieldMessage.svelte';
+  import { type CheckboxVariants, checkboxVariants } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { getTierContext, useFormField } from '#lib/utils/index.js';
-  import { checkboxVariants, type CheckboxVariants } from '#lib/primitives/index.js';
-  import { resolveIcon } from '#lib/icons/index.js';
-  import CheckIconDefault from '#lib/icons/CheckIcon.svelte';
-  import MinusIconDefault from '#lib/icons/MinusIcon.svelte';
   import { resolveClassChain } from '#lib/utils/variants.js';
   import type { CheckboxProps } from './index';
 

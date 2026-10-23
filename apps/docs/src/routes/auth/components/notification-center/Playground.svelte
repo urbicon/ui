@@ -18,8 +18,8 @@
   Korrektur. Signatur: `#lib/playground-host.ts`.
 -->
 <script lang="ts">
-  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import { PlaygroundConfigurator } from '@urbicon-ui/docs';
+  import type { PlaygroundHostProps } from '#lib/playground-host.js';
   import Basic from './examples/Basic.svelte';
   import basicCode from './examples/Basic.svelte?raw';
 
