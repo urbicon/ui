@@ -175,14 +175,7 @@ describe('the filter dialog', () => {
       })
     );
 
-    // jsdom has no top layer: the open panel stays `display: none`, which
-    // leaves it no accessible name to query by, so the reference is asserted.
-    const title = await screen.findByRole('heading', {
-      level: 2,
-      name: 'Add filter',
-      hidden: true
-    });
-    expect(title.id).not.toBe('');
-    expect(title.closest('[role="dialog"]')?.getAttribute('aria-labelledby')).toBe(title.id);
+    const dialog = await screen.findByRole('dialog', { name: 'Add filter' });
+    expect(within(dialog).getByRole('heading', { level: 2, name: 'Add filter' })).toBeTruthy();
   });
 });

@@ -80,7 +80,7 @@
 
 {#snippet summaryBand(title: string, values: Record<string, number>, offset: number)}
   <div class={listStyles.summary()}>
-    <svelte:element this={headingTag(headingLevel, offset)} class={listStyles.summaryTitle()}
+    <svelte:element this={headingTag(headingLevel, { offset })} class={listStyles.summaryTitle()}
       >{title}</svelte:element
     >
     {#each summaryConfigs as config (config.column)}

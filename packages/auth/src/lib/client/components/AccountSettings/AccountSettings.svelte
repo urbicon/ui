@@ -223,7 +223,7 @@
     <!-- Profile -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={saveProfile}>
       <svelte:element
-        this={headingTag(headingLevel, 1)}
+        this={headingTag(headingLevel, { offset: 1 })}
         class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
       >
         {t.account.profile.title}
@@ -255,7 +255,7 @@
     <!-- Email -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={changeEmail}>
       <svelte:element
-        this={headingTag(headingLevel, 1)}
+        this={headingTag(headingLevel, { offset: 1 })}
         class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
       >
         {t.account.email.title}
@@ -302,7 +302,7 @@
     <!-- Password -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={changePassword}>
       <svelte:element
-        this={headingTag(headingLevel, 1)}
+        this={headingTag(headingLevel, { offset: 1 })}
         class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}
       >
         {t.account.password.title}
@@ -360,7 +360,7 @@
       class={cls('flex flex-col gap-3', resolveClassChain(slotClasses.section, slotClasses.danger))}
     >
       <svelte:element
-        this={headingTag(headingLevel, 1)}
+        this={headingTag(headingLevel, { offset: 1 })}
         id={dangerTitleId}
         class={cls('text-danger-text text-sm font-semibold', slotClasses.sectionTitle)}
       >

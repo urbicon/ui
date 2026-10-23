@@ -40,10 +40,15 @@ describe('headingTag', () => {
   });
 
   it('places a heading offset ranks below the level it read', () => {
-    expect(headingTag(2, 1)).toBe('h3');
-    expect(headingTag(6, 1)).toBe('h6');
-    expect(headingTag(loose('2'), 1)).toBe('h3');
-    expect(headingTag(loose(null), 1)).toBe('h6');
-    expect(headingTag(loose(''), 1)).toBe('h6');
+    expect(headingTag(2, { offset: 1 })).toBe('h3');
+    expect(headingTag(6, { offset: 1 })).toBe('h6');
+    expect(headingTag(loose('2'), { offset: 1 })).toBe('h3');
+    expect(headingTag(loose(null), { offset: 1 })).toBe('h6');
+    expect(headingTag(loose(''), { offset: 1 })).toBe('h6');
+  });
+
+  it('takes no offset from the index a callback position passes', () => {
+    // @ts-expect-error the index is no options object
+    expect([1, 2, 3, 4, 5, 6].map(headingTag)).toEqual(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
   });
 });

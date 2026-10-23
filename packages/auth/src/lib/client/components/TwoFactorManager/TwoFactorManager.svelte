@@ -238,7 +238,7 @@
         <!-- Disable: password re-auth -->
         <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={disable}>
           <svelte:element
-            this={headingTag(headingLevel, 1)}
+            this={headingTag(headingLevel, { offset: 1 })}
             data-step-heading
             tabindex="-1"
             class={cls(
@@ -290,7 +290,7 @@
     {:else if view === 'setup'}
       <!-- Setup: scan the QR / enter the key, then confirm a code -->
       <svelte:element
-        this={headingTag(headingLevel, 1)}
+        this={headingTag(headingLevel, { offset: 1 })}
         data-step-heading
         tabindex="-1"
         class={cls(
@@ -361,7 +361,7 @@
     {:else if view === 'backup'}
       <!-- One-time backup codes -->
       <svelte:element
-        this={headingTag(headingLevel, 1)}
+        this={headingTag(headingLevel, { offset: 1 })}
         data-step-heading
         tabindex="-1"
         class={cls(

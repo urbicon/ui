@@ -12,16 +12,22 @@
  * A numeric string (`'2'`, an attribute written in plain JavaScript) reads as
  * its number.
  *
+ * `offset` sits in an object so that `levels.map(headingTag)` cannot pass the
+ * array index as one.
+ *
  * @param level The rank of the component's own heading.
- * @param offset How many ranks below `level` this heading sits.
+ * @param options.offset How many ranks below `level` this heading sits.
  *
  * @example
  * ```svelte
  * <svelte:element this={headingTag(headingLevel)}>{title}</svelte:element>
- * <svelte:element this={headingTag(headingLevel, 1)}>{section}</svelte:element>
+ * <svelte:element this={headingTag(headingLevel, { offset: 1 })}>{section}</svelte:element>
  * ```
  */
-export function headingTag(level: number, offset = 0): 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' {
+export function headingTag(
+  level: number,
+  { offset = 0 }: { offset?: number } = {}
+): 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' {
   // parseFloat, not Number() or Math.trunc() alone: those read null, '', false
   // and [] as 0, the rank of an h1.
   const whole = Math.trunc(Number.parseFloat(String(level)) + offset);
