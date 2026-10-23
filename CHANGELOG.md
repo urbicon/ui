@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.35.0](https://github.com/urbicon/ui/compare/v8.34.0...v8.35.0) - 2026-10-23
+
+### Breaking Changes
+- **table**: Stop rendering consumer strings as html ([#581](https://github.com/urbicon/ui/issues/581))
+> **BREAKING:** CustomCell's content renders as text, so markup in it shows as written; move it into a cell or children snippet. EmptyState's icon takes 'search', 'database', 'inbox' or a Snippet; pass your own SVG as a snippet.
+- **blocks**: Name year-view months and composition-bar items by the text they show ([#586](https://github.com/urbicon/ui/issues/586))
+
+### Bug Fixes
+- **blocks**: Keep an open popover shown when its dismiss mode changes ([#583](https://github.com/urbicon/ui/issues/583))
+- **blocks,table,docs**: Stop inner buttons submitting forms, let grid controls own their keys ([#588](https://github.com/urbicon/ui/issues/588))
+
+### Build
+- Lint .svelte with biome's six svelte rules ([#582](https://github.com/urbicon/ui/issues/582))
+- Format .svelte and markdown with bun fmt and gate it in ci ([#585](https://github.com/urbicon/ui/issues/585))
+
 ## [8.34.0](https://github.com/urbicon/ui/compare/v8.33.0...v8.34.0) - 2026-10-23
 
 ### Breaking Changes
