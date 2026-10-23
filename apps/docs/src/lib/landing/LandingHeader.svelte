@@ -20,6 +20,7 @@
   Türen gelassen hätten.
 -->
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { SearchIcon, ThemeSwitcher } from '@urbicon-ui/blocks';
   import { getCommandSearchToggle } from '#lib/command-search.context.js';
   import { CHANNELS, TILE_CHANNEL } from '#lib/landing/channels.js';
@@ -51,9 +52,9 @@
   });
 
   const doors = [
-    { label: 'Components', href: '/blocks' },
-    { label: 'Recipes', href: '/recipes', tier: 'md' },
-    { label: 'Getting started', href: '/getting-started', tier: 'md' }
+    { label: 'Components', href: resolve('/blocks') },
+    { label: 'Recipes', href: resolve('/recipes'), tier: 'md' },
+    { label: 'Getting started', href: resolve('/getting-started'), tier: 'md' }
   ];
 </script>
 

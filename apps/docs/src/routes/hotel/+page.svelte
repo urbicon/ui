@@ -341,12 +341,14 @@
       >
         <span class="max-w-xl">
           Fermata and its houses are a fiction — the component-library demo behind
-          <a class="hover:text-text-primary underline underline-offset-2" href="/">urbicon ui</a>.
-          Nothing here is a real hotel, a real offer or a real price; the imagery is AI-generated.
+          <a class="hover:text-text-primary underline underline-offset-2" href={resolve('/')}
+            >urbicon ui</a
+          >. Nothing here is a real hotel, a real offer or a real price; the imagery is
+          AI-generated.
         </span>
         <span class="flex gap-4">
-          <a class="hover:text-text-primary" href="/imprint">Imprint</a>
-          <a class="hover:text-text-primary" href="/privacy">Privacy</a>
+          <a class="hover:text-text-primary" href={resolve('/imprint')}>Imprint</a>
+          <a class="hover:text-text-primary" href={resolve('/privacy')}>Privacy</a>
         </span>
       </div>
     </footer>

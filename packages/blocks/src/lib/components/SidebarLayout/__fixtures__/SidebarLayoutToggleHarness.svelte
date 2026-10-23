@@ -27,7 +27,7 @@
 {/snippet}
 
 {#snippet sidebarSnippet()}
-  <nav aria-label="Test nav"><a href="/">Home</a></nav>
+  <nav aria-label="Test nav"><a href="#home">Home</a></nav>
 {/snippet}
 
 <SidebarLayout

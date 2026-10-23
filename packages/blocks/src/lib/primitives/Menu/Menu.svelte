@@ -125,7 +125,7 @@
   // `registerItem` / `unregisterItem` hooks. Used to debug + (in future)
   // power type-ahead search; the keyboard model itself walks DOM-focusable
   // descendants directly so it works in array-mode too.
-  // Plain Map — internal registry, not reactive UI state.
+  // biome-ignore lint/nursery/useSvelteReactiveClasses: nothing renders from it, and registerItem reads and writes it inside each MenuItem's effect
   const registryBuffer: Map<string, MenuRegistryItem> = new Map();
 
   // ── Item-shape mappers ─────────────────────────────────────────────────

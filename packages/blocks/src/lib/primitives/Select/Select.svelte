@@ -212,6 +212,7 @@
    * makes it one warn per orphan value for the instance's lifetime (mirrors
    * Combobox).
    */
+  // biome-ignore lint/nursery/useSvelteReactiveClasses: plain on purpose, see "Warn dedup" above
   const warnedOrphanValues = new Set<unknown>();
   const selectedOptions = $derived.by((): SelectOption<T>[] => {
     if (multiple) {

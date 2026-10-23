@@ -194,8 +194,7 @@
   // hunt through the log). Transitions settling in the SAME tick collapse to
   // the last one — accepted: parallel assistant streams are out of scope.
   let announcement = $state('');
-  // Deliberately a plain Map, NOT SvelteMap: it is only read/written inside
-  // the effect below — reactivity here would re-trigger that very effect.
+  // biome-ignore lint/nursery/useSvelteReactiveClasses: read and written only inside the effect below — a SvelteMap would re-trigger that very effect
   const announcedStatus = new Map<string, ChatMessageStatus | undefined>();
   // First effect run only REGISTERS the mounted history — announcing it would
   // read the newest old message aloud on every conversation open.
