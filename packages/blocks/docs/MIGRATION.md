@@ -11,6 +11,51 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.36.0
+
+### A `CompositionBar` segment sits in a wrapper, and the bar no longer clips
+
+The bar rounded its ends by clipping its content (`overflow: hidden`), and the same clip cut off
+every segment's tooltip and the outer half of its focus ring: the tooltip never showed. The bar now
+clips nothing. Its first and last element take its radius through `inherit`, and the tooltip has
+moved out of the segment button into a new `segmentWrapper` slot around each segment.
+
+- **A segment is a `segmentWrapper` div holding the `segment` button and, after it, the
+  tooltip.** The wrapper carries the inline width (`flex` when vertical) and is
+  `group/segment relative`; the button fills it with `flex-1` and inherits its radius. The button
+  keeps its accessible name, its `data-composition-segment` and its keys.
+- **With `unstyled`, style the wrapper too.** Give `segmentWrapper` at least
+  `group/segment relative flex` and `segment` `flex-1`, or the fill shrinks to its content and the
+  tooltip loses its anchor.
+- **A `slotClasses.tooltip` class with `group-hover:` or `group-focus-visible:` needs
+  `group-hover/segment:` or `group-has-focus-visible/segment:`.** The tooltip shows on the
+  wrapper's named group. An unnamed `group-*:` class matches every ancestor with the class
+  `group`: it no longer follows the segment, and it opens on a hover card around the bar.
+- **The tooltip is visible now**, and so is a `tooltip` snippet, on hover and on keyboard focus. Its
+  text is no longer part of the button, so it no longer counts against the segment's name.
+- **A vertical bar opens the tooltip on the inline-start side**, on the right in a right-to-left
+  page.
+- **What a segment paints outside its box is no longer cut at the bar's edge**: a shadow, a ring or
+  a `scale-*` from `slotClasses.segment`.
+- **The rest's dashed edge faces the segments**: `border-s` in a row and `border-b` in a vertical
+  bar, where it was `border-l` in both, and none when the rest is alone. In a vertical bar the
+  rest, and a segment that shows its value, now take their share as long as their text fits in it;
+  their text used to add to it. A part shorter than its text line still grows to that line.
+- **A segment raised to `minSegmentPercent` takes that space from every other part in proportion,
+  the rest included.** The rest used to shrink to its text as soon as one segment was raised, and
+  no part now ends up narrower than a raised segment unless it started below the minimum. When the minimums
+  alone would fill the bar, the bar shows the data's own shares instead of equal ones.
+
+A test or selector that finds the tooltip inside the segment button finds it as the button's next
+sibling now. The first two lines find the classes and `unstyled` you set, on the component or
+through `BlocksProvider`; the third, the tests and selectors.
+
+```sh
+rg -n -A12 '<CompositionBar' src | rg -e 'unstyled' -e 'slotClasses'
+rg -nU -e 'CompositionBar\s*:' -e '<BlocksProvider[^>]*unstyled' src
+rg -n 'data-composition-segment' src e2e tests
+```
+
 ## 8.35.0
 
 ### A year-view month and a `CompositionBar` item are named by the text they show

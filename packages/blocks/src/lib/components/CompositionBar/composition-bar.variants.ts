@@ -5,22 +5,35 @@ export const compositionBarVariants = tv({
     wrapper: ['flex w-full text-text-primary'],
     barWrapper: ['flex w-full min-w-0 flex-col gap-2'],
     // tier: modify — the bar is an interactive/data surface.
+    // No overflow clip: it would cut off the segment tooltip and focus ring.
+    // The round ends come from the first and last child instead (the
+    // orientation axis below), which take this radius through `inherit`, so a
+    // `slotClasses.bar` radius reaches them too.
     bar: [
-      'relative flex w-full overflow-hidden rounded-modify',
+      'relative flex w-full rounded-modify',
       'border border-border-hairline bg-surface-subtle',
       'transition-[box-shadow] duration-[var(--blocks-duration-fast)]'
     ],
+    // One per rendered segment: carries its width and holds the segment button
+    // and, beside it, the tooltip. Inside the button the tooltip text would
+    // join the button's visible label, which then no longer fits its
+    // accessible name (WCAG 2.5.3). The group is named: an unnamed `group-*:`
+    // variant matches every ancestor with the class `group`, a consumer's
+    // hover card included, and would open all tooltips at once.
+    segmentWrapper: ['group/segment relative flex min-w-0'],
     segment: [
-      'group relative flex items-center justify-center',
-      'min-w-0 cursor-default outline-none',
+      'relative flex flex-1 items-center justify-center',
+      'min-w-0 cursor-default outline-none rounded-[inherit]',
       'transition-[opacity,filter] duration-[var(--blocks-duration-fast)]',
       'focus-visible:z-10 focus-visible:outline-none',
       'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base'
     ],
+    // The rest always renders after the segments, so its dashed edge is the
+    // side it starts from (orientation axis below), and none when it is alone.
     segmentRest: [
       'flex flex-1 items-center justify-center',
       'bg-transparent text-text-tertiary text-xs',
-      'border-l border-dashed border-border-hairline'
+      'border-dashed border-border-hairline'
     ],
     // tier: contain — floating tooltip surface.
     tooltip: [
@@ -35,7 +48,7 @@ export const compositionBarVariants = tv({
       // list 'transition-[opacity]' … the state change jumps instead of
       // animating".
       'opacity-0 transition-[opacity,translate] duration-[var(--blocks-duration-fast)]',
-      'group-hover:opacity-100 group-focus-visible:opacity-100'
+      'group-hover/segment:opacity-100 group-has-focus-visible/segment:opacity-100'
     ],
     tooltipLabel: ['font-medium'],
     tooltipDetail: ['block text-text-tertiary tabular-nums'],
@@ -57,19 +70,24 @@ export const compositionBarVariants = tv({
   },
   variants: {
     orientation: {
+      // Start and end are logical: a row follows the writing direction, so in
+      // a right-to-left bar the first child sits on the right.
       horizontal: {
         wrapper: 'flex-col gap-3',
         bar: 'w-full flex-row',
-        segment: 'h-full',
+        segmentWrapper: 'first:rounded-s-[inherit] last:rounded-e-[inherit]',
+        segmentRest: 'not-first:border-s first:rounded-s-[inherit] last:rounded-e-[inherit]',
         tooltip: 'bottom-full left-1/2 mb-2 -translate-x-1/2',
         legend: 'flex-row gap-x-4 gap-y-2',
         legendItem: 'min-w-0 flex-shrink basis-auto'
       },
+      // `flex-col-reverse` puts the first child at the bottom.
       vertical: {
         wrapper: 'flex-row items-stretch gap-4',
         bar: 'h-full min-h-[120px] w-12 flex-col-reverse',
-        segment: 'w-full',
-        tooltip: 'top-1/2 right-full mr-2 -translate-y-1/2',
+        segmentWrapper: 'first:rounded-b-[inherit] last:rounded-t-[inherit]',
+        segmentRest: 'not-first:border-b first:rounded-b-[inherit] last:rounded-t-[inherit]',
+        tooltip: 'top-1/2 end-full me-2 -translate-y-1/2',
         legend: 'flex-col gap-1.5 flex-1 min-w-0'
       }
     },
