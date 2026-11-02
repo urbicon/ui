@@ -15,7 +15,8 @@
   // The first and last element the bar renders, which is not always the first
   // and last item: an item worth 0 renders no segment, and a `total` above the
   // sum appends the dashed rest after the last one. The rest prints its percent
-  // from 5 % up, so `thin-rest` probes a rest without text.
+  // from 5 % up, so `thin-rest` probes a rest without text. In `lifted-rest`
+  // the levy is below the minimum segment width and is lifted to it.
   const PROBES: Array<{
     id: string;
     dir?: 'rtl';
@@ -28,6 +29,13 @@
     { id: 'last-zero', props: { items: [...three, unused] } },
     { id: 'rest', props: { items: three, total: 125 } },
     { id: 'thin-rest', props: { items: three, total: 104 } },
+    {
+      id: 'lifted-rest',
+      props: {
+        items: [three[0], three[1], { label: 'Levy', value: 1, intent: 'warning' }],
+        total: 125
+      }
+    },
     { id: 'single', props: { items: [three[0]] } },
     { id: 'only-rest', props: { items: [unused], total: 10 } },
     { id: 'pill', props: { items: three, slotClasses: { bar: 'rounded-full' } } },
@@ -47,6 +55,9 @@
       props: { items: three, orientation: 'vertical', total: 104 }
     }
   ];
+
+  /** Given to every bar, so the test reads the minimum segment width in force. */
+  const MIN_SEGMENT = 2;
 
   /** The percent of the bar the rest stands for, from the probe's own numbers. */
   function restShare({ items, total }: { items: CompositionItem[]; total?: number }) {
@@ -76,11 +87,12 @@
     <div
       data-probe={probe.id}
       data-rest-share={restShare(probe.props)}
+      data-min-segment={probe.props.minSegmentPercent ?? MIN_SEGMENT}
       dir={probe.dir}
       class={['w-[28rem] pt-16', probe.group && 'group']}
     >
       <p class="text-text-tertiary mb-2 text-xs">{probe.id}</p>
-      <CompositionBar size="lg" {...probe.props} />
+      <CompositionBar size="lg" minSegmentPercent={MIN_SEGMENT} {...probe.props} />
     </div>
   {/each}
 </div>

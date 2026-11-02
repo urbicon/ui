@@ -40,6 +40,10 @@ moved out of the segment button into a new `segmentWrapper` slot around each seg
 - **The rest's dashed edge faces the segments**: `border-s` in a row and `border-b` in a vertical
   bar, where it was `border-l` in both, and none when the rest is alone. In a vertical bar the
   rest, and a segment that shows its value, now take their share; their text used to add to it.
+- **A segment raised to `minSegmentPercent` takes that space from every other part in proportion,
+  the rest included.** The rest used to shrink to its text as soon as one segment was raised, and
+  no part now ends up narrower than a raised segment unless it started narrower. When the minimums
+  alone would fill the bar, the bar shows the data's own shares instead of equal ones.
 
 A test or selector that finds the tooltip inside the segment button finds it as the button's next
 sibling now. The first two lines find the classes and `unstyled` you set, on the component or

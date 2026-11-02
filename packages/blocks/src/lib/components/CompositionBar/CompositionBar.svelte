@@ -5,6 +5,7 @@
   import { percentFormatter } from '#lib/internal/percent.js';
   import { getBlocksConfig, resolveSlotClasses, useThemeProps } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
+  import { barShares } from './bar-shares';
   import { type CompositionBarVariants, compositionBarVariants } from './composition-bar.variants';
   import type { CompositionBarIntent, CompositionBarProps, CompositionItem } from './index';
 
@@ -93,45 +94,11 @@
   const rawPercents = $derived(items.map((i) => (Math.max(0, i.value) / scaleBase) * 100));
   const restPercent = $derived((restValue / scaleBase) * 100);
 
-  // Minimum-width distribution: small segments are lifted to minSegmentPercent;
-  // the difference is taken proportionally from larger segments.
-  const adjustedPercents = $derived.by<number[]>(() => {
-    const threshold = Math.max(0, Math.min(20, minSegmentPercent));
-    if (threshold <= 0 || items.length === 0) return [...rawPercents];
-
-    const smallIdx: number[] = [];
-    const largeIdx: number[] = [];
-    for (let i = 0; i < rawPercents.length; i++) {
-      // Items with value=0 stay at 0 % — no boost needed
-      if (rawPercents[i] > 0 && rawPercents[i] < threshold) smallIdx.push(i);
-      else if (rawPercents[i] >= threshold) largeIdx.push(i);
-    }
-    if (smallIdx.length === 0) return [...rawPercents];
-
-    let excess = 0;
-    for (const i of smallIdx) excess += threshold - rawPercents[i];
-
-    // Only small segments: distribute evenly across all non-zero items
-    if (largeIdx.length === 0) {
-      const nonZero = rawPercents.filter((p) => p > 0).length || 1;
-      return rawPercents.map((p) => (p > 0 ? 100 / nonZero : 0));
-    }
-
-    const largeSum = largeIdx.reduce((s, i) => s + rawPercents[i], 0) || 1;
-    const result = [...rawPercents];
-    for (const i of smallIdx) result[i] = threshold;
-    for (const i of largeIdx) {
-      result[i] = Math.max(0, rawPercents[i] - excess * (rawPercents[i] / largeSum));
-    }
-    // Re-normalize against floating-point drift so Σ is exactly 100 %
-    // (avoids 1px gaps/overflow in the flex bar)
-    const sum = result.reduce((s, v) => s + v, 0);
-    if (sum > 0 && Math.abs(sum - 100) > 0.001) {
-      const scale = 100 / sum;
-      for (let i = 0; i < result.length; i++) result[i] *= scale;
-    }
-    return result;
-  });
+  // What the bar draws; the names, the summary and the table keep the raw
+  // percents above.
+  const shares = $derived(
+    barShares(rawPercents, restPercent, Math.max(0, Math.min(20, minSegmentPercent)))
+  );
 
   const defaultPercentFmt = $derived(
     percentFormatter(resolveDateLocale(undefined, i18n.locale), 1)
@@ -277,7 +244,7 @@
       class={unstyled ? (slotClasses?.bar ?? '') : styles.bar({ class: slotClasses?.bar })}
     >
       {#each items as item, index (itemKeys[index])}
-        {@const pct = adjustedPercents[index]}
+        {@const pct = shares.segments[index]}
         {@const rawPct = rawPercents[index]}
         {@const k = itemKeys[index]}
         {@const isHovered = hoveredKey === k}
@@ -361,18 +328,19 @@
         {/if}
       {/each}
 
-      {#if restPercent > 0}
-        <!-- Vertical by proportional flex on a `0px` basis, as the segments. -->
+      {#if shares.rest > 0}
+        <!-- Vertical by proportional flex on a `0px` basis, as the segments.
+             Sized by its drawn share, labelled with its raw one. -->
         <div
           class={unstyled
             ? (slotClasses?.segmentRest ?? '')
             : styles.segmentRest({ class: slotClasses?.segmentRest })}
           style={orientation === 'horizontal'
-            ? `width: ${restPercent}%`
-            : `flex: ${restPercent} 1 0px`}
+            ? `width: ${shares.rest}%`
+            : `flex: ${shares.rest} 1 0px`}
           aria-hidden="true"
         >
-          {#if restPercent >= 5}{fmtPercent(restPercent)}{/if}
+          {#if shares.rest >= 5}{fmtPercent(restPercent)}{/if}
         </div>
       {/if}
     </div>

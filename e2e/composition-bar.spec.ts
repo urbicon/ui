@@ -19,9 +19,10 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
  *   fill, and an inner join is square where the pixels beside it are.
  * - a tooltip shows where its opacity is above 0, and the count runs over every
  *   tooltip on the page, so one that opens beside the right one is seen too.
- * - a part takes its share where its length along the bar matches the percent
- *   its name states, or for the rest the share the fixture computes from the
- *   probe's numbers (`data-rest-share`).
+ * - a part takes its share where its length along the bar matches its percent
+ *   (a segment's from its name, the rest's from the fixture's
+ *   `data-rest-share`), with a segment below the minimum lifted to it and every
+ *   other part, the rest included, giving up that space by one factor.
  *
  * The probes on the fixture cover what decides which element is first or last:
  * an item worth 0 renders no segment, a `total` above the sum appends the
@@ -302,18 +303,27 @@ test.describe('CompositionBar clips nothing it shows', () => {
           const box = el.getBoundingClientRect();
           return (vertical ? box.height : box.width) - width(el, from) - width(el, to);
         };
-        const restWant = Number(bar.closest('[data-probe]')?.getAttribute('data-rest-share'));
-        const parts = Array.from(bar.children, (child) => {
+        const probe = bar.closest('[data-probe]');
+        const restWant = Number(probe?.getAttribute('data-rest-share'));
+        const minimum = Number(probe?.getAttribute('data-min-segment'));
+        const measured = Array.from(bar.children, (child) => {
           const segment = child.querySelector('[data-composition-segment]');
           const name = segment?.getAttribute('aria-label') ?? 'rest';
           // A segment's name ends in the percent it stands for.
           const stated = name.match(/([\d.,]+)\s*%$/)?.[1].replace(',', '.');
-          return {
-            name,
-            want: segment ? Number(stated) : restWant,
-            share: (100 * length(child)) / length(bar)
-          };
+          const raw = segment ? Number(stated) : restWant;
+          return { name, raw, lifted: segment !== null && raw < minimum };
         });
+        // No probe pushes another part below its floor or fills the bar with
+        // minimums; the unit tests cover those.
+        const lifted = measured.filter((part) => part.lifted).length;
+        const given = measured.reduce((sum, part) => (part.lifted ? sum : sum + part.raw), 0);
+        const factor = (100 - lifted * minimum) / given;
+        const parts = Array.from(bar.children, (child, i) => ({
+          name: measured[i].name,
+          want: measured[i].lifted ? minimum : measured[i].raw * factor,
+          share: (100 * length(child)) / length(bar)
+        }));
 
         const rest = Array.from(bar.children).find(
           (child) => !child.querySelector('[data-composition-segment]')

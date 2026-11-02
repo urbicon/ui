@@ -213,3 +213,129 @@ describe('CompositionBar (default percent format)', () => {
     expect(segmentLabels()).toEqual(['Gas: 60, 60.0%', 'Power: 40, 40.0%']);
   });
 });
+
+// Each part's share of the bar is the inline size the component writes on it,
+// read in bar order: a segment by its label, the dashed rest as `rest`. The
+// expected values are the rule worked by hand: a non-zero segment below the
+// minimum takes the minimum, and every other part, the rest included, gives
+// up that space by one common factor.
+describe('CompositionBar (shares of the bar)', () => {
+  function renderedShares() {
+    const bar = document.querySelector('[role="group"]');
+    return Array.from(bar?.children ?? [], (part) => {
+      const segment = part.querySelector('[data-composition-segment]');
+      const label = segment ? (segment.getAttribute('aria-label') ?? '').split(':')[0] : 'rest';
+      const width = /width:\s*([\d.e+-]+)%/.exec(part.getAttribute('style') ?? '')?.[1];
+      return { label, share: Number(width) };
+    });
+  }
+
+  function expectShares(expected: Array<[label: string, share: number]>) {
+    const actual = renderedShares();
+    expect(actual.map((part) => part.label)).toEqual(expected.map(([label]) => label));
+    actual.forEach((part, i) => {
+      expect(part.share, part.label).toBeCloseTo(expected[i][1], 6);
+    });
+  }
+
+  const items = (...values: number[]): CompositionItem[] =>
+    values.map((value, i) => ({ label: String.fromCharCode(65 + i), value }));
+
+  it('takes the space for a lifted segment from the rest too', () => {
+    renderBar({ items: items(50, 30, 1), total: 125 });
+    // Raw: 40, 24, 0.8, rest 35.2.
+    const f = (100 - 1.5) / (40 + 24 + 35.2);
+    expectShares([
+      ['A', 40 * f],
+      ['B', 24 * f],
+      ['C', 1.5],
+      ['rest', 35.2 * f]
+    ]);
+  });
+
+  it('keeps a large rest when every segment is lifted', () => {
+    renderBar({ items: items(1, 1), total: 1000 });
+    // Raw: 0.1, 0.1, rest 99.8.
+    expectShares([
+      ['A', 1.5],
+      ['B', 1.5],
+      ['rest', 97]
+    ]);
+  });
+
+  it('leaves a bar without rest as before', () => {
+    renderBar({ items: items(950, 8, 3, 5) });
+    // The three small ones take 1.5 each; the large one keeps what is left.
+    expectShares([
+      ['A', 95.5],
+      ['B', 1.5],
+      ['C', 1.5],
+      ['D', 1.5]
+    ]);
+  });
+
+  it('stops a part the lift would push below the minimum at the minimum', () => {
+    renderBar({ items: items(1, 1.5, 97.5) });
+    expectShares([
+      ['A', 1.5],
+      ['B', 1.5],
+      ['C', 97]
+    ]);
+  });
+
+  it('leaves a rest below the minimum its own share', () => {
+    renderBar({ items: items(600, 385, 10), total: 1000 });
+    // Raw: 60, 38.5, 1, rest 0.5.
+    const f = (100 - 1.5 - 0.5) / (60 + 38.5);
+    expectShares([
+      ['A', 60 * f],
+      ['B', 38.5 * f],
+      ['C', 1.5],
+      ['rest', 0.5]
+    ]);
+  });
+
+  it('shows the raw shares when the minima alone would fill the bar', () => {
+    renderBar({ items: items(1, 1, 1, 1, 1), total: 100, minSegmentPercent: 20 });
+    expectShares([
+      ['A', 1],
+      ['B', 1],
+      ['C', 1],
+      ['D', 1],
+      ['E', 1],
+      ['rest', 95]
+    ]);
+  });
+
+  it('shows the raw shares when every segment is below the minimum and there is no rest', () => {
+    renderBar({ items: items(12, 18, 15, 10, 19, 13, 13), minSegmentPercent: 20 });
+    expectShares([
+      ['A', 12],
+      ['B', 18],
+      ['C', 15],
+      ['D', 10],
+      ['E', 19],
+      ['F', 13],
+      ['G', 13]
+    ]);
+  });
+
+  // The lift is a matter of layout; the names, the summary and the table keep
+  // the data's own percent.
+  it('names and tabulates a lifted segment and the rest by their raw share', () => {
+    renderBar({ items: items(50, 30, 1), total: 125 });
+    expect(segmentLabels()).toEqual(['A: 50, 40.0%', 'B: 30, 24.0%', 'C: 1, 0.8%']);
+    expect(document.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe(
+      'Composition: 125 (3 shares) — A 40.0%, B 24.0%, C 0.8%'
+    );
+    const rows = Array.from(document.querySelectorAll('tbody tr'), (row) =>
+      Array.from(row.querySelectorAll('td'), (cell) => cell.textContent?.trim())
+    );
+    expect(rows).toEqual([
+      ['A', '50', '40.0%'],
+      ['B', '30', '24.0%'],
+      ['C', '1', '0.8%'],
+      ['Total (remaining)', '44', '35.2%']
+    ]);
+  });
+});
