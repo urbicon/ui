@@ -39,10 +39,11 @@ moved out of the segment button into a new `segmentWrapper` slot around each seg
   a `scale-*` from `slotClasses.segment`.
 - **The rest's dashed edge faces the segments**: `border-s` in a row and `border-b` in a vertical
   bar, where it was `border-l` in both, and none when the rest is alone. In a vertical bar the
-  rest, and a segment that shows its value, now take their share; their text used to add to it.
+  rest, and a segment that shows its value, now take their share as long as their text fits in it;
+  their text used to add to it. A part shorter than its text line still grows to that line.
 - **A segment raised to `minSegmentPercent` takes that space from every other part in proportion,
   the rest included.** The rest used to shrink to its text as soon as one segment was raised, and
-  no part now ends up narrower than a raised segment unless it started narrower. When the minimums
+  no part now ends up narrower than a raised segment unless it started below the minimum. When the minimums
   alone would fill the bar, the bar shows the data's own shares instead of equal ones.
 
 A test or selector that finds the tooltip inside the segment button finds it as the button's next

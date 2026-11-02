@@ -114,7 +114,7 @@ export interface CompositionBarProps
    * Minimum segment width in percent. Values below it are raised to this
    * width so small shares stay visible. The other segments and the remainder
    * of a larger `total` give up that space in proportion to their shares, and
-   * none ends up narrower than a raised segment unless it started narrower.
+   * none ends up narrower than a raised segment unless it started below the minimum.
    * If the minimums alone would fill the bar, no segment is raised. Names, the
    * summary and the screen-reader table keep each item's own percent.
    * @default 1.5

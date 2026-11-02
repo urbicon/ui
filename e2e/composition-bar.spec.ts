@@ -319,10 +319,18 @@ test.describe('CompositionBar clips nothing it shows', () => {
         const lifted = measured.filter((part) => part.lifted).length;
         const given = measured.reduce((sum, part) => (part.lifted ? sum : sum + part.raw), 0);
         const factor = (100 - lifted * minimum) / given;
+        // A row sizes segments in percent of the whole bar. A vertical bar
+        // shares out by flex what its parts' borders leave free.
+        const shared = vertical
+          ? Array.from(bar.children).reduce(
+              (room, child) => room - width(child, from) - width(child, to),
+              length(bar)
+            )
+          : length(bar);
         const parts = Array.from(bar.children, (child, i) => ({
           name: measured[i].name,
           want: measured[i].lifted ? minimum : measured[i].raw * factor,
-          share: (100 * length(child)) / length(bar)
+          share: (100 * length(child)) / shared
         }));
 
         const rest = Array.from(bar.children).find(

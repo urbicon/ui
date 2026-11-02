@@ -254,7 +254,8 @@
                indefinite, and a percentage height or flex-basis against it
                falls back to the content. Hence a `0px` basis: with `0%`, a
                segment's value text or the rest's percent adds its own height
-               to its share. -->
+               to its share. A part whose share is shorter than its text line
+               still grows to that line (min-height: auto). -->
           <div
             class={unstyled
               ? (slotClasses?.segmentWrapper ?? '')
