@@ -1,26 +1,26 @@
+import { eachKeys } from '#lib/internal/each-keys.js';
 import type { MenuDividerItem, MenuItemType, MenuSectionHeader } from './index';
 
-/**
- * One rendered entry of a section group.
- *
- * `index` is the entry's position in the ORIGINAL flat `items` array, not in
- * the group — the id and `{#each}` key fallbacks derive from it, so grouping
- * must not renumber them.
- */
+/** One rendered entry of a section group. */
 export type MenuGroupEntry<TItem> = {
   item: TItem;
-  index: number;
   /** A rule, per the `isDivider` predicate — renders a separator, never a row. */
   divider: boolean;
+  /**
+   * `{#each}` key, distinct across the whole `items` array however the ids
+   * repeat. A row with an id keys by it, so its DOM moves with the item; a
+   * rule or a row without one keys by its position in `items`.
+   */
+  key: string;
 };
 
 /** A section header plus the items it owns; `section: null` for a bare run. */
 export type MenuSectionGroup<TItem> = {
   section: MenuSectionHeader | null;
   /**
-   * `{#each}` key, derived from the group's own first position. A run of
-   * bare items can occur more than once (a rule between two sections opens
-   * one), so a constant key for the bare case would collide.
+   * `{#each}` key: the group's ordinal among the groups of its kind. A
+   * position in `items` would move whenever an item before the group comes
+   * or goes, rebuilding the group and closing every submenu open inside it.
    */
   key: string;
   entries: MenuGroupEntry<TItem>[];
@@ -45,9 +45,9 @@ export function isMenuDividerItem(item: MenuItemType): item is MenuDividerItem {
  * `{ type: 'section' }` entry produce a different accessibility tree
  * depending on how deep it sat.
  *
- * Both predicates come from the caller — never read off the item here — so
- * every classification runs through the consumer's `isSection` / `isDivider`
- * mappers, exactly like every other field.
+ * Both predicates and the id come from the caller — never read off the item
+ * here — so every classification runs through the consumer's `isSection` /
+ * `isDivider` / `getItemId` mappers, exactly like every other field.
  *
  * A rule stays where the consumer wrote it, inside the section it falls in.
  * The one exception is a rule that sits directly before the next header: it
@@ -57,15 +57,23 @@ export function isMenuDividerItem(item: MenuItemType): item is MenuDividerItem {
 export function groupMenuItems<TItem extends MenuItemType>(
   items: readonly TItem[],
   isSection: (item: MenuItemType) => boolean,
-  isDivider: (item: MenuItemType) => boolean
+  isDivider: (item: MenuItemType) => boolean,
+  resolveId: (item: TItem) => string | undefined
 ): MenuSectionGroup<TItem>[] {
   const groups: MenuSectionGroup<TItem>[] = [];
   let current: MenuSectionGroup<TItem> | null = null;
+  const keys = eachKeys(items, (item, index) => {
+    const id = isSection(item) || isDivider(item) ? undefined : resolveId(item);
+    return id == null ? `index:${index}` : `id:${id}`;
+  });
 
-  function openBare(firstIndex: number): MenuSectionGroup<TItem> {
+  let bareRuns = 0;
+  let sections = 0;
+
+  function openBare(): MenuSectionGroup<TItem> {
     const group: MenuSectionGroup<TItem> = {
       section: null,
-      key: `bare-${firstIndex}`,
+      key: `bare-${bareRuns++}`,
       entries: []
     };
     groups.push(group);
@@ -83,24 +91,16 @@ export function groupMenuItems<TItem extends MenuItemType>(
         while (current.entries.at(-1)?.divider) {
           trailing.unshift(current.entries.pop() as MenuGroupEntry<TItem>);
         }
-        if (trailing.length > 0) openBare(trailing[0].index).entries.push(...trailing);
+        if (trailing.length > 0) openBare().entries.push(...trailing);
       }
-      current = { section: raw as MenuSectionHeader, key: `section-${index}`, entries: [] };
+      current = { section: raw as MenuSectionHeader, key: `section-${sections++}`, entries: [] };
       groups.push(current);
       continue;
     }
 
-    if (!current) current = openBare(index);
-    current.entries.push({ item: raw, index, divider: isDivider(raw) });
+    if (!current) current = openBare();
+    current.entries.push({ item: raw, divider: isDivider(raw), key: keys[index] });
   }
 
   return groups;
-}
-
-/** Stable `{#each}` key for one entry — a rule carries no id of its own. */
-export function menuEntryKey<TItem extends MenuItemType>(
-  entry: MenuGroupEntry<TItem>,
-  resolveId: (item: TItem, fallbackIndex: number) => string
-): string {
-  return entry.divider ? `divider-${entry.index}` : resolveId(entry.item, entry.index);
 }

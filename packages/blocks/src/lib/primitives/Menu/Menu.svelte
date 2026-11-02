@@ -24,12 +24,7 @@
   import MenuSection from './MenuSection.svelte';
   import MenuSubmenu from './MenuSubmenu.svelte';
   import { type MenuContext, type MenuRegistryItem, setMenuContext } from './menu.context';
-  import {
-    groupMenuItems,
-    isMenuDividerItem,
-    type MenuGroupEntry,
-    menuEntryKey
-  } from './menu.grouping';
+  import { groupMenuItems, isMenuDividerItem, type MenuGroupEntry } from './menu.grouping';
 
   const bt = useBlocksI18n();
 
@@ -158,13 +153,14 @@
     return String(item);
   }
 
-  function resolveId(item: TItem, fallbackIndex: number): string {
+  // `undefined` for an item without an id: its row then generates one, as a
+  // declarative <MenuItem> does. A position would repeat across levels — a
+  // submenu's children count from 0 again — and two rows would share it.
+  function resolveId(item: TItem): string | undefined {
     if (getItemId) return getItemId(item);
     if (typeof item === 'string') return item;
-    if (typeof item === 'object' && item !== null) {
-      return ((item as MenuObjectOption).id as string | undefined) ?? `item-${fallbackIndex}`;
-    }
-    return `item-${fallbackIndex}`;
+    if (typeof item === 'object' && item !== null) return (item as MenuObjectOption).id;
+    return undefined;
   }
 
   function resolveDisabled(item: TItem): boolean {
@@ -220,9 +216,9 @@
   // around a group is shared with the declarative call form, because all
   // three render the same <MenuSection>. Items before the first header render
   // bare, outside any group.
-  const arrayGroups = $derived(groupMenuItems<TItem>(items, isSectionItem, isDividerItem));
-
-  const entryKey = (entry: MenuGroupEntry<TItem>) => menuEntryKey(entry, resolveId);
+  const arrayGroups = $derived(
+    groupMenuItems<TItem>(items, isSectionItem, isDividerItem, resolveId)
+  );
 
   // ── Check-gutter scope ─────────────────────────────────────────────────
   // The checkmark gutter is reserved for ALL rows of a scope as soon as any
@@ -292,15 +288,15 @@
   }
 
   // ── Sub-menu state ─────────────────────────────────────────────────────
-  function isSubMenuOpen(id: string) {
-    return openSubMenus.has(id);
+  function isSubMenuOpen(key: string) {
+    return openSubMenus.has(key);
   }
 
-  function toggleSubMenu(id: string) {
+  function toggleSubMenu(key: string) {
     // Copy + reassign keeps `openSubMenus` reactive.
     const next = new Set(openSubMenus);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
     openSubMenus = next;
   }
 
@@ -521,7 +517,7 @@
     // yields the same shape the mappers were written for.
     resolvers: {
       label: (item) => resolveLabel(item as TItem),
-      id: (item, fallbackIndex) => resolveId(item as TItem, fallbackIndex),
+      id: (item) => resolveId(item as TItem),
       disabled: (item) => resolveDisabled(item as TItem),
       icon: (item) => resolveIconForItem(item as TItem),
       class: (item) => resolveClass(item as TItem),
@@ -718,12 +714,12 @@
           {#if entry.divider}
             <MenuDivider />
           {:else}
-            {@render arrayRow(entry.item, entry.index, checkGutter)}
+            {@render arrayRow(entry.item, checkGutter)}
           {/if}
         {/snippet}
 
-        {#snippet arrayRow(typedItem: TItem, i: number, checkGutter: boolean)}
-          {@const itemId = resolveId(typedItem, i)}
+        {#snippet arrayRow(typedItem: TItem, checkGutter: boolean)}
+          {@const itemId = resolveId(typedItem)}
           {@const itemLabel = resolveLabel(typedItem)}
           {@const itemDisabled = resolveDisabled(typedItem)}
           {@const itemChildren = resolveChildren(typedItem)}
@@ -785,12 +781,12 @@
             {#if group.section}
               {@const groupGutter = group.entries.some(entryIsCheckable)}
               <MenuSection label={resolveSectionLabel(group.section)}>
-                {#each group.entries as entry (entryKey(entry))}
+                {#each group.entries as entry (entry.key)}
                   {@render arrayEntry(entry, groupGutter)}
                 {/each}
               </MenuSection>
             {:else}
-              {#each group.entries as entry (entryKey(entry))}
+              {#each group.entries as entry (entry.key)}
                 {@render arrayEntry(entry, anyTopLevelChecked)}
               {/each}
             {/if}

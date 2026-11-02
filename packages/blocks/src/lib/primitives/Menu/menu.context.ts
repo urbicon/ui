@@ -29,7 +29,8 @@ export type MenuRegistryItem = {
  */
 export type MenuItemResolvers = {
   label: (item: MenuItemType) => string;
-  id: (item: MenuItemType, fallbackIndex: number) => string;
+  /** The item's own id; `undefined` without one. */
+  id: (item: MenuItemType) => string | undefined;
   disabled: (item: MenuItemType) => boolean;
   icon: (item: MenuItemType) => unknown;
   class: (item: MenuItemType) => string | undefined;
@@ -70,8 +71,9 @@ export type MenuContext = {
   focusFirstItem: () => void;
   focusLastItem: () => void;
 
-  isSubMenuOpen: (id: string) => boolean;
-  toggleSubMenu: (id: string) => void;
+  /** Keyed per MenuSubmenu instance, not by its `id`, which may repeat. */
+  isSubMenuOpen: (key: string) => boolean;
+  toggleSubMenu: (key: string) => void;
 
   registerItem: (item: MenuRegistryItem) => void;
   unregisterItem: (id: string) => void;

@@ -68,8 +68,8 @@
     summableEntries.flatMap((entry) => {
       const columnId = entry.id;
       const current = configuredSummaries.find((config) => config.column === columnId)?.type;
-      // Explicit `id`s: Menu's resolveId otherwise falls back to the flat
-      // render index (the index-as-key anti-pattern). `-` as the joiner:
+      // Explicit `id`s: Menu keys a row without one by its position (the
+      // index-as-key anti-pattern). `-` as the joiner:
       // the id is an opaque key, never parsed back apart.
       return [
         { type: 'section' as const, label: entry.label },

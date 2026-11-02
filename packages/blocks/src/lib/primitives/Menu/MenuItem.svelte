@@ -22,7 +22,7 @@
     children,
     class: className = ''
   }: {
-    /** Stable id for sub-menu bookkeeping. Auto-generated when omitted. */
+    /** Carried into the row's DOM id. Generated when omitted. */
     id?: string;
     /** Display label. Falls back to the slot's text content. */
     label?: string;
@@ -94,8 +94,10 @@
   // `detail` is announced as the row's *description*, not folded into its
   // accessible name: the span is aria-hidden (kept out of name computation)
   // and referenced via aria-describedby (references ignore aria-hidden), so
-  // "Sort by" keeps a stable name while "Name" is still read out.
-  const detailId = $derived(`${ctx.rootId}-item-${itemId}-detail`);
+  // "Sort by" keeps a stable name while "Name" is still read out. The id comes
+  // from this instance, not from `id`, which may repeat: a shared one would
+  // point every row at the first row's detail.
+  const detailId = $derived(`${ctx.rootId}-detail-${propsId}`);
 
   /**
    * Activate the item: fire the consumer's `onSelect` exactly once and then
