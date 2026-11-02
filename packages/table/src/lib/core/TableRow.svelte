@@ -14,7 +14,7 @@
   import type { Column, TableItem } from '#lib/types/tableTypes.js';
   import { resolveColumnId, resolveRowItemId } from '#lib/utils/index.js';
   import { tableRowVariants } from '#lib/variants/index.js';
-  import { resolveRowClickActions } from './row-interaction';
+  import { isFromNestedControl, resolveRowClickActions } from './row-interaction';
   import { structuralColumns } from './structural-columns';
   import TableCell from './TableCell.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
@@ -76,12 +76,14 @@
   const totalColumnsCount = $derived(tableState.columns.length + colOffset);
 
   function handleRowClick(event: MouseEvent) {
+    const row = event.currentTarget as HTMLElement;
+    if (isFromNestedControl(event, row)) return;
     const actions = resolveRowClickActions({
       hasRowClickHandler: !!onRowClick,
       expandable,
       rowClickSelects: tableState.rowClickSelects,
       selectable,
-      row: event.currentTarget as Node | null
+      row
     });
     if (actions.fireRowClick) {
       onRowClick?.(item);
@@ -90,8 +92,8 @@
       toggleExpand(itemId);
     }
     if (actions.toggleSelection) {
-      // Keep the roving focus with the row the user just acted on, or the next
-      // Space keypress would toggle whatever row the index still pointed at.
+      // Keep the roving index with the row the user just acted on: the arrow
+      // keys step from it, and the row's tab stop follows it.
       tableContext.setFocusedRow(rowIndex);
       tableContext.toggleItem(itemId);
     }

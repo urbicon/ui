@@ -496,11 +496,24 @@
     return id === -1 ? undefined : id;
   }
 
+  /**
+   * The navigable index of `el` when it is a body row of this grid, else
+   * `undefined`. Read off the row rather than from `focusedRowIndex`: neither
+   * `focus()` nor a click that does not select moves the index, so the row
+   * with the focus and the row the index names can differ.
+   */
+  function rowIndexOf(el: Element): number | undefined {
+    if (!el.matches('tbody tr[data-row-index]') || el.closest('table') !== tableElement) {
+      return undefined;
+    }
+    return Number((el as HTMLElement).dataset.rowIndex);
+  }
+
   function handleTableKeyDown(e: KeyboardEvent) {
     if (!interactive) return;
-    // A control inside the grid that handled the key owns it: a clickable cell,
-    // the header sort, a consumer's input. Running on would fire the row action
-    // too, on `focusedRowIndex`, which Tab does not move.
+    // A control inside the grid that handled the key owns it: the grid acts on
+    // no key that was already used — a clickable cell's Enter, the header
+    // sort's Space, a consumer widget's arrow.
     if (e.defaultPrevented) return;
 
     // Only handle keys when focus is on or inside a row
@@ -553,11 +566,17 @@
         focusRow(tableContext.focusedRowIndex);
         break;
       }
+      // Enter and Space activate a row only while the row itself has the
+      // focus, and then that row. Every other tab stop in the grid — a header
+      // title, a consumer's `tabindex` element, the group band's content — owns
+      // both keys whether it handles them or not: it is not on a row, so there
+      // is no row it could mean.
       case ' ': {
         // Space = toggle selection
-        if (selectable) {
+        const index = rowIndexOf(target);
+        if (selectable && index !== undefined) {
           e.preventDefault();
-          const id = getItemIdAtIndex(tableContext.focusedRowIndex);
+          const id = getItemIdAtIndex(index);
           if (id !== undefined) {
             tableContext.toggleItem(id);
           }
@@ -566,14 +585,16 @@
       }
       case 'Enter': {
         // Enter = expand row or trigger onRowClick
-        const id = getItemIdAtIndex(tableContext.focusedRowIndex);
+        const index = rowIndexOf(target);
+        if (index === undefined) break;
+        const id = getItemIdAtIndex(index);
         if (id !== undefined) {
           if (expandable) {
             e.preventDefault();
             tableContext.toggleExpand(id);
           } else if (onRowClick) {
             e.preventDefault();
-            const item = navigableItems[tableContext.focusedRowIndex];
+            const item = navigableItems[index];
             if (item) onRowClick(item);
           }
         }

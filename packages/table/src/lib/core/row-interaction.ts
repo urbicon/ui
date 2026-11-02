@@ -28,8 +28,33 @@ export function isSelectingTextIn(row: Node | null | undefined): boolean {
 }
 
 /**
- * Resolves what a click on a row body should do. `onRowClick` always fires (it
- * is an observer, not a mode); expansion and selection are opt-in per row type.
+ * What takes a click of its own: the native controls, a `label` (it forwards
+ * its click to its control), and anything carrying a `tabindex` — the
+ * clickable cells are `role="button"` elements with one, and so is an
+ * interactive row, which is where `closest()` stops for a click on plain cell
+ * content.
+ */
+const CLICK_OWNER =
+  'a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), [tabindex]';
+
+/**
+ * True when `event` landed on a control nested inside `host` — a clickable
+ * cell, a link, a consumer's button. The click is that control's, and `host`'s
+ * own action (the row click, a card's headline, the group band) must not run
+ * on top of it. A click on plain content resolves to `host` itself, or to
+ * nothing inside it, and stays `host`'s.
+ */
+export function isFromNestedControl(event: Event, host: Element): boolean {
+  const target = event.target;
+  if (!(target instanceof Element)) return false;
+  const owner = target.closest(CLICK_OWNER);
+  return owner !== null && owner !== host && host.contains(owner);
+}
+
+/**
+ * Resolves what a click the row owns should do — {@link isFromNestedControl}
+ * filters out the rest first. `onRowClick` always fires (it is an observer,
+ * not a mode); expansion and selection are opt-in per row type.
  *
  * Selection is deliberately suppressed while text inside the row is being
  * selected — see {@link isSelectingTextIn}.

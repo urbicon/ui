@@ -557,8 +557,13 @@ export interface TableProps<T = TableItem> {
   mobileCardDetails?: 'collapsed' | 'expanded';
 
   /**
-   * Callback fired when a row is clicked.
-   * Receives the clicked row's data item.
+   * Callback fired when a row is clicked, or when Enter is pressed on the
+   * focused row of a table whose rows do not expand. On a mobile card the
+   * headline fires it. Receives the row's data item.
+   *
+   * A click on a control inside the row — a button, a link, a clickable
+   * cell — and Enter on anything focusable inside it belong to that element
+   * and do not fire it.
    * @default undefined
    */
   onRowClick?: (item: T) => void;
@@ -996,9 +1001,11 @@ export interface TableProps<T = TableItem> {
    * checkbox as the only selection target.
    *
    * A click that ends a text selection *inside the row* never selects, so cell
-   * content stays copyable. Applies to desktop rows (flat and grouped); mobile
-   * cards keep the checkbox as their only selection control, since a selectable
-   * card cannot be a button without nesting interactive elements.
+   * content stays copyable, and neither does a click on a control inside the
+   * row (a button, a link, a clickable cell). Applies to desktop rows (flat
+   * and grouped); mobile cards keep the checkbox as their only selection
+   * control, since a selectable card cannot be a button without nesting
+   * interactive elements.
    *
    * Defaults to `true` only in `selectionMode="single"` without `onRowClick`
    * and without `expandedRowContent` — a row click that already expands must
