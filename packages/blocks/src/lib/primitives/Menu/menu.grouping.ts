@@ -1,17 +1,24 @@
+import { eachKeys } from '#lib/internal/each-keys.js';
 import type { MenuDividerItem, MenuItemType, MenuSectionHeader } from './index';
 
 /**
  * One rendered entry of a section group.
  *
  * `index` is the entry's position in the ORIGINAL flat `items` array, not in
- * the group — the id and `{#each}` key fallbacks derive from it, so grouping
- * must not renumber them.
+ * the group — the key of a rule or of a row without an id derives from it, so
+ * grouping must not renumber it.
  */
 export type MenuGroupEntry<TItem> = {
   item: TItem;
   index: number;
   /** A rule, per the `isDivider` predicate — renders a separator, never a row. */
   divider: boolean;
+  /**
+   * `{#each}` key, distinct across the whole `items` array however the ids
+   * repeat. A row with an id keys by it, so its DOM moves with the item; a
+   * rule or a row without one keys by `index`.
+   */
+  key: string;
 };
 
 /** A section header plus the items it owns; `section: null` for a bare run. */
@@ -45,9 +52,9 @@ export function isMenuDividerItem(item: MenuItemType): item is MenuDividerItem {
  * `{ type: 'section' }` entry produce a different accessibility tree
  * depending on how deep it sat.
  *
- * Both predicates come from the caller — never read off the item here — so
- * every classification runs through the consumer's `isSection` / `isDivider`
- * mappers, exactly like every other field.
+ * Both predicates and the id come from the caller — never read off the item
+ * here — so every classification runs through the consumer's `isSection` /
+ * `isDivider` / `getItemId` mappers, exactly like every other field.
  *
  * A rule stays where the consumer wrote it, inside the section it falls in.
  * The one exception is a rule that sits directly before the next header: it
@@ -57,10 +64,15 @@ export function isMenuDividerItem(item: MenuItemType): item is MenuDividerItem {
 export function groupMenuItems<TItem extends MenuItemType>(
   items: readonly TItem[],
   isSection: (item: MenuItemType) => boolean,
-  isDivider: (item: MenuItemType) => boolean
+  isDivider: (item: MenuItemType) => boolean,
+  resolveId: (item: TItem) => string | undefined
 ): MenuSectionGroup<TItem>[] {
   const groups: MenuSectionGroup<TItem>[] = [];
   let current: MenuSectionGroup<TItem> | null = null;
+  const keys = eachKeys(items, (item, index) => {
+    const id = isSection(item) || isDivider(item) ? undefined : resolveId(item);
+    return id == null ? `index:${index}` : `id:${id}`;
+  });
 
   function openBare(firstIndex: number): MenuSectionGroup<TItem> {
     const group: MenuSectionGroup<TItem> = {
@@ -91,16 +103,8 @@ export function groupMenuItems<TItem extends MenuItemType>(
     }
 
     if (!current) current = openBare(index);
-    current.entries.push({ item: raw, index, divider: isDivider(raw) });
+    current.entries.push({ item: raw, index, divider: isDivider(raw), key: keys[index] });
   }
 
   return groups;
-}
-
-/** Stable `{#each}` key for one entry — a rule carries no id of its own. */
-export function menuEntryKey<TItem extends MenuItemType>(
-  entry: MenuGroupEntry<TItem>,
-  resolveId: (item: TItem, fallbackIndex: number) => string
-): string {
-  return entry.divider ? `divider-${entry.index}` : resolveId(entry.item, entry.index);
 }

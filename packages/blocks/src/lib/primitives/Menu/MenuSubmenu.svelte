@@ -10,14 +10,14 @@
   import MenuItemComp from './MenuItem.svelte';
   import MenuSection from './MenuSection.svelte';
   import { getMenuContext, setMenuParentId } from './menu.context';
-  import { groupMenuItems, type MenuGroupEntry, menuEntryKey } from './menu.grouping';
+  import { groupMenuItems, type MenuGroupEntry } from './menu.grouping';
   import { menuIconVariants } from './menu.variants';
 
   const CheckIcon = resolveIcon('check', CheckIconDefault);
   const ChevronRightIcon = resolveIcon('chevronRight', ChevronRightIconDefault);
 
   let {
-    id,
+    id: idProp,
     label,
     disabled = false,
     icon,
@@ -27,8 +27,8 @@
     children,
     class: className = ''
   }: {
-    /** Stable id for sub-menu bookkeeping. */
-    id: string;
+    /** Carried into the parent row's DOM id. Generated when omitted. */
+    id?: string;
     /** Visible label on the parent menu row. */
     label?: string;
     /** @default false */
@@ -63,16 +63,21 @@
   const ctx = getMenuContext();
   if (!ctx) throw new Error('MenuSubmenu must be used inside Menu');
 
-  const isOpen = $derived(ctx.isSubMenuOpen(id));
+  const propsId = $props.id();
+  const submenuId = $derived(idProp ?? `submenu-${propsId}`);
+
+  // The open state keys by this instance, not by `id`: ids may repeat, and
+  // rows that share one would open and close together.
+  const isOpen = $derived(ctx.isSubMenuOpen(propsId));
 
   // Provide parent id to descendants exactly once per component instance
   // so that nested MenuItem components can register with correct parent.
   // svelte-ignore state_referenced_locally
-  setMenuParentId(id);
+  setMenuParentId(submenuId);
 
   function toggleOpen() {
     if (disabled) return;
-    ctx.toggleSubMenu(id);
+    ctx.toggleSubMenu(propsId);
   }
 
   // Handled keys are consumed (stopPropagation), same contract as MenuItem
@@ -116,17 +121,16 @@
   // <MenuSection> as Menu's top level — the section header used to render flat
   // here, so one `{ type: 'section' }` entry produced two different trees.
   const childGroups = $derived(
-    groupMenuItems(items ?? [], resolvers.isSection, resolvers.isDivider)
+    groupMenuItems(items ?? [], resolvers.isSection, resolvers.isDivider, resolvers.id)
   );
-  const entryKey = (entry: MenuGroupEntry<MenuItemType>) => menuEntryKey(entry, resolvers.id);
 
   // `detail` is a description, not part of the accessible name — see
   // MenuItem for the aria-hidden + aria-describedby rationale.
-  const detailId = $derived(`${ctx.rootId}-submenu-${id}-detail`);
+  const detailId = $derived(`${ctx.rootId}-detail-${propsId}`);
 </script>
 
 <button
-  id={`${ctx.rootId}-submenu-${id}`}
+  id={`${ctx.rootId}-submenu-${submenuId}`}
   type="button"
   {disabled}
   onclick={toggleOpen}
@@ -197,7 +201,7 @@
         {@const child = entry.item}
         {@const childOpt = typeof child === 'object' ? (child as MenuObjectOption) : null}
         <MenuItemComp
-          id={resolvers.id(child, entry.index)}
+          id={resolvers.id(child)}
           label={resolvers.label(child)}
           disabled={resolvers.disabled(child)}
           icon={resolvers.icon(child)}
@@ -215,12 +219,12 @@
       {#each childGroups as group (group.key)}
         {#if group.section}
           <MenuSection label={resolvers.sectionLabel(group.section)}>
-            {#each group.entries as entry (entryKey(entry))}
+            {#each group.entries as entry (entry.key)}
               {@render childEntry(entry)}
             {/each}
           </MenuSection>
         {:else}
-          {#each group.entries as entry (entryKey(entry))}
+          {#each group.entries as entry (entry.key)}
             {@render childEntry(entry)}
           {/each}
         {/if}

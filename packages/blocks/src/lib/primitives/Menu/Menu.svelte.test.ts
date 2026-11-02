@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mintRegistry } from '../../mint/registry';
-import type { MenuProps } from './index';
+import type { MenuItemType, MenuProps } from './index';
 import Menu from './Menu.svelte';
 
 // Interaction layer for Menu — the W3C *menu* pattern (roving tabindex, real DOM
@@ -447,6 +447,219 @@ describe('Menu (submenu lifecycle & detail readout)', () => {
     // A row without detail carries no describedby.
     await user.click(parentRow);
     expect(radioItem('Name').hasAttribute('aria-describedby')).toBe(false);
+  });
+});
+
+// An item's id — its `id`, the string itself, or what `getItemId` returns —
+// comes from the consumer, and nothing makes it unique. The `{#each}` keys, the
+// submenu open state and the detail ids must hold when ids repeat; the DOM id
+// carries the consumer's id, so only that one repeats with it.
+describe('Menu (repeated item ids)', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const rowNames = () => screen.getAllByRole('menuitem').map((row) => row.textContent?.trim());
+  const describedAs = (row: HTMLElement) =>
+    document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent?.trim();
+
+  it.each<[string, Partial<MenuProps>, string[]]>([
+    ['two strings', { items: ['Copy', 'Copy'] }, ['Copy', 'Copy']],
+    [
+      'two objects with one id',
+      {
+        items: [
+          { id: 'copy', label: 'Copy' },
+          { id: 'copy', label: 'Copy link' }
+        ]
+      },
+      ['Copy', 'Copy link']
+    ],
+    [
+      'a getItemId that gives two items one id',
+      { items: [{ label: 'Copy' }, { label: 'Paste' }], getItemId: () => 'same' },
+      ['Copy', 'Paste']
+    ],
+    [
+      'two strings in one section',
+      { items: [{ type: 'section', label: 'Edit' }, 'Copy', 'Copy'] },
+      ['Copy', 'Copy']
+    ],
+    [
+      'an id that spells the position of an item without one',
+      { items: [{ id: 'item-1', label: 'Copy' }, { label: 'Paste' }] },
+      ['Copy', 'Paste']
+    ],
+    [
+      'an id that spells the position of a divider',
+      { items: [{ id: 'divider-1', label: 'Copy' }, { type: 'divider' }, 'Paste'] },
+      ['Copy', 'Paste']
+    ]
+  ])('renders every row of %s', async (_, props, names) => {
+    const user = userEvent.setup();
+    renderMenu({ placeholder: 'Actions', ...props });
+
+    await user.click(trigger());
+
+    expect(rowNames()).toEqual(names);
+  });
+
+  it('renders every row of a submenu whose children repeat', async () => {
+    const user = userEvent.setup();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [
+        {
+          label: 'More',
+          children: ['Copy', 'Copy', { type: 'section', label: 'Clipboard' }, 'Paste', 'Paste']
+        }
+      ]
+    });
+
+    await user.click(trigger());
+    await user.click(item('More'));
+
+    expect(rowNames()).toEqual(['More', 'Copy', 'Copy', 'Paste', 'Paste']);
+  });
+
+  it('keeps the row of an item with its own id across a reorder, beside two that share one', async () => {
+    const user = userEvent.setup();
+    const copy = { id: 'copy', label: 'Copy' };
+    const copyLink = { id: 'copy', label: 'Copy link' };
+    const paste = { id: 'paste', label: 'Paste' };
+    const props = $state<MenuProps>({ placeholder: 'Actions', items: [copy, copyLink, paste] });
+    const instance = mount(Menu, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    await user.click(trigger());
+    const [copyRow, copyLinkRow, pasteRow] = screen.getAllByRole('menuitem');
+
+    props.items = [paste, copy, copyLink];
+    flushSync();
+
+    expect(rowNames()).toEqual(['Paste', 'Copy', 'Copy link']);
+    expect(screen.getAllByRole('menuitem')).toEqual([pasteRow, copyRow, copyLinkRow]);
+  });
+
+  it('walks two rows that share an id one at a time with the arrow keys', async () => {
+    const user = userEvent.setup();
+    renderMenu({ placeholder: 'Actions', items: ['Copy', 'Copy', 'Paste'] });
+
+    await user.click(trigger());
+    const rows = screen.getAllByRole('menuitem');
+
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[0]);
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[1]);
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[2]);
+  });
+
+  it.each<[string, MenuItemType[]]>([
+    [
+      'side by side',
+      [
+        { id: 'more', label: 'More A', children: ['A1'] },
+        { id: 'more', label: 'More B', children: ['B1'] }
+      ]
+    ],
+    [
+      'in two sections',
+      [
+        { type: 'section', label: 'First' },
+        { id: 'more', label: 'More A', children: ['A1'] },
+        { type: 'section', label: 'Second' },
+        { id: 'more', label: 'More B', children: ['B1'] }
+      ]
+    ]
+  ])('opens one of two submenus that share an id, %s', async (_, items) => {
+    const user = userEvent.setup();
+    renderMenu({ placeholder: 'Actions', items });
+
+    await user.click(trigger());
+    await user.click(item('More A'));
+
+    expect(item('More A').getAttribute('aria-expanded')).toBe('true');
+    expect(item('More B').getAttribute('aria-expanded')).toBe('false');
+    expect(rowNames()).toEqual(['More A', 'A1', 'More B']);
+  });
+
+  it.each<[string, MenuItemType[], [string, string][]]>([
+    [
+      'side by side',
+      [
+        { id: 'zoom', label: 'Zoom in', detail: '⌘+' },
+        { id: 'zoom', label: 'Zoom out', detail: '⌘−' }
+      ],
+      [
+        ['Zoom in', '⌘+'],
+        ['Zoom out', '⌘−']
+      ]
+    ],
+    [
+      'in two sections',
+      [
+        { type: 'section', label: 'Tab' },
+        { id: 'close', label: 'Close tab', detail: '⌘W' },
+        { type: 'section', label: 'Window' },
+        { id: 'close', label: 'Close window', detail: '⇧⌘W' }
+      ],
+      [
+        ['Close tab', '⌘W'],
+        ['Close window', '⇧⌘W']
+      ]
+    ],
+    [
+      'on submenu rows',
+      [
+        { id: 'sort', label: 'Sort by', detail: 'Name', children: ['Name'] },
+        { id: 'sort', label: 'Group by', detail: 'Date', children: ['Date'] }
+      ],
+      [
+        ['Sort by', 'Name'],
+        ['Group by', 'Date']
+      ]
+    ]
+  ])(
+    'describes each of two rows that share an id by its own detail, %s',
+    async (_, items, rows) => {
+      const user = userEvent.setup();
+      renderMenu({ placeholder: 'Actions', items });
+
+      await user.click(trigger());
+
+      expect(rows.map(([name]) => [name, describedAs(item(name))])).toEqual(rows);
+    }
+  );
+
+  it('gives rows without an id DOM ids unique across levels; a row with one keeps it', async () => {
+    // Positions restart at 0 inside a submenu: 'Date' and 'Refresh', both
+    // without an id, share position 1.
+    const user = userEvent.setup();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderMenu({
+      placeholder: 'Actions',
+      id: 'view',
+      items: [
+        {
+          label: 'Sort by',
+          children: [
+            { label: 'Name', checked: true },
+            { label: 'Date', checked: false, detail: 'Newest first' }
+          ]
+        },
+        { label: 'Refresh', detail: 'F5' },
+        { id: 'zoom', label: 'Zoom' }
+      ]
+    });
+
+    await user.click(trigger());
+    await user.click(item('Sort by'));
+
+    const ids = Array.from(document.querySelectorAll('[role="menu"] [id]'), (el) => el.id);
+    expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
+    expect(describedAs(item('Refresh'))).toBe('F5');
+    expect(item('Zoom').id).toBe('view-item-zoom');
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

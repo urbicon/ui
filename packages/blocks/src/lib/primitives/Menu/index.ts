@@ -251,9 +251,9 @@ export interface MenuProps<TItem extends MenuItemType = MenuItemType>
 // Item types
 
 /**
- * Shorthand item form: the string is the label and serves as the item's
- * stable id (for sub-menu bookkeeping). Use `MenuObjectOption` to attach
- * an `onSelect` callback or other rich item state.
+ * Shorthand item form: the string is the label and also the item's `id` (see
+ * `MenuObjectOption.id`). Use `MenuObjectOption` to attach an `onSelect`
+ * callback or other rich item state.
  */
 export type MenuOption = string;
 
@@ -279,22 +279,22 @@ export interface MenuDividerItem {
 
 /**
  * Menu item with explicit label, action callback, and optional nested
- * children. Menu items are *verbs* — the `id` is only an internal stable
- * identifier for sub-menu bookkeeping and DOM `id` derivation, not a
- * selectable value. An item given `checked` additionally *shows* a setting
- * (`role="menuitemradio"`), but the state stays consumer-owned: Menu displays
- * it and never stores a selection. (For committing a value to a form use
- * `Select`.)
+ * children. Menu items are *verbs* — the `id` names the row in the DOM and
+ * keeps it with the item; it is not a selectable value. An item given
+ * `checked` additionally *shows* a setting (`role="menuitemradio"`), but the
+ * state stays consumer-owned: Menu displays it and never stores a selection.
+ * (For committing a value to a form use `Select`.)
  */
 export interface MenuObjectOption {
   /** Display text for the action. */
   label: string;
 
   /**
-   * Stable identifier for sub-menu nesting and DOM id derivation. Optional:
-   * when omitted, the rendered position is used as a fallback key. Provide
-   * a stable id when items can reorder or when you need to address an item
-   * from tests / e2e selectors.
+   * Carried into the row's DOM id (`<menu id>-item-<id>`, or `-submenu-` for a
+   * row with `children`), so tests can address the row, and keeps the row's
+   * DOM node with the item when `items` reorder. Without one the row gets a
+   * generated DOM id and its node stays at the position. Keep it unique within
+   * the menu: a repeated id still renders, but its rows share one DOM id.
    */
   id?: string;
 
