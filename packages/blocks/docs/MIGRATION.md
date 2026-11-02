@@ -21,26 +21,33 @@ clips nothing. Its first and last element take its radius through `inherit`, and
 moved out of the segment button into a new `segmentWrapper` slot around each segment.
 
 - **A segment is a `segmentWrapper` div holding the `segment` button and, after it, the
-  tooltip.** The wrapper carries the inline width (`flex` when vertical) and is `group relative`;
-  the button fills it with `flex-1` and inherits its radius. The button keeps its accessible name,
-  its `data-composition-segment` and its keys.
-- **With `unstyled`, style the wrapper too.** Give `segmentWrapper` at least `group relative flex`
-  and `segment` `flex-1`, or the fill shrinks to its content and the tooltip loses its anchor.
-- **A `slotClasses.tooltip` class with `group-focus-visible:` needs `group-has-focus-visible:`.**
-  The tooltip shows on the wrapper's `group-hover:` and `group-has-focus-visible:`; `group-hover:`
-  matches as before.
+  tooltip.** The wrapper carries the inline width (`flex` when vertical) and is
+  `group/segment relative`; the button fills it with `flex-1` and inherits its radius. The button
+  keeps its accessible name, its `data-composition-segment` and its keys.
+- **With `unstyled`, style the wrapper too.** Give `segmentWrapper` at least
+  `group/segment relative flex` and `segment` `flex-1`, or the fill shrinks to its content and the
+  tooltip loses its anchor.
+- **A `slotClasses.tooltip` class with `group-hover:` or `group-focus-visible:` needs
+  `group-hover/segment:` or `group-has-focus-visible/segment:`.** The tooltip shows on the
+  wrapper's named group. An unnamed `group-*:` class matches every ancestor with the class
+  `group`: it no longer follows the segment, and it opens on a hover card around the bar.
 - **The tooltip is visible now**, and so is a `tooltip` snippet, on hover and on keyboard focus. Its
   text is no longer part of the button, so it no longer counts against the segment's name.
 - **A vertical bar opens the tooltip on the inline-start side**, on the right in a right-to-left
   page.
 - **What a segment paints outside its box is no longer cut at the bar's edge**: a shadow, a ring or
   a `scale-*` from `slotClasses.segment`.
+- **The rest's dashed edge faces the segments**: `border-s` in a row and `border-b` in a vertical
+  bar, where it was `border-l` in both, and none when the rest is alone. In a vertical bar the
+  rest, and a segment that shows its value, now take their share; their text used to add to it.
 
 A test or selector that finds the tooltip inside the segment button finds it as the button's next
-sibling now.
+sibling now. The first two lines find the classes and `unstyled` you set, on the component or
+through `BlocksProvider`; the third, the tests and selectors.
 
 ```sh
 rg -n -A12 '<CompositionBar' src | rg -e 'unstyled' -e 'slotClasses'
+rg -nU -e 'CompositionBar\s*:' -e '<BlocksProvider[^>]*unstyled' src
 rg -n 'data-composition-segment' src e2e tests
 ```
 

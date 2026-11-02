@@ -282,16 +282,17 @@
         {@const k = itemKeys[index]}
         {@const isHovered = hoveredKey === k}
         {#if pct > 0}
-          <!-- Vertical sizes by proportional flex instead of a percentage
-               height: the bar's height comes from min-h (h-full resolves
-               against an auto parent), and children's height-% against an
-               indefinite height computes to 0 — flex distributes the
-               stretched height correctly. -->
+          <!-- Vertical sizes by proportional flex: the bar's height comes from
+               min-h (h-full resolves against an auto parent), so it is
+               indefinite, and a percentage height or flex-basis against it
+               falls back to the content. Hence a `0px` basis: with `0%`, a
+               segment's value text or the rest's percent adds its own height
+               to its share. -->
           <div
             class={unstyled
               ? (slotClasses?.segmentWrapper ?? '')
               : styles.segmentWrapper({ class: slotClasses?.segmentWrapper })}
-            style={orientation === 'horizontal' ? `width: ${pct}%` : `flex: ${pct} 1 0%`}
+            style={orientation === 'horizontal' ? `width: ${pct}%` : `flex: ${pct} 1 0px`}
           >
             <button
               type="button"
@@ -361,13 +362,14 @@
       {/each}
 
       {#if restPercent > 0}
+        <!-- Vertical by proportional flex on a `0px` basis, as the segments. -->
         <div
           class={unstyled
             ? (slotClasses?.segmentRest ?? '')
             : styles.segmentRest({ class: slotClasses?.segmentRest })}
           style={orientation === 'horizontal'
             ? `width: ${restPercent}%`
-            : `height: ${restPercent}%`}
+            : `flex: ${restPercent} 1 0px`}
           aria-hidden="true"
         >
           {#if restPercent >= 5}{fmtPercent(restPercent)}{/if}

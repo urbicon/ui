@@ -17,11 +17,17 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
  *   neighbouring segment's dimming lands.
  * - an end is round where the pixel in the bar's corner is not a segment's
  *   fill, and an inner join is square where the pixels beside it are.
+ * - a tooltip shows where its opacity is above 0, and the count runs over every
+ *   tooltip on the page, so one that opens beside the right one is seen too.
+ * - a part takes its share where its length along the bar matches the percent
+ *   its name states, or for the rest the share the fixture computes from the
+ *   probe's numbers (`data-rest-share`).
  *
  * The probes on the fixture cover what decides which element is first or last:
  * an item worth 0 renders no segment, a `total` above the sum appends the
  * dashed rest, `orientation`, a right-to-left row, and a consumer's radius on
- * the `bar` slot.
+ * the `bar` slot. One probe sits in a consumer element with Tailwind's unnamed
+ * `group` class, which a `group-*:` variant inside the bar would also match.
  */
 
 const URL = '/test-fixtures/composition-bar';
@@ -119,6 +125,23 @@ async function tooltipOf(segment: Locator) {
 }
 
 type Tip = NonNullable<Awaited<ReturnType<typeof tooltipOf>>>;
+
+/** Every segment tooltip on the page that shows, as `probe · segment name`. */
+async function shownTooltips(page: Page): Promise<string[]> {
+  return page.$$eval('[data-composition-segment]', (segments) =>
+    segments.flatMap((seg) => {
+      const name = seg.getAttribute('aria-label') ?? '';
+      const where = `${seg.closest('[data-probe]')?.getAttribute('data-probe')} · ${name}`;
+      const label = name.split(':')[0];
+      const bar = seg.closest('[role="group"]');
+      const tip = Array.from(bar?.querySelectorAll<HTMLElement>('[aria-hidden="true"]') ?? []).find(
+        (el) => el.textContent?.trim().startsWith(label)
+      );
+      if (!tip) return [`${where} (no tooltip found)`];
+      return Number(getComputedStyle(tip).opacity) > 0 ? [where] : [];
+    })
+  );
+}
 
 function expectShownBesideSegment(tip: Tip | null, where: string, vertical: boolean) {
   expect(tip, `${where}: no tooltip found`).not.toBeNull();
@@ -234,6 +257,106 @@ test.describe('CompositionBar clips nothing it shows', () => {
     expect(probed, 'no segment was probed').toBeGreaterThan(0);
   });
 
+  test("a consumer's `group` around the bar opens no tooltip but the segment's own", async ({
+    page
+  }) => {
+    await open(page);
+    const probe = page.locator('[data-probe="in-group"]');
+    expect(await probe.evaluate((el) => el.classList.contains('group'))).toBe(true);
+    await probe.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    const segment = probe.locator('[data-composition-segment]').nth(1);
+    const own = [`in-group · ${await segment.getAttribute('aria-label')}`];
+
+    await probe.locator('p').hover();
+    expect.soft(await shownTooltips(page), 'hovering the caption above the bar').toEqual([]);
+    await segment.hover();
+    expect.soft(await shownTooltips(page), 'hovering a segment').toEqual(own);
+
+    await page.mouse.move(0, 0);
+    await page.keyboard.press('Shift');
+    const row = probe.getByRole('listitem').first().getByRole('button');
+    await row.focus();
+    expect(await row.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+    expect.soft(await shownTooltips(page), 'a legend row focused by keyboard').toEqual([]);
+    await segment.focus();
+    expect(await segment.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+    expect.soft(await shownTooltips(page), 'a segment focused by keyboard').toEqual(own);
+  });
+
+  test('each part takes its share of the bar, and the rest dashes the side toward the segments', async ({
+    page
+  }) => {
+    await open(page);
+    let rests = 0;
+    for (const id of await probeIds(page)) {
+      const r = await barOf(page, id).evaluate((bar) => {
+        const sides = ['top', 'right', 'bottom', 'left'] as const;
+        const width = (el: Element, side: string) =>
+          Number.parseFloat(getComputedStyle(el).getPropertyValue(`border-${side}-width`));
+        const b = bar.getBoundingClientRect();
+        const vertical = b.height > b.width;
+        const [from, to] = vertical ? (['top', 'bottom'] as const) : (['left', 'right'] as const);
+        // Along the bar, without the element's own border: the rest's dashed
+        // line divides it from the segments and counts toward neither share.
+        const length = (el: Element) => {
+          const box = el.getBoundingClientRect();
+          return (vertical ? box.height : box.width) - width(el, from) - width(el, to);
+        };
+        const restWant = Number(bar.closest('[data-probe]')?.getAttribute('data-rest-share'));
+        const parts = Array.from(bar.children, (child) => {
+          const segment = child.querySelector('[data-composition-segment]');
+          const name = segment?.getAttribute('aria-label') ?? 'rest';
+          // A segment's name ends in the percent it stands for.
+          const stated = name.match(/([\d.,]+)\s*%$/)?.[1].replace(',', '.');
+          return {
+            name,
+            want: segment ? Number(stated) : restWant,
+            share: (100 * length(child)) / length(bar)
+          };
+        });
+
+        const rest = Array.from(bar.children).find(
+          (child) => !child.querySelector('[data-composition-segment]')
+        );
+        if (!rest) return { parts, restWant, rest: null };
+        const s = rest.getBoundingClientRect();
+        const segment = bar.querySelector('[data-composition-segment]')?.getBoundingClientRect();
+        let toward: (typeof sides)[number] | null = null;
+        if (segment) {
+          toward = vertical
+            ? segment.top + segment.height / 2 > s.top + s.height / 2
+              ? 'bottom'
+              : 'top'
+            : segment.left + segment.width / 2 > s.left + s.width / 2
+              ? 'right'
+              : 'left';
+        }
+        return {
+          parts,
+          restWant,
+          rest: { dashed: sides.filter((side) => width(rest, side) > 0), toward }
+        };
+      });
+      for (const part of r.parts) {
+        expect
+          .soft(
+            Math.abs(part.share - part.want),
+            `${id} · ${part.name}: takes ${part.share}% of the bar for ${part.want}%`
+          )
+          .toBeLessThanOrEqual(0.5);
+      }
+      expect
+        .soft(r.rest !== null, `${id}: a rest renders exactly when total exceeds the sum`)
+        .toBe(r.restWant > 0);
+      if (!r.rest) continue;
+      expect
+        .soft(r.rest.dashed, `${id}: the rest's dashes are not on the side toward the segments`)
+        .toEqual(r.rest.toward ? [r.rest.toward] : []);
+      rests++;
+    }
+    expect(rests, 'no rest was probed').toBeGreaterThan(0);
+  });
+
   /** Corner pixels against the segment fills, and the pixels beside each join. */
   async function ends(page: Page, id: string) {
     const bar = barOf(page, id);
@@ -262,11 +385,15 @@ test.describe('CompositionBar clips nothing it shows', () => {
           : (child.querySelector('[data-composition-segment]') ?? child)
       );
       const isSegment = parts.map((p) => p.matches('[data-composition-segment]'));
-      const centres = parts.map((p): [number, number] => {
-        const r = p.getBoundingClientRect();
-        return [r.left + r.width / 2, r.top + r.height / 2];
-      });
       const horizontal = b.width > b.height;
+      // On the line the joins are sampled on, clear of a value printed in the
+      // segment's middle.
+      const fillAt = parts.map((p): [number, number] => {
+        const r = p.getBoundingClientRect();
+        return horizontal
+          ? [r.left + r.width / 2, b.top + border + 0.5]
+          : [b.left + border + 0.5, r.top + r.height / 2];
+      });
       const joins = parts.slice(1).map((next, i): [[number, number], [number, number]] => {
         const a = parts[i].getBoundingClientRect();
         const n = next.getBoundingClientRect();
@@ -285,17 +412,17 @@ test.describe('CompositionBar clips nothing it shows', () => {
           [x + (forward ? 1.5 : -1.5), y]
         ];
       });
-      return { corners, isSegment, centres, joins };
+      return { corners, isSegment, fillAt, joins };
     });
     const clip = await around(bar);
     const colours = await pixels(page, clip, [
       ...plan.corners,
-      ...plan.centres,
+      ...plan.fillAt,
       ...plan.joins.flat()
     ]);
     const corners = colours.slice(0, 4);
-    const fills = colours.slice(4, 4 + plan.centres.length);
-    const joins = colours.slice(4 + plan.centres.length);
+    const fills = colours.slice(4, 4 + plan.fillAt.length);
+    const joins = colours.slice(4 + plan.fillAt.length);
     const segmentFills = fills.filter((_, i) => plan.isSegment[i]);
     return {
       squareCorners: corners.filter((c) => segmentFills.some((f) => distance(c, f) <= SAME)).length,

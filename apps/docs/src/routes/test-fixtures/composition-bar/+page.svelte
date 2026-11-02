@@ -14,28 +14,45 @@
 
   // The first and last element the bar renders, which is not always the first
   // and last item: an item worth 0 renders no segment, and a `total` above the
-  // sum appends the dashed rest after the last one.
+  // sum appends the dashed rest after the last one. The rest prints its percent
+  // from 5 % up, so `thin-rest` probes a rest without text.
   const PROBES: Array<{
     id: string;
     dir?: 'rtl';
+    /** Sits in a consumer element with the unnamed Tailwind class `group`. */
+    group?: boolean;
     props: Omit<CompositionBarProps, 'items'> & { items: CompositionItem[] };
   }> = [
     { id: 'horizontal', props: { items: three } },
     { id: 'first-zero', props: { items: [unused, ...three] } },
     { id: 'last-zero', props: { items: [...three, unused] } },
     { id: 'rest', props: { items: three, total: 125 } },
+    { id: 'thin-rest', props: { items: three, total: 104 } },
     { id: 'single', props: { items: [three[0]] } },
     { id: 'only-rest', props: { items: [unused], total: 10 } },
     { id: 'pill', props: { items: three, slotClasses: { bar: 'rounded-full' } } },
     { id: 'small', props: { items: three, size: 'sm' } },
+    { id: 'in-group', group: true, props: { items: three } },
     { id: 'vertical', props: { items: three, orientation: 'vertical' } },
+    { id: 'vertical-values', props: { items: three, orientation: 'vertical', showValues: true } },
     {
       id: 'vertical-rest',
       props: { items: [unused, ...three], orientation: 'vertical', total: 125 }
     },
     { id: 'rtl', dir: 'rtl', props: { items: [unused, ...three], total: 125 } },
-    { id: 'rtl-vertical', dir: 'rtl', props: { items: three, orientation: 'vertical' } }
+    { id: 'rtl-vertical', dir: 'rtl', props: { items: three, orientation: 'vertical' } },
+    {
+      id: 'rtl-vertical-thin-rest',
+      dir: 'rtl',
+      props: { items: three, orientation: 'vertical', total: 104 }
+    }
   ];
+
+  /** The percent of the bar the rest stands for, from the probe's own numbers. */
+  function restShare({ items, total }: { items: CompositionItem[]; total?: number }) {
+    const sum = items.reduce((s, item) => s + item.value, 0);
+    return total !== undefined && total > sum ? ((total - sum) / total) * 100 : 0;
+  }
 </script>
 
 <svelte:head>
@@ -56,7 +73,12 @@
      beside a vertical one, and the probes measure it inside the viewport. -->
 <div class="bg-surface-base flex flex-col gap-6 px-56 py-10" data-testid="composition-bar-fixtures">
   {#each PROBES as probe (probe.id)}
-    <div data-probe={probe.id} dir={probe.dir} class="w-[28rem] pt-16">
+    <div
+      data-probe={probe.id}
+      data-rest-share={restShare(probe.props)}
+      dir={probe.dir}
+      class={['w-[28rem] pt-16', probe.group && 'group']}
+    >
       <p class="text-text-tertiary mb-2 text-xs">{probe.id}</p>
       <CompositionBar size="lg" {...probe.props} />
     </div>

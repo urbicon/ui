@@ -153,18 +153,15 @@
 <!-- ─── Accessibility ─── -->
 <Section marker id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="ARIA Image Role + Summary">
+    <Note title="Group Role + Summary">
       <p>
-        The bar container has <code class="text-text-primary">role="img"</code> with a combined
-        <code class="text-text-primary">aria-label</code> summary (total plus each share with value and
-        percent), so screen readers can grasp the bar as a whole.
+        The bar container has <code class="text-text-primary">role="group"</code> with an
+        <code class="text-text-primary">aria-label</code> summary: the total, the number of shares and
+        each share's percent.
       </p>
     </Note>
     <Note title="Table Fallback">
-      <p>
-        An sr-only table duplicates the data in tabular form (share / value / percent) for screen
-        readers that prefer tables over images.
-      </p>
+      <p>An sr-only table repeats the data as rows of share, value and percent.</p>
     </Note>
     <Note title="Keyboard Navigation">
       <p>
