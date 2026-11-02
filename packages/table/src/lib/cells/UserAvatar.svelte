@@ -52,7 +52,7 @@
 
   function handleKeyDown(event: KeyboardEvent) {
     if (!clickable || (event.key !== 'Enter' && event.key !== ' ')) return;
-    // Claimed even when ignored, so the grid's Space does not run instead.
+    // Claimed even when ignored: an unclaimed Space scrolls the page.
     event.preventDefault();
     // A held Space activates a native button once; Enter repeats.
     if (event.key === ' ' && event.repeat) return;

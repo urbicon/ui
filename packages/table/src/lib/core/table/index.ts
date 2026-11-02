@@ -557,8 +557,19 @@ export interface TableProps<T = TableItem> {
   mobileCardDetails?: 'collapsed' | 'expanded';
 
   /**
-   * Callback fired when a row is clicked.
-   * Receives the clicked row's data item.
+   * Callback fired when a row is clicked, or when Enter is pressed on the
+   * focused row of a table whose rows do not expand. On a mobile card the
+   * headline fires it. Receives the row's data item.
+   *
+   * A click on a control inside the row belongs to that control and does not
+   * fire it: a `button`, `input`, `select`, `textarea` or `summary`, a link
+   * with an `href`, a `label`, an editable region, or an element in a widget
+   * role — every widget role of WAI-ARIA 1.2, standalone or composite, except
+   * `gridcell`, `progressbar` and `tabpanel` (the clickable cells are
+   * `role="button"`; a click on an open menu's divider is the menu's).
+   * An element that is only focusable, such as a tooltip trigger or a
+   * scrolling box, leaves its click to the row. Enter on anything focusable
+   * inside the row is that element's.
    * @default undefined
    */
   onRowClick?: (item: T) => void;
@@ -996,9 +1007,11 @@ export interface TableProps<T = TableItem> {
    * checkbox as the only selection target.
    *
    * A click that ends a text selection *inside the row* never selects, so cell
-   * content stays copyable. Applies to desktop rows (flat and grouped); mobile
-   * cards keep the checkbox as their only selection control, since a selectable
-   * card cannot be a button without nesting interactive elements.
+   * content stays copyable, and neither does a click on a control inside the
+   * row, as {@link onRowClick} defines one. Applies to desktop rows (flat and
+   * grouped); mobile cards keep the checkbox as their only selection control,
+   * since a selectable card cannot be a button without nesting interactive
+   * elements.
    *
    * Defaults to `true` only in `selectionMode="single"` without `onRowClick`
    * and without `expandedRowContent` — a row click that already expands must

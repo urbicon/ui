@@ -28,8 +28,81 @@ export function isSelectingTextIn(row: Node | null | undefined): boolean {
 }
 
 /**
- * Resolves what a click on a row body should do. `onRowClick` always fires (it
- * is an observer, not a mode); expansion and selection are opt-in per row type.
+ * The widget roles of WAI-ARIA 1.2 (§5.3.2, "Widget Roles"), standalone and
+ * composite, less three: `gridcell`, which this grid's own cells carry, and
+ * `progressbar` and `tabpanel`, which take no activation. A composite (`menu`,
+ * `listbox`, …) is a widget that manages the ones inside it, so a click on
+ * its own surface — a menu's divider or padding — is its, not the row's. The
+ * table's own `role="grid"` lies outside every host, so it never claims a
+ * row's click. `separator` is a widget only while focusable.
+ */
+const WIDGET_ROLES = [
+  'button',
+  'checkbox',
+  'combobox',
+  'grid',
+  'link',
+  'listbox',
+  'menu',
+  'menubar',
+  'menuitem',
+  'menuitemcheckbox',
+  'menuitemradio',
+  'option',
+  'radio',
+  'radiogroup',
+  'scrollbar',
+  'searchbox',
+  'slider',
+  'spinbutton',
+  'switch',
+  'tab',
+  'tablist',
+  'textbox',
+  'tree',
+  'treegrid',
+  'treeitem'
+];
+
+/**
+ * What takes a click of its own: the native controls, a `label` (it forwards
+ * its click to its control), and an element in a widget role — the clickable
+ * cells are `role="button"`. A `tabindex` alone does not count: a tooltip
+ * trigger, a scrolling viewport or a `<pre>` is focusable and still leaves
+ * its click to the row around it.
+ */
+const CLICK_OWNER = [
+  'a[href]',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'label',
+  'summary',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[role="separator"][tabindex]',
+  ...WIDGET_ROLES.map((role) => `[role="${role}"]`)
+].join(', ');
+
+/**
+ * True when `event` landed on a control nested inside `host` — a clickable
+ * cell, a link, a consumer's button. The click is that control's, and `host`'s
+ * own action (the row click, a card's headline, the group band) must not run
+ * on top of it. A click on anything else resolves to `host` itself (the
+ * headline is a `<button>`), to an element outside it, or to nothing, and
+ * stays `host`'s.
+ */
+export function isFromNestedControl(event: Event, host: Element): boolean {
+  const target = event.target;
+  if (!(target instanceof Element)) return false;
+  const owner = target.closest(CLICK_OWNER);
+  return owner !== null && owner !== host && host.contains(owner);
+}
+
+/**
+ * Resolves what a click the row owns should do — {@link isFromNestedControl}
+ * filters out the rest first. `onRowClick` always fires (it is an observer,
+ * not a mode); expansion and selection are opt-in per row type.
  *
  * Selection is deliberately suppressed while text inside the row is being
  * selected — see {@link isSelectingTextIn}.

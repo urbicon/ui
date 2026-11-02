@@ -18,6 +18,7 @@
   import { mobileCardVariants } from '#lib/variants/index.js';
   import { formatCellValue, resolveColumnId, resolveColumnValue, resolveRowItemId } from '../utils';
   import { resolveMobileCardShape } from './mobile-card-shape';
+  import { isFromNestedControl } from './row-interaction';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
 
   export type MobileCardProps = {
@@ -113,7 +114,10 @@
     else localOpen = !localOpen;
   }
 
-  function handleHeadline() {
+  // The title and subtitle render consumer cells inside the headline button, so
+  // a clickable cell or a link can sit in it; a click on one is that control's.
+  function handleHeadline(event: MouseEvent) {
+    if (isFromNestedControl(event, event.currentTarget as Element)) return;
     if (shape.headlineAction === 'open') onClick?.(item);
     else if (shape.headlineAction === 'toggle') toggleDetail();
   }

@@ -10,6 +10,7 @@
   import { resolveRowItemId } from '#lib/utils/index.js';
   import { type GroupHeaderVariantProps, groupHeaderVariants } from '#lib/variants/index.js';
   import { groupCountText } from './group-count';
+  import { isFromNestedControl } from './row-interaction';
   import { getStickyContext } from './sticky-context.svelte';
   import { leadingStructuralColumns } from './structural-columns';
   import TableRow from './TableRow.svelte';
@@ -97,6 +98,13 @@
   function handleToggleGroup() {
     toggleGroup(groupName);
   }
+
+  // The toggle button's own click bubbles here, and so does one on a button of
+  // `groupHeaderContent`; each belongs to its control.
+  function handleBandClick(event: MouseEvent) {
+    if (isFromNestedControl(event, event.currentTarget as Element)) return;
+    toggleGroup(groupName);
+  }
 </script>
 
 <!-- Group Header Row -->
@@ -111,14 +119,16 @@
   data-testid={computedTestId}
   id={`grouped-item-${groupName}`}
 >
-  <!-- The whole band toggles on a click; the button inside is the keyboard path and the
-       name, and it stays a sibling of `groupHeaderContent`, which may hold the consumer's
-       own buttons. The band, not the button, draws the focus ring. -->
+  <!-- The button toggles, by key and by click, and carries the name; the band around it
+       toggles on a click that lands on no control. The button stays a sibling of
+       `groupHeaderContent`, which may hold the consumer's own buttons. The band, not the
+       button, draws the focus ring. -->
   <!-- biome-ignore lint/a11y/useKeyWithClickEvents: a pointer target around the toggle button, which takes the keys -->
-  <td colspan={colSpan} class={styles.cell()} onclick={handleToggleGroup}>
+  <td colspan={colSpan} class={styles.cell()} onclick={handleBandClick}>
     <div class={styles.content()}>
       <button
         type="button"
+        onclick={handleToggleGroup}
         class="{styles.content()} cursor-pointer focus-visible:outline-none"
         data-group-toggle
         aria-expanded={isExpanded}
