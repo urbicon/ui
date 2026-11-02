@@ -564,8 +564,9 @@ export interface TableProps<T = TableItem> {
    * A click on a control inside the row belongs to that control and does not
    * fire it: a `button`, `input`, `select`, `textarea` or `summary`, a link
    * with an `href`, a `label`, an editable region, or an element in a widget
-   * role — every standalone widget role of WAI-ARIA 1.2 except `gridcell`,
-   * `progressbar` and `tabpanel` (the clickable cells are `role="button"`).
+   * role — every widget role of WAI-ARIA 1.2, standalone or composite, except
+   * `gridcell`, `progressbar` and `tabpanel` (the clickable cells are
+   * `role="button"`; a click on an open menu's divider is the menu's).
    * An element that is only focusable, such as a tooltip trigger or a
    * scrolling box, leaves its click to the row. Enter on anything focusable
    * inside the row is that element's.

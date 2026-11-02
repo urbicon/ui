@@ -34,6 +34,7 @@ type Row = {
   extra: string;
   widget: string;
   stop: string;
+  menu: string;
 };
 
 const ROWS: Row[] = [1, 2, 3].map((id) => ({
@@ -47,7 +48,8 @@ const ROWS: Row[] = [1, 2, 3].map((id) => ({
   plain: `plain ${id}`,
   extra: `extra ${id}`,
   widget: `widget ${id}`,
-  stop: `stop ${id}`
+  stop: `stop ${id}`,
+  menu: `menu ${id}`
 }));
 
 let dispose: (() => void) | undefined;
@@ -118,6 +120,12 @@ const widgetCell = (spy: () => void) =>
       node.addEventListener('click', spy);
     }
   }));
+
+/** An open menu in a cell, like a row-actions menu: its divider is part of the menu, not an item. */
+const menuCell = createRawSnippet((item: () => Row) => ({
+  render: () =>
+    `<div role="menu" tabindex="-1" data-testid="menu-${item().id}"><div role="separator" data-testid="menu-divider-${item().id}"></div><div role="menuitem" tabindex="-1">act</div></div>`
+}));
 
 const expandedRowContent = createRawSnippet(() => ({ render: () => '<div>detail</div>' }));
 
@@ -282,7 +290,8 @@ describe('a click on a control inside a row is that control’s alone', () => {
     plain: () => ({ accessor: 'plain', title: 'Plain', cell: buttonCell(spies.button) }),
     widget: () => ({ accessor: 'widget', title: 'Widget', cell: widgetCell(spies.widget) }),
     // Focusable and nothing else, like a tooltip trigger: not a control.
-    stop: () => ({ accessor: 'stop', title: 'Stop', cell: tabStopCell })
+    stop: () => ({ accessor: 'stop', title: 'Stop', cell: tabStopCell }),
+    menu: () => ({ accessor: 'menu', title: 'Menu', cell: menuCell })
   };
 
   const CONTROLS = [
@@ -353,6 +362,18 @@ describe('a click on a control inside a row is that control’s alone', () => {
       expect(onRowClick.mock.calls).toEqual([[ROWS[2]]]);
       expect(selectedIds()).toEqual([3]);
       expect(expandedRows()).toBe(1);
+    });
+
+    it('a click on an open menu’s divider is the menu’s: no row action', async () => {
+      const user = userEvent.setup();
+      const { onRowClick, selectedIds, expandedRows } = renderClickGrid();
+
+      await user.click(controlIn(cellOf(3, 'menu'), '[role="separator"]'));
+      flushSync();
+
+      expect(onRowClick, 'onRowClick').not.toHaveBeenCalled();
+      expect(selectedIds(), 'selection').toEqual([]);
+      expect(expandedRows(), 'expansion').toBe(0);
     });
 
     it('control: a click on the same cell outside its control runs every row action once', async () => {

@@ -28,28 +28,39 @@ export function isSelectingTextIn(row: Node | null | undefined): boolean {
 }
 
 /**
- * The standalone widget roles of WAI-ARIA 1.2 (§5.3.2, "Widget Roles"), less
- * three: `gridcell`, which this grid's own cells carry, and `progressbar` and
- * `tabpanel`, which take no activation. The composite roles of the same
- * section (`grid`, `listbox`, `menu`, …) hold widgets rather than being one,
- * and `separator` is a widget only while focusable.
+ * The widget roles of WAI-ARIA 1.2 (§5.3.2, "Widget Roles"), standalone and
+ * composite, less three: `gridcell`, which this grid's own cells carry, and
+ * `progressbar` and `tabpanel`, which take no activation. A composite (`menu`,
+ * `listbox`, …) is a widget that manages the ones inside it, so a click on
+ * its own surface — a menu's divider or padding — is its, not the row's. The
+ * table's own `role="grid"` lies outside every host, so it never claims a
+ * row's click. `separator` is a widget only while focusable.
  */
 const WIDGET_ROLES = [
   'button',
   'checkbox',
+  'combobox',
+  'grid',
   'link',
+  'listbox',
+  'menu',
+  'menubar',
   'menuitem',
   'menuitemcheckbox',
   'menuitemradio',
   'option',
   'radio',
+  'radiogroup',
   'scrollbar',
   'searchbox',
   'slider',
   'spinbutton',
   'switch',
   'tab',
+  'tablist',
   'textbox',
+  'tree',
+  'treegrid',
   'treeitem'
 ];
 
