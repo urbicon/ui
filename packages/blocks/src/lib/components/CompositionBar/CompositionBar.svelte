@@ -282,51 +282,53 @@
         {@const k = itemKeys[index]}
         {@const isHovered = hoveredKey === k}
         {#if pct > 0}
-          <button
-            type="button"
-            data-composition-segment
-            data-segment-id={item.id ?? index}
+          <!-- Vertical sizes by proportional flex instead of a percentage
+               height: the bar's height comes from min-h (h-full resolves
+               against an auto parent), and children's height-% against an
+               indefinite height computes to 0 — flex distributes the
+               stretched height correctly. -->
+          <div
             class={unstyled
-              ? (slotClasses?.segment ?? '')
-              : styles.segment({
-                  intent: itemIntent(item),
-                  fill: itemFill(item),
-                  dimmed: hoveredKey !== null && !isHovered,
-                  class: slotClasses?.segment
-                })}
-            style={[
-              // Vertical uses proportional flex instead of a percentage
-              // height: the bar's height comes from min-h (h-full resolves
-              // against an auto parent), and children's height-% against an
-              // indefinite height computes to 0 — flex distributes the
-              // stretched height correctly.
-              orientation === 'horizontal' ? `width: ${pct}%` : `flex: ${pct} 1 0%`,
-              item.color ? `background-color: ${item.color}` : ''
-            ]
-              .filter(Boolean)
-              .join('; ')}
-            aria-label={itemName(item, rawPct)}
-            tabindex="0"
-            onmouseenter={() => (hoveredKey = k)}
-            onmouseleave={() => (hoveredKey = null)}
-            onfocus={() => (hoveredKey = k)}
-            onblur={() => (hoveredKey = null)}
-            onclick={() => handleSelect(item, index)}
-            onkeydown={(e) => handleSegmentKeydown(e, item, index)}
+              ? (slotClasses?.segmentWrapper ?? '')
+              : styles.segmentWrapper({ class: slotClasses?.segmentWrapper })}
+            style={orientation === 'horizontal' ? `width: ${pct}%` : `flex: ${pct} 1 0%`}
           >
-            {#if showValues && rawPct >= 8}
-              <span
-                aria-hidden="true"
-                class={[
-                  'text-3xs pointer-events-none truncate px-1.5 font-medium tabular-nums',
-                  !unstyled && getOnColorClass(item)
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                {fmtValue(item.value)}
-              </span>
-            {/if}
+            <button
+              type="button"
+              data-composition-segment
+              data-segment-id={item.id ?? index}
+              class={unstyled
+                ? (slotClasses?.segment ?? '')
+                : styles.segment({
+                    intent: itemIntent(item),
+                    fill: itemFill(item),
+                    dimmed: hoveredKey !== null && !isHovered,
+                    class: slotClasses?.segment
+                  })}
+              style={item.color ? `background-color: ${item.color}` : undefined}
+              aria-label={itemName(item, rawPct)}
+              tabindex="0"
+              onmouseenter={() => (hoveredKey = k)}
+              onmouseleave={() => (hoveredKey = null)}
+              onfocus={() => (hoveredKey = k)}
+              onblur={() => (hoveredKey = null)}
+              onclick={() => handleSelect(item, index)}
+              onkeydown={(e) => handleSegmentKeydown(e, item, index)}
+            >
+              {#if showValues && rawPct >= 8}
+                <span
+                  aria-hidden="true"
+                  class={[
+                    'text-3xs pointer-events-none truncate px-1.5 font-medium tabular-nums',
+                    !unstyled && getOnColorClass(item)
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {fmtValue(item.value)}
+                </span>
+              {/if}
+            </button>
             <span
               aria-hidden="true"
               class={unstyled
@@ -354,7 +356,7 @@
                 </span>
               {/if}
             </span>
-          </button>
+          </div>
         {/if}
       {/each}
 

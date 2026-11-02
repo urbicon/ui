@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import type { Locale } from '@urbicon-ui/i18n';
-import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
+import { type ComponentProps, createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ChartLocaleHost from '#lib/internal/charts/__fixtures__/ChartLocaleHost.svelte';
 import CompositionBar from './CompositionBar.svelte';
+import type { CompositionItem } from './index';
 
 // Accessibility contract of the bar root: a named group, not role="img" — img
 // flattens the subtree in the accessibility tree and would hide the interactive
@@ -88,6 +89,32 @@ describe('CompositionBar (label in name)', () => {
     }
     // One name per item, whichever of its two controls a speech user addresses.
     expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(segmentLabels());
+  });
+
+  // A tooltip is free to show more than the name. Its text must not count as
+  // the segment's visible label, which the value shown inside it is.
+  it('keeps the tooltip out of the text each segment shows', () => {
+    const tooltip = createRawSnippet((item: () => CompositionItem) => ({
+      render: () => `<span>${item().label} · statutory levy</span>`
+    }));
+    renderBar({ items: shares, showValues: true, tooltip });
+
+    const tips = Array.from(document.querySelectorAll('[aria-hidden="true"]')).filter((el) =>
+      el.textContent?.includes('statutory levy')
+    );
+    expect(tips.map((el) => el.textContent?.trim())).toEqual([
+      'Gas · statutory levy',
+      'Power · statutory levy'
+    ]);
+    const segments = Array.from(
+      document.querySelectorAll<HTMLElement>('button[data-composition-segment]')
+    );
+    expect(segments.map((s) => s.textContent?.trim())).toEqual(['60', '40']);
+    for (const segment of segments) {
+      expect(` ${words(segment.getAttribute('aria-label') ?? '')} `).toContain(
+        ` ${words(segment.textContent ?? '')} `
+      );
+    }
   });
 });
 

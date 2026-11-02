@@ -118,7 +118,7 @@
               {formatEur(item.value)} · {Math.round(percent)}%
             </span>
             {#if item.intent === 'warning'}
-              <span class="text-warning text-3xs mt-1 block tracking-wide uppercase">
+              <span class="text-warning-text text-3xs mt-1 block tracking-wide uppercase">
                 statutory levy
               </span>
             {/if}
