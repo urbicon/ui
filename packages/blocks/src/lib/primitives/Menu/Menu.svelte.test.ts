@@ -536,7 +536,40 @@ describe('Menu (repeated item ids)', () => {
     flushSync();
 
     expect(rowNames()).toEqual(['Paste', 'Copy', 'Copy link']);
-    expect(screen.getAllByRole('menuitem')).toEqual([pasteRow, copyRow, copyLinkRow]);
+    // `toBe`, not `toEqual`: `toEqual` on DOM nodes compares structure, so a
+    // rebuilt row would pass it.
+    const rows = screen.getAllByRole('menuitem');
+    expect(rows[0]).toBe(pasteRow);
+    expect(rows[1]).toBe(copyRow);
+    expect(rows[2]).toBe(copyLinkRow);
+  });
+
+  it('keeps an open submenu in a section open when an item before the section comes and goes', async () => {
+    const user = userEvent.setup();
+    const state = $state({ lead: false });
+    const build = (): MenuItemType[] => [
+      ...(state.lead ? [{ id: 'undo', label: 'Undo' }] : []),
+      { type: 'section' as const, label: 'View' },
+      { id: 'sort', label: 'Sort by', children: [{ id: 'sort-date', label: 'Date' }] },
+      { id: 'refresh', label: 'Refresh' }
+    ];
+    const props = $state<MenuProps>({ placeholder: 'Actions', items: build() });
+    const instance = mount(Menu, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    await user.click(trigger());
+    const sortRow = () => screen.getByRole('menuitem', { name: /Sort by/ });
+    await user.click(sortRow());
+    const before = sortRow();
+    expect(before.getAttribute('aria-expanded')).toBe('true');
+
+    for (const lead of [true, false]) {
+      state.lead = lead;
+      props.items = build();
+      flushSync();
+      expect(sortRow().getAttribute('aria-expanded'), `lead ${lead}`).toBe('true');
+      expect(sortRow(), `lead ${lead}`).toBe(before);
+    }
   });
 
   it('walks two rows that share an id one at a time with the arrow keys', async () => {

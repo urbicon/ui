@@ -1,22 +1,15 @@
 import { eachKeys } from '#lib/internal/each-keys.js';
 import type { MenuDividerItem, MenuItemType, MenuSectionHeader } from './index';
 
-/**
- * One rendered entry of a section group.
- *
- * `index` is the entry's position in the ORIGINAL flat `items` array, not in
- * the group — the key of a rule or of a row without an id derives from it, so
- * grouping must not renumber it.
- */
+/** One rendered entry of a section group. */
 export type MenuGroupEntry<TItem> = {
   item: TItem;
-  index: number;
   /** A rule, per the `isDivider` predicate — renders a separator, never a row. */
   divider: boolean;
   /**
    * `{#each}` key, distinct across the whole `items` array however the ids
    * repeat. A row with an id keys by it, so its DOM moves with the item; a
-   * rule or a row without one keys by `index`.
+   * rule or a row without one keys by its position in `items`.
    */
   key: string;
 };
@@ -25,9 +18,9 @@ export type MenuGroupEntry<TItem> = {
 export type MenuSectionGroup<TItem> = {
   section: MenuSectionHeader | null;
   /**
-   * `{#each}` key, derived from the group's own first position. A run of
-   * bare items can occur more than once (a rule between two sections opens
-   * one), so a constant key for the bare case would collide.
+   * `{#each}` key: the group's ordinal among the groups of its kind. A
+   * position in `items` would move whenever an item before the group comes
+   * or goes, rebuilding the group and closing every submenu open inside it.
    */
   key: string;
   entries: MenuGroupEntry<TItem>[];
@@ -74,10 +67,13 @@ export function groupMenuItems<TItem extends MenuItemType>(
     return id == null ? `index:${index}` : `id:${id}`;
   });
 
-  function openBare(firstIndex: number): MenuSectionGroup<TItem> {
+  let bareRuns = 0;
+  let sections = 0;
+
+  function openBare(): MenuSectionGroup<TItem> {
     const group: MenuSectionGroup<TItem> = {
       section: null,
-      key: `bare-${firstIndex}`,
+      key: `bare-${bareRuns++}`,
       entries: []
     };
     groups.push(group);
@@ -95,15 +91,15 @@ export function groupMenuItems<TItem extends MenuItemType>(
         while (current.entries.at(-1)?.divider) {
           trailing.unshift(current.entries.pop() as MenuGroupEntry<TItem>);
         }
-        if (trailing.length > 0) openBare(trailing[0].index).entries.push(...trailing);
+        if (trailing.length > 0) openBare().entries.push(...trailing);
       }
-      current = { section: raw as MenuSectionHeader, key: `section-${index}`, entries: [] };
+      current = { section: raw as MenuSectionHeader, key: `section-${sections++}`, entries: [] };
       groups.push(current);
       continue;
     }
 
-    if (!current) current = openBare(index);
-    current.entries.push({ item: raw, index, divider: isDivider(raw), key: keys[index] });
+    if (!current) current = openBare();
+    current.entries.push({ item: raw, divider: isDivider(raw), key: keys[index] });
   }
 
   return groups;
