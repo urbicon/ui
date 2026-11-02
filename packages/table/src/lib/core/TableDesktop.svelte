@@ -569,8 +569,9 @@
       // Enter and Space activate a row only while the row itself has the
       // focus, and then that row. Every other tab stop in the grid — a header
       // title, a consumer's `tabindex` element, the group band's content — owns
-      // both keys whether it handles them or not: it is not on a row, so there
-      // is no row it could mean.
+      // both keys whether it handles them or not, inside a row as much as
+      // outside one. The roving index moves to the row acted on, so the arrow
+      // keys step on from there.
       case ' ': {
         // Space = toggle selection
         const index = rowIndexOf(target);
@@ -578,6 +579,7 @@
           e.preventDefault();
           const id = getItemIdAtIndex(index);
           if (id !== undefined) {
+            tableContext.setFocusedRow(index);
             tableContext.toggleItem(id);
           }
         }
@@ -588,14 +590,14 @@
         const index = rowIndexOf(target);
         if (index === undefined) break;
         const id = getItemIdAtIndex(index);
-        if (id !== undefined) {
+        if (id !== undefined && (expandable || onRowClick)) {
+          e.preventDefault();
+          tableContext.setFocusedRow(index);
           if (expandable) {
-            e.preventDefault();
             tableContext.toggleExpand(id);
-          } else if (onRowClick) {
-            e.preventDefault();
+          } else {
             const item = navigableItems[index];
-            if (item) onRowClick(item);
+            if (item) onRowClick?.(item);
           }
         }
         break;

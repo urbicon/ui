@@ -32,6 +32,8 @@ type Row = {
   url: string;
   plain: string;
   extra: string;
+  widget: string;
+  stop: string;
 };
 
 const ROWS: Row[] = [1, 2, 3].map((id) => ({
@@ -43,7 +45,9 @@ const ROWS: Row[] = [1, 2, 3].map((id) => ({
   note: `note ${id}`,
   url: `#row-${id}`,
   plain: `plain ${id}`,
-  extra: `extra ${id}`
+  extra: `extra ${id}`,
+  widget: `widget ${id}`,
+  stop: `stop ${id}`
 }));
 
 let dispose: (() => void) | undefined;
@@ -101,6 +105,15 @@ const tabStopCell = createRawSnippet((item: () => Row) => ({
 const buttonCell = (spy: () => void) =>
   createRawSnippet((item: () => Row) => ({
     render: () => `<button type="button" data-testid="own-button-${item().id}">act</button>`,
+    setup: (node: Element) => {
+      node.addEventListener('click', spy);
+    }
+  }));
+
+/** A consumer cell whose control is an ARIA widget, not a native element. */
+const widgetCell = (spy: () => void) =>
+  createRawSnippet((item: () => Row) => ({
+    render: () => `<span role="button" tabindex="0" data-testid="widget-${item().id}">act</span>`,
     setup: (node: Element) => {
       node.addEventListener('click', spy);
     }
@@ -190,6 +203,29 @@ describe('Enter and Space belong to the row only when the row has the focus', ()
     expect(selectedIds()).toEqual([3]);
   });
 
+  it.each([
+    { name: 'Enter', key: 'Enter' },
+    { name: 'Space', key: ' ' }
+  ])(
+    '$name on a row takes the roving index along: ArrowDown steps on from that row',
+    async ({ key }) => {
+      const user = userEvent.setup();
+      renderKeyGrid();
+      // A click that does not select focuses row 2 and leaves the index on row 1.
+      const plain = document.querySelector<HTMLElement>('tbody [data-testid="cell-2-plain"]');
+      if (!plain) throw new Error('no plain cell in row 2');
+      await user.click(plain);
+      expect(document.activeElement, 'the click focuses the row').toBe(desktopRow(1));
+      expect(desktopRow(1).getAttribute('tabindex'), 'and leaves the index behind').toBe('-1');
+
+      press(desktopRow(1), key);
+      expect(desktopRow(1).getAttribute('tabindex'), 'the tab stop follows the key').toBe('0');
+
+      press(desktopRow(1), 'ArrowDown');
+      expect(document.activeElement).toBe(desktopRow(2));
+    }
+  );
+
   it('arrow keys and Home/End still navigate out of a focusable cell element', () => {
     renderKeyGrid();
     // Row 1's element, where the roving index already is: which row an arrow
@@ -225,7 +261,8 @@ describe('a click on a control inside a row is that control’s alone', () => {
     status: vi.fn(),
     custom: vi.fn(),
     link: vi.fn(),
-    button: vi.fn()
+    button: vi.fn(),
+    widget: vi.fn()
   };
 
   afterEach(() => {
@@ -242,7 +279,10 @@ describe('a click on a control inside a row is that control’s alone', () => {
       TableColumns.status<Row>('status', 'Status', { onClick: spies.status, interactive: true }),
     note: () => TableColumns.custom<Row>('note', 'Note', { onClick: spies.custom }),
     url: () => TableColumns.link<Row>('url', 'Link', { onClick: spies.link }),
-    plain: () => ({ accessor: 'plain', title: 'Plain', cell: buttonCell(spies.button) })
+    plain: () => ({ accessor: 'plain', title: 'Plain', cell: buttonCell(spies.button) }),
+    widget: () => ({ accessor: 'widget', title: 'Widget', cell: widgetCell(spies.widget) }),
+    // Focusable and nothing else, like a tooltip trigger: not a control.
+    stop: () => ({ accessor: 'stop', title: 'Stop', cell: tabStopCell })
   };
 
   const CONTROLS = [
@@ -252,7 +292,13 @@ describe('a click on a control inside a row is that control’s alone', () => {
     { name: 'StatusBadge', column: 'status', spy: 'status', selector: '[role="button"]' },
     { name: 'CustomCell', column: 'note', spy: 'custom', selector: '[role="button"]' },
     { name: 'LinkCell', column: 'url', spy: 'link', selector: 'a[href]' },
-    { name: "a consumer's button", column: 'plain', spy: 'button', selector: 'button' }
+    { name: "a consumer's button", column: 'plain', spy: 'button', selector: 'button' },
+    {
+      name: "a consumer's role=button",
+      column: 'widget',
+      spy: 'widget',
+      selector: '[role="button"]'
+    }
   ] as const;
 
   function controlIn(scope: Element, selector: string): HTMLElement {
@@ -296,6 +342,18 @@ describe('a click on a control inside a row is that control’s alone', () => {
         expect(expandedRows(), 'expansion').toBe(0);
       }
     );
+
+    it('a click on an element that is only focusable is the row’s: every row action runs once', async () => {
+      const user = userEvent.setup();
+      const { onRowClick, selectedIds, expandedRows } = renderClickGrid();
+
+      await user.click(controlIn(cellOf(3, 'stop'), '[tabindex="0"]'));
+      flushSync();
+
+      expect(onRowClick.mock.calls).toEqual([[ROWS[2]]]);
+      expect(selectedIds()).toEqual([3]);
+      expect(expandedRows()).toBe(1);
+    });
 
     it('control: a click on the same cell outside its control runs every row action once', async () => {
       const user = userEvent.setup();
@@ -371,6 +429,16 @@ describe('a click on a control inside a row is that control’s alone', () => {
         expect(onRowClick).not.toHaveBeenCalled();
       }
     );
+
+    it('an element that is only focusable in the title leaves the click to the headline', async () => {
+      const user = userEvent.setup();
+      const { onRowClick } = renderCards(COLUMNS.stop);
+
+      await user.click(controlIn(headline(3), '[tabindex="0"]'));
+      flushSync();
+
+      expect(onRowClick.mock.calls).toEqual([[ROWS[2]]]);
+    });
 
     it('control: a click on the headline outside the control opens the record', async () => {
       const user = userEvent.setup();
