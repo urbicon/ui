@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.36.0](https://github.com/urbicon/ui/compare/v8.35.0...v8.36.0) - 2026-11-03
+
+### Breaking Changes
+- **blocks**: Stop the composition bar clipping its tooltips and focus rings ([#591](https://github.com/urbicon/ui/issues/591))
+> **BREAKING:** a CompositionBar segment is a segmentWrapper div holding the segment button and the tooltip. With unstyled, give segmentWrapper "group/segment relative flex" and segment "flex-1". The tooltip shows on the named group: a slotClasses.tooltip class with group-hover or group-focus-visible needs group-hover/segment or group-has-focus-visible/segment. See packages/blocks/docs/MIGRATION.md.
+
+### Bug Fixes
+- **table**: Let a nested control own its click and keys, act on the keyed row ([#590](https://github.com/urbicon/ui/issues/590))
+- **blocks**: Key menu rows so a repeated id cannot throw ([#592](https://github.com/urbicon/ui/issues/592))
+
 ## [8.35.0](https://github.com/urbicon/ui/compare/v8.34.0...v8.35.0) - 2026-10-23
 
 ### Breaking Changes
