@@ -195,19 +195,29 @@ function jsonCopy(value: unknown): unknown {
  * Whether two JSON values are equal: arrays item by item, objects key by key
  * whatever order the keys come in — JSON gives that order no meaning, so
  * `JSON.stringify` output is no test of it.
+ *
+ * Iterative over an explicit stack, not recursive: a payload may nest deeper
+ * than the call stack allows while `JSON.parse` and the validator still accept
+ * it, and a throw here would leave the view without its final payload and the
+ * model without an issue. The depth test in `a2ui-mcp-app.test.ts` pins it.
  */
 function sameJsonValue(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
-    return a.every((item, i) => sameJsonValue(item, b[i]));
+  const pending: Array<[unknown, unknown]> = [[a, b]];
+  while (pending.length > 0) {
+    const [x, y] = pending.pop() as [unknown, unknown];
+    if (x === y) continue;
+    if (typeof x !== 'object' || typeof y !== 'object' || x === null || y === null) return false;
+    if (Array.isArray(x) || Array.isArray(y)) {
+      if (!Array.isArray(x) || !Array.isArray(y) || x.length !== y.length) return false;
+      for (let i = 0; i < x.length; i++) pending.push([x[i], y[i]]);
+      continue;
+    }
+    const keys = Object.keys(x);
+    if (keys.length !== Object.keys(y).length) return false;
+    for (const key of keys) {
+      if (!Object.hasOwn(y, key)) return false;
+      pending.push([(x as Record<string, unknown>)[key], (y as Record<string, unknown>)[key]]);
+    }
   }
-  const keys = Object.keys(a);
-  if (keys.length !== Object.keys(b).length) return false;
-  return keys.every(
-    (key) =>
-      Object.hasOwn(b, key) &&
-      sameJsonValue((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
-  );
+  return true;
 }
