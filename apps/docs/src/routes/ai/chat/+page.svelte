@@ -198,7 +198,10 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
     }
   ];
 
-  let messages = $state<ChatMessageData[]>([...SEED]);
+  // Raw, not deep: A2UIView appends only while it is handed the envelopes it
+  // already applied, and a deep $state would wrap every reply's payload in new
+  // proxies on every tick.
+  let messages = $state.raw<ChatMessageData[]>([...SEED]);
   let busy = $state(false);
   // Couples the a2ui part's `streaming` flag to the assistant message's status:
   // true exactly while the UI-bearing reply is still appending envelopes, so

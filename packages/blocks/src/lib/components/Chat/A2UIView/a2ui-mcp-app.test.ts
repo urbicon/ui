@@ -7,12 +7,14 @@ import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
 import { A2uiToolInputStabilizer, a2uiMcpAppTransportSection } from './a2ui-mcp-app';
+import { a2uiSystemPrompt } from './a2ui-prompt';
 import { a2uiActionMessage, a2uiErrorMessage } from './a2ui-stream';
+import { urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
 
 const V = 'v0.9.1';
 const SPEC = { exButton, exChildlist, exIncremental, exLogin, exSimpleText };
 
-/** The `{ messages }` arguments of a `render_ui`-shaped tool, as the model writes them. */
+/** The arguments text of a tool whose arguments are `{ messages }`, as the model writes them. */
 function argumentsText(messages: readonly unknown[]): string {
   return JSON.stringify({ messages });
 }
@@ -95,6 +97,33 @@ describe('A2uiToolInputStabilizer — contract', () => {
     expect(stabilizer.partial({ messages: [create] })).toBe(before);
   });
 
+  it('keeps an envelope that later arguments carry with its keys in another order', () => {
+    const stabilizer = new A2uiToolInputStabilizer();
+    const before = stabilizer.partial({ messages: [create, text('a'), text('…')] });
+    const reordered = { createSurface: { catalogId: 'x', surfaceId: 's' }, version: V };
+    const later = stabilizer.partial({ messages: [reordered, text('a'), text('b'), {}] });
+    expect(later[0]).toBe(before[0]);
+    expect(later[1]).toBe(before[1]);
+    const final = stabilizer.complete({ messages: [reordered, text('a'), text('b')] }) as unknown[];
+    expect(final[0]).toBe(before[0]);
+    expect(final[2]).toBe(later[2]);
+  });
+
+  it('rebuilds when an array in an envelope passed on comes in another order', () => {
+    const stabilizer = new A2uiToolInputStabilizer();
+    const column = (children: string[]) => ({
+      version: V,
+      updateComponents: {
+        surfaceId: 's',
+        components: [{ id: 'root', component: 'Column', children }]
+      }
+    });
+    const before = stabilizer.partial({ messages: [create, column(['a', 'b']), text('…')] });
+    const after = stabilizer.partial({ messages: [create, column(['b', 'a']), text('…')] });
+    expect(after).not.toBe(before);
+    expect(after[1]).not.toBe(before[1]);
+  });
+
   it('rebuilds, with new objects, when an envelope already passed on changes', () => {
     const stabilizer = new A2uiToolInputStabilizer();
     const before = stabilizer.partial({ messages: [create, text('one'), text('…')] });
@@ -160,6 +189,17 @@ describe('a2uiMcpAppTransportSection', () => {
       expect(text).toContain(`\`${errorPrefix}\``);
       expect(JSON.parse(action.slice(actionPrefix.length))).toEqual(event);
       expect(JSON.parse(error.slice(errorPrefix.length))).toEqual(issues);
+    }
+  });
+
+  // The system prompt asks for several updateComponents envelopes per call,
+  // and a container re-sent among them drops the children it no longer names:
+  // the MCP path needs this rule as much as a chat does.
+  it('follows a system prompt that says a re-sent component id replaces it', () => {
+    for (const catalog of [undefined, urbiconA2uiCatalogSpec]) {
+      const description = [a2uiSystemPrompt({ catalog }), section].join('\n\n');
+      expect(description).toContain('Re-sending a component id REPLACES it');
+      expect(description).toContain('re-send its\n  container with the full children list');
     }
   });
 

@@ -24,7 +24,10 @@ from `a2uiSystemPrompt()` into `a2uiFencedTransportSection()`, and the new
   place, and the rules to never `createSurface` twice for one id, to `deleteSurface` a surface that
   has served its purpose, and to patch a hint next to a required field an action left empty.
 - **`a2uiSystemPrompt()` followed by `a2uiFencedTransportSection()` says what it said before**,
-  sentence for sentence; some sentences now sit in the other half.
+  sentence for sentence; some sentences now sit in the other half. Two changed, because they
+  pointed at rules that moved: the heading over the action rules, which began "Surfaces live on",
+  is now `## You only hear from a surface when the user acts`, and the sentence below it no longer
+  opens with "But".
 - **A prompt built from `a2uiSystemPrompt()` alone, or with a transport section of your own, has
   lost those rules.** Append `a2uiFencedTransportSection()` for a chat or
   `a2uiMcpAppTransportSection()` for an MCP App, or state them in your own section.

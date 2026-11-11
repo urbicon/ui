@@ -248,15 +248,17 @@ export function a2uiSystemPrompt(options?: {
       '  ("root" and its top-level containers in the FIRST one, then a few',
       '  components per envelope) so the UI renders progressively while you write.',
       '  The client buffers until "root" exists and shows placeholders for',
-      '  children that have not arrived yet.'
+      '  children that have not arrived yet.',
+      '- Re-sending a component id REPLACES it — to append a child, re-send its',
+      '  container with the full children list.'
     ].join('\n')
   );
 
   sections.push(
     [
-      '## Surfaces live on, and you only hear from them when the user acts',
+      '## You only hear from a surface when the user acts',
       '',
-      'But you are NOT watching the form. The client speaks to you in exactly one',
+      'You are NOT watching the form. The client speaks to you in exactly one',
       'case: the user activates a control carrying an `action`. Typing, picking a',
       'date, choosing an option — all of it updates the data model LOCALLY and',
       'tells you nothing.',

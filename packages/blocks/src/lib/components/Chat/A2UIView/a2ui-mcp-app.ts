@@ -104,7 +104,8 @@ export function a2uiMcpAppTransportSection(options?: A2uiTransportSectionOptions
  * can also be cut short and still parse (half a label, half a URL). So the
  * stabilizer passes an envelope on only once a later envelope appears behind
  * it, or the final arguments arrive, and keeps every envelope it passed on as
- * the same object for as long as later arguments carry it JSON-equal.
+ * the same object for as long as later arguments carry the same JSON value —
+ * the same keys and values, in whatever order the keys come.
  *
  * When later arguments change an envelope already passed on, there is no
  * honest append: the stabilizer returns a new array of the new envelopes, and
@@ -132,8 +133,11 @@ export function a2uiMcpAppTransportSection(options?: A2uiTransportSectionOptions
 export class A2uiToolInputStabilizer {
   /** The payload last returned; its entries are the envelopes passed on. */
   private payload: unknown[] = [];
-  /** Each passed-on envelope as JSON, taken once, when it was passed on. */
-  private passedOn: string[] = [];
+  /**
+   * A JSON copy of each passed-on envelope, taken when it was passed on, so a
+   * change to the object handed out cannot hide a change in later arguments.
+   */
+  private passedOn: unknown[] = [];
 
   /**
    * Take the arguments of one `tool-input-partial` notification. Returns the
@@ -164,7 +168,7 @@ export class A2uiToolInputStabilizer {
   private advance(next: readonly unknown[], final: boolean): unknown[] {
     const overlap = Math.min(next.length, this.payload.length);
     for (let i = 0; i < overlap; i++) {
-      if (JSON.stringify(next[i]) !== this.passedOn[i]) return this.rebuild(next);
+      if (!sameJsonValue(next[i], this.passedOn[i])) return this.rebuild(next);
     }
     // Fewer complete envelopes than already passed on: a partial that shows
     // less than an earlier one adds nothing, final arguments without them do.
@@ -172,13 +176,38 @@ export class A2uiToolInputStabilizer {
     if (next.length === this.payload.length) return this.payload;
     const added = next.slice(this.payload.length);
     this.payload = [...this.payload, ...added];
-    for (const envelope of added) this.passedOn.push(JSON.stringify(envelope));
+    for (const envelope of added) this.passedOn.push(jsonCopy(envelope));
     return this.payload;
   }
 
   private rebuild(next: readonly unknown[]): unknown[] {
     this.payload = [...next];
-    this.passedOn = next.map((envelope) => JSON.stringify(envelope));
+    this.passedOn = next.map(jsonCopy);
     return this.payload;
   }
+}
+
+function jsonCopy(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value) ?? 'null');
+}
+
+/**
+ * Whether two JSON values are equal: arrays item by item, objects key by key
+ * whatever order the keys come in — JSON gives that order no meaning, so
+ * `JSON.stringify` output is no test of it.
+ */
+function sameJsonValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, i) => sameJsonValue(item, b[i]));
+  }
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every(
+    (key) =>
+      Object.hasOwn(b, key) &&
+      sameJsonValue((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+  );
 }

@@ -67,6 +67,9 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * The A2UI payload. Accepts an array of envelopes (the accumulated JSONL
    * sequence — stream by extending it immutably: `[...prev, envelope]`), a
    * single envelope object, or the golden-file `{ messages: [...] }` wrapper.
+   * The envelopes already applied must stay the same objects, or the view
+   * rebuilds and drops the user's input: hold the payload, or the messages
+   * around it, in `$state.raw` — a deep `$state` wraps them in new proxies.
    */
   payload: unknown;
   /**

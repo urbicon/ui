@@ -1,21 +1,27 @@
-# A2UI — agent-generated UI in a chat
+# A2UI — agent-generated UI in a chat or an MCP App
 
 `A2UIView` renders [A2UI](https://a2ui.org) (Agent-to-UI, v0.9.1) envelopes into live Urbicon
-components: the agent describes a form, the user fills it in, and the values flow back. This guide
-covers what the types cannot tell you — how a surface behaves over a whole conversation, and which
-of its rules the protocol enforces rather than the renderer.
+components: the agent describes a form, the user fills it in, and the values flow back. The
+envelopes reach it over one of two transports: a chat, where the agent writes them into its reply
+and a later turn can patch a surface, or an MCP App, where they are a tool's arguments and every
+call is a view of its own. This guide covers what the types cannot tell you — how a surface behaves
+over a whole conversation, and which of its rules the protocol enforces rather than the renderer.
 
 > Stability: **experimental**. The pieces below are shipped and tested, but the API may still move.
 
-## The five pieces
+## The pieces
 
-| Piece                                       | What it does                                                                                                                                                                                                                                               |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `a2uiSystemPrompt()`                        | The catalog contract: every component, prop and enum the agent may use. Generated from the same registry the validator checks against, so prompt and validation cannot drift.                                                                              |
-| `a2uiFencedTransportSection()`              | How envelopes travel — the agent writes prose and opens a ` ```a2ui ` fence — and what a later turn may do with a surface. The prompt half of `A2uiStreamSplitter`.                                                                                        |
-| `A2uiStreamSplitter`                        | Turns a token stream into ordered message parts — text, and `a2ui` parts whose payload grows envelope by envelope.                                                                                                                                         |
-| `A2uiSurfaceRouter` + `routeMessageParts()` | Delivers envelopes to the message that owns their surface, so an agent can patch a form it sent two turns ago.                                                                                                                                             |
-| `A2UIView`                                  | Renders one payload. Fail-loud and whitelist-only: unknown components and undeclared props never reach the DOM, and neither does a function-call binding — except the logic functions `not`, `and`, `or`, which evaluate to a boolean and execute nothing. |
+| Piece                                        | What it does                                                                                                                                                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `a2uiSystemPrompt()`                         | The catalog contract: every component, prop and enum the agent may use. Generated from the same registry the validator checks against, so prompt and validation cannot drift.                                                                              |
+| `a2uiFencedTransportSection()`               | In a chat: how envelopes travel — the agent writes prose and opens a ` ```a2ui ` fence — and what a later turn may do with a surface. The prompt half of `A2uiStreamSplitter`.                                                                             |
+| `A2uiStreamSplitter`                         | Turns a token stream into ordered message parts — text, and `a2ui` parts whose payload grows envelope by envelope.                                                                                                                                         |
+| `A2uiSurfaceRouter` + `routeMessageParts()`  | Delivers envelopes to the message that owns their surface, so an agent can patch a form it sent two turns ago.                                                                                                                                             |
+| `a2uiMcpAppTransportSection()`               | In an MCP App: the envelopes are the tool's arguments, and every call is one complete surface in a view of its own. The prompt half of `A2uiToolInputStabilizer`.                                                                                          |
+| `A2uiToolInputStabilizer`                    | Turns the arguments a host streams while the model writes them into a payload that only grows, so the view appends instead of rebuilding.                                                                                                                  |
+| `a2uiActionMessage()` / `a2uiErrorMessage()` | Write the action and error turns a transport section tells the agent to expect, from the same options.                                                                                                                                                     |
+| `validateA2uiPayload()`                      | The issues `A2UIView` reports, without a DOM — for a tool handler or a server.                                                                                                                                                                             |
+| `A2UIView`                                   | Renders one payload. Fail-loud and whitelist-only: unknown components and undeclared props never reach the DOM, and neither does a function-call binding — except the logic functions `not`, `and`, `or`, which evaluate to a boolean and execute nothing. |
 
 ```ts
 // Server — the system prompt, assembled from the shipped pieces.
@@ -41,7 +47,16 @@ const system = [
 `a2uiActionMessage()` writes the turn the transport section describes; give both the same options
 when you change a prefix. Inside an MCP App the router and the splitter have nothing to do, and a
 different transport section and a stabilizer take their place: see
-[MCP Apps: one view per tool call](#mcp-apps-one-view-per-tool-call).
+[MCP Apps: one view per tool call](#mcp-apps-one-view-per-tool-call). Every piece in the table
+but `A2UIView` also loads from `@urbicon-ui/blocks/a2ui`, the engine without Svelte — the entry a
+server or a tool handler imports.
+
+**Hold what reaches `payload` in `$state.raw`** — the messages in a chat, the payload in an MCP App.
+The view appends only while the envelopes it already applied arrive as the very same objects, and
+rebuilds otherwise, dropping what the user typed. A deep `$state` wraps an object assigned to it in
+a proxy of its own, so the snapshot a splitter or a stabilizer hands over reaches the view as new
+objects on every update. `revokeMessage()` finds a patch's envelopes by reference as well, and
+through a deep `$state` finds none to take back.
 
 ## Surfaces outlive the reply that created them
 
@@ -338,8 +353,8 @@ passed on, it returns a new payload and the view rebuilds: there is no honest ap
 />
 ```
 
-Hold the payload in `$state.raw`. A deep `$state` proxies every array assigned to it afresh, the
-envelopes in it included, and the view sees new objects whatever the stabilizer returned.
+The payload sits in `$state.raw`, as [the pieces](#the-pieces) explain: through a deep `$state` the
+view would see new objects whatever the stabilizer returned.
 
 **Actions and errors reach the model as text.** A view without a backend of its own reports an
 action as a user message (`ui/message`); send `a2uiActionMessage(event)`, which is the message
