@@ -11,6 +11,35 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.37.0
+
+### `a2uiSystemPrompt()` leaves what happens to a surface after its turn to the transport section
+
+Some of the prompt's rules hold only where a later chat turn can patch a surface it already sent.
+In an MCP App every tool call is a new view, and there the same rules are wrong. They have moved
+from `a2uiSystemPrompt()` into `a2uiFencedTransportSection()`, and the new
+`a2uiMcpAppTransportSection()` states what holds in an MCP App instead.
+
+- **What moved:** the one-envelope-per-line wire rule, the paragraph on a surface that updates in
+  place, and the rules to never `createSurface` twice for one id, to `deleteSurface` a surface that
+  has served its purpose, and to patch a hint next to a required field an action left empty.
+- **`a2uiSystemPrompt()` followed by `a2uiFencedTransportSection()` says what it said before**,
+  sentence for sentence; some sentences now sit in the other half. Two changed, because they
+  pointed at rules that moved: the heading over the action rules, which began "Surfaces live on",
+  is now `## You only hear from a surface when the user acts`, and the sentence below it no longer
+  opens with "But".
+- **A prompt built from `a2uiSystemPrompt()` alone, or with a transport section of your own, has
+  lost those rules.** Append `a2uiFencedTransportSection()` for a chat or
+  `a2uiMcpAppTransportSection()` for an MCP App, or state them in your own section.
+- A test that finds one of those sentences in the output of `a2uiSystemPrompt()` finds it in the
+  output of `a2uiFencedTransportSection()` now.
+
+The line lists the files that call `a2uiSystemPrompt()` and call no transport section:
+
+```sh
+rg -l 'a2uiSystemPrompt\(' src | xargs rg --files-without-match 'TransportSection\('
+```
+
 ## 8.36.0
 
 ### A `CompositionBar` segment sits in a wrapper, and the bar no longer clips

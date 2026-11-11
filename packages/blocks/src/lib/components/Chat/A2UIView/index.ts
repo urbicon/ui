@@ -24,8 +24,12 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * `urlPolicy` as StreamingMarkdown. It is NOT a default ChatMessage
  * renderer, so wire it in per surface via `partRenderers.a2ui` to keep it out of
  * the base bundle. Generate the agent-side prompt with the shipped
- * `a2uiSystemPrompt()`; validate a payload without a DOM with
- * `createA2uiProcessor()`; never hand-roll either. Opt into the richer
+ * `a2uiSystemPrompt()` plus one transport section
+ * (`a2uiFencedTransportSection()` in a chat, `a2uiMcpAppTransportSection()`
+ * for an MCP App tool); validate a payload without a DOM with
+ * `validateA2uiPayload()`, the check this view runs once `streaming` is false;
+ * never hand-roll either. On a server, import both from `@urbicon-ui/blocks/a2ui`,
+ * which loads no Svelte. Opt into the richer
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
  * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise), and
  * type-check the data model with an optional `dataSchema`; require components
@@ -46,7 +50,7 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  *     payload={part.payload}
  *     streaming={message.status === 'streaming'}
  *     {urlPolicy}
- *     onAction={(event) => sendUserTurn(`[ui-action] ${JSON.stringify(event)}`)}
+ *     onAction={(event) => sendUserTurn(a2uiActionMessage(event))}
  *     onValidationError={(issues) => reportToAgent(issues)}
  *   />
  * {/snippet}
@@ -63,6 +67,10 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * The A2UI payload. Accepts an array of envelopes (the accumulated JSONL
    * sequence — stream by extending it immutably: `[...prev, envelope]`), a
    * single envelope object, or the golden-file `{ messages: [...] }` wrapper.
+   * The envelopes already applied must stay the same objects, or the view
+   * rebuilds and drops the user's input: hold the payload, or the messages
+   * around it, in `$state.raw` — a deep `$state` wraps objects handed over
+   * from outside (a splitter's snapshot, a stabilizer's payload) in new proxies.
    */
   payload: unknown;
   /**
@@ -155,85 +163,12 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
   preset?: string;
 }
 
+// ── Engine surface: Svelte-free, also importable as `@urbicon-ui/blocks/a2ui` ──
+export * from '../../../a2ui';
 export { default as A2UIView } from './A2UIView.svelte';
-// ── Engine surface (Svelte-free; a server building the prompt has no DOM) ────
-export {
-  A2UI_ISSUE_CODES,
-  type A2uiActionEvent,
-  type A2uiEnvelope,
-  type A2uiIssueCode,
-  type A2uiIssueSeverity,
-  type A2uiValidationIssue
-} from './a2ui.types';
+// ── The renderable halves of the catalogs (Svelte wiring) ────────────────────
 export { basicA2uiCatalog } from './a2ui-basic-catalog';
-// ── Catalog abstraction (the seam for a second, custom catalog) ──────────────
-export {
-  type A2uiCatalog,
-  type A2uiCatalogSpec,
-  type A2uiComponentCheck,
-  type A2uiComponentCheckContext,
-  basicA2uiCatalogSpec,
-  resolveCatalog
-} from './a2ui-catalog';
-export { a2uiSystemPrompt } from './a2ui-prompt';
-export {
-  A2UI_CATALOG_ID,
-  A2UI_ICON_NAMES,
-  A2UI_REGISTRY,
-  A2UI_SUPPORTED_VERSIONS,
-  type A2uiComponentSpec,
-  type A2uiPropKind,
-  type A2uiPropSpec,
-  UNSUPPORTED_A2UI_COMPONENTS
-} from './a2ui-registry';
-export {
-  type A2uiRequiredComponent,
-  type A2uiSurfaceRequirement,
-  type A2uiSurfaceRequirements,
-  a2uiSurfaceRequirementsSection
-} from './a2ui-requirements';
-// ── Cross-message surface routing (keeps a surface patchable after its turn) ──
-export {
-  type A2uiRoutePatch,
-  type A2uiRouteResult,
-  A2uiSurfaceRouter
-} from './a2ui-router';
-export {
-  type A2uiDataSchema,
-  type A2uiSchemaField,
-  type A2uiSchemaType,
-  a2uiDataSchemaSection,
-  validateSchemaWrite
-} from './a2ui-schema';
-// ── Fenced-JSONL transport: the token-stream parser and the prompt that feeds it ──
-export {
-  A2UI_FENCE_TAG,
-  type A2uiStreamIssue,
-  type A2uiStreamPart,
-  A2uiStreamSplitter,
-  type A2uiStreamTextPart,
-  type A2uiStreamUiPart,
-  type A2uiTransportSectionOptions,
-  a2uiFencedTransportSection
-} from './a2ui-stream';
-// ── Transcript wiring: deliver routed envelopes into the messages that own them ─
-export {
-  editA2uiPayload,
-  type PatchedSurface,
-  type RouteMessageResult,
-  revokeMessage,
-  routeMessageParts,
-  sourceKey
-} from './a2ui-transcript';
-export {
-  type A2uiComponentInstance,
-  type A2uiProcessor,
-  type A2uiProcessorOptions,
-  type A2uiSurfaceState,
-  collectGraphIssues,
-  createA2uiProcessor,
-  normalizeA2uiPayload
-} from './a2ui-validate';
+export type { A2uiCatalog } from './a2ui-catalog';
 export {
   type A2UIViewSlots,
   type A2UIViewVariants,
@@ -241,13 +176,3 @@ export {
 } from './a2ui-view.variants';
 // ── Urbicon-native catalog (opt-in; tree-shaken out unless imported) ─────────
 export { urbiconA2uiCatalog } from './urbicon/a2ui-urbicon-catalog';
-export {
-  SHARED_AXES,
-  UNSUPPORTED_URBICON_A2UI_COMPONENTS,
-  URBICON_A2UI_CATALOG_ID,
-  URBICON_A2UI_ICON_NAMES,
-  URBICON_A2UI_REGISTRY,
-  type UrbiconComponentSpec,
-  type UrbiconPropSpec,
-  urbiconA2uiCatalogSpec
-} from './urbicon/a2ui-urbicon-registry';

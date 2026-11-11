@@ -121,6 +121,8 @@ const system = [
     ChatMessage,
     ChatMessageList,
     PromptInput,
+    a2uiActionMessage,
+    a2uiErrorMessage,
     revokeMessage,
     routeMessageParts,
     urbiconA2uiCatalog,
@@ -131,7 +133,9 @@ const system = [
   } from '@urbicon-ui/blocks';
   import { SvelteSet } from 'svelte/reactivity';
 
-  let messages = $state<ChatMessageData[]>([]);
+  // Raw, not deep: A2UIView appends only while it is handed the envelopes it
+  // already applied, and a deep $state would wrap every snapshot in new proxies.
+  let messages = $state.raw<ChatMessageData[]>([]);
   let busy = $state(false);
   let pendingIssues = $state<A2uiValidationIssue[]>([]);
 
@@ -160,9 +164,7 @@ const system = [
   async function send(text: string) {
     if (busy) return;
     // Queued validation issues ride along so the agent can repair its surface.
-    const wire = pendingIssues.length
-      ? \`[ui-error] \${JSON.stringify(pendingIssues)}\\n\${text}\`
-      : text;
+    const wire = pendingIssues.length ? \`\${a2uiErrorMessage(pendingIssues)}\\n\${text}\` : text;
     pendingIssues = [];
 
     messages = [
@@ -219,7 +221,7 @@ const system = [
   // A control on a rendered surface: send it back as a fresh user turn. The
   // agent usually answers by PATCHING that surface rather than sending a new one.
   function handleAction(event: A2uiActionEvent) {
-    send(\`[ui-action] \${JSON.stringify(event)}\`);
+    send(a2uiActionMessage(event));
   }
 
   function regenerate(message: ChatMessageData) {

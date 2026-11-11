@@ -45,7 +45,9 @@
   }: { instant?: boolean; autoStart?: boolean; composer?: boolean } = $props();
 
   let root: HTMLDivElement | undefined = $state();
-  let messages = $state<ChatMessageData[]>([]);
+  // Raw, not deep: A2UIView appends only while it is handed the envelopes it
+  // already applied, and a deep $state would wrap every snapshot in new proxies.
+  let messages = $state.raw<ChatMessageData[]>([]);
   let busy = $state(false);
   let controller: AbortController | undefined;
   /** Which recorded turn plays next. */

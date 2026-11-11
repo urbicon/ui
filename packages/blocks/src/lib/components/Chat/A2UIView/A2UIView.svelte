@@ -3,14 +3,15 @@
   import { Alert } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
+  import type { A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
   import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
   import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
   import {
     type A2uiProcessor,
-    collectGraphIssues,
+    applyA2uiEnvelope,
+    collectA2uiIssues,
     createA2uiProcessor,
     normalizeA2uiPayload
   } from './a2ui-validate';
@@ -106,26 +107,7 @@
         generation++;
       }
       for (let i = consumed.length; i < envelopes.length; i++) {
-        // The engine's contract is that a hostile payload becomes ISSUES, never
-        // an exception — so this catch should never fire, and it reports loudly
-        // rather than swallowing. Before #134 the call was unguarded, and one
-        // envelope naming a prototype key (`"component": "toString"`) took the
-        // entire view down instead of the one node. Guarding here keeps the
-        // surfaces that already parsed on screen, and puts the engine bug in
-        // front of the reader where the issue list already lives.
-        try {
-          processor.apply(envelopes[i], i);
-        } catch (error) {
-          processor.globalIssues.push({
-            severity: 'error',
-            code: A2UI_ISSUE_CODES.ENGINE_ERROR,
-            message: `The A2UI engine failed on message ${i}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-            path: `/messages/${i}`
-          });
-          if (import.meta.env?.DEV) console.error('[A2UIView] engine error', error);
-        }
+        applyA2uiEnvelope(processor, envelopes[i], i);
       }
       consumed = envelopes.slice();
       normalizeIssue = issue;
@@ -195,23 +177,18 @@
     const isUnstyled = unstyled;
     const currentClasses = classes;
     const surfaces: SurfaceView[] = [];
-    const summaryIssues: A2uiValidationIssue[] = [];
-    const allIssues: A2uiValidationIssue[] = [];
-
-    if (normalizeIssue) {
-      summaryIssues.push(normalizeIssue);
-      allIssues.push(normalizeIssue);
-    }
-    for (const globalIssue of processor.globalIssues) {
-      allIssues.push(globalIssue);
-      if (globalIssue.severity === 'error') summaryIssues.push(globalIssue);
-    }
+    // A server's `validateA2uiPayload` builds its list with this same call, so an
+    // issue added beside it here is one the server never reports.
+    const allIssues = collectA2uiIssues(processor, {
+      streaming: isStreaming,
+      payloadIssue: normalizeIssue
+    });
+    const summaryIssues: A2uiValidationIssue[] = [
+      ...(normalizeIssue ? [normalizeIssue] : []),
+      ...processor.globalIssues.filter((globalIssue) => globalIssue.severity === 'error')
+    ];
 
     for (const surface of processor.surfaces.values()) {
-      for (const surfaceIssue of surface.issues) allIssues.push(surfaceIssue);
-      for (const graphIssue of collectGraphIssues(surface, { streaming: isStreaming })) {
-        allIssues.push(graphIssue);
-      }
       const root = buildRenderTree(surface);
       // Resolve the surface's catalog to its Svelte wiring: which dispatcher
       // renders it and which icon set it draws from. surface.catalog is one of

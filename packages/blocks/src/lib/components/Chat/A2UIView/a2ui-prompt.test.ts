@@ -26,7 +26,7 @@ describe('a2uiSystemPrompt', () => {
   it('states the core envelope rules', () => {
     expect(prompt).toContain('v0.9.1');
     expect(prompt).toContain('root');
-    expect(prompt.toLowerCase()).toContain('one json envelope per line');
+    expect(prompt).toContain('EXACTLY ONE of');
     expect(prompt).toContain('createSurface');
     expect(prompt).toContain('updateComponents');
     expect(prompt).toContain('updateDataModel');
@@ -55,6 +55,19 @@ describe('a2uiSystemPrompt', () => {
     expect(prompt).not.toContain('```a2ui');
     expect(prompt).not.toContain('SSE');
     expect(prompt).not.toContain('Server-Sent');
+  });
+
+  // What becomes of a surface after its turn depends on whether a later turn
+  // can reach it: true for the chat transport with its router, false for an
+  // MCP App, where each call is its own view. Neither may leak in here.
+  it('says nothing about patching a surface after its turn, nor about lines', () => {
+    for (const text of [prompt, a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec })]) {
+      expect(text).not.toMatch(/\bpatch/i);
+      expect(text).not.toContain('createSurface twice');
+      expect(text).not.toContain('updates in place');
+      expect(text).not.toContain('deleteSurface when');
+      expect(text).not.toContain('JSONL');
+    }
   });
 
   it('lists the mapped icon names', () => {
