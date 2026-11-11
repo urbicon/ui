@@ -109,20 +109,31 @@ describe('A2uiToolInputStabilizer — contract', () => {
     expect(final[2]).toBe(later[2]);
   });
 
-  it('compares an envelope nested deeper than the call stack without throwing', () => {
-    let deep: unknown = 'leaf';
-    for (let level = 0; level < 10_000; level++) deep = [deep];
+  it('copies and compares an envelope nested deeper than the call stack without throwing', () => {
+    // Built by a loop, not JSON.stringify, which recurses itself in older
+    // engines; at this depth a stringify-based copy overflows under Node 24.
+    const nest = () => {
+      let deep: unknown = 'leaf';
+      for (let level = 0; level < 100_000; level++) deep = [deep];
+      return deep;
+    };
     const data = (value: unknown) => ({
       version: V,
       updateDataModel: { surfaceId: 's', path: '/deep', value }
     });
     const stabilizer = new A2uiToolInputStabilizer();
-    const before = stabilizer.partial({ messages: [create, data(deep), text('…')] });
-    const again = JSON.parse(JSON.stringify(deep));
-    const later = stabilizer.partial({ messages: [create, data(again), text('a'), {}] });
+    const before = stabilizer.partial({ messages: [create, data(nest()), text('…')] });
+    const later = stabilizer.partial({ messages: [create, data(nest()), text('a'), {}] });
     expect(later[1]).toBe(before[1]);
-    const final = stabilizer.complete({ messages: [create, data(again), text('a')] }) as unknown[];
+    const final = stabilizer.complete({ messages: [create, data(nest()), text('a')] }) as unknown[];
     expect(final[1]).toBe(before[1]);
+  });
+
+  it('throws on arguments that hold a cycle, which JSON cannot carry', () => {
+    const cyclic: Record<string, unknown> = { version: V };
+    cyclic.self = cyclic;
+    const stabilizer = new A2uiToolInputStabilizer();
+    expect(() => stabilizer.partial({ messages: [create, cyclic, text('a')] })).toThrow(TypeError);
   });
 
   it('rebuilds when an array in an envelope passed on comes in another order', () => {

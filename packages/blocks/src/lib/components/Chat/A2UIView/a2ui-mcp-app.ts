@@ -187,8 +187,51 @@ export class A2uiToolInputStabilizer {
   }
 }
 
+type CopyStep =
+  | { source: unknown; target: Record<string | number, unknown>; key: string | number }
+  | { leave: object };
+
+/**
+ * A structural copy of a value parsed from JSON, over an explicit stack for the
+ * same reason as `sameJsonValue` — `JSON.stringify` recurses too in older
+ * engines (Node 24 overflows on a payload Node 26 copies fine). Copied objects
+ * have no prototype, so a `__proto__` key stays a key; they never leave the
+ * stabilizer. A cycle cannot come from JSON and throws, as `JSON.stringify` does.
+ */
 function jsonCopy(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value) ?? 'null');
+  const holder: Record<string, unknown> = Object.create(null);
+  const ancestors = new Set<object>();
+  const steps: CopyStep[] = [{ source: value, target: holder, key: 'value' }];
+  while (steps.length > 0) {
+    const step = steps.pop() as CopyStep;
+    if ('leave' in step) {
+      ancestors.delete(step.leave);
+      continue;
+    }
+    const { source, target, key } = step;
+    if (typeof source !== 'object' || source === null) {
+      target[key] = source;
+      continue;
+    }
+    if (ancestors.has(source)) {
+      throw new TypeError('A2uiToolInputStabilizer: the arguments contain a cycle');
+    }
+    ancestors.add(source);
+    steps.push({ leave: source });
+    const isArray = Array.isArray(source);
+    const copy: Record<string | number, unknown> = isArray
+      ? new Array((source as unknown[]).length)
+      : Object.create(null);
+    target[key] = copy;
+    for (const childKey of Object.keys(source)) {
+      steps.push({
+        source: (source as Record<string, unknown>)[childKey],
+        target: copy,
+        key: isArray ? Number(childKey) : childKey
+      });
+    }
+  }
+  return holder.value;
 }
 
 /**
