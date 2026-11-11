@@ -39,6 +39,8 @@
 // chunks — fence markers may straddle chunk boundaries, text may sit before /
 // between / after fences, and the last line may be incomplete.
 
+import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
+
 /** A streamed text segment. Structurally assignable to blocks' `ChatMessagePart` (`text`). */
 export interface A2uiStreamTextPart {
   type: 'text';
@@ -395,7 +397,13 @@ export class A2uiStreamSplitter {
   }
 }
 
-/** Options for {@link a2uiFencedTransportSection}. */
+/**
+ * Options for a transport section ({@link a2uiFencedTransportSection},
+ * `a2uiMcpAppTransportSection`) and for the messages that travel back to the
+ * agent ({@link a2uiActionMessage}, {@link a2uiErrorMessage}). Pass the same
+ * object to the section and to the formatters, and the prompt describes the
+ * very message your client sends.
+ */
 export interface A2uiTransportSectionOptions {
   /**
    * Prefix your client puts on a user turn that reports an action, followed by
@@ -405,10 +413,71 @@ export interface A2uiTransportSectionOptions {
    */
   actionPrefix?: string | false;
   /**
-   * Prefix for a turn that reports validation issues as JSON, so the agent can
-   * repair the surface. `false` omits it. @default '[ui-error]'
+   * Prefix for the message that reports validation issues as JSON, so the agent
+   * can repair the surface: a user turn in the chat transport, the tool's error
+   * result in the MCP-App transport. `false` omits it. @default '[ui-error]'
    */
   errorPrefix?: string | false;
+}
+
+/** The prefixes `options` selects, defaults applied. Every section and formatter reads them here. */
+export function transportPrefixes(options?: A2uiTransportSectionOptions): {
+  action: string | false;
+  error: string | false;
+} {
+  return {
+    action: options?.actionPrefix ?? '[ui-action]',
+    error: options?.errorPrefix ?? '[ui-error]'
+  };
+}
+
+/**
+ * The text of the user turn that reports an action to the agent — the
+ * `actionPrefix`, a space, then the event as compact JSON, which is the form
+ * the transport section describes. Throws when `actionPrefix` is `false`:
+ * actions then reach the agent some other way, and no prompt describes a
+ * prefixed message.
+ *
+ * @example
+ * ```ts
+ * const transport = { actionPrefix: '[ui-action]' };
+ * const system = [a2uiSystemPrompt(), a2uiFencedTransportSection(transport)].join('\n\n');
+ * // …and in A2UIView's onAction:
+ * const onAction = (event: A2uiActionEvent) => sendUserTurn(a2uiActionMessage(event, transport));
+ * ```
+ */
+export function a2uiActionMessage(
+  event: A2uiActionEvent,
+  options?: A2uiTransportSectionOptions
+): string {
+  const { action } = transportPrefixes(options);
+  if (action === false) {
+    throw new TypeError(
+      'a2uiActionMessage: actionPrefix is false, so the prompt describes no action message'
+    );
+  }
+  return `${action} ${JSON.stringify(event)}`;
+}
+
+/**
+ * The text that reports validation issues to the agent — the `errorPrefix`, a
+ * space, then the issues as compact JSON: the next user turn in a chat, the
+ * error result of the call in an MCP App. It serializes exactly the issues it
+ * is given; which ones are worth a round-trip (usually the error-severity ones)
+ * is the caller's choice. Throws when `errorPrefix` is `false`, for the reason
+ * {@link a2uiActionMessage} does.
+ */
+export function a2uiErrorMessage(
+  issues: readonly A2uiValidationIssue[],
+  options?: A2uiTransportSectionOptions
+): string {
+  const { error } = transportPrefixes(options);
+  if (error === false) {
+    throw new TypeError(
+      'a2uiErrorMessage: errorPrefix is false, so the prompt describes no error message'
+    );
+  }
+  return `${error} ${JSON.stringify(issues)}`;
 }
 
 /**
@@ -421,8 +490,15 @@ export interface A2uiTransportSectionOptions {
  * the setup the splitter exists for. Append it after `a2uiSystemPrompt()` (and
  * after `a2uiDataSchemaSection()`, if you use one).
  *
+ * It also carries the rules that hold only when a later turn can reach an
+ * earlier surface — `A2uiSurfaceRouter` delivering a patch into the message
+ * that owns it: a surfaceId stays unique, a surface is patched rather than
+ * rebuilt, and a correction is a patch next to the field. Without the router
+ * those rules describe a client that does not exist.
+ *
  * Anything domain-specific — which tools to call, what never to invent — stays
- * yours to append; this covers only the wire format and the return path.
+ * yours to append; this covers only the wire format, the surface lifecycle and
+ * the return path.
  *
  * @example
  * ```ts
@@ -435,8 +511,7 @@ export interface A2uiTransportSectionOptions {
  * ```
  */
 export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions): string {
-  const actionPrefix = options?.actionPrefix ?? '[ui-action]';
-  const errorPrefix = options?.errorPrefix ?? '[ui-error]';
+  const { action: actionPrefix, error: errorPrefix } = transportPrefixes(options);
   const open = `${FENCE}${A2UI_FENCE_TAG}`;
 
   const lines = [
@@ -453,6 +528,10 @@ export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions
     '{"version":"v0.9.1","updateComponents":{"surfaceId":"form-1","components":[ … ]}}',
     FENCE,
     '',
+    'Emit one JSON envelope per line (JSONL), as COMPACT single-line JSON — never',
+    'pretty-print or wrap one envelope across multiple lines, even a large',
+    'updateComponents.',
+    '',
     'Rules for the fence:',
     `- Open the block with a line that is exactly ${open} and close it with ${FENCE}.`,
     '- Emit createSurface FIRST, then the updateComponents / updateDataModel',
@@ -464,7 +543,22 @@ export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions
     '  updateComponents / updateDataModel envelopes for its surfaceId (no',
     '  createSurface). The client routes them to the message that shows that',
     '  surface, so it updates where it already stands — say in prose what you',
-    '  changed, since it may be scrolled out of view.'
+    '  changed, since it may be scrolled out of view.',
+    '',
+    'A surfaceId is unique for as long as the client runs, and a surface stays',
+    'alive and editable after the reply that created it. Send further envelopes',
+    'for the SAME surfaceId later and it updates in place, keeping what the user',
+    'typed. Prefer ONE surface that grows over a chain of near-identical ones.',
+    '',
+    '- updateDataModel to fill in a value you just learned; updateComponents to',
+    '  add or change controls. Re-sending a component id REPLACES it — to append',
+    '  a child, re-send its container with the full children list.',
+    '- Never createSurface twice for one id, and never rebuild an equivalent',
+    "  surface under a new id to change a field: both discard the user's input.",
+    '- deleteSurface when a surface has served its purpose.',
+    '- If an action arrives with required fields still empty, do NOT carry it',
+    '  out — patch a short message next to the offending field instead. You are',
+    '  the only validator; the client submits whatever it is given.'
   ];
 
   if (actionPrefix || errorPrefix) {

@@ -47,7 +47,7 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
     slug: 'a2ui',
     title: 'A2UI — Agent-generated UI',
     description:
-      'Rendering A2UI in a chat: surfaces that outlive their reply, the action-only return path, fetched options, and the shipped transport/routing pieces',
+      'Rendering A2UI in a chat or an MCP App: surfaces that outlive their reply, the action-only return path, fetched options, and the shipped transport/routing pieces',
     sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'A2UI.md')
   },
   {

@@ -12,6 +12,7 @@
   import {
     ChatMessageList,
     A2UIView,
+    a2uiActionMessage,
     type ChatMessageData,
     type MarkdownUrlPolicy
   } from '@urbicon-ui/blocks';
@@ -37,7 +38,7 @@
     payload={part.payload}
     streaming={/* couple to the message status */ true}
     {urlPolicy}
-    onAction={(event) => sendUserTurn(\`[ui-action] \${JSON.stringify(event)}\`)}
+    onAction={(event) => sendUserTurn(a2uiActionMessage(event))}
     onValidationError={(issues) => {
       // Relay error-severity issues back to the agent as an A2UI \`error\` message.
       for (const issue of issues) if (issue.severity === 'error') reportToAgent(issue);
@@ -45,15 +46,15 @@
   />
 {/snippet}`;
 
-  const promptCode = `// Server / agent side — no DOM needed. The prompt is rendered from the SAME
-// registry that validates the payload, so the two can never drift.
-import { a2uiSystemPrompt } from '@urbicon-ui/blocks';
+  const promptCode = `// Server / agent side — no DOM, and no Svelte compiler: /a2ui is the engine alone.
+// The prompt is rendered from the SAME registry that validates the payload.
+import { a2uiFencedTransportSection, a2uiSystemPrompt } from '@urbicon-ui/blocks/a2ui';
 
 const system = [
   a2uiSystemPrompt(),
-  // Append your app-specific TRANSPORT section (how envelopes reach the client),
-  // e.g. a fenced \`\`\`a2ui JSONL block. a2uiSystemPrompt() deliberately omits it.
-  TRANSPORT_INSTRUCTIONS
+  // Exactly one TRANSPORT section: how envelopes reach the client and what a later
+  // turn may do with a surface. For an MCP App tool: a2uiMcpAppTransportSection().
+  a2uiFencedTransportSection()
 ].join('\\n\\n');`;
 </script>
 
@@ -173,9 +174,11 @@ const system = [
         <code>Button.disabled</code>), the
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
         the action rules, straight from the registry that validates the payload. It omits what is
-        app-specific: how envelopes reach the client, and which components a surface must carry —
-        append <code>a2uiSurfaceRequirementsSection()</code> from the same object you pass as
-        <code>surfaceRequirements</code> and the catalog spec you prompt with.
+        app-specific. How envelopes reach the client, and what a later turn may do with a surface it
+        sent, is the transport's: append <code>a2uiFencedTransportSection()</code> in a chat or
+        <code>a2uiMcpAppTransportSection()</code> for an MCP App tool. Which components a surface
+        must carry is yours: append <code>a2uiSurfaceRequirementsSection()</code> from the same
+        object you pass as <code>surfaceRequirements</code> and the catalog spec you prompt with.
       </p>
       <CodeExample title="System prompt" code={promptCode} language="ts" preview={false} />
     </div>

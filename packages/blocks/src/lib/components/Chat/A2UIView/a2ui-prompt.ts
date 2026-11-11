@@ -6,17 +6,21 @@
  * DOM, and this module never imports catalog VALUE code from `urbicon/` (the
  * caller passes the spec), so it stays out of the Basic bundle.
  *
- * With no options the output is the Basic-catalog prompt, byte-identical to
- * before the catalog refactor. Pass `catalog` to render a richer catalog: when
- * its specs carry categories / shared axes (the Urbicon catalog), the prompt
- * grows a "Shared axes" section, groups components by category, compresses
- * shared-axis props, and adds catalog-specific don'ts — all gated on features
- * the Basic catalog does not have, so the default stays untouched.
+ * With no options the output is the Basic-catalog prompt. Pass `catalog` to
+ * render a richer catalog: when its specs carry categories / shared axes (the
+ * Urbicon catalog), the prompt grows a "Shared axes" section, groups components
+ * by category, compresses shared-axis props, and adds catalog-specific don'ts —
+ * all gated on features the Basic catalog does not have, so the default stays
+ * untouched.
  *
- * Deliberately excludes any TRANSPORT section (how envelopes reach the client),
- * any data-schema section and any surface requirements: those are app-specific
- * and each app appends them (`a2uiFencedTransportSection`,
- * `a2uiDataSchemaSection`, `a2uiSurfaceRequirementsSection`).
+ * Deliberately excludes the TRANSPORT — how envelopes reach the client and
+ * what becomes of a surface after the call or reply that sent it: whether a
+ * later turn can patch it, whether a correction is a patch or a whole new
+ * surface. Those rules differ per transport, so each transport section carries
+ * its own (`a2uiFencedTransportSection`, `a2uiMcpAppTransportSection`), and a
+ * prompt needs exactly one of them. Also excluded, as app-specific: any
+ * data-schema section and any surface requirements (`a2uiDataSchemaSection`,
+ * `a2uiSurfaceRequirementsSection`).
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
@@ -183,7 +187,13 @@ function renderGroupedComponents(
 /**
  * Build the A2UI system prompt. Pass `catalogId` to override the advertised
  * `createSurface` catalog id, and `catalog` to render a specific catalog's
- * components (defaults to the Basic catalog — byte-identical output).
+ * components (defaults to the Basic catalog).
+ *
+ * It states only the rules every transport shares. Append exactly one
+ * transport section — `a2uiFencedTransportSection()` for a chat stream,
+ * `a2uiMcpAppTransportSection()` for an MCP App tool — or the agent never
+ * learns how to send envelopes, nor what it may do with a surface it already
+ * sent.
  */
 export function a2uiSystemPrompt(options?: {
   catalogId?: string;
@@ -218,10 +228,8 @@ export function a2uiSystemPrompt(options?: {
     [
       '## Envelopes',
       '',
-      'Emit one JSON envelope per line (JSONL), as COMPACT single-line JSON — never',
-      'pretty-print or wrap one envelope across multiple lines, even a large',
-      'updateComponents. Every envelope is an object with a',
-      '"version" of "v0.9.1" and EXACTLY ONE of these operations:',
+      'Every envelope is an object with a "version" of "v0.9.1" and EXACTLY ONE of',
+      'these operations:',
       '',
       `- createSurface: { surfaceId, catalogId: "${catalogId}" } — send this FIRST.`,
       '- updateComponents: { surfaceId, components: [ ... ] } — the component tree.',
@@ -248,18 +256,6 @@ export function a2uiSystemPrompt(options?: {
     [
       '## Surfaces live on, and you only hear from them when the user acts',
       '',
-      'A surfaceId is unique for as long as the client runs, and a surface stays',
-      'alive and editable after the reply that created it. Send further envelopes',
-      'for the SAME surfaceId later and it updates in place, keeping what the user',
-      'typed. Prefer ONE surface that grows over a chain of near-identical ones.',
-      '',
-      '- updateDataModel to fill in a value you just learned; updateComponents to',
-      '  add or change controls. Re-sending a component id REPLACES it — to append',
-      '  a child, re-send its container with the full children list.',
-      '- Never createSurface twice for one id, and never rebuild an equivalent',
-      "  surface under a new id to change a field: both discard the user's input.",
-      '- deleteSurface when a surface has served its purpose.',
-      '',
       'But you are NOT watching the form. The client speaks to you in exactly one',
       'case: the user activates a control carrying an `action`. Typing, picking a',
       'date, choosing an option — all of it updates the data model LOCALLY and',
@@ -280,10 +276,7 @@ export function a2uiSystemPrompt(options?: {
       '  than rewriting the component for every result.',
       '- Set "sendDataModel": true on createSurface: every action then carries the',
       "  surface's ENTIRE data model, so you see what the user filled in even for",
-      '  fields you left out of context. Prefer it on any form you will act on.',
-      '- If an action arrives with required fields still empty, do NOT carry it',
-      '  out — patch a short message next to the offending field instead. You are',
-      '  the only validator; the client submits whatever it is given.'
+      '  fields you left out of context. Prefer it on any form you will act on.'
     ].join('\n')
   );
 

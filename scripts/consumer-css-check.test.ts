@@ -1,7 +1,16 @@
 import { afterEach, describe, expect, it } from 'bun:test';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { Scanner } from '@tailwindcss/oxide';
 import { auditPackage, emitting, installTree, type Tree } from './consumer-css-check';
 
@@ -15,6 +24,8 @@ import { auditPackage, emitting, installTree, type Tree } from './consumer-css-c
  *
  * Each test packs its own tree (~0.7 s) rather than restoring a shared one;
  * the mutations below are what the tests are about.
+ *
+ * The last block is no control of this gate; its comment says why it lives here.
  */
 
 const trees: Tree[] = [];
@@ -217,5 +228,63 @@ describe('consumer-css-check', () => {
     const t = await installTree(at, unscopedPackages(false));
     expect(t.installed).toEqual([]);
     expect(t.audited).toEqual([]);
+  });
+});
+
+/**
+ * Not a control of the CSS gate: the one check here that runs the shipped
+ * JavaScript. It needs what the gate needs — the packed tarballs, installed —
+ * and this is where that tree is built and CI already runs it after the build.
+ *
+ * A tool handler or a `bun test` suite imports the A2UI engine without the
+ * Svelte compiler, so the subpath must load in plain Bun and Node. The package
+ * root cannot (it evaluates runes modules and `.svelte` files on import), and
+ * the probe has to see that, or a probe that never reached the import would
+ * pass too: same tree, same probe, with `svelte` resolvable, so the root fails
+ * for the Svelte reason and not for a missing package.
+ */
+describe('@urbicon-ui/blocks/a2ui without the Svelte compiler', () => {
+  const PROBE = [
+    'const m = await import(process.argv[2]);',
+    'const prompt = `${m.a2uiSystemPrompt()}\\n\\n${m.a2uiMcpAppTransportSection()}`;',
+    'const issues = m.validateA2uiPayload({ messages: [',
+    "  { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: 'x' } }",
+    ']});',
+    'const payload = new m.A2uiToolInputStabilizer().complete({ messages: [] });',
+    'console.log(JSON.stringify({ prompt: prompt.length, codes: issues.map((i) => i.code), payload }));'
+  ].join('\n');
+  const RUNTIMES = [process.execPath, 'node'];
+
+  function run(t: Tree, runtime: string, specifier: string) {
+    const probe = join(t.dir, 'probe.mjs');
+    writeFileSync(probe, PROBE);
+    const result = Bun.spawnSync([runtime, probe, specifier], { cwd: t.dir });
+    return {
+      code: result.exitCode,
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString()
+    };
+  }
+
+  it('loads and runs the subpath from the tarball; the package root does not load', async () => {
+    const t = await tree();
+
+    // No `svelte` in the tree yet: the subpath imports none of it.
+    for (const runtime of RUNTIMES) {
+      const { code, stdout, stderr } = run(t, runtime, '@urbicon-ui/blocks/a2ui');
+      expect(code, `${runtime}: ${stderr}`).toBe(0);
+      const out = JSON.parse(stdout);
+      expect(out.prompt).toBeGreaterThan(10_000);
+      expect(out.codes).toEqual(['MISSING_ROOT']);
+      expect(out.payload).toEqual([]);
+    }
+
+    const svelte = dirname(createRequire(import.meta.url).resolve('svelte/package.json'));
+    symlinkSync(svelte, join(t.dir, 'node_modules', 'svelte'));
+    for (const runtime of RUNTIMES) {
+      const { code, stderr } = run(t, runtime, '@urbicon-ui/blocks');
+      expect(code, runtime).not.toBe(0);
+      expect(stderr, runtime).toMatch(/\$state is not defined|Unknown file extension "\.svelte"/);
+    }
   });
 });

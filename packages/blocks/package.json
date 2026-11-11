@@ -67,6 +67,12 @@
       "import": "./dist/date/index.js",
       "default": "./dist/date/index.js"
     },
+    "./a2ui": {
+      "types": "./dist/a2ui/index.d.ts",
+      "svelte": "./dist/a2ui/index.js",
+      "import": "./dist/a2ui/index.js",
+      "default": "./dist/a2ui/index.js"
+    },
     "./style/index.css": "./dist/style/index.css",
     "./style/foundation.css": "./dist/style/foundation.css",
     "./style/semantic.css": "./dist/style/semantic.css",

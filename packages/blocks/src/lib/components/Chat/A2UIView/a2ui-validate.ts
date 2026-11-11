@@ -1901,3 +1901,108 @@ export function collectGraphIssues(
   });
   return issues;
 }
+
+// ── Payload-level validation (the view's issue list, without the view) ───────
+
+/**
+ * Apply one envelope. The engine's contract is that a hostile payload becomes
+ * issues, never an exception; when that contract breaks, the exception becomes
+ * an `ENGINE_ERROR` issue instead, so the surfaces that already parsed survive
+ * and the fault lands where every other one is reported.
+ */
+export function applyA2uiEnvelope(
+  processor: A2uiProcessor,
+  envelope: unknown,
+  index: number
+): void {
+  try {
+    processor.apply(envelope, index);
+  } catch (error) {
+    processor.globalIssues.push(
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.ENGINE_ERROR,
+        `The A2UI engine failed on message ${index}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { path: `/messages/${index}` }
+      )
+    );
+    if (import.meta.env?.DEV) console.error('[A2UI] engine error', error);
+  }
+}
+
+/**
+ * Every issue a processor's current state carries, in the order `A2UIView`
+ * hands them to `onValidationError`: the payload-shape issue, the
+ * envelope-level ones, then per surface its own issues and its graph issues.
+ * `streaming` decides the graph issues as in {@link collectGraphIssues}.
+ * A2UIView builds its list with this function.
+ */
+export function collectA2uiIssues(
+  processor: A2uiProcessor,
+  options?: { streaming?: boolean; payloadIssue?: A2uiValidationIssue }
+): A2uiValidationIssue[] {
+  const issues: A2uiValidationIssue[] = [];
+  if (options?.payloadIssue) issues.push(options.payloadIssue);
+  for (const globalIssue of processor.globalIssues) issues.push(globalIssue);
+  for (const surface of processor.surfaces.values()) {
+    for (const surfaceIssue of surface.issues) issues.push(surfaceIssue);
+    for (const graphIssue of collectGraphIssues(surface, { streaming: options?.streaming })) {
+      issues.push(graphIssue);
+    }
+  }
+  return issues;
+}
+
+/** Options for {@link validateA2uiPayload} — `A2UIView`'s validation props, in spec form. */
+export interface A2uiPayloadValidationOptions {
+  /**
+   * The catalogs beyond Basic, as `A2UIView`'s `catalogs` takes them: Basic is
+   * always the first and the fallback. Pass the specs (`urbiconA2uiCatalogSpec`)
+   * where the view gets the wired catalogs (`urbiconA2uiCatalog`).
+   */
+  catalogs?: readonly A2uiCatalogSpec[];
+  /** The view's `dataSchema`. */
+  dataSchema?: A2uiDataSchema;
+  /** The view's `surfaceRequirements`. */
+  surfaceRequirements?: A2uiSurfaceRequirements;
+}
+
+/**
+ * Validate a complete payload the way `A2UIView` does, without a DOM or
+ * Svelte: the issues a view given the same payload and options reports through
+ * `onValidationError` once `streaming` is false, in the same order. A tool
+ * handler runs it on its arguments and answers with an error result when an
+ * error-severity issue is among them, so the agent corrects the surface in the
+ * same turn.
+ *
+ * What only the view can report: issues that read the data model after the
+ * user changed it. When the user's input leaves a template path or an
+ * `options` binding pointing at something that is not a list, the view reports
+ * it on that edit; this function sees the data model as the payload wrote it.
+ *
+ * @example
+ * ```ts
+ * const issues = validateA2uiPayload(args, { catalogs: [urbiconA2uiCatalogSpec] });
+ * const errors = issues.filter((issue) => issue.severity === 'error');
+ * if (errors.length > 0) {
+ *   return { isError: true, content: [{ type: 'text', text: a2uiErrorMessage(errors) }] };
+ * }
+ * ```
+ */
+export function validateA2uiPayload(
+  payload: unknown,
+  options?: A2uiPayloadValidationOptions
+): A2uiValidationIssue[] {
+  const { envelopes, issue: payloadIssue } = normalizeA2uiPayload(payload);
+  const processor = createA2uiProcessor({
+    catalogs: [basicA2uiCatalogSpec, ...(options?.catalogs ?? [])],
+    dataSchema: options?.dataSchema,
+    surfaceRequirements: options?.surfaceRequirements
+  });
+  envelopes.forEach((envelope, index) => {
+    applyA2uiEnvelope(processor, envelope, index);
+  });
+  return collectA2uiIssues(processor, { streaming: false, payloadIssue });
+}
