@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.37.0](https://github.com/urbicon/ui/compare/v8.36.0...v8.37.0) - 2026-11-11
+
+### Breaking Changes
+- **blocks**: Add the MCP-App transport for A2UI and a Svelte-free /a2ui entry ([#594](https://github.com/urbicon/ui/issues/594))
+
 ## [8.36.0](https://github.com/urbicon/ui/compare/v8.35.0...v8.36.0) - 2026-11-03
 
 ### Breaking Changes
