@@ -37,6 +37,7 @@ graph TD
     TB[table<br/><i>data table</i>]
     AU[auth<br/><i>sessions, passkeys, push</i>]
     SKU[sveltekit-utils]
+    MCP[mcp-app<br/><i>MCP-App views</i>]
     DOCS[docs<br/><i>doc-site UI kit</i>]
     DG[docs-gen<br/><i>AST doc generator</i>]
     DE[design-engine<br/><i>linter, manifest, rubric</i>]
@@ -59,7 +60,7 @@ graph TD
     classDef lib fill:#fff3e0,stroke:#c9884a,color:#5c3a10
     classDef tool fill:#f0f0f0,stroke:#999,color:#333
     class ST,I18N found
-    class BL,TB,AU,SKU,DOCS lib
+    class BL,TB,AU,SKU,MCP,DOCS lib
     class DG,DE,DC,DES tool
 ```
 
@@ -73,6 +74,7 @@ graph TD
 | `table`           | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode                                                                                                            | `src/lib/stores/TableStore.svelte.ts` |
 | `auth`            | JWT sessions, refresh rotation, passkeys, Web Push, notifications                                                                                                                                         | `src/lib/server/index.ts`             |
 | `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes). No arrow in the map: nothing peer-depends on it, and its table-view types are a deliberate mirror guarded by a parity test rather than an import | `src/lib/index.ts`                    |
+| `mcp-app`         | MCP-App views: the view's bridge to its host, the server's `ui://` catalog, the wire check against the SDK. No arrow in the map: it depends on no package here, and none on it                            | `src/view/index.ts`                   |
 | `docs`            | Reusable documentation UI components                                                                                                                                                                      | `src/lib/index.ts`                    |
 | `docs-gen`        | AST-based documentation generator (CLI)                                                                                                                                                                   | `src/cli/index.ts`                    |
 | `design-engine`   | Zero-dep design linter, manifest parser, rubric                                                                                                                                                           | `src/linter/index.ts`                 |

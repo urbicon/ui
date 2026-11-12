@@ -1,0 +1,287 @@
+# @urbicon-ui/mcp-app
+
+Building blocks for an MCP server that ships a **view** — an HTML page a host such as Claude
+shows in place of a tool's text result, in an iframe that talks to the host over
+`postMessage` (MCP Apps, `io.modelcontextprotocol/ui`, spec version 2026-01-26).
+
+- **For a hand-written dispatcher.** The package hands out functions and objects your
+  `switch (method)` hooks in. It brings no dispatcher, no HTTP transport and no tool
+  registry.
+- **Zero runtime dependencies, no framework.** The view side runs in any bundler and
+  renders with whatever the app uses; the server side runs on Node and Bun.
+- **Checked against the SDK, not the spec text.** Where the two disagree, hosts validate
+  with the SDK's schemas, and so does this package's own test suite.
+
+## Entry points
+
+| Import                           | Runs in            | Peers                                                                     | What it gives you                                                      |
+| -------------------------------- | ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `@urbicon-ui/mcp-app/server`     | Node, Bun          | —                                                                         | `createViewCatalog`: `_meta.ui` for tools, `resources/*` for the views |
+| `@urbicon-ui/mcp-app/view`       | the view (browser) | —                                                                         | `startView`, the bridge to the host, size and theme                    |
+| `@urbicon-ui/mcp-app/view/tools` | the view (browser) | —                                                                         | `toolCaller` — the one module that sends `tools/call`                  |
+| `@urbicon-ui/mcp-app/testing`    | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it              |
+
+```sh
+bun add @urbicon-ui/mcp-app
+# only for @urbicon-ui/mcp-app/testing
+bun add -d @modelcontextprotocol/ext-apps@1.7.5 @modelcontextprotocol/sdk
+```
+
+The `ext-apps` peer is pinned exactly: `wireProblem` reports that version's schema sentences,
+and Claude's rejection of a malformed `ui/message` is the 1.7.5 sentence word for word.
+
+## Server: the view catalog
+
+One catalog per server. It knows the views, their built HTML and, optionally, the app's
+origin, and it answers what a host asks about them.
+
+<!-- typecheck -->
+
+```ts
+import { createViewCatalog, type Outcome } from '@urbicon-ui/mcp-app/server';
+
+declare const NOTE_HTML: string; // the built view: one self-contained HTML file
+
+export const views = createViewCatalog({
+  server: 'notes',
+  views: {
+    note: {
+      title: 'Note',
+      description: 'One note as a card, with a button to pin it.',
+      csp: { resourceDomains: ['https://images.example.com'] },
+      prefersBorder: true,
+      callsTools: true
+    }
+  },
+  html: (name) => (name === 'note' ? NOTE_HTML : undefined),
+  base: { placeholder: '__NOTES_BASE__', origin: () => process.env.APP_URL ?? '' },
+  unbuiltHint: 'bun run build:views'
+});
+
+export function dispatch(method: string, params: unknown): Outcome {
+  switch (method) {
+    case 'initialize':
+      return {
+        result: {
+          protocolVersion: '2025-06-18',
+          capabilities: { tools: {}, ...views.capabilities },
+          serverInfo: { name: 'notes', version: '1.0.0' }
+        }
+      };
+    case 'tools/list':
+      return {
+        result: {
+          tools: [
+            {
+              name: 'show_note',
+              inputSchema: { type: 'object' },
+              _meta: views.toolMeta({ view: 'note' })
+            },
+            {
+              name: 'pin_note',
+              inputSchema: { type: 'object' },
+              _meta: views.toolMeta({ callableFromView: true })
+            },
+            { name: 'delete_note', inputSchema: { type: 'object' }, _meta: views.toolMeta() }
+          ]
+        }
+      };
+    default:
+      return (
+        views.handle(method, params) ?? {
+          error: { code: -32601, message: `Method not found: ${method}` }
+        }
+      );
+  }
+}
+```
+
+An `Outcome` is `{ result }` or `{ error: { code, message } }`, without the JSON-RPC envelope
+— your dispatcher adds `jsonrpc` and `id`.
+
+What the catalog says on the wire:
+
+| Where                      | What                                                                                                                                                                                           |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialize`               | `views.capabilities` adds `resources: {}`                                                                                                                                                      |
+| `tools/list`               | `toolMeta()` puts `_meta.ui.visibility` on **every** tool — `["model"]`, or `["model", "app"]` with `callableFromView`. With `view`, also `_meta.ui.resourceUri` and the flat `ui/resourceUri` |
+| `resources/list`           | every view, `mimeType: text/html;profile=mcp-app`, `_meta.ui.csp` and `prefersBorder`                                                                                                          |
+| `resources/read`           | the view's HTML, with the app's origin in place of `base.placeholder`                                                                                                                          |
+| `resources/templates/list` | `{ resourceTemplates: [] }`                                                                                                                                                                    |
+| errors                     | `-32602` without a string `uri`, `-32002` for a URI with no view, `-32603` (and a console error) for a view whose `html` returns `undefined`, with `unbuiltHint` appended                      |
+
+`handle()` returns `null` for every other method, so it sits in a `default` branch. The
+pieces are also there one by one — `uri`, `at`, `list`, `read` — for a dispatcher that
+wants its own error sentences.
+
+**Visibility is always explicit.** Without `_meta.ui.visibility` the spec defaults to
+`["model", "app"]`, and every view of the server could call every tool — `delete_note`
+included. A grant (`callableFromView`) holds for every view of the server, not for one;
+which view gets a path to `tools/call` at all is decided in the view
+([`callsTools`](#view-startview)), and `callsTools` itself never reaches the host.
+
+**Both resource keys.** The spec calls the flat `ui/resourceUri` deprecated; the SDK still
+sets it next to `_meta.ui.resourceUri`, and hosts read both.
+
+### Versioned URIs
+
+A view is issued as `ui://<server>/<name>/<version>`, where the version is the first
+twelve hex characters (`VERSION_LENGTH`) of a SHA-256 over the built HTML. A host may
+prefetch and keep a view's HTML, and Claude keeps it past a deploy; a new URI is the only
+thing by which a host notices a new view. The version is derived, so it changes exactly
+when the built file does.
+
+Reading is **tolerant in time and strict in everything else**: the current URI, any older
+version and the bare `ui://<server>/<name>` all read today's HTML, answered under the URI
+that was asked for. A different server, a deleted view, a query, a fragment, `..`, other
+casing or a segment that is not lowercase hex is `-32002`. A view whose `html` returns
+`undefined` is issued without a version, so the same URI reads it once it is built.
+
+The version covers the HTML only. A change to a view's `csp` or `prefersBorder`, or to the
+app's origin, keeps the URI, and a host with a cache keeps the old resource.
+
+### The app's origin in the view
+
+A view often needs the app's own address — for its fonts (the spec's CSP has no `data:` in
+`font-src`) or for a link back into the app — and the build does not know it. With `base`,
+the build writes `base.placeholder` wherever the address goes, and `resources/read`
+replaces it with `base.origin()`. That origin also joins every view's
+`csp.resourceDomains`, so the CSP allows exactly the address the HTML asks for.
+
+The version is hashed before the replacement: `tools/list` never calls `origin()`, and the
+same build has the same URI under every deployment. What `origin()` returns passes
+`plainOrigin`, which throws for anything but `http(s)://host[:port]` — the value lands in
+an attribute and in unquoted CSS `url(…)`, where a quote, a parenthesis, a path or
+credentials would break or leak.
+
+## View: `startView`
+
+The view's entry calls `startView` once. It connects to the host, writes what the host
+sends into a state object of yours, reports the document's height and applies the host's
+theme; your `mount` renders.
+
+<!-- typecheck -->
+
+```ts
+import { startView, type ViewState } from '@urbicon-ui/mcp-app/view';
+import { toolCaller } from '@urbicon-ui/mcp-app/view/tools';
+
+const state: ViewState = {
+  phase: 'connecting',
+  input: null,
+  result: null,
+  problem: null,
+  context: {}
+};
+
+startView({
+  appInfo: { name: 'notes', version: '1.0.0' },
+  appCapabilities: { availableDisplayModes: ['inline'] },
+  state,
+  messages: {
+    cancelled: (reason) => (reason ? `Cancelled: ${reason}` : 'Cancelled.'),
+    hostSilent: 'The host does not answer.',
+    failed: 'That did not work.'
+  },
+  callsTools: true,
+  tools: toolCaller,
+  mount({ state, bridge, tools }) {
+    // Any framework renders here; plain DOM for the sketch. `tools` is typed as
+    // present because callsTools is true.
+    const pin = document.createElement('button');
+    pin.textContent = 'Pin';
+    pin.onclick = async () => {
+      await tools.callTool('pin_note', { id: state.input?.id });
+      await bridge.updateModelContext({ content: [{ type: 'text', text: 'The note is pinned.' }] });
+    };
+    document.body.append(pin);
+  }
+});
+```
+
+`state` can be any object with these five writable fields: a plain object, a class whose
+setters re-render, or a class of Svelte `$state` fields — `startView` only assigns.
+
+| `state.phase` | When                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `connecting`  | until the handshake (`ui/initialize`) stands                                                                              |
+| `waiting`     | after the handshake or the first `tool-input`; `state.input` holds the call's arguments                                   |
+| `ready`       | `tool-result` arrived; `state.result` holds it                                                                            |
+| `failed`      | an error result (`state.problem` is its first text block, or `messages.failed`) — or no handshake (`messages.hostSilent`) |
+| `cancelled`   | `tool-cancelled`; `state.problem` is `messages.cancelled(reason)`                                                         |
+
+`state.context` is the host context, merged across `host-context-changed`. The view's
+words come from `messages`, in the view's language; the package's own sentences (errors,
+logs) are English.
+
+### What a view gets
+
+`mount` receives `{ state, bridge, tools? }`:
+
+- **`bridge` is a `ViewBridge`**, not the bridge: `sendMessage`, `updateModelContext`,
+  `openLink`, `requestDisplayMode`, `log`, `hostContext`, `connected` — each a fixed method
+  name, no free `request`. It is a separate object, so what the type hides is not on it at
+  runtime either; `startView` checks the mounted object with `assertViewReach` and throws if
+  it reaches further.
+- **`tools` exists exactly when `callsTools` is `true`.** `callsTools: true` requires
+  `tools`, `callsTools: false` forbids it — in the type and, loudly, at runtime (`propsFor`).
+
+A tool's `"app"` visibility holds for every view of the server, so the guarantee that a
+view without `callsTools` changes nothing rests on the view, not on the host.
+`@urbicon-ui/mcp-app/view/tools` is a subpath of its own so that an app can forbid that one
+specifier everywhere except in the entry of a view that calls tools; no other module of
+this package writes `tools/call`.
+
+### The bridge underneath
+
+`startView` is built from parts that are exported for an entry of your own:
+
+- `createBridge(transport, options)` — JSON-RPC 2.0 to the host: the handshake
+  (`ui/initialize`, then `ui/notifications/initialized`), requests with a timeout
+  (`DEFAULT_TIMEOUT_MS`), the host's notifications, `ping` and `ui/resource-teardown`
+  answered, and `ui/message` with `content` as an **array** of content blocks — the SDK's
+  form; the spec text shows an object, and Claude rejects it.
+- `windowTransport(window)` — `postMessage` to `window.parent`, and only `window.parent` is
+  heard (checked by `event.source`: a sandboxed view does not know its host's origin).
+- `autoResize(bridge, document, window)` and `createSizeReporter(env)` — the document's
+  height to the host, at most once per frame and only on a real change.
+- `applyTheme(root, context)` — `hostContext.theme` as `color-scheme` on the root, which is
+  what `light-dark()` follows.
+- `readBaseMeta(document, metaName)` — the app's origin from a `<meta>` the server filled
+  in (see [`base`](#the-apps-origin-in-the-view)), or `null` when it was not replaced.
+- `problemOf(result, fallback)` — the first text block of an error result.
+
+**Errors are loud.** A host's error answer rejects with a `BridgeError` (`code`, `data`, and
+`reason` — the host's sentence alone, fit to show). An answer to an unknown id, a malformed
+message, a throwing handler and a transport that throws go to `onError`; under `startView`
+that is the console plus `notifications/message` to the host, and your `onError` in addition.
+Only what is not JSON-RPC at all is ignored — extensions and developer tools use
+`postMessage` too.
+
+## Testing: `wireProblem`
+
+`wireProblem(message, answers?)` returns what a host would object to in a JSON-RPC message
+— a sentence — or `null` when it passes. It looks the method up among the request,
+notification and result schemas of `@modelcontextprotocol/ext-apps` and the MCP SDK; for an
+answer, `answers` names the method of the request it answers.
+
+<!-- typecheck -->
+
+```ts
+import { wireProblem } from '@urbicon-ui/mcp-app/testing';
+
+const objectForm = {
+  jsonrpc: '2.0',
+  id: 1,
+  method: 'ui/message',
+  params: { role: 'user', content: { type: 'text', text: 'Pin it.' } }
+};
+
+wireProblem(objectForm);
+// → 'Invalid params for ui/message: content: Invalid input: expected array, received object'
+wireProblem({ jsonrpc: '2.0', id: 1, result: {} }, 'ping');
+// → null
+```
+
+Run it over every message a view sends in a test — this package does so for every message
+its bridge can send. A method no schema knows is a finding, not a pass.

@@ -13,6 +13,7 @@
 export const RELEASE_PACKAGES = [
   'packages/shared-types',
   'packages/sveltekit-utils',
+  'packages/mcp-app',
   'packages/design-engine',
   'packages/design-content',
   'packages/design',

@@ -82,6 +82,10 @@ and a link to that place, and in these reference docs the owning section says so
 
 - [AUTH.md](AUTH.md) — `@urbicon-ui/auth`: architecture, exports, consumer integration, known-limitations catalog _(shipped in the auth tarball)_
 
+## MCP Apps
+
+- [packages/mcp-app/README.md](../packages/mcp-app/README.md) — `@urbicon-ui/mcp-app`: serving an MCP-App view from a hand-written dispatcher — the `ui://` view catalog, the view's bridge to its host, the wire check against the SDK schemas _(the package README)_
+
 ## Project tracking
 
 - [technical-debt.md](technical-debt.md) — pointer: open findings live as GitHub issues (`debt:*` labels) since 2026-07-31; the file keeps the entry format
