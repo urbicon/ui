@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 #
 # Registers this repository's release workflow as the trusted publisher for
-# every package, so the thirteen do not have to be clicked through one at a
-# time on npmjs.com.
+# the packages in RELEASE_PACKAGES, so they do not have to be clicked through
+# one at a time on npmjs.com.
 #
 # Run it yourself — it needs your npm login, which CI does not have and should
 # not have:
 #
-#   bash scripts/trust-publishers.sh            # show what it would do
-#   APPLY=1 bash scripts/trust-publishers.sh    # actually configure
+#   bash scripts/trust-publishers.sh                          # show what it would do
+#   ONLY=@urbicon-ui/<name> APPLY=1 bash scripts/trust-publishers.sh   # one new package
+#   APPLY=1 bash scripts/trust-publishers.sh                  # every package
+#
+# Every write asks for a browser confirmation, so `ONLY` (comma-separated
+# names) is the normal call once the older packages are set up. A package that
+# already has a trusted publisher answers `409 Conflict`; that is counted as
+# already set, not as a failure. There is no read-before-write: `npm trust list`
+# asks for a one-time password too (npm 11.20.0, EOTP), so it saves nothing.
 #
 # Prerequisites, all on your machine:
 #   - npm >= 11.15.0 (`npm trust` does not exist below that). This script uses
@@ -27,6 +34,7 @@ cd "$(dirname "$0")/.."
 REPO="${REPO:-urbicon/ui}"
 WORKFLOW="${WORKFLOW:-release.yml}"
 APPLY="${APPLY:-}"
+ONLY="${ONLY:-}"
 
 # Prefer the installed npm when it is new enough. `npx npm@latest` was the
 # fallback for older setups, but it pulls whatever is newest — which warned
@@ -58,39 +66,55 @@ echo
 configured=0
 skipped=0
 missing=0
+selected=0
+err="$(mktemp)"
+trap 'rm -f "$err"' EXIT
 
 for dir in "${PACKAGES[@]}"; do
   name=$(node -p "require('./$dir/package.json').name")
+  if [ -n "$ONLY" ] && [[ ",$ONLY," != *",$name,"* ]]; then
+    continue
+  fi
+  selected=$((selected + 1))
 
   # `npm view` is the cheapest existence check, and the one npm itself will
-  # apply a moment later.
+  # apply a moment later. A first publish takes a few minutes to show up here.
   if ! npm view "$name" version >/dev/null 2>&1; then
     echo "··  $name — not on the registry yet, skipping (publish it once first)"
     missing=$((missing + 1))
     continue
   fi
 
-  # Ask before writing: npm answers a re-registration of the same repo/workflow
-  # with `409 Conflict`, not by restating it, so without this check `set -e` ends
-  # the run at the first package that is already configured. The read costs
-  # nothing extra — `npm trust list` takes no one-time password, the write does.
-  if $NPM trust list "$name" 2>/dev/null | grep -q "$REPO"; then
-    echo "··  $name — already trusts $REPO"
-    skipped=$((skipped + 1))
+  if [ -z "$APPLY" ]; then
+    echo "→   $name — would trust $REPO ($WORKFLOW), unless it already does"
+    configured=$((configured + 1))
     continue
   fi
 
   # `--allow-publish` is not optional despite the docs listing it in brackets:
   # npm rejects the call with "At least one permission flag is required". It is
   # the one we want — `--allow-stage-publish` grants staged publishes only.
-  if [ -z "$APPLY" ]; then
-    echo "→   $name — would trust $REPO ($WORKFLOW)"
+  #
+  # stderr goes through tee so the 409 can be read afterwards; stdout stays on
+  # the terminal for npm's confirmation prompt. pipefail makes the pipeline
+  # report npm's status, not tee's.
+  echo "==> $name"
+  : >"$err"
+  if { $NPM trust github "$name" --repo "$REPO" --file "$WORKFLOW" --allow-publish 2>&1 1>&3 | tee "$err" >&2; } 3>&1; then
+    configured=$((configured + 1))
+  elif grep -q 'E409' "$err"; then
+    echo "··  $name — already has a trusted publisher (409), left as it is"
+    skipped=$((skipped + 1))
   else
-    echo "==> $name"
-    $NPM trust github "$name" --repo "$REPO" --file "$WORKFLOW" --allow-publish
+    echo "✗   $name — npm trust failed, see above" >&2
+    exit 1
   fi
-  configured=$((configured + 1))
 done
+
+if [ -n "$ONLY" ] && [ "$selected" -eq 0 ]; then
+  echo "✗   ONLY=$ONLY names no package in RELEASE_PACKAGES" >&2
+  exit 1
+fi
 
 echo
 if [ -n "$APPLY" ]; then verb="configured"; else verb="would configure"; fi
