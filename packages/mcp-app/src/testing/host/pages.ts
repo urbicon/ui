@@ -139,10 +139,10 @@ async function viewRequest(message) {
         return no(-32000, (params?.name ?? '?') + ' is not granted to views (visibility ' + JSON.stringify(visibility) + ')');
       }
       // An error to order — for a scenario that checks how the view shows one.
-      const fail = state.failNext.indexOf(params.name);
+      const fail = state.failNext.findIndex((f) => f.name === params.name);
       if (fail >= 0) {
-        state.failNext.splice(fail, 1);
-        return no(-32000, 'The test host dropped this call on purpose.');
+        const [{ message }] = state.failNext.splice(fail, 1);
+        return no(-32000, message);
       }
       // As the server answered: a JSON-RPC error goes to the view as an error, with its code and sentence.
       const answer = await rpcRaw('tools/call', params);
@@ -226,7 +226,7 @@ window.__host = {
     // Spec: the host sends nothing before initialized.
     if (state.initialized) post({ jsonrpc: '2.0', method: 'ui/notifications/host-context-changed', params: { theme } });
   },
-  failNext(name) { state.failNext.push(name); },
+  failNext(name, message) { state.failNext.push({ name, message }); },
   // Redraw from history (flow: 'scripted'): the host has arguments and result
   // already, and both reach the view in the same tick — no latch.
   async replay() {

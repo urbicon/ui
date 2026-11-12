@@ -37,12 +37,14 @@
  *
  * **Tailwind reads the view's script, not the libraries** (`tailwind`). A
  * component library's CSS brings `@source` for its whole package. The build
- * therefore runs twice: the first pass writes each view's script, unminified,
- * into a fresh temporary directory; the second excludes the libraries
- * (`@source not`) and lets Tailwind read exactly that script — what Rolldown
- * put into the view after tree-shaking, every class of every component it
- * uses, and no list beside it. Each view reads only its own script: read
- * across all of them, a view would carry every other view's classes.
+ * therefore runs twice: the first pass writes each view's script, unminified
+ * and without the code's comments (Rolldown's module-path lines stay), into a
+ * fresh temporary directory; the second excludes
+ * the libraries (`@source not`) and lets Tailwind read exactly that script —
+ * what Rolldown put into the view after tree-shaking, every class of every
+ * component it uses, and no list beside it. Each view reads only its own
+ * script: read across all of them, a view would carry every other view's
+ * classes.
  */
 import {
   existsSync,
@@ -438,11 +440,11 @@ function baseMeta(name: string, placeholder: string): Plugin {
 
 /**
  * The Vite config of one pass for one view. `scan` is the first of the two
- * Tailwind passes: the script unminified as `<scanDir>/<view>.js`, nothing
- * inlined — its CSS is thrown away; the view pass has Tailwind read that
- * script. With `options.tailwind` both passes need `scanDir`, an existing
- * directory of the loop's own: `buildViews` makes a fresh temporary one and
- * removes it afterwards.
+ * Tailwind passes: the script unminified and without the code's comments as
+ * `<scanDir>/<view>.js`, nothing inlined — its CSS is thrown away; the view
+ * pass has Tailwind read that script. With `options.tailwind` both passes
+ * need `scanDir`, an existing directory of the loop's own: `buildViews` makes
+ * a fresh temporary one and removes it afterwards.
  */
 export function viewConfig(
   view: string,
@@ -503,6 +505,10 @@ export function viewConfig(
         input: { [view]: join(paths.root, `${view}.html`) },
         output: {
           codeSplitting: false,
+          // Unminified, Vite keeps JSDoc, legal and annotation comments, and
+          // Tailwind takes each word of them that names a utility: a comment
+          // edit in a bundled library would change the CSS and the view's URI.
+          ...(scan ? { comments: false } : {}),
           entryFileNames: scan ? `[name]${SCAN_EXTENSION}` : 'assets/[name]-[hash].js',
           hashCharacters: 'hex',
           // The content in the name: the app may serve the fonts as immutable.

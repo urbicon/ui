@@ -11,6 +11,7 @@ export {
 export { buildCsp, type HostCsp } from './csp.ts';
 export {
   type Endpoint,
+  FAIL_NEXT_MESSAGE,
   HOST_STYLES,
   type HostCheck,
   type HostState,
