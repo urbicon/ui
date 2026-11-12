@@ -221,7 +221,8 @@ export function createViewCatalog<N extends string>(
   /**
    * `answer` with the app's origin, checked once per answer — `undefined`
    * without `base`. An origin that throws or fails {@link plainOrigin} is
-   * `-32603`, not a throw: `handle()` answers every method it takes.
+   * `-32603`, not a throw. Only the origin is caught: an `html()` that throws
+   * stays a throw, so its cause is not reported as the origin's.
    */
   function withOrigin(answer: (origin: string | undefined) => Outcome): Outcome {
     let origin: string | undefined;

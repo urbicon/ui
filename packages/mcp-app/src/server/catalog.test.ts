@@ -164,7 +164,7 @@ describe('the version comes from the built HTML', () => {
     expect(NOTE_URI).toMatch(new RegExp(`^ui://notes/note/[0-9a-f]{${VERSION_LENGTH}}$`));
   });
 
-  test('tools/list does not ask for the origin — a broken one breaks only the read', () => {
+  test('tools/list does not ask for the origin — a broken one leaves it answering', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const origin = vi.fn((): string => {
       throw new Error('APP_URL is not set');
@@ -465,8 +465,9 @@ describe('plainOrigin — the app’s origin, and only an origin', () => {
 });
 
 /**
- * `handle()` answers `Outcome | null` for every method — also when the app's
- * origin is broken. The README's catalog without `APP_URL` is the first case.
+ * A broken origin is an `Outcome`, not a throw, for every method that needs it.
+ * The README's catalog without `APP_URL` is the first case. An `html()` that
+ * throws is not caught: its cause must not be reported as the origin's.
  */
 describe('a broken origin is an answer, not a throw', () => {
   const BROKEN: [group: string, origin: () => string, logged: string][] = [
@@ -515,6 +516,19 @@ describe('a broken origin is an answer, not a throw', () => {
       expect(catalog.toolMeta({ view: 'note' }).ui).toMatchObject({ resourceUri: NOTE_URI });
     }
   );
+
+  test('an html() that throws stays a throw, with its own cause', () => {
+    const catalog = createViewCatalog<Name>({
+      server: 'notes',
+      views: VIEWS,
+      html: () => {
+        throw new Error('dist missing');
+      },
+      base: { placeholder: PLACEHOLDER, origin: () => 'https://notes.example' }
+    });
+    expect(() => catalog.handle('resources/list', {})).toThrow('dist missing');
+    expect(() => catalog.handle('resources/read', { uri: NOTE_URI })).toThrow('dist missing');
+  });
 
   test('the error on the wire passes the SDK’s schema and carries no value of origin()', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
