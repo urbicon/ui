@@ -27,6 +27,11 @@ export const RELEASE_PACKAGES = [
   // edge npm cannot see (community add-ons must not declare `dependencies`), so
   // this ordering is the only thing keeping the topological invariant.
   'packages/sv',
+  // mcp-app just before urbicon: no @urbicon-ui edge in either direction. A tag
+  // before its first publish by hand (release-bump skill) fails here — with
+  // everything above already out and urbicon not, which deploy.yml reads as
+  // "not published"; publish-tarballs.mjs skips what is out on the re-run.
+  'packages/mcp-app',
   // urbicon LAST: it depends only on design and nothing depends on it, and a
   // name's first publish has no trusted publisher (OIDC cannot create one), so
   // a failure here must be the last thing in the run — publish-tarballs.mjs

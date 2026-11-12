@@ -1,0 +1,74 @@
+{
+  "name": "@urbicon-ui/mcp-app",
+  "version": "8.37.0",
+  "description": "Building blocks for serving and testing an MCP-App view — the view's bridge to the host, the server's ui:// resource catalog and the wire check against the MCP SDK schemas. No runtime dependencies, no Svelte.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urbicon/ui.git",
+    "directory": "packages/mcp-app"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://github.com/urbicon/ui/issues",
+  "keywords": [
+    "mcp",
+    "mcp-apps",
+    "model-context-protocol",
+    "json-rpc",
+    "urbicon-ui"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./view": {
+      "types": "./dist/view/index.d.ts",
+      "default": "./dist/view/index.js"
+    },
+    "./view/tools": {
+      "types": "./dist/view/tools.d.ts",
+      "default": "./dist/view/tools.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "fmt": "bun ../../scripts/fmt.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "bunx --bun vitest run",
+    "test:watch": "bunx --bun vitest"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/ext-apps": {
+      "optional": true
+    },
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "author": "Urbicon UI Team"
+}
