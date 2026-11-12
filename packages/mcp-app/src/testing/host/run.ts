@@ -202,7 +202,12 @@ export async function versionReport(options: {
       unversioned: unversioned?.length
     })
   );
-  const unknownUri = `${options.uri.replace(/[^/]+$/, 'no-such-view')}/${version}`;
+  // The last segment swapped by `lastIndexOf`: `/[^/]+$/` backtracks
+  // quadratically on a long run of other characters that a slash ends.
+  const cut = options.uri.lastIndexOf('/');
+  const unknownView =
+    cut === options.uri.length - 1 ? options.uri : `${options.uri.slice(0, cut + 1)}no-such-view`;
+  const unknownUri = `${unknownView}/${version}`;
   const unknown = await mcpRequest(endpoint, 'resources/read', { uri: unknownUri });
   check(
     'version-unknown',

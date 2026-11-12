@@ -341,16 +341,24 @@ Svelte, an alias — comes in `plugins`. What the build holds to:
   view uses: the build fails when the finished CSS has no rule for it.
 - `base.meta` puts `<meta name="<meta>" content="<placeholder>">` into every view, for
   `readBaseMeta`.
-- **In `outDir` the build removes only what it writes**, recognised by name: before it
-  builds, each `<view>.html`, and in `fonts/` the files named as it names a font —
-  `<name>-<hash>.<ext>`, the hash eight characters. A symbolic link at one of those
-  places, and an `outDir` that is `root`, stop the build before it removes anything.
-  Vite's `public/` is not copied (`publicDir: false`).
+- **Nothing may still point at a file.** The build stops on a relative `src` or `href` in
+  the HTML, on any file but a font left beside it, and on a `url()` in the CSS unless it is
+  `data:`, an absolute URL, a fragment, a font as the build names it, or under
+  `base.placeholder`. Vite leaves a `url()` it cannot resolve as written and only warns.
+- **In `outDir` the build removes only what it wrote.** It keeps a list there,
+  `.mcp-app-build.json` — each view's HTML and fonts. After a successful build it removes
+  what the previous list names and this build did not write again: nothing without a list,
+  nothing after a failed build, `fonts/` only when the build made it and it is empty. It
+  writes over no file the list does not name: a `<view>.html` another build left in
+  `outDir` stops it until you remove that file. A symbolic link where it would write or
+  remove, a file it would write over or remove that is one of its sources, and an
+  `outDir` that is `root` stop it too, before it does. Vite's `public/` is not copied
+  (`publicDir: false`).
 
 `viewConfig(view, options, mode, scanDir)` is the Vite config of a single pass, for a
 build loop of your own — with `tailwind`, both passes need `scanDir`, an existing
-directory for the scan pass's scripts. `inlineIntoHtml` is the plugin that does the
-inlining and its checks.
+directory for the scan pass's scripts. Such a loop keeps no list and removes nothing.
+`inlineIntoHtml` is the plugin that does the inlining and its checks.
 
 ## Testing: `wireProblem`
 
@@ -514,12 +522,12 @@ by its signature (`takeLines`, the request's id), and nothing else does.
 `versionReport` checks the view's URI without a browser; the version is the SHA-256 of the
 built `html` you pass, computed by the host and not by the catalog. Its checks:
 
-| `id`                    | What fails it                                                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `version-uri`           | the tool (either key) or `resources/list` names another URI than `<uri>/<version>`, or `resources/list` a second one of the view |
-| `version-without-view`  | the `withoutView` tool is missing or carries a URI                                                                               |
-| `version-read-tolerant` | `resources/read` of the version, a foreign version and the bare URI does not return the same HTML                                |
-| `version-unknown`       | a view name the server does not know is not answered with `-32002`                                                               |
+| `id`                    | What fails it                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `version-uri`           | the tool lacks either key or names another URI than `<uri>/<version>`, or the view's URIs in `resources/list` are not exactly that one |
+| `version-without-view`  | the `withoutView` tool is missing or carries a URI                                                                                     |
+| `version-read-tolerant` | `resources/read` of the version, a foreign version and the bare URI does not return the same HTML                                      |
+| `version-unknown`       | a view name the server does not know is not answered with `-32002`                                                                     |
 
 The pieces are exported one by one — `openHost`, `checkSize`, `checkHostVariables`,
 `checkTheme`, `probeVisibility`, `probeOracle`, `probeRpc`, `closingChecks` — for a run in

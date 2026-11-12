@@ -6,7 +6,10 @@
  * on an origin of its own. Anything the view loaded from elsewhere would need
  * the CSP's permission and — for a module script, a `crossorigin` stylesheet
  * and every font — a CORS answer from the app. So the script and the CSS go
- * into the HTML, and the build fails when anything still points at a file.
+ * into the HTML, and the build fails when anything still points at a file: a
+ * relative `src` or `href` in the HTML, any file but a font left beside it,
+ * and a `url()` in the CSS unless it is `data:`, an absolute URL, a fragment,
+ * a font as the build names it, or under `base.placeholder`.
  *
  * No plugin for the single file: `codeSplitting: false` makes one chunk of the
  * view, and `inlineIntoHtml` moves it and the CSS into the HTML. A dynamic
@@ -52,10 +55,11 @@ import {
   rmdirSync,
   rmSync,
   type Stats,
-  statSync
+  statSync,
+  writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { basename, isAbsolute, join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { build, type InlineConfig, type Plugin, type PluginOption } from 'vite';
 
@@ -69,11 +73,14 @@ export interface ViewBuildOptions {
   /** The directory holding one `<view>.html` per view — Vite's `root`. */
   root: string;
   /**
-   * Where `<view>.html` and `fonts/` land. Before it builds, the build removes
-   * there only what it writes, recognised by name: each `<view>.html`, and in
-   * `fonts/` the files named as it names a font, `<name>-<hash>.<ext>` with a
-   * hash of eight characters. A symbolic link at one of those places, and an
-   * `outDir` that is `root`, stop the build before it removes anything. Vite's
+   * Where `<view>.html` and `fonts/` land, and `.mcp-app-build.json`, the
+   * list of what the build wrote there. After a successful build it removes
+   * what the previous list names and this build did not write again —
+   * nothing else, nothing without a list, nothing after a failed build;
+   * `fonts/` only when the build made it and it is empty. It writes over no
+   * file the list does not name. Such a file, a symbolic link where it would
+   * write or remove, a file it would write over or remove that is one of its
+   * sources, and an `outDir` that is `root` stop it before it does. Vite's
    * `public/` is not copied.
    */
   outDir: string;
@@ -130,10 +137,12 @@ const FONT_DIR = 'fonts';
  */
 const FONT_PREFIX = `${FONT_DIR}/`;
 const FONT_FILE = /\.(?:woff2?|ttf|otf)$/;
-/** The hash in a font's name — one place for the name the build gives and the one it removes. */
-const FONT_HASH = 8;
-/** A font as `assetFileNames` names it; every hash alphabet of Rolldown is within `[\w-]`. */
-const OWN_FONT = new RegExp(`^[^/]+-[\\w-]{${FONT_HASH}}${FONT_FILE.source}`);
+/**
+ * The list of what the build wrote into `outDir`, at its top — not in
+ * `fonts/`, which the app serves.
+ */
+const MANIFEST = '.mcp-app-build.json';
+const BUILT_BY = '@urbicon-ui/mcp-app/vite';
 
 /**
  * A placeholder Vite replaces while building (`__VITE_PRELOAD__`,
@@ -149,6 +158,9 @@ const SCRIPT_TAG = /<script type="module" crossorigin src="([^"]+)"><\/script>/g
 const STYLE_TAG = /<link rel="stylesheet" crossorigin href="([^"]+)">/g;
 const ANY_REFERENCE = /(?:src|href)="\.\/[^"]+"/;
 const RELATIVE = /^\.\//;
+/** A scheme: `data:`, `https:` — a URL that names no file of the build. */
+const SCHEME = /^[a-z][a-z\d+.-]*:/i;
+const IDENTIFIER = /[\w-]/;
 
 interface Paths {
   root: string;
@@ -163,18 +175,20 @@ function existing(path: string, what: string): string {
   return realpathSync(path);
 }
 
-/** One file or directory under two names — by device and inode, which no spelling of a path changes. */
-function sameFile(a: string, b: string): boolean {
-  const x = statSync(a, { bigint: true });
-  const y = statSync(b, { bigint: true });
-  return x.dev === y.dev && x.ino === y.ino;
+/**
+ * A file or directory by device and inode, which no spelling of a path
+ * changes — `undefined` where nothing is.
+ */
+function identity(path: string): string | undefined {
+  const stat = statSync(path, { bigint: true, throwIfNoEntry: false });
+  return stat ? `${stat.dev}:${stat.ino}` : undefined;
 }
 
 function pathsOf(options: ViewBuildOptions): Paths {
   const root = existing(resolve(options.root), 'root');
   const outDir = resolve(options.outDir);
   mkdirSync(outDir, { recursive: true });
-  if (sameFile(outDir, root)) {
+  if (identity(outDir) === identity(root)) {
     throw new Error(`outDir is root (${root}): each view would be written over its own source.`);
   }
   return {
@@ -211,6 +225,55 @@ function checkOptions(options: ViewBuildOptions): void {
   }
 }
 
+/**
+ * The argument of each `url(…)` in a CSS text, unquoted. Strings and comments
+ * are skipped — a `url(` in `content: "…"` names nothing — and every step
+ * moves forward, so the time stays linear in the length.
+ */
+function cssUrls(css: string): string[] {
+  const urls: string[] = [];
+  const afterString = (at: number): number => {
+    let i = at + 1;
+    while (i < css.length && css[i] !== css[at]) i += css[i] === '\\' ? 2 : 1;
+    return i + 1;
+  };
+  let i = 0;
+  while (i < css.length) {
+    const c = css[i];
+    if (c === '"' || c === "'") {
+      i = afterString(i);
+    } else if (c === '/' && css[i + 1] === '*') {
+      const end = css.indexOf('*/', i + 2);
+      i = end === -1 ? css.length : end + 2;
+    } else if (css.slice(i, i + 4).toLowerCase() === 'url(' && !IDENTIFIER.test(css[i - 1] ?? '')) {
+      let start = i + 4;
+      while (css[start] === ' ' || css[start] === '\t' || css[start] === '\n') start += 1;
+      if (css[start] === '"' || css[start] === "'") {
+        i = afterString(start);
+        urls.push(css.slice(start + 1, i - 1));
+      } else {
+        const close = css.indexOf(')', start);
+        i = close === -1 ? css.length : close + 1;
+        urls.push(css.slice(start, close === -1 ? css.length : close).trim());
+      }
+    } else {
+      i += 1;
+    }
+  }
+  return urls;
+}
+
+/**
+ * A `url()` that names a file: in the host's sandbox it resolves against the
+ * sandbox's origin, where nothing of the app is. Not one: `data:`, an
+ * absolute URL, `//host`, a fragment (`url(#clip)`, the document itself) and
+ * a URL under the placeholder, which `createViewCatalog` replaces.
+ */
+function pointsAtFile(url: string, placeholder: string | undefined): boolean {
+  if (SCHEME.test(url) || url.startsWith('//') || url.startsWith('#')) return false;
+  return placeholder === undefined || !url.startsWith(placeholder);
+}
+
 /** A class as it stands in a CSS selector — Tailwind escapes everything but `[\w-]`. */
 function selectorOf(className: string): RegExp {
   const escaped = className.replace(/[^\w-]/g, (c) => `\\${c}`);
@@ -219,13 +282,17 @@ function selectorOf(className: string): RegExp {
 
 /**
  * Script and CSS into the HTML — and **loud** when anything still points at a
- * file, a placeholder of Vite stands in the script, a font is not named under
- * the app's origin, or the CSS lacks the witness class: each of those views
- * would break only in the host.
+ * file (a relative `src` or `href`, a `url()` of the CSS that names a file,
+ * any file but a font left in the bundle), a placeholder of Vite stands in the
+ * script, a font is not named under the app's origin, or the CSS lacks the
+ * witness class: each of those views would break only in the host. A
+ * `url()` may name a font as `fontUrl` names it, and any file under
+ * `placeholder` — `base.placeholder`, which the catalog replaces.
  */
 export function inlineIntoHtml(options: {
   fontUrl?: (fileName: string) => string;
   witness?: string;
+  placeholder?: string;
 }): Plugin {
   const witness = options.witness === undefined ? undefined : selectorOf(options.witness);
   return {
@@ -239,10 +306,15 @@ export function inlineIntoHtml(options: {
       order: 'post',
       handler(_options, bundle): void {
         const file = (ref: string): string => ref.replace(RELATIVE, '');
+        // Rolldown up to 1.2.8 keeps a deleted entry in `Object.keys`, `in` and
+        // a lookup within the same hook (fixed in 1.2.9, rolldown#10815), though
+        // it no longer writes it — so what is inlined is counted here.
+        const inlined = new Set<string>();
         for (const asset of Object.values(bundle)) {
           if (asset.type !== 'asset' || !asset.fileName.endsWith('.html')) continue;
           let html = String(asset.source);
           let styled = false;
+          const styles: string[] = [];
           html = html.replace(SCRIPT_TAG, (_tag, ref: string) => {
             const chunk = bundle[file(ref)];
             if (chunk?.type !== 'chunk') throw new Error(`${asset.fileName}: no chunk for ${ref}.`);
@@ -253,6 +325,7 @@ export function inlineIntoHtml(options: {
               );
             }
             delete bundle[file(ref)];
+            inlined.add(file(ref));
             return `<script type="module">${chunk.code.replace(SCRIPT_CLOSE, '<\\/script')}</script>`;
           });
           html = html.replace(STYLE_TAG, (_tag, ref: string) => {
@@ -266,7 +339,9 @@ export function inlineIntoHtml(options: {
               );
             }
             styled = true;
+            styles.push(source);
             delete bundle[file(ref)];
+            inlined.add(file(ref));
             return `<style>${source.replace(STYLE_CLOSE, '<\\/style')}</style>`;
           });
           if (witness && !styled) {
@@ -279,14 +354,23 @@ export function inlineIntoHtml(options: {
           }
           // Every font that stays must be named under the app's origin in the
           // CSS — a relative one would stand in the sandbox without its file.
+          const fontUrls = new Set<string>();
           for (const name of Object.keys(bundle)) {
             if (!name.startsWith(FONT_PREFIX)) continue;
             if (!options.fontUrl) {
               throw new Error(`${asset.fileName}: ${name} is a font, and fonts need base.fonts.`);
             }
-            if (!html.includes(options.fontUrl(name))) {
+            const url = options.fontUrl(name);
+            if (!html.includes(url)) {
+              throw new Error(`${asset.fileName}: ${name} is not named ${url} in the CSS.`);
+            }
+            fontUrls.add(url);
+          }
+          for (const url of styles.flatMap(cssUrls)) {
+            if (!fontUrls.has(url) && pointsAtFile(url, options.placeholder)) {
               throw new Error(
-                `${asset.fileName}: ${name} is not named ${options.fontUrl(name)} in the CSS.`
+                `${asset.fileName}: the CSS still points at a file, url(${url}) — in the host’s sandbox ` +
+                  'that names nothing of the app. Embed it, or name it under base.placeholder.'
               );
             }
           }
@@ -294,7 +378,9 @@ export function inlineIntoHtml(options: {
         }
         const left = Object.keys(bundle).filter(
           (name) =>
-            !name.endsWith('.html') && !(name.startsWith(FONT_PREFIX) && FONT_FILE.test(name))
+            !inlined.has(name) &&
+            !name.endsWith('.html') &&
+            !(name.startsWith(FONT_PREFIX) && FONT_FILE.test(name))
         );
         if (left.length > 0) throw new Error(`Not inlined: ${left.join(', ')}.`);
       }
@@ -389,7 +475,9 @@ export function viewConfig(
         : []),
       ...(options.plugins ?? []),
       ...(base?.meta ? [baseMeta(base.meta, base.placeholder)] : []),
-      ...(scan ? [] : [inlineIntoHtml({ fontUrl, witness: tailwind?.witness })])
+      ...(scan
+        ? []
+        : [inlineIntoHtml({ fontUrl, witness: tailwind?.witness, placeholder: base?.placeholder })])
     ],
     experimental: {
       renderBuiltUrl: (fileName, { hostType }) =>
@@ -412,10 +500,11 @@ export function viewConfig(
         output: {
           codeSplitting: false,
           entryFileNames: scan ? `[name]${SCAN_EXTENSION}` : 'assets/[name]-[hash].js',
+          hashCharacters: 'hex',
           // The content in the name: the app may serve the fonts as immutable.
           assetFileNames: (asset) =>
             asset.names.some((name) => FONT_FILE.test(name))
-              ? `${FONT_PREFIX}[name]-[hash:${FONT_HASH}][extname]`
+              ? `${FONT_PREFIX}[name]-[hash:8][extname]`
               : 'assets/[name]-[hash][extname]'
         }
       }
@@ -428,62 +517,211 @@ function entry(path: string): Stats | undefined {
   return lstatSync(path, { throwIfNoEntry: false });
 }
 
-/**
- * What an earlier build left in `outDir` that this one replaces: each
- * `<view>.html`, and in `fonts/` the files named as this build names a font.
- * A symbolic link at any of those places stops the build — what lies behind
- * it is not the build's.
- */
-function staleOutputs(outDir: string, views: readonly string[]): string[] {
-  const found: string[] = [];
-  const own = (path: string): void => {
-    const stat = entry(path);
-    if (!stat) return;
-    if (stat.isSymbolicLink()) {
-      throw new Error(
-        `${path} is a symbolic link; the build replaces only files of its own there.`
-      );
-    }
-    if (!stat.isFile()) throw new Error(`${path} is no file; the build replaces only files there.`);
-    found.push(path);
-  };
-  for (const view of views) own(join(outDir, `${view}.html`));
-  const fontDir = join(outDir, FONT_DIR);
-  const dir = entry(fontDir);
-  if (dir?.isSymbolicLink()) {
+interface Manifest {
+  builtBy: typeof BUILT_BY;
+  /** Per view, the files the build wrote for it, relative to `outDir`. */
+  views: Record<string, string[]>;
+  /** The directories of `outDir` the build made — removed once they are empty. */
+  directories: string[];
+}
+
+/** A path the build writes: `<view>.html`, or a font directly in `fonts/` — no way out of `outDir`. */
+function ownPath(name: string): boolean {
+  if (name.endsWith('.html')) return NAME.test(name.slice(0, -'.html'.length));
+  const file = name.slice(FONT_PREFIX.length);
+  return (
+    name.startsWith(FONT_PREFIX) &&
+    !file.includes('/') &&
+    !file.includes('\\') &&
+    FONT_FILE.test(file)
+  );
+}
+
+function isManifest(value: unknown): value is Manifest {
+  if (typeof value !== 'object' || value === null) return false;
+  const { builtBy, views, directories } = value as Partial<Record<keyof Manifest, unknown>>;
+  return (
+    builtBy === BUILT_BY &&
+    Array.isArray(directories) &&
+    directories.every((dir) => dir === FONT_DIR) &&
+    typeof views === 'object' &&
+    views !== null &&
+    !Array.isArray(views) &&
+    Object.entries(views).every(
+      ([view, files]) =>
+        NAME.test(view) &&
+        Array.isArray(files) &&
+        files.every((file) => typeof file === 'string' && ownPath(file))
+    )
+  );
+}
+
+/** The previous build's list — `undefined` without one; loud when the file is not such a list. */
+function readManifest(outDir: string): Manifest | undefined {
+  const path = join(outDir, MANIFEST);
+  const stat = entry(path);
+  if (!stat) return undefined;
+  const refuse = (why: string, cause?: unknown): Error =>
+    new Error(
+      `${path} ${why}: no other list says what the build may write over or remove. ` +
+        'Remove it, and the next build starts a new list, removing nothing.',
+      { cause }
+    );
+  if (!stat.isFile()) throw refuse(stat.isSymbolicLink() ? 'is a symbolic link' : 'is no file');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    throw refuse('is no JSON', error);
+  }
+  if (!isManifest(parsed)) throw refuse('is not the list buildViews writes');
+  return parsed;
+}
+
+/** Written strictly: the next build reads it back with `isManifest`, and refuses what fails it. */
+function writeManifest(outDir: string, manifest: Manifest): void {
+  if (!isManifest(manifest as unknown)) {
+    throw new Error(`The build wrote a file it cannot list: ${JSON.stringify(manifest.views)}.`);
+  }
+  const path = join(outDir, MANIFEST);
+  const stat = entry(path);
+  if (stat && !stat.isFile())
+    throw new Error(`${path} is no file; the build keeps its list there.`);
+  writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+/** `<outDir>/fonts/` — a directory or nothing; whether it is there. */
+function fontDirectory(outDir: string): boolean {
+  const dir = join(outDir, FONT_DIR);
+  const stat = entry(dir);
+  if (stat?.isSymbolicLink()) {
     throw new Error(
-      `${fontDir} is a symbolic link; the build writes its fonts only into a directory of outDir.`
+      `${dir} is a symbolic link; the build writes its fonts only into a directory of outDir.`
     );
   }
-  if (dir?.isDirectory()) {
-    for (const name of readdirSync(fontDir)) if (OWN_FONT.test(name)) own(join(fontDir, name));
+  if (stat && !stat.isDirectory()) throw new Error(`${dir} is no directory.`);
+  return stat !== undefined;
+}
+
+/**
+ * `name` in `outDir` as the build may write over it or remove it: nothing
+ * there (`false`), or a file none of its sources is (`true`). A symbolic link
+ * stops the build — Vite would write through it, and what lies behind it is
+ * not the build's.
+ */
+function ownFile(outDir: string, name: string, sources: ReadonlySet<string>): boolean {
+  const path = join(outDir, name);
+  const stat = entry(path);
+  if (!stat) return false;
+  if (stat.isSymbolicLink()) {
+    throw new Error(
+      `${path} is a symbolic link; the build writes and removes no file through one.`
+    );
   }
-  return found;
+  if (!stat.isFile())
+    throw new Error(`${path} is no file; the build writes and removes only files.`);
+  const id = identity(path);
+  if (id !== undefined && sources.has(id)) {
+    throw new Error(`${path} is a source of the build; it would be written over or removed.`);
+  }
+  return true;
+}
+
+interface Ledger {
+  outDir: string;
+  /** The files of the previous build's list. */
+  listed: ReadonlySet<string>;
+  /** The files this build wrote so far. */
+  written: Set<string>;
+  /** Device and inode of every file the build read. */
+  sources: Set<string>;
+}
+
+/** Where the build is about to write `name`: nothing yet, a file on the list, or one it wrote itself. */
+function checkTarget(ledger: Ledger, name: string): void {
+  if (!ownFile(ledger.outDir, name, ledger.sources)) return;
+  if (ledger.listed.has(name) || ledger.written.has(name)) return;
+  throw new Error(
+    `${join(ledger.outDir, name)} is not on ${MANIFEST}: the build writes over no file it did not write. ` +
+      'Remove it, or build into another outDir.'
+  );
+}
+
+function addSource(ledger: Ledger, path: string): void {
+  const id = identity(path);
+  if (id !== undefined) ledger.sources.add(id);
+}
+
+/**
+ * The view pass's bookkeeping. Before Vite writes, each file it will write is
+ * checked as a target, and what the pass read joins the sources; after the
+ * write, the files go to `wrote`. A view pass writes the HTML and the fonts:
+ * `inlineIntoHtml` takes the script and the CSS and stops on anything else.
+ */
+function ledgerOf(ledger: Ledger, root: string, wrote: (files: string[]) => void): Plugin {
+  let files: string[] = [];
+  return {
+    name: 'mcp-app:ledger',
+    apply: 'build',
+    enforce: 'post',
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle): void {
+        for (const id of this.getModuleIds()) {
+          const path = id.split('?')[0] ?? id;
+          if (isAbsolute(path)) addSource(ledger, path);
+        }
+        files = Object.keys(bundle).filter(
+          (name) => name.endsWith('.html') || name.startsWith(FONT_PREFIX)
+        );
+        for (const name of files) {
+          const output = bundle[name];
+          if (output?.type !== 'asset') continue;
+          for (const original of output.originalFileNames)
+            addSource(ledger, resolve(root, original));
+        }
+        for (const name of files) checkTarget(ledger, name);
+      }
+    },
+    writeBundle(): void {
+      wrote(files);
+    }
+  };
 }
 
 /**
  * Builds every view: with `tailwind` the scan pass for each, then the view
  * pass for each — one Vite run per view and pass, since a chunk without code
- * splitting has exactly one entry. Returns the size of each view and of the
+ * splitting has exactly one entry. Then it removes what the previous build's
+ * list names and this one did not write, and writes its own list
+ * (`ViewBuildOptions.outDir`). Returns the size of each view and of the
  * fonts, for the app to print.
  */
 export async function buildViews(options: ViewBuildOptions): Promise<ViewBuild> {
   checkOptions(options);
   const paths = pathsOf(options);
-  const sources = options.views.map((view) =>
-    existing(join(paths.root, `${view}.html`), `The view ${view}`)
-  );
-  if (paths.css) sources.push(paths.css);
-  // Everything is checked before anything is removed.
-  const stale = staleOutputs(paths.outDir, options.views);
-  for (const file of stale) {
-    const source = sources.find((candidate) => sameFile(file, candidate));
-    if (source) throw new Error(`${file} is ${source}, a source of the build.`);
+  const { outDir } = paths;
+  const previous = readManifest(outDir);
+  const ledger: Ledger = {
+    outDir,
+    listed: new Set(previous ? Object.values(previous.views).flat() : []),
+    written: new Set(),
+    sources: new Set()
+  };
+  for (const view of options.views) {
+    addSource(ledger, existing(join(paths.root, `${view}.html`), `The view ${view}`));
   }
-  for (const file of stale) rmSync(file);
-  const fontDir = join(paths.outDir, FONT_DIR);
-  if (entry(fontDir)?.isDirectory() && readdirSync(fontDir).length === 0) rmdirSync(fontDir);
+  if (paths.css) addSource(ledger, paths.css);
 
+  // Everything the build knows it will touch is checked before it writes anything.
+  const hadFonts = fontDirectory(outDir);
+  for (const name of ledger.listed) ownFile(outDir, name, ledger.sources);
+  for (const view of options.views) checkTarget(ledger, `${view}.html`);
+
+  const wrote = new Map<string, string[]>();
+  // There now, and made by this build or, says the list, by an earlier one.
+  const madeFonts = (): boolean =>
+    fontDirectory(outDir) && (!hadFonts || previous?.directories.includes(FONT_DIR) === true);
   const scanDir = options.tailwind
     ? realpathSync(mkdtempSync(join(tmpdir(), 'mcp-app-scan-')))
     : undefined;
@@ -499,8 +737,16 @@ export async function buildViews(options: ViewBuildOptions): Promise<ViewBuild> 
       }
     }
     for (const view of options.views) {
-      await build(viewConfig(view, options, 'view', scanDir));
-      const file = join(paths.outDir, `${view}.html`);
+      const config = viewConfig(view, options, 'view', scanDir);
+      config.plugins = [
+        ...(config.plugins ?? []),
+        ledgerOf(ledger, paths.root, (files) => {
+          wrote.set(view, files);
+          for (const name of files) ledger.written.add(name);
+        })
+      ];
+      await build(config);
+      const file = join(outDir, `${view}.html`);
       const bytes = readFileSync(file);
       views.push({
         name: view,
@@ -509,19 +755,49 @@ export async function buildViews(options: ViewBuildOptions): Promise<ViewBuild> 
         gzipBytes: gzipSync(bytes).byteLength
       });
     }
+
+    // Checked, all of it, before the first is removed.
+    fontDirectory(outDir);
+    const stale = [...ledger.listed].filter(
+      (name) => !ledger.written.has(name) && ownFile(outDir, name, ledger.sources)
+    );
+    for (const name of stale) rmSync(join(outDir, name));
+    let directories = madeFonts() ? [FONT_DIR] : [];
+    const fontDir = join(outDir, FONT_DIR);
+    if (directories.length > 0 && readdirSync(fontDir).length === 0) {
+      rmdirSync(fontDir);
+      directories = [];
+    }
+    writeManifest(outDir, { builtBy: BUILT_BY, views: Object.fromEntries(wrote), directories });
+  } catch (error) {
+    // What a failed build wrote stays on the list, for the next one to write over or remove.
+    if (ledger.written.size > 0) {
+      const listedViews = { ...previous?.views };
+      for (const [view, files] of wrote) {
+        listedViews[view] = [...new Set([...(listedViews[view] ?? []), ...files])];
+      }
+      try {
+        writeManifest(outDir, {
+          builtBy: BUILT_BY,
+          views: listedViews,
+          directories: madeFonts() ? [FONT_DIR] : []
+        });
+      } catch (failed) {
+        throw new AggregateError([error, failed], 'The build failed, and so did writing its list.');
+      }
+    }
+    throw error;
   } finally {
     if (scanDir) rmSync(scanDir, { recursive: true, force: true });
   }
 
-  // Every font of the build's name is this build's: the earlier ones went first.
-  const files = existsSync(fontDir)
-    ? readdirSync(fontDir)
-        .filter((name) => OWN_FONT.test(name))
-        .sort()
-    : [];
-  const fontBytes = files.reduce(
-    (sum, name) => sum + readFileSync(join(fontDir, name)).byteLength,
+  const fontNames = [...ledger.written]
+    .filter((name) => name.startsWith(FONT_PREFIX))
+    .map((name) => name.slice(FONT_PREFIX.length))
+    .sort();
+  const fontBytes = fontNames.reduce(
+    (sum, name) => sum + statSync(join(outDir, FONT_DIR, name)).size,
     0
   );
-  return { views, fonts: { files, bytes: fontBytes } };
+  return { views, fonts: { files: fontNames, bytes: fontBytes } };
 }

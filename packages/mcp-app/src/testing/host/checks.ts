@@ -229,6 +229,42 @@ export async function probeVisibility(
   );
 }
 
+/** Where the probe's blocked image comes from — a host no view's CSP allows. */
+const PROBE_HOST = 'example.com';
+
+/**
+ * The URLs a CSP refusal names in a console line — Chromium's `Loading the
+ * image '<url>' violates …`. Parsed, not searched: a host's name can stand
+ * anywhere in another URL, and the policy the line quotes names the allowed
+ * origins too.
+ */
+export function refusedUrls(line: string): URL[] {
+  const parts = line.split("'");
+  const urls: URL[] = [];
+  for (let i = 0; i + 1 < parts.length; i += 1) {
+    const quoted = parts[i] ?? '';
+    if ((parts[i + 1] ?? '').startsWith(' violates') && URL.canParse(quoted)) {
+      urls.push(new URL(quoted));
+    }
+  }
+  return urls;
+}
+
+/** A CSP report's `blocked-uri` as a URL — none for `inline`, `eval` and the like. */
+function blockedUrl(report: unknown): URL[] {
+  const uri = (report as { 'csp-report'?: { 'blocked-uri'?: unknown } })['csp-report']?.[
+    'blocked-uri'
+  ];
+  return typeof uri === 'string' && URL.canParse(uri) ? [new URL(uri)] : [];
+}
+
+/** `value` without the slashes at its end, by a loop: `/\/+$/` backtracks quadratically on a run of them. */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end -= 1;
+  return value.slice(0, end);
+}
+
 /**
  * The oracle checked before it is believed: a CSP violation and a page error,
  * caused on purpose, must arrive — and an image from `allowedOrigin` (one of
@@ -242,41 +278,36 @@ export async function probeOracle(o: OpenHost, allowedOrigin: string): Promise<v
   const consoleBefore = o.consoleLines.length;
   const errorsBefore = o.pageErrors.length;
   await o.view.evaluate(
-    ([csp, thrown, permittedOrigin]) => {
+    ([csp, thrown, blockedHost, permittedOrigin]) => {
       const blocked = new Image();
-      blocked.src = `https://example.com/${csp}.png`;
+      blocked.src = `https://${blockedHost}/${csp}.png`;
       const permitted = new Image();
       permitted.src = `${permittedOrigin}/${csp}.png`;
       setTimeout(() => {
         throw new Error(thrown);
       });
     },
-    [PROBE_CSP, PROBE_THROWN, allowedOrigin.replace(/\/+$/, '')] as const
+    [PROBE_CSP, PROBE_THROWN, PROBE_HOST, withoutTrailingSlashes(allowedOrigin)] as const
   );
   await pause(o, 800);
-  const probeConsole = o.consoleLines.slice(consoleBefore).join('\n');
-  const reports = o.cspReports.slice(reportsBefore);
+  const probeLines = o.consoleLines.slice(consoleBefore);
+  const probeConsole = probeLines.join('\n');
+  const refused = [
+    ...probeLines.flatMap(refusedUrls),
+    ...o.cspReports.slice(reportsBefore).flatMap(blockedUrl)
+  ];
   o.check(
     'oracle-csp',
-    'positive control: the CSP blocks an image from example.com and reports it',
-    probeConsole.includes('example.com') ||
-      reports.some((r) => JSON.stringify(r).includes('example.com')),
+    `positive control: the CSP blocks an image from ${PROBE_HOST} and reports it`,
+    refused.some((url) => url.hostname === PROBE_HOST),
     probeConsole
   );
-  const blockedUris = reports.map((r) =>
-    String((r as { 'csp-report'?: { 'blocked-uri'?: string } })['csp-report']?.['blocked-uri'])
-  );
   const allowed = new URL(allowedOrigin);
-  // The blocked URL in quotes before "violates" — the line of another
-  // violation quotes the whole policy, and the policy names this origin too.
-  const refusedHere = new RegExp(
-    `'${allowed.origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^']*' violates`
-  );
   o.check(
     'oracle-allowed',
     `positive control: an image from ${allowedOrigin} (resourceDomains) is not blocked`,
-    !blockedUris.some((uri) => uri.includes(allowed.host)) && !refusedHere.test(probeConsole),
-    JSON.stringify({ blockedUris, probeConsole })
+    !refused.some((url) => url.origin === allowed.origin),
+    JSON.stringify({ refused: refused.map(String), probeConsole })
   );
   o.check(
     'oracle-pageerror',
