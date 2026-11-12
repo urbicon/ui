@@ -35,13 +35,26 @@
  * **Tailwind reads the view's script, not the libraries** (`tailwind`). A
  * component library's CSS brings `@source` for its whole package. The build
  * therefore runs twice: the first pass writes each view's script, unminified,
- * to `<outDir>/scan/`; the second excludes the libraries (`@source not`) and
- * lets Tailwind read exactly that script — what Rolldown put into the view
- * after tree-shaking, every class of every component it uses, and no list
- * beside it. Each view reads only its own script: read across all of them, a
- * view would carry every other view's classes.
+ * into a fresh temporary directory; the second excludes the libraries
+ * (`@source not`) and lets Tailwind read exactly that script — what Rolldown
+ * put into the view after tree-shaking, every class of every component it
+ * uses, and no list beside it. Each view reads only its own script: read
+ * across all of them, a view would carry every other view's classes.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmdirSync,
+  rmSync,
+  type Stats,
+  statSync
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { build, type InlineConfig, type Plugin, type PluginOption } from 'vite';
@@ -56,8 +69,12 @@ export interface ViewBuildOptions {
   /** The directory holding one `<view>.html` per view — Vite's `root`. */
   root: string;
   /**
-   * Where `<view>.html` and `fonts/` land. The build removes only what it
-   * writes there: those files and its `scan/` directory.
+   * Where `<view>.html` and `fonts/` land. Before it builds, the build removes
+   * there only what it writes, recognised by name: each `<view>.html`, and in
+   * `fonts/` the files named as it names a font, `<name>-<hash>.<ext>` with a
+   * hash of eight characters. A symbolic link at one of those places, and an
+   * `outDir` that is `root`, stop the build before it removes anything. Vite's
+   * `public/` is not copied.
    */
   outDir: string;
   /** The views to build, one HTML file each — the names of the view catalog. */
@@ -104,11 +121,19 @@ export interface ViewBuild {
 }
 
 const NAME = /^[a-z0-9][a-z0-9_-]*$/;
-const SCAN_DIR = 'scan';
 /** The first pass's script extension — one place for its file name, Tailwind's source and the count. */
 const SCAN_EXTENSION = '.js';
-const FONT_DIR = 'fonts/';
+const FONT_DIR = 'fonts';
+/**
+ * The prefix of a font's name in the bundle — never a path to remove: with
+ * the trailing slash, `rmSync` follows a symbolic link and removes its target.
+ */
+const FONT_PREFIX = `${FONT_DIR}/`;
 const FONT_FILE = /\.(?:woff2?|ttf|otf)$/;
+/** The hash in a font's name — one place for the name the build gives and the one it removes. */
+const FONT_HASH = 8;
+/** A font as `assetFileNames` names it; every hash alphabet of Rolldown is within `[\w-]`. */
+const OWN_FONT = new RegExp(`^[^/]+-[\\w-]{${FONT_HASH}}${FONT_FILE.source}`);
 
 /**
  * A placeholder Vite replaces while building (`__VITE_PRELOAD__`,
@@ -128,7 +153,6 @@ const RELATIVE = /^\.\//;
 interface Paths {
   root: string;
   outDir: string;
-  scan: string;
   css?: string;
   exclude: string[];
 }
@@ -139,14 +163,23 @@ function existing(path: string, what: string): string {
   return realpathSync(path);
 }
 
+/** One file or directory under two names — by device and inode, which no spelling of a path changes. */
+function sameFile(a: string, b: string): boolean {
+  const x = statSync(a, { bigint: true });
+  const y = statSync(b, { bigint: true });
+  return x.dev === y.dev && x.ino === y.ino;
+}
+
 function pathsOf(options: ViewBuildOptions): Paths {
+  const root = existing(resolve(options.root), 'root');
   const outDir = resolve(options.outDir);
   mkdirSync(outDir, { recursive: true });
-  const real = realpathSync(outDir);
+  if (sameFile(outDir, root)) {
+    throw new Error(`outDir is root (${root}): each view would be written over its own source.`);
+  }
   return {
-    root: existing(resolve(options.root), 'root'),
-    outDir: real,
-    scan: join(real, SCAN_DIR),
+    root,
+    outDir: realpathSync(outDir),
     ...(options.tailwind ? { css: existing(resolve(options.tailwind.css), 'tailwind.css') } : {}),
     exclude: (options.tailwind?.exclude ?? []).map((dir) =>
       existing(resolve(dir), 'tailwind.exclude')
@@ -247,7 +280,7 @@ export function inlineIntoHtml(options: {
           // Every font that stays must be named under the app's origin in the
           // CSS — a relative one would stand in the sandbox without its file.
           for (const name of Object.keys(bundle)) {
-            if (!name.startsWith(FONT_DIR)) continue;
+            if (!name.startsWith(FONT_PREFIX)) continue;
             if (!options.fontUrl) {
               throw new Error(`${asset.fileName}: ${name} is a font, and fonts need base.fonts.`);
             }
@@ -260,7 +293,8 @@ export function inlineIntoHtml(options: {
           asset.source = html;
         }
         const left = Object.keys(bundle).filter(
-          (name) => !name.endsWith('.html') && !(name.startsWith(FONT_DIR) && FONT_FILE.test(name))
+          (name) =>
+            !name.endsWith('.html') && !(name.startsWith(FONT_PREFIX) && FONT_FILE.test(name))
         );
         if (left.length > 0) throw new Error(`Not inlined: ${left.join(', ')}.`);
       }
@@ -314,18 +348,26 @@ function baseMeta(name: string, placeholder: string): Plugin {
 
 /**
  * The Vite config of one pass for one view. `scan` is the first of the two
- * Tailwind passes: the script unminified as a file in `<outDir>/scan/`,
- * nothing inlined — its CSS is thrown away.
+ * Tailwind passes: the script unminified as `<scanDir>/<view>.js`, nothing
+ * inlined — its CSS is thrown away; the view pass has Tailwind read that
+ * script. With `options.tailwind` both passes need `scanDir`, an existing
+ * directory of the loop's own: `buildViews` makes a fresh temporary one and
+ * removes it afterwards.
  */
 export function viewConfig(
   view: string,
   options: ViewBuildOptions,
-  mode: 'scan' | 'view' = 'view'
+  mode: 'scan' | 'view' = 'view',
+  scanDir?: string
 ): InlineConfig {
   checkOptions(options);
   if (!options.views.includes(view)) throw new Error(`${view} is not one of options.views.`);
   if (mode === 'scan' && !options.tailwind) throw new Error('A scan pass needs options.tailwind.');
+  if (options.tailwind && scanDir === undefined) {
+    throw new Error('With options.tailwind, both passes need scanDir.');
+  }
   const paths = pathsOf(options);
+  const scanPath = scanDir === undefined ? undefined : existing(resolve(scanDir), 'scanDir');
   const scan = mode === 'scan';
   const base = options.base;
   const fontsPath = base?.fonts;
@@ -339,9 +381,11 @@ export function viewConfig(
     root: paths.root,
     base: './',
     logLevel: 'warn',
+    // Vite would copy `<root>/public/` into outDir, files the build neither writes nor removes.
+    publicDir: false,
     plugins: [
-      ...(tailwind && paths.css
-        ? [scanSources(paths.css, paths.exclude, join(paths.scan, `${view}${SCAN_EXTENSION}`))]
+      ...(tailwind && paths.css && scanPath
+        ? [scanSources(paths.css, paths.exclude, join(scanPath, `${view}${SCAN_EXTENSION}`))]
         : []),
       ...(options.plugins ?? []),
       ...(base?.meta ? [baseMeta(base.meta, base.placeholder)] : []),
@@ -352,10 +396,10 @@ export function viewConfig(
         hostType === 'css' && fontUrl && FONT_FILE.test(fileName) ? fontUrl(fileName) : undefined
     },
     build: {
-      outDir: scan ? paths.scan : paths.outDir,
+      outDir: scan && scanPath ? scanPath : paths.outDir,
       // Unminified, so Tailwind reads the classes as the source writes them.
       minify: !scan,
-      // One pass builds one view; the build function clears once, before all.
+      // One pass builds one view; `buildViews` removes the earlier outputs once, before all.
       emptyOutDir: false,
       cssCodeSplit: false,
       cssTarget: [...CSS_TARGET],
@@ -371,12 +415,50 @@ export function viewConfig(
           // The content in the name: the app may serve the fonts as immutable.
           assetFileNames: (asset) =>
             asset.names.some((name) => FONT_FILE.test(name))
-              ? `${FONT_DIR}[name]-[hash][extname]`
+              ? `${FONT_PREFIX}[name]-[hash:${FONT_HASH}][extname]`
               : 'assets/[name]-[hash][extname]'
         }
       }
     }
   };
+}
+
+/** `lstat` — the entry itself, a link not followed — or `undefined` where nothing is. */
+function entry(path: string): Stats | undefined {
+  return lstatSync(path, { throwIfNoEntry: false });
+}
+
+/**
+ * What an earlier build left in `outDir` that this one replaces: each
+ * `<view>.html`, and in `fonts/` the files named as this build names a font.
+ * A symbolic link at any of those places stops the build — what lies behind
+ * it is not the build's.
+ */
+function staleOutputs(outDir: string, views: readonly string[]): string[] {
+  const found: string[] = [];
+  const own = (path: string): void => {
+    const stat = entry(path);
+    if (!stat) return;
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `${path} is a symbolic link; the build replaces only files of its own there.`
+      );
+    }
+    if (!stat.isFile()) throw new Error(`${path} is no file; the build replaces only files there.`);
+    found.push(path);
+  };
+  for (const view of views) own(join(outDir, `${view}.html`));
+  const fontDir = join(outDir, FONT_DIR);
+  const dir = entry(fontDir);
+  if (dir?.isSymbolicLink()) {
+    throw new Error(
+      `${fontDir} is a symbolic link; the build writes its fonts only into a directory of outDir.`
+    );
+  }
+  if (dir?.isDirectory()) {
+    for (const name of readdirSync(fontDir)) if (OWN_FONT.test(name)) own(join(fontDir, name));
+  }
+  return found;
 }
 
 /**
@@ -388,36 +470,55 @@ export function viewConfig(
 export async function buildViews(options: ViewBuildOptions): Promise<ViewBuild> {
   checkOptions(options);
   const paths = pathsOf(options);
-  for (const view of options.views) existing(join(paths.root, `${view}.html`), `The view ${view}`);
-  for (const view of options.views) rmSync(join(paths.outDir, `${view}.html`), { force: true });
-  rmSync(join(paths.outDir, FONT_DIR), { recursive: true, force: true });
-  rmSync(paths.scan, { recursive: true, force: true });
-
-  if (options.tailwind) {
-    for (const view of options.views) await build(viewConfig(view, options, 'scan'));
-    const scanned = readdirSync(paths.scan).filter((name) => name.endsWith(SCAN_EXTENSION));
-    if (scanned.length !== options.views.length) {
-      throw new Error(
-        `The scan pass left ${scanned.length} scripts, not ${options.views.length}: ${scanned.join(', ')}.`
-      );
-    }
+  const sources = options.views.map((view) =>
+    existing(join(paths.root, `${view}.html`), `The view ${view}`)
+  );
+  if (paths.css) sources.push(paths.css);
+  // Everything is checked before anything is removed.
+  const stale = staleOutputs(paths.outDir, options.views);
+  for (const file of stale) {
+    const source = sources.find((candidate) => sameFile(file, candidate));
+    if (source) throw new Error(`${file} is ${source}, a source of the build.`);
   }
-  const views: BuiltView[] = [];
-  for (const view of options.views) {
-    await build(viewConfig(view, options));
-    const file = join(paths.outDir, `${view}.html`);
-    const bytes = readFileSync(file);
-    views.push({
-      name: view,
-      file,
-      bytes: bytes.byteLength,
-      gzipBytes: gzipSync(bytes).byteLength
-    });
-  }
-  rmSync(paths.scan, { recursive: true, force: true });
-
+  for (const file of stale) rmSync(file);
   const fontDir = join(paths.outDir, FONT_DIR);
-  const files = existsSync(fontDir) ? readdirSync(fontDir).sort() : [];
+  if (entry(fontDir)?.isDirectory() && readdirSync(fontDir).length === 0) rmdirSync(fontDir);
+
+  const scanDir = options.tailwind
+    ? realpathSync(mkdtempSync(join(tmpdir(), 'mcp-app-scan-')))
+    : undefined;
+  const views: BuiltView[] = [];
+  try {
+    if (scanDir) {
+      for (const view of options.views) await build(viewConfig(view, options, 'scan', scanDir));
+      const scanned = readdirSync(scanDir).filter((name) => name.endsWith(SCAN_EXTENSION));
+      if (scanned.length !== options.views.length) {
+        throw new Error(
+          `The scan pass left ${scanned.length} scripts, not ${options.views.length}: ${scanned.join(', ')}.`
+        );
+      }
+    }
+    for (const view of options.views) {
+      await build(viewConfig(view, options, 'view', scanDir));
+      const file = join(paths.outDir, `${view}.html`);
+      const bytes = readFileSync(file);
+      views.push({
+        name: view,
+        file,
+        bytes: bytes.byteLength,
+        gzipBytes: gzipSync(bytes).byteLength
+      });
+    }
+  } finally {
+    if (scanDir) rmSync(scanDir, { recursive: true, force: true });
+  }
+
+  // Every font of the build's name is this build's: the earlier ones went first.
+  const files = existsSync(fontDir)
+    ? readdirSync(fontDir)
+        .filter((name) => OWN_FONT.test(name))
+        .sort()
+    : [];
   const fontBytes = files.reduce(
     (sum, name) => sum + readFileSync(join(fontDir, name)).byteLength,
     0

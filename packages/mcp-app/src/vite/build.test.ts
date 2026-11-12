@@ -1,4 +1,13 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
@@ -15,9 +24,14 @@ afterAll(() => {
   for (const dir of outDirs) rmSync(dir, { recursive: true, force: true });
 });
 
+function tempDir(prefix = 'mcp-app-vite-'): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  outDirs.push(dir);
+  return dir;
+}
+
 function options(overrides: Partial<ViewBuildOptions> = {}): ViewBuildOptions {
-  const outDir = mkdtempSync(join(tmpdir(), 'mcp-app-vite-'));
-  outDirs.push(outDir);
+  const outDir = tempDir();
   return {
     root: FIXTURE,
     outDir,
@@ -123,6 +137,72 @@ describe('buildViews', () => {
   );
 
   it(
+    'removes in outDir only what it writes: fonts in its own name, nothing in scan/, no public/',
+    async () => {
+      const o = options();
+      const scansBefore = readdirSync(tmpdir()).filter((name) => name.startsWith('mcp-app-scan-'));
+      mkdirSync(join(o.outDir, 'fonts'));
+      mkdirSync(join(o.outDir, 'scan'));
+      // The first in the form the build names a font: an earlier build's.
+      for (const name of ['old-AbCd_1-2.woff2', 'brand.woff2', 'LICENSE.txt']) {
+        writeFileSync(join(o.outDir, 'fonts', name), 'not a font');
+      }
+      writeFileSync(join(o.outDir, 'scan', 'notes.js'), 'the app’s own');
+      const built = await buildViews(o);
+      const fonts = readdirSync(join(o.outDir, 'fonts')).sort();
+
+      expect(fonts).not.toContain('old-AbCd_1-2.woff2');
+      expect(fonts).toEqual([...built.fonts.files, 'LICENSE.txt', 'brand.woff2'].sort());
+      expect(built.fonts.files.length).toBeGreaterThan(0);
+      expect(readdirSync(join(o.outDir, 'scan'))).toEqual(['notes.js']);
+      // `__fixtures__/public/stray.txt` stays where it is.
+      expect(existsSync(join(o.outDir, 'stray.txt'))).toBe(false);
+      expect(readdirSync(o.outDir).sort()).toEqual(['card.html', 'fonts', 'scan']);
+      // The scan pass's own directory is gone again.
+      expect(readdirSync(tmpdir()).filter((name) => name.startsWith('mcp-app-scan-'))).toEqual(
+        scansBefore
+      );
+    },
+    BUILD_TIMEOUT
+  );
+
+  it('stops before removing anything when fonts/ is a symbolic link, and keeps what it points at', async () => {
+    const o = options();
+    const target = tempDir('mcp-app-vite-target-');
+    writeFileSync(join(target, 'kept-AbCd_1-2.woff2'), 'not a font');
+    symlinkSync(target, join(o.outDir, 'fonts'));
+    writeFileSync(join(o.outDir, 'card.html'), 'an earlier build');
+    await expect(buildViews(o)).rejects.toThrow(/fonts is a symbolic link/);
+    expect(readdirSync(target)).toEqual(['kept-AbCd_1-2.woff2']);
+    expect(readFileSync(join(o.outDir, 'card.html'), 'utf8')).toBe('an earlier build');
+  });
+
+  it('stops when a view’s HTML in outDir is a symbolic link', async () => {
+    const o = options();
+    // Not to the fixture: a build that wrote through the link would overwrite it.
+    const elsewhere = join(tempDir(), 'card.html');
+    writeFileSync(elsewhere, 'not the build’s');
+    symlinkSync(elsewhere, join(o.outDir, 'card.html'));
+    await expect(buildViews(o)).rejects.toThrow(/card\.html is a symbolic link/);
+    expect(readFileSync(elsewhere, 'utf8')).toBe('not the build’s');
+  });
+
+  it('stops when outDir is root, under its own name or another, and keeps the sources', async () => {
+    const root = tempDir('mcp-app-vite-root-');
+    writeFileSync(
+      join(root, 'solo.html'),
+      '<!doctype html><html><body><script type="module" src="./solo.ts"></script></body></html>'
+    );
+    writeFileSync(join(root, 'solo.ts'), "document.body.dataset.view = 'solo';");
+    const alias = join(tempDir(), 'alias');
+    symlinkSync(root, alias);
+    for (const outDir of [root, alias]) {
+      await expect(buildViews({ root, outDir, views: ['solo'] })).rejects.toThrow(/outDir is root/);
+    }
+    expect(readFileSync(join(root, 'solo.html'), 'utf8')).toContain('./solo.ts');
+  });
+
+  it(
     'stops when a view has a font and no base.fonts',
     async () => {
       await expect(buildViews(options({ base: { placeholder: PLACEHOLDER } }))).rejects.toThrow(
@@ -143,6 +223,10 @@ describe('the options', () => {
   it('refuse a view name that is not one lowercase segment, and a name listed twice', () => {
     expect(() => viewConfig('../card', options({ views: ['../card'] }))).toThrow(/URI segment/);
     expect(() => viewConfig('card', options({ views: ['card', 'card'] }))).toThrow(/twice/);
+  });
+
+  it('refuse a pass of a Tailwind build without scanDir', () => {
+    expect(() => viewConfig('card', options())).toThrow(/both passes need scanDir/);
   });
 
   it('refuse a view without its HTML file', async () => {

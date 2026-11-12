@@ -129,7 +129,8 @@ interface ToolLite {
  * The view's URI at the running server, without a browser: it carries the
  * first {@link VERSION_LENGTH} hex characters of a SHA-256 over `html` — the
  * built file the server was built from — and `tools/list` (both keys) and
- * `resources/list` name the same. `resources/read` returns the same HTML
+ * `resources/list` name the same; `resources/list` names no other URI of the
+ * view, no older version beside it. `resources/read` returns the same HTML
  * under it, under a foreign version and without version; an unknown name is
  * `-32002`. With `withoutView`, that tool carries no URI.
  *
@@ -160,13 +161,16 @@ export async function versionReport(options: {
   const { resources } = (await mcpResult(endpoint, 'resources/list')) as {
     resources: { uri: string }[];
   };
+  const listed = resources
+    .map((r) => r.uri)
+    .filter((uri) => uri === options.uri || uri.startsWith(`${options.uri}/`));
   check(
     'version-uri',
-    `the view's URI carries the built HTML's version — in tools/list, in the flat key and in resources/list`,
+    `the view's URI carries the built HTML's version — in tools/list, in the flat key and, as its only URI, in resources/list`,
     shown?._meta?.ui?.resourceUri === expected &&
       shown._meta['ui/resourceUri'] === expected &&
-      resources.some((r) => r.uri === expected),
-    JSON.stringify({ expected, tool: shown?._meta, resources })
+      Bun.deepEquals(listed, [expected]),
+    JSON.stringify({ expected, tool: shown?._meta, listed })
   );
   if (options.withoutView !== undefined) {
     const plain = tools.find((tool) => tool.name === options.withoutView);

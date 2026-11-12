@@ -88,5 +88,18 @@ export const SABOTAGES: readonly Sabotage[] = [
     what: 'the view is built below the CSS target of light-dark()',
     expect: ['theme'],
     plugins: () => [lowCssTarget()]
+  },
+  {
+    name: 'model-only-from-view',
+    what: 'the view calls remove_note (visibility ["model"]) and swallows the refusal',
+    // fixture:reload expects get_note as the view's only tools/call.
+    expect: ['fixture:reload', 'refused-calls'],
+    view: true
+  },
+  {
+    name: 'log-error',
+    what: 'the view reports an error to the host alone (notifications/message, level error)',
+    expect: ['log-errors'],
+    view: true
   }
 ];

@@ -104,10 +104,12 @@ export async function serverInfo(endpoint: Endpoint): Promise<unknown> {
  * `hostContext.styles` of the test host — the spec's names ("Theming"), with
  * values in `light-dark()`, as a chat host might send them.
  *
- * **Among them the collision names**: `--color-text-*`, `--font-sans`,
- * `--font-mono`, `--font-weight-*` and `--shadow-*` are also Tailwind's theme
- * names. A view that applied them under their own name would repaint itself
- * with the host's values; `checkHostVariables` measures that it does not.
+ * **Among them the collision names**: `--font-sans`, `--font-mono`,
+ * `--font-weight-*` and `--shadow-sm` are also names of Tailwind's default
+ * theme, and `--color-text-*` is a name a view's own theme may define
+ * (`@urbicon-ui/blocks` does). A view that applied them under their own name
+ * would repaint itself with the host's values; `checkHostVariables` measures
+ * that it does not.
  */
 export const HOST_STYLES: { variables: Record<string, string> } = {
   variables: {
@@ -173,14 +175,16 @@ export interface HostState {
   resultSent: boolean;
   initParams: { appInfo?: unknown; protocolVersion?: unknown; appCapabilities?: unknown } | null;
   sizes: { width: number; height: number }[];
-  logs: unknown[];
+  /** The view's `notifications/message`, as sent (each passed the wire check). */
+  logs: { level: string; logger?: string; data: unknown }[];
   /** Every request of the view the host answered itself (not one the wire check refused). */
   viewRequests: { method: string; params: Record<string, unknown> | undefined }[];
   unknown: string[];
   errors: string[];
   tornDown: boolean;
   failNext: string[];
-  refused: string[];
+  /** Every `tools/call` of the view the host refused, with the request's id. */
+  refused: { id: string | number; name: string }[];
   wire: { checked: number; problems: string[] };
 }
 
@@ -443,11 +447,14 @@ export async function openHost(options: OpenHostOptions): Promise<OpenHost> {
       )
       .catch(() => {});
     const s = await state();
+    // The page reads the flat `ui/resourceUri` too, as a host does; the check
+    // asks for the key the spec names.
+    const ui = s.tool?._meta?.ui as { resourceUri?: unknown } | undefined;
     check(
       'tool-listed',
       'tools/list names the tool with _meta.ui.resourceUri',
-      typeof s.uri === 'string',
-      String(s.errors)
+      typeof ui?.resourceUri === 'string',
+      JSON.stringify({ _meta: s.tool?._meta ?? null, errors: s.errors })
     );
     if (!options.override) {
       check(

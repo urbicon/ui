@@ -332,19 +332,25 @@ Svelte, an alias — comes in `plugins`. What the build holds to:
   stops the build if one is left; `base.placeholder` may not look like one
   (`__VITE_…__`).
 - **With `tailwind`, Tailwind reads each view's own script**, not the libraries'. A
-  first pass writes each view's script, unminified, to `<outDir>/scan/`; the second turns
-  the `exclude` directories off (`@source not`) and lets Tailwind read exactly that script —
-  what the bundler put into the view, after tree-shaking. The CSS file names no source
+  first pass writes each view's script, unminified, into a fresh temporary directory
+  (removed after the build); the second turns the `exclude` directories off
+  (`@source not`) and lets Tailwind read exactly that script — what the bundler put into
+  the view, after tree-shaking. The CSS file names no source
   itself (`@import 'tailwindcss' source(none)`), and the build appends both lines.
   Tailwind treats a glob that finds nothing as no error, so `witness` names a class every
   view uses: the build fails when the finished CSS has no rule for it.
 - `base.meta` puts `<meta name="<meta>" content="<placeholder>">` into every view, for
   `readBaseMeta`.
-- Before it builds, `buildViews` removes `<outDir>/<view>.html`, `<outDir>/fonts/` and
-  `<outDir>/scan/` — nothing else in `outDir`.
+- **In `outDir` the build removes only what it writes**, recognised by name: before it
+  builds, each `<view>.html`, and in `fonts/` the files named as it names a font —
+  `<name>-<hash>.<ext>`, the hash eight characters. A symbolic link at one of those
+  places, and an `outDir` that is `root`, stop the build before it removes anything.
+  Vite's `public/` is not copied (`publicDir: false`).
 
-`viewConfig(view, options, mode)` is the Vite config of a single pass, for a build loop
-of your own; `inlineIntoHtml` is the plugin that does the inlining and its checks.
+`viewConfig(view, options, mode, scanDir)` is the Vite config of a single pass, for a
+build loop of your own — with `tailwind`, both passes need `scanDir`, an existing
+directory for the scan pass's scripts. `inlineIntoHtml` is the plugin that does the
+inlining and its checks.
 
 ## Testing: `wireProblem`
 
@@ -390,6 +396,15 @@ A real host cannot be scripted, so this one does what a **web host** does after 
 driven by Playwright: the spec for the sequence, the SDK's schemas for the wire. It runs
 under Bun and starts no server of yours — you give it a **running** endpoint, built or in
 development, and the parts only your app knows.
+
+`playwright-core` brings no browser. The host launches headless Chromium in the build
+your `playwright-core` version expects — without it, the launch fails with "Executable
+doesn't exist". Install it once where `playwright-core` is installed (in CI, Playwright's
+container image of the same version brings it):
+
+```sh
+bunx playwright-core install --only-shell chromium
+```
 
 <!-- typecheck -->
 
@@ -464,9 +479,10 @@ What the host does on its own:
 - **The wire in both directions** passes `wireProblem`, bundled for the page. A view
   request that fails is answered with exactly that error object, as a host validating with
   the SDK answers it, and is not carried out.
-- **Visibility is enforced**: a `tools/call` from the view for a tool without `"app"` is
-  refused, and without `_meta.ui.visibility` the spec's default `["model", "app"]` holds —
-  which is why `modelOnly.args` must be harmless if they were forwarded.
+- **Visibility is enforced**: a `tools/call` from the view for a tool without `"app"`, or
+  one `tools/list` does not name, is refused, and without `_meta.ui.visibility` the spec's
+  default `["model", "app"]` holds — which is why `modelOnly.args` must be harmless if
+  they were forwarded. A refusal of a call your view makes itself is a finding.
 - **The result is latched** until `beforeResult` has looked at the view's waiting state;
   with `replay: true`, `tool-input` and `tool-result` arrive in the same tick instead, the
   way a host redraws a chat from history.
@@ -477,7 +493,7 @@ control run that breaks your app on purpose and expects exactly those checks to 
 
 | `id`                                                | What fails it                                                                                         |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `tool-listed`, `mime-type`                          | the tool has no `resourceUri`; `resources/read` answers another `mimeType`                            |
+| `tool-listed`, `mime-type`                          | the tool has no `_meta.ui.resourceUri`; `resources/read` answers another `mimeType`                   |
 | `handshake`, `initialized`, `sandbox`               | `ui/initialize` carries another `appInfo`, protocol version or `appCapabilities`; no `initialized`    |
 | `result-sent`                                       | the host could not call the tool                                                                      |
 | `size-reported`, `size-fits`                        | no `size-changed`; the frame is not the `<body>`'s height, the view scrolls or is wider than the host |
@@ -487,12 +503,23 @@ control run that breaks your app on purpose and expects exactly those checks to 
 | `oracle-csp`, `oracle-allowed`, `oracle-pageerror`  | the probes: a blocked image, an allowed one and a thrown error did not arrive as such                 |
 | `rpc-origin`                                        | `/rpc` forwards a request from another origin, or from none                                           |
 | `teardown`, `console`, `csp-reports`, `page-errors` | no answer to `ui/resource-teardown`; any console error or warning, CSP violation or page error        |
+| `log-errors`                                        | a `notifications/message` of the view at level `error`, `critical`, `alert` or `emergency`            |
+| `refused-calls`                                     | the host refused a `tools/call` of the view — a tool without `"app"`, or one not in `tools/list`      |
 | `wire`, `wire-control`                              | a message fails the schemas; the bundled schema no longer rejects `ui/message` with an object         |
 
-What a probe produces — the blocked image, the thrown error, the bridge's line about the
-foreign answer — leaves the findings by its signature (`takeLines`), and nothing else does.
+What a probe produces — the blocked image, the thrown error, the host's refusal of the
+probe's call and the bridge's line and log about the foreign answer — leaves the findings
+by its signature (`takeLines`, the request's id), and nothing else does.
+
 `versionReport` checks the view's URI without a browser; the version is the SHA-256 of the
-built `html` you pass, computed by the host and not by the catalog.
+built `html` you pass, computed by the host and not by the catalog. Its checks:
+
+| `id`                    | What fails it                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `version-uri`           | the tool (either key) or `resources/list` names another URI than `<uri>/<version>`, or `resources/list` a second one of the view |
+| `version-without-view`  | the `withoutView` tool is missing or carries a URI                                                                               |
+| `version-read-tolerant` | `resources/read` of the version, a foreign version and the bare URI does not return the same HTML                                |
+| `version-unknown`       | a view name the server does not know is not answered with `-32002`                                                               |
 
 The pieces are exported one by one — `openHost`, `checkSize`, `checkHostVariables`,
 `checkTheme`, `probeVisibility`, `probeOracle`, `probeRpc`, `closingChecks` — for a run in
@@ -503,4 +530,4 @@ another order. `o.host` drives the page (`setTheme`, `failNext`, `releaseResult`
 **What it does not prove** is how a real host behaves: it is this package's reading of the
 spec. Its own test, `bun run test:host` in this package, drives it against a fixture server
 and a view built with `buildViews`; `bun run test:host:controls` then breaks the fixture in
-five ways and expects each run red at exactly the checks it names.
+seven ways and expects each run red at exactly the checks it names.

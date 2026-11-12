@@ -134,7 +134,8 @@ async function viewRequest(message) {
       const tool = tools.find((t) => t.name === params?.name);
       const visibility = visibilityOf(tool);
       if (!tool || !visibility.includes('app')) {
-        state.refused.push(params?.name ?? '?');
+        // With the request's id: a probe's own refusal leaves the findings by it.
+        state.refused.push({ id, name: params?.name ?? '?' });
         return no(-32000, (params?.name ?? '?') + ' is not granted to views (visibility ' + JSON.stringify(visibility) + ')');
       }
       // An error to order — for a scenario that checks how the view shows one.

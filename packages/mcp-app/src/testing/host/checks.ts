@@ -16,6 +16,17 @@ const MESSAGE_OBJECT_SENTENCE =
  */
 const SANDBOX_WARNING = 'has both allow-scripts and allow-same-origin';
 
+/**
+ * The id of the visibility probe's `tools/call` — its signature. By it the
+ * bridge's console line about the foreign answer leaves the findings in the
+ * probe, and the host's refusal and the bridge's log of the answer leave them
+ * in `closingChecks`.
+ */
+const VISIBILITY_PROBE = 'mcp-app-probe-visibility';
+
+/** `notifications/message` levels from `error` up (RFC 5424, as MCP takes them). */
+const ERROR_LEVELS: ReadonlySet<string> = new Set(['error', 'critical', 'alert', 'emergency']);
+
 const pause = (o: OpenHost, ms: number) => o.page.waitForTimeout(ms);
 
 /**
@@ -66,8 +77,8 @@ export async function checkSize(o: OpenHost): Promise<void> {
 }
 
 /**
- * The host sends the spec's `styles.variables` (`HOST_STYLES`), whose names
- * collide with Tailwind's theme. The view must not set them on its root under
+ * The host sends the spec's `styles.variables` (`HOST_STYLES`), some of whose
+ * names a view's theme uses too. The view must not set them on its root under
  * their own name: no `--*` inline on the root, and each of `variables` — names
  * the view's own CSS defines — keeps the view's value. **Positive control:**
  * set under its own name, the first of them takes the host's value and
@@ -170,7 +181,8 @@ export async function checkTheme(o: OpenHost, surface: string): Promise<void> {
  * Visibility is the host's to enforce — asked **from inside the view**,
  * through the proxy, as a view would: `tool` is on `["model"]`. The answer
  * reaches the view's bridge as well, which never asked under that id and says
- * so — that one line belongs to the probe.
+ * so. That line, the host's refusal and the bridge's log of it belong to the
+ * probe; the closing checks leave them out by the probe's id.
  *
  * `args` must harm nothing if forwarded: were `visibility` missing, the host
  * would apply the spec's default `["model", "app"]` and pass the call on.
@@ -179,7 +191,6 @@ export async function probeVisibility(
   o: OpenHost,
   modelOnly: { tool: string; args: Record<string, unknown> }
 ): Promise<void> {
-  const PROBE = 'mcp-app-probe-visibility';
   const forwarded = o.rpcLog.forwarded;
   const answer = (await o.view.evaluate(
     ({ id, name, args }) =>
@@ -196,24 +207,24 @@ export async function probeVisibility(
         );
         setTimeout(() => resolve({ timeout: true }), 3_000);
       }),
-    { id: PROBE, name: modelOnly.tool, args: modelOnly.args }
+    { id: VISIBILITY_PROBE, name: modelOnly.tool, args: modelOnly.args }
   )) as { error?: { message?: string } };
   const s = await o.state();
   o.check(
     'visibility',
     `the host refuses tools/call ${modelOnly.tool} from the view (visibility ["model"]), nothing reaches the app`,
     String(answer.error?.message).includes('not granted to views') &&
-      s.refused.includes(modelOnly.tool) &&
+      s.refused.some((r) => r.id === VISIBILITY_PROBE && r.name === modelOnly.tool) &&
       o.rpcLog.forwarded === forwarded,
     JSON.stringify({ answer, forwarded: o.rpcLog.forwarded - forwarded })
   );
   await pause(o, 200);
   // Only what the probe carries leaves the findings — a real line in the same moment stays.
-  const lines = takeLines(o.consoleLines, PROBE);
+  const lines = takeLines(o.consoleLines, VISIBILITY_PROBE);
   o.check(
     'visibility-bridge-loud',
     "… and the view's bridge reports the foreign answer instead of swallowing it",
-    lines.some((line) => line.includes(`Answer to an unknown request (id ${PROBE})`)),
+    lines.some((line) => line.includes(`Answer to an unknown request (id ${VISIBILITY_PROBE})`)),
     lines.join('\n')
   );
 }
@@ -323,10 +334,12 @@ export async function probeRpc(o: OpenHost): Promise<void> {
 
 /**
  * The end of every run: `ui/resource-teardown` answered, and the whole run
- * without console errors or warnings, CSP violations or page errors; every
- * message passed the schemas, and the page's schema still rejects the spec
- * text's `ui/message` (**positive control** — a wire check that rejects
- * nothing reports "no problem" exactly like a clean run).
+ * without console errors or warnings, `notifications/message` from `error`
+ * up, CSP violations, page errors or refused `tools/call` of the view — the
+ * visibility probe's own refusal and log line leave by its id; every message
+ * passed the schemas, and the page's schema still rejects the spec text's
+ * `ui/message` (**positive control** — a wire check that rejects nothing
+ * reports "no problem" exactly like a clean run).
  */
 export async function closingChecks(o: OpenHost): Promise<void> {
   const torn = await o.host.teardown('end of run').catch((e: Error) => ({ failed: e.message }));
@@ -347,6 +360,17 @@ export async function closingChecks(o: OpenHost): Promise<void> {
     problems.length === 0,
     problems.join('\n')
   );
+  const s = await o.state();
+  // A copy: the page's own record stays whole for `o.state()`.
+  const logs = [...s.logs];
+  takeLines(logs, VISIBILITY_PROBE);
+  const logged = logs.filter((entry) => ERROR_LEVELS.has(entry.level));
+  o.check(
+    'log-errors',
+    'no notifications/message from the view at level error or above',
+    logged.length === 0,
+    JSON.stringify(logged)
+  );
   o.check(
     'csp-reports',
     'no CSP violation reported (report-uri)',
@@ -354,7 +378,14 @@ export async function closingChecks(o: OpenHost): Promise<void> {
     JSON.stringify(o.cspReports)
   );
   o.check('page-errors', 'no page error', o.pageErrors.length === 0, o.pageErrors.join(' | '));
-  const { wire } = await o.state();
+  const refused = s.refused.filter((r) => r.id !== VISIBILITY_PROBE);
+  o.check(
+    'refused-calls',
+    "the host refused no tools/call of the view, apart from the visibility probe's",
+    refused.length === 0,
+    JSON.stringify(refused)
+  );
+  const { wire } = s;
   o.check(
     'wire',
     `every message between view and host passes the ext-apps schemas (${wire.checked} checked)`,

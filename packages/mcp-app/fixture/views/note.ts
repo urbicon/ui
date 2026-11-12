@@ -83,6 +83,9 @@ const state: ViewState = new Proxy<ViewState>(
   }
 );
 
+/** What `mount` received — for the sabotages that act after the result. */
+let mounted: { bridge: ViewBridge; tools: ToolCaller } | null = null;
+
 let sabotaged = false;
 function afterResult(): void {
   if (sabotaged) return;
@@ -98,6 +101,13 @@ function afterResult(): void {
       throw new Error('The fixture view throws (sabotage view-throws).');
     });
   }
+  if (__FIXTURE_SABOTAGE__ === 'model-only-from-view') {
+    // A tool of the model's, and the refusal swallowed: nothing shows in the view.
+    void mounted?.tools.callTool('remove_note', { id: 'no-such-note' }).catch(() => {});
+  }
+  if (__FIXTURE_SABOTAGE__ === 'log-error') {
+    mounted?.bridge.log('error', 'The fixture view is broken (sabotage log-error).');
+  }
 }
 
 function button(label: string, onClick: () => Promise<void>): void {
@@ -112,6 +122,7 @@ function button(label: string, onClick: () => Promise<void>): void {
 }
 
 function mount({ bridge, tools }: { bridge: ViewBridge; tools: ToolCaller }): void {
+  mounted = { bridge, tools };
   document.body.append(main);
   render();
   button('Ask about it', async () => {
