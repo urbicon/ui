@@ -246,12 +246,11 @@ describe('consumer-css-check', () => {
 describe('@urbicon-ui/blocks/a2ui without the Svelte compiler', () => {
   const PROBE = [
     'const m = await import(process.argv[2]);',
-    'const prompt = `${m.a2uiSystemPrompt()}\\n\\n${m.a2uiMcpAppTransportSection()}`;',
+    'const prompt = `${m.a2uiSystemPrompt()}\\n\\n${m.a2uiFencedTransportSection()}`;',
     'const issues = m.validateA2uiPayload({ messages: [',
     "  { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: 'x' } }",
     ']});',
-    'const payload = new m.A2uiToolInputStabilizer().complete({ messages: [] });',
-    'console.log(JSON.stringify({ prompt: prompt.length, codes: issues.map((i) => i.code), payload }));'
+    'console.log(JSON.stringify({ prompt: prompt.length, codes: issues.map((i) => i.code) }));'
   ].join('\n');
   const RUNTIMES = [process.execPath, 'node'];
 
@@ -276,7 +275,6 @@ describe('@urbicon-ui/blocks/a2ui without the Svelte compiler', () => {
       const out = JSON.parse(stdout);
       expect(out.prompt).toBeGreaterThan(10_000);
       expect(out.codes).toEqual(['MISSING_ROOT']);
-      expect(out.payload).toEqual([]);
     }
 
     const svelte = dirname(createRequire(import.meta.url).resolve('svelte/package.json'));

@@ -14,13 +14,11 @@
  * untouched.
  *
  * Deliberately excludes the TRANSPORT — how envelopes reach the client and
- * what becomes of a surface after the call or reply that sent it: whether a
- * later turn can patch it, whether a correction is a patch or a whole new
- * surface. Those rules differ per transport, so each transport section carries
- * its own (`a2uiFencedTransportSection`, `a2uiMcpAppTransportSection`), and a
- * prompt needs exactly one of them. Also excluded, as app-specific: any
- * data-schema section and any surface requirements (`a2uiDataSchemaSection`,
- * `a2uiSurfaceRequirementsSection`).
+ * what becomes of a surface after the reply that sent it: whether a later turn
+ * can patch it. Those rules hold only for a client that can deliver them, so
+ * the transport section carries them (`a2uiFencedTransportSection`). Also
+ * excluded, as app-specific: any data-schema section and any surface
+ * requirements (`a2uiDataSchemaSection`, `a2uiSurfaceRequirementsSection`).
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
@@ -189,11 +187,9 @@ function renderGroupedComponents(
  * `createSurface` catalog id, and `catalog` to render a specific catalog's
  * components (defaults to the Basic catalog).
  *
- * It states only the rules every transport shares. Append exactly one
- * transport section — `a2uiFencedTransportSection()` for a chat stream,
- * `a2uiMcpAppTransportSection()` for an MCP App tool — or the agent never
- * learns how to send envelopes, nor what it may do with a surface it already
- * sent.
+ * It states only the rules independent of the transport. Append
+ * `a2uiFencedTransportSection()` for a chat stream, or the agent never learns
+ * how to send envelopes, nor what it may do with a surface it already sent.
  */
 export function a2uiSystemPrompt(options?: {
   catalogId?: string;

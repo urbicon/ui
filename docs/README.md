@@ -72,7 +72,7 @@ and a link to that place, and in these reference docs the owning section says so
 - [MIGRATION-V8.md](MIGRATION-V8.md) — table v7 → v8: the consumer-owned view object, the source union, the two persistence channels _(shipped in the table tarball)_
 - [MIGRATION-BLOCKS.md](MIGRATION-BLOCKS.md) — breaking changes to the component library, newest first _(shipped in the blocks tarball)_
 - [GUIDE.md](GUIDE.md) — Guide system: non-modal help panel, contextual hints, guided tour _(shipped in the blocks tarball)_
-- [A2UI.md](A2UI.md) — agent-generated UI in a chat and in an MCP App: long-lived surfaces, the action-only return path, one view per tool call _(shipped in the blocks tarball)_
+- [A2UI.md](A2UI.md) — agent-generated UI in a chat: long-lived surfaces, the action-only return path _(shipped in the blocks tarball)_
 
 ## Icons
 

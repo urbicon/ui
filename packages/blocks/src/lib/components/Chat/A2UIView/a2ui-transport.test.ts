@@ -51,7 +51,7 @@ describe('a2uiFencedTransportSection', () => {
 
   // These hold only because the router delivers a later turn's envelopes into
   // the message that owns the surface, so they live here and not in
-  // a2uiSystemPrompt(), which an MCP App prompt shares.
+  // a2uiSystemPrompt().
   it('carries the lifecycle rules that need a later turn to reach the surface', () => {
     expect(section.toLowerCase()).toContain('one json envelope per line');
     expect(section).toContain('it updates in place, keeping what the user');

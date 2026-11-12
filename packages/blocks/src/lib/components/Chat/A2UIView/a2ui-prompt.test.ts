@@ -57,9 +57,9 @@ describe('a2uiSystemPrompt', () => {
     expect(prompt).not.toContain('Server-Sent');
   });
 
-  // What becomes of a surface after its turn depends on whether a later turn
-  // can reach it: true for the chat transport with its router, false for an
-  // MCP App, where each call is its own view. Neither may leak in here.
+  // What becomes of a surface after its turn depends on a router delivering a
+  // later turn into it; the prompt cannot promise that, so the transport
+  // section carries these rules.
   it('says nothing about patching a surface after its turn, nor about lines', () => {
     for (const text of [prompt, a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec })]) {
       expect(text).not.toMatch(/\bpatch/i);
@@ -67,6 +67,16 @@ describe('a2uiSystemPrompt', () => {
       expect(text).not.toContain('updates in place');
       expect(text).not.toContain('deleteSurface when');
       expect(text).not.toContain('JSONL');
+    }
+  });
+
+  // The prompt asks for several updateComponents envelopes, and a container
+  // re-sent among them drops the children it no longer names.
+  it('says a re-sent component id replaces it', () => {
+    for (const catalog of [undefined, urbiconA2uiCatalogSpec]) {
+      const text = a2uiSystemPrompt({ catalog });
+      expect(text).toContain('Re-sending a component id REPLACES it');
+      expect(text).toContain('re-send its\n  container with the full children list');
     }
   });
 
