@@ -240,7 +240,11 @@ function cssUrls(css: string): string[] {
   let i = 0;
   while (i < css.length) {
     const c = css[i];
-    if (c === '"' || c === "'") {
+    // An escape outside a string is one character: Tailwind writes `content-['*']`
+    // as `.content-\[\'\*\'\]`, and a quote read there would open a string.
+    if (c === '\\') {
+      i += 2;
+    } else if (c === '"' || c === "'") {
       i = afterString(i);
     } else if (c === '/' && css[i + 1] === '*') {
       const end = css.indexOf('*/', i + 2);
@@ -640,10 +644,20 @@ interface Ledger {
 /** Where the build is about to write `name`: nothing yet, a file on the list, or one it wrote itself. */
 function checkTarget(ledger: Ledger, name: string): void {
   if (!ownFile(ledger.outDir, name, ledger.sources)) return;
+  const path = join(ledger.outDir, name);
+  // Vite writes over a file in place, so every other hard link of it changes too
+  // (a backup made with `rsync --link-dest` or `cp -al`). A font's name carries
+  // its content, so only the HTML can change under the same name.
+  if (name.endsWith('.html') && (entry(path)?.nlink ?? 1) > 1) {
+    throw new Error(
+      `${path} has another hard link; writing over it would change that file too. ` +
+        'Replace it with a copy of its own, or build into another outDir.'
+    );
+  }
   if (ledger.listed.has(name) || ledger.written.has(name)) return;
   throw new Error(
-    `${join(ledger.outDir, name)} is not on ${MANIFEST}: the build writes over no file it did not write. ` +
-      'Remove it, or build into another outDir.'
+    `${path} is not on ${MANIFEST}: the build writes over no file it did not write. ` +
+      "Remove that build's output once (its <view>.html files and fonts/), or build into another outDir."
   );
 }
 

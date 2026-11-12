@@ -1,5 +1,6 @@
 import {
   existsSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -306,6 +307,24 @@ describe('buildViews', () => {
     BUILD_TIMEOUT
   );
 
+  it(
+    'writes over no view HTML that has another hard link, and leaves both names as they were',
+    async () => {
+      const root = soloRoot('body{color:red}');
+      const outDir = tempDir();
+      await buildViews({ root, outDir, views: ['solo'] });
+      const backup = join(tempDir(), 'solo.html');
+      linkSync(join(outDir, 'solo.html'), backup);
+      const before = readFileSync(backup, 'utf8');
+      writeFileSync(join(root, 'solo.css'), 'body{color:blue}');
+      await expect(buildViews({ root, outDir, views: ['solo'] })).rejects.toThrow(
+        /solo\.html has another hard link/
+      );
+      expect(readFileSync(backup, 'utf8')).toBe(before);
+    },
+    BUILD_TIMEOUT
+  );
+
   it('without a list it removes nothing, and writes over no view it did not write', async () => {
     const root = soloRoot('body{color:red}');
     const outDir = tempDir();
@@ -569,6 +588,12 @@ describe('inlineIntoHtml', () => {
     expect(() => run(plugin(), bundleOf({ css: 'a{background:url(__B__/img/z.png)}' }))).toThrow(
       /url\(__B__\/img\/z\.png\)/
     );
+  });
+
+  it("reads past an escaped quote in a selector, as Tailwind writes content-['*']", () => {
+    const css =
+      ".after\\:content-\\[\\'\\*\\'\\]:after{content:'*'}.bg-surface{background:url(./missing.png)}";
+    expect(() => run(plugin(), bundleOf({ css }))).toThrow(/url\(\.\/missing\.png\)/);
   });
 
   it('lets data:, absolute URLs, fragments, the placeholder and a url( inside a string pass', () => {

@@ -350,9 +350,11 @@ Svelte, an alias — comes in `plugins`. What the build holds to:
   what the previous list names and this build did not write again: nothing without a list,
   nothing after a failed build, `fonts/` only when the build made it and it is empty. It
   writes over no file the list does not name: a `<view>.html` another build left in
-  `outDir` stops it until you remove that file. A symbolic link where it would write or
-  remove, a file it would write over or remove that is one of its sources, and an
-  `outDir` that is `root` stop it too, before it does. Vite's `public/` is not copied
+  `outDir` stops it until you remove that build's output once — its `<view>.html` files
+  and `fonts/`, or fonts of it stay behind for good. A symbolic link where it would write
+  or remove, a file it would write over or remove that is one of its sources, a
+  `<view>.html` with another hard link, and an `outDir` that is `root` stop it too, before
+  it does. Vite's `public/` is not copied
   (`publicDir: false`).
 
 `viewConfig(view, options, mode, scanDir)` is the Vite config of a single pass, for a
