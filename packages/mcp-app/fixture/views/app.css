@@ -1,0 +1,12 @@
+/* The fixture view's CSS. `source(none)`: what Tailwind reads is the view's
+   script, appended by the build (`@urbicon-ui/mcp-app/vite`, `tailwind`). */
+@import 'tailwindcss' source(none);
+@import '@fontsource/jetbrains-mono/latin-400.css';
+
+@theme {
+  --color-surface: light-dark(#ffffff, #18181b);
+  --color-ink: light-dark(#3f3f46, #d4d4d8);
+  /* Both names are also the host's (`HOST_STYLES`) — the view keeps its own. */
+  --color-text-primary: light-dark(#18181b, #f4f4f5);
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}

@@ -1,6 +1,9 @@
 /**
- * `tools/call` is written in exactly one module of the package —
+ * `tools/call` is written in exactly one module a view can import —
  * `src/view/tools.ts`, the module behind `@urbicon-ui/mcp-app/view/tools`.
+ * "Can import" is the modules reachable from the two view entry points, as the
+ * compiler lists their imports; the test host writes the method too, and no
+ * view reaches it.
  *
  * That is the package's half. The app's half: its architecture rule forbids
  * that one specifier outside the entry of a view that declares `callsTools`,
@@ -13,13 +16,15 @@
  * view the path the rule closes. What is code is said by the TypeScript
  * compiler, not by a pattern — comments go, string literals of every kind stay.
  */
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, join, normalize, relative } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, test } from 'vitest';
 
 const SRC = new URL('..', import.meta.url).pathname;
 const THE_ONE = 'view/tools.ts';
+/** The modules behind `./view` and `./view/tools` in `package.json`. */
+const VIEW_ENTRIES = ['view/index.ts', THE_ONE];
 
 /** The method name as a string — `'tools/call'`, `"tools/call"` or `` `tools/call` ``. */
 const TOOLS_CALL = /([`'"])tools\/call\1/;
@@ -31,15 +36,22 @@ function codeOf(text: string): string {
   }).outputText;
 }
 
-/** Every module the package publishes, relative to `src/`, with its text. */
+/**
+ * Every module a view can import, relative to `src/`, with its text — the
+ * entries and whatever their relative imports reach. A bare specifier leaves
+ * the package and is not followed.
+ */
 function shippedModules(): Record<string, string> {
   const files: Record<string, string> = {};
-  for (const entry of readdirSync(SRC, { recursive: true, withFileTypes: true })) {
-    const path = join(entry.parentPath, entry.name);
-    const rel = relative(SRC, path);
-    if (!entry.isFile() || !rel.endsWith('.ts') || rel.endsWith('.test.ts')) continue;
-    if (rel.split('/').includes('__fixtures__')) continue;
-    files[rel] = readFileSync(path, 'utf8');
+  const queue = [...VIEW_ENTRIES];
+  for (let rel = queue.shift(); rel !== undefined; rel = queue.shift()) {
+    if (rel in files) continue;
+    const text = readFileSync(join(SRC, rel), 'utf8');
+    files[rel] = text;
+    for (const { fileName } of ts.preProcessFile(text, true, true).importedFiles) {
+      if (!fileName.startsWith('.')) continue;
+      queue.push(relative(SRC, normalize(join(SRC, dirname(rel), fileName))));
+    }
   }
   return files;
 }

@@ -265,6 +265,7 @@ jobs:
     # hand-written copies of one string agreeing is the shape AGENTS.md argues
     # against, and this pair cannot drift quietly anyway. Different tags means
     # different rendering, which means every shot red on the next run.
+    # `mcp-app-host` uses the tag as well, for the browser build alone.
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
     permissions:
@@ -364,6 +365,31 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  mcp-app-host:
+    # @urbicon-ui/mcp-app's test host against the package's own fixture: a
+    # mini server and a view built through `./vite`, the run green, then one
+    # run per sabotaged fixture, each red at exactly the checks it names
+    # (`packages/mcp-app/fixture/sabotage.ts`). Both scripts build the
+    # package first and import it by name, so they run what is published.
+    name: MCP-App test host
+    runs-on: ubuntu-latest
+    # The image of `e2e`, for its browser build: `/ms-playwright` holds the one
+    # Chromium the package's exactly pinned playwright-core expects, and
+    # Playwright fails loudly ("Executable doesn't exist") the moment the two
+    # disagree. No pixel baselines here — only that build must match.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      # setup-bun unpacks a .zip; the image ships no unzip (see `e2e`).
+      - run: apt-get update && apt-get install -y --no-install-recommends unzip
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun --filter='@urbicon-ui/mcp-app' run test:host
+      - run: bun --filter='@urbicon-ui/mcp-app' run test:host:controls
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -453,7 +479,7 @@ jobs:
   # never block a PR here — only the release bump gates on it.
   ci-green:
     name: CI green
-    needs: [lint, typecheck, gates, test, e2e, build]
+    needs: [lint, typecheck, gates, test, e2e, mcp-app-host, build]
     if: always()
     runs-on: ubuntu-latest
     # Reports nothing, reads nothing, checks nothing out.

@@ -1,0 +1,21 @@
+@import 'tailwindcss' source(none);
+@import './lib/lib.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+
+@theme {
+  --color-surface: light-dark(#ffffff, #18181b);
+  --color-ink: light-dark(#18181b, #f4f4f5);
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* A font small enough that Vite would inline it as `data:` (the file is no font —
+   only the build reads it). */
+@font-face {
+  font-family: 'Tiny';
+  src: url('./tiny.woff2') format('woff2');
+}
+
+/* Written out, so it stands in the CSS whatever Tailwind reads. */
+html {
+  background: light-dark(#fafafa, #09090b);
+}
