@@ -15,9 +15,9 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["node", "bun"],
     "noEmit": true
   },
-  "include": ["src/**/*", "vitest.config.ts"],
+  "include": ["src/**/*", "fixture/**/*", "vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -14,7 +14,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo on Bun workspaces.
   - `i18n`: Localization (Svelte 5 runes-based); also ships a data-level translation audit and a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by `urbicon i18n` and `bun run i18n:check` (which scans `blocks`, `table` and `docs` — `auth` keeps its own locale system, and its oracle is `translations.parity.test.ts` plus `satisfies AuthLocale`)
   - `shared-types`: docs-tooling types (playground, docs-config, navigation) — a peer of `@urbicon-ui/docs` and a dependency of `docs-gen`, nothing else; `blocks` and `table` reference its `globals` augmentation only while type-checking their own sources
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
-  - `mcp-app`: MCP-App views — bridge, resource catalog, SDK wire check
+  - `mcp-app`: MCP-App views: bridge, catalog, wire check, test host, build
   - `design`: the `urbicon` CLI (`@urbicon-ui/design`) — local design-loop enforcement (validate/hook/context/record-decision/sync-manifest/i18n/verb), ships the design skill + templates
   - `urbicon`: the unscoped bin name — forwards in-process to `@urbicon-ui/design` (`workspace:*`, lockstep) so `bunx urbicon` resolves everywhere; `init` still needs design installed
   - `sv`: Svelte-CLI community add-on (`@urbicon-ui/sv`, beta) — `sv add @urbicon-ui` installs blocks + design, wires the Tailwind stylesheet after Tailwind's own, then hands over to `urbicon init --hook`. **The only SvelteKit-bound consumer path** (`unsupported('Requires SvelteKit')`) — not a library limit but a wiring one, see the comment in `src/index.ts`

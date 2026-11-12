@@ -76,8 +76,9 @@ export type DisplayMode = 'inline' | 'fullscreen' | 'pip';
  * because `host-context-changed` may deliver any field later.
  *
  * `styles.variables` uses the spec's names (`--color-text-primary`,
- * `--font-sans`, …), which are also Tailwind's theme names — a view that
- * applies them sets them under its own prefix, never under their own name.
+ * `--font-sans`, …); some are also names of Tailwind's default theme
+ * (`--font-sans`) or of a view's own tokens (`--color-text-primary`) — a view
+ * that applies them sets them under its own prefix, never under their own name.
  */
 export interface HostContext {
   theme?: Theme;

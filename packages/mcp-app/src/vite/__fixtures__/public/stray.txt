@@ -1,0 +1,1 @@
+Vite copies <root>/public/ into outDir unless publicDir is false; no build may carry this file.

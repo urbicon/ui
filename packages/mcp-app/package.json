@@ -1,7 +1,7 @@
 {
   "name": "@urbicon-ui/mcp-app",
   "version": "8.37.0",
-  "description": "Building blocks for serving and testing an MCP-App view — the view's bridge to the host, the server's ui:// resource catalog and the wire check against the MCP SDK schemas. No runtime dependencies, no Svelte.",
+  "description": "Building blocks for serving and testing an MCP-App view — the view's bridge to the host, the server's ui:// resource catalog, the wire check against the MCP SDK schemas, a test host after the spec and the view's single-file Vite build. No runtime dependencies, no Svelte.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -15,6 +15,8 @@
     "mcp-apps",
     "model-context-protocol",
     "json-rpc",
+    "vite",
+    "playwright",
     "urbicon-ui"
   ],
   "type": "module",
@@ -36,6 +38,14 @@
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
     },
+    "./testing/host": {
+      "types": "./dist/testing/host/index.d.ts",
+      "default": "./dist/testing/host/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite/index.d.ts",
+      "default": "./dist/vite/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -49,11 +59,15 @@
     "check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "bunx --bun vitest run",
-    "test:watch": "bunx --bun vitest"
+    "test:watch": "bunx --bun vitest",
+    "test:host": "bun run build && bun fixture/host.ts",
+    "test:host:controls": "bun run build && bun fixture/host.ts --controls"
   },
   "peerDependencies": {
     "@modelcontextprotocol/ext-apps": "1.7.5",
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "playwright-core": "^1.62.1",
+    "vite": "^8.3.0"
   },
   "peerDependenciesMeta": {
     "@modelcontextprotocol/ext-apps": {
@@ -61,13 +75,25 @@
     },
     "@modelcontextprotocol/sdk": {
       "optional": true
+    },
+    "playwright-core": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@modelcontextprotocol/ext-apps": "1.7.5",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tailwindcss/vite": "catalog:",
+    "@types/bun": "catalog:",
     "@types/node": "catalog:",
+    "playwright-core": "1.64.1",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   },
   "author": "Urbicon UI Team"

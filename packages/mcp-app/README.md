@@ -14,17 +14,21 @@ shows in place of a tool's text result, in an iframe that talks to the host over
 
 ## Entry points
 
-| Import                           | Runs in            | Peers                                                                     | What it gives you                                                      |
-| -------------------------------- | ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `@urbicon-ui/mcp-app/server`     | Node, Bun          | —                                                                         | `createViewCatalog`: `_meta.ui` for tools, `resources/*` for the views |
-| `@urbicon-ui/mcp-app/view`       | the view (browser) | —                                                                         | `startView`, the bridge to the host, size and theme                    |
-| `@urbicon-ui/mcp-app/view/tools` | the view (browser) | —                                                                         | `toolCaller` — the one module that sends `tools/call`                  |
-| `@urbicon-ui/mcp-app/testing`    | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it              |
+| Import                             | Runs in            | Peers                                                                     | What it gives you                                                      |
+| ---------------------------------- | ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `@urbicon-ui/mcp-app/server`       | Node, Bun          | —                                                                         | `createViewCatalog`: `_meta.ui` for tools, `resources/*` for the views |
+| `@urbicon-ui/mcp-app/view`         | the view (browser) | —                                                                         | `startView`, the bridge to the host, size and theme                    |
+| `@urbicon-ui/mcp-app/view/tools`   | the view (browser) | —                                                                         | `toolCaller` — the one module that sends `tools/call`                  |
+| `@urbicon-ui/mcp-app/testing`      | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it              |
+| `@urbicon-ui/mcp-app/testing/host` | Bun                | the two above, `playwright-core` ^1.62.1                                  | a test host after the spec, driven by Playwright against your server   |
+| `@urbicon-ui/mcp-app/vite`         | a build script     | `vite` ^8.3                                                               | `buildViews`: each view as one HTML file, fonts beside it              |
 
 ```sh
 bun add @urbicon-ui/mcp-app
-# only for @urbicon-ui/mcp-app/testing
-bun add -d @modelcontextprotocol/ext-apps@1.7.5 @modelcontextprotocol/sdk
+# only for @urbicon-ui/mcp-app/testing and /testing/host
+bun add -d @modelcontextprotocol/ext-apps@1.7.5 @modelcontextprotocol/sdk playwright-core
+# only for @urbicon-ui/mcp-app/vite
+bun add -d vite
 ```
 
 The `ext-apps` peer is pinned exactly: `wireProblem` reports that version's schema sentences,
@@ -236,8 +240,8 @@ same `bridge`:
 
 A tool's `"app"` visibility holds for every view of the server, so that a view without
 `callsTools` changes nothing rests on the view's code, not on the host. The package's
-part: `tools/call` is written in one module, `@urbicon-ui/mcp-app/view/tools`, a subpath of
-its own. The app's part: forbid that one specifier everywhere except in the entry of a
+part: of everything a view can import, one module writes `tools/call` —
+`@urbicon-ui/mcp-app/view/tools`, a subpath of its own. The app's part: forbid that one specifier everywhere except in the entry of a
 view that calls tools, **and** scan the view code for the literal `tools/call` —
 `createBridge` (below) keeps a free `request`. Both are a heuristic against an accident,
 not a guarantee: `'tools' + '/call'` passes either.
@@ -273,6 +277,90 @@ message, a throwing handler and a transport that throws go to `onError`; under `
 that is the console plus `notifications/message` to the host, and your `onError` in addition.
 Only what is not JSON-RPC at all is ignored — extensions and developer tools use
 `postMessage` too.
+
+## Building the views: `buildViews`
+
+A host fetches a view with `resources/read` and writes it into a sandbox on an origin of
+its own, so whatever the view loaded from elsewhere would need the CSP's permission and,
+for a module script, a stylesheet or a font, a CORS answer from your app. `buildViews`
+therefore writes **one HTML file per view**, with the script and the CSS inside it, and
+fails the build when anything in it still points at a file.
+
+<!-- typecheck -->
+
+```ts
+import { realpathSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import tailwindcss from '@tailwindcss/vite';
+import { buildViews } from '@urbicon-ui/mcp-app/vite';
+
+// A component library's dist/ — its index.css brings `@source '..'` for all of it.
+const blocks = dirname(
+  dirname(realpathSync(fileURLToPath(import.meta.resolve('@urbicon-ui/blocks/style/index.css'))))
+);
+
+const built = await buildViews({
+  root: 'src/views', // note.html, note.ts, app.css
+  outDir: 'src/views/dist',
+  views: ['note'],
+  plugins: [tailwindcss(), svelte()],
+  base: { placeholder: '__NOTES_BASE__', meta: 'notes:base', fonts: '/views/fonts/' },
+  tailwind: { css: 'src/views/app.css', exclude: [blocks], witness: 'bg-surface' }
+});
+for (const view of built.views) {
+  console.log(`${view.name}.html ${view.bytes} B, gzip ${view.gzipBytes} B`);
+}
+```
+
+The package imports neither Tailwind nor Svelte: whatever the views need — Tailwind,
+Svelte, an alias — comes in `plugins`. What the build holds to:
+
+- **The fonts stay files**, in `<outDir>/fonts/`. The spec's CSP has no `data:` in
+  `font-src`, so a host that follows it blocks an embedded font. The CSS names each font
+  as `base.placeholder + base.fonts + file` — the placeholder the catalog's `base` replaces
+  with your origin at `resources/read`, and the origin it adds to `resourceDomains`. Your
+  app serves `<outDir>/fonts/` under `base.fonts` with `Access-Control-Allow-Origin: *`. A
+  view with a font and no `base.fonts` does not build.
+- **`light-dark()` stays as written.** The CSS target is `CSS_TARGET`, the first browser
+  versions with `light-dark()`. Below it, Lightning CSS rewrites the function into
+  variables that only a `color-scheme` declared in CSS switches, and `applyTheme` sets the
+  scheme from a script.
+- **A dynamic import is embedded too** — the view is one chunk — and runs through Vite's
+  preload helper. The inlining waits for Vite to fill in the helper's placeholder and
+  stops the build if one is left; `base.placeholder` may not look like one
+  (`__VITE_…__`).
+- **With `tailwind`, Tailwind reads each view's own script**, not the libraries'. A
+  first pass writes each view's script, unminified, into a fresh temporary directory
+  (removed after the build); the second turns the `exclude` directories off
+  (`@source not`) and lets Tailwind read exactly that script — what the bundler put into
+  the view, after tree-shaking. The CSS file names no source
+  itself (`@import 'tailwindcss' source(none)`), and the build appends both lines.
+  Tailwind treats a glob that finds nothing as no error, so `witness` names a class every
+  view uses: the build fails when the finished CSS has no rule for it.
+- `base.meta` puts `<meta name="<meta>" content="<placeholder>">` into every view, for
+  `readBaseMeta`.
+- **Nothing may still point at a file.** The build stops on a relative `src` or `href` in
+  the HTML, on any file but a font left beside it, and on a `url()` in the CSS unless it is
+  `data:`, an absolute URL, a fragment, a font as the build names it, or under
+  `base.placeholder`. Vite leaves a `url()` it cannot resolve as written and only warns.
+- **In `outDir` the build removes only what it wrote.** It keeps a list there,
+  `.mcp-app-build.json` — each view's HTML and fonts. After a successful build it removes
+  what the previous list names and this build did not write again: nothing without a list,
+  nothing after a failed build, `fonts/` only when the build made it and it is empty. It
+  writes over no file the list does not name: a `<view>.html` another build left in
+  `outDir` stops it until you remove that build's output once — its `<view>.html` files
+  and `fonts/`, or fonts of it stay behind for good. A symbolic link where it would write
+  or remove, a file it would write over or remove that is one of its sources, a
+  `<view>.html` with another hard link, and an `outDir` that is `root` stop it too, before
+  it does. Vite's `public/` is not copied
+  (`publicDir: false`).
+
+`viewConfig(view, options, mode, scanDir)` is the Vite config of a single pass, for a
+build loop of your own — with `tailwind`, both passes need `scanDir`, an existing
+directory for the scan pass's scripts. Such a loop keeps no list and removes nothing.
+`inlineIntoHtml` is the plugin that does the inlining and its checks.
 
 ## Testing: `wireProblem`
 
@@ -311,3 +399,145 @@ wireProblem({ jsonrpc: '2.0', id: 1, result: {} }, 'ping');
 
 Run it over every message a view sends in a test — this package does so for every message
 its bridge can send. A method no schema knows is a finding, not a pass.
+
+## Testing in a host: `@urbicon-ui/mcp-app/testing/host`
+
+A real host cannot be scripted, so this one does what a **web host** does after the spec,
+driven by Playwright: the spec for the sequence, the SDK's schemas for the wire. It runs
+under Bun and starts no server of yours — you give it a **running** endpoint, built or in
+development, and the parts only your app knows.
+
+`playwright-core` brings no browser. The host launches headless Chromium in the build
+your `playwright-core` version expects — without it, the launch fails with "Executable
+doesn't exist". Install it once where `playwright-core` is installed (in CI, Playwright's
+container image of the same version brings it):
+
+```sh
+bunx playwright-core install --only-shell chromium
+```
+
+<!-- typecheck -->
+
+```ts
+import { readFileSync } from 'node:fs';
+import {
+  type HostScenario,
+  printReports,
+  type RunHostOptions,
+  runHost,
+  serverInfo,
+  versionReport
+} from '@urbicon-ui/mcp-app/testing/host';
+
+const endpoint = {
+  url: 'http://127.0.0.1:5173/mcp',
+  headers: { authorization: `Bearer ${process.env.MCP_TOKEN}` }
+};
+
+const options = {
+  endpoint,
+  tool: 'show_note',
+  args: { id: 'n1' },
+  expect: {
+    appInfo: await serverInfo(endpoint),
+    appCapabilities: { availableDisplayModes: ['inline'] }
+  },
+  // An origin in the view's resourceDomains, a tool on ["model"] with harmless
+  // arguments, a token of the view that shares a host variable's name, and the
+  // element whose background follows the theme.
+  allowedOrigin: 'http://127.0.0.1:5173',
+  modelOnly: { tool: 'delete_note', args: { id: crypto.randomUUID() } },
+  hostVariables: { variables: ['--color-text-primary'], selector: 'h1' },
+  theme: { surface: 'main' }
+} satisfies RunHostOptions;
+
+const scenario: HostScenario = {
+  async afterResult(o) {
+    const title = await o.view.locator('h1').textContent();
+    o.check('notes:title', 'the view shows the note', title === 'Groceries', String(title));
+  }
+};
+
+const { ok, total } = printReports([
+  [
+    'the versioned URI',
+    await versionReport({
+      endpoint,
+      tool: 'show_note',
+      uri: 'ui://notes/note',
+      html: readFileSync('src/views/dist/note.html', 'utf8'),
+      withoutView: 'pin_note'
+    })
+  ],
+  ['note · 700 px', await runHost(options, scenario)],
+  ['note · 390 px', await runHost({ ...options, width: 390 }, scenario)],
+  ['note · redrawn from history', await runHost({ ...options, replay: true }, scenario)]
+]);
+console.log(`${total} checks`);
+process.exit(ok ? 0 : 1);
+```
+
+What the host does on its own:
+
+- **Two origins.** The host page runs on `localhost`, the view in a sandbox proxy on
+  `127.0.0.1` ("The Host and the Sandbox MUST have different origins"), the CSP as the
+  proxy's header, built from `_meta.ui.csp` after the spec (`buildCsp`), with a
+  `report-uri`.
+- **Your headers stay in the process.** The page reaches your server through the host's
+  `/rpc`, which takes requests from the host page's origin only — otherwise any page in the
+  same browser could send requests with your token, by a plain `text/plain` POST.
+- **The wire in both directions** passes `wireProblem`, bundled for the page. A view
+  request that fails is answered with exactly that error object, as a host validating with
+  the SDK answers it, and is not carried out.
+- **Visibility is enforced**: a `tools/call` from the view for a tool without `"app"`, or
+  one `tools/list` does not name, is refused, and without `_meta.ui.visibility` the spec's
+  default `["model", "app"]` holds — which is why `modelOnly.args` must be harmless if
+  they were forwarded. A refusal of a call your view makes itself is a finding.
+- **The result is latched** until `beforeResult` has looked at the view's waiting state;
+  with `replay: true`, `tool-input` and `tool-result` arrive in the same tick instead, the
+  way a host redraws a chat from history.
+
+`runHost` opens the host, runs `beforeResult`, lets the result go, runs `afterResult`, then
+the generic checks below, and closes. Each check has a stable `id` — the one to name in a
+control run that breaks your app on purpose and expects exactly those checks to fail.
+
+| `id`                                                | What fails it                                                                                         |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `tool-listed`, `mime-type`                          | the tool has no `_meta.ui.resourceUri`; `resources/read` answers another `mimeType`                   |
+| `handshake`, `initialized`, `sandbox`               | `ui/initialize` carries another `appInfo`, protocol version or `appCapabilities`; no `initialized`    |
+| `result-sent`                                       | the host could not call the tool                                                                      |
+| `size-reported`, `size-fits`                        | no `size-changed`; the frame is not the `<body>`'s height, the view scrolls or is wider than the host |
+| `host-variables-root`, `-collision`, `-control`     | the view applies `hostContext.styles` under their own names; the control cannot see a collision       |
+| `theme`                                             | `color-scheme` does not follow `host-context-changed`, or `theme.surface` keeps its background        |
+| `visibility`, `visibility-bridge-loud`              | the host forwards `modelOnly.tool`; the bridge swallows an answer it never asked for                  |
+| `oracle-csp`, `oracle-allowed`, `oracle-pageerror`  | the probes: a blocked image, an allowed one and a thrown error did not arrive as such                 |
+| `rpc-origin`                                        | `/rpc` forwards a request from another origin, or from none                                           |
+| `teardown`, `console`, `csp-reports`, `page-errors` | no answer to `ui/resource-teardown`; any console error or warning, CSP violation or page error        |
+| `log-errors`                                        | a `notifications/message` of the view at level `error`, `critical`, `alert` or `emergency`            |
+| `refused-calls`                                     | the host refused a `tools/call` of the view — a tool without `"app"`, or one not in `tools/list`      |
+| `wire`, `wire-control`                              | a message fails the schemas; the bundled schema no longer rejects `ui/message` with an object         |
+
+What a probe produces — the blocked image, the thrown error, the host's refusal of the
+probe's call and the bridge's line and log about the foreign answer — leaves the findings
+by its signature (`takeLines`, the request's id), and nothing else does.
+
+`versionReport` checks the view's URI without a browser; the version is the SHA-256 of the
+built `html` you pass, computed by the host and not by the catalog. Its checks:
+
+| `id`                    | What fails it                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `version-uri`           | the tool lacks either key or names another URI than `<uri>/<version>`, or the view's URIs in `resources/list` are not exactly that one |
+| `version-without-view`  | the `withoutView` tool is missing or carries a URI                                                                                     |
+| `version-read-tolerant` | `resources/read` of the version, a foreign version and the bare URI does not return the same HTML                                      |
+| `version-unknown`       | a view name the server does not know is not answered with `-32002`                                                                     |
+
+The pieces are exported one by one — `openHost`, `checkSize`, `checkHostVariables`,
+`checkTheme`, `probeVisibility`, `probeOracle`, `probeRpc`, `closingChecks` — for a run in
+another order. `o.host` drives the page (`setTheme`, `failNext`, `releaseResult`, `replay`,
+`teardown`), `o.state()` reads what the host saw, and `o.responses` holds what
+`watchResponses` picked — your fonts, with status and CORS header.
+
+**What it does not prove** is how a real host behaves: it is this package's reading of the
+spec. Its own test, `bun run test:host` in this package, drives it against a fixture server
+and a view built with `buildViews`; `bun run test:host:controls` then breaks the fixture in
+seven ways and expects each run red at exactly the checks it names.
