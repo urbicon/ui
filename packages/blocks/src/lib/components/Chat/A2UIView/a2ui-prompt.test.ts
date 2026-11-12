@@ -57,9 +57,9 @@ describe('a2uiSystemPrompt', () => {
     expect(prompt).not.toContain('Server-Sent');
   });
 
-  // What becomes of a surface after its turn depends on whether a later turn
-  // can reach it: true for the chat transport with its router, false for an
-  // MCP App, where each call is its own view. Neither may leak in here.
+  // What becomes of a surface after its turn depends on a router delivering a
+  // later turn into it; the prompt cannot promise that, so the transport
+  // section carries these rules.
   it('says nothing about patching a surface after its turn, nor about lines', () => {
     for (const text of [prompt, a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec })]) {
       expect(text).not.toMatch(/\bpatch/i);

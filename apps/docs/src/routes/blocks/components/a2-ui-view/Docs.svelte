@@ -52,8 +52,8 @@ import { a2uiFencedTransportSection, a2uiSystemPrompt } from '@urbicon-ui/blocks
 
 const system = [
   a2uiSystemPrompt(),
-  // Exactly one TRANSPORT section: how envelopes reach the client and what a later
-  // turn may do with a surface. For an MCP App tool: a2uiMcpAppTransportSection().
+  // The TRANSPORT section: how envelopes reach the client and what a later
+  // turn may do with a surface.
   a2uiFencedTransportSection()
 ].join('\\n\\n');`;
 </script>
@@ -175,10 +175,9 @@ const system = [
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
         the action rules, straight from the registry that validates the payload. It omits what is
         app-specific. How envelopes reach the client, and what a later turn may do with a surface it
-        sent, is the transport's: append <code>a2uiFencedTransportSection()</code> in a chat or
-        <code>a2uiMcpAppTransportSection()</code> for an MCP App tool. Which components a surface
-        must carry is yours: append <code>a2uiSurfaceRequirementsSection()</code> from the same
-        object you pass as <code>surfaceRequirements</code> and the catalog spec you prompt with.
+        sent, is the transport's: append <code>a2uiFencedTransportSection()</code>. Which components
+        a surface must carry is yours: append <code>a2uiSurfaceRequirementsSection()</code> from the
+        same object you pass as <code>surfaceRequirements</code> and the catalog spec you prompt with.
       </p>
       <CodeExample title="System prompt" code={promptCode} language="ts" preview={false} />
     </div>

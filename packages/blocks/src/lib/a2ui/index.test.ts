@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  A2uiToolInputStabilizer,
   a2uiErrorMessage,
-  a2uiMcpAppTransportSection,
+  a2uiFencedTransportSection,
   a2uiSystemPrompt,
   urbiconA2uiCatalogSpec,
   validateA2uiPayload
@@ -18,12 +17,12 @@ describe('@urbicon-ui/blocks/a2ui without a DOM', () => {
     expect(typeof document).toBe('undefined');
   });
 
-  it('builds a tool description, validates arguments and stabilizes partials', () => {
-    const description = [
+  it('builds a prompt and validates a payload', () => {
+    const prompt = [
       a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
-      a2uiMcpAppTransportSection()
+      a2uiFencedTransportSection()
     ].join('\n\n');
-    expect(description).toContain('"messages" argument');
+    expect(prompt).toContain('```a2ui');
 
     const args = {
       messages: [
@@ -40,9 +39,5 @@ describe('@urbicon-ui/blocks/a2ui without a DOM', () => {
     const errors = validateA2uiPayload(args).filter((issue) => issue.severity === 'error');
     expect(errors.map((issue) => issue.code)).toEqual(['MISSING_ROOT']);
     expect(a2uiErrorMessage(errors)).toMatch(/^\[ui-error\] \[\{"severity":"error"/);
-
-    const input = new A2uiToolInputStabilizer();
-    expect(input.partial(args)).toEqual([args.messages[0]]);
-    expect(input.complete(args)).toEqual(args.messages);
   });
 });

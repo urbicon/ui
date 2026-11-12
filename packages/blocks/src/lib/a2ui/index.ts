@@ -4,7 +4,7 @@
  * Everything A2UI that a server, a tool handler or a test runner without the
  * Svelte compiler can import: the prompt and its sections, the catalog specs,
  * the processor and the validation `A2UIView` runs, the transport halves
- * (stream splitter, tool-input stabilizer, surface router) and the types. The
+ * (stream splitter, surface router) and the types. The
  * package root loads Svelte modules on import, so a runtime that does not
  * compile them (plain Bun or Node) fails there before reaching any of this.
  *
@@ -16,7 +16,7 @@
  * @example
  * ```ts
  * import {
- *   a2uiMcpAppTransportSection,
+ *   a2uiFencedTransportSection,
  *   a2uiSystemPrompt,
  *   validateA2uiPayload
  * } from '@urbicon-ui/blocks/a2ui';
@@ -39,11 +39,6 @@ export {
   basicA2uiCatalogSpec,
   resolveCatalog
 } from '../components/Chat/A2UIView/a2ui-catalog';
-// ── MCP-App transport: the prompt section and the partial-arguments stabilizer ─
-export {
-  A2uiToolInputStabilizer,
-  a2uiMcpAppTransportSection
-} from '../components/Chat/A2UIView/a2ui-mcp-app';
 export { a2uiSystemPrompt } from '../components/Chat/A2UIView/a2ui-prompt';
 export {
   A2UI_CATALOG_ID,
@@ -75,7 +70,6 @@ export {
   validateSchemaWrite
 } from '../components/Chat/A2UIView/a2ui-schema';
 // ── Fenced-JSONL transport: the token-stream parser and the prompt that feeds it ──
-// The round-channel formatters serve both transports.
 export {
   A2UI_FENCE_TAG,
   type A2uiStreamIssue,

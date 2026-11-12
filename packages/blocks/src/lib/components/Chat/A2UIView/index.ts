@@ -24,10 +24,8 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * `urlPolicy` as StreamingMarkdown. It is NOT a default ChatMessage
  * renderer, so wire it in per surface via `partRenderers.a2ui` to keep it out of
  * the base bundle. Generate the agent-side prompt with the shipped
- * `a2uiSystemPrompt()` plus one transport section
- * (`a2uiFencedTransportSection()` in a chat, `a2uiMcpAppTransportSection()`
- * for an MCP App tool); validate a payload without a DOM with
- * `validateA2uiPayload()`, the check this view runs once `streaming` is false;
+ * `a2uiSystemPrompt()` plus `a2uiFencedTransportSection()`; validate a payload
+ * without a DOM with `validateA2uiPayload()`, the check this view runs once `streaming` is false;
  * never hand-roll either. On a server, import both from `@urbicon-ui/blocks/a2ui`,
  * which loads no Svelte. Opt into the richer
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)

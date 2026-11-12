@@ -398,9 +398,8 @@ export class A2uiStreamSplitter {
 }
 
 /**
- * Options for a transport section ({@link a2uiFencedTransportSection},
- * `a2uiMcpAppTransportSection`) and for the messages that travel back to the
- * agent ({@link a2uiActionMessage}, {@link a2uiErrorMessage}). Pass the same
+ * Options for the transport section ({@link a2uiFencedTransportSection})
+ * and for the messages that travel back to the agent ({@link a2uiActionMessage}, {@link a2uiErrorMessage}). Pass the same
  * object to the section and to the formatters, and the prompt describes the
  * very message your client sends.
  */
@@ -414,8 +413,7 @@ export interface A2uiTransportSectionOptions {
   actionPrefix?: string | false;
   /**
    * Prefix for the message that reports validation issues as JSON, so the agent
-   * can repair the surface: a user turn in the chat transport, the tool's error
-   * result in the MCP-App transport. `false` omits it. @default '[ui-error]'
+   * can repair the surface, as a user turn. `false` omits it. @default '[ui-error]'
    */
   errorPrefix?: string | false;
 }
@@ -461,8 +459,7 @@ export function a2uiActionMessage(
 
 /**
  * The text that reports validation issues to the agent — the `errorPrefix`, a
- * space, then the issues as compact JSON: the next user turn in a chat, the
- * error result of the call in an MCP App. It serializes exactly the issues it
+ * space, then the issues as compact JSON: the next user turn in a chat. It serializes exactly the issues it
  * is given; which ones are worth a round-trip (usually the error-severity ones)
  * is the caller's choice. Throws when `errorPrefix` is `false`, for the reason
  * {@link a2uiActionMessage} does.

@@ -11,14 +11,37 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.38.0
+
+### The A2UI transport for MCP Apps is removed
+
+The only consumer of the MCP-App transport, kino's `render_ui` tool, is gone, and no planned view
+needs it. What it added in 8.37.0 is out; the transport-neutral rest of that release stays.
+
+- **Removed:** `a2uiMcpAppTransportSection()` and `A2uiToolInputStabilizer`, from the package root
+  and from `@urbicon-ui/blocks/a2ui`.
+- **What to do instead:** `a2uiSystemPrompt()` no longer has a transport section to pair with in an
+  MCP App. Write your own for the tool description: one complete surface per call, since no later
+  call can patch an earlier view. For streamed tool arguments, hand `A2UIView` a payload that keeps
+  the envelopes it already applied as the same objects, or it rebuilds and drops what the user typed.
+- **Unchanged:** `a2uiSystemPrompt()`, `a2uiFencedTransportSection()`, `a2uiActionMessage()`,
+  `a2uiErrorMessage()`, `validateA2uiPayload()`, the `@urbicon-ui/blocks/a2ui` entry and holding the
+  payload in `$state.raw`.
+
+The line lists the files that still name either symbol:
+
+```sh
+rg -l 'a2uiMcpAppTransportSection|A2uiToolInputStabilizer' src
+```
+
 ## 8.37.0
 
 ### `a2uiSystemPrompt()` leaves what happens to a surface after its turn to the transport section
 
 Some of the prompt's rules hold only where a later chat turn can patch a surface it already sent.
 In an MCP App every tool call is a new view, and there the same rules are wrong. They have moved
-from `a2uiSystemPrompt()` into `a2uiFencedTransportSection()`, and the new
-`a2uiMcpAppTransportSection()` states what holds in an MCP App instead.
+from `a2uiSystemPrompt()` into `a2uiFencedTransportSection()`. (8.37.0 also added
+`a2uiMcpAppTransportSection()`; [8.38.0](#8380) removed it.)
 
 - **What moved:** the one-envelope-per-line wire rule, the paragraph on a surface that updates in
   place, and the rules to never `createSurface` twice for one id, to `deleteSurface` a surface that
@@ -29,8 +52,7 @@ from `a2uiSystemPrompt()` into `a2uiFencedTransportSection()`, and the new
   is now `## You only hear from a surface when the user acts`, and the sentence below it no longer
   opens with "But".
 - **A prompt built from `a2uiSystemPrompt()` alone, or with a transport section of your own, has
-  lost those rules.** Append `a2uiFencedTransportSection()` for a chat or
-  `a2uiMcpAppTransportSection()` for an MCP App, or state them in your own section.
+  lost those rules.** Append `a2uiFencedTransportSection()`, or state them in your own section.
 - A test that finds one of those sentences in the output of `a2uiSystemPrompt()` finds it in the
   output of `a2uiFencedTransportSection()` now.
 

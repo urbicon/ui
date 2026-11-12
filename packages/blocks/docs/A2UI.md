@@ -1,11 +1,9 @@
-# A2UI — agent-generated UI in a chat or an MCP App
+# A2UI — agent-generated UI in a chat
 
 `A2UIView` renders [A2UI](https://a2ui.org) (Agent-to-UI, v0.9.1) envelopes into live Urbicon
-components: the agent describes a form, the user fills it in, and the values flow back. The
-envelopes reach it over one of two transports: a chat, where the agent writes them into its reply
-and a later turn can patch a surface, or an MCP App, where they are a tool's arguments and every
-call is a view of its own. This guide covers what the types cannot tell you — how a surface behaves
-over a whole conversation, and which of its rules the protocol enforces rather than the renderer.
+components: the agent describes a form, the user fills it in, and the values flow back. This guide
+covers what the types cannot tell you — how a surface behaves over a whole conversation, and which
+of its rules the protocol enforces rather than the renderer.
 
 > Stability: **experimental**. The pieces below are shipped and tested, but the API may still move.
 
@@ -14,13 +12,11 @@ over a whole conversation, and which of its rules the protocol enforces rather t
 | Piece                                        | What it does                                                                                                                                                                                                                                               |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `a2uiSystemPrompt()`                         | The catalog contract: every component, prop and enum the agent may use. Generated from the same registry the validator checks against, so prompt and validation cannot drift.                                                                              |
-| `a2uiFencedTransportSection()`               | In a chat: how envelopes travel — the agent writes prose and opens a ` ```a2ui ` fence — and what a later turn may do with a surface. The prompt half of `A2uiStreamSplitter`.                                                                             |
+| `a2uiFencedTransportSection()`               | How envelopes travel — the agent writes prose and opens a ` ```a2ui ` fence — and what a later turn may do with a surface. The prompt half of `A2uiStreamSplitter`.                                                                                        |
 | `A2uiStreamSplitter`                         | Turns a token stream into ordered message parts — text, and `a2ui` parts whose payload grows envelope by envelope.                                                                                                                                         |
 | `A2uiSurfaceRouter` + `routeMessageParts()`  | Delivers envelopes to the message that owns their surface, so an agent can patch a form it sent two turns ago.                                                                                                                                             |
-| `a2uiMcpAppTransportSection()`               | In an MCP App: the envelopes are the tool's arguments, and every call is one complete surface in a view of its own. The prompt half of `A2uiToolInputStabilizer`.                                                                                          |
-| `A2uiToolInputStabilizer`                    | Turns the arguments a host streams while the model writes them into a payload that grows, so the view appends instead of rebuilding — unless an envelope it passed on changes.                                                                             |
 | `a2uiActionMessage()` / `a2uiErrorMessage()` | Write the action and error turns a transport section tells the agent to expect, from the same options.                                                                                                                                                     |
-| `validateA2uiPayload()`                      | The issues `A2UIView` reports, without a DOM — for a tool handler or a server.                                                                                                                                                                             |
+| `validateA2uiPayload()`                      | The issues `A2UIView` reports, without a DOM — for a server.                                                                                                                                                                                               |
 | `A2UIView`                                   | Renders one payload. Fail-loud and whitelist-only: unknown components and undeclared props never reach the DOM, and neither does a function-call binding — except the logic functions `not`, `and`, `or`, which evaluate to a boolean and execute nothing. |
 
 ```ts
@@ -45,16 +41,15 @@ const system = [
 ```
 
 `a2uiActionMessage()` writes the turn the transport section describes; give both the same options
-when you change a prefix. Inside an MCP App the router and the splitter have nothing to do, and a
-different transport section and a stabilizer take their place: see
-[MCP Apps: one view per tool call](#mcp-apps-one-view-per-tool-call). Every piece in the table
-but `A2UIView` also loads from `@urbicon-ui/blocks/a2ui`, the engine without Svelte — the entry a
-server or a tool handler imports.
+when you change a prefix. Every piece in the table but `A2UIView` also loads from
+`@urbicon-ui/blocks/a2ui`, the engine without Svelte — the entry a server imports. A runtime that
+does not compile Svelte, such as plain Node or `bun test`, loads that entry and fails on the package
+root.
 
-**Hold what reaches `payload` in `$state.raw`** — the messages in a chat, the payload in an MCP App.
+**Hold the messages that reach `payload` in `$state.raw`.**
 The view appends only while the envelopes it already applied arrive as the very same objects, and
 rebuilds otherwise, dropping what the user typed. A deep `$state` wraps an object assigned to it in
-a proxy of its own, so the snapshot a splitter or a stabilizer hands over reaches the view as new
+a proxy of its own, so the snapshot a splitter hands over reaches the view as new
 objects on every update. `revokeMessage()` finds a patch's envelopes by reference as well, and
 through a deep `$state` finds none to take back.
 
@@ -107,8 +102,7 @@ Three rules follow, and the shipped prompt states all three:
    to the data model (`value: { path }`) — the selection highlights instantly, no round-trip. A row
    of buttons that each set a value shows no selected state and costs a turn per tap.
 3. **The agent is the only validator.** The client submits whatever it is given, so an action that
-   arrives with required fields empty should be answered with a hint next to the field — patched in
-   a chat, in a new surface in an MCP App — not carried out.
+   arrives with required fields empty should be answered with a patched hint next to the field, not carried out.
 
 Set `sendDataModel: true` on `createSurface` and every action from that surface additionally carries
 the full data model (`A2uiActionEvent.dataModel`), read at click time. It is the antidote to an
@@ -264,103 +258,10 @@ corrected surface, and `a2uiErrorMessage(issues)` writes that turn. Warnings are
 surface survived — worth logging, rarely worth a round-trip. Router issues are the exception: a
 re-created `surfaceId` is a protocol slip, so relay it even though it is only a warning.
 
-## MCP Apps: one view per tool call
-
-The same view renders A2UI inside an
-[MCP App](https://github.com/modelcontextprotocol/ext-apps): a tool whose arguments are the
-envelopes, `{ messages: [...] }`, and whose every call the host shows as a view of its own, a
-sandboxed frame running `A2UIView`. Four things differ from a chat.
-
-**An earlier view is out of reach.** No later call can patch a surface the agent already showed, so
-the chat rules — patch in place, never rebuild — are wrong here, and the router has nothing to
-route.
-`a2uiSystemPrompt()` holds only the rules both transports share; follow it with
-`a2uiMcpAppTransportSection()` in the tool's description, never with
-`a2uiFencedTransportSection()`. It asks for one complete surface per call, and for a whole new one
-to correct a surface or take the next step.
-
-<!-- typecheck -->
-
-```ts
-import {
-  a2uiMcpAppTransportSection,
-  a2uiSystemPrompt,
-  urbiconA2uiCatalogSpec
-} from '@urbicon-ui/blocks/a2ui';
-
-export const description = [
-  a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
-  a2uiMcpAppTransportSection()
-].join('\n\n');
-```
-
-**Validate in the tool handler.** The handler receives the arguments too, and its error result
-reaches the agent within the same turn, while the host may hold back what a view reports until the
-user's next message. `validateA2uiPayload()` returns the issues a view reports through
+On a server, `validateA2uiPayload()` returns the issues the view reports through
 `onValidationError` once `streaming` is false, built by the same function the view uses; give it the
-view's `catalogs`, `dataSchema` and `surfaceRequirements`, as specs. What only the view can see is
-an issue that reads the data model after the user changed it. Import it from
-`@urbicon-ui/blocks/a2ui`, the engine without Svelte: a runtime that does not compile Svelte — plain
-Node, `bun test` — loads that entry, and fails on the package root.
-
-<!-- typecheck -->
-
-```ts
-import {
-  a2uiErrorMessage,
-  urbiconA2uiCatalogSpec,
-  validateA2uiPayload
-} from '@urbicon-ui/blocks/a2ui';
-
-export function rejectInvalid(args: unknown) {
-  const errors = validateA2uiPayload(args, { catalogs: [urbiconA2uiCatalogSpec] }).filter(
-    (issue) => issue.severity === 'error'
-  );
-  if (errors.length === 0) return undefined;
-  return { isError: true, content: [{ type: 'text' as const, text: a2uiErrorMessage(errors) }] };
-}
-```
-
-**Streamed arguments need the stabilizer.** A host may send the arguments while the model is still
-writing them, each time as a freshly parsed object with its open structures closed. Handed to the
-view as they come, every one is a new payload of new objects: the view rebuilds, what the user typed
-is gone, and the last envelope shows cut short — half a label, half a URL. `A2uiToolInputStabilizer`
-passes an envelope on once the next one has begun, keeps it as the same object from then on, and
-lets the final arguments complete the payload. Should later arguments change an envelope it already
-passed on, it returns a new payload and the view rebuilds: there is no honest append.
-
-```svelte
-<script lang="ts">
-  const input = new A2uiToolInputStabilizer();
-  let payload = $state.raw<unknown>([]);
-  let streaming = $state(true);
-
-  // Your bridge calls these on ui/notifications/tool-input-partial and …/tool-input.
-  function onPartial(args: unknown) {
-    payload = input.partial(args);
-  }
-  function onInput(args: unknown) {
-    payload = input.complete(args);
-    streaming = false;
-  }
-</script>
-
-<A2UIView
-  {payload}
-  {streaming}
-  catalogs={[urbiconA2uiCatalog]}
-  onAction={(event) => sendToModel(a2uiActionMessage(event))}
-/>
-```
-
-The payload sits in `$state.raw`, as [the pieces](#the-pieces) explain: through a deep `$state` the
-view would see new objects whatever the stabilizer returned.
-
-**Actions and errors reach the model as text.** A view without a backend of its own reports an
-action as a user message (`ui/message`); send `a2uiActionMessage(event)`, which is the message
-`a2uiMcpAppTransportSection()` describes. A failed validation is the handler's error result above,
-and the agent answers it with a new call. How messages and notifications travel between view and
-host is the host protocol's, and none of it ships here.
+view's `catalogs`, `dataSchema` and `surfaceRequirements`, as specs. What only the view can see is an
+issue that reads the data model after the user changed it.
 
 ## Two catalogs
 
