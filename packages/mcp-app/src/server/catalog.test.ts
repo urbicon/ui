@@ -73,6 +73,10 @@ function errorOf(outcome: Outcome | null): { code: number; message: string } {
   return outcome.error;
 }
 
+function resourcesOf(outcome: Outcome | null): Record<string, unknown>[] {
+  return (resultOf(outcome) as { resources: Record<string, unknown>[] }).resources;
+}
+
 type SafeParser = { safeParse(value: unknown): { success: boolean } };
 
 /**
@@ -161,19 +165,20 @@ describe('the version comes from the built HTML', () => {
   });
 
   test('tools/list does not ask for the origin — a broken one breaks only the read', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const origin = vi.fn((): string => {
+      throw new Error('APP_URL is not set');
+    });
     const catalog = createViewCatalog<Name>({
       server: 'notes',
       views: VIEWS,
       html: () => NOTE_HTML,
-      base: {
-        placeholder: PLACEHOLDER,
-        origin: () => {
-          throw new Error('APP_URL is not set');
-        }
-      }
+      base: { placeholder: PLACEHOLDER, origin }
     });
     expect(catalog.toolMeta({ view: 'note' }).ui).toMatchObject({ resourceUri: NOTE_URI });
-    expect(() => catalog.read(NOTE_URI)).toThrow('APP_URL is not set');
+    expect(catalog.uri('note')).toBe(NOTE_URI);
+    expect(origin).not.toHaveBeenCalled();
+    expect(errorOf(catalog.read(NOTE_URI)).code).toBe(-32603);
   });
 
   test('an unbuilt view stands without version', () => {
@@ -186,7 +191,7 @@ describe('the version comes from the built HTML', () => {
 describe('resources/list', () => {
   test('every view, under the URI tools/list issues, with mime type, CSP and border', () => {
     const catalog = catalogOf();
-    const { resources } = catalog.list();
+    const resources = resourcesOf(catalog.list());
     expect(resources).toEqual([
       {
         uri: NOTE_URI,
@@ -214,10 +219,10 @@ describe('resources/list', () => {
   });
 
   test('the result and every _meta.ui pass the host’s schemas', () => {
-    const listing = catalogOf().list();
+    const listing = resultOf(catalogOf().list());
     expect(wireProblem({ jsonrpc: '2.0', id: 1, result: listing }, 'resources/list')).toBeNull();
     expect(
-      listing.resources.map((r) =>
+      resourcesOf(catalogOf().list()).map((r) =>
         metaProblem(McpUiResourceMetaSchema, (r._meta as { ui: unknown }).ui)
       )
     ).toEqual([null, null]);
@@ -229,7 +234,7 @@ describe('resources/list', () => {
       views: VIEWS,
       html: () => NOTE_HTML
     });
-    expect(catalog.list().resources.map((r) => r._meta)).toEqual([
+    expect(resourcesOf(catalog.list()).map((r) => r._meta)).toEqual([
       { ui: { csp: { resourceDomains: ['https://img.example'] }, prefersBorder: true } },
       { ui: {} }
     ]);
@@ -248,7 +253,7 @@ describe('resources/read', () => {
     expect(contents[0]?.text).not.toContain(PLACEHOLDER);
     expect(contents[0]?.text).toContain(`content="${ORIGIN}"`);
     expect(contents[0]?.text).toContain(`url(${ORIGIN}/fonts/a.woff2)`);
-    expect(contents[0]?._meta).toEqual(catalogOf().list().resources[0]?._meta);
+    expect(contents[0]?._meta).toEqual(resourcesOf(catalogOf().list())[0]?._meta);
   });
 
   test('the result passes the SDK’s schema', () => {
@@ -365,7 +370,7 @@ describe('handle — the resources/* methods for a dispatcher', () => {
   const catalog = catalogOf();
 
   test('list, templates and read; any other method is not the catalog’s', () => {
-    expect(resultOf(catalog.handle('resources/list', undefined))).toEqual(catalog.list());
+    expect(resultOf(catalog.handle('resources/list', undefined))).toEqual(resultOf(catalog.list()));
     expect(resultOf(catalog.handle('resources/templates/list', {}))).toEqual({
       resourceTemplates: []
     });
@@ -446,13 +451,83 @@ describe('plainOrigin — the app’s origin, and only an origin', () => {
   });
 
   test('the catalog applies it to what origin() returns', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const catalog = createViewCatalog<Name>({
       server: 'notes',
       views: VIEWS,
       html: () => NOTE_HTML,
       base: { placeholder: PLACEHOLDER, origin: () => 'https://user:pw@notes.example' }
     });
-    expect(() => catalog.read(NOTE_URI)).toThrow('must be a plain origin');
-    expect(() => catalog.list()).toThrow('must be a plain origin');
+    expect(errorOf(catalog.read(NOTE_URI)).code).toBe(-32603);
+    expect(errorOf(catalog.list()).code).toBe(-32603);
+    expect(String(consoleError.mock.calls[0]?.[1])).toContain('must be a plain origin');
+  });
+});
+
+/**
+ * `handle()` answers `Outcome | null` for every method — also when the app's
+ * origin is broken. The README's catalog without `APP_URL` is the first case.
+ */
+describe('a broken origin is an answer, not a throw', () => {
+  const BROKEN: [group: string, origin: () => string, logged: string][] = [
+    ['empty (the README without APP_URL)', () => '', 'Not a URL: "".'],
+    [
+      'origin() throws',
+      () => {
+        throw new Error('APP_URL is not set');
+      },
+      'APP_URL is not set'
+    ]
+  ];
+
+  test.each(BROKEN)(
+    '%s: resources/list and resources/read are -32603, logged',
+    (_, origin, logged) => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const catalog = createViewCatalog<Name>({
+        server: 'notes',
+        views: VIEWS,
+        html: () => NOTE_HTML,
+        base: { placeholder: PLACEHOLDER, origin }
+      });
+      const answers = [
+        catalog.handle('resources/list', {}),
+        catalog.handle('resources/read', { uri: NOTE_URI })
+      ];
+      expect(answers.map((answer) => errorOf(answer))).toEqual([
+        {
+          code: -32603,
+          message:
+            "The app's origin for the views (base.origin()) is not usable — see the server log."
+        },
+        {
+          code: -32603,
+          message:
+            "The app's origin for the views (base.origin()) is not usable — see the server log."
+        }
+      ]);
+      expect(consoleError).toHaveBeenCalledTimes(2);
+      expect(String(consoleError.mock.calls[0]?.[1])).toContain(logged);
+      // What does not need the origin still answers.
+      expect(resultOf(catalog.handle('resources/templates/list', {}))).toEqual({
+        resourceTemplates: []
+      });
+      expect(catalog.toolMeta({ view: 'note' }).ui).toMatchObject({ resourceUri: NOTE_URI });
+    }
+  );
+
+  test('the error on the wire passes the SDK’s schema and carries no value of origin()', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const catalog = createViewCatalog<Name>({
+      server: 'notes',
+      views: VIEWS,
+      html: () => NOTE_HTML,
+      base: { placeholder: PLACEHOLDER, origin: () => 'https://user:pw@notes.example' }
+    });
+    const { error } = catalog.handle('resources/read', { uri: NOTE_URI }) as {
+      error: { code: number; message: string };
+    };
+    expect(wireProblem({ jsonrpc: '2.0', id: 1, error })).toBeNull();
+    expect(error.message).not.toContain('pw');
   });
 });

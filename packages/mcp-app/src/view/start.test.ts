@@ -5,12 +5,22 @@
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { fakeHost } from './__fixtures__/fake-host.ts';
-import { type Bridge, PROTOCOL_VERSION, type ToolCaller } from './bridge.ts';
+import { type Bridge, PROTOCOL_VERSION, type ToolCaller, type ViewBridge } from './bridge.ts';
 import { OUT_OF_REACH, type ViewProps } from './props.ts';
 import { runView, type StartViewOptions, type ViewState } from './start.ts';
 import { toolCaller } from './tools.ts';
 
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** The message of what `run` throws — exactly, so a sentence cannot pass by containing it. */
+function thrown(run: () => unknown): string {
+  try {
+    run();
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  throw new Error('Nothing was thrown.');
+}
 
 function newState(): ViewState {
   return { phase: 'connecting', input: null, result: null, problem: null, context: {} };
@@ -236,21 +246,87 @@ describe('startView — the props', () => {
     expect(bridge.connected).toBe(true);
   });
 
-  test('a contradiction is loud — and stops the view before it mounts', () => {
+  test('the caller gets the ViewBridge the view got — not the whole bridge', () => {
     const s = setup();
-    const mount = vi.fn();
-    const missing = { ...s.base, callsTools: true as const, mount };
+    let mounted: ViewBridge | undefined;
+    const { bridge } = runView(
+      {
+        ...s.base,
+        callsTools: false,
+        mount(props) {
+          mounted = props.bridge;
+        }
+      },
+      s.env
+    );
+    expect(bridge).toBe(mounted);
+    expect(OUT_OF_REACH.filter((name) => name in bridge)).toEqual([]);
+    // @ts-expect-error — what startView returns has no free request.
+    void bridge.request;
+  });
+
+  test('the type refuses both contradictions', () => {
+    const s = setup();
+    const missing = { ...s.base, callsTools: true as const, mount() {} };
     // @ts-expect-error — `callsTools: true` requires `tools`.
     const withoutTools: StartViewOptions<ViewState, true> = missing;
-    expect(() => runView(withoutTools, s.env)).toThrow(
-      'The view notes declares callsTools: true, but no ToolCaller factory was passed.'
-    );
-    const extra = { ...s.base, callsTools: false as const, tools: toolCaller, mount };
+    const extra = { ...s.base, callsTools: false as const, tools: toolCaller, mount() {} };
     // @ts-expect-error — `callsTools: false` forbids `tools`.
     const withTools: StartViewOptions<ViewState, false> = extra;
-    expect(() => runView(withTools, s.env)).toThrow(
-      'The view notes declares callsTools: false, but a ToolCaller factory was passed.'
-    );
-    expect(mount).not.toHaveBeenCalled();
+    expect([withoutTools, withTools]).toHaveLength(2);
+  });
+
+  /**
+   * What gets past the type — a JavaScript caller, a cast. The sentence names
+   * both values as they are, and the view stops before the bridge listens.
+   */
+  test('a contradiction is loud — before the bridge listens and before the view mounts', () => {
+    const cases: [group: string, declared: Record<string, unknown>, message: string][] = [
+      [
+        'true without tools',
+        { callsTools: true },
+        'callsTools: true requires a ToolCaller factory in tools, but tools is undefined.'
+      ],
+      [
+        'true with a ToolCaller instead of its factory',
+        { callsTools: true, tools: { callTool: () => Promise.resolve() } },
+        'callsTools: true requires a ToolCaller factory in tools, but tools is an object.'
+      ],
+      [
+        'false with tools',
+        { callsTools: false, tools: toolCaller },
+        'callsTools: false forbids tools, but tools is a function.'
+      ],
+      [
+        'missing, without tools',
+        {},
+        'callsTools must be true or false, but it is undefined (tools is undefined).'
+      ],
+      [
+        'a string, with tools',
+        { callsTools: 'true', tools: toolCaller },
+        'callsTools must be true or false, but it is "true" (tools is a function).'
+      ],
+      [
+        'a string, without tools',
+        { callsTools: 'false' },
+        'callsTools must be true or false, but it is "false" (tools is undefined).'
+      ]
+    ];
+    for (const [group, declared, message] of cases) {
+      const s = setup();
+      const mount = vi.fn();
+      const options = { ...s.base, ...declared, mount } as unknown as StartViewOptions<
+        ViewState,
+        boolean
+      >;
+      expect(
+        thrown(() => runView(options, s.env)),
+        group
+      ).toBe(message);
+      expect(s.host.listening(), group).toBe(false);
+      expect(s.host.sent, group).toEqual([]);
+      expect(mount, group).not.toHaveBeenCalled();
+    }
   });
 });

@@ -26,7 +26,7 @@ const CALLS_TOOLS = { callsTools: true } as const;
 describe('what a view gets as props', () => {
   test('without callsTools: the state and a ViewBridge — no free request, no tools', () => {
     const bridge = newBridge();
-    const props = propsFor('plain', NO_TOOLS, STATE, bridge);
+    const props = propsFor(NO_TOOLS, STATE, bridge);
     expect(Object.keys(props).sort()).toEqual(['bridge', 'state']);
     expect(props.state).toBe(STATE);
     expect(props.bridge).not.toBe(bridge);
@@ -35,7 +35,7 @@ describe('what a view gets as props', () => {
 
   test('with callsTools: the ToolCaller as well — and still only the ViewBridge', () => {
     const bridge = newBridge();
-    const props = propsFor('caller', CALLS_TOOLS, STATE, bridge, toolCaller);
+    const props = propsFor(CALLS_TOOLS, STATE, bridge, toolCaller);
     expect(Object.keys(props).sort()).toEqual(['bridge', 'state', 'tools']);
     expect(typeof props.tools?.callTool).toBe('function');
     expect(props.bridge).not.toBe(bridge);
@@ -43,22 +43,27 @@ describe('what a view gets as props', () => {
   });
 
   test('a contradiction between declaration and factory is loud — both ways', () => {
-    expect(() => propsFor('plain', NO_TOOLS, STATE, newBridge(), toolCaller)).toThrow(
-      'The view plain declares callsTools: false, but a ToolCaller factory was passed.'
+    expect(() => propsFor(NO_TOOLS, STATE, newBridge(), toolCaller)).toThrow(
+      'callsTools: false forbids tools, but tools is a function.'
     );
-    expect(() => propsFor('caller', CALLS_TOOLS, STATE, newBridge())).toThrow(
-      'The view caller declares callsTools: true, but no ToolCaller factory was passed.'
+    expect(() => propsFor(CALLS_TOOLS, STATE, newBridge())).toThrow(
+      'callsTools: true requires a ToolCaller factory in tools, but tools is undefined.'
+    );
+  });
+
+  test('a declaration that is not a boolean is loud — not read as the other one', () => {
+    const declared = JSON.parse('{"callsTools": "true"}') as { callsTools: boolean };
+    expect(() => propsFor(declared, STATE, newBridge(), toolCaller)).toThrow(
+      'callsTools must be true or false, but it is "true" (tools is a function).'
     );
   });
 
   test('assertViewReach lets the props of propsFor through and throws on the whole bridge', () => {
     const bridge = newBridge();
-    expect(() => assertViewReach(propsFor('plain', NO_TOOLS, STATE, bridge))).not.toThrow();
-    expect(() =>
-      assertViewReach(propsFor('caller', CALLS_TOOLS, STATE, bridge, toolCaller))
-    ).not.toThrow();
+    expect(() => assertViewReach(propsFor(NO_TOOLS, STATE, bridge))).not.toThrow();
+    expect(() => assertViewReach(propsFor(CALLS_TOOLS, STATE, bridge, toolCaller))).not.toThrow();
     // The whole bridge laid over the props — as an entry could build them around propsFor.
-    const bypass = { ...propsFor('caller', CALLS_TOOLS, STATE, bridge, toolCaller), bridge };
+    const bypass = { ...propsFor(CALLS_TOOLS, STATE, bridge, toolCaller), bridge };
     expect(() => assertViewReach(bypass)).toThrow('request, notify, readResource, connect, close');
   });
 

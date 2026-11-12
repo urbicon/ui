@@ -64,9 +64,10 @@ export interface ViewSpec {
   /** Whether the host draws border and background. The spec advises saying so explicitly. */
   prefersBorder?: boolean;
   /**
-   * Whether the view calls tools. Read by the view entry (`startView`), never
-   * sent to the host: a tool's `"app"` visibility holds for every view of the
-   * server, so which view gets a path to `tools/call` is the app's decision.
+   * Whether the view calls tools. Ignored by the catalog and never sent to
+   * the host — a tool's `"app"` visibility holds for every view of the server.
+   * The app passes it to `startView` as `callsTools`, so one record carries
+   * both sides.
    */
   callsTools?: boolean;
 }
@@ -95,7 +96,8 @@ export interface ViewCatalogOptions<N extends string> {
    * at `resources/read`, and the origin joins every view's
    * `csp.resourceDomains`. The version is hashed before the replacement, so
    * `tools/list` never calls `origin()`. What `origin()` returns passes
-   * {@link plainOrigin}.
+   * {@link plainOrigin}; when it throws or fails that, `resources/list` and
+   * `resources/read` answer `-32603`.
    */
   base?: { placeholder: string; origin(): string };
   /** Appended to the `-32603` of a view that is not built, e.g. `'bun run build:views'`. */
@@ -110,8 +112,8 @@ export interface ViewCatalog<N extends string> {
   at(uri: string): N | undefined;
   /** `_meta` of a tool: `visibility` always, both resource keys when it has a view. */
   toolMeta(app?: AppToolMeta<N>): Record<string, unknown>;
-  /** The result of `resources/list`. */
-  list(): { resources: Record<string, unknown>[] };
+  /** `resources/list`. */
+  list(): Outcome;
   /** `resources/read` for `params.uri`. */
   read(uri: unknown): Outcome;
   /** `resources/list`, `resources/read`, `resources/templates/list` — `null` for any other method. */
@@ -216,15 +218,37 @@ export function createViewCatalog<N extends string>(
     });
   }
 
-  /** The app's origin for the view, checked once per answer — `undefined` without `base`. */
-  function originOf(): string | undefined {
-    return base ? plainOrigin(base.origin()) : undefined;
+  /**
+   * `answer` with the app's origin, checked once per answer — `undefined`
+   * without `base`. An origin that throws or fails {@link plainOrigin} is
+   * `-32603`, not a throw: `handle()` answers every method it takes.
+   */
+  function withOrigin(answer: (origin: string | undefined) => Outcome): Outcome {
+    let origin: string | undefined;
+    try {
+      origin = base ? plainOrigin(base.origin()) : undefined;
+    } catch (error) {
+      // The sentence stays in the log: plainOrigin quotes the value, credentials included.
+      console.error("[mcp-app] The app's origin for the views is not usable:", error);
+      return {
+        error: {
+          code: INTERNAL_ERROR,
+          message:
+            "The app's origin for the views (base.origin()) is not usable — see the server log."
+        }
+      };
+    }
+    return answer(origin);
   }
 
   function resourceMeta(name: N, origin: string | undefined): Record<string, unknown> {
     const { csp, prefersBorder } = views[name];
     const ui: Record<string, unknown> = {};
     if (origin !== undefined) {
+      // The spec writes `resourceDomains` into `script-src` as well, so this
+      // allows scripts from the app's origin — sound only while the origin
+      // serves no script a stranger can write (user uploads only with
+      // `nosniff` and a content type that is no script).
       ui.csp = { ...csp, resourceDomains: [...(csp?.resourceDomains ?? []), origin] };
     } else if (csp) {
       ui.csp = { ...csp };
@@ -245,19 +269,20 @@ export function createViewCatalog<N extends string>(
     return { ui: { resourceUri, visibility }, [LEGACY_RESOURCE_URI_KEY]: resourceUri };
   }
 
-  function list(): { resources: Record<string, unknown>[] } {
+  function list(): Outcome {
     // Listed although the spec allows omitting UI-only resources: the server
     // declares `resources`, and what it declares it answers.
-    const origin = originOf();
-    return {
-      resources: names.map((name) => ({
-        uri: uri(name),
-        name: views[name].title,
-        description: views[name].description,
-        mimeType: RESOURCE_MIME_TYPE,
-        _meta: resourceMeta(name, origin)
-      }))
-    };
+    return withOrigin((origin) => ({
+      result: {
+        resources: names.map((name) => ({
+          uri: uri(name),
+          name: views[name].title,
+          description: views[name].description,
+          mimeType: RESOURCE_MIME_TYPE,
+          _meta: resourceMeta(name, origin)
+        }))
+      }
+    }));
   }
 
   function read(requested: unknown): Outcome {
@@ -280,8 +305,7 @@ export function createViewCatalog<N extends string>(
         }
       };
     }
-    const origin = originOf();
-    return {
+    return withOrigin((origin) => ({
       result: {
         contents: [
           {
@@ -297,13 +321,13 @@ export function createViewCatalog<N extends string>(
           }
         ]
       }
-    };
+    }));
   }
 
   function handle(method: string, params: unknown): Outcome | null {
     switch (method) {
       case 'resources/list':
-        return { result: list() };
+        return list();
       // Whoever declares `resources` is asked for templates too; views have none.
       case 'resources/templates/list':
         return { result: { resourceTemplates: [] } };

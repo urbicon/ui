@@ -29,25 +29,43 @@ export type ViewProps<S, CallsTools extends boolean = boolean> = {
   bridge: ViewBridge;
 } & (CallsTools extends true ? { tools: ToolCaller } : { tools?: never });
 
+/** A value as a sentence names it — a string quoted, so `"true"` does not read as `true`. */
+function shown(value: unknown): string {
+  if (typeof value === 'function') return 'a function';
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'object' && value !== null) return 'an object';
+  return String(value);
+}
+
 /**
- * The props of the view `name`, checked against its declaration `spec` — at
- * runtime and loudly, because a JavaScript caller or a cast gets past the
- * type of `startView`.
+ * Loud when `callsTools` and the `ToolCaller` factory disagree, naming both —
+ * at runtime, because a JavaScript caller or a cast gets past the type of
+ * `startView`.
  */
+export function checkCallsTools(callsTools: unknown, makeTools: unknown): void {
+  if (typeof callsTools !== 'boolean') {
+    throw new Error(
+      `callsTools must be true or false, but it is ${shown(callsTools)} (tools is ${shown(makeTools)}).`
+    );
+  }
+  if (callsTools && typeof makeTools !== 'function') {
+    throw new Error(
+      `callsTools: true requires a ToolCaller factory in tools, but tools is ${shown(makeTools)}.`
+    );
+  }
+  if (!callsTools && makeTools !== undefined) {
+    throw new Error(`callsTools: false forbids tools, but tools is ${shown(makeTools)}.`);
+  }
+}
+
+/** The props of a view, checked against its declaration `spec` ({@link checkCallsTools}). */
 export function propsFor<S>(
-  name: string,
   spec: { callsTools: boolean },
   state: S,
   bridge: Bridge,
   makeTools?: (bridge: Bridge) => ToolCaller
 ): { state: S; bridge: ViewBridge; tools?: ToolCaller } {
-  if (Boolean(makeTools) !== spec.callsTools) {
-    throw new Error(
-      spec.callsTools
-        ? `The view ${name} declares callsTools: true, but no ToolCaller factory was passed.`
-        : `The view ${name} declares callsTools: false, but a ToolCaller factory was passed.`
-    );
-  }
+  checkCallsTools(spec.callsTools, makeTools);
   const forView = viewBridge(bridge);
   return makeTools
     ? { state, bridge: forView, tools: makeTools(bridge) }

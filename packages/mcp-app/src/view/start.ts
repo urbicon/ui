@@ -17,9 +17,10 @@ import {
   type HostContext,
   type ToolCaller,
   type Transport,
+  type ViewBridge,
   windowTransport
 } from './bridge.ts';
-import { assertViewReach, propsFor, type ViewProps } from './props.ts';
+import { assertViewReach, checkCallsTools, propsFor, type ViewProps } from './props.ts';
 import { problemOf } from './result.ts';
 
 /**
@@ -86,10 +87,14 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-/** Starts the view in this window: `window.parent` is the host. */
+/**
+ * Starts the view in this window: `window.parent` is the host. Returns the
+ * {@link ViewBridge} the view was mounted with — the caller gets no more of
+ * the bridge than the view does.
+ */
 export function startView<S extends ViewState, C extends boolean>(
   options: StartViewOptions<S, C>
-): { bridge: Bridge } {
+): { bridge: ViewBridge } {
   return runView(options, {
     transport: windowTransport(window),
     root: document.documentElement,
@@ -101,7 +106,9 @@ export function startView<S extends ViewState, C extends boolean>(
 export function runView<S extends ViewState, C extends boolean>(
   options: StartViewOptions<S, C>,
   env: ViewEnvironment
-): { bridge: Bridge } {
+): { bridge: ViewBridge } {
+  // Before createBridge: a view stopped here must leave no listener behind.
+  checkCallsTools(options.callsTools, options.tools);
   const { state, messages } = options;
   const logger = options.logger ?? options.appInfo.name;
   let stopResize: (() => void) | undefined;
@@ -146,7 +153,7 @@ export function runView<S extends ViewState, C extends boolean>(
 
   // The view gets the ViewBridge, never the whole bridge — checked on the
   // object that is mounted, where the type would not see it.
-  const props = propsFor(options.appInfo.name, options, state, bridge, options.tools);
+  const props = propsFor(options, state, bridge, options.tools);
   assertViewReach(props);
   options.mount(props as ViewProps<S, C>);
 
@@ -165,5 +172,5 @@ export function runView<S extends ViewState, C extends boolean>(
     )
     .catch((error: unknown) => reportError(toError(error)));
 
-  return { bridge };
+  return { bridge: props.bridge };
 }

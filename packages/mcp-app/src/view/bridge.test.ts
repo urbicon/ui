@@ -500,7 +500,7 @@ describe('the wire by the SDK schemas', () => {
   function problemsOf(sent: JsonRpcMessage[], asked: Map<unknown, string>): string[] {
     return sent.flatMap((message) => {
       const problem = wireProblem(message, asked.get(message.id));
-      return problem ? [`${JSON.stringify(message)} → ${problem}`] : [];
+      return problem ? [`${JSON.stringify(message)} → ${problem.code} ${problem.message}`] : [];
     });
   }
 

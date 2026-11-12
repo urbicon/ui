@@ -108,11 +108,11 @@ What the catalog says on the wire:
 | `resources/list`           | every view, `mimeType: text/html;profile=mcp-app`, `_meta.ui.csp` and `prefersBorder`                                                                                                          |
 | `resources/read`           | the view's HTML, with the app's origin in place of `base.placeholder`                                                                                                                          |
 | `resources/templates/list` | `{ resourceTemplates: [] }`                                                                                                                                                                    |
-| errors                     | `-32602` without a string `uri`, `-32002` for a URI with no view, `-32603` (and a console error) for a view whose `html` returns `undefined`, with `unbuiltHint` appended                      |
+| errors                     | `-32602` without a string `uri`, `-32002` for a URI with no view, `-32603` (and a console error) for a view whose `html` returns `undefined`, with `unbuiltHint`, or for an unusable origin    |
 
 `handle()` returns `null` for every other method, so it sits in a `default` branch. The
-pieces are also there one by one — `uri`, `at`, `list`, `read` — for a dispatcher that
-wants its own error sentences.
+pieces are also there one by one — `uri`, `at`, and `list` and `read`, which return an
+`Outcome` as well — for a dispatcher that wants its own error sentences.
 
 **Visibility is always explicit.** Without `_meta.ui.visibility` the spec defaults to
 `["model", "app"]`, and every view of the server could call every tool — `delete_note`
@@ -148,11 +148,17 @@ the build writes `base.placeholder` wherever the address goes, and `resources/re
 replaces it with `base.origin()`. That origin also joins every view's
 `csp.resourceDomains`, so the CSP allows exactly the address the HTML asks for.
 
+The spec maps `resourceDomains` to `script-src` as well, so a view may run scripts from
+that origin. `base` is sound only while the origin serves no script a stranger can write —
+user uploads only with `nosniff` and a content type that is no script.
+
 The version is hashed before the replacement: `tools/list` never calls `origin()`, and the
 same build has the same URI under every deployment. What `origin()` returns passes
 `plainOrigin`, which throws for anything but `http(s)://host[:port]` — the value lands in
 an attribute and in unquoted CSS `url(…)`, where a quote, a parenthesis, a path or
-credentials would break or leak.
+credentials would break or leak. When `origin()` throws or returns anything else,
+`resources/list` and `resources/read` answer `-32603` and the console says why — the
+sentence on the wire does not quote the value.
 
 ## View: `startView`
 
@@ -216,7 +222,8 @@ logs) are English.
 
 ### What a view gets
 
-`mount` receives `{ state, bridge, tools? }`:
+`mount` receives `{ state, bridge, tools? }`, and `startView` returns `{ bridge }` — the
+same `bridge`:
 
 - **`bridge` is a `ViewBridge`**, not the bridge: `sendMessage`, `updateModelContext`,
   `openLink`, `requestDisplayMode`, `log`, `hostContext`, `connected` — each a fixed method
@@ -224,13 +231,22 @@ logs) are English.
   runtime either; `startView` checks the mounted object with `assertViewReach` and throws if
   it reaches further.
 - **`tools` exists exactly when `callsTools` is `true`.** `callsTools: true` requires
-  `tools`, `callsTools: false` forbids it — in the type and, loudly, at runtime (`propsFor`).
+  `tools`, `callsTools: false` forbids it — in the type and, at runtime, loudly and before
+  the bridge listens; a `callsTools` that is not a boolean stops the view as well.
 
-A tool's `"app"` visibility holds for every view of the server, so the guarantee that a
-view without `callsTools` changes nothing rests on the view, not on the host.
-`@urbicon-ui/mcp-app/view/tools` is a subpath of its own so that an app can forbid that one
-specifier everywhere except in the entry of a view that calls tools; no other module of
-this package writes `tools/call`.
+A tool's `"app"` visibility holds for every view of the server, so that a view without
+`callsTools` changes nothing rests on the view's code, not on the host. The package's
+part: `tools/call` is written in one module, `@urbicon-ui/mcp-app/view/tools`, a subpath of
+its own. The app's part: forbid that one specifier everywhere except in the entry of a
+view that calls tools, **and** scan the view code for the literal `tools/call` —
+`createBridge` (below) keeps a free `request`. Both are a heuristic against an accident,
+not a guarantee: `'tools' + '/call'` passes either.
+
+`ViewSpec.callsTools` lets one record carry both sides: the catalog ignores it, and the
+view's entry passes it on as `callsTools`. A file of view specs that view and server share
+takes `ViewSpec` with `import type` and nothing else from `@urbicon-ui/mcp-app/server`: any
+of its values in the view's bundle, a constant included, brings `node:crypto` along, which
+the view's bundler then has to polyfill, stub or refuse.
 
 ### The bridge underneath
 
@@ -260,10 +276,19 @@ Only what is not JSON-RPC at all is ignored — extensions and developer tools u
 
 ## Testing: `wireProblem`
 
-`wireProblem(message, answers?)` returns what a host would object to in a JSON-RPC message
-— a sentence — or `null` when it passes. It looks the method up among the request,
-notification and result schemas of `@modelcontextprotocol/ext-apps` and the MCP SDK; for an
-answer, `answers` names the method of the request it answers.
+`wireProblem(message, answers?)` returns what a host would object to in a JSON-RPC message,
+or `null` when it passes. It looks the method up among the request, notification and result
+schemas of `@modelcontextprotocol/ext-apps` and the MCP SDK; for an answer, `answers` names
+the method of the request it answers.
+
+The objection is a JSON-RPC error object, `{ code, message }`, so a test host can answer a
+request with it as it is. The code says what kind of objection it is:
+
+| `code`   | When                                                                               |
+| -------- | ---------------------------------------------------------------------------------- |
+| `-32601` | no schema knows the method — of a request, a notification, or the request answered |
+| `-32602` | the method's schema rejects the params, or the result of an answer                 |
+| `-32600` | not a JSON-RPC message, a broken envelope, or an answer whose request is not named |
 
 <!-- typecheck -->
 
@@ -278,7 +303,8 @@ const objectForm = {
 };
 
 wireProblem(objectForm);
-// → 'Invalid params for ui/message: content: Invalid input: expected array, received object'
+// → { code: -32602,
+//     message: 'Invalid params for ui/message: content: Invalid input: expected array, received object' }
 wireProblem({ jsonrpc: '2.0', id: 1, result: {} }, 'ping');
 // → null
 ```

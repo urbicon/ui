@@ -69,34 +69,67 @@ function issues(schema: Schema, value: unknown, prefix: string[]): string | null
 }
 
 /**
- * What a host would object to in this message — as a sentence, `null` when it
- * passes. For an answer, `answers` names the method of the request it answers
- * (the answer itself carries none).
+ * What a host would object to, as a JSON-RPC error object — a test host can
+ * answer a request with it as it is. **The code carries the classification**,
+ * so no caller has to read it out of the sentence:
+ *
+ * - `-32601` — no schema knows the method (of a request, a notification, or
+ *   the request an answer answers);
+ * - `-32602` — the method's schema rejects the payload: the params, or the
+ *   result of an answer. JSON-RPC has no code for a bad result; what a host
+ *   tells apart is "unknown method" from "known method, wrong content";
+ * - `-32600` — not a valid message at all: no object, a broken envelope, or
+ *   an answer whose request `answers` does not name.
  */
-export function wireProblem(message: unknown, answers?: string): string | null {
-  if (typeof message !== 'object' || message === null) return 'not a JSON-RPC message';
+export interface WireProblem {
+  code: -32600 | -32601 | -32602;
+  message: string;
+}
+
+const INVALID_REQUEST = -32600;
+const METHOD_NOT_FOUND = -32601;
+const INVALID_PARAMS = -32602;
+
+/**
+ * What a host would object to in this message — `null` when it passes. For an
+ * answer, `answers` names the method of the request it answers (the answer
+ * itself carries none).
+ */
+export function wireProblem(message: unknown, answers?: string): WireProblem | null {
+  if (typeof message !== 'object' || message === null) {
+    return { code: INVALID_REQUEST, message: 'not a JSON-RPC message' };
+  }
   const m = message as { method?: unknown; id?: unknown; error?: unknown; result?: unknown };
   if (typeof m.method === 'string') {
     const isRequest = m.id !== undefined;
     const envelope = isRequest ? sdk.JSONRPCRequestSchema : sdk.JSONRPCNotificationSchema;
     const wrapped = issues(envelope as Schema, message, []);
-    if (wrapped) return `${m.method}: ${wrapped}`;
+    if (wrapped) return { code: INVALID_REQUEST, message: `${m.method}: ${wrapped}` };
     const schema = (isRequest ? requests : notifications).get(m.method);
     if (!schema) {
-      return `no schema knows the ${isRequest ? 'request' : 'notification'} ${m.method}`;
+      return {
+        code: METHOD_NOT_FOUND,
+        message: `no schema knows the ${isRequest ? 'request' : 'notification'} ${m.method}`
+      };
     }
     const problem = issues(schema, message, ['params']);
-    return problem ? `Invalid params for ${m.method}: ${problem}` : null;
+    return problem
+      ? { code: INVALID_PARAMS, message: `Invalid params for ${m.method}: ${problem}` }
+      : null;
   }
   if ('error' in m) {
     const problem = issues(sdk.JSONRPCErrorResponseSchema as Schema, message, []);
-    return problem ? `Error response: ${problem}` : null;
+    return problem ? { code: INVALID_REQUEST, message: `Error response: ${problem}` } : null;
   }
   const envelope = issues(sdk.JSONRPCResultResponseSchema as Schema, message, []);
-  if (envelope) return `Response: ${envelope}`;
-  if (!answers) return 'response without a request';
+  if (envelope) return { code: INVALID_REQUEST, message: `Response: ${envelope}` };
+  if (!answers) return { code: INVALID_REQUEST, message: 'response without a request' };
   const schema = results.get(answers);
-  if (!schema) return `no schema knows the result of ${answers}`;
+  if (!schema) {
+    return { code: METHOD_NOT_FOUND, message: `no schema knows the result of ${answers}` };
+  }
   const problem = issues(schema, m.result, []);
-  return problem ? `Invalid result for ${answers}: ${problem}` : null;
+  return problem
+    ? { code: INVALID_PARAMS, message: `Invalid result for ${answers}: ${problem}` }
+    : null;
 }

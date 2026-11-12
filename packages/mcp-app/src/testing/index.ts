@@ -1,1 +1,1 @@
-export { wireProblem } from './wire.ts';
+export { type WireProblem, wireProblem } from './wire.ts';

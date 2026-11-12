@@ -2,12 +2,16 @@
  * `tools/call` is written in exactly one module of the package —
  * `src/view/tools.ts`, the module behind `@urbicon-ui/mcp-app/view/tools`.
  *
- * An app's architecture rule forbids that one specifier outside the entry of
- * a view that declares `callsTools`. The rule is worth something only if no
- * other module of the package writes the method name: `startView` sending
- * `tools/call` itself would hand every view the path the rule closes. What is
- * code is said by the TypeScript compiler, not by a pattern — comments go,
- * string literals of every kind stay.
+ * That is the package's half. The app's half: its architecture rule forbids
+ * that one specifier outside the entry of a view that declares `callsTools`,
+ * and it scans its own view code for the literal, because `createBridge` from
+ * `./view` keeps a free `request`. Both are a heuristic against an accident,
+ * not a guarantee — a name put together (`'tools' + '/call'`) passes either.
+ *
+ * The rule is worth something only if no other module of the package writes
+ * the method name: `startView` sending `tools/call` itself would hand every
+ * view the path the rule closes. What is code is said by the TypeScript
+ * compiler, not by a pattern — comments go, string literals of every kind stay.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -68,7 +72,7 @@ describe('tools/call in the package', () => {
     expect(writersOf(planted)).toEqual(['view/bridge.ts', 'view/start.ts']);
   });
 
-  test('a comment is no call — and a // inside a string hides none', () => {
+  test('a comment is no call, a // inside a string hides none — a name put together passes', () => {
     expect(
       writersOf({
         'view/a.ts':
@@ -78,5 +82,7 @@ describe('tools/call in the package', () => {
     expect(
       writersOf({ 'view/b.ts': "const u = 'https://x'; export const b = ['tools/call', u];" })
     ).toEqual(['view/b.ts']);
+    // The limit of a literal scan, here and in an app's: it is a heuristic.
+    expect(writersOf({ 'view/c.ts': "export const c = 'tools' + '/call';" })).toEqual([]);
   });
 });
