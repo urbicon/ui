@@ -210,7 +210,10 @@ startView({
 ```
 
 `state` can be any object with these five writable fields: a plain object, a class whose
-setters re-render, or a class of Svelte `$state` fields — `startView` only assigns.
+setters re-render, or a class of Svelte `$state` fields — `startView` only assigns. A
+Svelte component that takes it as a prop binds it under another name,
+`let { state: view } = $props()`: beside a local binding `state`, Svelte reads `$state(0)`
+as a subscription to a store `state` (`store_rune_conflict`).
 
 | `state.phase` | When                                                                                                                      |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -335,7 +338,9 @@ Svelte, an alias — comes in `plugins`. What the build holds to:
   first pass writes each view's script, unminified, into a fresh temporary directory
   (removed after the build); the second turns the `exclude` directories off
   (`@source not`) and lets Tailwind read exactly that script — what the bundler put into
-  the view, after tree-shaking. The CSS file names no source
+  the view, after tree-shaking. That script carries no comments, so a library's JSDoc
+  adds no class — a comment edit would otherwise change the CSS, and with it the view's
+  URI. The CSS file names no source
   itself (`@import 'tailwindcss' source(none)`), and the build appends both lines.
   Tailwind treats a glob that finds nothing as no error, so `witness` names a class every
   view uses: the build fails when the finished CSS has no rule for it.
@@ -421,6 +426,7 @@ bunx playwright-core install --only-shell chromium
 ```ts
 import { readFileSync } from 'node:fs';
 import {
+  FAIL_NEXT_MESSAGE,
   type HostScenario,
   printReports,
   type RunHostOptions,
@@ -455,6 +461,16 @@ const scenario: HostScenario = {
   async afterResult(o) {
     const title = await o.view.locator('h1').textContent();
     o.check('notes:title', 'the view shows the note', title === 'Groceries', String(title));
+
+    await o.host.failNext('pin_note');
+    await o.view.getByRole('button', { name: 'Pin' }).click();
+    const shown = await o.view.getByRole('alert').textContent();
+    o.check(
+      'notes:pin-failed',
+      'a failed pin shows the host’s sentence',
+      shown === FAIL_NEXT_MESSAGE,
+      String(shown)
+    );
   }
 };
 
@@ -536,6 +552,8 @@ The pieces are exported one by one — `openHost`, `checkSize`, `checkHostVariab
 another order. `o.host` drives the page (`setTheme`, `failNext`, `releaseResult`, `replay`,
 `teardown`), `o.state()` reads what the host saw, and `o.responses` holds what
 `watchResponses` picked — your fonts, with status and CORS header.
+`failNext(name, message?)` fails the view's next `tools/call` of `name` with `-32000` and
+`message`, or `FAIL_NEXT_MESSAGE` without one — either way a sentence the scenario knows.
 
 **What it does not prove** is how a real host behaves: it is this package's reading of the
 spec. Its own test, `bun run test:host` in this package, drives it against a fixture server

@@ -40,6 +40,9 @@ import { type HostPageConfig, hostPage, sandboxPage } from './pages.ts';
  */
 export const SPEC_VERSION = '2026-01-26';
 
+/** The sentence `failNext` fails a call with when it is given none. */
+export const FAIL_NEXT_MESSAGE = 'The test host dropped this call on purpose.';
+
 /** Where the app's MCP server answers — the host forwards to it and starts nothing. */
 export interface Endpoint {
   /** The full URL of the JSON-RPC endpoint, e.g. `http://127.0.0.1:5173/mcp`. */
@@ -182,7 +185,8 @@ export interface HostState {
   unknown: string[];
   errors: string[];
   tornDown: boolean;
-  failNext: string[];
+  /** The failures `failNext` ordered that no call has met yet, each with its sentence. */
+  failNext: { name: string; message: string }[];
   /** Every `tools/call` of the view the host refused, with the request's id. */
   refused: { id: string | number; name: string }[];
   wire: { checked: number; problems: string[] };
@@ -193,7 +197,7 @@ interface HostApi {
   wireControl(): { code: number; message: string } | null;
   releaseResult(): void;
   setTheme(theme: 'light' | 'dark'): void;
-  failNext(name: string): void;
+  failNext(name: string, message: string): void;
   replay(): Promise<void>;
   teardown(reason: string): Promise<unknown>;
 }
@@ -249,8 +253,11 @@ export interface OpenHost {
     /** Lets the latched `tool-result` go (`flow: 'auto'`). */
     releaseResult(): Promise<void>;
     setTheme(theme: 'light' | 'dark'): Promise<void>;
-    /** The next `tools/call` of this tool from the view fails with `-32000`. */
-    failNext(name: string): Promise<void>;
+    /**
+     * The next `tools/call` of this tool from the view fails with `-32000` and
+     * `message` — {@link FAIL_NEXT_MESSAGE} without one.
+     */
+    failNext(name: string, message?: string): Promise<void>;
     /** `tool-input` and `tool-result` in the same tick (`flow: 'scripted'`). */
     replay(): Promise<void>;
     teardown(reason: string): Promise<unknown>;
@@ -515,10 +522,10 @@ export async function openHost(options: OpenHostOptions): Promise<OpenHost> {
             (t) => (window as unknown as Required<HostWindow>).__host.setTheme(t),
             theme
           ),
-        failNext: (name) =>
+        failNext: (name, message = FAIL_NEXT_MESSAGE) =>
           page.evaluate(
-            (n) => (window as unknown as Required<HostWindow>).__host.failNext(n),
-            name
+            ([n, m]) => (window as unknown as Required<HostWindow>).__host.failNext(n, m),
+            [name, message] as const
           ),
         replay: () =>
           page.evaluate(() => (window as unknown as Required<HostWindow>).__host.replay()),

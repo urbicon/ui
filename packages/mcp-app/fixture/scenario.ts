@@ -7,6 +7,8 @@ import { mcpResult } from '@urbicon-ui/mcp-app/testing/host';
 import { FONTS_PATH, GREETING, type Note } from './shared.ts';
 
 const FONT_FAMILY = 'JetBrains Mono';
+/** The sentence the host fails the reload with — the fixture's own, not the host's default. */
+const RELOAD_DROPPED = 'The fixture has the host drop this reload.';
 
 async function requests(o: OpenHost, method: string) {
   return (await o.state()).viewRequests.filter((request) => request.method === method);
@@ -135,7 +137,7 @@ export function fixtureScenario(id: string, origin: string): HostScenario {
       );
 
       await clearOutcome(o);
-      await o.host.failNext('get_note');
+      await o.host.failNext('get_note', RELOAD_DROPPED);
       await click(o, 'Reload');
       const failed = {
         outcome: await outcome(o),
@@ -144,8 +146,7 @@ export function fixtureScenario(id: string, origin: string): HostScenario {
       o.check(
         'fixture:reload-failed',
         "a failed call shows the host's sentence, and the card keeps the note",
-        failed.outcome === 'The test host dropped this call on purpose.' &&
-          failed.title === expected,
+        failed.outcome === RELOAD_DROPPED && failed.title === expected,
         JSON.stringify(failed)
       );
     }

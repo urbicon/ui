@@ -45,6 +45,9 @@ function options(overrides: Partial<ViewBuildOptions> = {}): ViewBuildOptions {
 }
 
 const styleOf = (html: string): string => html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
+/** The rule of `.<className>` in a view's CSS, `undefined` without one. */
+const ruleOf = (html: string, className: string): string | undefined =>
+  styleOf(html).match(new RegExp(`\\.${className}(?![\\w-])[^}]*\\}`))?.[0];
 
 const LIST = '.mcp-app-build.json';
 const listIn = (outDir: string): { views: Record<string, string[]>; directories: string[] } =>
@@ -145,6 +148,34 @@ describe('buildViews', () => {
         tailwind: { css: `${FIXTURE}app.css`, witness: 'bg-surface' }
       });
       expect(styleOf(readFileSync(built.views[0]!.file, 'utf8'))).toContain('text-pink-700');
+    },
+    BUILD_TIMEOUT
+  );
+
+  it(
+    'reads no class out of a comment: a word only in the JSDoc of a bundled module yields no rule',
+    async () => {
+      const built = await buildViews(options());
+      expect(ruleOf(readFileSync(built.views[0]!.file, 'utf8'), 'fixed')).toBeUndefined();
+    },
+    BUILD_TIMEOUT
+  );
+
+  it(
+    'positive control: the same word in a string of that module yields its rule',
+    async () => {
+      const inString: Plugin = {
+        name: 'test:word-in-string',
+        enforce: 'pre',
+        transform(code, id) {
+          if (!id.endsWith('/lib/pin.ts')) return undefined;
+          return code.replace("'Pinned'", "'Pinned, fixed by the design.'");
+        }
+      };
+      const built = await buildViews(options({ plugins: [tailwindcss(), inString] }));
+      expect(ruleOf(readFileSync(built.views[0]!.file, 'utf8'), 'fixed')).toBe(
+        '.fixed{position:fixed}'
+      );
     },
     BUILD_TIMEOUT
   );
