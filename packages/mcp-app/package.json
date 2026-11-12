@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/mcp-app",
-  "version": "8.37.0",
+  "version": "8.38.0",
   "description": "Building blocks for serving and testing an MCP-App view — the view's bridge to the host, the server's ui:// resource catalog, the wire check against the MCP SDK schemas, a test host after the spec and the view's single-file Vite build. No runtime dependencies, no Svelte.",
   "license": "MIT",
   "repository": {

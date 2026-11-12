@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.38.0](https://github.com/urbicon/ui/compare/v8.37.0...v8.38.0) - 2026-11-12
+
+### Breaking Changes
+- **blocks**: Remove the A2UI transport for MCP Apps ([#595](https://github.com/urbicon/ui/issues/595))
+> **BREAKING:** a2uiMcpAppTransportSection() and A2uiToolInputStabilizer are removed from @urbicon-ui/blocks and @urbicon-ui/blocks/a2ui. Write your own transport section for an MCP App tool description and keep the payload handed to A2UIView reference-stable.
+
+### Bug Fixes
+- **mcp-app**: Scan view scripts without comments, and let failNext take the app's sentence ([#600](https://github.com/urbicon/ui/issues/600))
+
+### Features
+- **mcp-app**: Add the view bridge, the ui:// view catalog and the SDK wire check ([#596](https://github.com/urbicon/ui/issues/596))
+- **mcp-app**: Add the test host, the single-file view build and a self-test in CI ([#597](https://github.com/urbicon/ui/issues/597))
+
 ## [8.37.0](https://github.com/urbicon/ui/compare/v8.36.0...v8.37.0) - 2026-11-11
 
 ### Breaking Changes
