@@ -15,24 +15,20 @@ and ships in the `@urbicon-ui/table` tarball.
 
 ### The A2UI transport for MCP Apps is removed
 
-The only consumer of the MCP-App transport, kino's `render_ui` tool, is gone, and no planned view
-needs it. What it added in 8.37.0 is out; the transport-neutral rest of that release stays.
+The MCP-App transport added in 8.37.0 is removed; the transport-neutral rest of that release stays.
 
 - **Removed:** `a2uiMcpAppTransportSection()` and `A2uiToolInputStabilizer`, from the package root
-  and from `@urbicon-ui/blocks/a2ui`.
+  and from `@urbicon-ui/blocks/a2ui`; a call to either is a compile error.
 - **What to do instead:** `a2uiSystemPrompt()` no longer has a transport section to pair with in an
   MCP App. Write your own for the tool description: one complete surface per call, since no later
   call can patch an earlier view. For streamed tool arguments, hand `A2UIView` a payload that keeps
   the envelopes it already applied as the same objects, or it rebuilds and drops what the user typed.
+  The last envelope of a healed partial can be cut short (half a label, half a URL), so hold it back
+  until the next one begins or the final arguments arrive. The 8.37.0 stabilizer is a template:
+  [`a2ui-mcp-app.ts` at v8.37.0](https://github.com/urbicon/ui/blob/v8.37.0/packages/blocks/src/lib/components/Chat/A2UIView/a2ui-mcp-app.ts).
 - **Unchanged:** `a2uiSystemPrompt()`, `a2uiFencedTransportSection()`, `a2uiActionMessage()`,
   `a2uiErrorMessage()`, `validateA2uiPayload()`, the `@urbicon-ui/blocks/a2ui` entry and holding the
   payload in `$state.raw`.
-
-The line lists the files that still name either symbol:
-
-```sh
-rg -l 'a2uiMcpAppTransportSection|A2uiToolInputStabilizer' src
-```
 
 ## 8.37.0
 

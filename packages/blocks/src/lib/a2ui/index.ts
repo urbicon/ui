@@ -4,9 +4,9 @@
  * Everything A2UI that a server, a tool handler or a test runner without the
  * Svelte compiler can import: the prompt and its sections, the catalog specs,
  * the processor and the validation `A2UIView` runs, the transport halves
- * (stream splitter, surface router) and the types. The
- * package root loads Svelte modules on import, so a runtime that does not
- * compile them (plain Bun or Node) fails there before reaching any of this.
+ * (stream splitter, surface router) and the types. The package root loads
+ * Svelte modules on import, so a runtime that does not compile them (plain Bun
+ * or Node) fails there before reaching any of this.
  *
  * The renderable halves stay on the root: `A2UIView`, the wired catalogs
  * `basicA2uiCatalog` / `urbiconA2uiCatalog` and their `A2uiCatalog` type. The

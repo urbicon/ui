@@ -25,9 +25,9 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * renderer, so wire it in per surface via `partRenderers.a2ui` to keep it out of
  * the base bundle. Generate the agent-side prompt with the shipped
  * `a2uiSystemPrompt()` plus `a2uiFencedTransportSection()`; validate a payload
- * without a DOM with `validateA2uiPayload()`, the check this view runs once `streaming` is false;
- * never hand-roll either. On a server, import both from `@urbicon-ui/blocks/a2ui`,
- * which loads no Svelte. Opt into the richer
+ * without a DOM with `validateA2uiPayload()`, the check this view runs once
+ * `streaming` is false; never hand-roll either. On a server, import both from
+ * `@urbicon-ui/blocks/a2ui`, which loads no Svelte. Opt into the richer
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
  * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise), and
  * type-check the data model with an optional `dataSchema`; require components
@@ -68,7 +68,7 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * The envelopes already applied must stay the same objects, or the view
    * rebuilds and drops the user's input: hold the payload, or the messages
    * around it, in `$state.raw` — a deep `$state` wraps objects handed over
-   * from outside (a splitter's snapshot, a stabilizer's payload) in new proxies.
+   * from outside (a splitter's snapshot) in new proxies.
    */
   payload: unknown;
   /**

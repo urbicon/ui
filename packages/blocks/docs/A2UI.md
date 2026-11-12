@@ -102,7 +102,8 @@ Three rules follow, and the shipped prompt states all three:
    to the data model (`value: { path }`) — the selection highlights instantly, no round-trip. A row
    of buttons that each set a value shows no selected state and costs a turn per tap.
 3. **The agent is the only validator.** The client submits whatever it is given, so an action that
-   arrives with required fields empty should be answered with a patched hint next to the field, not carried out.
+   arrives with required fields empty should be answered with a patched hint next to the field,
+   not carried out.
 
 Set `sendDataModel: true` on `createSurface` and every action from that surface additionally carries
 the full data model (`A2uiActionEvent.dataModel`), read at click time. It is the antidote to an

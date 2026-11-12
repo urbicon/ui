@@ -70,6 +70,16 @@ describe('a2uiSystemPrompt', () => {
     }
   });
 
+  // The prompt asks for several updateComponents envelopes, and a container
+  // re-sent among them drops the children it no longer names.
+  it('says a re-sent component id replaces it', () => {
+    for (const catalog of [undefined, urbiconA2uiCatalogSpec]) {
+      const text = a2uiSystemPrompt({ catalog });
+      expect(text).toContain('Re-sending a component id REPLACES it');
+      expect(text).toContain('re-send its\n  container with the full children list');
+    }
+  });
+
   it('lists the mapped icon names', () => {
     for (const name of A2UI_ICON_NAMES) expect(prompt).toContain(name);
   });
