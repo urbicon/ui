@@ -338,8 +338,9 @@ Svelte, an alias — comes in `plugins`. What the build holds to:
   first pass writes each view's script, unminified, into a fresh temporary directory
   (removed after the build); the second turns the `exclude` directories off
   (`@source not`) and lets Tailwind read exactly that script — what the bundler put into
-  the view, after tree-shaking. That script carries no comments, so a library's JSDoc
-  adds no class — a comment edit would otherwise change the CSS, and with it the view's
+  the view, after tree-shaking. That script keeps none of the code's comments (JSDoc,
+  legal, annotations; Rolldown's module-path lines stay and name no utility), so a
+  library's JSDoc adds no class — a comment edit would otherwise change the CSS, and with it the view's
   URI. The CSS file names no source
   itself (`@import 'tailwindcss' source(none)`), and the build appends both lines.
   Tailwind treats a glob that finds nothing as no error, so `witness` names a class every
