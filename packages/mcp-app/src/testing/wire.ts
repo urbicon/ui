@@ -12,6 +12,7 @@
  */
 import * as apps from '@modelcontextprotocol/ext-apps/app-bridge';
 import * as sdk from '@modelcontextprotocol/sdk/types.js';
+import { INVALID_PARAMS, INVALID_REQUEST, METHOD_NOT_FOUND } from '../jsonrpc.ts';
 
 type Issue = { path: PropertyKey[]; message: string };
 type Schema = {
@@ -85,10 +86,6 @@ export interface WireProblem {
   code: -32600 | -32601 | -32602;
   message: string;
 }
-
-const INVALID_REQUEST = -32600;
-const METHOD_NOT_FOUND = -32601;
-const INVALID_PARAMS = -32602;
 
 /**
  * What a host would object to in this message — `null` when it passes. For an

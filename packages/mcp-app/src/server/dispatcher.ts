@@ -11,27 +11,25 @@
  * Web standards only — no Node API, no dependency; the `node:crypto` of the
  * same entry point is the catalog's.
  */
-import type { Outcome, ViewCatalog } from './catalog.ts';
 import {
   INTERNAL_ERROR,
   INVALID_PARAMS,
   INVALID_REQUEST,
+  type JsonRpcId,
   METHOD_NOT_FOUND,
   PARSE_ERROR
-} from './jsonrpc.ts';
+} from '../jsonrpc.ts';
+import type { Outcome, ViewCatalog } from './catalog.ts';
 
 /**
- * An id an answer may stand under: text, or an integer within ±(2^53 − 1).
- * MCP forbids `null`. Beyond the safe range the SDK's `RequestIdSchema`
- * rejects the number ("Too big"), and `JSON.parse` may already have rounded
- * it — 9007199254740993 arrives as …992.
+ * An answer with a `result`, under the request's id — which the dispatcher
+ * takes only as text or as an integer within ±(2^53 − 1). Beyond the safe
+ * range the SDK's `RequestIdSchema` rejects the number ("Too big"), and
+ * `JSON.parse` may already have rounded it — 9007199254740993 arrives as …992.
  */
-export type RequestId = string | number;
-
-/** An answer with a `result`. */
 export interface JsonRpcSuccess {
   jsonrpc: '2.0';
-  id: RequestId;
+  id: JsonRpcId;
   result: Record<string, unknown>;
 }
 
@@ -45,7 +43,7 @@ export interface JsonRpcSuccess {
  */
 export interface JsonRpcFailure {
   jsonrpc: '2.0';
-  id?: RequestId;
+  id?: JsonRpcId;
   error: { code: number; message: string };
 }
 
@@ -53,16 +51,17 @@ export interface JsonRpcFailure {
 export type JsonRpcResponse = JsonRpcSuccess | JsonRpcFailure;
 
 /**
- * The protocol versions `initialize` agrees to by default — `initialize`,
- * `ping`, `tools/*` and `resources/*` exist in all three. The first is the
- * preferred one, and the answer to a client that asks for none or another.
+ * The MCP versions `initialize` agrees to by default — `initialize`, `ping`,
+ * `tools/*` and `resources/*` exist in all three. The first is the preferred
+ * one, and the answer to a client that asks for none or another. Not the
+ * MCP Apps version: that is `PROTOCOL_VERSION` of `./view`.
  */
-export const PROTOCOL_VERSIONS: readonly string[] = ['2025-06-18', '2025-03-26', '2024-11-05'];
+export const MCP_PROTOCOL_VERSIONS: readonly string[] = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
 /**
- * How many messages one batch may carry. Without a cap only the body size
- * limits a batch, and every `tools/call` in it may hold a database
- * transaction of its own.
+ * How many messages one batch may carry. The batch runs one message after
+ * another, so without a cap only the body size limits how many calls a
+ * single request sets off.
  */
 export const MAX_BATCH = 50;
 
@@ -73,8 +72,21 @@ export interface ServerInfo {
   title?: string;
 }
 
-/** What only the app knows; `C` is the context of a call. */
-export interface DispatcherOptions<C> {
+/**
+ * One entry of `tools/list` (MCP's `Tool`): `name` and `inputSchema` at least —
+ * a host rejects the whole list over one tool without them.
+ */
+export interface Tool {
+  name: string;
+  inputSchema: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
+ * What only the app knows; `C` is the context of a call. `tools` and `call`
+ * are called as methods of this object, so `this` holds.
+ */
+export interface DispatcherOptions<C = void> {
   serverInfo: ServerInfo;
   /** `instructions` of `initialize` — what the model should know before it touches a tool. */
   instructions?: string;
@@ -82,18 +94,22 @@ export interface DispatcherOptions<C> {
    * `tools/list`: the tool descriptions this caller may see, as the wire
    * carries them (`name`, `description`, `inputSchema`, `_meta`, …).
    */
-  tools(
-    context: C
-  ): readonly Record<string, unknown>[] | Promise<readonly Record<string, unknown>[]>;
+  tools(context: C): readonly Tool[] | Promise<readonly Tool[]>;
   /**
    * `tools/call` with a string `name`. `args` is `params.arguments` as it
    * came — `undefined` included; the tool's schema decides.
+   *
+   * `call` receives every name a client sends; the dispatcher does not check
+   * it against `tools(context)`. A tool hidden from this caller must be
+   * refused here too (`INVALID_PARAMS`).
    *
    * The answer is an {@link Outcome}: `{ result }` is the tool's result
    * (`content`, `structuredContent`, `isError`), `{ error: { code, message } }`
    * a protocol error such as `-32602` for an unknown tool or arguments the
    * schema rejects. Whatever `call` throws becomes `-32603` with a general
-   * sentence; the thrown error goes to `console.error`, not to the client.
+   * sentence; the thrown error goes to `console.error`, not to the client. So
+   * does an `Outcome` of another shape — an `error` needs an integer `code`
+   * and a string `message`.
    */
   call(name: string, args: unknown, context: C): Outcome | Promise<Outcome>;
   /**
@@ -103,12 +119,12 @@ export interface DispatcherOptions<C> {
    * to a dispatcher created per request — it holds nothing but its options.
    */
   views?: Pick<ViewCatalog<string>, 'handle' | 'capabilities'>;
-  /** The versions `initialize` agrees to, preferred first. Default {@link PROTOCOL_VERSIONS}. */
+  /** The versions `initialize` agrees to, preferred first. Default {@link MCP_PROTOCOL_VERSIONS}. */
   protocolVersions?: readonly string[];
 }
 
 /** What `createDispatcher` returns. */
-export interface Dispatcher<C> {
+export interface Dispatcher<C = void> {
   /**
    * A parsed body: one message or a batch. `null` when there is nothing to
    * answer — only notifications; Streamable HTTP answers that with `202` and
@@ -122,22 +138,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** The id of a request when an answer may stand under it — otherwise `undefined`. */
-function requestId(value: unknown): RequestId | undefined {
+function requestId(value: unknown): JsonRpcId | undefined {
   return typeof value === 'string' || Number.isSafeInteger(value)
-    ? (value as RequestId)
+    ? (value as JsonRpcId)
     : undefined;
 }
 
-function failure(id: RequestId | undefined, code: number, message: string): JsonRpcFailure {
+function failure(id: JsonRpcId | undefined, code: number, message: string): JsonRpcFailure {
   return { jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code, message } };
 }
 
-function answer(id: RequestId, outcome: Outcome): JsonRpcResponse {
-  if ('error' in outcome) return failure(id, outcome.error.code, outcome.error.message);
-  if (!isRecord(outcome.result)) {
-    throw new Error('The answer is neither { result: {…} } nor { error: { code, message } }.');
+/** Checked, not trusted: past a cast or from plain JS, `error` may be a database error. */
+function answer(id: JsonRpcId, outcome: Outcome): JsonRpcResponse {
+  if ('error' in outcome) {
+    const { code, message } = outcome.error;
+    if (Number.isSafeInteger(code) && typeof message === 'string') {
+      return failure(id, code, message);
+    }
+  } else if (isRecord(outcome.result)) {
+    return { jsonrpc: '2.0', id, result: outcome.result };
   }
-  return { jsonrpc: '2.0', id, result: outcome.result };
+  throw new Error('The answer is neither { result: {…} } nor { error: { code, message } }.', {
+    cause: outcome
+  });
 }
 
 /** The answer to a body that is not JSON: `-32700`, without id — nobody can read one. */
@@ -171,14 +194,14 @@ export function bodyTooLargeResponse(detail?: string): JsonRpcFailure {
  * Answered here: `initialize` (the version, `tools` and the views'
  * capabilities, `serverInfo`, `instructions`), `ping`, `tools/list`,
  * `tools/call`, and `resources/*` through `views`. Every other method is
- * `-32601`. A message without `id` is a notification and gets no answer — a
+ * `-32601`. A request without `id` is a notification and gets no answer — a
  * `tools/call` without `id` does not run.
  *
  * @throws When `protocolVersions` is empty.
  */
-export function createDispatcher<C>(options: DispatcherOptions<C>): Dispatcher<C> {
-  const { serverInfo, instructions, tools, call, views } = options;
-  const versions = options.protocolVersions ?? PROTOCOL_VERSIONS;
+export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispatcher<C> {
+  const { serverInfo, instructions, views } = options;
+  const versions = options.protocolVersions ?? MCP_PROTOCOL_VERSIONS;
   const first = versions[0];
   if (first === undefined) throw new Error('protocolVersions must name at least one version.');
   const preferred: string = first;
@@ -202,13 +225,13 @@ export function createDispatcher<C>(options: DispatcherOptions<C>): Dispatcher<C
       case 'ping':
         return { result: {} };
       case 'tools/list':
-        return { result: { tools: await tools(context) } };
+        return { result: { tools: await options.tools(context) } };
       case 'tools/call': {
         const name = isRecord(params) ? params.name : undefined;
         if (typeof name !== 'string') {
           return { error: { code: INVALID_PARAMS, message: 'tools/call needs params.name.' } };
         }
-        return call(name, (params as Record<string, unknown>).arguments, context);
+        return options.call(name, (params as Record<string, unknown>).arguments, context);
       }
       default:
         return (

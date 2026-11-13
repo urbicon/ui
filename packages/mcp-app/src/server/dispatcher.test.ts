@@ -5,6 +5,13 @@
  * this package's own reading of the spec.
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import {
+  INTERNAL_ERROR,
+  INVALID_PARAMS,
+  INVALID_REQUEST,
+  METHOD_NOT_FOUND,
+  PARSE_ERROR
+} from '../jsonrpc.ts';
 import { wireProblem } from '../testing/wire.ts';
 import { createViewCatalog, type Outcome, RESOURCE_NOT_FOUND } from './catalog.ts';
 import {
@@ -13,16 +20,9 @@ import {
   type DispatcherOptions,
   type JsonRpcResponse,
   MAX_BATCH,
-  PROTOCOL_VERSIONS,
+  MCP_PROTOCOL_VERSIONS,
   parseErrorResponse
 } from './dispatcher.ts';
-import {
-  INTERNAL_ERROR,
-  INVALID_PARAMS,
-  INVALID_REQUEST,
-  METHOD_NOT_FOUND,
-  PARSE_ERROR
-} from './jsonrpc.ts';
 
 interface Caller {
   userId: string;
@@ -144,7 +144,7 @@ afterEach(() => {
 });
 
 describe('initialize', () => {
-  test.each(PROTOCOL_VERSIONS)('agrees to %s when the client asks for it', async (version) => {
+  test.each(MCP_PROTOCOL_VERSIONS)('agrees to %s when the client asks for it', async (version) => {
     const { ask } = appOf();
     const result = resultOf(await ask(request(1, 'initialize', { protocolVersion: version })));
     expect(result.protocolVersion).toBe(version);
@@ -159,13 +159,13 @@ describe('initialize', () => {
   ])('answers with the preferred version for %s', async (_label, params) => {
     const { ask } = appOf();
     const result = resultOf(await ask(request(1, 'initialize', params)));
-    expect(result.protocolVersion).toBe(PROTOCOL_VERSIONS[0]);
+    expect(result.protocolVersion).toBe(MCP_PROTOCOL_VERSIONS[0]);
   });
 
   test('serverInfo, instructions, and tools beside the views’ capabilities', async () => {
     const { ask } = appOf();
     expect(resultOf(await ask(request(1, 'initialize', {})))).toEqual({
-      protocolVersion: PROTOCOL_VERSIONS[0],
+      protocolVersion: MCP_PROTOCOL_VERSIONS[0],
       capabilities: { tools: {}, resources: {} },
       serverInfo: { name: 'notes', version: '1.0.0' },
       instructions: 'Notes of one person.'
@@ -283,6 +283,29 @@ describe('tools/call', () => {
     expect(log).toHaveBeenCalledTimes(1);
   });
 
+  test.each([
+    ['an Error in place of the error object', { error: new Error(SECRET) }],
+    ['a database error, its code text', { error: { code: '23505', message: `dup ${SECRET}` } }],
+    ['a code that is no integer', { error: { code: 1.5, message: SECRET } }],
+    ['no message', { error: { code: INVALID_PARAMS } }]
+  ])(
+    'an error outcome with %s is -32603, and the outcome goes to the log only',
+    async (_label, outcome) => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { ask } = appOf({ call: () => outcome as unknown as Outcome });
+      const answer = single(await ask(request(3, 'tools/call', { name: 'db' })));
+      expect(answer).toEqual({
+        jsonrpc: '2.0',
+        id: 3,
+        error: { code: INTERNAL_ERROR, message: 'tools/call db failed on the server.' }
+      });
+      expect(JSON.stringify(answer)).not.toContain(SECRET);
+      expect(log).toHaveBeenCalledTimes(1);
+      const logged = log.mock.calls[0]?.[1] as Error | undefined;
+      expect(logged?.cause).toBe(outcome);
+    }
+  );
+
   test('a throwing tools() is -32603 as well', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { ask } = appOf({
@@ -296,6 +319,52 @@ describe('tools/call', () => {
       message: 'tools/list failed on the server.'
     });
     expect(JSON.stringify(answer)).not.toContain(SECRET);
+  });
+});
+
+describe('the options', () => {
+  const INFO = { name: 'notes', version: '1.0.0' };
+  const call = (): Outcome => ({ result: {} });
+
+  test('tools and call run as methods of the options, so `this` holds', async () => {
+    const dispatcher = createDispatcher<Caller>({
+      serverInfo: INFO,
+      tools() {
+        return [{ name: this.serverInfo.name, inputSchema: { type: 'object' } }];
+      },
+      call(name, _args, caller) {
+        return { result: { content: text(`${this.serverInfo.name}/${name}/${caller.userId}`) } };
+      }
+    });
+    expect(resultOf(await dispatcher.dispatch(request(1, 'tools/list'), CALLER))).toEqual({
+      tools: [{ name: 'notes', inputSchema: { type: 'object' } }]
+    });
+    expect(
+      resultOf(await dispatcher.dispatch(request(2, 'tools/call', { name: 'x' }), CALLER))
+    ).toEqual({ content: text('notes/x/u1') });
+  });
+
+  test('without a context, dispatch takes the payload alone', async () => {
+    const dispatcher = createDispatcher({ serverInfo: INFO, tools: () => [], call });
+    expect(single(await dispatcher.dispatch(request(1, 'ping')))).toEqual({
+      jsonrpc: '2.0',
+      id: 1,
+      result: {}
+    });
+  });
+
+  test('with a context, dispatch needs it', async () => {
+    const dispatcher = createDispatcher({ serverInfo: INFO, tools: (_: Caller) => [], call });
+    // @ts-expect-error — the context is missing
+    expect(await dispatcher.dispatch(request(1, 'ping'))).not.toBeNull();
+  });
+
+  test('a tool needs a string name and an inputSchema — the compiler says so', () => {
+    createDispatcher({ serverInfo: INFO, tools: () => [{ name: 'ok', inputSchema: {} }], call });
+    // @ts-expect-error — without inputSchema a host rejects the whole tools/list
+    createDispatcher({ serverInfo: INFO, tools: () => [{ name: 'no_schema' }], call });
+    // @ts-expect-error — a name that is no text
+    createDispatcher({ serverInfo: INFO, tools: () => [{ name: 42, inputSchema: {} }], call });
   });
 });
 
@@ -604,9 +673,18 @@ describe('every answer passes the SDK’s schemas (wireProblem)', () => {
         JSON.stringify(id)
       ).not.toBeNull();
     }
-    // The sentence `RequestId` cites: beyond ±(2^53 − 1) the SDK says "Too big".
+    // The sentence `JsonRpcSuccess` cites: beyond ±(2^53 − 1) the SDK says "Too big".
     expect(
       wireProblem({ jsonrpc: '2.0', id: Number.MAX_SAFE_INTEGER + 1, result: {} }, 'ping')?.message
     ).toContain('Too big');
+  });
+
+  test('the sentence `Tool` cites: one tool without inputSchema fails the whole tools/list', () => {
+    const ok = { name: 'ok', inputSchema: { type: 'object' } };
+    const list = (tools: unknown[]) => ({ jsonrpc: '2.0', id: 1, result: { tools } });
+    expect(wireProblem(list([ok]), 'tools/list')).toBeNull();
+    expect(wireProblem(list([ok, { name: 'no_schema' }]), 'tools/list')?.message).toContain(
+      'inputSchema'
+    );
   });
 });

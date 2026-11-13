@@ -42,9 +42,10 @@ origin, and it answers what a host asks about them.
 <!-- typecheck -->
 
 ```ts
-import { createViewCatalog, type Outcome } from '@urbicon-ui/mcp-app/server';
+import { createDispatcher, createViewCatalog, type Outcome } from '@urbicon-ui/mcp-app/server';
 
 declare const NOTE_HTML: string; // the built view: one self-contained HTML file
+declare function callTool(name: string, args: unknown): Outcome;
 
 export const views = createViewCatalog({
   server: 'notes',
@@ -62,46 +63,30 @@ export const views = createViewCatalog({
   unbuiltHint: 'bun run build:views'
 });
 
-export function dispatch(method: string, params: unknown): Outcome {
-  switch (method) {
-    case 'initialize':
-      return {
-        result: {
-          protocolVersion: '2025-06-18',
-          capabilities: { tools: {}, ...views.capabilities },
-          serverInfo: { name: 'notes', version: '1.0.0' }
-        }
-      };
-    case 'tools/list':
-      return {
-        result: {
-          tools: [
-            {
-              name: 'show_note',
-              inputSchema: { type: 'object' },
-              _meta: views.toolMeta({ view: 'note' })
-            },
-            {
-              name: 'pin_note',
-              inputSchema: { type: 'object' },
-              _meta: views.toolMeta({ callableFromView: true })
-            },
-            { name: 'delete_note', inputSchema: { type: 'object' }, _meta: views.toolMeta() }
-          ]
-        }
-      };
-    default:
-      return (
-        views.handle(method, params) ?? {
-          error: { code: -32601, message: `Method not found: ${method}` }
-        }
-      );
-  }
-}
+export const dispatcher = createDispatcher({
+  serverInfo: { name: 'notes', version: '1.0.0' },
+  views,
+  tools: () => [
+    {
+      name: 'show_note',
+      inputSchema: { type: 'object' },
+      _meta: views.toolMeta({ view: 'note' })
+    },
+    {
+      name: 'pin_note',
+      inputSchema: { type: 'object' },
+      _meta: views.toolMeta({ callableFromView: true })
+    },
+    { name: 'delete_note', inputSchema: { type: 'object' }, _meta: views.toolMeta() }
+  ],
+  call: callTool
+});
 ```
 
-An `Outcome` is `{ result }` or `{ error: { code, message } }`, without the JSON-RPC envelope
-— your dispatcher, or [`createDispatcher`](#server-the-dispatcher), adds `jsonrpc` and `id`.
+`callTool` stands for the app's tools. An `Outcome` is `{ result }` or
+`{ error: { code, message } }`, without the JSON-RPC envelope —
+[`createDispatcher`](#server-the-dispatcher) adds `jsonrpc` and `id`, and that section shows
+the call, the caller and the route.
 
 What the catalog says on the wire:
 
@@ -114,9 +99,11 @@ What the catalog says on the wire:
 | `resources/templates/list` | `{ resourceTemplates: [] }`                                                                                                                                                                    |
 | errors                     | `-32602` without a string `uri`, `-32002` for a URI with no view, `-32603` (and a console error) for a view whose `html` returns `undefined`, with `unbuiltHint`, or for an unusable origin    |
 
-`handle()` returns `null` for every other method, so it sits in a `default` branch. The
-pieces are also there one by one — `uri`, `at`, and `list` and `read`, which return an
-`Outcome` as well — for a dispatcher that wants its own error sentences.
+A `switch (method)` of your own takes the same two parts: `views.capabilities` in
+`initialize`, and `views.handle(method, params)` in the `default` branch — it returns `null`
+for every other method. The pieces are also there one by one — `uri`, `at`, and `list` and
+`read`, which return an `Outcome` as well — for a dispatcher that wants its own error
+sentences.
 
 **Visibility is always explicit.** Without `_meta.ui.visibility` the spec defaults to
 `["model", "app"]`, and every view of the server could call every tool — `delete_note`
@@ -239,26 +226,28 @@ export async function POST(request: Request): Promise<Response> {
 ```
 
 The type parameter is the context of a call — a caller, a registry, a clock: whatever the
-route resolves. `tools` and `call` receive it; the dispatcher never looks inside.
+route resolves. `tools` and `call` receive it; the dispatcher never looks inside. Without
+one, `dispatch` takes the payload alone.
 
 What the dispatcher says on the wire:
 
-| Request                | Answer                                                                                                                                                                                                          |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `initialize`           | the client's `protocolVersion` when it is in `protocolVersions` (default `PROTOCOL_VERSIONS`), otherwise the first of them; `capabilities`: `tools` plus the catalog's; `serverInfo`; `instructions` when given |
-| `ping`                 | `{}`                                                                                                                                                                                                            |
-| `tools/list`           | `{ tools }` from `tools(context)`                                                                                                                                                                               |
-| `tools/call`           | the `Outcome` of `call(name, arguments, context)`; `-32602` without a string `params.name`, and `call` does not run                                                                                             |
-| `resources/*`          | the catalog's `handle()`; without `views`, `-32601`                                                                                                                                                             |
-| any other method       | `-32601`                                                                                                                                                                                                        |
-| a message without `id` | a notification: no answer, and a `tools/call` without `id` does not run                                                                                                                                         |
+| Request                | Answer                                                                                                                                                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialize`           | the client's `protocolVersion` when it is in `protocolVersions` (default `MCP_PROTOCOL_VERSIONS`), otherwise the first of them; `capabilities`: `tools` plus the catalog's; `serverInfo`; `instructions` when given                                               |
+| `ping`                 | `{}`                                                                                                                                                                                                                                                              |
+| `tools/list`           | `{ tools }` from `tools(context)`                                                                                                                                                                                                                                 |
+| `tools/call`           | the `Outcome` of `call(name, arguments, context)`, for any name: the dispatcher does not check it against `tools(context)`, so `call` refuses a tool hidden from this caller (`INVALID_PARAMS`); `-32602` without a string `params.name`, and `call` does not run |
+| `resources/*`          | the catalog's `handle()`; without `views`, `-32601`                                                                                                                                                                                                               |
+| any other method       | `-32601`                                                                                                                                                                                                                                                          |
+| a request without `id` | a notification: no answer, and a `tools/call` without `id` does not run                                                                                                                                                                                           |
 
 **The id.** An answer stands under the request's id when that is text or an integer within
 ±(2^53 − 1). Any other id — `null`, an object, a fraction, `2^53`, `1e300` — is `-32600`
-**without** `id`, and so are a message that is no request, an empty batch and the two answers
-the route sends itself: `parseErrorResponse()` for a body that is not JSON (`-32700`) and
-`bodyTooLargeResponse(detail?)` for one the server refused to read. MCP forbids `null` as an
-id; the SDK's schemas a host validates with reject it and accept the omission.
+**without** `id`, and so are a message that is no request and carries no usable id, an empty
+batch and the two answers the route sends itself: `parseErrorResponse()` for a body that is
+not JSON (`-32700`) and `bodyTooLargeResponse(detail?)` for one the server refused to read.
+MCP forbids `null` as an id; the SDK's schemas a host validates with reject it and accept
+the omission.
 
 **Batches** are answered in order and one message after another, so a batch holds at most
 one of the app's transactions at a time. A body carries at most `MAX_BATCH` messages; one
@@ -269,7 +258,8 @@ more makes the whole body `-32600`, without id. A batch of notifications alone i
 schema rejects — and a tool's own failure as a result with `isError: true`. Whatever it
 throws becomes `-32603` with a general sentence ("tools/call list_notes failed on the
 server."); the thrown error goes to `console.error`, never to the client. A throwing
-`tools()` or catalog answers the same way.
+`tools()` or catalog answers the same way, and so does an `Outcome` of another shape — an
+`error` needs an integer `code` and a string `message`.
 
 **The route stays the app's**: reading the body, the status codes and the credentials. A
 catalog whose origin depends on the request goes to a dispatcher created per request — it

@@ -102,7 +102,7 @@ export function startFixtureServer(options: FixtureServerOptions): FixtureServer
     }
   }
 
-  const dispatcher = createDispatcher<void>({
+  const dispatcher = createDispatcher({
     serverInfo: FIXTURE_INFO,
     tools: () => tools,
     call,

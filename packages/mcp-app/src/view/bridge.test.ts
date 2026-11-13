@@ -4,6 +4,7 @@
  * shape a host sees.
  */
 import { describe, expect, test } from 'vitest';
+import { METHOD_NOT_FOUND } from '../jsonrpc.ts';
 import { wireProblem } from '../testing/wire.ts';
 import { fakeHost } from './__fixtures__/fake-host.ts';
 import {
@@ -13,7 +14,6 @@ import {
   createSizeReporter,
   IMPLEMENTATION_ERROR,
   type JsonRpcMessage,
-  METHOD_NOT_FOUND,
   PROTOCOL_VERSION,
   REQUEST_TIMEOUT,
   viewBridge,
