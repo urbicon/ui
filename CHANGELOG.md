@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.39.0](https://github.com/urbicon/ui/compare/v8.38.1...v8.39.0) - 2026-11-13
+
+### Features
+- **mcp-app**: Add createDispatcher, the JSON-RPC envelope of a stateless tool server ([#602](https://github.com/urbicon/ui/issues/602))
+
 ## [8.38.1](https://github.com/urbicon/ui/compare/v8.38.0...v8.38.1) - 2026-11-13
 
 ### Bug Fixes
