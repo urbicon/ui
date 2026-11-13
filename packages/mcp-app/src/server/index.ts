@@ -14,3 +14,24 @@ export {
   type ViewSpec,
   viewVersion
 } from './catalog.ts';
+export {
+  bodyTooLargeResponse,
+  createDispatcher,
+  type Dispatcher,
+  type DispatcherOptions,
+  type JsonRpcFailure,
+  type JsonRpcResponse,
+  type JsonRpcSuccess,
+  MAX_BATCH,
+  PROTOCOL_VERSIONS,
+  parseErrorResponse,
+  type RequestId,
+  type ServerInfo
+} from './dispatcher.ts';
+export {
+  INTERNAL_ERROR,
+  INVALID_PARAMS,
+  INVALID_REQUEST,
+  METHOD_NOT_FOUND,
+  PARSE_ERROR
+} from './jsonrpc.ts';

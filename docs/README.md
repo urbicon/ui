@@ -84,7 +84,7 @@ and a link to that place, and in these reference docs the owning section says so
 
 ## MCP Apps
 
-- [packages/mcp-app/README.md](../packages/mcp-app/README.md) — `@urbicon-ui/mcp-app`: serving an MCP-App view from a hand-written dispatcher — the `ui://` view catalog, the view's bridge to its host, the wire check against the SDK schemas, a test host after the spec and the views' single-file build _(the package README)_
+- [packages/mcp-app/README.md](../packages/mcp-app/README.md) — `@urbicon-ui/mcp-app`: serving an MCP-App view — the JSON-RPC dispatcher, the `ui://` view catalog, the view's bridge to its host, the wire check against the SDK schemas, a test host after the spec and the views' single-file build _(the package README)_
 
 ## Project tracking
 

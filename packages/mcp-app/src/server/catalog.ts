@@ -14,6 +14,7 @@
  * text result ("text-only fallback", ibid.).
  */
 import { createHash } from 'node:crypto';
+import { INTERNAL_ERROR, INVALID_PARAMS } from './jsonrpc.ts';
 
 /** The `mimeType` the spec requires of a view ("MUST"). */
 export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
@@ -27,9 +28,6 @@ export const LEGACY_RESOURCE_URI_KEY = 'ui/resourceUri';
 
 /** "Resource not found" — the code the MCP spec names for `resources/read`. */
 export const RESOURCE_NOT_FOUND = -32002;
-
-const INVALID_PARAMS = -32602;
-const INTERNAL_ERROR = -32603;
 
 /** How many hex characters of the SHA-256 an issued URI carries. */
 export const VERSION_LENGTH = 12;
