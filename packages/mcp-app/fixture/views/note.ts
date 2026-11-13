@@ -48,10 +48,20 @@ const noteOf = (result: CallToolResult | null): Note | null =>
 const reasonOf = (error: unknown): string =>
   error instanceof BridgeError ? error.reason : String(error);
 
-const main = element('main', 'bg-surface text-ink flex flex-col gap-2 p-4');
+// The transitions are for the host's checks, which must read the value a
+// transition settles on: the title's colour takes longer than a frame or two
+// (`host-variables-control`), the card's background begins to change only
+// long after the theme does (`theme`).
+const main = element(
+  'main',
+  'bg-surface text-ink flex flex-col gap-2 p-4 transition-colors delay-1000'
+);
 const status = element('p', 'text-sm');
 status.setAttribute('role', 'status');
-const title = element('h1', 'text-text-primary text-lg font-semibold');
+const title = element(
+  'h1',
+  'text-text-primary text-lg font-semibold transition-colors duration-300'
+);
 const body = element('p', 'font-mono text-sm');
 const greeting = element('p', 'text-sm');
 const actions = element('div', 'flex gap-2');
