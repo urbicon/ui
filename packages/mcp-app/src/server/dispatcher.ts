@@ -78,7 +78,8 @@ export interface ServerInfo {
  */
 export interface Tool {
   name: string;
-  inputSchema: Record<string, unknown>;
+  /** `object`, not a record: an interface such as `JSONSchema7` has no index signature. */
+  inputSchema: object;
   [key: string]: unknown;
 }
 
@@ -108,7 +109,7 @@ export interface DispatcherOptions<C = void> {
    * a protocol error such as `-32602` for an unknown tool or arguments the
    * schema rejects. Whatever `call` throws becomes `-32603` with a general
    * sentence; the thrown error goes to `console.error`, not to the client. So
-   * does an `Outcome` of another shape — an `error` needs an integer `code`
+   * does an `Outcome` of another shape — an `error` needs a safe integer `code`
    * and a string `message`.
    */
   call(name: string, args: unknown, context: C): Outcome | Promise<Outcome>;
@@ -267,8 +268,14 @@ export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispa
     try {
       return answer(id, await outcomeOf(method, params, context));
     } catch (error) {
-      // MCP clients run headless: what is not in the server's log is nowhere.
-      console.error(`[mcp-app] ${what} failed:`, error);
+      // MCP clients run headless: what is not in the server's log is nowhere. Printing runs the
+      // value's own code (`inspect.custom`, a Proxy trap) and can throw; that must not cost the
+      // answer, nor the rest of a batch.
+      try {
+        console.error(`[mcp-app] ${what} failed:`, error);
+      } catch {
+        // The answer below is all that is left to give.
+      }
       return failure(id, INTERNAL_ERROR, `${what} failed on the server.`);
     }
   }

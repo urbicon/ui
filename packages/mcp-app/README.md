@@ -231,15 +231,15 @@ one, `dispatch` takes the payload alone.
 
 What the dispatcher says on the wire:
 
-| Request                | Answer                                                                                                                                                                                                                                                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `initialize`           | the client's `protocolVersion` when it is in `protocolVersions` (default `MCP_PROTOCOL_VERSIONS`), otherwise the first of them; `capabilities`: `tools` plus the catalog's; `serverInfo`; `instructions` when given                                               |
-| `ping`                 | `{}`                                                                                                                                                                                                                                                              |
-| `tools/list`           | `{ tools }` from `tools(context)`                                                                                                                                                                                                                                 |
-| `tools/call`           | the `Outcome` of `call(name, arguments, context)`, for any name: the dispatcher does not check it against `tools(context)`, so `call` refuses a tool hidden from this caller (`INVALID_PARAMS`); `-32602` without a string `params.name`, and `call` does not run |
-| `resources/*`          | the catalog's `handle()`; without `views`, `-32601`                                                                                                                                                                                                               |
-| any other method       | `-32601`                                                                                                                                                                                                                                                          |
-| a request without `id` | a notification: no answer, and a `tools/call` without `id` does not run                                                                                                                                                                                           |
+| Request                | Answer                                                                                                                                                                                                                                                                |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialize`           | the client's `protocolVersion` when it is in `protocolVersions` (default `MCP_PROTOCOL_VERSIONS`), otherwise the first of them; `capabilities`: `tools` plus the catalog's; `serverInfo`; `instructions` when given                                                   |
+| `ping`                 | `{}`                                                                                                                                                                                                                                                                  |
+| `tools/list`           | `{ tools }` from `tools(context)`                                                                                                                                                                                                                                     |
+| `tools/call`           | the `Outcome` of `call(name, arguments, context)`, for any name: the dispatcher does not check it against `tools(context)`, so `call` must refuse a tool hidden from this caller (`INVALID_PARAMS`); `-32602` without a string `params.name`, and `call` does not run |
+| `resources/*`          | the catalog's `handle()`; without `views`, `-32601`                                                                                                                                                                                                                   |
+| any other method       | `-32601`                                                                                                                                                                                                                                                              |
+| a request without `id` | a notification: no answer, and a `tools/call` without `id` does not run                                                                                                                                                                                               |
 
 **The id.** An answer stands under the request's id when that is text or an integer within
 ±(2^53 − 1). Any other id — `null`, an object, a fraction, `2^53`, `1e300` — is `-32600`
@@ -259,7 +259,7 @@ schema rejects — and a tool's own failure as a result with `isError: true`. Wh
 throws becomes `-32603` with a general sentence ("tools/call list_notes failed on the
 server."); the thrown error goes to `console.error`, never to the client. A throwing
 `tools()` or catalog answers the same way, and so does an `Outcome` of another shape — an
-`error` needs an integer `code` and a string `message`.
+`error` needs a safe integer `code` and a string `message`.
 
 **The route stays the app's**: reading the body, the status codes and the credentials. A
 catalog whose origin depends on the request goes to a dispatcher created per request — it

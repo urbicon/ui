@@ -360,11 +360,32 @@ describe('the options', () => {
   });
 
   test('a tool needs a string name and an inputSchema — the compiler says so', () => {
-    createDispatcher({ serverInfo: INFO, tools: () => [{ name: 'ok', inputSchema: {} }], call });
+    const schema = { type: 'object' } as const;
+    createDispatcher({
+      serverInfo: INFO,
+      tools: () => [{ name: 'ok', inputSchema: schema }],
+      call
+    });
+    // A schema typed by an interface, as `JSONSchema7` is: no index signature, still a schema.
+    interface ObjectSchema {
+      type: 'object';
+    }
+    const typed: ObjectSchema = { type: 'object' };
+    createDispatcher({
+      serverInfo: INFO,
+      tools: () => [{ name: 'typed', inputSchema: typed }],
+      call
+    });
     // @ts-expect-error — without inputSchema a host rejects the whole tools/list
     createDispatcher({ serverInfo: INFO, tools: () => [{ name: 'no_schema' }], call });
     // @ts-expect-error — a name that is no text
-    createDispatcher({ serverInfo: INFO, tools: () => [{ name: 42, inputSchema: {} }], call });
+    createDispatcher({ serverInfo: INFO, tools: () => [{ name: 42, inputSchema: schema }], call });
+    createDispatcher({
+      serverInfo: INFO,
+      // @ts-expect-error — a schema that is no object
+      tools: () => [{ name: 's', inputSchema: 'object' }],
+      call
+    });
   });
 });
 
@@ -520,6 +541,21 @@ describe('batch', () => {
       INVALID_REQUEST,
       INTERNAL_ERROR,
       METHOD_NOT_FOUND
+    ]);
+  });
+
+  test('a log that throws costs no answer of the batch', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {
+      throw new Error('printing failed');
+    });
+    const { ask } = appOf();
+    const answers = (await ask([
+      request(1, 'tools/call', { name: 'fail' }),
+      request(2, 'ping')
+    ])) as JsonRpcResponse[];
+    expect(answers.map((answer) => ('error' in answer ? answer.error.code : 'result'))).toEqual([
+      INTERNAL_ERROR,
+      'result'
     ]);
   });
 
