@@ -1,6 +1,7 @@
 /**
  * The server half of MCP Apps — `_meta.ui` on the tools and the `ui://`
- * resources of the views, as functions a hand-written dispatcher hooks in.
+ * resources of the views, as functions a dispatcher (`createDispatcher` or
+ * your own) hooks in.
  *
  * Spec: `io.modelcontextprotocol/ui` 2026-01-26. Where the spec says two
  * things, the SDK source decides (`registerAppTool`, `getUiCapability`).
@@ -14,6 +15,7 @@
  * text result ("text-only fallback", ibid.).
  */
 import { createHash } from 'node:crypto';
+import { INTERNAL_ERROR, INVALID_PARAMS } from '../jsonrpc.ts';
 
 /** The `mimeType` the spec requires of a view ("MUST"). */
 export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
@@ -27,9 +29,6 @@ export const LEGACY_RESOURCE_URI_KEY = 'ui/resourceUri';
 
 /** "Resource not found" — the code the MCP spec names for `resources/read`. */
 export const RESOURCE_NOT_FOUND = -32002;
-
-const INVALID_PARAMS = -32602;
-const INTERNAL_ERROR = -32603;
 
 /** How many hex characters of the SHA-256 an issued URI carries. */
 export const VERSION_LENGTH = 12;

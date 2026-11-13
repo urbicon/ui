@@ -1,5 +1,5 @@
 /**
- * The fixture's MCP server — `Bun.serve`, a hand-written dispatcher over
+ * The fixture's MCP server — `Bun.serve`, `createDispatcher` over
  * `createViewCatalog`, three tools: `show_note` renders in the view,
  * `get_note` is granted to views, `remove_note` is the model's alone. It also
  * serves the view's fonts with `Access-Control-Allow-Origin: *`, the header a
@@ -7,7 +7,13 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createViewCatalog, type Outcome } from '@urbicon-ui/mcp-app/server';
+import {
+  createDispatcher,
+  createViewCatalog,
+  INVALID_PARAMS,
+  type Outcome,
+  parseErrorResponse
+} from '@urbicon-ui/mcp-app/server';
 import { BASE_PLACEHOLDER, FIXTURE_INFO, FONTS_PATH, NOTES, type Note, VIEWS } from './shared.ts';
 
 export interface FixtureServer {
@@ -75,8 +81,9 @@ export function startFixtureServer(options: FixtureServerOptions): FixtureServer
     return { ...tool, _meta: { ...tool._meta, ui } };
   });
 
-  function call(name: unknown, args: Record<string, unknown>): Outcome {
-    const id = typeof args.id === 'string' ? args.id : '';
+  function call(name: string, args: unknown): Outcome {
+    const given = (args as { id?: unknown } | null | undefined)?.id;
+    const id = typeof given === 'string' ? given : '';
     const note = notes.get(id);
     switch (name) {
       case 'show_note':
@@ -91,34 +98,16 @@ export function startFixtureServer(options: FixtureServerOptions): FixtureServer
         notes.delete(id);
         return { result: { content: text(`Removed ${note.title}.`) } };
       default:
-        return { error: { code: -32602, message: `Unknown tool: ${String(name)}` } };
+        return { error: { code: INVALID_PARAMS, message: `Unknown tool: ${name}` } };
     }
   }
 
-  function dispatch(method: string, params: Record<string, unknown>): Outcome {
-    switch (method) {
-      case 'initialize':
-        return {
-          result: {
-            protocolVersion: '2025-06-18',
-            capabilities: { tools: {}, ...views.capabilities },
-            serverInfo: FIXTURE_INFO
-          }
-        };
-      case 'ping':
-        return { result: {} };
-      case 'tools/list':
-        return { result: { tools } };
-      case 'tools/call':
-        return call(params.name, (params.arguments as Record<string, unknown>) ?? {});
-      default:
-        return (
-          views.handle(method, params) ?? {
-            error: { code: -32601, message: `Method not found: ${method}` }
-          }
-        );
-    }
-  }
+  const dispatcher = createDispatcher({
+    serverInfo: FIXTURE_INFO,
+    tools: () => tools,
+    call,
+    views
+  });
 
   const server = Bun.serve({
     hostname: '127.0.0.1',
@@ -126,14 +115,14 @@ export function startFixtureServer(options: FixtureServerOptions): FixtureServer
     async fetch(request): Promise<Response> {
       const url = new URL(request.url);
       if (url.pathname === '/mcp' && request.method === 'POST') {
-        const message = (await request.json()) as {
-          id?: unknown;
-          method?: string;
-          params?: Record<string, unknown>;
-        };
-        if (message.id === undefined) return new Response(null, { status: 202 });
-        const outcome = dispatch(message.method ?? '', message.params ?? {});
-        return Response.json({ jsonrpc: '2.0', id: message.id, ...outcome });
+        let payload: unknown;
+        try {
+          payload = await request.json();
+        } catch {
+          return Response.json(parseErrorResponse(), { status: 400 });
+        }
+        const answer = await dispatcher.dispatch(payload);
+        return answer === null ? new Response(null, { status: 202 }) : Response.json(answer);
       }
       if (url.pathname.startsWith(FONTS_PATH)) {
         const name = url.pathname.slice(FONTS_PATH.length);

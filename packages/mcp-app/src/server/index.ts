@@ -1,4 +1,12 @@
 export {
+  INTERNAL_ERROR,
+  INVALID_PARAMS,
+  INVALID_REQUEST,
+  type JsonRpcId,
+  METHOD_NOT_FOUND,
+  PARSE_ERROR
+} from '../jsonrpc.ts';
+export {
   type AppToolMeta,
   createViewCatalog,
   LEGACY_RESOURCE_URI_KEY,
@@ -14,3 +22,17 @@ export {
   type ViewSpec,
   viewVersion
 } from './catalog.ts';
+export {
+  bodyTooLargeResponse,
+  createDispatcher,
+  type Dispatcher,
+  type DispatcherOptions,
+  type JsonRpcFailure,
+  type JsonRpcResponse,
+  type JsonRpcSuccess,
+  MAX_BATCH,
+  MCP_PROTOCOL_VERSIONS,
+  parseErrorResponse,
+  type ServerInfo,
+  type Tool
+} from './dispatcher.ts';

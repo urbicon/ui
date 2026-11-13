@@ -1,3 +1,4 @@
+export { type JsonRpcId, METHOD_NOT_FOUND } from '../jsonrpc.ts';
 export { type MetaSource, readBaseMeta } from './base.ts';
 export {
   applyTheme,
@@ -15,9 +16,7 @@ export {
   type HostContext,
   IMPLEMENTATION_ERROR,
   type InitializeResult,
-  type JsonRpcId,
   type JsonRpcMessage,
-  METHOD_NOT_FOUND,
   PROTOCOL_VERSION,
   REQUEST_TIMEOUT,
   type SizeReporterEnv,

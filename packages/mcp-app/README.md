@@ -4,9 +4,9 @@ Building blocks for an MCP server that ships a **view** — an HTML page a host 
 shows in place of a tool's text result, in an iframe that talks to the host over
 `postMessage` (MCP Apps, `io.modelcontextprotocol/ui`, spec version 2026-01-26).
 
-- **For a hand-written dispatcher.** The package hands out functions and objects your
-  `switch (method)` hooks in. It brings no dispatcher, no HTTP transport and no tool
-  registry.
+- **The app keeps what is its own.** `createDispatcher` handles the JSON-RPC envelope and
+  the catalog the views; the tool registry, the caller's credentials and the HTTP route stay
+  yours, and each piece also hooks into a `switch (method)` of your own.
 - **Zero runtime dependencies, no framework.** The view side runs in any bundler and
   renders with whatever the app uses; the server side runs on Node and Bun.
 - **Checked against the SDK, not the spec text.** Where the two disagree, hosts validate
@@ -14,14 +14,14 @@ shows in place of a tool's text result, in an iframe that talks to the host over
 
 ## Entry points
 
-| Import                             | Runs in            | Peers                                                                     | What it gives you                                                      |
-| ---------------------------------- | ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `@urbicon-ui/mcp-app/server`       | Node, Bun          | —                                                                         | `createViewCatalog`: `_meta.ui` for tools, `resources/*` for the views |
-| `@urbicon-ui/mcp-app/view`         | the view (browser) | —                                                                         | `startView`, the bridge to the host, size and theme                    |
-| `@urbicon-ui/mcp-app/view/tools`   | the view (browser) | —                                                                         | `toolCaller` — the one module that sends `tools/call`                  |
-| `@urbicon-ui/mcp-app/testing`      | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it              |
-| `@urbicon-ui/mcp-app/testing/host` | Bun                | the two above, `playwright-core` ^1.62.1                                  | a test host after the spec, driven by Playwright against your server   |
-| `@urbicon-ui/mcp-app/vite`         | a build script     | `vite` ^8.3                                                               | `buildViews`: each view as one HTML file, fonts beside it              |
+| Import                             | Runs in            | Peers                                                                     | What it gives you                                                                                                 |
+| ---------------------------------- | ------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `@urbicon-ui/mcp-app/server`       | Node, Bun          | —                                                                         | `createDispatcher`: the JSON-RPC envelope; `createViewCatalog`: `_meta.ui` for tools, `resources/*` for the views |
+| `@urbicon-ui/mcp-app/view`         | the view (browser) | —                                                                         | `startView`, the bridge to the host, size and theme                                                               |
+| `@urbicon-ui/mcp-app/view/tools`   | the view (browser) | —                                                                         | `toolCaller` — the one module that sends `tools/call`                                                             |
+| `@urbicon-ui/mcp-app/testing`      | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it                                                         |
+| `@urbicon-ui/mcp-app/testing/host` | Bun                | the two above, `playwright-core` ^1.62.1                                  | a test host after the spec, driven by Playwright against your server                                              |
+| `@urbicon-ui/mcp-app/vite`         | a build script     | `vite` ^8.3                                                               | `buildViews`: each view as one HTML file, fonts beside it                                                         |
 
 ```sh
 bun add @urbicon-ui/mcp-app
@@ -42,9 +42,10 @@ origin, and it answers what a host asks about them.
 <!-- typecheck -->
 
 ```ts
-import { createViewCatalog, type Outcome } from '@urbicon-ui/mcp-app/server';
+import { createDispatcher, createViewCatalog, type Outcome } from '@urbicon-ui/mcp-app/server';
 
 declare const NOTE_HTML: string; // the built view: one self-contained HTML file
+declare function callTool(name: string, args: unknown): Outcome;
 
 export const views = createViewCatalog({
   server: 'notes',
@@ -62,46 +63,30 @@ export const views = createViewCatalog({
   unbuiltHint: 'bun run build:views'
 });
 
-export function dispatch(method: string, params: unknown): Outcome {
-  switch (method) {
-    case 'initialize':
-      return {
-        result: {
-          protocolVersion: '2025-06-18',
-          capabilities: { tools: {}, ...views.capabilities },
-          serverInfo: { name: 'notes', version: '1.0.0' }
-        }
-      };
-    case 'tools/list':
-      return {
-        result: {
-          tools: [
-            {
-              name: 'show_note',
-              inputSchema: { type: 'object' },
-              _meta: views.toolMeta({ view: 'note' })
-            },
-            {
-              name: 'pin_note',
-              inputSchema: { type: 'object' },
-              _meta: views.toolMeta({ callableFromView: true })
-            },
-            { name: 'delete_note', inputSchema: { type: 'object' }, _meta: views.toolMeta() }
-          ]
-        }
-      };
-    default:
-      return (
-        views.handle(method, params) ?? {
-          error: { code: -32601, message: `Method not found: ${method}` }
-        }
-      );
-  }
-}
+export const dispatcher = createDispatcher({
+  serverInfo: { name: 'notes', version: '1.0.0' },
+  views,
+  tools: () => [
+    {
+      name: 'show_note',
+      inputSchema: { type: 'object' },
+      _meta: views.toolMeta({ view: 'note' })
+    },
+    {
+      name: 'pin_note',
+      inputSchema: { type: 'object' },
+      _meta: views.toolMeta({ callableFromView: true })
+    },
+    { name: 'delete_note', inputSchema: { type: 'object' }, _meta: views.toolMeta() }
+  ],
+  call: callTool
+});
 ```
 
-An `Outcome` is `{ result }` or `{ error: { code, message } }`, without the JSON-RPC envelope
-— your dispatcher adds `jsonrpc` and `id`.
+`callTool` stands for the app's tools. An `Outcome` is `{ result }` or
+`{ error: { code, message } }`, without the JSON-RPC envelope —
+[`createDispatcher`](#server-the-dispatcher) adds `jsonrpc` and `id`, and that section shows
+the call, the caller and the route.
 
 What the catalog says on the wire:
 
@@ -114,9 +99,11 @@ What the catalog says on the wire:
 | `resources/templates/list` | `{ resourceTemplates: [] }`                                                                                                                                                                    |
 | errors                     | `-32602` without a string `uri`, `-32002` for a URI with no view, `-32603` (and a console error) for a view whose `html` returns `undefined`, with `unbuiltHint`, or for an unusable origin    |
 
-`handle()` returns `null` for every other method, so it sits in a `default` branch. The
-pieces are also there one by one — `uri`, `at`, and `list` and `read`, which return an
-`Outcome` as well — for a dispatcher that wants its own error sentences.
+A `switch (method)` of your own takes the same two parts: `views.capabilities` in
+`initialize`, and `views.handle(method, params)` in the `default` branch — it returns `null`
+for every other method. The pieces are also there one by one — `uri`, `at`, and `list` and
+`read`, which return an `Outcome` as well — for a dispatcher that wants its own error
+sentences.
 
 **Visibility is always explicit.** Without `_meta.ui.visibility` the spec defaults to
 `["model", "app"]`, and every view of the server could call every tool — `delete_note`
@@ -163,6 +150,120 @@ an attribute and in unquoted CSS `url(…)`, where a quote, a parenthesis, a pat
 credentials would break or leak. When `origin()` throws or returns anything else,
 `resources/list` and `resources/read` answer `-32603` and the console says why — the
 sentence on the wire does not quote the value.
+
+## Server: the dispatcher
+
+`createDispatcher` is the JSON-RPC side of a stateless tool server: the body as one message
+or a batch, the ids, notifications, the error forms, the protocol version, `initialize` and
+`ping`. The app brings what only it knows — `serverInfo` and `instructions`, the tools a
+caller may see, the call, and its view catalog. The tool registry, the caller's credentials
+and the HTTP route stay the app's.
+
+<!-- typecheck -->
+
+```ts
+import {
+  createDispatcher,
+  createViewCatalog,
+  INVALID_PARAMS,
+  parseErrorResponse
+} from '@urbicon-ui/mcp-app/server';
+
+interface Caller {
+  userId: string;
+}
+
+declare const NOTE_HTML: string;
+declare function notesOf(userId: string): { id: string; title: string }[];
+declare function callerOf(request: Request): Promise<Caller | null>;
+
+const views = createViewCatalog({
+  server: 'notes',
+  views: { note: { title: 'Note', description: 'One note as a card.' } },
+  html: () => NOTE_HTML
+});
+
+const dispatcher = createDispatcher<Caller>({
+  serverInfo: { name: 'notes', version: '1.0.0' },
+  instructions: 'The notes of the signed-in person. Read before you write.',
+  views,
+  tools: () => [
+    {
+      name: 'list_notes',
+      description: 'Lists the notes.',
+      inputSchema: { type: 'object' },
+      annotations: { readOnlyHint: true },
+      _meta: views.toolMeta()
+    }
+  ],
+  call(name, _args, caller) {
+    if (name !== 'list_notes') {
+      return { error: { code: INVALID_PARAMS, message: `Unknown tool: ${name}` } };
+    }
+    const notes = notesOf(caller.userId);
+    return {
+      result: {
+        content: [{ type: 'text', text: JSON.stringify(notes) }],
+        structuredContent: { notes }
+      }
+    };
+  }
+});
+
+export async function POST(request: Request): Promise<Response> {
+  const caller = await callerOf(request);
+  if (!caller) return new Response(null, { status: 401 });
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return Response.json(parseErrorResponse(), { status: 400 });
+  }
+  const answer = await dispatcher.dispatch(payload, caller);
+  // Only notifications: Streamable HTTP answers 202 without a body.
+  return answer === null ? new Response(null, { status: 202 }) : Response.json(answer);
+}
+```
+
+The type parameter is the context of a call — a caller, a registry, a clock: whatever the
+route resolves. `tools` and `call` receive it; the dispatcher never looks inside. Without
+one, `dispatch` takes the payload alone.
+
+What the dispatcher says on the wire:
+
+| Request                | Answer                                                                                                                                                                                                                                                                |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialize`           | the client's `protocolVersion` when it is in `protocolVersions` (default `MCP_PROTOCOL_VERSIONS`), otherwise the first of them; `capabilities`: `tools` plus the catalog's; `serverInfo`; `instructions` when given                                                   |
+| `ping`                 | `{}`                                                                                                                                                                                                                                                                  |
+| `tools/list`           | `{ tools }` from `tools(context)`                                                                                                                                                                                                                                     |
+| `tools/call`           | the `Outcome` of `call(name, arguments, context)`, for any name: the dispatcher does not check it against `tools(context)`, so `call` must refuse a tool hidden from this caller (`INVALID_PARAMS`); `-32602` without a string `params.name`, and `call` does not run |
+| `resources/*`          | the catalog's `handle()`; without `views`, `-32601`                                                                                                                                                                                                                   |
+| any other method       | `-32601`                                                                                                                                                                                                                                                              |
+| a request without `id` | a notification: no answer, and a `tools/call` without `id` does not run                                                                                                                                                                                               |
+
+**The id.** An answer stands under the request's id when that is text or an integer within
+±(2^53 − 1). Any other id — `null`, an object, a fraction, `2^53`, `1e300` — is `-32600`
+**without** `id`, and so are a message that is no request and carries no usable id, an empty
+batch and the two answers the route sends itself: `parseErrorResponse()` for a body that is
+not JSON (`-32700`) and `bodyTooLargeResponse(detail?)` for one the server refused to read.
+MCP forbids `null` as an id; the SDK's schemas a host validates with reject it and accept
+the omission.
+
+**Batches** are answered in order and one message after another, so a batch holds at most
+one of the app's transactions at a time. A body carries at most `MAX_BATCH` messages; one
+more makes the whole body `-32600`, without id. A batch of notifications alone is `null`.
+
+**Errors from the call.** `call` returns a protocol error as a value,
+`{ error: { code, message } }` — `INVALID_PARAMS` for an unknown tool or for arguments its
+schema rejects — and a tool's own failure as a result with `isError: true`. Whatever it
+throws becomes `-32603` with a general sentence ("tools/call list_notes failed on the
+server."); the thrown error goes to `console.error`, never to the client. A throwing
+`tools()` or catalog answers the same way, and so does an `Outcome` of another shape — an
+`error` needs a safe integer `code` and a string `message`.
+
+**The route stays the app's**: reading the body, the status codes and the credentials. A
+catalog whose origin depends on the request goes to a dispatcher created per request — it
+holds nothing but its options.
 
 ## View: `startView`
 

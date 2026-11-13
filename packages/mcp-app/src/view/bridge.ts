@@ -25,6 +25,7 @@
  * know, and the first answer to a request that timed out: its promise has
  * rejected with `REQUEST_TIMEOUT` already, and a slow host may still answer.
  */
+import { type JsonRpcId, METHOD_NOT_FOUND } from '../jsonrpc.ts';
 
 /** The spec version this bridge is written against. */
 export const PROTOCOL_VERSION = '2026-01-26';
@@ -32,12 +33,9 @@ export const PROTOCOL_VERSION = '2026-01-26';
 /** How long a request waits for its answer — the MCP SDK's default. */
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
-/** JSON-RPC codes the bridge itself hands out. */
-export const METHOD_NOT_FOUND = -32601;
+/** JSON-RPC codes the bridge itself hands out, beside `METHOD_NOT_FOUND`. */
 export const IMPLEMENTATION_ERROR = -32000;
 export const REQUEST_TIMEOUT = -32001;
-
-export type JsonRpcId = string | number;
 
 export interface JsonRpcMessage {
   jsonrpc: '2.0';
