@@ -19,11 +19,11 @@
  * **Errors are loud.** A host error answer rejects the promise with
  * {@link BridgeError}; an answer to an unknown id, a malformed JSON-RPC
  * message, a throwing handler and a transport that throws while answering go
- * to `onError` (default `console.error`). Ignored are only what is not JSON-RPC
- * at all — browser extensions and developer tools talk over `postMessage` too
- * (the SDK source ignores those as well) — and the first answer to a request
- * that timed out: its promise has rejected with `REQUEST_TIMEOUT` already, and
- * a slow host may still answer.
+ * to `onError` (default `console.error`). Ignored are what is not JSON-RPC at
+ * all — browser extensions and developer tools talk over `postMessage` too
+ * (the SDK source ignores those as well) —, a notification the view does not
+ * know, and the first answer to a request that timed out: its promise has
+ * rejected with `REQUEST_TIMEOUT` already, and a slow host may still answer.
  */
 
 /** The spec version this bridge is written against. */

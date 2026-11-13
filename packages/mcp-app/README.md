@@ -278,9 +278,9 @@ the view's bundler then has to polyfill, stub or refuse.
 `reason` — the host's sentence alone, fit to show). An answer to an unknown id, a malformed
 message, a throwing handler and a transport that throws go to `onError`; under `startView`
 that is the console plus `notifications/message` to the host, and your `onError` in addition.
-Ignored are only what is not JSON-RPC at all — extensions and developer tools use
-`postMessage` too — and the first answer to a request that already failed with
-`REQUEST_TIMEOUT`. A slow host may still carry the request out — a tool call too — and its
+Ignored are what is not JSON-RPC at all — extensions and developer tools use `postMessage`
+too —, a notification the view does not know, and the first answer to a request that already
+failed with `REQUEST_TIMEOUT`. A slow host may still carry the request out — a tool call too — and its
 answer no longer reaches the view: after a timeout, show the outcome as unknown, not as failed.
 
 ## Building the views: `buildViews`

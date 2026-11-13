@@ -33,8 +33,10 @@ const pause = (o: OpenHost, ms: number) => o.page.waitForTimeout(ms);
  * Runs in the view — `Frame.evaluate` sends its source, so it closes over
  * nothing. `property` of each `selector` once its transitions are over, however
  * long they take: for the read, `transition: none !important` inline on the
- * element and its ancestors — the path a computed value inherits along —
- * which outranks every rule of the view, layered or not. A running transition
+ * element and its light-DOM ancestors, which outranks the view's document
+ * rules, layered or not. Not covered: an element slotted into a shadow root
+ * inherits from its `<slot>`, and a `:host` rule with `!important` outranks
+ * the inline one. A running transition
  * without a matching `transition-property` is cancelled, and the value read
  * is the one it was heading for. The style attributes are put back in the
  * same task; the next style change compares that value with itself and
@@ -179,6 +181,9 @@ export async function checkHostVariables(
   await o.view.evaluate((name) => {
     document.documentElement.style.removeProperty(name);
   }, first.name);
+  // Settles the transition back to the view's own value: a step after this check sees no host
+  // colour.
+  await settledValue(o, probe.selector, property);
   o.check(
     'host-variables-control',
     `positive control: under its own name, the host's ${first.name} changes the view's token and ${probe.selector}`,
