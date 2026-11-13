@@ -19,9 +19,11 @@
  * **Errors are loud.** A host error answer rejects the promise with
  * {@link BridgeError}; an answer to an unknown id, a malformed JSON-RPC
  * message, a throwing handler and a transport that throws while answering go
- * to `onError` (default `console.error`). Only what is not JSON-RPC at all is
- * ignored: browser extensions and developer tools talk over `postMessage` too
- * (the SDK source ignores those as well).
+ * to `onError` (default `console.error`). Ignored are what is not JSON-RPC at
+ * all — browser extensions and developer tools talk over `postMessage` too
+ * (the SDK source ignores those as well) —, a notification the view does not
+ * know, and the first answer to a request that timed out: its promise has
+ * rejected with `REQUEST_TIMEOUT` already, and a slow host may still answer.
  */
 
 /** The spec version this bridge is written against. */
@@ -249,6 +251,12 @@ export function createBridge(transport: Transport, options: BridgeOptions): Brid
 
   let nextId = 1;
   const pending = new Map<JsonRpcId, Pending>();
+  /**
+   * Requests that timed out; their answer, should it come after all, is
+   * dropped. An id stays until that answer or `close()` — never more ids than
+   * requests the host left unanswered.
+   */
+  const expired = new Set<JsonRpcId>();
   let hostContext: HostContext = {};
   let connected = false;
   let closed = false;
@@ -264,6 +272,7 @@ export function createBridge(transport: Transport, options: BridgeOptions): Brid
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id);
+        expired.add(id);
         reject(
           new BridgeError(REQUEST_TIMEOUT, `${method}: no answer after ${ms} ms.`, undefined, '')
         );
@@ -304,6 +313,7 @@ export function createBridge(transport: Transport, options: BridgeOptions): Brid
 
   function settle(message: Record<string, unknown>): void {
     const id = message.id;
+    if (isId(id) && expired.delete(id)) return;
     const entry = isId(id) ? pending.get(id) : undefined;
     if (!entry || !isId(id)) {
       onError(new Error(`Answer to an unknown request (id ${String(id)}).`));
@@ -414,6 +424,7 @@ export function createBridge(transport: Transport, options: BridgeOptions): Brid
       entry.reject(new Error(`${entry.method}: the bridge was closed.`));
       pending.delete(id);
     }
+    expired.clear();
   }
 
   return {

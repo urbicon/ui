@@ -158,6 +158,18 @@ describe('requests and answers', () => {
     expect((error as BridgeError).code).toBe(REQUEST_TIMEOUT);
   });
 
+  test('the answer after a timeout is dropped once — a second one is loud again', async () => {
+    const { host, bridge, errors } = await connected({ timeoutMs: 5 });
+    const call = toolCaller(bridge).callTool('get_note', { id: 'n1' });
+    const { id } = host.sent[0]!;
+    expect(((await call.catch((e: unknown) => e)) as BridgeError).code).toBe(REQUEST_TIMEOUT);
+
+    host.deliver({ jsonrpc: '2.0', id, result: { content: [] } });
+    expect(errors).toEqual([]);
+    host.deliver({ jsonrpc: '2.0', id, result: { content: [] } });
+    expect(errors.map((e) => e.message)).toEqual([`Answer to an unknown request (id ${id}).`]);
+  });
+
   test('the remaining requests stand on the wire as in the SDK', async () => {
     const { host, bridge } = await connected();
     const open = [

@@ -410,9 +410,12 @@ export async function openHost(options: OpenHostOptions): Promise<OpenHost> {
   try {
     browser = await chromium.launch();
     const page = await browser.newPage({ viewport: { width: width + 48, height: 900 } });
-    // Without motion, a measurement does not depend on when it is taken: a
-    // transition still running shifts a size or a colour. `emulateMedia`, not
-    // the context option — only that reaches the page and its frames.
+    // Reduced motion: a view that gates its motion on the query keeps still
+    // while it is measured. It stops no transition by itself — the common
+    // reset `transition-duration: 0.01ms` still starts one, and a view need
+    // not ask at all — so the checks read colours settled (`readSettled`).
+    // `emulateMedia`, not the context option — only that reaches the page and
+    // its frames.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     page.on('console', (message: ConsoleMessage) => {
       // With the address when the sentence does not name it: "Failed to load

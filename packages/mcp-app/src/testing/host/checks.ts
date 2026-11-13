@@ -30,6 +30,49 @@ const ERROR_LEVELS: ReadonlySet<string> = new Set(['error', 'critical', 'alert',
 const pause = (o: OpenHost, ms: number) => o.page.waitForTimeout(ms);
 
 /**
+ * Runs in the view — `Frame.evaluate` sends its source, so it closes over
+ * nothing. `property` of each `selector` once its transitions are over, however
+ * long they take: for the read, `transition: none !important` inline on the
+ * element and its light-DOM ancestors, which outranks the view's document
+ * rules, layered or not. Not covered: an element slotted into a shadow root
+ * inherits from its `<slot>`, and a `:host` rule with `!important` outranks
+ * the inline one. A running transition
+ * without a matching `transition-property` is cancelled, and the value read
+ * is the one it was heading for. The style attributes are put back in the
+ * same task; the next style change compares that value with itself and
+ * starts no transition.
+ */
+function readSettled(reads: readonly (readonly [selector: string, property: string])[]) {
+  const targets = reads.map(([selector]) => document.querySelector(selector));
+  const path = new Set<Element>();
+  for (const target of targets) {
+    for (let element = target; element; element = element.parentElement) path.add(element);
+  }
+  const saved = [...path].map((element) => [element, element.getAttribute('style')] as const);
+  for (const element of path) {
+    const { style } = element as Partial<ElementCSSInlineStyle>;
+    style?.setProperty('transition', 'none', 'important');
+  }
+  const values = reads.map(([, property], i) => {
+    const target = targets[i];
+    return target ? getComputedStyle(target).getPropertyValue(property).trim() : null;
+  });
+  for (const [element, style] of saved) {
+    // Set even when it is removed next: removed alone after a style recalc,
+    // Chromium leaves `style=""` behind.
+    element.setAttribute('style', style ?? '');
+    if (style === null) element.removeAttribute('style');
+  }
+  return values;
+}
+
+/** {@link readSettled} for one element. */
+async function settledValue(o: OpenHost, selector: string, property: string) {
+  const [value = null] = await o.view.evaluate(readSettled, [[selector, property]] as const);
+  return value;
+}
+
+/**
  * Waits until the view has settled: images loaded or failed, fonts ready, and
  * the last `size-changed` through.
  */
@@ -96,18 +139,19 @@ export async function checkHostVariables(
   });
   const [first] = sent;
   if (first === undefined) throw new Error('checkHostVariables needs at least one variable.');
-  const tokens = await o.view.evaluate(
-    ({ names, selector, prop }) => {
-      const root = document.documentElement;
-      const target = document.querySelector(selector);
-      return {
-        inline: [...root.style].filter((name) => name.startsWith('--')),
-        values: names.map((name) => getComputedStyle(root).getPropertyValue(name).trim()),
-        painted: target ? getComputedStyle(target).getPropertyValue(prop) : null
-      };
-    },
-    { names: [...probe.variables], selector: probe.selector, prop: property }
-  );
+  const tokens = {
+    ...(await o.view.evaluate(
+      (names) => {
+        const root = document.documentElement;
+        return {
+          inline: [...root.style].filter((name) => name.startsWith('--')),
+          values: names.map((name) => getComputedStyle(root).getPropertyValue(name).trim())
+        };
+      },
+      [...probe.variables]
+    )),
+    painted: await settledValue(o, probe.selector, property)
+  };
   o.check(
     'host-variables-root',
     'the view sets no host variable on its root',
@@ -120,21 +164,26 @@ export async function checkHostVariables(
     sent.every(({ value }, i) => tokens.values[i] !== value) && tokens.painted !== null,
     JSON.stringify({ tokens, sent })
   );
-  const collided = await o.view.evaluate(
-    ({ name, value, selector, prop }) => {
-      const root = document.documentElement;
-      root.style.setProperty(name, value);
-      const target = document.querySelector(selector);
-      const after = {
-        inline: [...root.style].filter((n) => n.startsWith('--')),
-        value: getComputedStyle(root).getPropertyValue(name).trim(),
-        painted: target ? getComputedStyle(target).getPropertyValue(prop) : null
-      };
-      root.style.removeProperty(name);
-      return after;
-    },
-    { name: first.name, value: first.value, selector: probe.selector, prop: property }
-  );
+  const collided = {
+    ...(await o.view.evaluate(
+      ({ name, value }) => {
+        const root = document.documentElement;
+        root.style.setProperty(name, value);
+        return {
+          inline: [...root.style].filter((n) => n.startsWith('--')),
+          value: getComputedStyle(root).getPropertyValue(name).trim()
+        };
+      },
+      { name: first.name, value: first.value }
+    )),
+    painted: await settledValue(o, probe.selector, property)
+  };
+  await o.view.evaluate((name) => {
+    document.documentElement.style.removeProperty(name);
+  }, first.name);
+  // Settles the transition back to the view's own value: a step after this check sees no host
+  // colour.
+  await settledValue(o, probe.selector, property);
   o.check(
     'host-variables-control',
     `positive control: under its own name, the host's ${first.name} changes the view's token and ${probe.selector}`,
@@ -152,14 +201,13 @@ export async function checkHostVariables(
  * may leave either theme behind.
  */
 export async function checkTheme(o: OpenHost, surface: string): Promise<void> {
-  const scheme = () =>
-    o.view.evaluate((selector) => {
-      const element = document.querySelector(selector);
-      return {
-        scheme: getComputedStyle(document.documentElement).colorScheme,
-        background: element ? getComputedStyle(element).backgroundColor : null
-      };
-    }, surface);
+  const scheme = async () => {
+    const [colorScheme = null, background = null] = await o.view.evaluate(readSettled, [
+      [':root', 'color-scheme'],
+      [surface, 'background-color']
+    ] as const);
+    return { scheme: colorScheme, background };
+  };
   await o.host.setTheme('light');
   await pause(o, 300);
   const light = await scheme();
