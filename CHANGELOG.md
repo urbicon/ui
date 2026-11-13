@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.38.1](https://github.com/urbicon/ui/compare/v8.38.0...v8.38.1) - 2026-11-13
+
+### Bug Fixes
+- **mcp-app**: Read the host checks' colours settled, and drop a late answer after a timeout ([#601](https://github.com/urbicon/ui/issues/601))
+
 ## [8.38.0](https://github.com/urbicon/ui/compare/v8.37.0...v8.38.0) - 2026-11-12
 
 ### Breaking Changes
