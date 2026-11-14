@@ -262,6 +262,21 @@ describe('A2uiSurfaceRouter', () => {
       ]);
     });
 
+    it.each([['callRendererFunction'], ['agentFunctionResponse']])(
+      'leaves an envelope of %s that names a surface with the message that sent it',
+      (message) => {
+        const router = new A2uiSurfaceRouter();
+        router.route(A, [create('s1')]);
+        const envelope = { version: V, [message]: { functionCallId: 'c1', surfaceId: 's1' } };
+
+        const result = router.route(B, [envelope]);
+
+        expect(result.own).toEqual([envelope]);
+        expect(result.patches).toEqual([]);
+        expect(result.promoted).toEqual([]);
+      }
+    );
+
     it('ignores a prototype-polluting surfaceId like any other unknown surface', () => {
       const router = new A2uiSurfaceRouter();
       const evil = { version: V, updateDataModel: { surfaceId: '__proto__', value: 1 } };

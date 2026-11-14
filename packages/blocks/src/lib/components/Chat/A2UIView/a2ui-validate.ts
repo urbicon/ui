@@ -45,9 +45,11 @@ import {
   logicCallFault,
   type OperandBudget,
   reservedKeyOf,
+  resolveDynamic,
   scopedPointer,
   setAtPointer
 } from './a2ui-data';
+import { readHidden } from './a2ui-node-common';
 import {
   A2UI_ACCESSIBILITY_PROP,
   A2UI_ACCESSIBILITY_SPEC,
@@ -814,12 +816,14 @@ function contextValueIssues(
 
 /** The function a Button's `functionCall` action may run; every other one leaves it inert. */
 const OPEN_URL_FUNCTION = 'openUrl';
+const OPEN_URL_CALL_KEYS: ReadonlySet<string> = new Set([A2UI_CALL_KEY, 'args', 'catalogId']);
 
 /**
- * A `functionCall` action. `openUrl` is stored only when its catalog resolves
- * and its `url` is a string or a binding, so the dispatcher never opens what the
- * validator did not accept; any other function is stored and reported, and the
- * button renders inert.
+ * A `functionCall` action. `openUrl` is stored only when the call carries no
+ * other key, its catalog resolves and its `url` is a string or a binding, so the
+ * dispatcher never opens what the validator refused. A refused one drops the
+ * action: a Basic Button, which requires one, renders as a fault chip. Any other
+ * function is stored and reported, and the button renders inert.
  */
 function validateFunctionCallAction(
   componentName: string,
@@ -843,33 +847,49 @@ function validateFunctionCallAction(
       ]
     };
   }
+  const refuse = (code: string, message: string, where: string): PropResult => ({
+    store: false,
+    issues: [
+      issue('error', code, `${message}; the action is dropped`, {
+        surfaceId,
+        path: `${at}${where}`
+      })
+    ]
+  });
+  const unexpected = (key: string) =>
+    PROTO_KEYS.has(key) ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION : A2UI_ISSUE_CODES.UNKNOWN_PROP;
+  for (const key of Object.keys(call)) {
+    if (OPEN_URL_CALL_KEYS.has(key)) continue;
+    return refuse(
+      unexpected(key),
+      `Unexpected key "${key}" in the "${name}" call on ${componentName}`,
+      `/${key}`
+    );
+  }
   const fault = catalogFault(call, name, callCatalogs);
   if (fault) {
-    return {
-      store: false,
-      issues: [
-        issue(
-          'error',
-          fault.code,
-          `action.functionCall on ${componentName}: ${fault.message}; the button is inert`,
-          { surfaceId, path: `${at}${fault.at}` }
-        )
-      ]
-    };
+    return refuse(
+      fault.code,
+      `action.functionCall on ${componentName}: ${fault.message}`,
+      fault.at
+    );
   }
-  const url = isPlainObject(call.args) ? call.args.url : undefined;
+  const args = isPlainObject(call.args) ? call.args : {};
+  for (const key of Object.keys(args)) {
+    if (key === 'url') continue;
+    return refuse(
+      unexpected(key),
+      `Unexpected key "${key}" in the args of the "${name}" call on ${componentName}`,
+      `/args/${key}`
+    );
+  }
+  const url = args.url;
   if (!isDynamicString(url)) {
-    return {
-      store: false,
-      issues: [
-        issue(
-          'error',
-          A2UI_ISSUE_CODES.TYPE_MISMATCH,
-          `args.url of the "${name}" call on ${componentName} must be a string or { "${A2UI_PATH_KEY}" } binding${legacyDirectiveHint(url)}; the button is inert`,
-          { surfaceId, path: `${at}/args/url` }
-        )
-      ]
-    };
+    return refuse(
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      `args.url of the "${name}" call on ${componentName} must be a string or { "${A2UI_PATH_KEY}" } binding${legacyDirectiveHint(url)}`,
+      '/args/url'
+    );
   }
   return { store: true, issues: dynamicRefIssues(url, `${at}/args/url`, surfaceId) };
 }
@@ -1469,7 +1489,7 @@ function validateComponent(
         catalog.iconNames,
         surface.callCatalogs
       );
-      checksHeld = checkIssues.some((i) => i.severity === 'error');
+      checksHeld ||= checkIssues.some((i) => i.severity === 'error');
       const held = `; ${heldGates(spec, checkedGates)} until it is fixed`;
       for (const checkIssue of checkIssues) {
         surface.issues.push(
@@ -2430,8 +2450,15 @@ export function collectGraphIssues(
 
     if (required.length > 0) {
       const rendered = renderedCount++;
+      // The view makes a hidden component inert: no one can operate it.
+      const reachable =
+        readHidden(
+          comp.props.get(A2UI_ACCESSIBILITY_PROP),
+          (value) =>
+            resolveDynamic(value, surface.dataModel, scopePrefix, surface.callCatalogs).value
+        ) !== true;
       required.forEach((entry, index) => {
-        if (meetsRequirement(entry.requirement, comp, scopePrefix)) {
+        if (reachable && meetsRequirement(entry.requirement, comp, scopePrefix)) {
           candidates[index].push(rendered);
         }
       });
@@ -2522,7 +2549,7 @@ export function collectGraphIssues(
       issue(
         'error',
         A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
-        `Surface "${surfaceId}" must contain ${describeRequirement(entry.requirement)}; none renders from "root" (a fault chip does not count)${elsewhere}`,
+        `Surface "${surfaceId}" must contain ${describeRequirement(entry.requirement)}; none renders from "root" (a fault chip or a hidden one does not count)${elsewhere}`,
         { surfaceId }
       )
     );

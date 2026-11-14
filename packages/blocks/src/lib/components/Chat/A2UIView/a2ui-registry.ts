@@ -193,16 +193,21 @@ export const A2UI_UPSTREAM_BASIC_CATALOG_ID =
 /** The envelope `version` this engine speaks — the only one it accepts. */
 export const A2UI_PROTOCOL_VERSION = '1.0';
 
+/** The messages that address a surface by its `surfaceId` — what the surface router routes. */
+export const A2UI_SURFACE_MESSAGE_KEYS = [
+  'createSurface',
+  'updateComponents',
+  'updateDataModel',
+  'deleteSurface'
+] as const;
+
 /**
  * The messages an envelope may carry, exactly one each. The processor and the
  * surface router both read this list, so they count an envelope's operations
  * alike.
  */
 export const A2UI_MESSAGE_KEYS = [
-  'createSurface',
-  'updateComponents',
-  'updateDataModel',
-  'deleteSurface',
+  ...A2UI_SURFACE_MESSAGE_KEYS,
   'callRendererFunction',
   'agentFunctionResponse'
 ] as const;

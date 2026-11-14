@@ -27,7 +27,11 @@
  */
 
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
-import { A2UI_MESSAGE_KEYS, A2UI_PROTOCOL_VERSION } from './a2ui-registry';
+import {
+  A2UI_MESSAGE_KEYS,
+  A2UI_PROTOCOL_VERSION,
+  A2UI_SURFACE_MESSAGE_KEYS
+} from './a2ui-registry';
 
 /**
  * Envelopes destined for one source's payload.
@@ -88,18 +92,20 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /**
  * Read `(operation, surfaceId)` off an envelope — tolerantly, and without
  * duplicating the validator. Anything that is not a supported `version` with
- * exactly one known message carrying a non-empty string `surfaceId` returns
- * `null`: the router then leaves the envelope where it is and the processor
- * reports the real fault — an envelope the processor refuses must not take a
- * surface away from the payload that renders it.
+ * exactly one known message, that message a surface message carrying a
+ * non-empty string `surfaceId`, returns `null`: the router then leaves the
+ * envelope where it is and the processor reports the real fault — an envelope
+ * the processor refuses must not take a surface away from the payload that
+ * renders it, and a function call patches no surface.
  */
 function readTarget(
   envelope: unknown
-): { op: (typeof A2UI_MESSAGE_KEYS)[number]; surfaceId: string } | null {
+): { op: (typeof A2UI_SURFACE_MESSAGE_KEYS)[number]; surfaceId: string } | null {
   if (!isPlainObject(envelope) || envelope.version !== A2UI_PROTOCOL_VERSION) return null;
   const ops = A2UI_MESSAGE_KEYS.filter((key) => key in envelope);
   if (ops.length !== 1) return null;
-  const op = ops[0];
+  const op = A2UI_SURFACE_MESSAGE_KEYS.find((key) => key === ops[0]);
+  if (op === undefined) return null;
   const body = envelope[op];
   if (!isPlainObject(body)) return null;
   const surfaceId = body.surfaceId;

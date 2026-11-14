@@ -18,6 +18,7 @@ import type { A2uiDataSchema } from './a2ui-schema';
 import {
   type A2uiProcessor,
   type A2uiSurfaceState,
+  applyA2uiEnvelope,
   collectGraphIssues,
   createA2uiProcessor,
   normalizeA2uiPayload
@@ -1232,6 +1233,15 @@ describe('@checks where a gate reads them (Urbicon Button.disabled)', () => {
       expect(stored(proc, 'disabled')).toBe(true);
     });
 
+    // A valid `@checks` beside it must not release what the bare one holds.
+    it.each([
+      ['before', { checks: rules, '@checks': rules }],
+      ['after', { '@checks': rules, checks: rules }]
+    ])('holds the gate when the bare checks comes %s a valid @checks', (_order, keys) => {
+      const asked = catalog({ disabled: { ...gate, readsChecks: true } });
+      expect(stored(apply(asked, keys), 'disabled')).toBe(true);
+    });
+
     // A prop without a failsafe has nothing to be held at: holding it would
     // write `undefined` over the payload's value, which renders it open.
     it('ignores @checks where readsChecks sits on a prop that is no gate', () => {
@@ -1273,7 +1283,7 @@ describe('surface requirements', () => {
         code: A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
         surfaceId: 'booking',
         message:
-          'Surface "booking" must contain a Checkbox with value bound to { "@path": "/agreed" } (consent to the policy); none renders from "root" (a fault chip does not count)'
+          'Surface "booking" must contain a Checkbox with value bound to { "@path": "/agreed" } (consent to the policy); none renders from "root" (a fault chip or a hidden one does not count)'
       }
     ]);
   });
@@ -1284,6 +1294,25 @@ describe('surface requirements', () => {
 
   it('is met by a reachable component bound to the pointer', () => {
     expect(allIssues(booking(form(['agree'], consentBox())))).toEqual([]);
+  });
+
+  // The view renders a hidden component inert, so the user cannot tick it.
+  it.each([
+    ['literally', true],
+    ['through a binding', { '@path': '/hide' }]
+  ])('does not count one that is hidden %s', (_label, hidden) => {
+    const box = { ...consentBox(), '@accessibility': { hidden } };
+    const proc = booking(form(['agree'], box));
+    proc.apply(
+      { version: V1, updateDataModel: { surfaceId: 'booking', path: '/hide', value: true } },
+      9
+    );
+    expect(missing(allIssues(proc))).toHaveLength(1);
+  });
+
+  it('counts one whose hidden resolves to false', () => {
+    const box = { ...consentBox(), '@accessibility': { hidden: { '@path': '/hide' } } };
+    expect(missing(allIssues(booking(form(['agree'], box))))).toEqual([]);
   });
 
   it('does not count a component that is defined but never reached from root', () => {
@@ -1651,6 +1680,30 @@ describe('createSurface with inline content', () => {
     for (let i = 0; i < depth; i++) value = { d: value };
     return value;
   };
+
+  it('leaves no surface behind when the engine fails midway, so a retry builds it', () => {
+    let throws = true;
+    const flaky: A2uiCatalogSpec = {
+      ...basicA2uiCatalogSpec,
+      componentChecks: {
+        Text: () => {
+          if (throws) {
+            throws = false;
+            throw new Error('check failed');
+          }
+          return [];
+        }
+      }
+    };
+    const proc = createA2uiProcessor({ catalogs: [flaky] });
+    const envelope = create({ components: [text('root', 'Hi')] });
+    applyA2uiEnvelope(proc, envelope, 0);
+    expect(proc.globalIssues.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.ENGINE_ERROR]);
+    expect(proc.surfaces.has('s')).toBe(false);
+    applyA2uiEnvelope(proc, envelope, 1);
+    expect(instance(proc)?.props.get('text')).toBe('Hi');
+    expect(surfaceIssues(proc)).toEqual([]);
+  });
 
   it('refuses a data model deeper than the limit, and the surface still renders', () => {
     const proc = applyBoth([
@@ -2264,19 +2317,24 @@ describe('a functionCall action', () => {
       'TYPE_MISMATCH',
       '/args/url'
     ],
-    ['no url', openUrl({ args: {} }), true, 'TYPE_MISMATCH', '/args/url']
-  ])(
-    'refuses openUrl with %s, so the button stays inert',
-    (_label, call, surfaceDefault, code, at) => {
-      const proc = button(call, surfaceDefault);
-      // Basic's Button requires its action, so the refused one is missing too.
-      expect(summary(allIssues(proc))).toEqual([
-        ['error', code, `${CALL}${at}`],
-        ['error', A2UI_ISSUE_CODES.MISSING_FIELD, `${COMPONENT}/0/action`]
-      ]);
-      expect(instance(proc)?.props.has('action')).toBe(false);
-    }
-  );
+    ['no url', openUrl({ args: {} }), true, 'TYPE_MISMATCH', '/args/url'],
+    ['a returnType', openUrl({ returnType: 'void' }), true, 'UNKNOWN_PROP', '/returnType'],
+    [
+      'a second argument',
+      openUrl({ args: { url: 'https://example.com', target: '_self' } }),
+      true,
+      'UNKNOWN_PROP',
+      '/args/target'
+    ]
+  ])('refuses openUrl with %s and drops the action', (_label, call, surfaceDefault, code, at) => {
+    const proc = button(call, surfaceDefault);
+    // Basic's Button requires its action, so the refused one is missing too.
+    expect(summary(allIssues(proc))).toEqual([
+      ['error', code, `${CALL}${at}`],
+      ['error', A2UI_ISSUE_CODES.MISSING_FIELD, `${COMPONENT}/0/action`]
+    ]);
+    expect(instance(proc)?.props.has('action')).toBe(false);
+  });
 
   it.each([['formatString'], ['not'], ['closeModal']])(
     'reports %s as unsupported: the button is inert',

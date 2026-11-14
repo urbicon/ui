@@ -727,9 +727,10 @@ export function checksPass(checks: unknown, resolve: (value: unknown) => unknown
 }
 
 /**
- * How deep a surface's data model may nest. The walks over it — the clone on
- * ingest, the data model an action serialises — recurse, so a write that would
- * nest it deeper is refused rather than run the engine out of stack.
+ * How deep a message may nest a surface's data model. The walks over the model
+ * — the clone on ingest, the data model an action serialises — recurse, so a
+ * message that would nest it deeper is refused rather than run the engine out
+ * of stack. A user's edit through a binding is not counted against it.
  */
 export const A2UI_MAX_DATA_DEPTH = 64;
 
