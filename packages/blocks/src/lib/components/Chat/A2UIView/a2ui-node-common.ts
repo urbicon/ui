@@ -12,6 +12,8 @@
  * drop them.
  */
 
+import { coerceBoolean } from './a2ui-data';
+
 /**
  * Coerce an unknown resolved value to display text: strings pass through, finite
  * numbers stringify, everything else (null/undefined/object/NaN) becomes `''`.
@@ -22,10 +24,55 @@ export function coerceText(value: unknown): string {
   return '';
 }
 
+/** The ARIA state a component's `@accessibility` asks for beyond its name. */
+export interface A2uiAriaAttributes {
+  'aria-description'?: string;
+  'aria-live'?: 'off' | 'polite' | 'assertive';
+}
+
+/**
+ * Read a stored `@accessibility` value: `label` as the accessible name,
+ * `description` and `live` as the attributes every component root takes
+ * (`hidden` is {@link readHidden}'s). `resolve` is the dispatcher's
+ * data-binding resolver — `label` and `description` may be bound. An absent key
+ * yields no attribute, so a component keeps the semantics it infers from its
+ * visible text.
+ */
+export function readAccessibility(
+  accessibility: unknown,
+  resolve: (value: unknown) => unknown
+): { label: string | undefined; attributes: A2uiAriaAttributes } {
+  if (accessibility === null || typeof accessibility !== 'object') {
+    return { label: undefined, attributes: {} };
+  }
+  const source = accessibility as Record<string, unknown>;
+  const attributes: A2uiAriaAttributes = {};
+  const description = coerceText(resolve(source.description));
+  if (description) attributes['aria-description'] = description;
+  if (source.live === 'off' || source.live === 'polite' || source.live === 'assertive') {
+    attributes['aria-live'] = source.live;
+  }
+  return { label: coerceText(resolve(source.label)) || undefined, attributes };
+}
+
+/**
+ * `@accessibility.hidden`, resolved — or `undefined` when the component
+ * declares no `hidden`, which is what lets the view wrap only the components
+ * that do, and keep the wrapper while a bound value changes.
+ */
+export function readHidden(
+  accessibility: unknown,
+  resolve: (value: unknown) => unknown
+): boolean | undefined {
+  if (accessibility === null || typeof accessibility !== 'object') return undefined;
+  if (!Object.hasOwn(accessibility, 'hidden')) return undefined;
+  return coerceBoolean(resolve((accessibility as Record<string, unknown>).hidden));
+}
+
 /**
  * Normalise a raw options array into a deduped `{ value, label }` list (first
  * occurrence of each value wins). `resolveLabel` turns a raw label value (a
- * literal or a `{ path }` binding) into display text — the caller injects its
+ * literal or a `{ "@path" }` binding) into display text — the caller injects its
  * data-binding resolver. Malformed options (non-object, non-string value) are
  * skipped. Dedup is mandatory: the rendered list is keyed on `value`.
  */

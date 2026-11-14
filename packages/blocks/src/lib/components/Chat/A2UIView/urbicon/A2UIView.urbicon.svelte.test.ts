@@ -16,7 +16,7 @@ import { URBICON_A2UI_CATALOG_ID, URBICON_A2UI_REGISTRY } from './a2ui-urbicon-r
 // key components round-trip data/actions, and adversarial payloads never throw.
 // House stack: Svelte's own mount/unmount, @testing-library/dom, no jest-dom.
 
-const V = 'v0.9.1';
+const V = '1.0';
 const CID = URBICON_A2UI_CATALOG_ID;
 type Envelope = Record<string, unknown>;
 
@@ -79,8 +79,6 @@ function minimalValue(spec: A2uiPropSpec): unknown {
       return { event: { name: 'act' } };
     case 'options':
       return [{ label: 'A', value: 'a' }];
-    case 'accessibility':
-      return { label: 'x' };
   }
 }
 
@@ -154,7 +152,7 @@ describe('Urbicon rendering + interaction', () => {
             component: 'Button',
             intent: 'primary',
             child: 'lbl',
-            action: { event: { name: 'go', context: { who: { path: '/who' } } } }
+            action: { event: { name: 'go', context: { who: { '@path': '/who' } } } }
           },
           { id: 'lbl', component: 'Text', text: 'Go' }
         ])
@@ -174,7 +172,7 @@ describe('Urbicon rendering + interaction', () => {
       payload: [
         surface(),
         data({ name: '' }),
-        comps([{ id: 'root', component: 'Input', label: 'Name', value: { path: '/name' } }])
+        comps([{ id: 'root', component: 'Input', label: 'Name', value: { '@path': '/name' } }])
       ]
     });
     const input = screen.getByLabelText('Name');
@@ -314,7 +312,7 @@ describe('never throws on adversarial Urbicon payloads', () => {
         {
           id: 'root',
           component: 'Select',
-          value: { path: '/pick' },
+          value: { '@path': '/pick' },
           options: [
             { label: 'A', value: 'dup' },
             { label: 'B', value: 'dup' },
@@ -364,8 +362,8 @@ describe('never throws on adversarial Urbicon payloads', () => {
       data({ p: Number.NaN, s: Number.POSITIVE_INFINITY }),
       comps([
         { id: 'root', component: 'Column', children: ['pr', 'sl'] },
-        { id: 'pr', component: 'Progress', value: { path: '/p' }, max: Number.NaN },
-        { id: 'sl', component: 'Slider', value: { path: '/s' }, max: Number.NEGATIVE_INFINITY }
+        { id: 'pr', component: 'Progress', value: { '@path': '/p' }, max: Number.NaN },
+        { id: 'sl', component: 'Slider', value: { '@path': '/s' }, max: Number.NEGATIVE_INFINITY }
       ])
     ],
     'Stepper with duplicate step labels': [

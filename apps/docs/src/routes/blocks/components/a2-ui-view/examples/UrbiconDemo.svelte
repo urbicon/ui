@@ -25,16 +25,16 @@
   };
 
   const SEQUENCE: unknown[] = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'u', catalogId: CID } },
+    { version: '1.0', createSurface: { surfaceId: 'u', catalogId: CID } },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateDataModel: {
         surfaceId: 'u',
         value: { name: '', room: [], date: '', time: 'afternoon' }
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'u',
         components: [
@@ -55,7 +55,7 @@
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'u',
         components: [
@@ -68,14 +68,14 @@
             id: 'name',
             component: 'Input',
             label: 'Your name',
-            value: { path: '/name' },
+            value: { '@path': '/name' },
             placeholder: 'Ada Lovelace'
           },
           {
             id: 'room',
             component: 'Select',
             label: 'Room',
-            value: { path: '/room' },
+            value: { '@path': '/room' },
             options: [
               { label: 'Garden Room', value: 'garden' },
               { label: 'Corner Room', value: 'corner' },
@@ -86,16 +86,16 @@
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'u',
         components: [
-          { id: 'date', component: 'DatePicker', label: 'Check-in', value: { path: '/date' } },
+          { id: 'date', component: 'DatePicker', label: 'Check-in', value: { '@path': '/date' } },
           {
             id: 'time',
             component: 'RadioGroup',
             label: 'Arrival',
-            value: { path: '/time' },
+            value: { '@path': '/time' },
             orientation: 'horizontal',
             options: [
               { label: 'Morning', value: 'morning' },
@@ -107,7 +107,7 @@
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'u',
         components: [
@@ -119,16 +119,16 @@
             children: ['dur', 'book']
           },
           { id: 'dur', component: 'Badge', text: 'From €300', intent: 'neutral', variant: 'soft' },
-          { id: 'book-label', component: 'Text', text: 'Request the stay' },
+          { id: 'book_label', component: 'Text', text: 'Request the stay' },
           {
             id: 'book',
             component: 'Button',
             intent: 'primary',
-            child: 'book-label',
+            child: 'book_label',
             action: {
               event: {
                 name: 'book',
-                context: { name: { path: '/name' }, room: { path: '/room' } }
+                context: { name: { '@path': '/name' }, room: { '@path': '/room' } }
               }
             }
           }
@@ -136,7 +136,7 @@
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'u',
         components: [

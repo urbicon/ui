@@ -1,7 +1,7 @@
 /**
  * Mirrored A2UI golden fixture — DO NOT hand-edit; mirror of the upstream file.
  * Source: https://github.com/a2ui-project/a2ui
- *   specification/v0_9_1/catalogs/basic/examples/incremental.json
+ *   catalogs/basic/v1/examples/scaffold-incremental.json
  * Licensed under the Apache License, Version 2.0.
  */
 export const exIncremental = {
@@ -9,14 +9,14 @@ export const exIncremental = {
   description: 'Simple example demonstrating basic catalog components.',
   messages: [
     {
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {
         surfaceId: 'gallery-incremental',
-        catalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json'
+        catalogId: 'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json'
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateDataModel: {
         surfaceId: 'gallery-incremental',
         path: '/',
@@ -42,7 +42,7 @@ export const exIncremental = {
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'gallery-incremental',
         components: [
@@ -58,7 +58,7 @@ export const exIncremental = {
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'gallery-incremental',
         components: [
@@ -71,28 +71,28 @@ export const exIncremental = {
             id: 'rc_title',
             component: 'Text',
             text: {
-              path: 'title'
+              '@path': 'title'
             }
           },
           {
             id: 'rc_subtitle',
             component: 'Text',
             text: {
-              path: 'subtitle'
+              '@path': 'subtitle'
             }
           },
           {
             id: 'rc_address',
             component: 'Text',
             text: {
-              path: 'address'
+              '@path': 'address'
             }
           }
         ]
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateDataModel: {
         surfaceId: 'gallery-incremental',
         path: '/restaurants/3',
@@ -104,7 +104,7 @@ export const exIncremental = {
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'gallery-incremental',
         components: [
@@ -122,7 +122,7 @@ export const exIncremental = {
                 name: 'book_now',
                 context: {
                   restaurantName: {
-                    path: 'title'
+                    '@path': 'title'
                   }
                 }
               }

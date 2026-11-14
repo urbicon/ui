@@ -4,12 +4,13 @@
  * (`a2ui-prompt.ts`). No Svelte imports: this module must be importable
  * standalone (a server building the system prompt has no DOM).
  *
- * The subset covers the v0.9.1 `basic` components except the deliberately
+ * The subset covers the components of the upstream `basic` catalog, major
+ * version 1 (the one written for protocol 1.0), except the deliberately
  * excluded ones (Modal, Video, AudioPlayer), which validate to a visible
  * error chip; see `UNSUPPORTED_A2UI_COMPONENTS`.
  *
- * Prop names, kinds, `required`, defaults and enum sets mirror
- * `catalogs/basic/catalog.json` **case-sensitively**. Every `description` here
+ * Prop names, kinds, `required`, defaults and enum sets mirror upstream's
+ * `catalogs/basic/v1/catalog.json` **case-sensitively**. Every `description` here
  * is written to be read by an agent — it is emitted verbatim into the prompt.
  */
 
@@ -25,14 +26,13 @@ export type A2uiPropKind =
   | 'labeledChildren'
   | 'action'
   | 'options'
-  | 'icon'
-  | 'accessibility';
+  | 'icon';
 
 export interface A2uiPropSpec {
   kind: A2uiPropKind;
   /** Required on the component. @default false */
   required?: boolean;
-  /** Accepts the Dynamic union (literal | `{ path }` | function call). @default false */
+  /** Accepts the Dynamic union (literal | `{ "@path" }` | function call). @default false */
   dynamic?: boolean;
   /** Allowed values for `enum`/`icon` kinds. */
   values?: readonly string[];
@@ -64,12 +64,11 @@ export interface A2uiPropSpec {
    */
   failsafe?: boolean;
   /**
-   * A gate only (see `acceptsLogicCall`): the component takes A2UI's `checks`, a
-   * list of `{ condition, message }` rules, as part of this gate, and on it the
-   * name `checks` means that list, whatever else the catalog says of it. The
+   * A gate only (see `acceptsLogicCall`): the component takes A2UI's `@checks`,
+   * a list of `{ condition, message? }` rules, as part of this gate. The
    * validator holds this gate at its `failsafe` while the list cannot be
    * evaluated; the dispatcher must hold it there while any rule's `condition`
-   * does not resolve to exactly `true`.
+   * does not count as true (`coerceBoolean`).
    */
   readsChecks?: boolean;
 }
@@ -97,13 +96,52 @@ export interface A2uiComponentSpec {
 }
 
 /**
- * A2UI's `Checkable` property: a list of `{ condition, message }` rules, which
+ * A2UI's `Checkable` mixin: a list of `{ condition, message? }` rules, which
  * upstream lets a Button use to disable itself. It is part of a gate only where
  * the registry says so (see {@link checksGates}); on any other component it is
- * what the catalog makes of that prop name — ignored if `ignoredProps` lists it,
- * unknown if not, or the component's own prop if the registry declares one.
+ * dropped with an `IGNORED_PROP` warning.
  */
-export const A2UI_CHECKS_PROP = 'checks';
+export const A2UI_CHECKS_PROP = '@checks';
+
+/**
+ * A2UI's accessibility mixin, `{ label?, description?, live?, hidden? }`. Like
+ * every `@` key it belongs to the protocol, not to a catalog: the validator
+ * checks it on every component and both dispatchers map it to ARIA.
+ */
+export const A2UI_ACCESSIBILITY_PROP = '@accessibility';
+
+/** The keys `@accessibility` takes — what the validator checks and the prompt lists. */
+export const A2UI_ACCESSIBILITY_SPEC: Readonly<Record<string, A2uiPropSpec>> = lookupTable({
+  label: {
+    kind: 'string',
+    dynamic: true,
+    description: 'a short (1–3 word) name, read out in place of the visible text'
+  },
+  description: {
+    kind: 'string',
+    dynamic: true,
+    description: 'instructions or format requirements, read out after the name'
+  },
+  live: {
+    kind: 'enum',
+    values: ['off', 'polite', 'assertive'],
+    default: 'off',
+    description: 'whether a change is announced: polite waits for a pause, assertive interrupts'
+  },
+  hidden: {
+    kind: 'boolean',
+    dynamic: true,
+    description:
+      'true takes the element and its children out of assistive technology, the tab order and pointer input; for decoration and repeated content'
+  }
+});
+
+/**
+ * What A2UI 1.0 accepts as a component id, a component name, a prop name or an
+ * extension key: a Unicode identifier (UAX #31) — a letter or `_`, then
+ * letters, digits and `_`. No hyphen, no leading digit.
+ */
+export const A2UI_IDENTIFIER_RE = /^[\p{XID_Start}_]\p{XID_Continue}*$/u;
 
 /** The gates of a component that take its `checks` (see {@link A2uiPropSpec.readsChecks}). */
 export function checksGates(spec: A2uiComponentSpec): string[] {
@@ -122,16 +160,17 @@ export function registryAcceptsLogicCall(
 
 /**
  * Whether a stored component instance renders as its component rather than as a
- * fault chip: the registry knows the component, and every required prop
- * survived validation. Both node dispatchers draw the chip when this is false,
- * and a surface requirement counts only an instance for which it is true — a
- * chip is no consent box.
+ * fault chip: it resolved to a catalog, that catalog knows the component, and
+ * every required prop survived validation. Both node dispatchers draw the chip
+ * when this is false, and a surface requirement counts only an instance for
+ * which it is true — a chip is no consent box.
  */
-export function rendersAsComponent(
-  registry: Readonly<Record<string, A2uiComponentSpec>>,
-  instance: { component: string; props: ReadonlyMap<string, unknown> }
-): boolean {
-  const spec = ownEntry(registry, instance.component);
+export function rendersAsComponent(instance: {
+  component: string;
+  props: ReadonlyMap<string, unknown>;
+  catalog: { registry: Readonly<Record<string, A2uiComponentSpec>> } | undefined;
+}): boolean {
+  const spec = ownEntry(instance.catalog?.registry, instance.component);
   if (!spec) return false;
   for (const [key, propSpec] of Object.entries(spec.props)) {
     if (propSpec.required && !instance.props.has(key)) return false;
@@ -140,13 +179,41 @@ export function rendersAsComponent(
 }
 
 /** Opaque catalog identifier this subset advertises in `createSurface`. */
-export const A2UI_CATALOG_ID = 'urbicon-ui/a2ui-basic-subset/v0.9.1';
-
-/** Envelope `version` strings this engine accepts. */
-export const A2UI_SUPPORTED_VERSIONS: readonly string[] = ['v0.9', 'v0.9.1'];
+export const A2UI_CATALOG_ID = 'urbicon-ui/a2ui-basic-subset/v1';
 
 /**
- * Real v0.9.1 `basic` components the engine deliberately does not render.
+ * The id upstream's `basic` catalog, major version 1, declares for itself. A
+ * surface created with it resolves to this subset, so an agent that learned the
+ * id from upstream's examples still renders — and hears about each component
+ * the subset leaves out.
+ */
+export const A2UI_UPSTREAM_BASIC_CATALOG_ID =
+  'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json';
+
+/** The envelope `version` this engine speaks — the only one it accepts. */
+export const A2UI_PROTOCOL_VERSION = '1.0';
+
+/** The messages that address a surface by its `surfaceId` — what the surface router routes. */
+export const A2UI_SURFACE_MESSAGE_KEYS = [
+  'createSurface',
+  'updateComponents',
+  'updateDataModel',
+  'deleteSurface'
+] as const;
+
+/**
+ * The messages an envelope may carry, exactly one each. The processor and the
+ * surface router both read this list, so they count an envelope's operations
+ * alike.
+ */
+export const A2UI_MESSAGE_KEYS = [
+  ...A2UI_SURFACE_MESSAGE_KEYS,
+  'callRendererFunction',
+  'agentFunctionResponse'
+] as const;
+
+/**
+ * Real upstream `basic` components the engine deliberately does not render.
  * Distinguished from wholly-unknown component names so the error message can
  * say "not part of the rendered subset" rather than "unknown".
  */
@@ -224,15 +291,10 @@ export function ownEntry<T>(
 }
 
 /**
- * Props every component accepts (spread into each entry). `accessibility` maps
- * to ARIA; `weight` is flex-grow, honored only on a direct Row/Column child.
+ * Props every component accepts (spread into each entry): `weight` is
+ * flex-grow, honored only on a direct Row/Column child.
  */
 const COMMON_PROPS: Record<string, A2uiPropSpec> = {
-  accessibility: {
-    kind: 'accessibility',
-    description:
-      'Accessibility attributes { label, description } for assistive technologies. label is a short (1–3 word) purpose string; description adds instructions or format requirements.'
-  },
   weight: {
     kind: 'number',
     description:
@@ -344,7 +406,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         labelKey: 'title',
         required: true,
         description:
-          'The tabs as an array of { title, child }: title is the tab label (a string, or a { path } binding), child is the ID of the panel body component. Never inline the child. Provide at least one tab.'
+          'The tabs as an array of { title, child }: title is the tab label (a string, or a { "@path" } binding), child is the ID of the panel body component. Never inline the child. Provide at least one tab.'
       }
     })
   },
@@ -363,20 +425,20 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
 
   Text: {
     description:
-      'Displays text. `text` supports simple inline Markdown (bold, italic, code) — no HTML, images or links. Prefer dedicated components over Markdown for structured content.',
+      'Displays text. `text` is simple Markdown — "#"/"##" headings, bold, italic, code — without HTML, images or links. Prefer dedicated components over Markdown for structured content.',
     props: withCommon({
       text: {
         kind: 'string',
         required: true,
         dynamic: true,
-        description: 'The text to display. Bind to the data model with { path } for live values.'
+        description: 'The text to display. Bind to the data model with { "@path" } for live values.'
       },
       variant: {
         kind: 'enum',
-        values: ['h1', 'h2', 'h3', 'h4', 'h5', 'caption', 'body'],
+        values: ['caption', 'body'],
         default: 'body',
         description:
-          'Text style hint. h1–h5 are headings; caption is small secondary text; body is default.'
+          'Text style hint. caption is small secondary text; body is default. For a heading, start a body text with "# ".'
       }
     })
   },
@@ -421,14 +483,14 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         required: true,
         values: A2UI_ICON_NAMES,
         description:
-          'The icon name (one of the supported names). May also bind to the data model with { path }. Custom vector art via { svgPath } is accepted but discouraged.'
+          'The icon name (one of the supported names). May also bind to the data model with { "@path" }. Custom vector art via { svgPath } is accepted but discouraged.'
       }
     })
   },
 
   Button: {
     description:
-      'A clickable button. Its `child` is the label (use a Text component). `action` MUST be a server event. Both `child` and `action` are required.',
+      'A clickable button. Its `child` is the label (use a Text component). `action` MUST be an agent event. Both `child` and `action` are required.',
     props: withCommon({
       child: {
         kind: 'childId',
@@ -440,7 +502,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'action',
         required: true,
         description:
-          'The interaction handler. Use the server-event form { event: { name, context } }. Resolve dynamic context values with { path } bindings; use literals for static values.'
+          'The interaction handler. Use the agent-event form { event: { name, context } }. Resolve dynamic context values with { "@path" } bindings; use literals for static values.'
       },
       variant: {
         kind: 'enum',
@@ -454,7 +516,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
 
   TextField: {
     description:
-      'A single- or multi-line text input. `label` is required. Bind `value` to a data-model path for two-way binding (typing writes to the model immediately).',
+      'A single- or multi-line text input. `label` and `value` are required. Bind `value` to a data-model path for two-way binding (typing writes to the model immediately); the path need not exist yet.',
     props: withCommon({
       label: {
         kind: 'string',
@@ -464,8 +526,14 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
       },
       value: {
         kind: 'string',
+        required: true,
         dynamic: true,
-        description: 'The field value. Bind with { path } for two-way binding.'
+        description: 'The field value. Bind with { "@path" } for two-way binding.'
+      },
+      placeholder: {
+        kind: 'string',
+        dynamic: true,
+        description: 'Hint text shown while the field is empty.'
       },
       variant: {
         kind: 'enum',
@@ -491,7 +559,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'boolean',
         required: true,
         dynamic: true,
-        description: 'The checked state. Bind with { path } for two-way binding.'
+        description: 'The checked state. Bind with { "@path" } for two-way binding.'
       }
     })
   },
@@ -549,7 +617,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'number',
         required: true,
         dynamic: true,
-        description: 'The current value. Bind with { path } for two-way binding.'
+        description: 'The current value. Bind with { "@path" } for two-way binding.'
       },
       max: {
         kind: 'number',
@@ -560,6 +628,11 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'number',
         default: 0,
         description: 'The minimum value (default 0).'
+      },
+      steps: {
+        kind: 'number',
+        description:
+          'The number of equal divisions of the range (an integer of 1 or more); the slider then snaps to their boundaries.'
       },
       label: {
         kind: 'string',
@@ -581,7 +654,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         required: true,
         dynamic: true,
         description:
-          'The ISO 8601 date/time string ("" when unset). Bind with { path } for two-way binding.'
+          'The ISO 8601 date/time string ("" when unset). Bind with { "@path" } for two-way binding.'
       },
       enableDate: {
         kind: 'boolean',
@@ -617,6 +690,3 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
     })
   }
 });
-
-/** Props recognized anywhere but intentionally ignored (validation only, dropped before render). */
-export const A2UI_IGNORED_PROPS: ReadonlySet<string> = new Set(['checks', 'validationRegexp']);

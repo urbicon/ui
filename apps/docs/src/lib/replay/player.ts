@@ -11,9 +11,12 @@ import fixture from './booking-fixture.json';
  * verbatim; the fixture is the versioned truth. To re-record, run that script
  * with `ANTHROPIC_API_KEY` set.
  *
- * Where the line sits, since 2026-08-13: every **A2UI envelope is exactly as
- * recorded** — the UI on screen is genuine model output, and a check that the
- * payloads survive byte-for-byte is what any edit here has to pass. The
+ * Where the line sits: every **A2UI envelope holds what the model recorded** —
+ * the surface on screen, its components, props and data are genuine model
+ * output, and an edit here has to leave them so. Their spelling is not the
+ * recording's: it was made under A2UI v0.9.1, and the envelopes were carried
+ * to 1.0 by rewriting the version string and the `@` of each `{ "@path" }`
+ * binding, so no model has written these bytes until the next recording. The
  * **prose between them has been edited** for the demo (an unprompted upsell in
  * the middle turn, a three-sentence aside in the last). So this is a recording
  * with a cut, not a transcript, and the page says as much: "A fictional

@@ -40,17 +40,17 @@ describe('Urbicon system prompt', () => {
   });
 
   it('teaches the logic functions and the consent gate on Button.disabled', () => {
-    expect(prompt).toContain('{ "call": "not", "args": { "value": B } }');
-    expect(prompt).toContain('{ "call": "and" | "or", "args": { "values": [B, B, ...] } }');
-    expect(prompt).toContain('Only true');
+    expect(prompt).toContain('{ "@call": "not", "args": { "value": B } }');
+    expect(prompt).toContain('{ "@call": "and" | "or", "args": { "values": [B, B, ...] } }');
+    expect(prompt).toContain('A path not yet written counts as false');
     expect(prompt).toContain(
-      '- disabled (optional; boolean literal, { path } binding or not/and/or call): '
+      '- disabled (optional; boolean literal, { "@path" } binding or not/and/or call): '
     );
-    expect(prompt).toContain('{ "call": "not", "args": { "value": { "path": "/agreed" } } }');
+    expect(prompt).toContain('{ "@call": "not", "args": { "value": { "@path": "/agreed" } } }');
     // Rendered from Button.disabled's failsafe, not written into its description.
     expect(prompt).toContain('holds it at true.');
     expect(prompt).toContain('(2 or more B)');
-    expect(prompt).toContain('function calls other than not/and/or');
+    expect(prompt).toContain('function calls other than not/and/or and @index');
   });
 
   it('does not offer the logic functions on a two-way input value', () => {
@@ -80,8 +80,7 @@ describe('Urbicon prompt drift guard', () => {
       });
       for (const [propKey, propSpec] of Object.entries(spec.props)) {
         if (propSpec.promptHidden) continue;
-        const isCommon = propKey === 'accessibility' || propKey === 'weight';
-        if (isCommon) continue;
+        if (propKey === 'weight') continue;
         it(`documents prop "${propKey}"`, () => {
           expect(prompt).toContain(propKey);
         });

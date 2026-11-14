@@ -13,7 +13,7 @@
  * payload has no DOM.
  */
 
-import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
+import type { A2uiCatalogSpec } from './a2ui-catalog';
 import {
   A2UI_VALUE_PROP,
   type A2uiComponentSpec,
@@ -26,12 +26,12 @@ import { bindingPointer } from './a2ui-render';
  * One component a surface must contain. It counts once a component of that
  * name is reachable from `root` and renders as itself — not as a fault chip,
  * which an unknown component or one missing a required prop becomes — and, when
- * `path` is set, once its `prop` is a `{ path }` binding that resolves to
+ * `path` is set, once its `prop` is a `{ "@path" }` binding that resolves to
  * exactly that pointer. One rendered component meets one entry, so two entries
  * for a `Checkbox` ask for two.
  */
 export interface A2uiRequiredComponent {
-  /** The component name as the surface's catalog spells it — `Checkbox` (Urbicon), `CheckBox` (Basic). */
+  /** The component name as its catalog spells it — `Checkbox` (Urbicon), `CheckBox` (Basic). */
   component: string;
   /**
    * The absolute JSON Pointer the component must be bound to, e.g. `'/agreed'`.
@@ -55,10 +55,10 @@ export interface A2uiRequiredComponent {
 export type A2uiSurfaceRequirements = Readonly<Record<string, readonly A2uiRequiredComponent[]>>;
 
 /**
- * A requirement as a surface checks it. `catalogId` is set when the catalog the
- * agent created the surface on cannot meet it but another configured catalog
- * can: the agent chose the wrong catalog, and the missing-component error names
- * the right one.
+ * A requirement as a surface checks it. `catalogId` is set when the surface's
+ * default catalog cannot meet it but another configured catalog can: the
+ * component then needs that `@catalogId`, and the missing-component error
+ * names it.
  */
 export interface A2uiSurfaceRequirement {
   requirement: A2uiRequiredComponent;
@@ -72,7 +72,7 @@ function boundProp(requirement: A2uiRequiredComponent): string {
 /**
  * Why a requirement can never be met on `catalog`, or `undefined` when it can:
  * the catalog has no such component, the component declares no such prop or
- * the prop takes no `{ path }`, or `path` is relative (a resolved binding is
+ * the prop takes no `{ "@path" }`, or `path` is relative (a resolved binding is
  * always absolute). The processor reports such an entry once and leaves it
  * unchecked; the prompt section leaves it out.
  */
@@ -87,22 +87,27 @@ export function requirementFault(
   const propSpec = ownEntry(spec.props, prop);
   if (!propSpec) return `${requirement.component} declares no prop "${prop}"`;
   if (requirement.path === undefined) return undefined;
-  if (!propSpec.dynamic) return `${requirement.component}.${prop} cannot be bound with { path }`;
+  if (!propSpec.dynamic) {
+    return `${requirement.component}.${prop} cannot be bound with { "@path" }`;
+  }
   if (!requirement.path.startsWith('/')) {
     return `path "${requirement.path}" is relative, and a binding always resolves to an absolute pointer`;
   }
   return undefined;
 }
 
-/** Whether `instance`, rendered in `scopePrefix` through `registry`, satisfies `requirement`. */
+/** Whether `instance`, rendered in `scopePrefix` through its own catalog, satisfies `requirement`. */
 export function meetsRequirement(
   requirement: A2uiRequiredComponent,
-  instance: { component: string; props: ReadonlyMap<string, unknown> },
-  scopePrefix: string | undefined,
-  registry: Readonly<Record<string, A2uiComponentSpec>>
+  instance: {
+    component: string;
+    props: ReadonlyMap<string, unknown>;
+    catalog: { registry: Readonly<Record<string, A2uiComponentSpec>> } | undefined;
+  },
+  scopePrefix: string | undefined
 ): boolean {
   if (instance.component !== requirement.component) return false;
-  if (!rendersAsComponent(registry, instance)) return false;
+  if (!rendersAsComponent(instance)) return false;
   if (requirement.path === undefined) return true;
   return (
     bindingPointer(instance.props.get(boundProp(requirement)), scopePrefix) === requirement.path
@@ -113,7 +118,7 @@ export function meetsRequirement(
 export function describeRequirement(requirement: A2uiRequiredComponent): string {
   let text = `a ${requirement.component}`;
   if (requirement.path !== undefined) {
-    text += ` with ${boundProp(requirement)} bound to { "path": ${JSON.stringify(requirement.path)} }`;
+    text += ` with ${boundProp(requirement)} bound to { "@path": ${JSON.stringify(requirement.path)} }`;
   }
   if (requirement.description) text += ` (${requirement.description})`;
   return text;
@@ -129,11 +134,9 @@ export function describeRequirement(requirement: A2uiRequiredComponent): string 
  * `INVALID_REQUIREMENT`. Returns `''` when no surface has a requirement left.
  *
  * The requirement is keyed by a surfaceId the MODEL chooses, so the section
- * pins it: the model is told to use exactly that id for that surface. Where
- * the Basic catalog — the one every A2UIView falls back to, and the one
- * upstream's examples name — cannot meet a surface's entries, it pins
- * `catalog`'s id the same way, since a surface created on Basic could never
- * contain them.
+ * pins it: the model is told to use exactly that id for that surface, and
+ * `catalog`'s id as its catalogId, since a surface created on another catalog
+ * may not be able to hold the entries.
  */
 export function a2uiSurfaceRequirementsSection(
   requirements: A2uiSurfaceRequirements,
@@ -151,18 +154,16 @@ export function a2uiSurfaceRequirementsSection(
     '## Required components',
     '',
     'These surfaces have a fixed contract. When you build one of them, use exactly',
-    'the surfaceId listed (and the catalogId, where one is given), and by the time',
-    'your reply ends its tree must contain every component listed for it, reachable',
-    'from "root". A missing one comes back to you as a MISSING_REQUIRED_COMPONENT',
-    'error; answer it by patching that surface.',
+    'the surfaceId and the catalogId listed, and by the time your reply ends its',
+    'tree must contain every component listed for it, reachable from "root". A',
+    'missing one comes back to you as a MISSING_REQUIRED_COMPONENT error; answer it',
+    'by patching that surface.',
     ''
   ];
   for (const [surfaceId, list] of entries) {
-    const needsCatalog = list.some(
-      (requirement) => requirementFault(requirement, basicA2uiCatalogSpec) !== undefined
+    lines.push(
+      `- Surface "${surfaceId}", created with catalogId "${catalog.catalogId}", must contain:`
     );
-    const created = needsCatalog ? `, created with catalogId "${catalog.catalogId}",` : '';
-    lines.push(`- Surface "${surfaceId}"${created} must contain:`);
     for (const requirement of list) lines.push(`  - ${describeRequirement(requirement)}`);
   }
   return lines.join('\n');

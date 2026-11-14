@@ -5,11 +5,12 @@
  * enum/format/description). It does two things:
  * - documents the declared fields in the system prompt (`a2uiDataSchemaSection`),
  *   so the agent knows which paths exist and what they hold;
- * - validates `updateDataModel` writes against those declarations
- *   (`validateSchemaWrite`), turning a type mismatch on a declared pointer into a
- *   `SCHEMA_TYPE_MISMATCH` error and a write to an undeclared top-level branch
- *   into a `SCHEMA_UNDECLARED_PATH` warning — both relayed through the same
- *   `onValidationError` feedback loop the agent already consumes.
+ * - validates `updateDataModel` writes and `createSurface.dataModel` against
+ *   those declarations (`validateSchemaWrite`), turning a type mismatch on a
+ *   declared pointer into a `SCHEMA_TYPE_MISMATCH` error and a write to an
+ *   undeclared top-level branch into a `SCHEMA_UNDECLARED_PATH` warning — both
+ *   relayed through the same `onValidationError` feedback loop the agent
+ *   already consumes.
  *
  * Pure TS, no Svelte. Deliberately MINIMAL (v1): exact-pointer type/enum checks
  * and a top-level "did you mean to write here?" warning. Deferred: required
@@ -96,9 +97,9 @@ function fieldIssues(
 }
 
 /**
- * Validate one `updateDataModel` write against the schema. `pointer` is the
- * write target (`''`/`'/'`/`undefined` = whole model); `value` is the written
- * value (`undefined` for a delete — never flagged). Returns any schema issues.
+ * Validate one data-model write against the schema. `pointer` is the write
+ * target (`''`/`'/'`/`undefined` = whole model); `value` is the written value
+ * (`undefined` for a delete — never flagged). Returns any schema issues.
  */
 export function validateSchemaWrite(
   schema: A2uiDataSchema,
@@ -154,8 +155,9 @@ export function a2uiDataSchemaSection(schema: A2uiDataSchema): string {
   const lines: string[] = [
     '## Data schema',
     '',
-    'The surface data model holds these fields (bind inputs to them with { path }',
-    'and initialize them via updateDataModel). Write only the declared types:'
+    'The surface data model holds these fields (bind inputs to them with { "@path" }',
+    'and initialize them via createSurface.dataModel or updateDataModel). Write only',
+    'the declared types:'
   ];
   for (const [pointer, field] of Object.entries(schema)) {
     const bits: string[] = [field.type];

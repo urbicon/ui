@@ -30,9 +30,10 @@
   import { checkImageUrl, checkLinkUrl } from '../../markdown/url-policy.js';
   import StreamingMarkdown from '../../StreamingMarkdown/StreamingMarkdown.svelte';
   import type { A2uiActionEvent } from '../a2ui.types';
-  import { checksPass } from '../a2ui-data';
-  import { coerceText, dedupeOptions, splitDateTime } from '../a2ui-node-common';
+  import { A2UI_CALL_KEY, bindingPath, checksPass, coerceBoolean } from '../a2ui-data';
+  import { coerceText, dedupeOptions, readAccessibility, splitDateTime } from '../a2ui-node-common';
   import {
+    A2UI_ACCESSIBILITY_PROP,
     A2UI_CHECKS_PROP,
     A2UI_SVG_PATH_RE,
     A2UI_VALUE_PROP,
@@ -42,7 +43,6 @@
   import type { A2uiNodeProps, A2uiRenderNode } from '../a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from '../a2ui-render';
   import { a2uiUrbiconVariants } from './a2ui-urbicon.variants';
-  import { URBICON_A2UI_REGISTRY } from './a2ui-urbicon-registry';
 
   // Recursive dispatcher for the Urbicon A2UI catalog — the sibling of A2UINode,
   // mapping the richer Urbicon vocabulary (real intents/variants/sizes, Section,
@@ -74,9 +74,10 @@
   const instance = $derived(node.instance);
   const nodeProps = $derived(instance?.props);
   const component = $derived(instance?.component ?? '');
-  // A component is a visible fault when it is unknown/unsupported or is missing
-  // a required prop (the processor already emitted the reportable issue).
-  const renders = $derived(instance ? rendersAsComponent(URBICON_A2UI_REGISTRY, instance) : false);
+  // A component is a visible fault when it resolved to no catalog, is
+  // unknown/unsupported or is missing a required prop (the processor already
+  // emitted the reportable issue).
+  const renders = $derived(instance ? rendersAsComponent(instance) : false);
 
   function raw(key: string): unknown {
     return nodeProps?.get(key);
@@ -107,14 +108,17 @@
     return coerceText(resolved(key));
   }
 
-  const ariaLabel = $derived.by(() => {
-    const a11y = nodeProps?.get('accessibility');
-    if (a11y !== null && typeof a11y === 'object') {
-      const label = (a11y as Record<string, unknown>).label;
-      if (typeof label === 'string' && label.length > 0) return label;
-    }
-    return undefined;
-  });
+  // `@accessibility`: the label names the component where it has a role to
+  // name; description and live go onto every component's root. `hidden` is
+  // applied by the view around the whole component, label and control alike.
+  const accessibility = $derived(
+    readAccessibility(
+      nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
+      (value) => context.resolve(value, node.scopePrefix).value
+    )
+  );
+  const ariaLabel = $derived(accessibility.label);
+  const aria = $derived(accessibility.attributes);
 
   const weightStyle = $derived(node.weight != null ? `flex-grow:${node.weight}` : undefined);
 
@@ -168,8 +172,8 @@
     if (typeof value === 'string') return value;
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       const object = value as Record<string, unknown>;
-      if (typeof object.svgPath === 'string') return undefined;
-      if (typeof object.path === 'string') {
+      if (object.svgPath !== undefined) return undefined;
+      if (bindingPath(value) !== undefined) {
         const r = context.resolve(value, node.scopePrefix).value;
         return typeof r === 'string' ? r : undefined;
       }
@@ -180,13 +184,18 @@
   const iconSvgPath = $derived.by<string | undefined>(() => {
     const value = raw('name');
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      const svgPath = (value as Record<string, unknown>).svgPath;
+      // A literal or a bound svgPath; the grammar guard runs on what it
+      // resolves to, which for a binding nothing has inspected before.
+      const svgPath = context.resolve(
+        (value as Record<string, unknown>).svgPath,
+        node.scopePrefix
+      ).value;
       if (typeof svgPath === 'string' && A2UI_SVG_PATH_RE.test(svgPath)) return svgPath;
     }
     return undefined;
   });
-  // Both names can come from a `{path}` binding, i.e. an arbitrary string the
-  // validator never inspected — so these take own entries only (#134).
+  // Both names can come from a `{ "@path" }` binding, i.e. an arbitrary string
+  // the validator never inspected — so these take own entries only (#134).
   const IconComp = $derived(
     (iconName && ownEntry(context.icons, iconName)) || context.fallbackIcon
   );
@@ -209,7 +218,7 @@
     if (action === null || typeof action !== 'object') return undefined;
     const fc = (action as Record<string, unknown>).functionCall;
     if (fc === null || typeof fc !== 'object') return undefined;
-    if ((fc as Record<string, unknown>).call !== 'openUrl') return undefined;
+    if ((fc as Record<string, unknown>)[A2UI_CALL_KEY] !== 'openUrl') return undefined;
     const args = (fc as Record<string, unknown>).args;
     const url =
       args !== null && typeof args === 'object' ? (args as Record<string, unknown>).url : undefined;
@@ -217,10 +226,10 @@
     return typeof resolvedUrl === 'string' ? resolvedUrl : undefined;
   });
   const buttonUsable = $derived(actionEvent !== undefined || openUrlArg !== undefined);
-  // `disabled` reads `checks` (`readsChecks`): a failing rule holds it at its failsafe.
+  // `disabled` reads `@checks` (`readsChecks`): a failing rule holds it at its failsafe.
   const buttonDisabled = $derived(
     !buttonUsable ||
-      Boolean(resolved('disabled')) ||
+      coerceBoolean(resolved('disabled')) ||
       !checksPass(raw(A2UI_CHECKS_PROP), (value) => context.resolve(value, node.scopePrefix).value)
   );
 
@@ -251,8 +260,10 @@
     // `sendDataModel` surfaces ship the whole model alongside the context, so a
     // context the agent under-specified still tells it what the user entered.
     const dataModel = context.actionDataModel?.();
+    const userMessage = context.resolve(event.userMessage, node.scopePrefix).value;
     const payload: A2uiActionEvent = {
       ...(dataModel === undefined ? {} : { dataModel }),
+      ...(typeof userMessage === 'string' ? { userMessage } : {}),
       name: event.name as string,
       surfaceId: context.surfaceId,
       sourceComponentId: instance.id,
@@ -281,7 +292,7 @@
 
   const boolValue = $derived.by(() => {
     const pointer = valuePointer();
-    if (pointer) return Boolean(resolved(A2UI_VALUE_PROP));
+    if (pointer) return coerceBoolean(resolved(A2UI_VALUE_PROP));
     return (
       localBool ??
       (typeof raw(A2UI_VALUE_PROP) === 'boolean' ? (raw(A2UI_VALUE_PROP) as boolean) : false)
@@ -357,7 +368,7 @@
   }
 
   const choiceOptions = $derived(
-    // `options` may itself be a { path } binding — that is how an agent shows a
+    // `options` may itself be a { "@path" } binding — that is how an agent shows a
     // list it fetched mid-conversation (free slots, search hits) without
     // rewriting the component. Resolve it first, then the per-option labels.
     dedupeOptions(resolved('options'), (label) =>
@@ -492,6 +503,7 @@
     style={weightStyle}
     role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each node.children as child (child.key)}
       {@render renderChild(child, blockCtx)}
@@ -508,6 +520,7 @@
     style={weightStyle}
     role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each node.children as child (child.key)}
       {@render renderChild(child, blockCtx)}
@@ -518,6 +531,7 @@
     class={[context.classes.list, DIRECTION[enumOr('direction', 'vertical')]]}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each node.children as child (child.key)}
       <li class={context.classes.listItem}>
@@ -539,6 +553,7 @@
     unstyled={context.unstyled}
     variant={styleOpt('variant')}
     aria-label={ariaLabel}
+    {...aria}
     header={headerNode ? cardHeader : undefined}
     footer={footerNode ? cardFooter : undefined}
   >
@@ -549,10 +564,11 @@
     unstyled={context.unstyled}
     orientation={enumOr('orientation', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}
     style={weightStyle}
+    {...aria}
   />
 {:else if component === 'Section'}
   {@const sectionChild = childByKey('child')}
-  <section class={styles.section()} style={weightStyle} aria-label={ariaLabel}>
+  <section class={styles.section()} style={weightStyle} aria-label={ariaLabel} {...aria}>
     <div class={styles.sectionHeader()}>
       <h3 class={styles.sectionTitle()}>{resolvedText('title')}</h3>
       {#if resolvedText('description')}
@@ -574,21 +590,23 @@
     description={resolvedText('description') || undefined}
     icon={emptyStateIcon}
     cta={ctaNode ? emptyCta : undefined}
+    {...aria}
   />
 {:else if component === 'Text'}
   {@const value = resolvedText('text')}
   {@const variant = enumOr('variant', 'body')}
   {#if context.inline}
-    <span class={context.classes.inlineText} style={weightStyle}>{value}</span>
+    <span class={context.classes.inlineText} style={weightStyle} {...aria}>{value}</span>
   {:else if variant === 'caption'}
-    <span class={context.classes.caption} style={weightStyle}>{value}</span>
+    <span class={context.classes.caption} style={weightStyle} {...aria}>{value}</span>
   {:else if variant === 'body'}
-    <p class={styles.body()} style={weightStyle}>{value}</p>
+    <p class={styles.body()} style={weightStyle} {...aria}>{value}</p>
   {:else}
     <svelte:element
       this={HEADING_TAG[variant] ?? 'h3'}
       class={[context.classes.heading, HEADING_SIZE[variant]]}
       style={weightStyle}
+      {...aria}
     >
       {value}
     </svelte:element>
@@ -600,6 +618,7 @@
     urlPolicy={context.urlPolicy}
     streaming={false}
     style={weightStyle}
+    {...aria}
   />
 {:else if component === 'Button'}
   <Button
@@ -609,6 +628,7 @@
     size={styleOpt('size')}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
     disabled={buttonDisabled}
     title={buttonUsable ? undefined : 'This action is not supported'}
     onclick={buttonUsable ? dispatchButton : undefined}
@@ -631,6 +651,7 @@
     oninput={onTextInput}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'Textarea'}
   <Textarea
@@ -643,6 +664,7 @@
     oninput={onTextInput}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'Checkbox'}
   <Checkbox
@@ -652,6 +674,7 @@
     onCheckedChange={onBoolChange}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'RadioGroup'}
   <RadioGroup
@@ -661,6 +684,7 @@
     onValueChange={onRadioChange}
     orientation={enumOr('orientation', 'vertical') === 'horizontal' ? 'horizontal' : 'vertical'}
     style={weightStyle}
+    {...aria}
   >
     {#each choiceOptions as option (option.value)}
       <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
@@ -678,6 +702,7 @@
       onValueChange={onSelectMultiple}
       style={weightStyle}
       aria-label={ariaLabel}
+      {...aria}
     />
   {:else}
     <Select
@@ -689,6 +714,7 @@
       onValueChange={onSelectSingle}
       style={weightStyle}
       aria-label={ariaLabel}
+      {...aria}
     />
   {/if}
 {:else if component === 'Slider'}
@@ -705,6 +731,7 @@
     onValueChange={onSliderChange}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'Toggle'}
   <Toggle
@@ -714,10 +741,11 @@
     onCheckedChange={onBoolChange}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'DatePicker'}
   {@const label = resolvedText('label')}
-  <div class={styles.field()} style={weightStyle}>
+  <div class={styles.field()} style={weightStyle} {...aria}>
     <DatePicker
       unstyled={context.unstyled}
       label={label || ariaLabel || undefined}
@@ -738,6 +766,7 @@
     style={weightStyle}
     role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
+    {...aria}
   >
     <TimeInput
       unstyled={context.unstyled}
@@ -760,9 +789,10 @@
       variant="dot"
       intent={styleOpt('intent')}
       aria-label={ariaLabel || resolvedText('text') || undefined}
+      {...aria}
     />
   {:else}
-    <Badge unstyled={context.unstyled} {variant} intent={styleOpt('intent')}>
+    <Badge unstyled={context.unstyled} {variant} intent={styleOpt('intent')} {...aria}>
       {resolvedText('text')}
     </Badge>
   {/if}
@@ -774,6 +804,7 @@
     intent={styleOpt('intent')}
     variant={styleOpt('variant')}
     style={weightStyle}
+    {...aria}
   >
     {#if resolvedText('description')}
       <span>{resolvedText('description')}</span>
@@ -795,6 +826,7 @@
     label={resolvedText('label') || undefined}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'Stepper'}
   <Stepper
@@ -804,6 +836,7 @@
     variant={styleOpt('variant')}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each stepperSteps as step, i (`${step}#${i}`)}
       <StepperStep unstyled={context.unstyled} label={step} />
@@ -816,6 +849,7 @@
     variant={styleOpt('variant')}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each accordionItems as item (item.value)}
       <AccordionItem unstyled={context.unstyled} value={item.value} title={item.label}>
@@ -833,6 +867,7 @@
     alt={resolvedText('name') || ariaLabel || undefined}
     variant={styleOpt('variant')}
     size={styleOpt('size')}
+    {...aria}
   />
 {:else if component === 'Icon'}
   {#if iconSvgPath}
@@ -847,6 +882,7 @@
       stroke-linejoin="round"
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
+      {...aria}
       aria-hidden={ariaLabel ? undefined : 'true'}
     >
       <path d={iconSvgPath} />
@@ -858,6 +894,7 @@
       style={weightStyle}
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
+      {...aria}
       aria-hidden={ariaLabel ? undefined : 'true'}
     >
       <IconComp size={20} />
@@ -875,9 +912,10 @@
         IMAGE_SIZE[enumOr('variant', 'mediumFeature')]
       ]}
       style={weightStyle}
+      {...aria}
     />
   {:else}
-    <span class={context.classes.blockedChip} style={weightStyle}>
+    <span class={context.classes.blockedChip} style={weightStyle} {...aria}>
       {context.labels.blockedImage}{description ? `: ${description}` : ''}
     </span>
   {/if}

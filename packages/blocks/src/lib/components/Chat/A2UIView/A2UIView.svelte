@@ -7,6 +7,8 @@
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
   import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
+  import { readHidden } from './a2ui-node-common';
+  import { A2UI_ACCESSIBILITY_PROP } from './a2ui-registry';
   import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
   import {
     type A2uiProcessor,
@@ -41,30 +43,51 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // Effective catalogs: the Basic catalog is always available and FIRST (the
-  // default/fallback), consumer catalogs follow. Resolved ONCE at init —
-  // `createIcons()` reads the IconProvider context, so it must run during
-  // component init and cannot be reactive: a `catalogs` value passed later is ignored.
-  // `untrack` captures the initial prop value without a reactive subscription
-  // (the init-only capture is deliberate — silences `state_referenced_locally`).
+  // Effective catalogs: the Basic catalog is always configured, consumer
+  // catalogs follow. Resolved ONCE at init — `createIcons()` reads the
+  // IconProvider context, so it must run during component init and cannot be
+  // reactive: a `catalogs` value passed later is ignored. `untrack` captures the
+  // initial prop value without a reactive subscription (the init-only capture is
+  // deliberate — silences `state_referenced_locally`).
   const catalogs: readonly A2uiCatalog[] = [
     basicA2uiCatalog,
     ...(untrack(() => catalogsProp) ?? [])
   ];
+  // What a render context carries for one catalog: its dispatcher and its icons.
+  type CatalogWiring = Pick<
+    A2uiRenderContext,
+    'catalogId' | 'nodeComponent' | 'icons' | 'fallbackIcon'
+  >;
   // biome-ignore lint/nursery/useSvelteReactiveClasses: init-only like `catalogs`; the loop below is its only writer
-  const catalogById = new Map<string, A2uiCatalog>();
-  // biome-ignore lint/nursery/useSvelteReactiveClasses: init-only like `catalogs`; the loop below is its only writer
-  const iconsByCatalog = new Map<string, ReturnType<A2uiCatalog['createIcons']>>();
+  const wiringById = new Map<string, CatalogWiring>();
   for (const catalog of catalogs) {
-    if (catalogById.has(catalog.catalogId)) continue;
-    catalogById.set(catalog.catalogId, catalog);
-    for (const alias of catalog.catalogIdAliases ?? []) {
-      if (!catalogById.has(alias)) catalogById.set(alias, catalog);
-    }
-    iconsByCatalog.set(catalog.catalogId, catalog.createIcons());
+    if (wiringById.has(catalog.catalogId)) continue;
+    wiringById.set(catalog.catalogId, {
+      catalogId: catalog.catalogId,
+      nodeComponent: catalog.Node,
+      ...catalog.createIcons()
+    });
   }
-  const defaultCatalog = catalogs[0];
-  const defaultIcons = iconsByCatalog.get(defaultCatalog.catalogId) ?? defaultCatalog.createIcons();
+  // Draws the fault chips and placeholders of a surface that has no catalog of
+  // its own; it resolves no component.
+  const chipWiring = wiringById.get(basicA2uiCatalog.catalogId) as CatalogWiring;
+
+  // A surface may mix catalogs per component (`@catalogId`), so a node whose
+  // catalog differs from the context it is handed gets that catalog's wiring.
+  // A node without a catalog is a fault chip, which any dispatcher draws.
+  function wiredFor(node: A2uiRenderNode, context: A2uiRenderContext): A2uiRenderContext {
+    const catalogId = node.instance?.catalog?.catalogId;
+    if (catalogId === undefined || catalogId === context.catalogId) return context;
+    const wiring = wiringById.get(catalogId);
+    return wiring ? { ...context, ...wiring } : context;
+  }
+
+  function hiddenOf(node: A2uiRenderNode, context: A2uiRenderContext): boolean | undefined {
+    return readHidden(
+      node.instance?.props.get(A2UI_ACCESSIBILITY_PROP),
+      (value) => context.resolve(value, node.scopePrefix).value
+    );
+  }
   // Init-fixed like the catalogs (validation config, not reactive UI state).
   const dataSchema = untrack(() => dataSchemaProp);
   const surfaceRequirements = untrack(() => surfaceRequirementsProp);
@@ -190,12 +213,10 @@
 
     for (const surface of processor.surfaces.values()) {
       const root = buildRenderTree(surface);
-      // Resolve the surface's catalog to its Svelte wiring: which dispatcher
-      // renders it and which icon set it draws from. surface.catalog is one of
-      // `catalogs`, so both lookups always hit; the `??` are belt-and-braces.
-      const surfaceCatalog = catalogById.get(surface.catalog.catalogId) ?? defaultCatalog;
-      const surfaceIcons = iconsByCatalog.get(surfaceCatalog.catalogId) ?? defaultIcons;
+      // The wiring the root starts with; `wiredFor` switches it per node.
+      const wiring = (surface.catalog && wiringById.get(surface.catalog.catalogId)) || chipWiring;
       const context: A2uiRenderContext = {
+        ...wiring,
         classes: currentClasses,
         unstyled: isUnstyled,
         urlPolicy,
@@ -205,12 +226,10 @@
         onAction,
         // Read lazily: the click, not the render, decides what the agent sees.
         actionDataModel: surface.sendDataModel ? () => surface.dataModel : undefined,
-        resolve: (value, scope) => resolveDynamic(value, surface.dataModel, scope),
+        resolve: (value, scope) =>
+          resolveDynamic(value, surface.dataModel, scope, surface.callCatalogs),
         write: (pointer, value) => writeBinding(surface.surfaceId, pointer, value),
         remove: (pointer) => removeBinding(surface.surfaceId, pointer),
-        icons: surfaceIcons.icons,
-        fallbackIcon: surfaceIcons.fallbackIcon,
-        nodeComponent: surfaceCatalog.Node,
         labels: {
           unsupported: unsupportedLabel,
           blockedImage: blockedImageLabel,
@@ -233,7 +252,8 @@
         issue.code,
         issue.surfaceId ?? '',
         issue.path ?? '',
-        issue.message
+        issue.message,
+        issue.functionCallId ?? ''
       ])
     );
     if (signature !== lastIssueSig) {
@@ -248,12 +268,34 @@
   self-import inside the node dispatcher: a snippet that renders the dispatcher
   and passes ITSELF down as `renderChild` gives clean recursion without the
   circular component-type resolution that self-imports trip in svelte-check. The
-  dispatcher is the surface catalog's own node component (Basic → A2UINode; a
-  custom catalog → its own), read off the render context per surface.
+  dispatcher is the node component of the node's own catalog (Basic → A2UINode;
+  a custom catalog → its own), read off the render context `wiredFor` hands it.
 -->
 {#snippet renderNode(node: A2uiRenderNode, context: A2uiRenderContext)}
-  {@const Node = context.nodeComponent}
-  <Node {node} {context} renderChild={renderNode} />
+  {@const wired = wiredFor(node, context)}
+  {@const Node = wired.nodeComponent}
+  {@const hidden = hiddenOf(node, wired)}
+  {#if hidden === undefined}
+    <Node {node} context={wired} renderChild={renderNode} />
+  {:else}
+    <!--
+      `@accessibility.hidden`, around the whole component: `aria-hidden` alone
+      would leave a control in the tab order that assistive technology is told
+      does not exist (axe aria-hidden-focus), so it is `inert` as well. A span
+      inside a Button label, where a div is invalid; `display: contents` keeps
+      the component the flex child of its container. `undefined`, not `false`:
+      where an element has no `inert` property (jsdom), `false` still leaves an
+      `inert` attribute behind.
+    -->
+    <svelte:element
+      this={wired.inline ? 'span' : 'div'}
+      style="display: contents"
+      inert={hidden || undefined}
+      aria-hidden={hidden ? 'true' : undefined}
+    >
+      <Node {node} context={wired} renderChild={renderNode} />
+    </svelte:element>
+  {/if}
 {/snippet}
 
 <!--

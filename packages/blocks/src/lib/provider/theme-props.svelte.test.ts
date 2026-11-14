@@ -208,9 +208,9 @@ describe('agent-rendered components', () => {
   // A theme default needs no call site, so it reaches what the agent renders —
   // provided the renderer leaves an unspecified style prop unset.
   const payload = (card: Record<string, unknown>, button: Record<string, unknown>) => [
-    { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID } },
+    { version: '1.0', createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID } },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 's',
         components: [
@@ -289,9 +289,9 @@ describe('a theme sets the look, never what is announced or rendered', () => {
 
   it('keeps an agent Alert without an intent polite under a theme intent', () => {
     const alertPayload = (alert: Record<string, unknown>) => [
-      { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID } },
+      { version: '1.0', createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID } },
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateComponents: {
           surfaceId: 's',
           components: [{ id: 'root', component: 'Alert', title: 'Saved', ...alert }]

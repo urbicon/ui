@@ -9,9 +9,9 @@
   // not-yet-defined component renders a skeleton placeholder instead of a fault
   // chip; components fill in as their envelopes land.
   const SEQUENCE: unknown[] = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'demo', catalogId: A2UI_CATALOG_ID } },
+    { version: '1.0', createSurface: { surfaceId: 'demo', catalogId: A2UI_CATALOG_ID } },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'demo',
         components: [
@@ -21,30 +21,35 @@
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'demo',
         components: [
-          { id: 'title', component: 'Text', text: 'Book a demo', variant: 'h4' },
-          { id: 'name', component: 'TextField', label: 'Name', value: { path: '/name' } }
+          { id: 'title', component: 'Text', text: '#### Book a demo' },
+          { id: 'name', component: 'TextField', label: 'Name', value: { '@path': '/name' } }
         ]
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'demo',
         components: [
-          { id: 'email', component: 'TextField', label: 'Work email', value: { path: '/email' } },
-          { id: 'submit-label', component: 'Text', text: 'Request access' },
+          {
+            id: 'email',
+            component: 'TextField',
+            label: 'Work email',
+            value: { '@path': '/email' }
+          },
+          { id: 'submit_label', component: 'Text', text: 'Request access' },
           {
             id: 'submit',
             component: 'Button',
-            child: 'submit-label',
+            child: 'submit_label',
             action: {
               event: {
                 name: 'book_demo',
-                context: { name: { path: '/name' }, email: { path: '/email' } }
+                context: { name: { '@path': '/name' }, email: { '@path': '/email' } }
               }
             }
           }
@@ -52,7 +57,7 @@
       }
     },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateDataModel: { surfaceId: 'demo', value: { name: '', email: '' } }
     }
   ];

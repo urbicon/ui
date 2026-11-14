@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  A2UI_CATALOG_ID,
   a2uiErrorMessage,
   a2uiFencedTransportSection,
   a2uiSystemPrompt,
@@ -26,9 +27,9 @@ describe('@urbicon-ui/blocks/a2ui without a DOM', () => {
 
     const args = {
       messages: [
-        { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: 'x' } },
+        { version: '1.0', createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
         {
-          version: 'v0.9.1',
+          version: '1.0',
           updateComponents: {
             surfaceId: 's',
             components: [{ id: 'title', component: 'Text', text: 'No root yet' }]

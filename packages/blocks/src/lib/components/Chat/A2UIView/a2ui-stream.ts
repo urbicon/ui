@@ -9,8 +9,8 @@
 //
 //     Here is your form:
 //     ```a2ui
-//     {"version":"v0.9.1","createSurface":{"surfaceId":"s1","catalogId":"…"}}
-//     {"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[…]}}
+//     {"version":"1.0","createSurface":{"surfaceId":"s1","catalogId":"…"}}
+//     {"version":"1.0","updateComponents":{"surfaceId":"s1","components":[…]}}
 //     ```
 //     Anything else you'd like?
 //
@@ -40,6 +40,7 @@
 // between / after fences, and the last line may be incomplete.
 
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
+import { A2UI_PROTOCOL_VERSION } from './a2ui-registry';
 
 /** A streamed text segment. Structurally assignable to blocks' `ChatMessagePart` (`text`). */
 export interface A2uiStreamTextPart {
@@ -523,8 +524,8 @@ export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions
     'inside the fence. Example:',
     '',
     open,
-    '{"version":"v0.9.1","createSurface":{"surfaceId":"form-1","catalogId":"…"}}',
-    '{"version":"v0.9.1","updateComponents":{"surfaceId":"form-1","components":[ … ]}}',
+    `{"version":"${A2UI_PROTOCOL_VERSION}","createSurface":{"surfaceId":"form_1","catalogId":"…"}}`,
+    `{"version":"${A2UI_PROTOCOL_VERSION}","updateComponents":{"surfaceId":"form_1","components":[ … ]}}`,
     FENCE,
     '',
     'Emit one JSON envelope per line (JSONL), as COMPACT single-line JSON — never',
@@ -534,7 +535,7 @@ export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions
     'Rules for the fence:',
     `- Open the block with a line that is exactly ${open} and close it with ${FENCE}.`,
     '- Emit createSurface FIRST, then the updateComponents / updateDataModel',
-    '  envelopes. Every envelope has "version":"v0.9.1".',
+    `  envelopes. Every envelope has "version":"${A2UI_PROTOCOL_VERSION}".`,
     '- One envelope per line, as compact single-line JSON — never pretty-print an',
     '  envelope across multiple lines (a large updateComponents stays on ONE line).',
     '- You may put prose before and/or after the fence. Do not nest fences.',
@@ -567,10 +568,10 @@ export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions
       'When the user interacts with a surface you sent, the client sends you a new',
       `user turn whose text begins with \`${actionPrefix} \` followed by a compact JSON`,
       'object: { name, surfaceId, sourceComponentId, timestamp, context }, plus',
-      "`dataModel` (the surface's full state) when you created it with",
-      '"sendDataModel": true. Treat it as the user activating a control on your',
-      'surface — usually the right answer is to patch THAT surface, not to send a new',
-      'one.'
+      "`userMessage` when the action carried one and `dataModel` (the surface's full",
+      'state) when you created the surface with "sendDataModel": true. Treat it as',
+      'the user activating a control on your surface — usually the right answer is',
+      'to patch THAT surface, not to send a new one.'
     );
   }
   if (errorPrefix) {

@@ -4,6 +4,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ChatMessageData, ChatMessagePart } from '../chat.types';
 import A2UIView from './A2UIView.svelte';
+import { A2UI_CATALOG_ID } from './a2ui-registry';
 import { A2uiSurfaceRouter } from './a2ui-router';
 import { A2uiStreamSplitter } from './a2ui-stream';
 import { revokeMessage, routeMessageParts } from './a2ui-transcript';
@@ -18,17 +19,17 @@ import { revokeMessage, routeMessageParts } from './a2ui-transcript';
 // The same wrapping hides a delivered patch from `revokeMessage`, which finds
 // its envelopes by reference.
 
-const V = 'v0.9.1';
+const V = '1.0';
 const NOTE = 'We hold the table for fifteen minutes.';
 const lines = [
-  { version: V, createSurface: { surfaceId: 'booking', catalogId: 'x' } },
+  { version: V, createSurface: { surfaceId: 'booking', catalogId: A2UI_CATALOG_ID } },
   {
     version: V,
     updateComponents: {
       surfaceId: 'booking',
       components: [
         { id: 'root', component: 'Column', children: ['name', 'note'] },
-        { id: 'name', component: 'TextField', label: 'Name', value: { path: '/name' } }
+        { id: 'name', component: 'TextField', label: 'Name', value: { '@path': '/name' } }
       ]
     }
   },

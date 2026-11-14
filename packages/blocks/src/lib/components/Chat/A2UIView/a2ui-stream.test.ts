@@ -19,13 +19,13 @@ function runChunks(chunks: string[]): A2uiStreamSplitter {
   return s;
 }
 
-const ENV_SURFACE = '{"version":"v0.9.1","createSurface":{"surfaceId":"s1","catalogId":"c"}}';
+const ENV_SURFACE = '{"version":"1.0","createSurface":{"surfaceId":"s1","catalogId":"c"}}';
 const ENV_ROOT =
-  '{"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[{"id":"root","component":"Text","text":"Hi"}]}}';
+  '{"version":"1.0","updateComponents":{"surfaceId":"s1","components":[{"id":"root","component":"Text","text":"Hi"}]}}';
 // The same updateComponents envelope pretty-printed across lines — the shape
 // models actually emit for large component lists (one component per line).
 const ENV_ROOT_MULTILINE = [
-  '{"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[',
+  '{"version":"1.0","updateComponents":{"surfaceId":"s1","components":[',
   '{"id":"root","component":"Text","text":"Hi"}',
   ']}}'
 ].join('\n');
@@ -113,7 +113,7 @@ describe('A2uiStreamSplitter — multi-line (pretty-printed) envelopes', () => {
     const s = new A2uiStreamSplitter();
     s.push(`\`\`\`a2ui\n${ENV_SURFACE}\n`);
     const first = (s.snapshot()[0] as { payload: unknown[] }).payload[0];
-    s.push('{"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[\n');
+    s.push('{"version":"1.0","updateComponents":{"surfaceId":"s1","components":[\n');
     // Mid-object: the buffered lines are not visible anywhere yet.
     expect((s.snapshot()[0] as { payload: unknown[] }).payload).toHaveLength(1);
     s.push('{"id":"root","component":"Text","text":"Hi"}\n]}}\n```\n');
@@ -124,14 +124,14 @@ describe('A2uiStreamSplitter — multi-line (pretty-printed) envelopes', () => {
   });
 
   it('tolerates blank lines inside a multi-line envelope', () => {
-    const source = `\`\`\`a2ui\n{"version":"v0.9.1","createSurface":\n\n{"surfaceId":"s1","catalogId":"c"}}\n\`\`\`\n`;
+    const source = `\`\`\`a2ui\n{"version":"1.0","createSurface":\n\n{"surfaceId":"s1","catalogId":"c"}}\n\`\`\`\n`;
     const s = runChunked(source, 5);
     expect((s.snapshot()[0] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
     expect(s.issues).toHaveLength(0);
   });
 
   it('falls back to text when the fence closes on a still-open envelope', () => {
-    const source = `\`\`\`a2ui\n${ENV_SURFACE}\n{"version":"v0.9.1","updateComponents":{\n\`\`\`\nafter`;
+    const source = `\`\`\`a2ui\n${ENV_SURFACE}\n{"version":"1.0","updateComponents":{\n\`\`\`\nafter`;
     const s = runChunked(source, 6);
     const parts = s.snapshot();
     expect((parts[0] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
@@ -157,7 +157,7 @@ describe('A2uiStreamSplitter — multi-line (pretty-printed) envelopes', () => {
   });
 
   it('re-emits a buffered partial envelope when the stream ends mid-object', () => {
-    const source = `\`\`\`a2ui\n${ENV_SURFACE}\n{"version":"v0.9.1","updateComponents":{"surfaceId":"s1",`;
+    const source = `\`\`\`a2ui\n${ENV_SURFACE}\n{"version":"1.0","updateComponents":{"surfaceId":"s1",`;
     const s = runChunked(source, 9);
     expect(s.issues.some((i) => i.code === 'UNTERMINATED_FENCE')).toBe(true);
     const parts = s.snapshot();

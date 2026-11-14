@@ -1,5 +1,5 @@
 /**
- * The v0.9.1 `basic`-subset catalog, fully wired: the pure `basicA2uiCatalogSpec`
+ * The `basic`-subset catalog, fully wired: the pure `basicA2uiCatalogSpec`
  * plus its Svelte half — the `A2UINode` dispatcher and the `createIcons` factory.
  *
  * The icon map lives here (not at A2UIView module scope) so it is built ONCE per

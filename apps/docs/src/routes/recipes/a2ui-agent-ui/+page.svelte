@@ -10,7 +10,7 @@
   // fixtures. "Show free rooms" appends the patch envelopes the agent would
   // send after calling its tool — the same array-append routeMessageParts
   // performs in the client.
-  const V = 'v0.9.1';
+  const V = '1.0';
   const CATALOG = 'urbicon-ui/urbicon-catalog/v1';
 
   const initial: unknown[] = [
@@ -26,18 +26,18 @@
         components: [
           { id: 'root', component: 'Card', variant: 'outlined', child: 'body' },
           { id: 'body', component: 'Column', children: ['when', 'load'] },
-          { id: 'when', component: 'Section', title: 'When', child: 'when-col' },
-          { id: 'when-col', component: 'Column', children: ['date'] },
-          { id: 'date', component: 'DatePicker', label: 'Check-in', value: { path: '/date' } },
+          { id: 'when', component: 'Section', title: 'When', child: 'when_col' },
+          { id: 'when_col', component: 'Column', children: ['date'] },
+          { id: 'date', component: 'DatePicker', label: 'Check-in', value: { '@path': '/date' } },
           {
             id: 'load',
             component: 'Button',
             intent: 'secondary',
             variant: 'outlined',
-            child: 'load-label',
-            action: { event: { name: 'showRooms', context: { date: { path: '/date' } } } }
+            child: 'load_label',
+            action: { event: { name: 'showRooms', context: { date: { '@path': '/date' } } } }
           },
-          { id: 'load-label', component: 'Text', text: 'Show free rooms' }
+          { id: 'load_label', component: 'Text', text: 'Show free rooms' }
         ]
       }
     }
@@ -63,14 +63,14 @@
       updateComponents: {
         surfaceId: 'demo',
         components: [
-          { id: 'when-col', component: 'Column', children: ['date', 'times'] },
+          { id: 'when_col', component: 'Column', children: ['date', 'times'] },
           {
             id: 'times',
             component: 'RadioGroup',
             label: 'Free rooms',
             orientation: 'horizontal',
-            value: { path: '/room' },
-            options: { path: '/options' }
+            value: { '@path': '/room' },
+            options: { '@path': '/options' }
           }
         ]
       }
@@ -312,7 +312,7 @@ const system = [
       <Note title="Picking a room is not an action">
         <p>
           The chooser binds its selection to the data model (<code class="text-text-primary"
-            >value: {"{ path: '/room' }"}</code
+            >value: {"{ '@path': '/room' }"}</code
           >): picking a room is instant, and nothing round-trips. Actions are reserved for the steps
           that need the agent or its tools, fetching the free rooms and committing the booking;
           because the surface was created with

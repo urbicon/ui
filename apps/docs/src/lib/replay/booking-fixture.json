@@ -145,13 +145,13 @@
         {
           "event": "token",
           "data": {
-            "text": " it's in the Engadin with no water to swim in.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"f"
+            "text": " it's in the Engadin with no water to swim in.\n\n```a2ui\n{\"version\":\"1.0\",\"createSurface\":{\"surfaceId\":\"f"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "ermata-sept\",\"catalogId\":\"urbicon-ui/urbicon-catalog/v1\",\"sendDataModel\":true}}\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"sur"
+            "text": "ermata-sept\",\"catalogId\":\"urbicon-ui/urbicon-catalog/v1\",\"sendDataModel\":true}}\n{\"version\":\"1.0\",\"updateDataModel\":{\"sur"
           }
         },
         {
@@ -169,7 +169,7 @@
         {
           "event": "token",
           "data": {
-            "text": "v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"intro\",\"secWhere\",\"secStay\",\"actions\",\"policyNote\"]},{\"id\":\"intro\",\"component\":\"RichText\",\"content\":\"**"
+            "text": "1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"intro\",\"secWhere\",\"secStay\",\"actions\",\"policyNote\"]},{\"id\":\"intro\",\"component\":\"RichText\",\"content\":\"**"
           }
         },
         {
@@ -187,7 +187,7 @@
         {
           "event": "token",
           "data": {
-            "text": ".\",\"child\":\"whereCol\"},{\"id\":\"secStay\",\"component\":\"Section\",\"title\":\"Your stay\",\"child\":\"stayCol\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"where"
+            "text": ".\",\"child\":\"whereCol\"},{\"id\":\"secStay\",\"component\":\"Section\",\"title\":\"Your stay\",\"child\":\"stayCol\"}]}}\n{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"where"
           }
         },
         {
@@ -211,7 +211,7 @@
         {
           "event": "token",
           "data": {
-            "text": "}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"cardDuna\",\"component\":\"Card\",\"variant\":\"outlined\",\"header\":\"dunaHdr\",\"child\":\"dunaBody\"},{\"id\":\"dunaHdr"
+            "text": "}}\n{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"cardDuna\",\"component\":\"Card\",\"variant\":\"outlined\",\"header\":\"dunaHdr\",\"child\":\"dunaBody\"},{\"id\":\"dunaHdr"
           }
         },
         {
@@ -235,49 +235,49 @@
         {
           "event": "token",
           "data": {
-            "text": "\"label\":\"Duna — Comporta\",\"value\":\"duna\"}],\"value\":{\"path\":\"/house\"}},{\"id\":\"roomSel\",\"component\":\"Select\",\"label\":\"Room type\",\"placeholder\":\"Choose a room\",\"options\":{\"path\":\"/options\"},\""
+            "text": "\"label\":\"Duna — Comporta\",\"value\":\"duna\"}],\"value\":{\"@path\":\"/house\"}},{\"id\":\"roomSel\",\"component\":\"Select\",\"label\":\"Room type\",\"placeholder\":\"Choose a room\",\"options\":{\"@path\":\"/options\"},\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "value\":{\"path\":\"/room\"}}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"stayCol\",\"component\":\"Column\",\"children\":[\"dateRow\",\"guestsInput\",\"nameInput\",\"notes"
+            "text": "value\":{\"@path\":\"/room\"}}]}}\n{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"stayCol\",\"component\":\"Column\",\"children\":[\"dateRow\",\"guestsInput\",\"nameInput\",\"notes"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Input\",\"agreedBox\",\"checkBtn\"]},{\"id\":\"dateRow\",\"component\":\"Row\",\"children\":[\"inDate\",\"outDate\"]},{\"id\":\"inDate\",\"component\":\"DatePicker\",\"label\":\"Check-in\",\"value\":{\"path\":\""
+            "text": "Input\",\"agreedBox\",\"checkBtn\"]},{\"id\":\"dateRow\",\"component\":\"Row\",\"children\":[\"inDate\",\"outDate\"]},{\"id\":\"inDate\",\"component\":\"DatePicker\",\"label\":\"Check-in\",\"value\":{\"@path\":\""
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "/checkIn\"},\"min\":\"2026-01-01\"},{\"id\":\"outDate\",\"component\":\"DatePicker\",\"label\":\"Check-out\",\"value\":{\"path\":\"/checkOut\"},\"min\":\"2026-01-02\"},{\"id\":\"guestsInput\",\"component\":\"Input\",\"label\":\"Guests\",\"in"
+            "text": "/checkIn\"},\"min\":\"2026-01-01\"},{\"id\":\"outDate\",\"component\":\"DatePicker\",\"label\":\"Check-out\",\"value\":{\"@path\":\"/checkOut\"},\"min\":\"2026-01-02\"},{\"id\":\"guestsInput\",\"component\":\"Input\",\"label\":\"Guests\",\"in"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "putType\":\"number\",\"value\":{\"path\":\"/guests\"}},{\"id\":\"nameInput\",\"component\":\"Input\",\"label\":\"Name for the booking\",\"placeholder\":\"Who shall I put it under?\",\"value\":{\"path\":\"/name\"}},{\"id\":\"notesIn"
+            "text": "putType\":\"number\",\"value\":{\"@path\":\"/guests\"}},{\"id\":\"nameInput\",\"component\":\"Input\",\"label\":\"Name for the booking\",\"placeholder\":\"Who shall I put it under?\",\"value\":{\"@path\":\"/name\"}},{\"id\":\"notesIn"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "put\",\"component\":\"Textarea\",\"label\":\"Notes (optional)\",\"rows\":2,\"value\":{\"path\":\"/notes\"}},{\"id\":\"agreedBox\",\"component\":\"Checkbox\",\"label\":\"I agree to the cancellation policy\",\"value\":{\"path\":\"/agreed\"}},{\"id\":\"check"
+            "text": "put\",\"component\":\"Textarea\",\"label\":\"Notes (optional)\",\"rows\":2,\"value\":{\"@path\":\"/notes\"}},{\"id\":\"agreedBox\",\"component\":\"Checkbox\",\"label\":\"I agree to the cancellation policy\",\"value\":{\"@path\":\"/agreed\"}},{\"id\":\"check"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Btn\",\"component\":\"Button\",\"variant\":\"outlined\",\"child\":\"checkLbl\",\"action\":{\"event\":{\"name\":\"check_dates\",\"context\":{\"checkIn\":{\"path\":\"/checkIn\"},\"checkOut\":{\"path\":\"/checkOut\"}}}}},{\"id\":"
+            "text": "Btn\",\"component\":\"Button\",\"variant\":\"outlined\",\"child\":\"checkLbl\",\"action\":{\"event\":{\"name\":\"check_dates\",\"context\":{\"checkIn\":{\"@path\":\"/checkIn\"},\"checkOut\":{\"@path\":\"/checkOut\"}}}}},{\"id\":"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "\"checkLbl\",\"component\":\"Text\",\"text\":\"Re-check these dates\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"actions\",\"component\":\"Row\",\"justify\":\"sp"
+            "text": "\"checkLbl\",\"component\":\"Text\",\"text\":\"Re-check these dates\"}]}}\n{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"actions\",\"component\":\"Row\",\"justify\":\"sp"
           }
         },
         {
@@ -289,13 +289,13 @@
         {
           "event": "token",
           "data": {
-            "text": "Button\",\"intent\":\"primary\",\"child\":\"bookLbl\",\"action\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{\"house\":{\"path\":\"/house\"},\"room\":{\"path\":\"/room\"},\"checkIn\":{\"path\":\"/checkIn\"},\"checkOut\":{\"path\":\"/check"
+            "text": "Button\",\"intent\":\"primary\",\"child\":\"bookLbl\",\"action\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{\"house\":{\"@path\":\"/house\"},\"room\":{\"@path\":\"/room\"},\"checkIn\":{\"@path\":\"/checkIn\"},\"checkOut\":{\"@path\":\"/check"
           }
         },
         {
           "event": "token",
           "data": {
-            "text": "Out\"},\"guests\":{\"path\":\"/guests\"},\"name\":{\"path\":\"/name\"}}}}},{\"id\":\"bookLbl\",\"component\":\"Text\",\"text\":\"Book these nights\"},{\"id\":\"policyNote\",\"component\":\"Text\",\"text\":\"N"
+            "text": "Out\"},\"guests\":{\"@path\":\"/guests\"},\"name\":{\"@path\":\"/name\"}}}}},{\"id\":\"bookLbl\",\"component\":\"Text\",\"text\":\"Book these nights\"},{\"id\":\"policyNote\",\"component\":\"Text\",\"text\":\"N"
           }
         },
         {
@@ -445,7 +445,7 @@
         {
           "event": "token",
           "data": {
-            "text": " plain Room is gone on these nights.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"f"
+            "text": " plain Room is gone on these nights.\n\n```a2ui\n{\"version\":\"1.0\",\"updateDataModel\":{\"surfaceId\":\"f"
           }
         },
         {
@@ -457,7 +457,7 @@
         {
           "event": "token",
           "data": {
-            "text": "night (Cala only)\",\"value\":\"suite\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"intro\",\"component\":\"RichText\",\"content\":\"**Thu 3 – Sun 6 September 2026**,"
+            "text": "night (Cala only)\",\"value\":\"suite\"}]}}\n{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"intro\",\"component\":\"RichText\",\"content\":\"**Thu 3 – Sun 6 September 2026**,"
           }
         },
         {
@@ -475,7 +475,7 @@
         {
           "event": "token",
           "data": {
-            "text": "\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"dunaBadge\",\"component\":\"Badge\",\"text\":\"Garden Room only\",\"intent\":\"warning\",\"variant\":\"soft\"},{\"id\":\"dunaBody\",\""
+            "text": "\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"dunaBadge\",\"component\":\"Badge\",\"text\":\"Garden Room only\",\"intent\":\"warning\",\"variant\":\"soft\"},{\"id\":\"dunaBody\",\""
           }
         },
         {
@@ -565,7 +565,7 @@
         {
           "event": "token",
           "data": {
-            "text": "\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"confirmAlert\",\"confirmCard\",\"demoNote\"]},{\"id\":\"confirmAlert\",\"component\":"
+            "text": "\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"confirmAlert\",\"confirmCard\",\"demoNote\"]},{\"id\":\"confirmAlert\",\"component\":"
           }
         },
         {
@@ -583,7 +583,7 @@
         {
           "event": "token",
           "data": {
-            "text": "v0.9.1\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"confHdr\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"confTitle\",\"confBadge\"]},{\"id\":\"conf"
+            "text": "1.0\",\"updateComponents\":{\"surfaceId\":\"fermata-sept\",\"components\":[{\"id\":\"confHdr\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"confTitle\",\"confBadge\"]},{\"id\":\"conf"
           }
         },
         {

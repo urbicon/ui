@@ -1,11 +1,12 @@
 /**
  * Catalog abstraction for the A2UI engine. A *catalog* bundles everything the
  * pure-TS engine (validate/render/prompt) needs to be catalog-agnostic: the
- * component registry, the icon-name set, the unsupported/ignored lists, the
+ * component registry, the icon-name set, the unsupported list, the
  * flex-container set (which parents honour a child `weight`), and per-component
  * post-validation checks. This is the seam that lets a second, Urbicon-native
- * catalog (`urbicon/…`) sit alongside the v0.9.1 `basic` catalog without
- * touching the engine.
+ * catalog (`urbicon/…`) sit alongside the `basic` subset without touching the
+ * engine. A surface may mix its catalogs: each component resolves to its own
+ * `@catalogId`, else to the surface's `catalogId`.
  *
  * Two layers:
  * - `A2uiCatalogSpec` — pure TS, Svelte-free, server-importable (a server
@@ -26,8 +27,8 @@ import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import {
   A2UI_CATALOG_ID,
   A2UI_ICON_NAMES,
-  A2UI_IGNORED_PROPS,
   A2UI_REGISTRY,
+  A2UI_UPSTREAM_BASIC_CATALOG_ID,
   type A2uiComponentSpec,
   type A2uiPropKind,
   type A2uiPropSpec,
@@ -41,8 +42,10 @@ export type { A2uiComponentSpec, A2uiPropKind, A2uiPropSpec };
 /**
  * Context passed to a per-component post-validation check. `props` is the
  * already-validated (registry-declared, stored) prop map for the component —
- * plus `checks` where a gate reads it (`A2uiPropSpec.readsChecks`); `base` is its
- * payload path (`/messages/<i>/updateComponents/components/<j>`).
+ * plus `@accessibility`, and `@checks` where a gate reads it
+ * (`A2uiPropSpec.readsChecks`); `base` is its payload path
+ * (`/messages/<i>/updateComponents/components/<j>`, or the same below
+ * `createSurface`).
  */
 export interface A2uiComponentCheckContext {
   id: string;
@@ -64,9 +67,9 @@ export type A2uiComponentCheck = (ctx: A2uiComponentCheckContext) => A2uiValidat
  * graph / prompt) needs. Structurally satisfied by the richer `A2uiCatalog`.
  */
 export interface A2uiCatalogSpec {
-  /** Catalog id advertised in `createSurface` and matched against incoming surfaces. */
+  /** Catalog id advertised in `createSurface` and matched against `catalogId` / `@catalogId`. */
   catalogId: string;
-  /** Additional ids that resolve to this catalog (version/back-compat aliases). */
+  /** Additional ids that resolve to this catalog. */
   catalogIdAliases?: readonly string[];
   /** Component name → spec (the single source of truth for validation AND the prompt). */
   registry: Readonly<Record<string, A2uiComponentSpec>>;
@@ -74,11 +77,6 @@ export interface A2uiCatalogSpec {
   iconNames: readonly string[];
   /** Real catalog components deliberately not rendered (error chip, not "unknown"). */
   unsupportedComponents: ReadonlySet<string>;
-  /**
-   * Props recognised anywhere but dropped before render (validation warning
-   * only) — `checks` not where a gate reads it (`A2uiPropSpec.readsChecks`).
-   */
-  ignoredProps: ReadonlySet<string>;
   /** Component names whose DIRECT children may carry a `weight` (flex-grow). */
   flexContainers: ReadonlySet<string>;
   /** Optional per-component post-validation checks, keyed by component name. */
@@ -101,10 +99,11 @@ export interface A2uiCatalog extends A2uiCatalogSpec {
 }
 
 /**
- * Resolve a `createSurface.catalogId` to a configured catalog: exact id match
- * first, then an alias match. No prefix/semver matching (an id must round-trip
- * unchanged). Returns `undefined` when nothing matches — the caller falls back
- * to the default catalog.
+ * Resolve a catalog id — a surface's `catalogId`, a component's `@catalogId`, a
+ * function call's `catalogId` — to a configured catalog: exact id match first,
+ * then an alias match. No prefix/semver matching (an id must round-trip
+ * unchanged). Returns `undefined` when nothing matches, and A2UI 1.0 has the
+ * caller fall back to nothing.
  */
 export function resolveCatalog<T extends A2uiCatalogSpec>(
   catalogs: readonly T[],
@@ -120,19 +119,33 @@ export function resolveCatalog<T extends A2uiCatalogSpec>(
 }
 
 /**
- * The v0.9.1 `basic`-subset catalog, spec half. The Basic-specific ChoicePicker
- * and DateTimeInput warnings live here as `componentChecks` (previously
- * hardcoded in the validator) so the engine carries no catalog-specific
- * branches. Message strings are byte-identical to the pre-refactor validator.
+ * The `basic`-subset catalog, spec half. The Basic-specific Tabs, ChoicePicker
+ * and DateTimeInput warnings live here as `componentChecks`, so the engine
+ * carries no catalog-specific branches.
  */
 export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
   catalogId: A2UI_CATALOG_ID,
+  catalogIdAliases: [A2UI_UPSTREAM_BASIC_CATALOG_ID],
   registry: A2UI_REGISTRY,
   iconNames: A2UI_ICON_NAMES,
   unsupportedComponents: UNSUPPORTED_A2UI_COMPONENTS,
-  ignoredProps: A2UI_IGNORED_PROPS,
   flexContainers: new Set(['Row', 'Column']),
   componentChecks: lookupTable<A2uiComponentCheck>({
+    // The kind check takes any finite number; a division count is an integer
+    // of 1 or more, and the dispatcher ignores any other.
+    Slider: ({ id, props, surfaceId, base }) => {
+      const steps = props.get('steps');
+      if (steps === undefined || (Number.isInteger(steps) && (steps as number) >= 1)) return [];
+      return [
+        {
+          severity: 'error',
+          code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          message: `"steps" on Slider "${id}" must be an integer of 1 or more; it is ignored`,
+          surfaceId,
+          path: `${base}/steps`
+        }
+      ];
+    },
     Tabs: ({ id, props, surfaceId, base }) => {
       // The spec marks `tabs` minItems: 1. An empty array is a well-formed
       // `labeledChildren` value, so the kind check passes it — but it renders a

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { A2UI_ISSUE_CODES } from './a2ui.types';
 import { A2uiSurfaceRouter } from './a2ui-router';
 
-const V = 'v0.9.1';
+const V = '1.0';
 const create = (surfaceId: string) => ({
   version: V,
   createSurface: { surfaceId, catalogId: 'a2ui/basic/v1' }
@@ -238,6 +238,44 @@ describe('A2uiSurfaceRouter', () => {
       expect(result.own).toEqual([envelope]);
       expect(result.patches).toEqual([]);
     });
+
+    // The processor refuses each of these, so moving the surface to it would
+    // leave the payload that renders it without its later patches.
+    it.each([
+      [
+        'a second message beside createSurface',
+        { ...create('s1'), callRendererFunction: { functionCallId: 'c1' } }
+      ],
+      ['another protocol version', { ...create('s1'), version: 'v0.9.1' }],
+      ['no version', { createSurface: { surfaceId: 's1' } }]
+    ])('takes no surface away for an envelope with %s', (_label, envelope) => {
+      const router = new A2uiSurfaceRouter();
+      router.route(A, [create('s1')]);
+
+      const result = router.route(B, [envelope]);
+
+      expect(result.own).toEqual([envelope]);
+      expect(result.issues).toEqual([]);
+      expect(router.ownerOf('s1')).toBe(A);
+      expect(router.route(C, [components('s1')]).patches).toEqual([
+        { targetKey: A, envelopes: [components('s1')] }
+      ]);
+    });
+
+    it.each([['callRendererFunction'], ['agentFunctionResponse']])(
+      'leaves an envelope of %s that names a surface with the message that sent it',
+      (message) => {
+        const router = new A2uiSurfaceRouter();
+        router.route(A, [create('s1')]);
+        const envelope = { version: V, [message]: { functionCallId: 'c1', surfaceId: 's1' } };
+
+        const result = router.route(B, [envelope]);
+
+        expect(result.own).toEqual([envelope]);
+        expect(result.patches).toEqual([]);
+        expect(result.promoted).toEqual([]);
+      }
+    );
 
     it('ignores a prototype-polluting surfaceId like any other unknown surface', () => {
       const router = new A2uiSurfaceRouter();

@@ -26,8 +26,8 @@ const POPULATION: ReadonlyArray<readonly [string, unknown]> = [
 ];
 
 // Options that make the view's catalogs, schema and requirements take part:
-// two catalogs turn an unknown catalogId into a warning, the schema checks the
-// fixtures' writes, the requirements check the fixtures' surfaces.
+// the second catalog resolves the component that names it, the schema checks
+// the fixtures' writes, the requirements check the fixtures' surfaces.
 const DATA_SCHEMA: A2uiDataSchema = {
   '/a': { type: 'string' },
   '/notArray': { type: 'array' },
@@ -95,8 +95,9 @@ describe('validateA2uiPayload reports what a settled A2UIView reports', () => {
           }).map((issue) => issue.code)
         )
       );
+      // Only the Urbicon catalog's own check can report Markdown in a Text.
       for (const code of [
-        A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
+        A2UI_ISSUE_CODES.MARKDOWN_IN_TEXT,
         A2UI_ISSUE_CODES.SCHEMA_TYPE_MISMATCH,
         A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
         A2UI_ISSUE_CODES.INVALID_REQUIREMENT

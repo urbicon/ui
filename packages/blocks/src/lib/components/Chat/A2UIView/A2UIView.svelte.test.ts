@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as attacks from './__fixtures__/hostile/attacks';
 import A2UIView from './A2UIView.svelte';
 import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from './a2ui.types';
+import { basicA2uiCatalog } from './a2ui-basic-catalog';
+import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
 import type { A2UIViewProps } from './index';
 import { urbiconA2uiCatalog } from './urbicon/a2ui-urbicon-catalog';
 import { URBICON_A2UI_CATALOG_ID } from './urbicon/a2ui-urbicon-registry';
@@ -19,11 +21,11 @@ import { URBICON_A2UI_CATALOG_ID } from './urbicon/a2ui-urbicon-registry';
 // queries, no jest-dom. Reactive-prop tests mutate a `$state` object inside
 // flushSync — never spread it (spreading severs the proxy).
 
-const V = 'v0.9.1';
+const V = '1.0';
 type Envelope = Record<string, unknown>;
 
 function surface(id = 's'): Envelope {
-  return { version: V, createSurface: { surfaceId: id, catalogId: 'x' } };
+  return { version: V, createSurface: { surfaceId: id, catalogId: A2UI_CATALOG_ID } };
 }
 function comps(components: unknown[], id = 's'): Envelope {
   return { version: V, updateComponents: { surfaceId: id, components } };
@@ -58,14 +60,14 @@ describe('A2UIView — catalog rendering + actions', () => {
         data({ name: 'Ada' }),
         comps([
           { id: 'root', component: 'Column', children: ['title', 'who', 'go'] },
-          { id: 'title', component: 'Text', text: 'Hello', variant: 'h2' },
-          { id: 'who', component: 'Text', text: { path: '/name' } },
+          { id: 'title', component: 'Text', text: '## Hello' },
+          { id: 'who', component: 'Text', text: { '@path': '/name' } },
           {
             id: 'go',
             component: 'Button',
             variant: 'primary',
             child: 'go_label',
-            action: { event: { name: 'submit', context: { who: { path: '/name' } } } }
+            action: { event: { name: 'submit', context: { who: { '@path': '/name' } } } }
           },
           { id: 'go_label', component: 'Text', text: 'Go' }
         ])
@@ -73,8 +75,8 @@ describe('A2UIView — catalog rendering + actions', () => {
       onAction: (actionEvent) => actions.push(actionEvent)
     });
 
-    // Heading + the data-bound Text both render.
-    expect(document.body.textContent).toContain('Hello');
+    // The Markdown heading + the data-bound Text both render.
+    expect(document.querySelector('h2')?.textContent).toBe('Hello');
     expect(document.body.textContent).toContain('Ada');
 
     const button = screen.getByRole('button', { name: /Go/ });
@@ -98,11 +100,11 @@ describe('A2UIView — catalog rendering + actions', () => {
   describe('sendDataModel', () => {
     const sendingSurface = (): Envelope => ({
       version: V,
-      createSurface: { surfaceId: 's', catalogId: 'x', sendDataModel: true }
+      createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID, sendDataModel: true }
     });
     const form = (): unknown[] => [
       { id: 'root', component: 'Column', children: ['field', 'go'] },
-      { id: 'field', component: 'TextField', label: 'Name', value: { path: '/name' } },
+      { id: 'field', component: 'TextField', label: 'Name', value: { '@path': '/name' } },
       {
         id: 'go',
         component: 'Button',
@@ -143,16 +145,14 @@ describe('A2UIView — catalog rendering + actions', () => {
       expect(actions[0].dataModel).toEqual({ name: 'Grace' });
     });
 
-    it('does not warn about the spec property any more', () => {
+    it('reports nothing about the spec property', () => {
       const reported: A2uiValidationIssue[][] = [];
       render({
         payload: [sendingSurface(), comps([{ id: 'root', component: 'Text', text: 'hi' }])],
         onValidationError: (issues) => reported.push(issues)
       });
 
-      expect(reported.flat().some((i) => i.code === A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED)).toBe(
-        false
-      );
+      expect(reported).toEqual([]);
     });
   });
 
@@ -166,12 +166,12 @@ describe('A2UIView — catalog rendering + actions', () => {
           id: 'root',
           component: 'ChoicePicker',
           label: 'Time',
-          value: { path: '/time' },
+          value: { '@path': '/time' },
           options
         }
       ]);
 
-    it('renders the options a { path } binding resolves to', () => {
+    it('renders the options a { "@path" } binding resolves to', () => {
       render({
         payload: [
           surface(),
@@ -182,7 +182,7 @@ describe('A2UIView — catalog rendering + actions', () => {
               { label: '13:45', value: '13' }
             ]
           }),
-          picker({ path: '/slots' })
+          picker({ '@path': '/slots' })
         ]
       });
 
@@ -192,7 +192,7 @@ describe('A2UIView — catalog rendering + actions', () => {
 
     it('picks up options that arrive in a later envelope', () => {
       const props = render({
-        payload: [surface(), data({ time: [] }), picker({ path: '/slots' })]
+        payload: [surface(), data({ time: [] }), picker({ '@path': '/slots' })]
       });
 
       expect(document.body.textContent).not.toContain('16:00');
@@ -210,7 +210,7 @@ describe('A2UIView — catalog rendering + actions', () => {
     it('reports a binding that resolves to something other than an option list', () => {
       const reported: A2uiValidationIssue[][] = [];
       render({
-        payload: [surface(), data({ slots: 'not-a-list' }), picker({ path: '/slots' })],
+        payload: [surface(), data({ slots: 'not-a-list' }), picker({ '@path': '/slots' })],
         onValidationError: (issues) => reported.push(issues)
       });
 
@@ -222,7 +222,7 @@ describe('A2UIView — catalog rendering + actions', () => {
     it('stays silent while the bound data has not arrived yet', () => {
       const reported: A2uiValidationIssue[][] = [];
       render({
-        payload: [surface(), data({ time: [] }), picker({ path: '/slots' })],
+        payload: [surface(), data({ time: [] }), picker({ '@path': '/slots' })],
         onValidationError: (issues) => reported.push(issues)
       });
 
@@ -263,7 +263,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     version: V,
     createSurface: { surfaceId: id, catalogId: URBICON_A2UI_CATALOG_ID }
   });
-  const agreedGate = { call: 'not', args: { value: { path: '/agreed' } } };
+  const agreedGate = { '@call': 'not', args: { value: { '@path': '/agreed' } } };
   const consentForm = (withCheckbox: boolean, disabled: unknown = agreedGate): unknown[] => [
     {
       id: 'root',
@@ -276,7 +276,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
             id: 'agree',
             component: 'Checkbox',
             label: 'I accept the cancellation policy',
-            value: { path: '/agreed' }
+            value: { '@path': '/agreed' }
           }
         ]
       : []),
@@ -326,12 +326,15 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     const reported: A2uiValidationIssue[][] = [];
     // Upstream's own button-gating example nests `required` inside `and`.
     const upstreamShaped = {
-      call: 'not',
+      '@call': 'not',
       args: {
         value: {
-          call: 'and',
+          '@call': 'and',
           args: {
-            values: [{ call: 'required', args: { value: { path: '/name' } } }, { path: '/agreed' }]
+            values: [
+              { '@call': 'required', args: { value: { '@path': '/name' } } },
+              { '@path': '/agreed' }
+            ]
           }
         }
       }
@@ -352,13 +355,16 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     ]);
   });
 
-  // A plain binding reads truthiness, as it always has: a stray value disables.
-  it('reads a plainly bound disabled by truthiness', () => {
+  // A2UI 1.0 says what a DynamicBoolean counts as: JavaScript truthiness would
+  // disable on "yes" and on "false".
+  it('reads a plainly bound disabled as the protocol coerces a boolean', () => {
     for (const [held, disabled] of [
       [true, true],
-      ['yes', true],
+      ['true', true],
       [1, true],
-      ['false', true],
+      ['yes', false],
+      ['false', false],
+      [0, false],
       [false, false],
       [undefined, false]
     ] as const) {
@@ -367,7 +373,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
         payload: [
           urbiconSurface(),
           data({ locked: held }),
-          comps(consentForm(false, { path: '/locked' }))
+          comps(consentForm(false, { '@path': '/locked' }))
         ]
       });
       expect((screen.getByRole('button', { name: /Book/ }) as HTMLButtonElement).disabled).toBe(
@@ -399,7 +405,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
           urbiconSurface(),
           comps(
             checkedForm({
-              checks: [{ condition: { path: '/agreed' }, message: 'Accept the policy' }]
+              '@checks': [{ condition: { '@path': '/agreed' }, message: 'Accept the policy' }]
             })
           )
         ],
@@ -419,13 +425,16 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
       expect(reported.flat()).toEqual([]);
     });
 
-    // Unlike a plainly bound `disabled`, a condition is read as a logic operand.
-    it('passes a check only on a condition that is exactly true', () => {
+    // A condition may resolve to a boolean or to a validation result.
+    it('passes a check on a condition that counts as true', () => {
       for (const [agreed, disabled] of [
         [true, false],
+        ['true', false],
+        [1, false],
+        [{ valid: true }, false],
         ['yes', true],
-        [1, true],
-        ['true', true]
+        [0, true],
+        [{ valid: false, message: 'Card expired' }, true]
       ] as const) {
         render({
           catalogs: [urbiconA2uiCatalog],
@@ -434,7 +443,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
             data({ agreed }),
             comps(
               checkedForm({
-                checks: [{ condition: { path: '/agreed' }, message: 'Accept the policy' }]
+                '@checks': [{ condition: { '@path': '/agreed' }, message: 'Accept the policy' }]
               })
             )
           ]
@@ -449,16 +458,19 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     it("holds upstream's own example closed, and says why", async () => {
       const user = userEvent.setup();
       const reported: A2uiValidationIssue[][] = [];
-      const required = { call: 'required', args: { value: { path: '/agreed' } } };
+      const required = { '@call': 'required', args: { value: { '@path': '/agreed' } } };
       render({
         catalogs: [urbiconA2uiCatalog],
         payload: [
           urbiconSurface(),
           comps(
             checkedForm({
-              checks: [
+              '@checks': [
                 {
-                  condition: { call: 'and', args: { values: [required, { path: '/agreed' }] } },
+                  condition: {
+                    '@call': 'and',
+                    args: { values: [required, { '@path': '/agreed' }] }
+                  },
                   message: 'You must accept the terms'
                 }
               ]
@@ -489,14 +501,14 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
               component: 'Button',
               child: 'rowLabel',
               action: { event: { name: 'pick' } },
-              checks: [{ condition: { path: 'ok' }, message: 'Not available' }]
+              '@checks': [{ condition: { '@path': 'ok' }, message: 'Not available' }]
             },
             { id: 'rowLabel', component: 'Text', text: 'Pick' }
           ])
         ]
       });
       const rows = screen.getAllByRole('button', { name: 'Pick' }) as HTMLButtonElement[];
-      expect(rows.map((button) => button.disabled)).toEqual([false, true, true]);
+      expect(rows.map((button) => button.disabled)).toEqual([false, true, false]);
     });
 
     it('disables while either disabled or checks asks for it', async () => {
@@ -513,8 +525,8 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
             data({ locked }),
             comps(
               checkedForm({
-                disabled: { path: '/locked' },
-                checks: [{ condition: { path: '/agreed' }, message: 'Accept the policy' }]
+                disabled: { '@path': '/locked' },
+                '@checks': [{ condition: { '@path': '/agreed' }, message: 'Accept the policy' }]
               })
             )
           ]
@@ -530,9 +542,8 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
   });
 
   it('reports a consent box the agent cannot hold on the catalog it picked, as one relayed error', () => {
-    // Exactly the documented wiring; the agent names upstream's Basic catalog URL,
-    // which the view does not know, so the surface falls back to Basic — where no
-    // Urbicon `Checkbox` can exist.
+    // Exactly the documented wiring; the agent names upstream's Basic catalog id,
+    // which resolves to the Basic subset — where no Urbicon `Checkbox` exists.
     const reports: A2uiValidationIssue[][] = [];
     const props = render({
       catalogs: [urbiconA2uiCatalog],
@@ -545,7 +556,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
           version: V,
           createSurface: {
             surfaceId: 'booking',
-            catalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json'
+            catalogId: A2UI_UPSTREAM_BASIC_CATALOG_ID
           }
         },
         comps(
@@ -569,7 +580,7 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
       code: A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
       surfaceId: 'booking'
     });
-    expect(errors[0].message).toContain(`catalogId "${URBICON_A2UI_CATALOG_ID}"`);
+    expect(errors[0].message).toContain(`"@catalogId": "${URBICON_A2UI_CATALOG_ID}"`);
     expect(reports.flat().some((i) => i.code === A2UI_ISSUE_CODES.INVALID_REQUIREMENT)).toBe(false);
   });
 
@@ -665,8 +676,8 @@ describe('A2UIView — two-way binding', () => {
         data({ name: '' }),
         comps([
           { id: 'root', component: 'Column', children: ['field', 'echo'] },
-          { id: 'field', component: 'TextField', label: 'Name', value: { path: '/name' } },
-          { id: 'echo', component: 'Text', text: { path: '/name' } }
+          { id: 'field', component: 'TextField', label: 'Name', value: { '@path': '/name' } },
+          { id: 'echo', component: 'Text', text: { '@path': '/name' } }
         ])
       ]
     });
@@ -682,6 +693,28 @@ describe('A2UIView — two-way binding', () => {
     expect(document.body.textContent).toContain('Ada');
   });
 
+  // A2UI's conformance case for a list of strings: `""` is the item itself.
+  it('shows and edits each item of a template over strings through the empty path', async () => {
+    const user = userEvent.setup();
+    render({
+      payload: [
+        surface(),
+        data({ tags: ['urgent', 'home'] }),
+        comps([
+          { id: 'root', component: 'Column', children: ['list', 'echo'] },
+          { id: 'list', component: 'List', children: { componentId: 'tag', path: '/tags' } },
+          { id: 'tag', component: 'TextField', label: 'Tag', value: { '@path': '' } },
+          { id: 'echo', component: 'Text', text: { '@path': '/tags/1' } }
+        ])
+      ]
+    });
+    const inputs = [...document.querySelectorAll('input[type="text"]')] as HTMLInputElement[];
+    expect(inputs.map((input) => input.value)).toEqual(['urgent', 'home']);
+    await user.type(inputs[1], 'work');
+    flushSync();
+    expect(document.body.textContent).toContain('homework');
+  });
+
   it('preserves an edit across an incremental envelope append (referential prefix)', async () => {
     const user = userEvent.setup();
     const props = render({
@@ -690,7 +723,7 @@ describe('A2UIView — two-way binding', () => {
         data({ name: '' }),
         comps([
           { id: 'root', component: 'Column', children: ['field'] },
-          { id: 'field', component: 'TextField', label: 'Name', value: { path: '/name' } }
+          { id: 'field', component: 'TextField', label: 'Name', value: { '@path': '/name' } }
         ])
       ]
     });
@@ -725,7 +758,7 @@ describe('A2UIView — two-way binding', () => {
         data({ name: '' }),
         comps([
           { id: 'root', component: 'Column', children: ['field'] },
-          { id: 'field', component: 'TextField', label: 'Name', value: { path: '/name' } }
+          { id: 'field', component: 'TextField', label: 'Name', value: { '@path': '/name' } }
         ])
       ]
     });
@@ -742,7 +775,7 @@ describe('A2UIView — two-way binding', () => {
         data({ name: '' }),
         comps([
           { id: 'root', component: 'Column', children: ['field'] },
-          { id: 'field', component: 'TextField', label: 'Name', value: { path: '/name' } }
+          { id: 'field', component: 'TextField', label: 'Name', value: { '@path': '/name' } }
         ])
       ];
     });
@@ -764,7 +797,7 @@ describe('A2UIView — ChoicePicker', () => {
             id: 'root',
             component: 'ChoicePicker',
             variant: 'mutuallyExclusive',
-            value: { path: '/choice' },
+            value: { '@path': '/choice' },
             options: [
               { label: 'Apple', value: 'a' },
               { label: 'Banana', value: 'b' }
@@ -797,7 +830,7 @@ describe('A2UIView — ChoicePicker', () => {
             id: 'root',
             component: 'ChoicePicker',
             variant: 'multipleSelection',
-            value: { path: '/choice' },
+            value: { '@path': '/choice' },
             options: [
               { label: 'Apple', value: 'a' },
               { label: 'Banana', value: 'b' }
@@ -960,7 +993,7 @@ describe('A2UIView — hardening (review regressions)', () => {
             {
               id: 'root',
               component: 'ChoicePicker',
-              value: { path: '/c' },
+              value: { '@path': '/c' },
               options: [
                 { label: 'A', value: 'x' },
                 { label: 'B', value: 'x' }
@@ -983,7 +1016,7 @@ describe('A2UIView — hardening (review regressions)', () => {
           {
             id: 'root',
             component: 'Column',
-            accessibility: { label: 'Booking form' },
+            '@accessibility': { label: 'Booking form' },
             children: ['t']
           },
           { id: 't', component: 'Text', text: 'Hi' }
@@ -1033,14 +1066,14 @@ describe('A2UIView — hardening (review regressions)', () => {
             id: 'ok',
             component: 'Button',
             child: 'okl',
-            action: { functionCall: { call: 'openUrl', args: { url: 'https://ok.example/' } } }
+            action: { functionCall: { '@call': 'openUrl', args: { url: 'https://ok.example/' } } }
           },
           { id: 'okl', component: 'Text', text: 'Open' },
           {
             id: 'bad',
             component: 'Button',
             child: 'badl',
-            action: { functionCall: { call: 'openUrl', args: { url: 'javascript:alert(1)' } } }
+            action: { functionCall: { '@call': 'openUrl', args: { url: 'javascript:alert(1)' } } }
           },
           { id: 'badl', component: 'Text', text: 'Evil' }
         ])
@@ -1064,7 +1097,7 @@ describe('A2UIView — hardening (review regressions)', () => {
             id: 'root',
             component: 'Button',
             child: 'l',
-            action: { functionCall: { call: 'doThing' } }
+            action: { functionCall: { '@call': 'doThing' } }
           },
           { id: 'l', component: 'Text', text: 'Do' }
         ])
@@ -1082,8 +1115,8 @@ describe('A2UIView — DateTimeInput', () => {
     data(model),
     comps([
       { id: 'root', component: 'Column', children: ['dt', 'echo'] },
-      { id: 'dt', component: 'DateTimeInput', value: { path: '/when' }, ...props },
-      { id: 'echo', component: 'Text', text: { path: '/when' } }
+      { id: 'dt', component: 'DateTimeInput', value: { '@path': '/when' }, ...props },
+      { id: 'echo', component: 'Text', text: { '@path': '/when' } }
     ])
   ];
 
@@ -1207,9 +1240,9 @@ describe('A2UIView — DateTimeInput', () => {
           {
             id: 'root',
             component: 'DateTimeInput',
-            value: { path: '/when' },
+            value: { '@path': '/when' },
             enableDate: true,
-            accessibility: { label: 'Appointment date' }
+            '@accessibility': { label: 'Appointment date' }
           }
         ])
       ]
@@ -1223,8 +1256,13 @@ describe('A2UIView — DateTimeInput', () => {
     const hostile = [
       { value: { nested: { deep: true } }, enableDate: true },
       { value: 12345, enableTime: true },
-      { value: { path: '/when' }, enableDate: true, min: 'garbage', max: '9999-99-99' },
-      { value: { path: '/when' }, enableDate: true, enableTime: true, label: { path: '/missing' } }
+      { value: { '@path': '/when' }, enableDate: true, min: 'garbage', max: '9999-99-99' },
+      {
+        value: { '@path': '/when' },
+        enableDate: true,
+        enableTime: true,
+        label: { '@path': '/missing' }
+      }
     ];
     for (const props of hostile) {
       expect(() => {
@@ -1293,7 +1331,7 @@ describe('A2UIView — Tabs', () => {
     expect(screen.getByRole('tab', { name: 'Second' }).getAttribute('aria-selected')).toBe('true');
   });
 
-  it('resolves a { path } binding in a tab title', () => {
+  it('resolves a { "@path" } binding in a tab title', () => {
     render({
       payload: [
         surface(),
@@ -1302,7 +1340,7 @@ describe('A2UIView — Tabs', () => {
           {
             id: 'root',
             component: 'Tabs',
-            tabs: [{ title: { path: '/who' }, child: 'p1' }]
+            tabs: [{ title: { '@path': '/who' }, child: 'p1' }]
           },
           { id: 'p1', component: 'Text', text: 'body' }
         ])
@@ -1411,9 +1449,9 @@ describe('A2UIView — Tabs', () => {
     }
   });
 
-  // Component ids are validated as "non-empty string, not a proto key" only, so
-  // a payload id may carry whitespace. Whitespace in an `aria-controls` value
-  // makes it an IDREF *list*, silently severing the tab↔panel relation for AT.
+  // An id that is no identifier is reported and still rendered, so a payload id
+  // may carry whitespace. Whitespace in an `aria-controls` value makes it an
+  // IDREF *list*, silently severing the tab↔panel relation for AT.
   it('emits whitespace-free ids when a payload id contains spaces', () => {
     const issues: A2uiValidationIssue[] = [];
     render({
@@ -1427,7 +1465,9 @@ describe('A2UIView — Tabs', () => {
         ])
       ]
     });
-    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+    expect(issues.filter((i) => i.severity === 'error').map((i) => i.code)).toEqual([
+      A2UI_ISSUE_CODES.INVALID_ID
+    ]);
 
     const tab = screen.getByRole('tab');
     expect(tab.id).not.toMatch(/\s/);
@@ -1448,7 +1488,7 @@ describe('A2UIView — Tabs', () => {
           {
             id: 'root',
             component: 'Tabs',
-            accessibility: { label: 'Booking steps' },
+            '@accessibility': { label: 'Booking steps' },
             tabs: [{ title: 'A', child: 'b1' }]
           },
           { id: 'b1', component: 'Text', text: 'BODY' }
@@ -1558,7 +1598,7 @@ describe('A2UIView — Tabs', () => {
         surface(),
         data({}),
         comps([
-          { id: 'root', component: 'Tabs', tabs: [{ title: { path: '/gone' }, child: 'p1' }] },
+          { id: 'root', component: 'Tabs', tabs: [{ title: { '@path': '/gone' }, child: 'p1' }] },
           { id: 'p1', component: 'Text', text: 'body' }
         ])
       ],
@@ -1653,7 +1693,7 @@ describe('A2UIView — inherited-member lookups never take the view down', () =>
         data({ glyph: 'toString' }),
         comps([
           { id: 'root', component: 'Column', children: ['i'] },
-          { id: 'i', component: 'Icon', name: { path: '/glyph' } }
+          { id: 'i', component: 'Icon', name: { '@path': '/glyph' } }
         ])
       ]
     });
@@ -1671,5 +1711,510 @@ describe('A2UIView — inherited-member lookups never take the view down', () =>
         document.body.replaceChildren();
       }, name).not.toThrow();
     }
+  });
+});
+
+describe('A2UIView — A2UI 1.0', () => {
+  const issuesOf = (reports: A2uiValidationIssue[][]) => reports.at(-1) ?? [];
+
+  it('renders a surface one createSurface carries whole, bound to its own data model', () => {
+    const reports: A2uiValidationIssue[][] = [];
+    render({
+      payload: [
+        {
+          version: V,
+          createSurface: {
+            surfaceId: 's',
+            catalogId: A2UI_CATALOG_ID,
+            dataModel: { name: 'Ada' },
+            components: [{ id: 'root', component: 'Text', text: { '@path': '/name' } }]
+          }
+        }
+      ],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    expect(document.body.textContent).toContain('Ada');
+    expect(reports).toEqual([]);
+  });
+
+  it('reads a pre-1.0 { path } as a literal, so it binds nothing', () => {
+    const reports: A2uiValidationIssue[][] = [];
+    render({
+      payload: [
+        surface(),
+        data({ name: 'Ada' }),
+        comps([{ id: 'root', component: 'Text', text: { path: '/name' } }])
+      ],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    expect(document.body.textContent).not.toContain('Ada');
+    expect(issuesOf(reports).map((i) => i.code)).toContain(A2UI_ISSUE_CODES.TYPE_MISMATCH);
+  });
+
+  it('numbers template items with @index', () => {
+    render({
+      payload: [
+        surface(),
+        data({ rows: [{}, {}, {}] }),
+        comps([
+          { id: 'root', component: 'List', children: { componentId: 'row', path: '/rows' } },
+          { id: 'row', component: 'Text', text: { '@call': '@index', args: { offset: 1 } } }
+        ])
+      ]
+    });
+    const items = [...document.querySelectorAll('li')].map((li) => li.textContent?.trim());
+    expect(items).toEqual(['1', '2', '3']);
+  });
+
+  it('removes a key the agent writes null to, live', () => {
+    const props = render({
+      payload: [
+        surface(),
+        data({ note: 'Sold out' }),
+        comps([{ id: 'root', component: 'Text', text: { '@path': '/note' } }])
+      ]
+    });
+    expect(document.body.textContent).toContain('Sold out');
+    flushSync(() => {
+      props.payload = [
+        ...(props.payload as unknown[]),
+        { version: V, updateDataModel: { surfaceId: 's', path: '/note', value: null } }
+      ];
+    });
+    flushSync();
+    expect(document.body.textContent).not.toContain('Sold out');
+  });
+
+  describe('@accessibility', () => {
+    const labelled = (accessibility: unknown, extra: Record<string, unknown> = {}) => [
+      surface(),
+      data({ name: 'Send it', gone: true, ...extra }),
+      comps([
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'label',
+          action: { event: { name: 'go' } },
+          '@accessibility': accessibility
+        },
+        { id: 'label', component: 'Text', text: 'Go' }
+      ])
+    ];
+
+    it('names the component from a bound label, over its visible text', () => {
+      render({ payload: labelled({ label: { '@path': '/name' } }) });
+      expect(screen.getByRole('button', { name: 'Send it' })).toBeTruthy();
+    });
+
+    it('maps description and live to their ARIA attributes', () => {
+      render({ payload: labelled({ description: 'Sends the form', live: 'polite' }) });
+      const button = screen.getByRole('button');
+      expect(button.getAttribute('aria-description')).toBe('Sends the form');
+      expect(button.getAttribute('aria-live')).toBe('polite');
+    });
+
+    // jsdom implements no `inert`, so the attribute is what is measured here.
+    it('hides the whole component, label and control, behind one inert wrapper', () => {
+      render({
+        payload: [
+          surface(),
+          comps([
+            { id: 'root', component: 'Column', children: ['field', 'send'] },
+            {
+              id: 'field',
+              component: 'TextField',
+              label: 'Visible label',
+              value: 'x',
+              '@accessibility': { hidden: true }
+            },
+            { id: 'send', component: 'Button', child: 'label', action: { event: { name: 'go' } } },
+            { id: 'label', component: 'Text', text: 'Go', '@accessibility': { hidden: true } }
+          ])
+        ]
+      });
+      const input = document.querySelector('input') as HTMLInputElement;
+      const wrapper = input.closest('[aria-hidden="true"]') as HTMLElement;
+      expect(wrapper.tagName).toBe('DIV');
+      expect(wrapper.hasAttribute('inert')).toBe(true);
+      expect(wrapper.style.display).toBe('contents');
+      expect(wrapper.textContent).toContain('Visible label');
+      expect(input.hasAttribute('aria-hidden')).toBe(false);
+      // Inside a Button a div would be invalid HTML.
+      const label = screen.getByRole('button', { hidden: true }).querySelector('[inert]');
+      expect(label?.tagName).toBe('SPAN');
+      expect(label?.textContent).toBe('Go');
+    });
+
+    it('keeps the wrapper and the control while a bound hidden changes', () => {
+      const props = render({
+        payload: [
+          surface(),
+          data({ gone: false }),
+          comps([
+            {
+              id: 'root',
+              component: 'TextField',
+              label: 'Name',
+              value: 'x',
+              '@accessibility': { hidden: { '@path': '/gone' } }
+            }
+          ])
+        ]
+      });
+      const input = document.querySelector('input') as HTMLInputElement;
+      const wrapper = input.parentElement?.closest('[style="display: contents;"]') as HTMLElement;
+      expect(wrapper.hasAttribute('inert')).toBe(false);
+      expect(wrapper.hasAttribute('aria-hidden')).toBe(false);
+      flushSync(() => {
+        props.payload = [
+          ...(props.payload as unknown[]),
+          { version: V, updateDataModel: { surfaceId: 's', path: '/gone', value: 'true' } }
+        ];
+      });
+      flushSync();
+      expect(document.querySelector('input')).toBe(input);
+      expect(wrapper.hasAttribute('inert')).toBe(true);
+      expect(wrapper.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('adds no wrapper to a component that declares no hidden', () => {
+      render({ payload: labelled({ description: 'Sends the form' }) });
+      expect(document.querySelector('[style*="contents"]')).toBeNull();
+    });
+
+    it('leaves a component alone where the keys are absent or resolve to nothing', () => {
+      render({
+        payload: labelled({ hidden: { '@path': '/unset' }, label: { '@path': '/unset' } })
+      });
+      const button = screen.getByRole('button', { name: 'Go' });
+      for (const attribute of ['aria-label', 'aria-description', 'aria-live', 'aria-hidden']) {
+        expect(button.hasAttribute(attribute), attribute).toBe(false);
+      }
+    });
+
+    it('reaches a component without a role to name, such as a Text', () => {
+      render({
+        payload: [
+          surface(),
+          comps([
+            {
+              id: 'root',
+              component: 'Text',
+              text: 'Saved',
+              variant: 'caption',
+              '@accessibility': { live: 'assertive', description: 'Status' }
+            }
+          ])
+        ]
+      });
+      const status = document.querySelector('[aria-live="assertive"]');
+      expect(status?.textContent).toBe('Saved');
+      expect(status?.getAttribute('aria-description')).toBe('Status');
+    });
+
+    it('keeps an unlabelled Icon decorative, and hides a labelled one on request', () => {
+      const icon = (accessibility: unknown) =>
+        render({
+          payload: [
+            surface(),
+            comps([
+              { id: 'root', component: 'Icon', name: 'star', '@accessibility': accessibility }
+            ])
+          ]
+        });
+      icon({ label: 'Favourite' });
+      expect(screen.getByRole('img', { name: 'Favourite' }).hasAttribute('aria-hidden')).toBe(
+        false
+      );
+      dispose?.();
+      document.body.replaceChildren();
+      icon({ label: 'Favourite', hidden: true });
+      expect(
+        document.querySelector('[aria-label="Favourite"]')?.closest('[inert][aria-hidden="true"]')
+      ).not.toBeNull();
+    });
+  });
+
+  describe('action.event.userMessage', () => {
+    const click = async (userMessage: unknown) => {
+      const user = userEvent.setup();
+      const actions: A2uiActionEvent[] = [];
+      render({
+        payload: [
+          surface(),
+          data({ nights: 2, summary: 'Booked two nights' }),
+          comps([
+            {
+              id: 'root',
+              component: 'Button',
+              child: 'label',
+              action: {
+                event: userMessage === undefined ? { name: 'book' } : { name: 'book', userMessage }
+              }
+            },
+            { id: 'label', component: 'Text', text: 'Book' }
+          ])
+        ],
+        onAction: (event) => actions.push(event)
+      });
+      await user.click(screen.getByRole('button', { name: 'Book' }));
+      dispose?.();
+      dispose = undefined;
+      document.body.replaceChildren();
+      return actions[0];
+    };
+
+    it('travels with the action, literal or resolved at click time', async () => {
+      expect((await click('Booked')).userMessage).toBe('Booked');
+      expect((await click({ '@path': '/summary' })).userMessage).toBe('Booked two nights');
+    });
+
+    it('is left out where the action has none or it resolves to no string', async () => {
+      expect('userMessage' in (await click(undefined))).toBe(false);
+      expect('userMessage' in (await click({ '@path': '/nights' }))).toBe(false);
+      expect('userMessage' in (await click({ '@path': '/unset' }))).toBe(false);
+    });
+  });
+
+  it('shows a TextField placeholder, literal or bound', () => {
+    render({
+      payload: [
+        surface(),
+        data({ hint: 'name@example.com' }),
+        comps([
+          { id: 'root', component: 'Column', children: ['a', 'b'] },
+          {
+            id: 'a',
+            component: 'TextField',
+            label: 'Name',
+            value: { '@path': '/name' },
+            placeholder: 'Ada Lovelace'
+          },
+          {
+            id: 'b',
+            component: 'TextField',
+            label: 'Mail',
+            value: { '@path': '/mail' },
+            placeholder: { '@path': '/hint' },
+            variant: 'longText'
+          }
+        ])
+      ]
+    });
+    expect(screen.getByLabelText('Name').getAttribute('placeholder')).toBe('Ada Lovelace');
+    expect(screen.getByLabelText('Mail').getAttribute('placeholder')).toBe('name@example.com');
+  });
+
+  it('snaps a Slider to the boundaries of its steps', async () => {
+    const user = userEvent.setup();
+    render({
+      payload: [
+        surface(),
+        data({ level: 0 }),
+        comps([
+          { id: 'root', component: 'Column', children: ['level', 'out'] },
+          { id: 'level', component: 'Slider', value: { '@path': '/level' }, max: 100, steps: 4 },
+          { id: 'out', component: 'Text', text: { '@path': '/level' }, variant: 'caption' }
+        ])
+      ]
+    });
+    screen.getByRole('slider').focus();
+    await user.keyboard('{ArrowRight}');
+    flushSync();
+    expect(screen.getByRole('slider').getAttribute('aria-valuenow')).toBe('25');
+  });
+
+  it('inlines a bound svgPath only once it passes the path grammar', () => {
+    const icon = (path: string) => {
+      render({
+        payload: [
+          surface(),
+          data({ path }),
+          comps([{ id: 'root', component: 'Icon', name: { svgPath: { '@path': '/path' } } }])
+        ]
+      });
+      const d = document.querySelector('path')?.getAttribute('d');
+      dispose?.();
+      dispose = undefined;
+      document.body.replaceChildren();
+      return d;
+    };
+    expect(icon('M4 4L20 20')).toBe('M4 4L20 20');
+    expect(icon('M4 4"/><script>alert(1)</script>')).not.toContain('script');
+  });
+
+  describe('mixed catalogs', () => {
+    it('renders each component through the dispatcher of its own catalog', () => {
+      const reports: A2uiValidationIssue[][] = [];
+      render({
+        catalogs: [urbiconA2uiCatalog],
+        payload: [
+          surface(),
+          data({ pick: ['a'] }),
+          comps([
+            { id: 'root', component: 'Column', children: ['tag', 'choice', 'field'] },
+            // Urbicon has the Badge, and Basic the ChoicePicker.
+            { id: 'tag', component: 'Badge', text: 'New', '@catalogId': URBICON_A2UI_CATALOG_ID },
+            {
+              id: 'choice',
+              component: 'ChoicePicker',
+              value: { '@path': '/pick' },
+              options: [
+                { label: 'A', value: 'a' },
+                { label: 'B', value: 'b' }
+              ]
+            },
+            {
+              id: 'field',
+              component: 'Input',
+              label: 'Mail',
+              value: { '@path': '/mail' },
+              error: 'Required',
+              '@catalogId': URBICON_A2UI_CATALOG_ID
+            }
+          ])
+        ],
+        onValidationError: (issues) => reports.push(issues)
+      });
+      expect(reports).toEqual([]);
+      expect(document.body.textContent).toContain('New');
+      expect((screen.getByRole('radio', { name: 'A' }) as HTMLInputElement).checked).toBe(true);
+      // `error` is an Urbicon Input prop the Basic TextField does not have.
+      expect(document.body.textContent).toContain('Required');
+      expect(document.body.textContent).not.toContain('Unsupported component');
+    });
+
+    it('switches back for the children of a foreign container', () => {
+      render({
+        catalogs: [urbiconA2uiCatalog],
+        payload: [
+          surface(),
+          comps([
+            {
+              id: 'root',
+              component: 'Section',
+              title: 'Stay',
+              child: 'when',
+              '@catalogId': URBICON_A2UI_CATALOG_ID
+            },
+            // Basic's DateTimeInput, inside an Urbicon Section.
+            {
+              id: 'when',
+              component: 'DateTimeInput',
+              value: { '@path': '/when' },
+              enableTime: true
+            }
+          ])
+        ]
+      });
+      expect(document.querySelector('section')?.textContent).toContain('Stay');
+      expect(document.body.textContent).not.toContain('Unsupported component');
+      expect(document.querySelector('section input, section [role="spinbutton"]')).not.toBeNull();
+    });
+
+    it('draws a fault chip for a component whose catalog resolves to nothing', () => {
+      const reports: A2uiValidationIssue[][] = [];
+      render({
+        payload: [
+          { version: V, createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID } },
+          comps([
+            { id: 'root', component: 'Column', children: ['a', 'b'] },
+            { id: 'a', component: 'Text', text: 'unresolved' },
+            { id: 'b', component: 'Text', text: 'resolved', '@catalogId': A2UI_CATALOG_ID }
+          ])
+        ],
+        onValidationError: (issues) => reports.push(issues)
+      });
+      // The Urbicon catalog is not configured on this view, and nothing stands in for it.
+      expect(issuesOf(reports).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.UNKNOWN_CATALOG]);
+      expect(document.body.textContent).toContain('Unsupported component: Column');
+      expect(document.body.textContent).not.toContain('unresolved');
+    });
+  });
+
+  it('reports a callRendererFunction as refused, with the id of the call', () => {
+    const reports: A2uiValidationIssue[][] = [];
+    render({
+      payload: [
+        {
+          version: V,
+          callRendererFunction: {
+            functionCallId: 'call_7',
+            callFunction: { '@call': 'openUrl', catalogId: A2UI_CATALOG_ID, args: { url: 'x' } }
+          }
+        }
+      ],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    expect(issuesOf(reports)).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        code: A2UI_ISSUE_CODES.INVALID_FUNCTION_CALL,
+        functionCallId: 'call_7'
+      })
+    ]);
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  // The id is what a transport answers with, and nothing else of the issue
+  // tells two such calls apart.
+  it('reports again when a replaced payload refuses a call with another id', () => {
+    const reports: A2uiValidationIssue[][] = [];
+    const call = (functionCallId: string) => ({
+      version: V,
+      callRendererFunction: {
+        functionCallId,
+        callFunction: { '@call': 'openUrl', catalogId: A2UI_CATALOG_ID, args: { url: 'x' } }
+      }
+    });
+    const props = render({
+      payload: [call('call_1')],
+      onValidationError: (issues) => reports.push(issues)
+    });
+    flushSync(() => {
+      props.payload = [call('call_2')];
+    });
+    flushSync();
+    expect(reports.map((issues) => issues.map((issue) => issue.functionCallId))).toEqual([
+      ['call_1'],
+      ['call_2']
+    ]);
+  });
+
+  // Each node takes its own catalog's icon set, not the one of its parent:
+  // `calendar` is an Urbicon name, which Basic draws as its fallback glyph.
+  it.each([
+    ['an Urbicon Icon inside a Basic Row', A2UI_CATALOG_ID, URBICON_A2UI_CATALOG_ID],
+    ['a Basic Icon inside an Urbicon Row', URBICON_A2UI_CATALOG_ID, A2UI_CATALOG_ID]
+  ])('draws %s from its own icon set', (_label, rowCatalog, iconCatalog) => {
+    const draw = (catalogId: string, name: string) => {
+      render({
+        payload: [
+          { version: V, createSurface: { surfaceId: 's', catalogId } },
+          comps([{ id: 'root', component: 'Icon', name }])
+        ],
+        catalogs: [basicA2uiCatalog, urbiconA2uiCatalog]
+      });
+      const svg = document.querySelector('svg')?.innerHTML;
+      dispose?.();
+      document.body.replaceChildren();
+      return svg;
+    };
+    const own = draw(iconCatalog, 'calendar');
+    const mixed = (() => {
+      render({
+        payload: [
+          { version: V, createSurface: { surfaceId: 's', catalogId: rowCatalog } },
+          comps([
+            { id: 'root', component: 'Row', children: ['icon'] },
+            { id: 'icon', component: 'Icon', '@catalogId': iconCatalog, name: 'calendar' }
+          ])
+        ],
+        catalogs: [basicA2uiCatalog, urbiconA2uiCatalog]
+      });
+      return document.querySelector('svg')?.innerHTML;
+    })();
+    expect(own).toBeTruthy();
+    expect(mixed).toBe(own);
   });
 });

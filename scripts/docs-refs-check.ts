@@ -99,6 +99,10 @@ export const ALLOWLIST: ReadonlyArray<readonly [what: string, why: string]> = [
     'the v7 name in a rename table: retired by design, and the row is why'
   ],
   [
+    'A2UI_SUPPORTED_VERSIONS',
+    'the pre-1.0 name in a rename note of MIGRATION.md: retired by design, and the note is why'
+  ],
+  [
     'prototypes/artifact-frame/serve.ts',
     'a port-in-use error of the private, local-only artifact studio: whoever reads it runs the checkout that holds prototypes/'
   ]

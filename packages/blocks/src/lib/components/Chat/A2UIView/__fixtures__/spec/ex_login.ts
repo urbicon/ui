@@ -1,45 +1,45 @@
 /**
  * Mirrored A2UI golden fixture — DO NOT hand-edit; mirror of the upstream file.
  * Source: https://github.com/a2ui-project/a2ui
- *   specification/v0_9_1/catalogs/basic/examples/login.json
+ *   catalogs/basic/v1/examples/login-form.json
  * Licensed under the Apache License, Version 2.0.
  *
- * Contains `checks` (Checkable) and `call` function references — both are
- * unsupported in this subset, so processing this fixture yields the expected
- * warnings (checks ignored), never errors.
+ * Contains `@checks` (Checkable) on a TextField and a Button, and function
+ * calls the subset does not evaluate — see the suite for what processing it
+ * reports.
  */
 export const exLogin = {
   name: 'Login Form with Validation',
   description: 'Example of login form demonstrating validation checks and logic.',
   messages: [
     {
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {
         surfaceId: 'gallery-login-form',
-        catalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
+        catalogId: 'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json',
         sendDataModel: true
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'gallery-login-form',
         components: [
           {
             id: 'root',
             component: 'Card',
-            child: 'main-column'
+            child: 'main_column'
           },
           {
-            id: 'main-column',
+            id: 'main_column',
             component: 'Column',
             children: [
               'header',
-              'email-field',
-              'password-field',
-              'login-btn',
+              'email_field',
+              'password_field',
+              'login_btn',
               'divider',
-              'signup-text'
+              'signup_text'
             ]
           },
           {
@@ -51,8 +51,7 @@ export const exLogin = {
           {
             id: 'title',
             component: 'Text',
-            text: 'Welcome back',
-            variant: 'h2'
+            text: '## Welcome back'
           },
           {
             id: 'subtitle',
@@ -61,55 +60,103 @@ export const exLogin = {
             variant: 'caption'
           },
           {
-            id: 'email-field',
+            id: 'email_field',
             component: 'TextField',
-            value: { path: '/email' },
+            value: {
+              '@path': '/email'
+            },
             label: 'Email',
-            checks: [
+            '@checks': [
               {
-                condition: { call: 'required', args: { value: { path: '/email' } } },
+                condition: {
+                  '@call': 'required',
+                  args: {
+                    value: {
+                      '@path': '/email'
+                    }
+                  }
+                },
                 message: 'Email is required'
               },
               {
-                condition: { call: 'email', args: { value: { path: '/email' } } },
+                condition: {
+                  '@call': 'email',
+                  args: {
+                    value: {
+                      '@path': '/email'
+                    }
+                  }
+                },
                 message: 'Please enter a valid email address'
               }
             ]
           },
           {
-            id: 'password-field',
+            id: 'password_field',
             component: 'TextField',
-            value: { path: '/password' },
+            value: {
+              '@path': '/password'
+            },
             label: 'Password',
             variant: 'obscured',
-            checks: [
+            '@checks': [
               {
-                condition: { call: 'required', args: { value: { path: '/password' } } },
+                condition: {
+                  '@call': 'required',
+                  args: {
+                    value: {
+                      '@path': '/password'
+                    }
+                  }
+                },
                 message: 'Password is required'
               },
               {
-                condition: { call: 'length', args: { value: { path: '/password' }, min: 8 } },
+                condition: {
+                  '@call': 'length',
+                  args: {
+                    value: {
+                      '@path': '/password'
+                    },
+                    min: 8
+                  }
+                },
                 message: 'Password must be at least 8 characters long'
               }
             ]
           },
           {
-            id: 'login-btn-text',
+            id: 'login_btn_text',
             component: 'Text',
             text: 'Sign in'
           },
           {
-            id: 'login-btn',
+            id: 'login_btn',
             component: 'Button',
-            child: 'login-btn-text',
-            checks: [
+            child: 'login_btn_text',
+            '@checks': [
               {
                 condition: {
-                  call: 'and',
+                  '@call': 'and',
                   args: {
                     values: [
-                      { call: 'email', args: { value: { path: '/email' } } },
-                      { call: 'length', args: { value: { path: '/password' }, min: 8 } }
+                      {
+                        '@call': 'email',
+                        args: {
+                          value: {
+                            '@path': '/email'
+                          }
+                        }
+                      },
+                      {
+                        '@call': 'length',
+                        args: {
+                          value: {
+                            '@path': '/password'
+                          },
+                          min: 8
+                        }
+                      }
                     ]
                   }
                 },
@@ -119,7 +166,11 @@ export const exLogin = {
             action: {
               event: {
                 name: 'login',
-                context: { email: { path: '/email' } }
+                context: {
+                  email: {
+                    '@path': '/email'
+                  }
+                }
               }
             }
           },
@@ -128,26 +179,26 @@ export const exLogin = {
             component: 'Divider'
           },
           {
-            id: 'signup-text',
+            id: 'signup_text',
             component: 'Row',
-            children: ['no-account', 'signup-link'],
+            children: ['no_account', 'signup_link'],
             justify: 'center'
           },
           {
-            id: 'no-account',
+            id: 'no_account',
             component: 'Text',
             text: "Don't have an account?",
             variant: 'caption'
           },
           {
-            id: 'signup-link-text',
+            id: 'signup_link_text',
             component: 'Text',
             text: 'Sign up'
           },
           {
-            id: 'signup-link',
+            id: 'signup_link',
             component: 'Button',
-            child: 'signup-link-text',
+            child: 'signup_link_text',
             action: {
               event: {
                 name: 'signup',
@@ -159,7 +210,7 @@ export const exLogin = {
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateDataModel: {
         surfaceId: 'gallery-login-form',
         value: {

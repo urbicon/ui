@@ -11,6 +11,78 @@ Only this package. The table's v8 view-state rewrite has its own guide,
 [MIGRATION-V8.md § The shape of the change](https://github.com/urbicon/ui/blob/main/packages/table/docs/MIGRATION-V8.md#the-shape-of-the-change),
 and ships in the `@urbicon-ui/table` tarball.
 
+## 8.40.0
+
+### A2UI: the engine speaks protocol 1.0, and only 1.0
+
+`A2UIView`, the validator and the prompt moved from A2UI v0.9.1 to
+[1.0](https://a2ui.org/specification/v1.0-a2ui/). The wire format changed, so a payload, a stored
+transcript or a hand-written prompt from before is rejected rather than half-read. What an agent
+writes comes from `a2uiSystemPrompt()` and `a2uiFencedTransportSection()`: regenerate the prompt and
+a model writes 1.0.
+
+**On the wire**
+
+| v0.9.1                                              | 1.0                                                                                                               | What reports a leftover                                                                                                                                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `"version": "v0.9.1"`                               | `"version": "1.0"`                                                                                                | `INVALID_VERSION`; the envelope applies nothing                                                                                                                                                  |
+| `{ "path": "/x" }`                                  | `{ "@path": "/x" }`                                                                                               | `TYPE_MISMATCH` on the prop, naming the 1.0 form — the object is a literal now; in an action's `context`, where a literal is legal, a `TYPE_MISMATCH` warning, and the object is sent as written |
+| `{ "call": "not", "args": … }`                      | `{ "@call": "not", "args": … }`                                                                                   | the same                                                                                                                                                                                         |
+| `"returnType"` on a call                            | gone                                                                                                              | `UNKNOWN_PROP`; a gate holds its failsafe                                                                                                                                                        |
+| `"accessibility"`, `"checks"` on a component        | `"@accessibility"`, `"@checks"`                                                                                   | `UNKNOWN_PROP`, naming the 1.0 key; a bare `checks` on a gated control holds the gate at its failsafe                                                                                            |
+| `updateDataModel` without `value` deletes           | `"value": null` deletes; `value` is required                                                                      | `MISSING_FIELD`; nothing is deleted                                                                                                                                                              |
+| `createSurface.theme` (ignored with a warning)      | gone                                                                                                              | `UNKNOWN_PROP` error                                                                                                                                                                             |
+| any `catalogId`, an unknown one falls back to Basic | a configured id, or the component's own `"@catalogId"`; nothing falls back                                        | `UNKNOWN_CATALOG` error, and the components render as fault chips                                                                                                                                |
+| component ids of any shape                          | identifiers: letters, digits and `_`, no hyphen, no leading digit                                                 | `INVALID_ID` error; the component still renders                                                                                                                                                  |
+| `TextField.validationRegexp`, `Text` `h1`–`h5`      | gone from the Basic catalog; a heading is Markdown in a body `Text` (`"## Title"`), `TextField.value` is required | `UNKNOWN_PROP` / `UNKNOWN_ENUM`, `MISSING_FIELD`                                                                                                                                                 |
+
+The `template` form of `children` (`{ "componentId", "path" }`) and the `path` of `updateDataModel`
+keep their unprefixed `path`.
+
+**Behaviour that changed without a new spelling**
+
+- **A boolean is read as A2UI 1.0 coerces one**, wherever the engine reads one: a logic operand, a
+  `@checks` condition, a bound `disabled`, a bound `CheckBox`/`Checkbox`/`Toggle` value. `"true"`
+  (any case), a number other than 0 and `{ "valid": true }` count as true. Before, a logic operand
+  took only the boolean `true`, and a bound `disabled` took JavaScript truthiness: a model value of
+  `"yes"` or `"false"` disabled the button and no longer does; `1` in a `not(…)` gate now counts.
+- **A `@checks` rule takes a binding or a call as its `condition`**, not a literal, and its
+  `message` is optional.
+- **A surface may mix catalogs**, and the Basic catalog is no fallback. A view without
+  `catalogs={[urbiconA2uiCatalog]}` rendered a surface created with the Urbicon id through Basic;
+  it now reports `UNKNOWN_CATALOG`.
+- **`a2uiSurfaceRequirementsSection()` pins the catalogId of every surface it lists**, not only
+  where Basic cannot hold the entries.
+
+**API**
+
+- **Renamed:** `A2UI_SUPPORTED_VERSIONS` (a list) is `A2UI_PROTOCOL_VERSION` (`'1.0'`).
+  `A2UI_CATALOG_ID` is now `'urbicon-ui/a2ui-basic-subset/v1'`; `URBICON_A2UI_CATALOG_ID` is
+  unchanged.
+- **Removed:** `A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED`. From `A2uiCatalogSpec`: `ignoredProps`. From
+  `A2uiPropKind`: `'accessibility'` — `@accessibility` belongs to the protocol, so a custom catalog
+  no longer declares it per component; delete the entry from your registry's props.
+- **Changed shape:** `A2uiSurfaceState.catalog` and the new `A2uiComponentInstance.catalog` are
+  `A2uiCatalogSpec | undefined`; a component's accessibility is
+  `instance.props.get('@accessibility')`.
+- **New:** `A2uiActionEvent.userMessage`; `A2uiValidationIssue.functionCallId`; the issue codes
+  `INVALID_ID`, `INVALID_RESERVED_KEY`, `INVALID_FUNCTION_CALL`, `INDEX_OUTSIDE_TEMPLATE`;
+  `A2UI_UPSTREAM_BASIC_CATALOG_ID`.
+- **Changed meaning:** `MAX_DEPTH` also reports a data-model write that would nest the model deeper
+  than 64 levels; that write is not applied.
+
+A2UI 1.0's function-call messages (`callRendererFunction`, `agentFunctionResponse`) are recognised
+and refused; [A2UI.md § What of A2UI 1.0 the engine speaks](A2UI.md#what-of-a2ui-10-the-engine-speaks)
+has the whole table.
+
+These find what a codebase still writes the old way — payload fixtures, a prompt of your own, a
+custom catalog:
+
+```sh
+rg -n 'v0\.9' src
+rg -n 'A2UI_SUPPORTED_VERSIONS|SURFACE_PROP_IGNORED|ignoredProps' src
+```
+
 ## 8.38.0
 
 ### The A2UI transport for MCP Apps is removed

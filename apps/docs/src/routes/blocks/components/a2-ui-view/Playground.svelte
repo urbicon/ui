@@ -26,7 +26,7 @@
   Datenmodell-Stand reist erst mit der Aktion.
 
   Auf die Aktion folgt der Zug des Agenten, denn die Surface prüft nichts
-  (`checks` ignoriert der Basic-Katalog; docs/A2UI.md: „The agent is the only
+  (`@checks` ignoriert der Basic-Katalog; docs/A2UI.md: „The agent is the only
   validator"). Endet die Bühne beim Echo, liest sich jede Aktion als ausgeführt,
   auch eine leer abgeschickte. Ein leeres Feld beantwortet der Agent deshalb mit
   einem Hinweis, den er in die bestehende Surface patcht — ausgeführt wird
@@ -60,44 +60,44 @@
   // erreicht den Agenten nicht, und im Echo sieht es aus wie verloren.
   const SCENARIOS: Record<string, unknown[]> = {
     signin: [
-      { version: 'v0.9.1', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
+      { version: '1.0', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
       // Zwei `updateComponents`, nicht eines: So kommt eine Surface aus einem
       // echten Modell an — die Hülle zuerst, die Felder danach. Der
       // Zwischenzustand ist genau der, für den `streaming` existiert (`col`
       // verweist auf drei Kinder, die es noch nicht gibt).
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'pg',
           components: [
             { id: 'root', component: 'Card', child: 'col' },
             { id: 'col', component: 'Column', children: ['title', 'email', 'password', 'submit'] },
-            { id: 'title', component: 'Text', text: 'Welcome back', variant: 'h4' }
+            { id: 'title', component: 'Text', text: '#### Welcome back' }
           ]
         }
       },
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'pg',
           components: [
-            { id: 'email', component: 'TextField', label: 'Email', value: { path: '/email' } },
+            { id: 'email', component: 'TextField', label: 'Email', value: { '@path': '/email' } },
             {
               id: 'password',
               component: 'TextField',
               label: 'Password',
               variant: 'obscured',
-              value: { path: '/password' }
+              value: { '@path': '/password' }
             },
-            { id: 'submit-label', component: 'Text', text: 'Sign in' },
+            { id: 'submit_label', component: 'Text', text: 'Sign in' },
             {
               id: 'submit',
               component: 'Button',
-              child: 'submit-label',
+              child: 'submit_label',
               action: {
                 event: {
                   name: 'signin',
-                  context: { email: { path: '/email' }, password: { path: '/password' } }
+                  context: { email: { '@path': '/email' }, password: { '@path': '/password' } }
                 }
               }
             }
@@ -105,25 +105,25 @@
         }
       },
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateDataModel: { surfaceId: 'pg', value: { email: '', password: '' } }
       }
     ],
     survey: [
-      { version: 'v0.9.1', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
+      { version: '1.0', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'pg',
           components: [
             { id: 'root', component: 'Card', child: 'col' },
             { id: 'col', component: 'Column', children: ['q', 'rating', 'contact', 'submit'] },
-            { id: 'q', component: 'Text', text: 'How was your experience?', variant: 'h4' }
+            { id: 'q', component: 'Text', text: '#### How was your experience?' }
           ]
         }
       },
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'pg',
           components: [
@@ -131,24 +131,24 @@
               id: 'rating',
               component: 'Slider',
               label: 'Rating',
-              value: { path: '/rating' },
+              value: { '@path': '/rating' },
               max: 10
             },
             {
               id: 'contact',
               component: 'CheckBox',
               label: 'You may contact me',
-              value: { path: '/contact' }
+              value: { '@path': '/contact' }
             },
-            { id: 'submit-label', component: 'Text', text: 'Submit' },
+            { id: 'submit_label', component: 'Text', text: 'Submit' },
             {
               id: 'submit',
               component: 'Button',
-              child: 'submit-label',
+              child: 'submit_label',
               action: {
                 event: {
                   name: 'submit_survey',
-                  context: { rating: { path: '/rating' }, contact: { path: '/contact' } }
+                  context: { rating: { '@path': '/rating' }, contact: { '@path': '/contact' } }
                 }
               }
             }
@@ -156,7 +156,7 @@
         }
       },
       {
-        version: 'v0.9.1',
+        version: '1.0',
         updateDataModel: { surfaceId: 'pg', value: { rating: 5, contact: false } }
       }
     ]
@@ -203,7 +203,7 @@
   }
 
   const signinColumn = (children: string[], extra: unknown[] = []) => ({
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'pg',
       components: [{ id: 'col', component: 'Column', children }, ...extra]
@@ -233,20 +233,20 @@
             [
               'title',
               'email',
-              ...(emailOk ? [] : ['email-hint']),
+              ...(emailOk ? [] : ['email_hint']),
               'password',
-              ...(passwordOk ? [] : ['password-hint']),
+              ...(passwordOk ? [] : ['password_hint']),
               'submit'
             ],
             [
               {
-                id: 'email-hint',
+                id: 'email_hint',
                 component: 'Text',
                 text: 'Enter the email you signed up with.',
                 variant: 'caption'
               },
               {
-                id: 'password-hint',
+                id: 'password_hint',
                 component: 'Text',
                 text: 'Enter your password.',
                 variant: 'caption'

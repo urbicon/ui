@@ -1,29 +1,30 @@
 /**
  * Public type contracts for the A2UI engine.
  *
- * A2UI is Google/A2UI-project's "Agent to UI" protocol. This engine targets the
- * **v0.9.1 `basic` catalog**, rendering a curated 12-component subset (see
+ * A2UI is the A2UI project's "Agent to UI" protocol. This engine speaks
+ * **protocol 1.0** and renders a curated subset of the `basic` catalog (see
  * `a2ui-registry.ts`). These types are the boundary between the pure-TS engine
- * (WP-A) and the Svelte renderer (WP-B) — keep them Svelte-free.
+ * and the Svelte renderer — keep them Svelte-free.
  *
  * The `A2uiValidationIssue` shape is deliberately spec-compatible with the A2UI
- * client→server `error` message (`{ code, surfaceId?, path?, message }`) so a
- * consumer can relay error-severity issues back to the agent verbatim as a
- * `VALIDATION_FAILED` error. `severity` is our addition, so warnings and errors
- * travel on one channel; the consumer filters.
+ * renderer→agent `error` message (`{ code, message, surfaceId?, path? }`, or
+ * `functionCallId` in place of `surfaceId`) so a consumer can relay
+ * error-severity issues back to the agent verbatim as a `VALIDATION_FAILED`
+ * error. `severity` is our addition, so warnings and errors travel on one
+ * channel; the consumer filters.
  */
 
 /**
- * A single Server→Client envelope. Structurally validated at runtime, never
+ * A single agent→renderer envelope. Structurally validated at runtime, never
  * type-enforced — the wire payload is untrusted, so the engine treats every
  * envelope as an opaque record and validates field-by-field.
  */
 export type A2uiEnvelope = Record<string, unknown>;
 
 /**
- * A resolved user action, spec-exact for the A2UI client→server `action`
- * message. All five fields are required; `context` bindings are resolved
- * against the data model in the source component's scope before dispatch.
+ * A resolved user action, spec-exact for the body of the A2UI renderer→agent
+ * `action` message. `context` bindings are resolved against the data model in
+ * the source component's scope before dispatch.
  */
 export interface A2uiActionEvent {
   name: string;
@@ -33,13 +34,19 @@ export interface A2uiActionEvent {
   timestamp: string;
   context: Record<string, unknown>;
   /**
+   * What the user did, in the agent's own words — `action.event.userMessage`,
+   * resolved at click time. Present only when the action carried one and it
+   * resolved to a string.
+   */
+  userMessage?: string;
+  /**
    * The surface's complete data model — present only when the surface was
    * created with `sendDataModel: true`.
    *
-   * The spec calls this the client data model and has the client append it to
-   * the metadata of every message sent to the agent, but leaves WHERE metadata
-   * travels to the transport binding (A2A `metadata`, HTTP headers, …). This
-   * field is that payload; put it wherever your transport carries metadata.
+   * The spec calls this the renderer data model and has the renderer append it
+   * to the metadata of every message sent to the agent, but leaves WHERE
+   * metadata travels to the transport binding (A2A `metadata`, HTTP headers, …).
+   * This field is that payload; put it wherever your transport carries metadata.
    *
    * It is the antidote to a half-filled `context`: the agent sees everything the
    * user entered, including fields it forgot to list on the action.
@@ -59,6 +66,8 @@ export interface A2uiValidationIssue {
   severity: A2uiIssueSeverity;
   code: string;
   surfaceId?: string;
+  /** The call an `INVALID_FUNCTION_CALL` issue answers; never set together with `surfaceId`. */
+  functionCallId?: string;
   path?: string;
   message: string;
 }
@@ -71,9 +80,9 @@ export interface A2uiValidationIssue {
 export const A2UI_ISSUE_CODES = {
   /** Envelope is not a plain object. */
   INVALID_ENVELOPE: 'INVALID_ENVELOPE',
-  /** `version` missing or not `v0.9`/`v0.9.1`. */
+  /** `version` missing or not `"1.0"`. */
   INVALID_VERSION: 'INVALID_VERSION',
-  /** Envelope has none, or more than one, of the four operation keys. */
+  /** Envelope has none, or more than one, of the six message keys. */
   UNKNOWN_ENVELOPE_TYPE: 'UNKNOWN_ENVELOPE_TYPE',
   /** A required field is missing or has the wrong primitive type. */
   MISSING_FIELD: 'MISSING_FIELD',
@@ -81,16 +90,13 @@ export const A2UI_ISSUE_CODES = {
   NO_SURFACE: 'NO_SURFACE',
   /** `createSurface` for an id that already exists. */
   DUPLICATE_SURFACE: 'DUPLICATE_SURFACE',
-  /** `component` is a string but not in any catalog. */
+  /** `component` is a string its catalog does not know. */
   UNKNOWN_COMPONENT: 'UNKNOWN_COMPONENT',
   /** A real catalog component outside the rendered subset (Modal, Video, …). */
   UNSUPPORTED_COMPONENT: 'UNSUPPORTED_COMPONENT',
   /** A prop not declared for the component (whitelist violation). */
   UNKNOWN_PROP: 'UNKNOWN_PROP',
-  /**
-   * A recognized-but-ignored prop: `validationRegexp`, or `checks` where no
-   * gate reads it.
-   */
+  /** `@checks` on a component none of whose gates reads it. */
   IGNORED_PROP: 'IGNORED_PROP',
   /** A prop value's shape does not match its declared kind. */
   TYPE_MISMATCH: 'TYPE_MISMATCH',
@@ -110,6 +116,19 @@ export const A2UI_ISSUE_CODES = {
   MAX_COMPONENTS: 'MAX_COMPONENTS',
   /** A component object has no usable `id`. */
   MISSING_ID: 'MISSING_ID',
+  /**
+   * A component `id` that is not an identifier (UAX #31: a letter or `_`, then
+   * letters, digits and `_`) — `user-card` and `1st` are not. The component is
+   * kept under that id, so the surface renders while the agent renames it.
+   */
+  INVALID_ID: 'INVALID_ID',
+  /**
+   * A key with a single leading `@` that names no protocol directive — on a
+   * component, anything but `@catalogId`, `@accessibility`, `@checks` and
+   * `@metadata`; in a literal object, anything at all (a literal `@` key is
+   * written doubled: `"@@type"`).
+   */
+  INVALID_RESERVED_KEY: 'INVALID_RESERVED_KEY',
   /** `__proto__`/`constructor`/`prototype` as an id, prop, pointer or context key. */
   PROTOTYPE_POLLUTION: 'PROTOTYPE_POLLUTION',
   /**
@@ -124,7 +143,10 @@ export const A2UI_ISSUE_CODES = {
   POINTER_ERROR: 'POINTER_ERROR',
   /** The component graph contains a cycle. */
   CYCLE: 'CYCLE',
-  /** Tree depth exceeds the limit (default 32). */
+  /**
+   * Tree depth exceeds the limit (default 32), or a data-model write would nest
+   * the data model deeper than 64 levels — that write is not applied.
+   */
   MAX_DEPTH: 'MAX_DEPTH',
   /** Rendered node count exceeds the limit (default 512). */
   MAX_NODES: 'MAX_NODES',
@@ -134,12 +156,18 @@ export const A2UI_ISSUE_CODES = {
   MISSING_ROOT: 'MISSING_ROOT',
   /** A `children` template `path` resolved to a non-array, non-undefined value. */
   TEMPLATE_PATH_NOT_ARRAY: 'TEMPLATE_PATH_NOT_ARRAY',
+  /**
+   * `@index` on a component that renders outside a list template, where there
+   * is no item to count — it resolves to nothing.
+   */
+  INDEX_OUTSIDE_TEMPLATE: 'INDEX_OUTSIDE_TEMPLATE',
   /** `weight` set on a component that is not a direct Row/Column child. */
   WEIGHT_CONTEXT: 'WEIGHT_CONTEXT',
   /**
-   * A `{ call, args }` function call other than the logic functions `not`,
-   * `and`, `or` — unsupported. A warning where it resolves to `undefined`; an
-   * error on a gate (`Button.disabled`), which then holds its failsafe.
+   * A `{ "@call", args }` function call other than the logic functions `not`,
+   * `and`, `or` and the system function `@index` — unsupported. A warning where
+   * it resolves to `undefined`; an error on a gate (`Button.disabled`), which
+   * then holds its failsafe.
    */
   FUNCTION_CALL_UNSUPPORTED: 'FUNCTION_CALL_UNSUPPORTED',
   /** An `Icon.name` string outside the mapped set — a fallback glyph is drawn. */
@@ -148,14 +176,19 @@ export const A2UI_ISSUE_CODES = {
   ICON_INVALID_SVG: 'ICON_INVALID_SVG',
   /** `ChoicePicker` `displayStyle: 'chips'` / `filterable` — rendered with a fallback. */
   CHOICEPICKER_FALLBACK: 'CHOICEPICKER_FALLBACK',
-  /** A `createSurface`-only prop (`theme`, `sendDataModel`) that the engine ignores. */
-  SURFACE_PROP_IGNORED: 'SURFACE_PROP_IGNORED',
   /**
-   * `createSurface.catalogId` names no configured catalog — the surface falls
-   * back to the first (default) catalog. Only emitted in a multi-catalog setup;
-   * a single-catalog processor accepts any id string silently (back-compat).
+   * `createSurface.catalogId`, a component's `@catalogId` or a function call's
+   * `catalogId` names no configured catalog. Nothing falls back: the component
+   * renders as a fault chip, the call is not evaluated.
    */
   UNKNOWN_CATALOG: 'UNKNOWN_CATALOG',
+  /**
+   * `callRendererFunction` or `agentFunctionResponse`. No function of this
+   * renderer may be called by the agent, and it calls none on the agent, so
+   * the first is refused and the second answers nothing. Carries the
+   * `functionCallId`.
+   */
+  INVALID_FUNCTION_CALL: 'INVALID_FUNCTION_CALL',
   /**
    * A `Text` value looks like it carries Markdown, but `Text` renders PLAIN.
    * A heuristic warning steering the agent to `RichText` (Urbicon catalog).
@@ -181,7 +214,7 @@ export const A2UI_ISSUE_CODES = {
    */
   SURFACE_RECREATED: 'SURFACE_RECREATED',
   /**
-   * An `options` `{ path }` binding resolved to a value that is not an **array**
+   * An `options` `{ "@path" }` binding resolved to a value that is not an **array**
    * — the control renders empty. The check is `Array.isArray` and nothing more:
    * an array whose items are not `{ label, value }` passes here and surfaces in
    * the renderer instead. Not emitted while the path is still `undefined`: the
@@ -192,8 +225,8 @@ export const A2UI_ISSUE_CODES = {
   /**
    * A component the consumer requires on this surface (`surfaceRequirements`,
    * keyed by surfaceId) is not reachable from `root`, or renders only as a
-   * fault chip — also when the agent created the surface on a catalog that
-   * cannot hold it, and then the message names a catalog that can. An error,
+   * fault chip — also when the surface's default catalog cannot hold it, and
+   * then the message names a catalog that can. An error,
    * so it travels the channel that is relayed to the agent, which patches the
    * surface. Only reported once the surface has
    * settled (`streaming: false`): a surface arrives over several envelopes, and
@@ -203,7 +236,7 @@ export const A2UI_ISSUE_CODES = {
   /**
    * A `surfaceRequirements` entry that no catalog the processor holds can ever
    * meet — an unknown component, an undeclared prop or one that takes no
-   * `{ path }`, a relative path. The consumer's mistake, not the agent's (which
+   * `{ "@path" }`, a relative path. The consumer's mistake, not the agent's (which
    * catalog the agent picks cannot cause it), so it is a warning (logged, not
    * relayed by the documented wiring),
    * reported once at `createSurface`, and the entry is left unchecked: the agent
