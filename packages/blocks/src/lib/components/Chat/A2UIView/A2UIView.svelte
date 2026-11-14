@@ -7,6 +7,8 @@
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
   import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
+  import { readHidden } from './a2ui-node-common';
+  import { A2UI_ACCESSIBILITY_PROP } from './a2ui-registry';
   import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
   import {
     type A2uiProcessor,
@@ -78,6 +80,13 @@
     if (catalogId === undefined || catalogId === context.catalogId) return context;
     const wiring = wiringById.get(catalogId);
     return wiring ? { ...context, ...wiring } : context;
+  }
+
+  function hiddenOf(node: A2uiRenderNode, context: A2uiRenderContext): boolean | undefined {
+    return readHidden(
+      node.instance?.props.get(A2UI_ACCESSIBILITY_PROP),
+      (value) => context.resolve(value, node.scopePrefix).value
+    );
   }
   // Init-fixed like the catalogs (validation config, not reactive UI state).
   const dataSchema = untrack(() => dataSchemaProp);
@@ -243,7 +252,8 @@
         issue.code,
         issue.surfaceId ?? '',
         issue.path ?? '',
-        issue.message
+        issue.message,
+        issue.functionCallId ?? ''
       ])
     );
     if (signature !== lastIssueSig) {
@@ -264,7 +274,28 @@
 {#snippet renderNode(node: A2uiRenderNode, context: A2uiRenderContext)}
   {@const wired = wiredFor(node, context)}
   {@const Node = wired.nodeComponent}
-  <Node {node} context={wired} renderChild={renderNode} />
+  {@const hidden = hiddenOf(node, wired)}
+  {#if hidden === undefined}
+    <Node {node} context={wired} renderChild={renderNode} />
+  {:else}
+    <!--
+      `@accessibility.hidden`, around the whole component: `aria-hidden` alone
+      would leave a control in the tab order that assistive technology is told
+      does not exist (axe aria-hidden-focus), so it is `inert` as well. A span
+      inside a Button label, where a div is invalid; `display: contents` keeps
+      the component the flex child of its container. `undefined`, not `false`:
+      where an element has no `inert` property (jsdom), `false` still leaves an
+      `inert` attribute behind.
+    -->
+    <svelte:element
+      this={wired.inline ? 'span' : 'div'}
+      style="display: contents"
+      inert={hidden || undefined}
+      aria-hidden={hidden ? 'true' : undefined}
+    >
+      <Node {node} context={wired} renderChild={renderNode} />
+    </svelte:element>
+  {/if}
 {/snippet}
 
 <!--

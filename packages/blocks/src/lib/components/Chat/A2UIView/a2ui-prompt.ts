@@ -132,12 +132,19 @@ function renderKind(spec: A2uiPropSpec): string {
   }
 }
 
-/** `@accessibility` as one line: every key `A2UI_ACCESSIBILITY_SPEC` declares, with what it does. */
+/**
+ * `@accessibility` as one line: every key `A2UI_ACCESSIBILITY_SPEC` declares,
+ * its type and what it does. Shorter than {@link renderKind}, which would put the
+ * line over the Urbicon prompt's length budget.
+ */
 function renderAccessibility(): string {
-  const keys = Object.entries(A2UI_ACCESSIBILITY_SPEC).map(
-    ([key, spec]) =>
-      `${key}${spec.kind === 'enum' ? ` (${(spec.values ?? []).join(' | ')})` : ''}: ${spec.description}`
-  );
+  const keys = Object.entries(A2UI_ACCESSIBILITY_SPEC).map(([key, spec]) => {
+    const type =
+      spec.kind === 'enum'
+        ? (spec.values ?? []).join(' | ')
+        : `${spec.kind}${spec.dynamic ? ` or ${BINDING}` : ''}`;
+    return `${key} (${type}): ${spec.description}`;
+  });
   return `- ${A2UI_ACCESSIBILITY_PROP} (optional; object, each key optional) — ${keys.join('; ')}.`;
 }
 

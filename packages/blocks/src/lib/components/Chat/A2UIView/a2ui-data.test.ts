@@ -141,6 +141,12 @@ describe('resolveDynamic', () => {
     expect(resolveDynamic({ '@path': 'name' }, model, '/items/1', EVERY_CATALOG).value).toBe('B');
   });
 
+  it('resolves the empty relative path to the item itself, and to the root outside a scope', () => {
+    const tags = { tags: ['urgent', 'home'] };
+    expect(resolveDynamic({ '@path': '' }, tags, '/tags/1', EVERY_CATALOG).value).toBe('home');
+    expect(resolveDynamic({ '@path': '' }, tags, undefined, EVERY_CATALOG).value).toEqual(tags);
+  });
+
   it('keeps absolute paths absolute even inside a scope', () => {
     expect(
       resolveDynamic({ '@path': '/items/0/name' }, model, '/items/1', EVERY_CATALOG).value

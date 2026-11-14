@@ -143,7 +143,10 @@ export const A2UI_ISSUE_CODES = {
   POINTER_ERROR: 'POINTER_ERROR',
   /** The component graph contains a cycle. */
   CYCLE: 'CYCLE',
-  /** Tree depth exceeds the limit (default 32). */
+  /**
+   * Tree depth exceeds the limit (default 32), or a data-model write would nest
+   * the data model deeper than 64 levels — that write is not applied.
+   */
   MAX_DEPTH: 'MAX_DEPTH',
   /** Rendered node count exceeds the limit (default 512). */
   MAX_NODES: 'MAX_NODES',

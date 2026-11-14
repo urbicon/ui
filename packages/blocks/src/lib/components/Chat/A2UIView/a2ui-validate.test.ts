@@ -7,7 +7,7 @@ import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, type A2uiPropSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
-import { A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
+import { A2UI_MAX_DATA_DEPTH, A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
 import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
 import {
   type A2uiRequiredComponent,
@@ -613,7 +613,7 @@ describe('A2UIView validator — hardening (review regressions)', () => {
 
 // ── Logic functions and surface requirements (Urbicon catalog: Button.disabled) ──
 
-const V91 = '1.0';
+const V1 = '1.0';
 
 /** Apply one Urbicon surface built from `components`, with optional requirements. */
 function urbiconSurface(
@@ -625,8 +625,8 @@ function urbiconSurface(
     catalogs: [urbiconA2uiCatalogSpec],
     surfaceRequirements: options.surfaceRequirements
   });
-  proc.apply({ version: V91, createSurface: { surfaceId, catalogId: URBICON_A2UI_CATALOG_ID } }, 0);
-  proc.apply({ version: V91, updateComponents: { surfaceId, components } }, 1);
+  proc.apply({ version: V1, createSurface: { surfaceId, catalogId: URBICON_A2UI_CATALOG_ID } }, 0);
+  proc.apply({ version: V1, updateComponents: { surfaceId, components } }, 1);
   return proc;
 }
 
@@ -890,9 +890,9 @@ describe('logic-function bindings (not / and / or)', () => {
 
   it('is accepted nowhere in the Basic catalog, whose one dynamic boolean is a two-way value', () => {
     const proc = applyAll([
-      { version: V91, createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
+      { version: V1, createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
       {
-        version: V91,
+        version: V1,
         updateComponents: {
           surfaceId: 's',
           components: [{ id: 'root', component: 'CheckBox', label: 'All', value: not(true) }]
@@ -1126,9 +1126,9 @@ describe('@checks where a gate reads them (Urbicon Button.disabled)', () => {
       }
     ]);
     const basic = applyAll([
-      { version: V91, createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
+      { version: V1, createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
       {
-        version: V91,
+        version: V1,
         updateComponents: {
           surfaceId: 's',
           components: [
@@ -1171,12 +1171,12 @@ describe('@checks where a gate reads them (Urbicon Button.disabled)', () => {
     const apply = (spec: A2uiCatalogSpec, extra: Record<string, unknown>): A2uiProcessor => {
       const proc = createA2uiProcessor({ catalogs: [spec] });
       proc.apply(
-        { version: V91, createSurface: { surfaceId: 's', catalogId: 'consumer/gated' } },
+        { version: V1, createSurface: { surfaceId: 's', catalogId: 'consumer/gated' } },
         0
       );
       proc.apply(
         {
-          version: V91,
+          version: V1,
           updateComponents: {
             surfaceId: 's',
             components: [{ id: 'root', component: 'Go', label: 'Go', ...extra }]
@@ -1222,6 +1222,14 @@ describe('@checks where a gate reads them (Urbicon Button.disabled)', () => {
       const broken = apply(asked, { '@checks': [rule(required('/agreed'))] });
       expect(summary(broken)).toEqual([['error', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED]]);
       expect(stored(broken, 'disabled')).toBe(true);
+    });
+
+    it('holds the gate when a bare checks stands where @checks belongs', () => {
+      const asked = catalog({ disabled: { ...gate, readsChecks: true } });
+      const proc = apply(asked, { checks: rules, disabled: false });
+      expect(summary(proc)).toEqual([['error', A2UI_ISSUE_CODES.UNKNOWN_PROP]]);
+      expect(allIssues(proc)[0].message).toContain('"disabled" is held at true until it is fixed');
+      expect(stored(proc, 'disabled')).toBe(true);
     });
 
     // A prop without a failsafe has nothing to be held at: holding it would
@@ -1299,7 +1307,7 @@ describe('surface requirements', () => {
       );
       if (withItem) {
         proc.apply(
-          { version: V91, updateDataModel: { surfaceId: 'booking', value: { rows: [{}] } } },
+          { version: V1, updateDataModel: { surfaceId: 'booking', value: { rows: [{}] } } },
           2
         );
       }
@@ -1469,8 +1477,8 @@ describe('surface requirements', () => {
         catalogs: [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec],
         surfaceRequirements: requirements
       });
-      proc.apply({ version: V91, createSurface: { surfaceId: 'booking', catalogId } }, 0);
-      proc.apply({ version: V91, updateComponents: { surfaceId: 'booking', components } }, 1);
+      proc.apply({ version: V1, createSurface: { surfaceId: 'booking', catalogId } }, 0);
+      proc.apply({ version: V1, updateComponents: { surfaceId: 'booking', components } }, 1);
       return proc;
     };
     const noConsent = [
@@ -1619,13 +1627,59 @@ describe('protocol version', () => {
 describe('createSurface with inline content', () => {
   const text = (id: string, value: unknown) => ({ id, component: 'Text', text: value });
 
-  it('builds the surface from one message, data model first', () => {
+  it('builds the surface from one message', () => {
     const proc = applyBoth([
       create({ components: [text('root', { '@path': '/name' })], dataModel: { name: 'Ada' } })
     ]);
     expect(allIssues(proc)).toEqual([]);
     expect(proc.surfaces.get('s')?.dataModel).toEqual({ name: 'Ada' });
     expect(instance(proc)?.props.get('text')).toEqual({ '@path': '/name' });
+  });
+
+  it('applies the data model before the components, whatever order the keys have', () => {
+    const proc = applyBoth([create({ components: [text('root', 7)], dataModel: 'x' })]);
+    expect(summary(surfaceIssues(proc)).map(([, , path]) => path)).toEqual([
+      '/messages/0/createSurface/dataModel',
+      '/messages/0/createSurface/components/0/text',
+      '/messages/0/createSurface/components/0/text'
+    ]);
+  });
+
+  // Built iteratively: a literal this deep would overflow the parser of the test.
+  const nested = (depth: number): Record<string, unknown> => {
+    let value: Record<string, unknown> = {};
+    for (let i = 0; i < depth; i++) value = { d: value };
+    return value;
+  };
+
+  it('refuses a data model deeper than the limit, and the surface still renders', () => {
+    const proc = applyBoth([
+      create({ components: [text('root', 'Hi')], dataModel: nested(30_000) })
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, '/messages/0/createSurface/dataModel']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toBeUndefined();
+    expect(instance(proc)?.props.get('text')).toBe('Hi');
+  });
+
+  it('takes a data model at the limit', () => {
+    const proc = applyBoth([create({ dataModel: nested(A2UI_MAX_DATA_DEPTH - 1) })]);
+    expect(surfaceIssues(proc)).toEqual([]);
+  });
+
+  it.each([
+    ['a deep value', '/a', nested(A2UI_MAX_DATA_DEPTH)],
+    ['a deep path', `/${Array.from({ length: A2UI_MAX_DATA_DEPTH + 1 }, () => 'k').join('/')}`, 1]
+  ])('refuses an updateDataModel with %s and writes nothing', (_label, path, value) => {
+    const proc = applyBoth([
+      create({ dataModel: { kept: true } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path, value } }
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, '/messages/1/updateDataModel/value']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual({ kept: true });
   });
 
   it('copies the data model, so a later edit never reaches the payload', () => {
@@ -2143,6 +2197,114 @@ describe('action.event', () => {
     expect(surfaceIssues(proc)[0].message).toContain('"@@if"');
     expect(instance(proc)?.props.has('action')).toBe(true);
   });
+
+  // Legal as a literal, so sent as written — but a pre-1.0 binding left in place
+  // sends the agent the pointer instead of the user's input.
+  it.each([
+    [{ path: '/email' }, '"@path"'],
+    [{ call: 'not', args: { value: true } }, '"@call"'],
+    [{ call: 'formatString', args: {}, returnType: 'string' }, '"@call"']
+  ])('warns about a context literal shaped like the pre-1.0 %j', (value, hint) => {
+    const proc = button({ name: 'go', context: { item: value } });
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['warning', A2UI_ISSUE_CODES.TYPE_MISMATCH, `${ACTION}/context/item`]
+    ]);
+    expect(surfaceIssues(proc)[0].message).toContain(hint);
+    expect(instance(proc)?.props.has('action')).toBe(true);
+  });
+});
+
+describe('a functionCall action', () => {
+  // The components name their catalog, so a surface without a default still
+  // renders them and only the call is left without one.
+  const button = (functionCall: Record<string, unknown>, surfaceDefault = true) =>
+    applyBoth([
+      surfaceDefault ? create() : { version: '1.0', createSurface: { surfaceId: 's' } },
+      update([
+        {
+          id: 'root',
+          component: 'Button',
+          '@catalogId': A2UI_CATALOG_ID,
+          child: 'label',
+          action: { functionCall }
+        },
+        { id: 'label', component: 'Text', '@catalogId': A2UI_CATALOG_ID, text: 'Open' }
+      ])
+    ]);
+  const CALL = `${COMPONENT}/0/action/functionCall`;
+  const openUrl = (extra: Record<string, unknown> = {}) => ({
+    '@call': 'openUrl',
+    args: { url: 'https://example.com' },
+    ...extra
+  });
+
+  it.each([
+    ['a literal url', openUrl()],
+    ['a bound url', openUrl({ args: { url: { '@path': '/link' } } })],
+    ['its catalog named', openUrl({ catalogId: A2UI_CATALOG_ID })]
+  ])('stores openUrl with %s', (_label, call) => {
+    const proc = button(call);
+    expect(allIssues(proc)).toEqual([]);
+    expect(instance(proc)?.props.has('action')).toBe(true);
+  });
+
+  it.each([
+    [
+      'an unknown catalogId',
+      openUrl({ catalogId: 'no/such' }),
+      true,
+      'UNKNOWN_CATALOG',
+      '/catalogId'
+    ],
+    ['no catalog at all', openUrl(), false, 'MISSING_FIELD', '/catalogId'],
+    [
+      'a pre-1.0 bound url',
+      openUrl({ args: { url: { path: '/x' } } }),
+      true,
+      'TYPE_MISMATCH',
+      '/args/url'
+    ],
+    ['no url', openUrl({ args: {} }), true, 'TYPE_MISMATCH', '/args/url']
+  ])(
+    'refuses openUrl with %s, so the button stays inert',
+    (_label, call, surfaceDefault, code, at) => {
+      const proc = button(call, surfaceDefault);
+      // Basic's Button requires its action, so the refused one is missing too.
+      expect(summary(allIssues(proc))).toEqual([
+        ['error', code, `${CALL}${at}`],
+        ['error', A2UI_ISSUE_CODES.MISSING_FIELD, `${COMPONENT}/0/action`]
+      ]);
+      expect(instance(proc)?.props.has('action')).toBe(false);
+    }
+  );
+
+  it.each([['formatString'], ['not'], ['closeModal']])(
+    'reports %s as unsupported: the button is inert',
+    (name) => {
+      const proc = button({ '@call': name, args: {} });
+      expect(summary(surfaceIssues(proc))).toEqual([
+        ['warning', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED, `${CALL}/@call`]
+      ]);
+    }
+  );
+});
+
+describe('Slider steps', () => {
+  const slider = (steps: unknown) =>
+    applyBoth([create(), update([{ id: 'root', component: 'Slider', value: 1, max: 10, steps }])]);
+
+  it.each([[1], [10]])('takes %j', (steps) => {
+    expect(allIssues(slider(steps))).toEqual([]);
+  });
+
+  it.each([[0], [-3], [2.5]])(
+    'reports %j: a division count is an integer of 1 or more',
+    (steps) => {
+      expect(summary(surfaceIssues(slider(steps)))).toEqual([
+        ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, `${COMPONENT}/0/steps`]
+      ]);
+    }
+  );
 });
 
 // A2UI 1.0's function-call messages: recognised, and refused.

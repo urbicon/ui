@@ -109,7 +109,8 @@
   }
 
   // `@accessibility`: the label names the component where it has a role to
-  // name; description, live and hidden go onto every component's root.
+  // name; description and live go onto every component's root. `hidden` is
+  // applied by the view around the whole component, label and control alike.
   const accessibility = $derived(
     readAccessibility(
       nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
@@ -882,7 +883,7 @@
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
       {...aria}
-      aria-hidden={ariaLabel && !aria['aria-hidden'] ? undefined : 'true'}
+      aria-hidden={ariaLabel ? undefined : 'true'}
     >
       <path d={iconSvgPath} />
     </svg>
@@ -894,7 +895,7 @@
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
       {...aria}
-      aria-hidden={ariaLabel && !aria['aria-hidden'] ? undefined : 'true'}
+      aria-hidden={ariaLabel ? undefined : 'true'}
     >
       <IconComp size={20} />
     </span>

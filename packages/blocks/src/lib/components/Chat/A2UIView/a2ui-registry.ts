@@ -131,7 +131,8 @@ export const A2UI_ACCESSIBILITY_SPEC: Readonly<Record<string, A2uiPropSpec>> = l
   hidden: {
     kind: 'boolean',
     dynamic: true,
-    description: 'true hides the element and its children from assistive technologies'
+    description:
+      'true takes the element and its children out of assistive technology, the tab order and pointer input; for decoration and repeated content'
   }
 });
 
@@ -191,6 +192,20 @@ export const A2UI_UPSTREAM_BASIC_CATALOG_ID =
 
 /** The envelope `version` this engine speaks — the only one it accepts. */
 export const A2UI_PROTOCOL_VERSION = '1.0';
+
+/**
+ * The messages an envelope may carry, exactly one each. The processor and the
+ * surface router both read this list, so they count an envelope's operations
+ * alike.
+ */
+export const A2UI_MESSAGE_KEYS = [
+  'createSurface',
+  'updateComponents',
+  'updateDataModel',
+  'deleteSurface',
+  'callRendererFunction',
+  'agentFunctionResponse'
+] as const;
 
 /**
  * Real upstream `basic` components the engine deliberately does not render.

@@ -28,15 +28,15 @@ export function coerceText(value: unknown): string {
 export interface A2uiAriaAttributes {
   'aria-description'?: string;
   'aria-live'?: 'off' | 'polite' | 'assertive';
-  'aria-hidden'?: 'true';
 }
 
 /**
- * Read a stored `@accessibility` value: `label` as the accessible name, the
- * rest as the attributes every component root takes. `resolve` is the
- * dispatcher's data-binding resolver — `label`, `description` and `hidden` may
- * be bound. An absent key yields no attribute, so a component keeps the
- * semantics it infers from its visible text.
+ * Read a stored `@accessibility` value: `label` as the accessible name,
+ * `description` and `live` as the attributes every component root takes
+ * (`hidden` is {@link readHidden}'s). `resolve` is the dispatcher's
+ * data-binding resolver — `label` and `description` may be bound. An absent key
+ * yields no attribute, so a component keeps the semantics it infers from its
+ * visible text.
  */
 export function readAccessibility(
   accessibility: unknown,
@@ -52,8 +52,21 @@ export function readAccessibility(
   if (source.live === 'off' || source.live === 'polite' || source.live === 'assertive') {
     attributes['aria-live'] = source.live;
   }
-  if (coerceBoolean(resolve(source.hidden))) attributes['aria-hidden'] = 'true';
   return { label: coerceText(resolve(source.label)) || undefined, attributes };
+}
+
+/**
+ * `@accessibility.hidden`, resolved — or `undefined` when the component
+ * declares no `hidden`, which is what lets the view wrap only the components
+ * that do, and keep the wrapper while a bound value changes.
+ */
+export function readHidden(
+  accessibility: unknown,
+  resolve: (value: unknown) => unknown
+): boolean | undefined {
+  if (accessibility === null || typeof accessibility !== 'object') return undefined;
+  if (!Object.hasOwn(accessibility, 'hidden')) return undefined;
+  return coerceBoolean(resolve((accessibility as Record<string, unknown>).hidden));
 }
 
 /**

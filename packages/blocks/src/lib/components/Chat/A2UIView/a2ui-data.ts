@@ -381,7 +381,7 @@ function unexpectedKey(
 }
 
 /** The fault of a call whose catalog does not resolve (see {@link A2uiCallCatalogs}). */
-function catalogFault(
+export function catalogFault(
   call: Record<string, unknown>,
   name: string,
   catalogs: A2uiCallCatalogs
@@ -577,6 +577,18 @@ export function indexCallFault(call: Record<string, unknown>): A2uiCallFault | u
 }
 
 /**
+ * The absolute JSON Pointer a binding or template path addresses. A path that
+ * starts with `/` is absolute; any other is relative to the template item
+ * `scopePrefix` addresses (to the data-model root outside a template), and `""`
+ * is the item itself — how a template over strings shows each one.
+ */
+export function scopedPointer(path: string, scopePrefix: string | undefined): string {
+  if (path.startsWith('/')) return path;
+  if (path === '') return scopePrefix ?? '';
+  return `${scopePrefix ?? ''}/${path}`;
+}
+
+/**
  * The position of the template item `scopePrefix` addresses. A template scope
  * is its list's pointer plus the item's index (`/items/2`), and a nested
  * template's scope ends in the innermost index, which is the one A2UI means.
@@ -681,7 +693,7 @@ export function resolveDynamic(
 
   const relative = bindingPath(value);
   if (relative !== undefined) {
-    const full = relative.startsWith('/') ? relative : `${scopePrefix ?? ''}/${relative}`;
+    const full = scopedPointer(relative, scopePrefix);
     const { issue } = parsePointer(full);
     if (issue) return { value: undefined, issue };
     return { value: getAtPointer(model, full) };
@@ -712,6 +724,29 @@ export function checksPass(checks: unknown, resolve: (value: unknown) => unknown
   if (checks === undefined) return true;
   if (!Array.isArray(checks)) return false;
   return checks.every((rule) => isPlainRecord(rule) && coerceBoolean(resolve(rule.condition)));
+}
+
+/**
+ * How deep a surface's data model may nest. The walks over it — the clone on
+ * ingest, the data model an action serialises — recurse, so a write that would
+ * nest it deeper is refused rather than run the engine out of stack.
+ */
+export const A2UI_MAX_DATA_DEPTH = 64;
+
+/**
+ * Whether JSON data nests deeper than `max` levels (a scalar is 0 deep, `{}` 1),
+ * counted without recursion so the count itself survives hostile depth.
+ */
+export function exceedsDataDepth(value: unknown, max: number): boolean {
+  if (max < 0) return true;
+  const stack: Array<[unknown, number]> = [[value, 1]];
+  while (stack.length > 0) {
+    const [node, level] = stack.pop() as [unknown, number];
+    if (node === null || typeof node !== 'object') continue;
+    if (level > max) return true;
+    for (const child of Object.values(node)) stack.push([child, level + 1]);
+  }
+  return false;
 }
 
 /**

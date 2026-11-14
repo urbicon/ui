@@ -33,7 +33,7 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
  * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise) — a
  * surface names its catalog with `createSurface.catalogId`, a single component
- * another one with `@catalogId`, and an id that names none renders nothing; and
+ * another one with `@catalogId`, and an id that names none renders a fault chip; and
  * type-check the data model with an optional `dataSchema`; require components
  * on a surface (a consent box) with `surfaceRequirements`. One view owns the
  * surfaces of ONE payload; to let an agent patch a surface it sent in an earlier

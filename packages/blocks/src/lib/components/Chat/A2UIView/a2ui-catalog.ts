@@ -131,6 +131,21 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
   unsupportedComponents: UNSUPPORTED_A2UI_COMPONENTS,
   flexContainers: new Set(['Row', 'Column']),
   componentChecks: lookupTable<A2uiComponentCheck>({
+    // The kind check takes any finite number; a division count is an integer
+    // of 1 or more, and the dispatcher ignores any other.
+    Slider: ({ id, props, surfaceId, base }) => {
+      const steps = props.get('steps');
+      if (steps === undefined || (Number.isInteger(steps) && (steps as number) >= 1)) return [];
+      return [
+        {
+          severity: 'error',
+          code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          message: `"steps" on Slider "${id}" must be an integer of 1 or more; it is ignored`,
+          surfaceId,
+          path: `${base}/steps`
+        }
+      ];
+    },
     Tabs: ({ id, props, surfaceId, base }) => {
       // The spec marks `tabs` minItems: 1. An empty array is a well-formed
       // `labeledChildren` value, so the kind check passes it — but it renders a

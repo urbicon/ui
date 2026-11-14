@@ -27,14 +27,17 @@ import {
   A2UI_CALL_KEY,
   A2UI_INDEX_FUNCTION,
   A2UI_LOGIC_FUNCTION_NAMES,
+  A2UI_MAX_DATA_DEPTH,
   A2UI_MAX_LOGIC_OPERANDS,
   A2UI_PATH_KEY,
   type A2uiCallCatalogs,
   type A2uiCallFault,
   bindingPath,
   callName,
+  catalogFault,
   cloneData,
   deleteAtPointer,
+  exceedsDataDepth,
   getAtPointer,
   indexCallFault,
   isIndexCall,
@@ -42,6 +45,7 @@ import {
   logicCallFault,
   type OperandBudget,
   reservedKeyOf,
+  scopedPointer,
   setAtPointer
 } from './a2ui-data';
 import {
@@ -49,6 +53,7 @@ import {
   A2UI_ACCESSIBILITY_SPEC,
   A2UI_CHECKS_PROP,
   A2UI_IDENTIFIER_RE,
+  A2UI_MESSAGE_KEYS,
   A2UI_PROTOCOL_VERSION,
   A2UI_SVG_PATH_RE,
   type A2uiComponentSpec,
@@ -190,15 +195,6 @@ function issue(
   return { severity, code, message, ...extra };
 }
 
-const OP_KEYS = [
-  'createSurface',
-  'updateComponents',
-  'updateDataModel',
-  'deleteSurface',
-  'callRendererFunction',
-  'agentFunctionResponse'
-] as const;
-
 // ── Dynamic-value shape guards ───────────────────────────────────────────────
 
 function isDataBinding(value: unknown): boolean {
@@ -291,6 +287,19 @@ function legacyDirectiveHint(value: unknown): string {
   if (typeof value.call === 'string')
     return `; a function call is written { "${A2UI_CALL_KEY}": … }`;
   return '';
+}
+
+const PRE_V1_CALL_KEYS: ReadonlySet<string> = new Set(['call', 'args', 'returnType']);
+
+/**
+ * Whether a literal object has exactly the keys of a pre-1.0 binding
+ * (`{ path }`) or call (`{ call, args?, returnType? }`). Where a literal object
+ * is legal it is sent as written, so this shape is the one worth a warning.
+ */
+function hasPreV1DirectiveShape(value: Record<string, unknown>): boolean {
+  const keys = Object.keys(value);
+  if (keys.length === 1 && typeof value.path === 'string') return true;
+  return typeof value.call === 'string' && keys.every((key) => PRE_V1_CALL_KEYS.has(key));
 }
 
 // ── Per-prop validation ──────────────────────────────────────────────────────
@@ -754,8 +763,9 @@ function validateLabeledChildren(
  * Faults of one `action.event.context` value. Context is resolved at click
  * time and never stored as a prop, so a fault cannot fail closed — the key is
  * sent as `undefined` — and is reported for the agent to fix: a malformed logic
- * call or a literal object holding a reserved `@` key as an error, any other
- * function call or a poisoned path as a prop's would be.
+ * call or a literal object holding a reserved `@` key as an error, a literal
+ * written like a pre-1.0 directive as a warning (it is sent as written), any
+ * other function call or a poisoned path as a prop's would be.
  */
 function contextValueIssues(
   componentName: string,
@@ -779,7 +789,17 @@ function contextValueIssues(
   }
   if (isPlainObject(value) && !isFunctionCall(value) && !isDataBinding(value)) {
     const reserved = reservedKeyOf(value);
-    if (reserved === undefined) return [];
+    if (reserved === undefined) {
+      if (!hasPreV1DirectiveShape(value)) return [];
+      return [
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          `action context "${contextKey}" on ${componentName} is a literal object written like a pre-1.0 directive${legacyDirectiveHint(value)}; it is sent as written`,
+          { surfaceId, path }
+        )
+      ];
+    }
     return [
       issue(
         'error',
@@ -790,6 +810,68 @@ function contextValueIssues(
     ];
   }
   return dynamicRefIssues(value, path, surfaceId);
+}
+
+/** The function a Button's `functionCall` action may run; every other one leaves it inert. */
+const OPEN_URL_FUNCTION = 'openUrl';
+
+/**
+ * A `functionCall` action. `openUrl` is stored only when its catalog resolves
+ * and its `url` is a string or a binding, so the dispatcher never opens what the
+ * validator did not accept; any other function is stored and reported, and the
+ * button renders inert.
+ */
+function validateFunctionCallAction(
+  componentName: string,
+  call: Record<string, unknown>,
+  name: string,
+  path: string,
+  surfaceId: string,
+  callCatalogs: A2uiCallCatalogs
+): PropResult {
+  const at = `${path}/functionCall`;
+  if (name !== OPEN_URL_FUNCTION) {
+    return {
+      store: true,
+      issues: [
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
+          `action.functionCall "${name}" on ${componentName} is not supported; the button is inert`,
+          { surfaceId, path: `${at}/${A2UI_CALL_KEY}` }
+        )
+      ]
+    };
+  }
+  const fault = catalogFault(call, name, callCatalogs);
+  if (fault) {
+    return {
+      store: false,
+      issues: [
+        issue(
+          'error',
+          fault.code,
+          `action.functionCall on ${componentName}: ${fault.message}; the button is inert`,
+          { surfaceId, path: `${at}${fault.at}` }
+        )
+      ]
+    };
+  }
+  const url = isPlainObject(call.args) ? call.args.url : undefined;
+  if (!isDynamicString(url)) {
+    return {
+      store: false,
+      issues: [
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          `args.url of the "${name}" call on ${componentName} must be a string or { "${A2UI_PATH_KEY}" } binding${legacyDirectiveHint(url)}; the button is inert`,
+          { surfaceId, path: `${at}/args/url` }
+        )
+      ]
+    };
+  }
+  return { store: true, issues: dynamicRefIssues(url, `${at}/args/url`, surfaceId) };
 }
 
 function validateAction(
@@ -902,7 +984,10 @@ function validateAction(
     return { store, issues: [...issues, ...valueIssues] };
   }
   if (isPlainObject(value.functionCall)) {
-    if (isFunctionCall(value.functionCall)) return { store: true, issues };
+    const call = value.functionCall;
+    const name = callName(call);
+    if (name !== undefined)
+      return validateFunctionCallAction(componentName, call, name, path, surfaceId, callCatalogs);
     issues.push(
       issue(
         'error',
@@ -1433,13 +1518,17 @@ function validateComponent(
     }
     const propSpec = ownEntry(spec.props, key);
     if (!propSpec) {
+      // A bare `checks` is a gate rule the payload meant to apply: dropping it
+      // must not leave the gate open.
+      const heldLegacyChecks = key === 'checks' && checkedGates.length > 0;
+      if (heldLegacyChecks) checksHeld = true;
       surface.issues.push(
         issue(
           'error',
           A2UI_ISSUE_CODES.UNKNOWN_PROP,
           `Unknown property "${key}" on ${componentName}${
             LEGACY_MIXIN_KEYS.has(key) ? `; A2UI 1.0 writes it "@${key}"` : ''
-          }`,
+          }${heldLegacyChecks ? `; ${heldGates(spec, checkedGates)} until it is fixed` : ''}`,
           { surfaceId, path: `${base}/${key}` }
         )
       );
@@ -1680,7 +1769,6 @@ function createProcessor(
         (id === undefined ? catalog : resolveCatalog(catalogs, id)) !== undefined,
       sendDataModel: false
     };
-    surfaces.set(surfaceId, surface);
 
     if (catalogId === undefined) {
       if (cs.catalogId !== undefined) {
@@ -1748,10 +1836,19 @@ function createProcessor(
       'createSurface'
     );
 
-    // The data model before the components, as A2UI orders a createSurface that
-    // carries both: the components then bind against it on first resolution.
+    // A2UI applies `dataModel` before `components`. No binding resolves before
+    // the render, so the order shows only in the order of the issues.
     if ('dataModel' in cs) {
-      if (isPlainObject(cs.dataModel)) {
+      if (isPlainObject(cs.dataModel) && exceedsDataDepth(cs.dataModel, A2UI_MAX_DATA_DEPTH)) {
+        surface.issues.push(
+          issue(
+            'error',
+            A2UI_ISSUE_CODES.MAX_DEPTH,
+            `createSurface.dataModel nests deeper than ${A2UI_MAX_DATA_DEPTH} levels; it is not applied`,
+            { surfaceId, path: `${base}/createSurface/dataModel` }
+          )
+        );
+      } else if (isPlainObject(cs.dataModel)) {
         if (dataSchema) {
           for (const schemaIssue of validateSchemaWrite(
             dataSchema,
@@ -1783,6 +1880,9 @@ function createProcessor(
         'createSurface'
       );
     }
+    // Registered last: a createSurface the engine fails on midway leaves no
+    // half-built surface behind that would refuse the retry as a duplicate.
+    surfaces.set(surfaceId, surface);
   }
 
   function handleUpdateComponents(env: Record<string, unknown>, base: string, index: number): void {
@@ -1902,6 +2002,20 @@ function createProcessor(
     }
     // A2UI 1.0: null is how a message deletes, so it is never a value to store.
     const deletes = udm.value === null;
+    const whole = pathValue === undefined || pathValue === '' || pathValue === '/';
+    // The value lands one level below each segment of its path.
+    const segments = whole ? 0 : (pathValue as string).replace(/^\//, '').split('/').length;
+    if (!deletes && exceedsDataDepth(udm.value, A2UI_MAX_DATA_DEPTH - segments)) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MAX_DEPTH,
+          `updateDataModel would nest the data model deeper than ${A2UI_MAX_DATA_DEPTH} levels; nothing is written`,
+          { surfaceId, path: `${base}/updateDataModel/value` }
+        )
+      );
+      return;
+    }
 
     // Schema validation (opt-in): a type mismatch on a declared pointer is an
     // error, a write to an undeclared top-level branch a warning — both relayed
@@ -1915,8 +2029,6 @@ function createProcessor(
       );
       for (const schemaIssue of schemaIssues) surface.issues.push(schemaIssue);
     }
-
-    const whole = pathValue === undefined || pathValue === '' || pathValue === '/';
 
     if (whole) {
       surface.dataModel = deletes ? {} : cloneData(udm.value);
@@ -2046,13 +2158,13 @@ function createProcessor(
       return;
     }
 
-    const present = OP_KEYS.filter((key) => key in env);
+    const present = A2UI_MESSAGE_KEYS.filter((key) => key in env);
     if (present.length !== 1) {
       globalIssues.push(
         issue(
           'error',
           A2UI_ISSUE_CODES.UNKNOWN_ENVELOPE_TYPE,
-          `Envelope must contain exactly one of: ${OP_KEYS.join(', ')} (found ${present.length})`,
+          `Envelope must contain exactly one of: ${A2UI_MESSAGE_KEYS.join(', ')} (found ${present.length})`,
           { path: base }
         )
       );
@@ -2237,9 +2349,7 @@ export function collectGraphIssues(
         } else if (children && typeof children === 'object') {
           const template = children as { componentId?: unknown; path?: unknown };
           if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-            const absPath = template.path.startsWith('/')
-              ? template.path
-              : `${scopePrefix ?? ''}/${template.path}`;
+            const absPath = scopedPointer(template.path, scopePrefix);
             const list = getAtPointer(surface.dataModel, absPath);
             if (Array.isArray(list)) {
               for (let i = 0; i < list.length; i++) {
@@ -2350,8 +2460,7 @@ export function collectGraphIssues(
       if (propSpec.kind !== 'options' || !propSpec.dynamic) continue;
       const bound = bindingPath(comp.props.get(key));
       if (bound === undefined) continue;
-      // Same absolute/relative rule as a childList template path.
-      const pointer = bound.startsWith('/') ? bound : `${scopePrefix ?? ''}/${bound}`;
+      const pointer = scopedPointer(bound, scopePrefix);
       const resolvedList = getAtPointer(surface.dataModel, pointer);
       if (resolvedList === undefined || Array.isArray(resolvedList)) continue;
       issues.push(

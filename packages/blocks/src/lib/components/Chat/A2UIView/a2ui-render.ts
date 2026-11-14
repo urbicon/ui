@@ -19,7 +19,7 @@ import type { Component, Snippet } from 'svelte';
 import type { IconComponent } from '#lib/icons/index.js';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
-import { bindingPath, callName, getAtPointer } from './a2ui-data';
+import { bindingPath, callName, getAtPointer, scopedPointer } from './a2ui-data';
 import { ownEntry } from './a2ui-registry';
 import type { A2uiComponentInstance, A2uiSurfaceState } from './a2ui-validate';
 
@@ -147,7 +147,7 @@ export function bindingPointer(
   if (callName(value) !== undefined) return undefined;
   const path = bindingPath(value);
   if (path === undefined) return undefined;
-  return path.startsWith('/') ? path : `${scopePrefix ?? ''}/${path}`;
+  return scopedPointer(path, scopePrefix);
 }
 
 /** Coerce an unknown model value to a string array of stable option values (for ChoicePicker). */
@@ -218,9 +218,7 @@ function childRefs(
       } else if (children !== null && typeof children === 'object') {
         const template = children as { componentId?: unknown; path?: unknown };
         if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-          const absPath = template.path.startsWith('/')
-            ? template.path
-            : `${scopePrefix ?? ''}/${template.path}`;
+          const absPath = scopedPointer(template.path, scopePrefix);
           const list = getAtPointer(state.dataModel, absPath);
           if (Array.isArray(list)) {
             for (let i = 0; i < list.length; i++) {

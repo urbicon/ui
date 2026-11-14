@@ -239,6 +239,29 @@ describe('A2uiSurfaceRouter', () => {
       expect(result.patches).toEqual([]);
     });
 
+    // The processor refuses each of these, so moving the surface to it would
+    // leave the payload that renders it without its later patches.
+    it.each([
+      [
+        'a second message beside createSurface',
+        { ...create('s1'), callRendererFunction: { functionCallId: 'c1' } }
+      ],
+      ['another protocol version', { ...create('s1'), version: 'v0.9.1' }],
+      ['no version', { createSurface: { surfaceId: 's1' } }]
+    ])('takes no surface away for an envelope with %s', (_label, envelope) => {
+      const router = new A2uiSurfaceRouter();
+      router.route(A, [create('s1')]);
+
+      const result = router.route(B, [envelope]);
+
+      expect(result.own).toEqual([envelope]);
+      expect(result.issues).toEqual([]);
+      expect(router.ownerOf('s1')).toBe(A);
+      expect(router.route(C, [components('s1')]).patches).toEqual([
+        { targetKey: A, envelopes: [components('s1')] }
+      ]);
+    });
+
     it('ignores a prototype-polluting surfaceId like any other unknown surface', () => {
       const router = new A2uiSurfaceRouter();
       const evil = { version: V, updateDataModel: { surfaceId: '__proto__', value: 1 } };

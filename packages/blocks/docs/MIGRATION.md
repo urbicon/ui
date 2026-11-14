@@ -23,18 +23,18 @@ a model writes 1.0.
 
 **On the wire**
 
-| v0.9.1                                              | 1.0                                                                                                               | What reports a leftover                                                        |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `"version": "v0.9.1"`                               | `"version": "1.0"`                                                                                                | `INVALID_VERSION`; the envelope applies nothing                                |
-| `{ "path": "/x" }`                                  | `{ "@path": "/x" }`                                                                                               | `TYPE_MISMATCH` on the prop, naming the 1.0 form — the object is a literal now |
-| `{ "call": "not", "args": … }`                      | `{ "@call": "not", "args": … }`                                                                                   | the same                                                                       |
-| `"returnType"` on a call                            | gone                                                                                                              | `UNKNOWN_PROP`; a gate holds its failsafe                                      |
-| `"accessibility"`, `"checks"` on a component        | `"@accessibility"`, `"@checks"`                                                                                   | `UNKNOWN_PROP`, naming the 1.0 key                                             |
-| `updateDataModel` without `value` deletes           | `"value": null` deletes; `value` is required                                                                      | `MISSING_FIELD`; nothing is deleted                                            |
-| `createSurface.theme` (ignored with a warning)      | gone                                                                                                              | `UNKNOWN_PROP` error                                                           |
-| any `catalogId`, an unknown one falls back to Basic | a configured id, or the component's own `"@catalogId"`; nothing falls back                                        | `UNKNOWN_CATALOG` error, and the components render as fault chips              |
-| component ids of any shape                          | identifiers: letters, digits and `_`, no hyphen, no leading digit                                                 | `INVALID_ID` error; the component still renders                                |
-| `TextField.validationRegexp`, `Text` `h1`–`h5`      | gone from the Basic catalog; a heading is Markdown in a body `Text` (`"## Title"`), `TextField.value` is required | `UNKNOWN_PROP` / `UNKNOWN_ENUM`, `MISSING_FIELD`                               |
+| v0.9.1                                              | 1.0                                                                                                               | What reports a leftover                                                                                                                                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `"version": "v0.9.1"`                               | `"version": "1.0"`                                                                                                | `INVALID_VERSION`; the envelope applies nothing                                                                                                                                                  |
+| `{ "path": "/x" }`                                  | `{ "@path": "/x" }`                                                                                               | `TYPE_MISMATCH` on the prop, naming the 1.0 form — the object is a literal now; in an action's `context`, where a literal is legal, a `TYPE_MISMATCH` warning, and the object is sent as written |
+| `{ "call": "not", "args": … }`                      | `{ "@call": "not", "args": … }`                                                                                   | the same                                                                                                                                                                                         |
+| `"returnType"` on a call                            | gone                                                                                                              | `UNKNOWN_PROP`; a gate holds its failsafe                                                                                                                                                        |
+| `"accessibility"`, `"checks"` on a component        | `"@accessibility"`, `"@checks"`                                                                                   | `UNKNOWN_PROP`, naming the 1.0 key; a bare `checks` on a gated control holds the gate at its failsafe                                                                                            |
+| `updateDataModel` without `value` deletes           | `"value": null` deletes; `value` is required                                                                      | `MISSING_FIELD`; nothing is deleted                                                                                                                                                              |
+| `createSurface.theme` (ignored with a warning)      | gone                                                                                                              | `UNKNOWN_PROP` error                                                                                                                                                                             |
+| any `catalogId`, an unknown one falls back to Basic | a configured id, or the component's own `"@catalogId"`; nothing falls back                                        | `UNKNOWN_CATALOG` error, and the components render as fault chips                                                                                                                                |
+| component ids of any shape                          | identifiers: letters, digits and `_`, no hyphen, no leading digit                                                 | `INVALID_ID` error; the component still renders                                                                                                                                                  |
+| `TextField.validationRegexp`, `Text` `h1`–`h5`      | gone from the Basic catalog; a heading is Markdown in a body `Text` (`"## Title"`), `TextField.value` is required | `UNKNOWN_PROP` / `UNKNOWN_ENUM`, `MISSING_FIELD`                                                                                                                                                 |
 
 The `template` form of `children` (`{ "componentId", "path" }`) and the `path` of `updateDataModel`
 keep their unprefixed `path`.
@@ -63,12 +63,13 @@ keep their unprefixed `path`.
   `A2uiPropKind`: `'accessibility'` — `@accessibility` belongs to the protocol, so a custom catalog
   no longer declares it per component; delete the entry from your registry's props.
 - **Changed shape:** `A2uiSurfaceState.catalog` and the new `A2uiComponentInstance.catalog` are
-  `A2uiCatalogSpec | undefined`. A custom node dispatcher asks `rendersAsComponent(instance)` — the
-  registry argument is gone, the instance carries its catalog — and reads its accessibility from
+  `A2uiCatalogSpec | undefined`; a component's accessibility is
   `instance.props.get('@accessibility')`.
 - **New:** `A2uiActionEvent.userMessage`; `A2uiValidationIssue.functionCallId`; the issue codes
   `INVALID_ID`, `INVALID_RESERVED_KEY`, `INVALID_FUNCTION_CALL`, `INDEX_OUTSIDE_TEMPLATE`;
   `A2UI_UPSTREAM_BASIC_CATALOG_ID`.
+- **Changed meaning:** `MAX_DEPTH` also reports a data-model write that would nest the model deeper
+  than 64 levels; that write is not applied.
 
 A2UI 1.0's function-call messages (`callRendererFunction`, `agentFunctionResponse`) are recognised
 and refused; [A2UI.md § What of A2UI 1.0 the engine speaks](A2UI.md#what-of-a2ui-10-the-engine-speaks)
@@ -78,8 +79,8 @@ These find what a codebase still writes the old way — payload fixtures, a prom
 custom catalog:
 
 ```sh
-rg -n '"version": ?"v0\.9|v0\.9\.1' src
-rg -n 'A2UI_SUPPORTED_VERSIONS|SURFACE_PROP_IGNORED|ignoredProps|rendersAsComponent\(' src
+rg -n 'v0\.9' src
+rg -n 'A2UI_SUPPORTED_VERSIONS|SURFACE_PROP_IGNORED|ignoredProps' src
 ```
 
 ## 8.38.0
