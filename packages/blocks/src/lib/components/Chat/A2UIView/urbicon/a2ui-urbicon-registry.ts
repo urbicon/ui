@@ -115,22 +115,7 @@ export const UNSUPPORTED_URBICON_A2UI_COMPONENTS: ReadonlySet<string> = new Set(
   'CommandPalette'
 ]);
 
-/**
- * Props recognised anywhere but intentionally ignored (validation warning only,
- * dropped before render) — `checks` except on `Button`, whose `disabled` reads
- * it (`readsChecks`).
- */
-export const URBICON_A2UI_IGNORED_PROPS: ReadonlySet<string> = new Set([
-  'checks',
-  'validationRegexp'
-]);
-
 const COMMON_PROPS: Record<string, UrbiconPropSpec> = {
-  accessibility: {
-    kind: 'accessibility',
-    description:
-      'Accessibility attributes { label, description } for assistive technologies. label is a short (1–3 word) purpose string; description adds instructions or format requirements.'
-  },
   weight: {
     kind: 'number',
     description:
@@ -351,7 +336,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
-        description: 'The text to display. Bind to the data model with { path } for live values.'
+        description: 'The text to display. Bind to the data model with { "@path" } for live values.'
       },
       variant: {
         kind: 'enum',
@@ -373,7 +358,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         required: true,
         dynamic: true,
         description:
-          'The Markdown source. Bind with { path } for live values. Images are blocked; links follow the host policy.'
+          'The Markdown source. Bind with { "@path" } for live values. Images are blocked; links follow the host policy.'
       }
     })
   },
@@ -383,7 +368,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
     category: 'Form',
     urbicon: 'Button',
     description:
-      'A clickable button. Its `child` is the label (a Text). `action` MUST be a server event. Use `intent` for meaning (primary CTA, danger action) and `variant` for emphasis.',
+      'A clickable button. Its `child` is the label (a Text). `action` MUST be an agent event. Use `intent` for meaning (primary CTA, danger action) and `variant` for emphasis.',
     props: withCommon({
       child: {
         kind: 'childId',
@@ -395,7 +380,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'action',
         required: true,
         description:
-          'The interaction handler. Use the server-event form { event: { name, context } }. Resolve dynamic context values with { path } bindings; use literals for static values.'
+          'The interaction handler. Use the agent-event form { event: { name, context } }. Resolve dynamic context values with { "@path" } bindings; use literals for static values.'
       },
       intent: intentProp(
         'neutral',
@@ -416,7 +401,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         failsafe: true,
         readsChecks: true,
         description:
-          'Whether the button is disabled. To keep it disabled until a Checkbox bound to /agreed is ticked: { "call": "not", "args": { "value": { "path": "/agreed" } } }.'
+          'Whether the button is disabled. To keep it disabled until a Checkbox bound to /agreed is ticked: { "@call": "not", "args": { "value": { "@path": "/agreed" } } }.'
       }
     })
   },
@@ -431,7 +416,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       value: {
         kind: 'string',
         dynamic: true,
-        description: 'The field value. Bind with { path } for two-way binding.'
+        description: 'The field value. Bind with { "@path" } for two-way binding.'
       },
       placeholder: { kind: 'string', dynamic: true, description: 'Placeholder text when empty.' },
       inputType: {
@@ -459,7 +444,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       value: {
         kind: 'string',
         dynamic: true,
-        description: 'The field value. Bind with { path } for two-way binding.'
+        description: 'The field value. Bind with { "@path" } for two-way binding.'
       },
       placeholder: { kind: 'string', dynamic: true, description: 'Placeholder text when empty.' },
       rows: { kind: 'number', description: 'Visible number of text rows.' },
@@ -487,7 +472,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'boolean',
         required: true,
         dynamic: true,
-        description: 'The checked state. Bind with { path } for two-way binding.'
+        description: 'The checked state. Bind with { "@path" } for two-way binding.'
       }
     })
   },
@@ -509,7 +494,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
-        description: 'The selected option value. Bind with { path } for two-way binding.'
+        description: 'The selected option value. Bind with { "@path" } for two-way binding.'
       },
       label: { kind: 'string', dynamic: true, description: 'An optional label for the group.' },
       orientation: {
@@ -566,7 +551,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'number',
         required: true,
         dynamic: true,
-        description: 'The current value. Bind with { path } for two-way binding.'
+        description: 'The current value. Bind with { "@path" } for two-way binding.'
       },
       max: { kind: 'number', required: true, description: 'The maximum value.' },
       min: { kind: 'number', default: 0, description: 'The minimum value (default 0).' },
@@ -591,7 +576,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'boolean',
         required: true,
         dynamic: true,
-        description: 'The on/off state. Bind with { path } for two-way binding.'
+        description: 'The on/off state. Bind with { "@path" } for two-way binding.'
       }
     })
   },
@@ -607,7 +592,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         required: true,
         dynamic: true,
         description:
-          'The ISO date (YYYY-MM-DD, "" when unset). Bind with { path } for two-way binding.'
+          'The ISO date (YYYY-MM-DD, "" when unset). Bind with { "@path" } for two-way binding.'
       },
       label: { kind: 'string', dynamic: true, description: 'The field label.' },
       min: { kind: 'string', dynamic: true, description: 'Minimum allowed date (YYYY-MM-DD).' },
@@ -630,7 +615,8 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
-        description: 'The ISO time (HH:MM, "" when unset). Bind with { path } for two-way binding.'
+        description:
+          'The ISO time (HH:MM, "" when unset). Bind with { "@path" } for two-way binding.'
       },
       label: { kind: 'string', dynamic: true, description: 'The field label.' },
       min: { kind: 'string', dynamic: true, description: 'Minimum allowed time (HH:MM).' },
@@ -654,7 +640,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
-        description: 'The badge label. Bind with { path } for a live value.'
+        description: 'The badge label. Bind with { "@path" } for a live value.'
       },
       intent: intentProp('primary', 'Semantic intent (colour) of the badge.'),
       variant: {
@@ -677,7 +663,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
-        description: 'The alert heading. Bind with { path } for a live value.'
+        description: 'The alert heading. Bind with { "@path" } for a live value.'
       },
       description: {
         kind: 'string',
@@ -715,7 +701,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       value: {
         kind: 'number',
         dynamic: true,
-        description: 'The current progress (0..max). Bind with { path } for live updates.'
+        description: 'The current progress (0..max). Bind with { "@path" } for live updates.'
       },
       max: { kind: 'number', default: 100, description: 'The maximum value (default 100).' },
       indeterminate: {
@@ -743,7 +729,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'number',
         dynamic: true,
         description:
-          'The zero-based index of the active step. Bind with { path } for live progress.'
+          'The zero-based index of the active step. Bind with { "@path" } for live progress.'
       },
       orientation: {
         kind: 'enum',
@@ -826,7 +812,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         required: true,
         values: URBICON_A2UI_ICON_NAMES,
         description:
-          'The icon name (one of the supported names). May also bind to the data model with { path }. Custom vector art via { svgPath } is accepted but discouraged.'
+          'The icon name (one of the supported names). May also bind to the data model with { "@path" }. Custom vector art via { svgPath } is accepted but discouraged.'
       }
     })
   },
@@ -883,7 +869,6 @@ export const urbiconA2uiCatalogSpec: A2uiCatalogSpec = {
   registry: URBICON_A2UI_REGISTRY,
   iconNames: URBICON_A2UI_ICON_NAMES,
   unsupportedComponents: UNSUPPORTED_URBICON_A2UI_COMPONENTS,
-  ignoredProps: URBICON_A2UI_IGNORED_PROPS,
   flexContainers: new Set(['Row', 'Column']),
   componentChecks: lookupTable<A2uiComponentCheck>({
     Text: ({ id, props, surfaceId, base }) => {

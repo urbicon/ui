@@ -64,8 +64,8 @@ const system = [
       A2UI (Agent-to-UI) lets an agent describe an interface as <strong>data</strong>, not
       executable code. The agent emits JSONL <em>envelopes</em> that reference a
       <strong>trusted catalog</strong> your app already ships, rather than markup or scripts of its
-      own. A2UIView renders the Urbicon subset of A2UI <code>v0.9.1</code>
-      <code>basic</code>: it maps the catalog components onto real Urbicon primitives and renders
+      own. A2UIView speaks A2UI <code>1.0</code> and renders the Urbicon subset of its
+      <code>basic</code> catalog: it maps the catalog components onto real Urbicon primitives and renders
       them live and interactive.
     </p>
 
@@ -169,7 +169,7 @@ const system = [
       <p class="text-text-secondary mb-4 max-w-3xl text-sm leading-relaxed">
         Never hand-roll the catalog description. <code>a2uiSystemPrompt()</code> renders the
         envelope rules, the component subset (props, required flags, enums), the binding forms (<code
-          >{'{ path }'}</code
+          >{'{ "@path" }'}</code
         >, plus <code>not</code>/<code>and</code>/<code>or</code> on a gate such as the Urbicon
         <code>Button.disabled</code>), the
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
@@ -192,8 +192,10 @@ const system = [
         Input/Textarea, <code>CheckBox</code> to Checkbox, <code>ChoicePicker</code> to RadioGroup,
         <code>Slider</code>
         to Slider, <code>DateTimeInput</code> to DatePicker/TimeInput. So labels, roles and keyboard
-        behaviour come from the library rather than ad-hoc markup, and a component's
-        <code>accessibility.label</code> becomes an <code>aria-label</code>.
+        behaviour come from the library rather than ad-hoc markup. A component's
+        <code>@accessibility</code> maps onto ARIA: <code>label</code> becomes its
+        <code>aria-label</code>, and <code>description</code>, <code>live</code> and
+        <code>hidden</code> the attributes of the same name.
       </p>
     </Note>
     <Note title="Streaming placeholders">

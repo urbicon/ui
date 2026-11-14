@@ -248,7 +248,7 @@ describe('@urbicon-ui/blocks/a2ui without the Svelte compiler', () => {
     'const m = await import(process.argv[2]);',
     'const prompt = `${m.a2uiSystemPrompt()}\\n\\n${m.a2uiFencedTransportSection()}`;',
     'const issues = m.validateA2uiPayload({ messages: [',
-    "  { version: 'v0.9.1', createSurface: { surfaceId: 's', catalogId: 'x' } }",
+    "  { version: '1.0', createSurface: { surfaceId: 's', catalogId: m.A2UI_CATALOG_ID } }",
     ']});',
     'console.log(JSON.stringify({ prompt: prompt.length, codes: issues.map((i) => i.code) }));'
   ].join('\n');

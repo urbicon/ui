@@ -7,10 +7,12 @@
  * model's mood on the day.
  *
  * What this script writes is genuine model output throughout. The fixture in
- * the repo is that, minus some prose: the A2UI envelopes are untouched, the
- * sentences around them were tightened by hand on 2026-08-13. Re-running this
- * script overwrites both — expect to redo that pass, and see the note in
- * `src/lib/replay/player.ts` for which line is being held.
+ * the repo is that with two edits: the sentences around the A2UI envelopes
+ * were tightened by hand, and the envelopes, recorded under A2UI v0.9.1, were
+ * respelled for 1.0 — the version string and the `@` of each `{ "@path" }`
+ * binding, nothing else. Re-running this script overwrites both — expect to
+ * redo the prose pass, and see the note in `src/lib/replay/player.ts` for
+ * which line is being held.
  *
  * This script IS the recording source the salon era lost when `apps/chat-demo`
  * was retired: instead of a dev-server relay it runs the same agent loop

@@ -18,6 +18,6 @@ export const recipeMeta: RecipeMeta = {
     "A2uiSurfaceRouter + routeMessageParts deliver a later turn's envelopes to the message that owns the surface; revokeMessage takes a dropped turn's patches back out.",
     'Messages mid-patch (result.targets) keep streaming grace: placeholders instead of dangling-reference chips until the round completes.',
     'A2UIView renders whitelist-only against the Urbicon catalog and an optional data schema; validation issues return to the agent behind a [ui-error] prefix so it can repair its own surface.',
-    'Choices and fetched options bind to the data model (value / options: { path }); actions are reserved for fetch and commit and carry the full form state (sendDataModel: true), read at click time.'
+    'Choices and fetched options bind to the data model (value / options: { "@path" }); actions are reserved for fetch and commit and carry the full form state (sendDataModel: true), read at click time.'
   ]
 };

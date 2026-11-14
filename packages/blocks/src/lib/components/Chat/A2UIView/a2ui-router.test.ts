@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { A2UI_ISSUE_CODES } from './a2ui.types';
 import { A2uiSurfaceRouter } from './a2ui-router';
 
-const V = 'v0.9.1';
+const V = '1.0';
 const create = (surfaceId: string) => ({
   version: V,
   createSurface: { surfaceId, catalogId: 'a2ui/basic/v1' }

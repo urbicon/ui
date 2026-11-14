@@ -23,8 +23,10 @@
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import type { A2uiActionEvent } from './a2ui.types';
-  import { dedupeOptions, splitDateTime } from './a2ui-node-common';
+  import { A2UI_CALL_KEY, bindingPath, coerceBoolean } from './a2ui-data';
+  import { dedupeOptions, readAccessibility, splitDateTime } from './a2ui-node-common';
   import {
+    A2UI_ACCESSIBILITY_PROP,
     A2UI_REGISTRY,
     A2UI_SVG_PATH_RE,
     A2UI_VALUE_PROP,
@@ -71,9 +73,10 @@
   const instance = $derived(node.instance);
   const nodeProps = $derived(instance?.props);
   const component = $derived(instance?.component ?? '');
-  // A component is a visible fault when it is unknown/unsupported or is missing
-  // a required prop (the processor already emitted the reportable issue).
-  const renders = $derived(instance ? rendersAsComponent(A2UI_REGISTRY, instance) : false);
+  // A component is a visible fault when it resolved to no catalog, is
+  // unknown/unsupported or is missing a required prop (the processor already
+  // emitted the reportable issue).
+  const renders = $derived(instance ? rendersAsComponent(instance) : false);
 
   function raw(key: string): unknown {
     return nodeProps?.get(key);
@@ -94,14 +97,16 @@
     return context.resolve(nodeProps?.get(key), node.scopePrefix).value;
   }
 
-  const ariaLabel = $derived.by(() => {
-    const a11y = nodeProps?.get('accessibility');
-    if (a11y !== null && typeof a11y === 'object') {
-      const label = (a11y as Record<string, unknown>).label;
-      if (typeof label === 'string' && label.length > 0) return label;
-    }
-    return undefined;
-  });
+  // `@accessibility`: the label names the component where it has a role to
+  // name; description, live and hidden go onto every component's root.
+  const accessibility = $derived(
+    readAccessibility(
+      nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
+      (value) => context.resolve(value, node.scopePrefix).value
+    )
+  );
+  const ariaLabel = $derived(accessibility.label);
+  const aria = $derived(accessibility.attributes);
 
   const weightStyle = $derived(node.weight != null ? `flex-grow:${node.weight}` : undefined);
 
@@ -143,20 +148,6 @@
     largeFeature: 'h-64 w-auto',
     header: 'h-48 w-full'
   };
-  const HEADING_SIZE: Record<string, string> = {
-    h1: 'text-2xl',
-    h2: 'text-xl',
-    h3: 'text-lg',
-    h4: 'text-base',
-    h5: 'text-sm'
-  };
-  const HEADING_TAG: Record<string, string> = {
-    h1: 'h1',
-    h2: 'h2',
-    h3: 'h3',
-    h4: 'h4',
-    h5: 'h5'
-  };
   const INPUT_TYPE: Record<string, string> = {
     shortText: 'text',
     number: 'number',
@@ -177,8 +168,8 @@
     if (typeof value === 'string') return value;
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       const object = value as Record<string, unknown>;
-      if (typeof object.svgPath === 'string') return undefined; // handled below
-      if (typeof object.path === 'string') {
+      if (object.svgPath !== undefined) return undefined; // handled below
+      if (bindingPath(value) !== undefined) {
         const r = context.resolve(value, node.scopePrefix).value;
         return typeof r === 'string' ? r : undefined;
       }
@@ -188,14 +179,18 @@
   const iconSvgPath = $derived.by<string | undefined>(() => {
     const value = raw('name');
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      const svgPath = (value as Record<string, unknown>).svgPath;
-      // Re-apply the grammar guard before inlining — defense in depth.
+      // A literal or a bound svgPath; the grammar guard runs on what it
+      // resolves to, which for a binding nothing has inspected before.
+      const svgPath = context.resolve(
+        (value as Record<string, unknown>).svgPath,
+        node.scopePrefix
+      ).value;
       if (typeof svgPath === 'string' && A2UI_SVG_PATH_RE.test(svgPath)) return svgPath;
     }
     return undefined;
   });
-  // `iconName` can come from a `{path}` binding, i.e. an arbitrary string the
-  // validator never inspected — so this lookup takes own entries only (#134).
+  // `iconName` can come from a `{ "@path" }` binding, i.e. an arbitrary string
+  // the validator never inspected — so this lookup takes own entries only (#134).
   const IconComp = $derived(
     (iconName && ownEntry(context.icons, iconName)) || context.fallbackIcon
   );
@@ -210,15 +205,14 @@
     return typeof name === 'string' ? (event as Record<string, unknown>) : undefined;
   });
 
-  // A local `openUrl` function-call action: the only client-side action the
-  // subset supports. Every other functionCall is unsupported (the validator
-  // already warns) and leaves the button inert.
+  // A local `openUrl` function-call action: the only renderer-side action the
+  // subset supports. Every other functionCall leaves the button inert.
   const openUrlArg = $derived.by<string | undefined>(() => {
     const action = raw('action');
     if (action === null || typeof action !== 'object') return undefined;
     const fc = (action as Record<string, unknown>).functionCall;
     if (fc === null || typeof fc !== 'object') return undefined;
-    const call = (fc as Record<string, unknown>).call;
+    const call = (fc as Record<string, unknown>)[A2UI_CALL_KEY];
     if (call !== 'openUrl') return undefined;
     const args = (fc as Record<string, unknown>).args;
     const url =
@@ -259,8 +253,10 @@
     // `sendDataModel` surfaces ship the whole model alongside the context, so a
     // context the agent under-specified still tells it what the user entered.
     const dataModel = context.actionDataModel?.();
+    const userMessage = context.resolve(event.userMessage, node.scopePrefix).value;
     const payload: A2uiActionEvent = {
       ...(dataModel === undefined ? {} : { dataModel }),
+      ...(typeof userMessage === 'string' ? { userMessage } : {}),
       name: event.name as string,
       surfaceId: context.surfaceId,
       sourceComponentId: instance.id,
@@ -289,7 +285,7 @@
 
   const boolValue = $derived.by(() => {
     const pointer = valuePointer();
-    if (pointer) return Boolean(resolved(A2UI_VALUE_PROP));
+    if (pointer) return coerceBoolean(resolved(A2UI_VALUE_PROP));
     return (
       localBool ??
       (typeof raw(A2UI_VALUE_PROP) === 'boolean' ? (raw(A2UI_VALUE_PROP) as boolean) : false)
@@ -303,6 +299,13 @@
 
   const sliderMin = $derived(numOr(raw('min'), 0));
   const sliderMax = $derived(numOr(raw('max'), 100));
+  // `steps` is a number of divisions; the Slider takes the width of one.
+  const sliderStep = $derived.by<number | undefined>(() => {
+    const steps = raw('steps');
+    if (typeof steps !== 'number' || !Number.isInteger(steps) || steps < 1) return undefined;
+    const width = (sliderMax - sliderMin) / steps;
+    return width > 0 ? width : undefined;
+  });
   const sliderValue = $derived.by(() => {
     const pointer = valuePointer();
     if (pointer) {
@@ -331,7 +334,7 @@
   // `each_key_duplicate` (a hard crash that would break the "never throw"
   // contract for an untrusted payload). Shared with the Urbicon dispatcher.
   const choiceOptions = $derived(
-    // `options` may itself be a { path } binding — that is how an agent shows a
+    // `options` may itself be a { "@path" } binding — that is how an agent shows a
     // list it fetched mid-conversation (free slots, search hits) without
     // rewriting the component. Resolve it first, then the per-option labels.
     dedupeOptions(resolved('options'), (label) =>
@@ -494,6 +497,7 @@
     style={weightStyle}
     role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each node.children as child (child.key)}
       {@render renderChild(child, blockCtx)}
@@ -510,6 +514,7 @@
     style={weightStyle}
     role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each node.children as child (child.key)}
       {@render renderChild(child, blockCtx)}
@@ -524,6 +529,7 @@
     ]}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#each node.children as child (child.key)}
       <li class={context.classes.listItem}>
@@ -537,6 +543,7 @@
     style={weightStyle}
     role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
+    {...aria}
   >
     {#if node.children[0]}
       {@render renderChild(node.children[0], blockCtx)}
@@ -554,6 +561,7 @@
       onValueChange={(next) => (selectedTab = next)}
       style={weightStyle}
       aria-label={ariaLabel}
+      {...aria}
     >
       {#snippet tabs()}
         {#each tabItems as item (item.value)}
@@ -575,30 +583,23 @@
   <Separator
     unstyled={context.unstyled}
     orientation={enumOr('axis', 'horizontal') === 'vertical' ? 'vertical' : 'horizontal'}
+    {...aria}
   />
 {:else if component === 'Text'}
   {@const value = text(resolved('text'))}
-  {@const variant = enumOr('variant', 'body')}
   {#if context.inline}
-    <span class={context.classes.inlineText} style={weightStyle}>{value}</span>
-  {:else if variant === 'caption'}
-    <span class={context.classes.caption} style={weightStyle}>{value}</span>
-  {:else if variant === 'body'}
+    <span class={context.classes.inlineText} style={weightStyle} {...aria}>{value}</span>
+  {:else if enumOr('variant', 'body') === 'caption'}
+    <span class={context.classes.caption} style={weightStyle} {...aria}>{value}</span>
+  {:else}
     <StreamingMarkdown
       content={value}
       size="sm"
       urlPolicy={context.urlPolicy}
       streaming={false}
       style={weightStyle}
+      {...aria}
     />
-  {:else}
-    <svelte:element
-      this={HEADING_TAG[variant] ?? 'h3'}
-      class={[context.classes.heading, HEADING_SIZE[variant]]}
-      style={weightStyle}
-    >
-      {value}
-    </svelte:element>
   {/if}
 {:else if component === 'Image'}
   {@const url = text(resolved('url'))}
@@ -614,9 +615,10 @@
         IMAGE_SIZE[enumOr('variant', 'mediumFeature')]
       ]}
       style={weightStyle}
+      {...aria}
     />
   {:else}
-    <span class={context.classes.blockedChip} style={weightStyle}>
+    <span class={context.classes.blockedChip} style={weightStyle} {...aria}>
       {context.labels.blockedImage}{description ? `: ${description}` : ''}
     </span>
   {/if}
@@ -633,7 +635,8 @@
       stroke-linejoin="round"
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
-      aria-hidden={ariaLabel ? undefined : 'true'}
+      {...aria}
+      aria-hidden={ariaLabel && !aria['aria-hidden'] ? undefined : 'true'}
     >
       <path d={iconSvgPath} />
     </svg>
@@ -644,7 +647,8 @@
       style={weightStyle}
       role={ariaLabel ? 'img' : undefined}
       aria-label={ariaLabel}
-      aria-hidden={ariaLabel ? undefined : 'true'}
+      {...aria}
+      aria-hidden={ariaLabel && !aria['aria-hidden'] ? undefined : 'true'}
     >
       <IconComp size={20} />
     </span>
@@ -656,6 +660,7 @@
     intent={buttonStyle.intent}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
     disabled={!buttonUsable}
     title={buttonUsable ? undefined : 'This action is not supported'}
     onclick={buttonUsable ? dispatchButton : undefined}
@@ -671,25 +676,30 @@
   {/if}
 {:else if component === 'TextField'}
   {@const label = text(resolved('label'))}
+  {@const placeholder = text(resolved('placeholder')) || undefined}
   {@const variant = enumOr('variant', 'shortText')}
   {#if variant === 'longText'}
     <Textarea
       unstyled={context.unstyled}
       {label}
+      {placeholder}
       value={textValue}
       oninput={onTextInput}
       style={weightStyle}
       aria-label={ariaLabel}
+      {...aria}
     />
   {:else}
     <Input
       unstyled={context.unstyled}
       {label}
+      {placeholder}
       type={INPUT_TYPE[variant] ?? 'text'}
       value={textValue}
       oninput={onTextInput}
       style={weightStyle}
       aria-label={ariaLabel}
+      {...aria}
     />
   {/if}
 {:else if component === 'CheckBox'}
@@ -700,6 +710,7 @@
     onCheckedChange={onBoolChange}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'ChoicePicker'}
   {#if enumOr('variant', 'mutuallyExclusive') === 'multipleSelection'}
@@ -709,6 +720,7 @@
       style={weightStyle}
       role="group"
       aria-label={ariaLabel || choiceLabel || undefined}
+      {...aria}
     >
       {#if choiceLabel}
         <span class={context.classes.choiceLabel}>{choiceLabel}</span>
@@ -729,6 +741,7 @@
       value={choiceSelected[0]}
       onValueChange={onRadioChange}
       style={weightStyle}
+      {...aria}
     >
       {#each choiceOptions as option (option.value)}
         <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
@@ -744,10 +757,12 @@
     value={sliderValue}
     min={sliderMin}
     max={sliderMax}
+    step={sliderStep}
     showValue
     onValueChange={onSliderChange}
     style={weightStyle}
     aria-label={ariaLabel}
+    {...aria}
   />
 {:else if component === 'DateTimeInput'}
   {@const label = text(resolved('label'))}
@@ -760,6 +775,7 @@
       style={weightStyle}
       role="group"
       aria-label={ariaLabel || label || undefined}
+      {...aria}
     >
       <DatePicker
         unstyled={context.unstyled}
@@ -784,7 +800,12 @@
          would be the whole row, and its group drops aria-label whenever the
          visible label names it. role=group only when the wrapper has a name. -->
     <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
-    <div style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
+    <div
+      style={weightStyle}
+      role={ariaLabel ? 'group' : undefined}
+      aria-label={ariaLabel}
+      {...aria}
+    >
       <TimeInput
         unstyled={context.unstyled}
         label={label || undefined}
@@ -808,6 +829,7 @@
       minDate={dtMinDate}
       maxDate={dtMaxDate}
       style={weightStyle}
+      {...aria}
     />
   {/if}
 {/if}

@@ -22,21 +22,33 @@
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
-import { A2UI_LOGIC_FUNCTION_ARGS, A2UI_LOGIC_FUNCTIONS } from './a2ui-data';
 import {
+  A2UI_CALL_KEY,
+  A2UI_INDEX_FUNCTION,
+  A2UI_LOGIC_FUNCTION_ARGS,
+  A2UI_LOGIC_FUNCTIONS,
+  A2UI_PATH_KEY
+} from './a2ui-data';
+import {
+  A2UI_ACCESSIBILITY_PROP,
+  A2UI_ACCESSIBILITY_SPEC,
+  A2UI_PROTOCOL_VERSION,
   type A2uiComponentSpec,
   type A2uiPropSpec,
   acceptsLogicCall,
   registryAcceptsLogicCall
 } from './a2ui-registry';
 
+/** A data binding as the prompt writes one: `{ "@path" }`. */
+const BINDING = `{ "${A2UI_PATH_KEY}" }`;
+
 /** The logic functions as the prompt names them: `not/and/or`. */
 const LOGIC_NAMES = [...A2UI_LOGIC_FUNCTIONS].join('/');
 const LOGIC_CALL = `${LOGIC_NAMES} call`;
 
 /**
- * One call shape per distinct signature, the functions sharing it as `"call"`
- * alternatives — `{ "call": "and" | "or", "args": { "values": [B, B, ...] } } (2 or more B)`.
+ * One call shape per distinct signature, the functions sharing it as `"@call"`
+ * alternatives — `{ "@call": "and" | "or", "args": { "values": [B, B, ...] } } (2 or more B)`.
  */
 function logicCallShapes(): string[] {
   const groups = new Map<string, { names: string[]; shape: string }>();
@@ -53,11 +65,13 @@ function logicCallShapes(): string[] {
     group.names.push(JSON.stringify(name));
     groups.set(key, group);
   }
-  return [...groups.values()].map(({ names, shape }) => `{ "call": ${names.join(' | ')}, ${shape}`);
+  return [...groups.values()].map(
+    ({ names, shape }) => `{ "${A2UI_CALL_KEY}": ${names.join(' | ')}, ${shape}`
+  );
 }
 
 /** Props documented once in the shared section rather than per component. */
-const COMMON_PROP_KEYS = new Set(['accessibility', 'weight']);
+const COMMON_PROP_KEYS = new Set(['weight']);
 
 /** Category order for grouped rendering; unknown categories follow, sorted. */
 const CATEGORY_ORDER = ['Layout', 'Text', 'Form', 'Status', 'Media'];
@@ -95,14 +109,14 @@ function renderKind(spec: A2uiPropSpec): string {
     case 'icon':
       return `one of: ${(spec.values ?? []).join(' | ')}`;
     case 'string':
-      return spec.dynamic ? 'string literal or { path } binding' : 'string';
+      return spec.dynamic ? `string literal or ${BINDING} binding` : 'string';
     case 'number':
-      return spec.dynamic ? 'number literal or { path } binding' : 'number';
+      return spec.dynamic ? `number literal or ${BINDING} binding` : 'number';
     case 'boolean':
-      if (acceptsLogicCall(spec)) return `boolean literal, { path } binding or ${LOGIC_CALL}`;
-      return spec.dynamic ? 'boolean literal or { path } binding' : 'boolean';
+      if (acceptsLogicCall(spec)) return `boolean literal, ${BINDING} binding or ${LOGIC_CALL}`;
+      return spec.dynamic ? `boolean literal or ${BINDING} binding` : 'boolean';
     case 'stringList':
-      return 'string array or { path } binding';
+      return `string array or ${BINDING} binding`;
     case 'childId':
       return 'component id (string)';
     case 'childList':
@@ -113,11 +127,18 @@ function renderKind(spec: A2uiPropSpec): string {
       return 'action { event: { name, context } }';
     case 'options':
       return spec.dynamic
-        ? 'array of { label, value }, or { path } binding to such an array'
+        ? `array of { label, value }, or ${BINDING} binding to such an array`
         : 'array of { label, value }';
-    case 'accessibility':
-      return 'object { label?, description? }';
   }
+}
+
+/** `@accessibility` as one line: every key `A2UI_ACCESSIBILITY_SPEC` declares, with what it does. */
+function renderAccessibility(): string {
+  const keys = Object.entries(A2UI_ACCESSIBILITY_SPEC).map(
+    ([key, spec]) =>
+      `${key}${spec.kind === 'enum' ? ` (${(spec.values ?? []).join(' | ')})` : ''}: ${spec.description}`
+  );
+  return `- ${A2UI_ACCESSIBILITY_PROP} (optional; object, each key optional) — ${keys.join('; ')}.`;
 }
 
 function renderProp(key: string, spec: A2uiPropSpec): string {
@@ -216,7 +237,7 @@ export function a2uiSystemPrompt(options?: {
       'against the catalog below. Emit UI when a structured surface (form, list, card,',
       'chooser) serves the user better than prose; otherwise answer in plain text.',
       '',
-      `Protocol version: v0.9.1. Catalog id: ${catalogId}`
+      `Protocol version: ${A2UI_PROTOCOL_VERSION}. Catalog id: ${catalogId}`
     ].join('\n')
   );
 
@@ -224,16 +245,18 @@ export function a2uiSystemPrompt(options?: {
     [
       '## Envelopes',
       '',
-      'Every envelope is an object with a "version" of "v0.9.1" and EXACTLY ONE of',
+      `Every envelope is an object with a "version" of "${A2UI_PROTOCOL_VERSION}" and EXACTLY ONE of`,
       'these operations:',
       '',
-      `- createSurface: { surfaceId, catalogId: "${catalogId}" } — send this FIRST.`,
+      `- createSurface: { surfaceId, catalogId: "${catalogId}", dataModel? } — send`,
+      '  this FIRST. dataModel is the initial surface state (an object).',
       '- updateComponents: { surfaceId, components: [ ... ] } — the component tree.',
-      '- updateDataModel: { surfaceId, path?, value? } — the surface state.',
+      '- updateDataModel: { surfaceId, path?, value } — the surface state.',
       '- deleteSurface: { surfaceId } — remove a surface.',
       '',
       'Rules:',
       '- components is a FLAT list; each entry is { id, component, ...props }.',
+      '- An id is an identifier: letters, digits and "_" — no hyphen, no leading digit.',
       '- EXACTLY ONE component MUST have id "root" — it is the tree root.',
       '- Children are referenced by ID only — NEVER define a component inline.',
       '- A single-child container (Card, Button) uses "child" (one id).',
@@ -265,12 +288,12 @@ export function a2uiSystemPrompt(options?: {
       '  write "pick a date and I will show the times" without one.',
       '- But do NOT route a plain choice through you. A control that only records',
       '  what the user picked should BIND: a single-choice input with',
-      '  value: { path } highlights the selection instantly, no round-trip. A row',
+      `  value: ${BINDING} highlights the selection instantly, no round-trip. A row`,
       '  of Buttons that each set a value is the wrong shape — buttons show no',
       '  selected state, so the choice looks lost, and every tap costs a turn.',
       '  Reach for an action only when YOU must fetch or commit something.',
       '- Options you fetched belong in the data model: write them with',
-      '  updateDataModel and bind options: { path } (see the prop docs), rather',
+      `  updateDataModel and bind options: ${BINDING} (see the prop docs), rather`,
       '  than rewriting the component for every result.',
       '- Set "sendDataModel": true on createSurface: every action then carries the',
       "  surface's ENTIRE data model, so you see what the user filled in even for",
@@ -282,28 +305,30 @@ export function a2uiSystemPrompt(options?: {
     [
       '## Data bindings',
       '',
-      'Any value prop may be a literal OR a data binding { "path": "/json/pointer" }',
+      `Any value prop may be a literal OR a data binding { "${A2UI_PATH_KEY}": "/json/pointer" }`,
       '(RFC 6901). Inside a template, use a RELATIVE path (no leading slash) to address',
-      'the current array item, e.g. { "path": "name" }.',
+      `the current array item, e.g. { "${A2UI_PATH_KEY}": "name" }; there`,
+      `{ "${A2UI_CALL_KEY}": "${A2UI_INDEX_FUNCTION}" } is the item's 0-based position ("args": { "offset": 1 }`,
+      'counts from 1).',
       '',
       'Inputs are two-way: typing/checking/selecting writes back into the data model',
-      'immediately; bound text updates live. Update state with updateDataModel — omit',
-      '"value" to DELETE the key at "path".',
+      'immediately; bound text updates live. Update state with updateDataModel — a',
+      '"value" of null DELETES the key at "path".',
       '',
       ...(hasLogicProps
         ? [
-            'Function calls ({ "call", "args" }) resolve to nothing, except these, which',
+            `Other function calls ({ "${A2UI_CALL_KEY}", "args" }) resolve to nothing, except these, which`,
             `compute a boolean and are allowed only where a prop says "${LOGIC_CALL}":`,
             ...logicCallShapes().map(
               (shape, i, all) => `${shape}${i < all.length - 1 ? ' and' : ','}`
             ),
-            'each B being true, false, a { path } binding or another of these calls — never',
-            'another function such as "required". Only true counts as true: a path not yet',
-            'written is false, so "not" of it is true.'
+            `each B being true, false, a ${BINDING} binding or another of these calls — never`,
+            'another function such as "required". A path not yet written counts as false,',
+            'so "not" of it is true.'
           ]
         : [
-            'Function-call bindings ({ "call": ..., "args": ... }) are NOT supported and',
-            'resolve to nothing — do NOT use them. Use literals and { path } only.'
+            `Other function calls ({ "${A2UI_CALL_KEY}": ..., "args": ... }) are NOT supported and`,
+            `resolve to nothing — do NOT use them. Use literals and ${BINDING} only.`
           ])
     ].join('\n')
   );
@@ -312,9 +337,10 @@ export function a2uiSystemPrompt(options?: {
     [
       '## Actions',
       '',
-      'A Button action MUST be a server event: { "event": { "name": string,',
-      '"context": { ... } } }. Context values may be literals or { path } bindings and',
-      'are resolved before dispatch. Do NOT use local function-call actions.'
+      'A Button action MUST be an agent event: { "event": { "name": string,',
+      `"userMessage"?: string, "context": { ... } } }. Context values may be literals or`,
+      `${BINDING} bindings and are resolved before dispatch; userMessage says in a few`,
+      'words what the user did. Do NOT use local function-call actions.'
     ].join('\n')
   );
 
@@ -345,7 +371,7 @@ export function a2uiSystemPrompt(options?: {
     [
       '## Common props (every component)',
       '',
-      '- accessibility (optional; object { label?, description? }): ARIA label/description.',
+      renderAccessibility(),
       '- weight (optional; number): flex-grow, honored ONLY on a direct Row/Column child.'
     ].join('\n')
   );
@@ -365,8 +391,8 @@ export function a2uiSystemPrompt(options?: {
     '- Do NOT define children inline; reference them by id.',
     '- Do NOT use more than one "root".',
     hasLogicProps
-      ? `- Do NOT use function calls other than ${LOGIC_NAMES}, nor local function-call actions.`
-      : '- Do NOT use function-call bindings or local function-call actions.',
+      ? `- Do NOT use function calls other than ${LOGIC_NAMES} and ${A2UI_INDEX_FUNCTION}, nor local function-call actions.`
+      : `- Do NOT use function calls other than ${A2UI_INDEX_FUNCTION}, nor local function-call actions.`,
     `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`
   ];
   if (hasRichText) {
@@ -375,9 +401,7 @@ export function a2uiSystemPrompt(options?: {
       '  lists/links/code use RichText, never Text.'
     );
   } else {
-    donts.push(
-      '- Do NOT put HTML, images or links in Text markdown (inline bold/italic/code only).'
-    );
+    donts.push('- Do NOT put HTML, images or links in Text markdown.');
   }
   if (hasSelectArray) {
     donts.push(

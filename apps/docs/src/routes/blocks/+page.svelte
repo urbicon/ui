@@ -353,9 +353,9 @@ Tokens switch light and dark automatically:
   // emitted data, not code) rendered from an accumulated envelope array, here
   // against the opt-in Urbicon-native catalog: real intents/variants + Input.
   const a2uiFormDemo: unknown[] = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'sb', catalogId: URBICON_A2UI_CATALOG_ID } },
+    { version: '1.0', createSurface: { surfaceId: 'sb', catalogId: URBICON_A2UI_CATALOG_ID } },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'sb',
         components: [
@@ -367,28 +367,28 @@ Tokens switch light and dark automatically:
             component: 'Input',
             label: 'Email',
             inputType: 'email',
-            value: { path: '/email' }
+            value: { '@path': '/email' }
           },
-          { id: 'submit-label', component: 'Text', text: 'Sign in' },
+          { id: 'submit_label', component: 'Text', text: 'Sign in' },
           {
             id: 'submit',
             component: 'Button',
             intent: 'primary',
-            child: 'submit-label',
+            child: 'submit_label',
             action: { event: { name: 'signin', context: {} } }
           }
         ]
       }
     },
-    { version: 'v0.9.1', updateDataModel: { surfaceId: 'sb', value: { email: '' } } }
+    { version: '1.0', updateDataModel: { surfaceId: 'sb', value: { email: '' } } }
   ];
 
   // Fault-chip specimen — `Video` is outside the subset, so it renders as a
   // visible fault chip instead of anything the catalog never sanctioned.
   const a2uiFaultDemo: unknown[] = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'sbx', catalogId: A2UI_CATALOG_ID } },
+    { version: '1.0', createSurface: { surfaceId: 'sbx', catalogId: A2UI_CATALOG_ID } },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'sbx',
         components: [

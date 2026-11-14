@@ -43,8 +43,9 @@ export { a2uiSystemPrompt } from '../components/Chat/A2UIView/a2ui-prompt';
 export {
   A2UI_CATALOG_ID,
   A2UI_ICON_NAMES,
+  A2UI_PROTOCOL_VERSION,
   A2UI_REGISTRY,
-  A2UI_SUPPORTED_VERSIONS,
+  A2UI_UPSTREAM_BASIC_CATALOG_ID,
   type A2uiComponentSpec,
   type A2uiPropKind,
   type A2uiPropSpec,

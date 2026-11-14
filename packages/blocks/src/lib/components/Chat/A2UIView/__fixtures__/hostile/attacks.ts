@@ -9,9 +9,12 @@
  * of creating an own property, which would not reproduce a JSON wire payload.
  */
 
-/** Minimal valid createSurface for a given id. `catalogId` is opaque. */
+import { A2UI_CATALOG_ID } from '../../a2ui-registry';
+import { URBICON_A2UI_CATALOG_ID } from '../../urbicon/a2ui-urbicon-registry';
+
+/** Minimal valid createSurface for a given id, on the Basic catalog. */
 function cs(surfaceId: string): Record<string, unknown> {
-  return { version: 'v0.9.1', createSurface: { surfaceId, catalogId: 'x' } };
+  return { version: '1.0', createSurface: { surfaceId, catalogId: A2UI_CATALOG_ID } };
 }
 
 // ── Prototype pollution (four vectors) ───────────────────────────────────────
@@ -20,7 +23,7 @@ function cs(surfaceId: string): Record<string, unknown> {
 export const protoComponentId: unknown[] = [
   cs('pc'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'pc',
       components: [
@@ -33,25 +36,25 @@ export const protoComponentId: unknown[] = [
 
 /** `__proto__` as an own component prop KEY (via JSON.parse). */
 export const protoPropKey: unknown[] = JSON.parse(
-  '[{"version":"v0.9.1","createSurface":{"surfaceId":"pp","catalogId":"x"}},' +
-    '{"version":"v0.9.1","updateComponents":{"surfaceId":"pp","components":[' +
+  `[{"version":"1.0","createSurface":{"surfaceId":"pp","catalogId":"${A2UI_CATALOG_ID}"}},` +
+    '{"version":"1.0","updateComponents":{"surfaceId":"pp","components":[' +
     '{"id":"root","component":"Text","text":"hi","__proto__":{"polluted":true}}]}}]'
 );
 
 /** `__proto__` as a JSON Pointer segment in updateDataModel. */
 export const protoPointerSegment: unknown[] = [
   cs('ps'),
-  { version: 'v0.9.1', updateDataModel: { surfaceId: 'ps', value: {} } },
+  { version: '1.0', updateDataModel: { surfaceId: 'ps', value: {} } },
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateDataModel: { surfaceId: 'ps', path: '/__proto__/polluted', value: true }
   }
 ];
 
 /** `__proto__` as an own action-context KEY (via JSON.parse). */
 export const protoContextKey: unknown[] = JSON.parse(
-  '[{"version":"v0.9.1","createSurface":{"surfaceId":"ck","catalogId":"x"}},' +
-    '{"version":"v0.9.1","updateComponents":{"surfaceId":"ck","components":[' +
+  `[{"version":"1.0","createSurface":{"surfaceId":"ck","catalogId":"${A2UI_CATALOG_ID}"}},` +
+    '{"version":"1.0","updateComponents":{"surfaceId":"ck","components":[' +
     '{"id":"root","component":"Button","child":"lbl","action":{"event":{"name":"go",' +
     '"context":{"__proto__":{"polluted":true}}}}},' +
     '{"id":"lbl","component":"Text","text":"Go"}]}}]'
@@ -60,9 +63,9 @@ export const protoContextKey: unknown[] = JSON.parse(
 /** `constructor` as a pointer segment (second pollution key). */
 export const protoConstructorPointer: unknown[] = [
   cs('cp'),
-  { version: 'v0.9.1', updateDataModel: { surfaceId: 'cp', value: {} } },
+  { version: '1.0', updateDataModel: { surfaceId: 'cp', value: {} } },
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateDataModel: { surfaceId: 'cp', path: '/constructor/prototype/polluted', value: true }
   }
 ];
@@ -81,7 +84,7 @@ export const depthBomb: unknown[] = (() => {
     });
   }
   components.push({ id: 'leaf', component: 'Text', text: 'deep' });
-  return [cs('depth'), { version: 'v0.9.1', updateComponents: { surfaceId: 'depth', components } }];
+  return [cs('depth'), { version: '1.0', updateComponents: { surfaceId: 'depth', components } }];
 })();
 
 /** A Column with 600 Text children (maxNodes is 512). */
@@ -95,14 +98,14 @@ export const nodeBomb: unknown[] = (() => {
     ids.push(`t${i}`);
     components.push({ id: `t${i}`, component: 'Text', text: `${i}` });
   }
-  return [cs('nodes'), { version: 'v0.9.1', updateComponents: { surfaceId: 'nodes', components } }];
+  return [cs('nodes'), { version: '1.0', updateComponents: { surfaceId: 'nodes', components } }];
 })();
 
 /** root → a → b → a. */
 export const cycle: unknown[] = [
   cs('cyc'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'cyc',
       components: [
@@ -120,7 +123,7 @@ export const cycle: unknown[] = [
 export const duplicateIds: unknown[] = [
   cs('dup'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'dup',
       components: [
@@ -136,7 +139,7 @@ export const duplicateIds: unknown[] = [
 export const unknownComponents: unknown[] = [
   cs('unk'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'unk',
       components: [
@@ -152,7 +155,7 @@ export const unknownComponents: unknown[] = [
 export const unknownProp: unknown[] = [
   cs('up'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'up',
       components: [{ id: 'root', component: 'Text', text: 'hi', onclick: 'alert(1)' }]
@@ -164,7 +167,7 @@ export const unknownProp: unknown[] = [
 export const typeMismatch: unknown[] = [
   cs('tm'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'tm',
       components: [{ id: 'root', component: 'Text', text: 'hi', weight: 'heavy' }]
@@ -174,16 +177,18 @@ export const typeMismatch: unknown[] = [
 
 /** version is not a supported string. */
 export const badVersion: unknown[] = [
-  { version: 'v0.8', createSurface: { surfaceId: 'bad', catalogId: 'x' } }
+  { version: 'v0.9.1', createSurface: { surfaceId: 'bad', catalogId: A2UI_CATALOG_ID } }
 ];
 
 /** version is absent. */
-export const missingVersion: unknown[] = [{ createSurface: { surfaceId: 'none', catalogId: 'x' } }];
+export const missingVersion: unknown[] = [
+  { createSurface: { surfaceId: 'none', catalogId: A2UI_CATALOG_ID } }
+];
 
 /** updateComponents with no preceding createSurface. */
 export const updateBeforeCreate: unknown[] = [
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'ghost',
       components: [{ id: 'root', component: 'Text', text: 'x' }]
@@ -198,7 +203,7 @@ export const duplicateSurface: unknown[] = [cs('twice'), cs('twice')];
 export const danglingRef: unknown[] = [
   cs('dr'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'dr',
       components: [{ id: 'root', component: 'Column', children: ['missing'] }]
@@ -216,7 +221,7 @@ export const danglingRef: unknown[] = [
 export const tabsMalformedItems: unknown[] = [
   cs('tb'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'tb',
       components: [
@@ -246,7 +251,7 @@ export const tabsMalformedItems: unknown[] = [
 export const tabsEmpty: unknown[] = [
   cs('te'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'te',
       components: [{ id: 'root', component: 'Tabs', tabs: [] }]
@@ -257,9 +262,9 @@ export const tabsEmpty: unknown[] = [
 /** A List template whose path resolves to a non-array. */
 export const templatePathNotArray: unknown[] = [
   cs('tp'),
-  { version: 'v0.9.1', updateDataModel: { surfaceId: 'tp', value: { notArray: 'hello' } } },
+  { version: '1.0', updateDataModel: { surfaceId: 'tp', value: { notArray: 'hello' } } },
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'tp',
       components: [
@@ -273,15 +278,22 @@ export const templatePathNotArray: unknown[] = [
 /** Set two keys, then delete one via a value-less updateDataModel. */
 export const deleteSemantics: unknown[] = [
   cs('del'),
-  { version: 'v0.9.1', updateDataModel: { surfaceId: 'del', value: { a: 1, b: 2 } } },
-  { version: 'v0.9.1', updateDataModel: { surfaceId: 'del', path: '/a' } }
+  { version: '1.0', updateDataModel: { surfaceId: 'del', value: { a: 1, b: 2 } } },
+  { version: '1.0', updateDataModel: { surfaceId: 'del', path: '/a', value: null } }
+];
+
+/** `updateDataModel` without a `value`: A2UI 1.0 requires one, so nothing is deleted. */
+export const deleteByOmission: unknown[] = [
+  cs('om'),
+  { version: '1.0', updateDataModel: { surfaceId: 'om', value: { a: 1, b: 2 } } },
+  { version: '1.0', updateDataModel: { surfaceId: 'om', path: '/a' } }
 ];
 
 /** An Icon svgPath that carries markup — must fail the grammar guard. */
 export const invalidSvgPath: unknown[] = [
   cs('svg'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'svg',
       components: [
@@ -304,7 +316,7 @@ export const invalidSvgPath: unknown[] = [
 export const inheritedComponentName: unknown[] = [
   cs('in1'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: { surfaceId: 'in1', components: [{ id: 'root', component: 'toString' }] }
   }
 ];
@@ -313,7 +325,7 @@ export const inheritedComponentName: unknown[] = [
 export const inheritedComponentNameWithProp: unknown[] = [
   cs('in2'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'in2',
       components: [{ id: 'root', component: 'valueOf', text: 'x' }]
@@ -325,7 +337,7 @@ export const inheritedComponentNameWithProp: unknown[] = [
 export const inheritedComponentCheck: unknown[] = [
   cs('in3'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'in3',
       components: [{ id: 'root', component: 'hasOwnProperty' }]
@@ -340,7 +352,7 @@ export const inheritedComponentCheck: unknown[] = [
 export const inheritedPropKey: unknown[] = [
   cs('in4'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'in4',
       components: [{ id: 'root', component: 'Text', text: 'hi', toString: 'evil' }]
@@ -352,11 +364,114 @@ export const inheritedPropKey: unknown[] = [
 export const envelopeSmuggling: unknown[] = [
   cs('sm'),
   {
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'sm',
       components: [{ id: 'root', component: 'Text', text: 'x' }]
     },
     injected: { evil: true }
+  }
+];
+
+// ── A2UI 1.0 ─────────────────────────────────────────────────────────────────
+
+/** A Basic surface holding one Urbicon component: it renders only where that catalog is configured. */
+export const mixedCatalogs: unknown[] = [
+  cs('mix'),
+  {
+    version: '1.0',
+    updateComponents: {
+      surfaceId: 'mix',
+      components: [
+        { id: 'root', component: 'Column', children: ['note'] },
+        {
+          id: 'note',
+          component: 'Text',
+          text: '**Sold out**',
+          '@catalogId': URBICON_A2UI_CATALOG_ID
+        }
+      ]
+    }
+  }
+];
+
+/** No default catalog, and components that name none either. */
+export const noCatalog: unknown[] = [
+  { version: '1.0', createSurface: { surfaceId: 'nc' } },
+  {
+    version: '1.0',
+    updateComponents: {
+      surfaceId: 'nc',
+      components: [
+        { id: 'root', component: 'Column', children: ['a'] },
+        { id: 'a', component: 'Text', text: 'x' }
+      ]
+    }
+  }
+];
+
+/** One message that carries the whole surface, with faults in every inline part. */
+export const inlineSurface: unknown[] = [
+  {
+    version: '1.0',
+    createSurface: {
+      surfaceId: 'in',
+      catalogId: A2UI_CATALOG_ID,
+      theme: { primaryColor: '#f00' },
+      metadata: { extensions: { 'not-an-identifier': 1 } },
+      dataModel: { a: 1, rows: [{}, {}] },
+      components: [
+        { id: 'root', component: 'Column', children: ['title', 'list', 'user-card'] },
+        { id: 'title', component: 'Text', text: { '@call': '@index' } },
+        { id: 'list', component: 'List', children: { componentId: 'row', path: '/rows' } },
+        { id: 'row', component: 'Text', text: { '@call': '@index', args: { offset: 1 } } },
+        { id: 'user-card', component: 'Text', text: { path: '/a' } }
+      ]
+    }
+  }
+];
+
+/** The 1.0 function-call messages, and an envelope that carries two messages at once. */
+export const functionCallMessages: unknown[] = [
+  cs('fc'),
+  {
+    version: '1.0',
+    callRendererFunction: {
+      surfaceId: 'fc',
+      functionCallId: 'call_1',
+      callFunction: { '@call': 'openUrl', catalogId: A2UI_CATALOG_ID, args: { url: 'https://x' } }
+    }
+  },
+  { version: '1.0', agentFunctionResponse: { functionCallId: 'r_1', value: { valid: true } } },
+  { version: '1.0', callRendererFunction: 'now', agentFunctionResponse: null }
+];
+
+/** Reserved `@` keys where a component and a literal object may not carry them, beside the mixins it may. */
+export const reservedKeys: unknown[] = [
+  cs('rk'),
+  {
+    version: '1.0',
+    updateComponents: {
+      surfaceId: 'rk',
+      components: [
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'label',
+          '@if': true,
+          '@metadata': { extensions: { com_acme_tag: 1 }, tags: [] },
+          '@accessibility': { label: { '@path': '/name' }, live: 'rude' },
+          '@checks': [{ condition: { '@path': '/ok' } }],
+          action: {
+            event: {
+              name: 'go',
+              userMessage: 7,
+              context: { literal: { '@@type': 'File', path: '/var/log' }, bad: { '@if': 1 } }
+            }
+          }
+        },
+        { id: 'label', component: 'Text', text: 'Go', accessibility: { label: 'Go' } }
+      ]
+    }
   }
 ];

@@ -7,15 +7,15 @@
   // through `onValidationError` as a spec-compatible issue a consumer can relay
   // back to the agent as an A2UI `error` message.
   const payload: unknown[] = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'broken', catalogId: A2UI_CATALOG_ID } },
+    { version: '1.0', createSurface: { surfaceId: 'broken', catalogId: A2UI_CATALOG_ID } },
     {
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'broken',
         components: [
           { id: 'root', component: 'Card', child: 'col' },
           { id: 'col', component: 'Column', children: ['heading', 'clip'] },
-          { id: 'heading', component: 'Text', text: 'Product tour', variant: 'h4' },
+          { id: 'heading', component: 'Text', text: '#### Product tour' },
           { id: 'clip', component: 'Video', url: 'https://example.com/tour.mp4' }
         ]
       }

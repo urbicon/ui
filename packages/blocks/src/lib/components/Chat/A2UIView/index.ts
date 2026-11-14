@@ -8,8 +8,8 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
 
 /**
  * @summary Turns a model's UI description into live components from your design system.
- * @description Renders a trusted-catalog A2UI (Agent-to-UI, v0.9.1 `basic`
- * subset) payload into live, interactive Urbicon components. Fail-loud and
+ * @description Renders a trusted-catalog A2UI (Agent-to-UI, protocol 1.0,
+ * `basic` subset) payload into live, interactive Urbicon components. Fail-loud and
  * whitelist-only: only the mapped catalog components and their declared props
  * ever reach the DOM. Unknown components/props, prototype-pollution keys and
  * function-call bindings are rejected, never rendered, and reported through
@@ -17,7 +17,9 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * as a `VALIDATION_FAILED` error) — except the A2UI logic functions `not`,
  * `and`, `or`, which compute a boolean from the data model, execute nothing,
  * and gate a prop such as the Urbicon catalog's `Button.disabled` ("disabled
- * until /agreed"); a gate whose call cannot be evaluated fails closed.
+ * until /agreed"); a gate whose call cannot be evaluated fails closed. The
+ * system function `@index`, the position of a list template's current item, is
+ * evaluated too.
  * Inputs are two-way (typing writes into the local data model; bound text
  * updates live); actions dispatch a spec-exact
  * `A2uiActionEvent`. Images and links are gated by the same strict-by-default
@@ -29,7 +31,9 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * `streaming` is false; never hand-roll either. On a server, import both from
  * `@urbicon-ui/blocks/a2ui`, which loads no Svelte. Opt into the richer
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
- * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise), and
+ * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise) — a
+ * surface names its catalog with `createSurface.catalogId`, a single component
+ * another one with `@catalogId`, and an id that names none renders nothing; and
  * type-check the data model with an optional `dataSchema`; require components
  * on a surface (a consent box) with `surfaceRequirements`. One view owns the
  * surfaces of ONE payload; to let an agent patch a surface it sent in an earlier
@@ -86,7 +90,7 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * object referentially stable.
    */
   urlPolicy?: MarkdownUrlPolicy;
-  /** Fired when a Button is activated, with the spec-exact resolved action event. */
+  /** Fired when a Button is activated, with the resolved action event (the body of A2UI's `action` message). */
   onAction?: (event: A2uiActionEvent) => void;
   /**
    * Fired whenever the validation-issue list changes (errors AND warnings, each
@@ -104,16 +108,17 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
   pendingLabel?: string;
   /**
    * Additional A2UI catalogs this view can render, beyond the always-present
-   * Basic catalog (which is prepended automatically as the default/fallback). A
-   * surface renders through the catalog whose id its `createSurface.catalogId`
-   * names. Pass the shipped `urbiconA2uiCatalog` to enable the Urbicon-native
-   * catalog. Read once, when the view mounts (icon setup reads context then): a
-   * different list passed later is ignored.
+   * Basic catalog. A component renders through the catalog its own `@catalogId`
+   * names, else the one its surface's `createSurface.catalogId` names; an id
+   * that names no catalog of the view is an `UNKNOWN_CATALOG` error and falls
+   * back to nothing. Pass the shipped `urbiconA2uiCatalog` to enable the
+   * Urbicon-native catalog. Read once, when the view mounts (icon setup reads
+   * context then): a different list passed later is ignored.
    */
   catalogs?: readonly A2uiCatalog[];
   /**
-   * Optional surface data schema. When set, every `updateDataModel` write is
-   * validated against it (type mismatch on a declared pointer → error;
+   * Optional surface data schema. When set, every `updateDataModel` write and
+   * every `createSurface.dataModel` is validated against it (type mismatch on a declared pointer → error;
    * undeclared top-level branch → warning), reported via `onValidationError`.
    * Document the same schema to the agent with `a2uiDataSchemaSection`. Read
    * once, when the view mounts: a different schema passed later is ignored.
@@ -124,12 +129,12 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * `{ booking: [{ component: 'Checkbox', path: '/agreed' }] }`. A requirement
    * counts once a component of that name is reachable from `root` and renders
    * as itself (not as a fault chip) and, with `path`, its `value` (or the named
-   * `prop`) is a `{ path }` binding that resolves to that pointer; one component
-   * meets one entry. Each one unmet is reported through `onValidationError` as a
-   * `MISSING_REQUIRED_COMPONENT` error once `streaming` is false (never while
-   * the surface is still arriving, never thrown) so the agent can patch the
-   * surface; when the agent picked a catalog that cannot hold the component,
-   * the message names one that can. An entry no catalog of the view can meet
+   * `prop`) is a `{ "@path" }` binding that resolves to that pointer; one
+   * component meets one entry. Each one unmet is reported through
+   * `onValidationError` as a `MISSING_REQUIRED_COMPONENT` error once `streaming`
+   * is false (never while the surface is still arriving, never thrown) so the
+   * agent can patch the surface; when the surface's default catalog cannot hold
+   * the component, the message names one that can. An entry no catalog of the view can meet
    * (unknown component, undeclared prop, relative path) is an
    * `INVALID_REQUIREMENT` warning instead and is not checked. A surface without
    * an entry is unaffected. The model picks surfaceIds, so put the same object

@@ -22,8 +22,7 @@ const VALID_KINDS: ReadonlySet<A2uiPropKind> = new Set<A2uiPropKind>([
   'labeledChildren',
   'action',
   'options',
-  'icon',
-  'accessibility'
+  'icon'
 ]);
 
 const entries = Object.entries(URBICON_A2UI_REGISTRY);

@@ -32,9 +32,9 @@ describe('a2uiFencedTransportSection', () => {
     const splitter = new A2uiStreamSplitter();
     splitter.push('Here you go:\n');
     splitter.push(`${open}\n`);
-    splitter.push('{"version":"v0.9.1","createSurface":{"surfaceId":"s","catalogId":"c"}}\n');
+    splitter.push('{"version":"1.0","createSurface":{"surfaceId":"s","catalogId":"c"}}\n');
     splitter.push(
-      '{"version":"v0.9.1","updateComponents":{"surfaceId":"s","components":[{"id":"root","component":"Text","text":"hi"}]}}\n'
+      '{"version":"1.0","updateComponents":{"surfaceId":"s","components":[{"id":"root","component":"Text","text":"hi"}]}}\n'
     );
     splitter.push('```\nAnything else?');
     splitter.end();

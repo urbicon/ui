@@ -3,13 +3,18 @@ import { A2UI_ISSUE_CODES } from './a2ui.types';
 import {
   A2UI_MAX_LOGIC_DEPTH,
   A2UI_MAX_LOGIC_OPERANDS,
+  type A2uiCallCatalogs,
   checksPass,
   cloneData,
+  coerceBoolean,
   deleteAtPointer,
   getAtPointer,
   resolveDynamic,
   setAtPointer
 } from './a2ui-data';
+
+const EVERY_CATALOG: A2uiCallCatalogs = () => true;
+const NO_CATALOG: A2uiCallCatalogs = () => false;
 
 describe('getAtPointer', () => {
   const model = {
@@ -120,100 +125,228 @@ describe('resolveDynamic', () => {
   const model = { email: 'a@b.c', items: [{ name: 'A' }, { name: 'B' }] };
 
   it('passes literals through unchanged', () => {
-    expect(resolveDynamic('hi', model, undefined).value).toBe('hi');
-    expect(resolveDynamic(42, model, undefined).value).toBe(42);
-    expect(resolveDynamic(true, model, undefined).value).toBe(true);
-    expect(resolveDynamic(['x'], model, undefined).value).toEqual(['x']);
+    expect(resolveDynamic('hi', model, undefined, EVERY_CATALOG).value).toBe('hi');
+    expect(resolveDynamic(42, model, undefined, EVERY_CATALOG).value).toBe(42);
+    expect(resolveDynamic(true, model, undefined, EVERY_CATALOG).value).toBe(true);
+    expect(resolveDynamic(['x'], model, undefined, EVERY_CATALOG).value).toEqual(['x']);
   });
 
-  it('resolves an absolute { path } binding', () => {
-    expect(resolveDynamic({ path: '/email' }, model, undefined).value).toBe('a@b.c');
+  it('resolves an absolute { "@path" } binding', () => {
+    expect(resolveDynamic({ '@path': '/email' }, model, undefined, EVERY_CATALOG).value).toBe(
+      'a@b.c'
+    );
   });
 
-  it('resolves a relative { path } against the scope prefix (template item)', () => {
-    expect(resolveDynamic({ path: 'name' }, model, '/items/1').value).toBe('B');
+  it('resolves a relative { "@path" } against the scope prefix (template item)', () => {
+    expect(resolveDynamic({ '@path': 'name' }, model, '/items/1', EVERY_CATALOG).value).toBe('B');
   });
 
   it('keeps absolute paths absolute even inside a scope', () => {
-    expect(resolveDynamic({ path: '/items/0/name' }, model, '/items/1').value).toBe('A');
+    expect(
+      resolveDynamic({ '@path': '/items/0/name' }, model, '/items/1', EVERY_CATALOG).value
+    ).toBe('A');
   });
 
   it('degrades a function call to undefined with a warning', () => {
-    const result = resolveDynamic({ call: 'formatDate', args: {} }, model, undefined);
+    const result = resolveDynamic(
+      { '@call': 'formatDate', args: {} },
+      model,
+      undefined,
+      EVERY_CATALOG
+    );
     expect(result.value).toBeUndefined();
     expect(result.issue?.severity).toBe('warning');
     expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED);
   });
 
   it('surfaces a proto issue for a poisoned path', () => {
-    const result = resolveDynamic({ path: '/__proto__/x' }, model, undefined);
+    const result = resolveDynamic({ '@path': '/__proto__/x' }, model, undefined, EVERY_CATALOG);
     expect(result.value).toBeUndefined();
     expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION);
   });
 });
 
-// The Basic catalog's logic functions: the only calls the engine evaluates.
+// A2UI 1.0 moved the directives into the `@` namespace: an object with plain
+// `path` / `call` keys is data.
+describe('resolveDynamic — literal objects and the reserved "@" namespace', () => {
+  const model = { email: 'a@b.c' };
+  const resolve = (value: unknown) => resolveDynamic(value, model, undefined, EVERY_CATALOG);
+
+  it('reads { path } and { call } as the literal objects they are', () => {
+    const pathLiteral = { path: '/email' };
+    const callLiteral = { call: 'not', args: { value: true } };
+    expect(resolve(pathLiteral)).toEqual({ value: pathLiteral });
+    expect(resolve(callLiteral)).toEqual({ value: callLiteral });
+  });
+
+  it('hands a literal without escaped keys back as the same object', () => {
+    const literal = { kind: 'room', beds: 2 };
+    expect(resolve(literal).value).toBe(literal);
+  });
+
+  it('unescapes a doubled "@" to the literal key', () => {
+    const result = resolve({ '@@path': '/static/file', '@@': 1, kept: true });
+    expect(result.issue).toBeUndefined();
+    expect({ ...(result.value as object) }).toEqual({
+      '@path': '/static/file',
+      '@': 1,
+      kept: true
+    });
+  });
+
+  it.each(['@if', '@', '@metadata', '@checks'])(
+    'refuses a literal that holds the reserved key %s',
+    (key) => {
+      const result = resolve({ [key]: true, otherwise: 'active' });
+      expect(result.value).toBeUndefined();
+      expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.INVALID_RESERVED_KEY);
+    }
+  );
+
+  it('drops a prototype key from an unescaped copy', () => {
+    const value = resolve(JSON.parse('{"@@type":"x","__proto__":{"polluted":1}}')).value;
+    expect(Object.keys(value as object)).toEqual(['@type']);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+});
+
+describe('resolveDynamic — @index', () => {
+  const model = { rows: [{ items: ['a', 'b', 'c'] }], one: 1 };
+  const resolve = (value: unknown, scope?: string) =>
+    resolveDynamic(value, model, scope, NO_CATALOG);
+
+  it('is the position of the template item, whatever catalog resolves', () => {
+    expect(resolve({ '@call': '@index' }, '/rows/0')).toEqual({ value: 0 });
+    expect(resolve({ '@call': '@index' }, '/rows/0/items/2')).toEqual({ value: 2 });
+  });
+
+  it('adds a literal or a bound offset', () => {
+    expect(resolve({ '@call': '@index', args: { offset: 1 } }, '/rows/0/items/2').value).toBe(3);
+    expect(
+      resolve({ '@call': '@index', args: { offset: { '@path': '/one' } } }, '/rows/0').value
+    ).toBe(1);
+    expect(resolve({ '@call': '@index', args: {} }, '/rows/0').value).toBe(0);
+  });
+
+  it('resolves to undefined outside a template', () => {
+    const result = resolve({ '@call': '@index' });
+    expect(result.value).toBeUndefined();
+    expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.INDEX_OUTSIDE_TEMPLATE);
+  });
+
+  it.each([
+    ['an offset that is not a number', { '@call': '@index', args: { offset: '1' } }],
+    ['an unknown arg', { '@call': '@index', args: { step: 2 } }],
+    ['args that are no object', { '@call': '@index', args: [1] }],
+    ['an unknown key on the call', { '@call': '@index', path: '/x' }],
+    ['a poisoned offset path', { '@call': '@index', args: { offset: { '@path': '/__proto__' } } }]
+  ])('resolves %s to undefined', (_label, call) => {
+    const result = resolve(call, '/rows/0');
+    expect(result.value).toBeUndefined();
+    expect(result.issue?.severity).toBe('warning');
+  });
+});
+
+// A2UI 1.0, "DynamicBoolean and CheckRule Coercion".
+describe('coerceBoolean', () => {
+  it.each([
+    [true, true],
+    [false, false],
+    ['true', true],
+    ['TRUE', true],
+    ['True', true],
+    ['false', false],
+    ['', false],
+    ['hello', false],
+    ['yes', false],
+    [0, false],
+    [-0, false],
+    [1, true],
+    [-2.5, true],
+    [Number.NaN, false],
+    [null, false],
+    [undefined, false],
+    [{ valid: true }, true],
+    [{ valid: false, message: 'm' }, false],
+    [{ valid: 'true' }, false],
+    [{}, false],
+    [[], false],
+    [[true], false]
+  ])('reads %j as %s', (value, expected) => {
+    expect(coerceBoolean(value)).toBe(expected);
+  });
+});
+
+// The Basic catalog's logic functions: the only catalog calls the engine evaluates.
 describe('resolveDynamic — not / and / or', () => {
   const model = {
     agreed: true,
     declined: false,
     name: 'Ada',
+    yes: 'true',
     zero: 0,
+    one: 1,
     nothing: null,
+    passed: { valid: true },
+    failed: { valid: false },
     items: [{ ok: true }, { ok: false }]
   };
-  const not = (value: unknown) => ({ call: 'not', args: { value } });
-  const and = (...values: unknown[]) => ({ call: 'and', args: { values } });
-  const or = (...values: unknown[]) => ({ call: 'or', args: { values } });
-  const resolve = (value: unknown, scope?: string) => resolveDynamic(value, model, scope);
+  const not = (value: unknown) => ({ '@call': 'not', args: { value } });
+  const and = (...values: unknown[]) => ({ '@call': 'and', args: { values } });
+  const or = (...values: unknown[]) => ({ '@call': 'or', args: { values } });
+  const resolve = (value: unknown, scope?: string) =>
+    resolveDynamic(value, model, scope, EVERY_CATALOG);
 
   it('negates a bound boolean', () => {
-    expect(resolve(not({ path: '/agreed' }))).toEqual({ value: false });
-    expect(resolve(not({ path: '/declined' }))).toEqual({ value: true });
+    expect(resolve(not({ '@path': '/agreed' }))).toEqual({ value: false });
+    expect(resolve(not({ '@path': '/declined' }))).toEqual({ value: true });
   });
 
   it('reads a path nobody has written as false, so "not" of it is true', () => {
     // The consent gate before the checkbox is touched: disabled until agreed.
-    expect(resolve(not({ path: '/agreed-later' }))).toEqual({ value: true });
+    expect(resolve(not({ '@path': '/agreedLater' }))).toEqual({ value: true });
   });
 
-  it('counts only the boolean true as true', () => {
-    for (const path of ['/name', '/zero', '/nothing', '/items']) {
-      expect(resolve(not({ path })).value).toBe(true);
+  it('reads each operand as the protocol coerces a DynamicBoolean', () => {
+    for (const path of ['/name', '/zero', '/nothing', '/items', '/failed']) {
+      expect(resolve(not({ '@path': path })).value).toBe(true);
     }
-    expect(resolve(or({ path: '/name' }, { path: '/items' })).value).toBe(false);
-    expect(resolve(and(true, { path: '/name' })).value).toBe(false);
+    for (const path of ['/yes', '/one', '/passed']) {
+      expect(resolve(not({ '@path': path })).value).toBe(false);
+    }
+    expect(resolve(or({ '@path': '/name' }, { '@path': '/items' })).value).toBe(false);
+    expect(resolve(and(true, { '@path': '/passed' })).value).toBe(true);
   });
 
   it('evaluates and / or over literals, paths and nested calls', () => {
-    expect(resolve(and(true, { path: '/agreed' })).value).toBe(true);
-    expect(resolve(and(true, { path: '/declined' })).value).toBe(false);
-    expect(resolve(or(false, { path: '/agreed' })).value).toBe(true);
-    expect(resolve(or(false, not({ path: '/agreed' }))).value).toBe(false);
-    expect(resolve(not(and({ path: '/agreed' }, or(false, true)))).value).toBe(false);
+    expect(resolve(and(true, { '@path': '/agreed' })).value).toBe(true);
+    expect(resolve(and(true, { '@path': '/declined' })).value).toBe(false);
+    expect(resolve(or(false, { '@path': '/agreed' })).value).toBe(true);
+    expect(resolve(or(false, not({ '@path': '/agreed' }))).value).toBe(false);
+    expect(resolve(not(and({ '@path': '/agreed' }, or(false, true)))).value).toBe(false);
   });
 
   it('resolves a relative operand against the template item', () => {
-    expect(resolve(not({ path: 'ok' }), '/items/0').value).toBe(false);
-    expect(resolve(not({ path: 'ok' }), '/items/1').value).toBe(true);
-  });
-
-  it('accepts the spec returnType "boolean"', () => {
-    expect(resolve({ ...not(false), returnType: 'boolean' }).value).toBe(true);
+    expect(resolve(not({ '@path': 'ok' }), '/items/0').value).toBe(false);
+    expect(resolve(not({ '@path': 'ok' }), '/items/1').value).toBe(true);
   });
 
   it('resolves a malformed call to undefined with a warning, never a partial result', () => {
     const malformed: unknown[] = [
-      { call: 'not' },
-      { call: 'not', args: {} },
-      { call: 'not', args: { value: true, extra: 1 } },
-      { call: 'not', args: { value: 'yes' } },
-      { call: 'not', args: { value: true }, returnType: 'string' },
-      { call: 'not', args: { value: true }, path: '/agreed' },
-      { call: 'not', args: { value: { path: '/__proto__/x' } } },
-      { call: 'and', args: { values: [true] } },
-      { call: 'or', args: { values: 'true' } },
-      and(true, { call: 'required', args: { value: { path: '/name' } } })
+      { '@call': 'not' },
+      { '@call': 'not', args: {} },
+      { '@call': 'not', args: { value: true, extra: 1 } },
+      { '@call': 'not', args: { value: 'yes' } },
+      // A2UI 1.0 took returnType off the wire.
+      { '@call': 'not', args: { value: true }, returnType: 'boolean' },
+      { '@call': 'not', args: { value: true }, '@path': '/agreed' },
+      { '@call': 'not', args: { value: { '@path': '/__proto__/x' } } },
+      // A pre-1.0 binding is a literal object, and a literal is no operand.
+      { '@call': 'not', args: { value: { path: '/agreed' } } },
+      { '@call': 'and', args: { values: [true] } },
+      { '@call': 'or', args: { values: 'true' } },
+      and(true, { '@call': 'required', args: { value: { '@path': '/name' } } }),
+      and(true, { '@call': '@index' })
     ];
     for (const value of malformed) {
       const result = resolve(value);
@@ -244,34 +377,93 @@ describe('resolveDynamic — not / and / or', () => {
   });
 });
 
-describe('checksPass', () => {
-  const model = { agreed: true, declined: false, name: 'Ada', one: 1 };
-  const resolve = (value: unknown) => resolveDynamic(value, model, undefined).value;
-  const rule = (condition: unknown) => ({ condition, message: 'm' });
-
-  it('passes with no list, an empty one, or every condition exactly true', () => {
-    expect(checksPass(undefined, resolve)).toBe(true);
-    expect(checksPass([], resolve)).toBe(true);
-    const not = { call: 'not', args: { value: { path: '/declined' } } };
-    expect(checksPass([rule({ path: '/agreed' }), rule(not), rule(true)], resolve)).toBe(true);
+// A call runs in the catalog its `catalogId` names, else in the surface's
+// default; one that reaches neither is not evaluated.
+describe('resolveDynamic — the catalog of a call', () => {
+  const known: A2uiCallCatalogs = (catalogId) => catalogId === 'known';
+  const withDefault: A2uiCallCatalogs = (catalogId) =>
+    catalogId === undefined || catalogId === 'known';
+  const call = (extra: Record<string, unknown> = {}) => ({
+    '@call': 'not',
+    args: { value: false },
+    ...extra
   });
 
-  it('fails on one condition that is not exactly true', () => {
+  it('evaluates a call that names a configured catalog', () => {
+    expect(resolveDynamic(call({ catalogId: 'known' }), {}, undefined, known).value).toBe(true);
+  });
+
+  it('evaluates a call that names none on a surface with a default', () => {
+    expect(resolveDynamic(call(), {}, undefined, withDefault).value).toBe(true);
+  });
+
+  it('refuses a call that names none on a surface without a default', () => {
+    const result = resolveDynamic(call(), {}, undefined, known);
+    expect(result.value).toBeUndefined();
+    expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.MISSING_FIELD);
+  });
+
+  it('refuses a call that names an unknown catalog, also as a nested operand', () => {
+    const unknown = call({ catalogId: 'elsewhere' });
+    expect(resolveDynamic(unknown, {}, undefined, withDefault).issue?.code).toBe(
+      A2UI_ISSUE_CODES.UNKNOWN_CATALOG
+    );
+    const nested = { '@call': 'and', args: { values: [true, unknown] } };
+    expect(resolveDynamic(nested, {}, undefined, withDefault).value).toBeUndefined();
+  });
+
+  it('refuses a catalogId that is no string', () => {
+    const result = resolveDynamic(call({ catalogId: 7 }), {}, undefined, withDefault);
+    expect(result.value).toBeUndefined();
+    expect(result.issue?.code).toBe(A2UI_ISSUE_CODES.TYPE_MISMATCH);
+  });
+});
+
+describe('checksPass', () => {
+  const model = {
+    agreed: true,
+    declined: false,
+    name: 'Ada',
+    one: 1,
+    passed: { valid: true },
+    failed: { valid: false, message: 'Card expired' }
+  };
+  const resolve = (value: unknown) => resolveDynamic(value, model, undefined, EVERY_CATALOG).value;
+  const rule = (condition: unknown) => ({ condition, message: 'm' });
+
+  it('passes with no list, an empty one, or every condition counting as true', () => {
+    expect(checksPass(undefined, resolve)).toBe(true);
+    expect(checksPass([], resolve)).toBe(true);
+    const not = { '@call': 'not', args: { value: { '@path': '/declined' } } };
+    expect(
+      checksPass(
+        [
+          rule({ '@path': '/agreed' }),
+          rule(not),
+          rule({ '@path': '/one' }),
+          rule({ '@path': '/passed' }),
+          { condition: { '@path': '/agreed' } }
+        ],
+        resolve
+      )
+    ).toBe(true);
+  });
+
+  it('fails on one condition that counts as false', () => {
     for (const condition of [
-      { path: '/declined' },
-      { path: '/unset' },
-      { path: '/name' },
-      { path: '/one' },
-      'true',
-      { call: 'required', args: { value: { path: '/name' } } },
-      { call: 'and', args: { values: [true] } }
+      { '@path': '/declined' },
+      { '@path': '/unset' },
+      { '@path': '/name' },
+      { '@path': '/failed' },
+      { '@call': 'required', args: { value: { '@path': '/name' } } },
+      { '@call': 'and', args: { values: [true] } }
     ]) {
-      expect(checksPass([rule(true), rule(condition)], resolve)).toBe(false);
+      expect(checksPass([rule({ '@path': '/agreed' }), rule(condition)], resolve)).toBe(false);
     }
   });
 
   it('fails on a value that is not a list of rules', () => {
-    for (const checks of [null, rule(true), [true], ['x'], [null]]) {
+    for (const checks of [null, rule({ '@path': '/agreed' }), [true], ['x'], [null]]) {
       expect(checksPass(checks, resolve)).toBe(false);
     }
   });

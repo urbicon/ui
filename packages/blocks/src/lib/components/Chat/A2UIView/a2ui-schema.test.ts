@@ -91,7 +91,7 @@ describe('a2uiDataSchemaSection', () => {
 });
 
 describe('processor integration', () => {
-  const V = 'v0.9.1';
+  const V = '1.0';
   function run(envelopes: unknown[], dataSchema?: A2uiDataSchema) {
     const proc = createA2uiProcessor(dataSchema ? { dataSchema } : undefined);
     envelopes.forEach((env, i) => {

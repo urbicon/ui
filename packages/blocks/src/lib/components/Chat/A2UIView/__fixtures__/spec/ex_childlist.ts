@@ -1,7 +1,7 @@
 /**
  * Mirrored A2UI golden fixture — DO NOT hand-edit; mirror of the upstream file.
  * Source: https://github.com/a2ui-project/a2ui
- *   specification/v0_9_1/catalogs/basic/examples/childlist.json
+ *   catalogs/basic/v1/examples/child-list-template.json
  * Licensed under the Apache License, Version 2.0.
  */
 export const exChildlist = {
@@ -9,75 +9,87 @@ export const exChildlist = {
   description: 'Demonstrates dynamic list generation using ChildList object templates.',
   messages: [
     {
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {
         surfaceId: 'gallery-child-list-template',
-        catalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
+        catalogId: 'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json',
         sendDataModel: true
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'gallery-child-list-template',
         components: [
           {
             id: 'root',
             component: 'Card',
-            child: 'main-column'
+            child: 'main_column'
           },
           {
-            id: 'main-column',
+            id: 'main_column',
             component: 'Column',
-            children: ['title-text', 'item-list'],
+            children: ['title_text', 'item_list'],
             align: 'stretch'
           },
           {
-            id: 'title-text',
+            id: 'title_text',
             component: 'Text',
-            text: 'Dynamic Item List',
-            variant: 'h3'
+            text: '### Dynamic Item List'
           },
           {
-            id: 'item-list',
+            id: 'item_list',
             component: 'List',
             children: {
-              componentId: 'item-row',
+              componentId: 'item_row',
               path: '/items'
             }
           },
           {
-            id: 'item-row',
+            id: 'item_row',
             component: 'Row',
-            children: ['item-name', 'qty-label', 'item-qty']
+            children: ['item_name', 'qty_label', 'item_qty']
           },
           {
-            id: 'item-name',
+            id: 'item_name',
             component: 'Text',
-            text: { path: 'name' }
+            text: {
+              '@path': 'name'
+            }
           },
           {
-            id: 'qty-label',
+            id: 'qty_label',
             component: 'Text',
             text: ' - Qty: '
           },
           {
-            id: 'item-qty',
+            id: 'item_qty',
             component: 'Text',
-            text: { path: 'quantity' }
+            text: {
+              '@path': 'quantity'
+            }
           }
         ]
       }
     },
     {
-      version: 'v0.9',
+      version: '1.0',
       updateDataModel: {
         surfaceId: 'gallery-child-list-template',
         value: {
           items: [
-            { name: 'Apple', quantity: 10 },
-            { name: 'Banana', quantity: 5 },
-            { name: 'Cherry', quantity: 20 }
+            {
+              name: 'Apple',
+              quantity: 10
+            },
+            {
+              name: 'Banana',
+              quantity: 5
+            },
+            {
+              name: 'Cherry',
+              quantity: 20
+            }
           ]
         }
       }

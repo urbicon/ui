@@ -101,11 +101,11 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
       // every one against the trusted catalog before anything reaches the DOM.
       a2ui: [
         {
-          version: 'v0.9.1',
+          version: '1.0',
           createSurface: { surfaceId: 'chat-form', catalogId: URBICON_A2UI_CATALOG_ID }
         },
         {
-          version: 'v0.9.1',
+          version: '1.0',
           updateComponents: {
             surfaceId: 'chat-form',
             components: [
@@ -115,17 +115,17 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
           }
         },
         {
-          version: 'v0.9.1',
+          version: '1.0',
           updateComponents: {
             surfaceId: 'chat-form',
             components: [
               { id: 'title', component: 'Text', text: 'Book a demo', variant: 'h4' },
-              { id: 'name', component: 'Input', label: 'Name', value: { path: '/name' } }
+              { id: 'name', component: 'Input', label: 'Name', value: { '@path': '/name' } }
             ]
           }
         },
         {
-          version: 'v0.9.1',
+          version: '1.0',
           updateComponents: {
             surfaceId: 'chat-form',
             components: [
@@ -134,18 +134,18 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
                 component: 'Input',
                 label: 'Work email',
                 inputType: 'email',
-                value: { path: '/email' }
+                value: { '@path': '/email' }
               },
-              { id: 'submit-label', component: 'Text', text: 'Request access' },
+              { id: 'submit_label', component: 'Text', text: 'Request access' },
               {
                 id: 'submit',
                 component: 'Button',
                 intent: 'primary',
-                child: 'submit-label',
+                child: 'submit_label',
                 action: {
                   event: {
                     name: 'book_demo',
-                    context: { name: { path: '/name' }, email: { path: '/email' } }
+                    context: { name: { '@path': '/name' }, email: { '@path': '/email' } }
                   }
                 }
               }
@@ -153,7 +153,7 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
           }
         },
         {
-          version: 'v0.9.1',
+          version: '1.0',
           updateDataModel: { surfaceId: 'chat-form', value: { name: '', email: '' } }
         }
       ]

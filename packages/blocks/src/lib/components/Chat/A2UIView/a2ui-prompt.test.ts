@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { A2UI_ISSUE_CODES } from './a2ui.types';
 import { a2uiSystemPrompt } from './a2ui-prompt';
 import {
+  A2UI_ACCESSIBILITY_SPEC,
   A2UI_CATALOG_ID,
   A2UI_ICON_NAMES,
+  A2UI_PROTOCOL_VERSION,
   A2UI_REGISTRY,
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
@@ -24,7 +26,8 @@ describe('a2uiSystemPrompt', () => {
   });
 
   it('states the core envelope rules', () => {
-    expect(prompt).toContain('v0.9.1');
+    expect(prompt).toContain(`Protocol version: ${A2UI_PROTOCOL_VERSION}.`);
+    expect(prompt).toContain(`a "version" of "${A2UI_PROTOCOL_VERSION}"`);
     expect(prompt).toContain('root');
     expect(prompt).toContain('EXACTLY ONE of');
     expect(prompt).toContain('createSurface');
@@ -39,16 +42,46 @@ describe('a2uiSystemPrompt', () => {
     expect(prompt).toContain('componentId');
   });
 
-  it('forbids function-call bindings and actions', () => {
-    expect(prompt).toContain('Function-call bindings');
+  it('forbids function calls but @index, and function-call actions', () => {
+    expect(prompt).toContain('Other function calls');
     expect(prompt).toContain('NOT supported');
+    expect(prompt).toContain('Do NOT use function calls other than @index');
     expect(prompt.toLowerCase()).toContain('do not use local function-call actions');
   });
 
   // No Basic prop declares a failsafe, so nothing would accept the form.
   it('does not offer the logic functions where no prop accepts them', () => {
-    expect(prompt).not.toContain('"call": "not"');
+    expect(prompt).not.toContain('"@call": "not"');
     expect(prompt).not.toContain('not/and/or');
+  });
+
+  // The 1.0 forms a model trained on earlier payloads gets wrong.
+  it('writes bindings, calls and deletion the way A2UI 1.0 does, in both catalogs', () => {
+    for (const text of [prompt, a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec })]) {
+      expect(text).toContain('{ "@path": "/json/pointer" }');
+      expect(text).toContain('{ "@call": "@index" }');
+      expect(text).toContain('"value" of null DELETES the key at "path"');
+      expect(text).toContain('no hyphen, no leading digit');
+      expect(text).toContain('an agent event');
+      expect(text).toContain('"userMessage"?: string');
+      // …and nowhere the pre-1.0 ones.
+      expect(text).not.toMatch(/\{ "?path"?[ :]/);
+      expect(text).not.toContain('"call"');
+      expect(text).not.toContain('v0.9');
+      expect(text).not.toContain('server event');
+    }
+  });
+
+  // `@accessibility` is the protocol's, so no registry lists it; the prompt
+  // still has to state every key the validator takes.
+  it('documents every @accessibility key and live value', () => {
+    expect(prompt).toContain('- @accessibility (optional; object, each key optional)');
+    for (const [key, spec] of Object.entries(A2UI_ACCESSIBILITY_SPEC)) {
+      expect(prompt).toContain(`${key}`);
+      expect(prompt).toContain(spec.description);
+      for (const value of spec.values ?? []) expect(prompt).toContain(value);
+    }
+    expect(prompt).toContain('live (off | polite | assertive)');
   });
 
   it('omits any transport section (app-specific)', () => {
@@ -114,14 +147,14 @@ describe('a2uiSurfaceRequirementsSection', () => {
   it('pins the surfaceId and lists each requirement in the words the issue uses', () => {
     expect(section).toContain('## Required components');
     expect(section).toContain('use exactly');
-    expect(section).toContain('the surfaceId listed');
+    expect(section).toContain('the surfaceId and the catalogId listed');
     expect(section).toContain(
       `- Surface "booking", created with catalogId "${urbiconA2uiCatalogSpec.catalogId}", must contain:`
     );
     expect(section).toContain(
-      '  - a Checkbox with value bound to { "path": "/agreed" } (consent to the cancellation policy)'
+      '  - a Checkbox with value bound to { "@path": "/agreed" } (consent to the cancellation policy)'
     );
-    expect(section).toContain('  - a Button with disabled bound to { "path": "/locked" }');
+    expect(section).toContain('  - a Button with disabled bound to { "@path": "/locked" }');
     expect(section.endsWith('\n  - a Separator')).toBe(true);
   });
 
@@ -132,15 +165,16 @@ describe('a2uiSurfaceRequirementsSection', () => {
     expect(section).not.toContain('"unmeetable"');
   });
 
-  // A surface the model creates on Basic — the view's fallback, upstream's
-  // default — could never hold an Urbicon Checkbox.
-  it('pins the catalogId only where the Basic catalog cannot meet the entries', () => {
+  // No catalog is a fallback, so the model is never left to pick one — also
+  // where every configured catalog could hold the entries.
+  it('pins the catalogId of every listed surface', () => {
     const both = a2uiSurfaceRequirementsSection(
       { notes: [{ component: 'Text' }] },
       urbiconA2uiCatalogSpec
     );
-    expect(both).toContain('- Surface "notes" must contain:');
-    expect(both).not.toContain('created with catalogId');
+    expect(both).toContain(
+      `- Surface "notes", created with catalogId "${urbiconA2uiCatalogSpec.catalogId}", must contain:`
+    );
   });
 
   it('names the error the model gets back for an omission', () => {

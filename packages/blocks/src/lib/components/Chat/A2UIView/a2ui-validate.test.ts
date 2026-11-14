@@ -8,11 +8,13 @@ import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, type A2uiPropSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
 import { A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
+import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
 import {
   type A2uiRequiredComponent,
   type A2uiSurfaceRequirements,
   a2uiSurfaceRequirementsSection
 } from './a2ui-requirements';
+import type { A2uiDataSchema } from './a2ui-schema';
 import {
   type A2uiProcessor,
   type A2uiSurfaceState,
@@ -216,12 +218,12 @@ describe('incremental application is order-invariant', () => {
 
 describe('normalizeA2uiPayload', () => {
   it('accepts an envelope array', () => {
-    const arr = [{ version: 'v0.9.1' }];
+    const arr = [{ version: '1.0' }];
     expect(normalizeA2uiPayload(arr).envelopes).toBe(arr);
   });
 
   it('wraps a single envelope object', () => {
-    const one = { version: 'v0.9.1', deleteSurface: { surfaceId: 's' } };
+    const one = { version: '1.0', deleteSurface: { surfaceId: 's' } };
     expect(normalizeA2uiPayload(one).envelopes).toEqual([one]);
   });
 
@@ -358,9 +360,22 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
     expect(proc.surfaces.get('te')?.components.get('root')?.props.get('tabs')).toEqual([]);
   });
 
-  it('updateDataModel delete semantics (value omitted removes the key)', () => {
+  it('updateDataModel delete semantics (a null value removes the key)', () => {
     const proc = applyAll(attacks.deleteSemantics);
+    expect(proc.surfaces.get('del')?.issues).toEqual([]);
     expect(proc.surfaces.get('del')?.dataModel).toEqual({ b: 2 });
+  });
+
+  it('updateDataModel without a value → MISSING_FIELD, and nothing is deleted', () => {
+    const proc = applyAll(attacks.deleteByOmission);
+    expect(proc.surfaces.get('om')?.issues).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        code: A2UI_ISSUE_CODES.MISSING_FIELD,
+        path: '/messages/2/updateDataModel/value'
+      })
+    ]);
+    expect(proc.surfaces.get('om')?.dataModel).toEqual({ a: 1, b: 2 });
   });
 
   it('invalid svgPath → ICON_INVALID_SVG', () => {
@@ -449,7 +464,6 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
       },
       iconNames: [],
       unsupportedComponents: new Set(),
-      ignoredProps: new Set(),
       flexContainers: new Set(),
       componentChecks: {}
     };
@@ -463,11 +477,11 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
     }
 
     const surface = {
-      version: 'v0.9.1',
+      version: '1.0',
       createSurface: { surfaceId: 'c', catalogId: 'consumer/test' }
     };
     const comps = (components: unknown[]) => ({
-      version: 'v0.9.1',
+      version: '1.0',
       updateComponents: { surfaceId: 'c', components }
     });
 
@@ -523,8 +537,11 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
 });
 
 describe('A2UIView validator — hardening (review regressions)', () => {
-  const V = 'v0.9.1';
-  const surface = (id = 's') => ({ version: V, createSurface: { surfaceId: id, catalogId: 'x' } });
+  const V = '1.0';
+  const surface = (id = 's') => ({
+    version: V,
+    createSurface: { surfaceId: id, catalogId: A2UI_CATALOG_ID }
+  });
   const comps = (components: unknown[], id = 's') => ({
     version: V,
     updateComponents: { surfaceId: id, components }
@@ -552,7 +569,7 @@ describe('A2UIView validator — hardening (review regressions)', () => {
   it('flags a function-call value binding as an unsupported warning (feedback loop)', () => {
     const proc = applyAll([
       surface(),
-      comps([{ id: 'root', component: 'Text', text: { call: 'now', args: {} } }])
+      comps([{ id: 'root', component: 'Text', text: { '@call': 'now', args: {} } }])
     ]);
     const issues = allIssues(proc);
     expect(
@@ -565,7 +582,7 @@ describe('A2UIView validator — hardening (review regressions)', () => {
   it('flags a prototype-poisoned data-binding path as an error at validation time', () => {
     const proc = applyAll([
       surface(),
-      comps([{ id: 'root', component: 'Text', text: { path: '/__proto__/x' } }])
+      comps([{ id: 'root', component: 'Text', text: { '@path': '/__proto__/x' } }])
     ]);
     const issues = allIssues(proc);
     expect(
@@ -582,7 +599,7 @@ describe('A2UIView validator — hardening (review regressions)', () => {
         {
           id: 'root',
           component: 'ChoicePicker',
-          value: { path: '/c' },
+          value: { '@path': '/c' },
           options: [
             { label: 'A', value: 'x' },
             { label: 'B', value: 'x' }
@@ -596,7 +613,7 @@ describe('A2UIView validator — hardening (review regressions)', () => {
 
 // ── Logic functions and surface requirements (Urbicon catalog: Button.disabled) ──
 
-const V91 = 'v0.9.1';
+const V91 = '1.0';
 
 /** Apply one Urbicon surface built from `components`, with optional requirements. */
 function urbiconSurface(
@@ -613,9 +630,9 @@ function urbiconSurface(
   return proc;
 }
 
-const not = (value: unknown) => ({ call: 'not', args: { value } });
-const and = (...values: unknown[]) => ({ call: 'and', args: { values } });
-const or = (...values: unknown[]) => ({ call: 'or', args: { values } });
+const not = (value: unknown) => ({ '@call': 'not', args: { value } });
+const and = (...values: unknown[]) => ({ '@call': 'and', args: { values } });
+const or = (...values: unknown[]) => ({ '@call': 'or', args: { values } });
 
 describe('logic-function bindings (not / and / or)', () => {
   const gatedButton = (disabled: unknown): unknown[] => [
@@ -633,28 +650,25 @@ describe('logic-function bindings (not / and / or)', () => {
     proc.surfaces.get('s')?.components.get('root')?.props.get('disabled');
 
   it('stores a well-formed gate on Button.disabled without an issue', () => {
-    const gate = not({ path: '/agreed' });
+    const gate = not({ '@path': '/agreed' });
     const proc = urbiconSurface(gatedButton(gate));
     expect(allIssues(proc)).toEqual([]);
     expect(storedDisabled(proc)).toEqual(gate);
   });
 
-  it('stores nested and / or, and the spec returnType', () => {
-    const gate = {
-      ...not(and({ path: '/agreed' }, or({ path: '/email' }, { path: '/phone' }))),
-      returnType: 'boolean'
-    };
+  it('stores nested and / or', () => {
+    const gate = not(and({ '@path': '/agreed' }, or({ '@path': '/email' }, { '@path': '/phone' })));
     const proc = urbiconSurface(gatedButton(gate));
     expect(allIssues(proc)).toEqual([]);
     expect(storedDisabled(proc)).toEqual(gate);
   });
 
   const malformed: Array<[string, unknown, string, string]> = [
-    ['no args', { call: 'not' }, A2UI_ISSUE_CODES.MISSING_FIELD, '/args'],
-    ['no operand', { call: 'not', args: {} }, A2UI_ISSUE_CODES.MISSING_FIELD, '/args/value'],
+    ['no args', { '@call': 'not' }, A2UI_ISSUE_CODES.MISSING_FIELD, '/args'],
+    ['no operand', { '@call': 'not', args: {} }, A2UI_ISSUE_CODES.MISSING_FIELD, '/args/value'],
     [
       'an unknown arg key',
-      { call: 'not', args: { value: true, other: 1 } },
+      { '@call': 'not', args: { value: true, other: 1 } },
       A2UI_ISSUE_CODES.UNKNOWN_PROP,
       '/args/other'
     ],
@@ -665,40 +679,52 @@ describe('logic-function bindings (not / and / or)', () => {
       '/when'
     ],
     [
-      'a returnType other than boolean',
-      { ...not(true), returnType: 'string' },
-      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      'a returnType, which A2UI 1.0 took off the wire',
+      { ...not(true), returnType: 'boolean' },
+      A2UI_ISSUE_CODES.UNKNOWN_PROP,
       '/returnType'
+    ],
+    [
+      'an operand written as a pre-1.0 binding',
+      not({ path: '/agreed' }),
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/args/value'
+    ],
+    [
+      'a catalogId that names no configured catalog',
+      { ...not(true), catalogId: 'elsewhere' },
+      A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
+      '/catalogId'
     ],
     ['one operand for and', and(true), A2UI_ISSUE_CODES.TYPE_MISMATCH, '/args/values'],
     [
       'values that are not an array',
-      { call: 'or', args: { values: true } },
+      { '@call': 'or', args: { values: true } },
       A2UI_ISSUE_CODES.TYPE_MISMATCH,
       '/args/values'
     ],
     ['a string operand', or(true, 'yes'), A2UI_ISSUE_CODES.TYPE_MISMATCH, '/args/values/1'],
     [
       'an unsupported function as an operand',
-      and(true, { call: 'required', args: { value: { path: '/name' } } }),
+      and(true, { '@call': 'required', args: { value: { '@path': '/name' } } }),
       A2UI_ISSUE_CODES.TYPE_MISMATCH,
       '/args/values/1'
     ],
     [
       'a fault inside a nested call',
-      not(and(true, { path: '/agreed' }, or(false))),
+      not(and(true, { '@path': '/agreed' }, or(false))),
       A2UI_ISSUE_CODES.TYPE_MISMATCH,
       '/args/value/args/values/2/args/values'
     ],
     [
       'a poisoned operand path',
-      not({ path: '/__proto__/x' }),
+      not({ '@path': '/__proto__/x' }),
       A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
-      '/args/value/path'
+      '/args/value/@path'
     ],
     [
       'an own __proto__ arg key',
-      JSON.parse('{"call":"not","args":{"value":true,"__proto__":{"x":1}}}'),
+      JSON.parse('{"@call":"not","args":{"value":true,"__proto__":{"x":1}}}'),
       A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
       '/args/__proto__'
     ]
@@ -747,9 +773,9 @@ describe('logic-function bindings (not / and / or)', () => {
   it('holds a gate naming any other function closed, at the top as nested', () => {
     // The shape of upstream's own button-gating example: `required` inside `and`.
     const upstream = not(
-      and({ call: 'required', args: { value: { path: '/terms' } } }, { path: '/agreed' })
+      and({ '@call': 'required', args: { value: { '@path': '/terms' } } }, { '@path': '/agreed' })
     );
-    for (const gate of [{ call: 'required', args: { value: true } }, upstream]) {
+    for (const gate of [{ '@call': 'required', args: { value: true } }, upstream]) {
       const proc = urbiconSurface(gatedButton(gate));
       const issues = allIssues(proc);
       expect(issues.map((i) => i.severity)).toEqual(['error']);
@@ -761,7 +787,7 @@ describe('logic-function bindings (not / and / or)', () => {
   it('holds the failsafe for any value a gate cannot use, not only a call', () => {
     const unusable: Array<[unknown, string]> = [
       ['true', A2UI_ISSUE_CODES.TYPE_MISMATCH],
-      [{ path: '/__proto__/x' }, A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION]
+      [{ '@path': '/__proto__/x' }, A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION]
     ];
     for (const [value, code] of unusable) {
       const proc = urbiconSurface(gatedButton(value));
@@ -773,7 +799,7 @@ describe('logic-function bindings (not / and / or)', () => {
   });
 
   it('leaves a usable value on a gate as written', () => {
-    for (const value of [false, { path: '/locked' }]) {
+    for (const value of [false, { '@path': '/locked' }]) {
       const proc = urbiconSurface(gatedButton(value));
       expect(allIssues(proc)).toEqual([]);
       expect(storedDisabled(proc)).toEqual(value);
@@ -782,7 +808,7 @@ describe('logic-function bindings (not / and / or)', () => {
 
   it('keeps warning about any other function name outside a gate, as before', () => {
     const proc = urbiconSurface([
-      { id: 'root', component: 'Text', text: { call: 'formatDate', args: {} } }
+      { id: 'root', component: 'Text', text: { '@call': 'formatDate', args: {} } }
     ]);
     expect(allIssues(proc).map((i) => [i.severity, i.code])).toEqual([
       ['warning', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED]
@@ -805,7 +831,7 @@ describe('logic-function bindings (not / and / or)', () => {
       proc.surfaces.get('s')?.components.get('root')?.props.get('action');
 
     it('accepts a well-formed call without an issue', () => {
-      expect(allIssues(withContext({ ok: not({ path: '/agreed' }) }))).toEqual([]);
+      expect(allIssues(withContext({ ok: not({ '@path': '/agreed' }) }))).toEqual([]);
     });
 
     it('reports a malformed call as an error and keeps the action', () => {
@@ -821,7 +847,7 @@ describe('logic-function bindings (not / and / or)', () => {
     });
 
     it('warns about any other function, as a prop does', () => {
-      const proc = withContext({ when: { call: 'formatDate', args: {} } });
+      const proc = withContext({ when: { '@call': 'formatDate', args: {} } });
       expect(allIssues(proc).map((i) => [i.severity, i.code, i.path])).toEqual([
         ['warning', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED, `${CONTEXT}/when`]
       ]);
@@ -831,7 +857,7 @@ describe('logic-function bindings (not / and / or)', () => {
 
   it("refuses a logic call on an input's two-way value", () => {
     const proc = urbiconSurface([
-      { id: 'root', component: 'Checkbox', label: 'All', value: not({ path: '/none' }) }
+      { id: 'root', component: 'Checkbox', label: 'All', value: not({ '@path': '/none' }) }
     ]);
     expect(allIssues(proc).find((i) => i.code === A2UI_ISSUE_CODES.TYPE_MISMATCH)).toMatchObject({
       severity: 'error',
@@ -852,7 +878,7 @@ describe('logic-function bindings (not / and / or)', () => {
       {
         id: 'root',
         component: 'RadioGroup',
-        value: { path: '/pick' },
+        value: { '@path': '/pick' },
         options: [
           { label: not(true), value: 'a' },
           { label: 'B', value: 'b' }
@@ -864,7 +890,7 @@ describe('logic-function bindings (not / and / or)', () => {
 
   it('is accepted nowhere in the Basic catalog, whose one dynamic boolean is a two-way value', () => {
     const proc = applyAll([
-      { version: V91, createSurface: { surfaceId: 's', catalogId: 'x' } },
+      { version: V91, createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
       {
         version: V91,
         updateComponents: {
@@ -877,49 +903,51 @@ describe('logic-function bindings (not / and / or)', () => {
   });
 });
 
-// Upstream's form of the consent gate: "Buttons can also define `checks`. If any
+// Upstream's form of the consent gate: "Buttons can also define `@checks`. If any
 // check fails, the button is automatically disabled."
-describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
+describe('@checks where a gate reads them (Urbicon Button.disabled)', () => {
   const checkedButton = (checks: unknown, extra: Record<string, unknown> = {}): unknown[] => [
     {
       id: 'root',
       component: 'Button',
       child: 'label',
       action: { event: { name: 'book' } },
-      checks,
+      '@checks': checks,
       ...extra
     },
     { id: 'label', component: 'Text', text: 'Book' }
   ];
-  const CHECKS = '/messages/1/updateComponents/components/0/checks';
+  const CHECKS = '/messages/1/updateComponents/components/0/@checks';
+  const OK = { '@path': '/ok' };
   const stored = (proc: A2uiProcessor, key: string) =>
     proc.surfaces.get('s')?.components.get('root')?.props.get(key);
   const rule = (condition: unknown) => ({ condition, message: 'Accept the policy' });
-  const required = (path: string) => ({ call: 'required', args: { value: { path } } });
+  const required = (path: string) => ({ '@call': 'required', args: { value: { '@path': path } } });
 
   it('stores usable rules as written and leaves disabled alone', () => {
     for (const condition of [
-      { path: '/agreed' },
-      and({ path: '/agreed' }, or({ path: '/email' }, { path: '/phone' })),
-      true
+      { '@path': '/agreed' },
+      and({ '@path': '/agreed' }, or({ '@path': '/email' }, { '@path': '/phone' }))
     ]) {
-      const checks = [rule(condition)];
-      const proc = urbiconSurface(checkedButton(checks));
-      expect(allIssues(proc)).toEqual([]);
-      expect(stored(proc, 'checks')).toEqual(checks);
-      expect(stored(proc, 'disabled')).toBeUndefined();
+      // A2UI 1.0 made the message optional.
+      for (const checks of [[rule(condition)], [{ condition }]]) {
+        const proc = urbiconSurface(checkedButton(checks));
+        expect(allIssues(proc)).toEqual([]);
+        expect(stored(proc, '@checks')).toEqual(checks);
+        expect(stored(proc, 'disabled')).toBeUndefined();
+      }
     }
     expect(allIssues(urbiconSurface(checkedButton([])))).toEqual([]);
   });
 
   const unusable: Array<[string, unknown, string, string]> = [
-    ['a value that is not a list', rule(true), A2UI_ISSUE_CODES.TYPE_MISMATCH, ''],
+    ['a value that is not a list', rule(OK), A2UI_ISSUE_CODES.TYPE_MISMATCH, ''],
     ['a rule that is not an object', ['yes'], A2UI_ISSUE_CODES.TYPE_MISMATCH, '/0'],
     [
       'the call written in place of { condition }',
       [{ ...required('/terms'), message: 'Required' }],
       A2UI_ISSUE_CODES.UNKNOWN_PROP,
-      '/0/call'
+      '/0/@call'
     ],
     [
       'an own __proto__ key on a rule',
@@ -928,12 +956,19 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       '/0/__proto__'
     ],
     ['no condition', [{ message: 'm' }], A2UI_ISSUE_CODES.MISSING_FIELD, '/0/condition'],
-    ['no message', [{ condition: true }], A2UI_ISSUE_CODES.MISSING_FIELD, '/0/message'],
     [
       'a message that is not a string',
-      [{ condition: true, message: 1 }],
+      [{ condition: OK, message: 1 }],
       A2UI_ISSUE_CODES.TYPE_MISMATCH,
       '/0/message'
+    ],
+    // A2UI 1.0: a condition is a binding or a call, never a literal.
+    ['a literal condition', [rule(true)], A2UI_ISSUE_CODES.TYPE_MISMATCH, '/0/condition'],
+    [
+      'a condition written as a pre-1.0 binding',
+      [rule({ path: '/agreed' })],
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/0/condition'
     ],
     [
       'a condition naming another function',
@@ -950,13 +985,13 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
     ['a string condition', [rule('true')], A2UI_ISSUE_CODES.TYPE_MISMATCH, '/0/condition'],
     [
       'a poisoned condition path',
-      [rule({ path: '/__proto__/x' })],
+      [rule({ '@path': '/__proto__/x' })],
       A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
       '/0/condition'
     ],
     [
       'a malformed logic call',
-      [rule(true), rule(and(true))],
+      [rule(OK), rule(and(true))],
       A2UI_ISSUE_CODES.TYPE_MISMATCH,
       '/1/condition/args/values'
     ]
@@ -974,7 +1009,7 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       });
       expect(issues[0].message).toContain('"disabled" is held at true until it is fixed');
       expect(stored(proc, 'disabled')).toBe(true);
-      expect(stored(proc, 'checks')).toBeUndefined();
+      expect(stored(proc, '@checks')).toBeUndefined();
     });
   }
 
@@ -984,7 +1019,9 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
   });
 
   it('reports every rule that cannot be used, not only the first', () => {
-    const proc = urbiconSurface(checkedButton([rule('x'), rule(true), { condition: true }]));
+    const proc = urbiconSurface(
+      checkedButton([rule('x'), rule(OK), { condition: OK, message: 1 }])
+    );
     expect(allIssues(proc).map((i) => i.path)).toEqual([
       `${CHECKS}/0/condition`,
       `${CHECKS}/2/message`
@@ -995,7 +1032,7 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
   // re-evaluates every condition on every render.
   describe('holds all its conditions to one operand cap, counted as one and', () => {
     const MAX = A2UI_MAX_LOGIC_OPERANDS;
-    const bare = (count: number) => Array.from({ length: count }, () => rule(true));
+    const bare = (count: number) => Array.from({ length: count }, () => rule(OK));
     const wide = (count: number) => or(...Array.from({ length: count }, () => false));
     const fits: Array<[string, unknown[]]> = [
       ['one bare condition per operand', bare(MAX)],
@@ -1006,14 +1043,14 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       it(`stores ${name}, exactly at the cap`, () => {
         const proc = urbiconSurface(checkedButton(checks));
         expect(allIssues(proc)).toEqual([]);
-        expect(stored(proc, 'checks')).toEqual(checks);
+        expect(stored(proc, '@checks')).toEqual(checks);
       });
     }
     const over: Array<[string, unknown[]]> = [
       ['more rules than the cap', bare(MAX + 1)],
       ['the widest call disabled takes, one more as a condition', [rule(wide(MAX))]],
       ['two calls that each fit alone', [rule(wide(MAX / 2)), rule(wide(MAX / 2 - 1))]],
-      ['a bare condition after a call at the cap', [rule(wide(MAX - 1)), rule(true)]],
+      ['a bare condition after a call at the cap', [rule(wide(MAX - 1)), rule(OK)]],
       ['a call after bare conditions at the cap', [...bare(MAX - 2), rule(and(true, true))]],
       ['every rule as wide as disabled may be', Array.from({ length: MAX }, () => rule(wide(MAX)))]
     ];
@@ -1027,15 +1064,15 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
         expect(issues[0].message).toContain(`holds more than ${MAX} operands in all`);
         expect(issues[0].message).toContain('"disabled" is held at true until it is fixed');
         expect(stored(proc, 'disabled')).toBe(true);
-        expect(stored(proc, 'checks')).toBeUndefined();
+        expect(stored(proc, '@checks')).toBeUndefined();
       });
     }
 
     // Such rules fail before their condition counts against the cap, so only
     // the list's length can refuse them as one.
-    it('refuses more rules than the cap with one error, though none has a message', () => {
+    it('refuses more rules than the cap with one error, though none has a condition', () => {
       const proc = urbiconSurface(
-        checkedButton(Array.from({ length: MAX + 1 }, () => ({ condition: true })))
+        checkedButton(Array.from({ length: MAX + 1 }, () => ({ message: 'm' })))
       );
       expect(allIssues(proc).map((i) => [i.severity, i.code, i.path])).toEqual([
         ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, CHECKS]
@@ -1053,8 +1090,8 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
   it('holds disabled whichever order the payload lists the two in', () => {
     const broken = [rule(required('/terms'))];
     for (const order of [
-      { checks: broken, disabled: false },
-      { disabled: false, checks: broken }
+      { '@checks': broken, disabled: false },
+      { disabled: false, '@checks': broken }
     ]) {
       const proc = urbiconSurface([
         {
@@ -1072,24 +1109,24 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
 
   it('stores a usable disabled beside usable checks', () => {
     const proc = urbiconSurface(
-      checkedButton([rule({ path: '/agreed' })], { disabled: { path: '/locked' } })
+      checkedButton([rule({ '@path': '/agreed' })], { disabled: { '@path': '/locked' } })
     );
     expect(allIssues(proc)).toEqual([]);
-    expect(stored(proc, 'disabled')).toEqual({ path: '/locked' });
+    expect(stored(proc, 'disabled')).toEqual({ '@path': '/locked' });
   });
 
-  it('keeps ignoring checks where no gate reads them, in either catalog', () => {
+  it('ignores @checks where no gate reads them, in either catalog', () => {
     const urbicon = urbiconSurface([
       {
         id: 'root',
         component: 'Checkbox',
         label: 'I agree',
-        value: { path: '/agreed' },
-        checks: [rule('x')]
+        value: { '@path': '/agreed' },
+        '@checks': [rule('x')]
       }
     ]);
     const basic = applyAll([
-      { version: V91, createSurface: { surfaceId: 's', catalogId: 'x' } },
+      { version: V91, createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID } },
       {
         version: V91,
         updateComponents: {
@@ -1100,7 +1137,7 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
               component: 'Button',
               child: 'label',
               action: { event: { name: 'book' } },
-              checks: [rule({ path: '/agreed' })]
+              '@checks': [rule({ '@path': '/agreed' })]
             },
             { id: 'label', component: 'Text', text: 'Book' }
           ]
@@ -1111,18 +1148,15 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       expect(allIssues(proc).map((i) => [i.severity, i.code])).toEqual([
         ['warning', A2UI_ISSUE_CODES.IGNORED_PROP]
       ]);
-      expect(stored(proc, 'checks')).toBeUndefined();
+      expect(stored(proc, '@checks')).toBeUndefined();
     }
   });
 
-  // A consumer's dispatcher knows nothing of `checks`, so a gate that does not
-  // ask for them must leave the name to the catalog, as it did before.
+  // `@checks` belongs to the protocol, so a catalog decides one thing only:
+  // whether a gate of its component reads it (`readsChecks`).
   describe('on a consumer catalog whose gate has a failsafe', () => {
     const gate = { kind: 'boolean', dynamic: true, failsafe: true, description: 'Gate.' } as const;
-    const catalog = (
-      ignored: readonly string[],
-      props: Record<string, A2uiPropSpec> = {}
-    ): A2uiCatalogSpec => ({
+    const catalog = (props: Record<string, A2uiPropSpec> = {}): A2uiCatalogSpec => ({
       catalogId: 'consumer/gated',
       registry: {
         Go: {
@@ -1132,14 +1166,9 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
       },
       iconNames: [],
       unsupportedComponents: new Set(),
-      ignoredProps: new Set(ignored),
       flexContainers: new Set()
     });
-    const apply = (
-      spec: A2uiCatalogSpec,
-      checks: unknown,
-      extra: Record<string, unknown> = {}
-    ): A2uiProcessor => {
+    const apply = (spec: A2uiCatalogSpec, extra: Record<string, unknown>): A2uiProcessor => {
       const proc = createA2uiProcessor({ catalogs: [spec] });
       proc.apply(
         { version: V91, createSurface: { surfaceId: 's', catalogId: 'consumer/gated' } },
@@ -1150,56 +1179,60 @@ describe('checks where a gate reads them (Urbicon Button.disabled)', () => {
           version: V91,
           updateComponents: {
             surfaceId: 's',
-            components: [{ id: 'root', component: 'Go', label: 'Go', checks, ...extra }]
+            components: [{ id: 'root', component: 'Go', label: 'Go', ...extra }]
           }
         },
         1
       );
       return proc;
     };
-    const rules = [rule({ path: '/agreed' })];
+    const rules = [rule({ '@path': '/agreed' })];
     const summary = (proc: A2uiProcessor) => allIssues(proc).map((i) => [i.severity, i.code]);
 
-    it('ignores checks the catalog lists in ignoredProps, with a warning', () => {
-      const proc = apply(catalog(['checks']), rules);
+    it('ignores @checks with a warning while no gate declares readsChecks', () => {
+      const proc = apply(catalog(), { '@checks': rules });
       expect(summary(proc)).toEqual([['warning', A2UI_ISSUE_CODES.IGNORED_PROP]]);
-      expect(stored(proc, 'checks')).toBeUndefined();
+      expect(stored(proc, '@checks')).toBeUndefined();
       expect(stored(proc, 'disabled')).toBeUndefined();
     });
 
-    it('reports checks the catalog does not know as an unknown prop', () => {
-      const proc = apply(catalog([]), rules);
+    it('reports a bare checks as an unknown prop, and says how 1.0 writes it', () => {
+      const proc = apply(catalog(), { checks: rules });
       expect(summary(proc)).toEqual([['error', A2UI_ISSUE_CODES.UNKNOWN_PROP]]);
+      expect(allIssues(proc)[0].message).toContain('A2UI 1.0 writes it "@checks"');
       expect(stored(proc, 'checks')).toBeUndefined();
-      expect(stored(proc, 'disabled')).toBeUndefined();
     });
 
-    it("stores the component's own checks prop as its registry declares it", () => {
-      const own = catalog([], { checks: { kind: 'stringList', description: 'Tick marks.' } });
-      const proc = apply(own, ['a', 'b']);
+    // The `@` namespace is what frees the bare name for a catalog.
+    it("stores a component's own checks prop beside the mixin", () => {
+      const own = catalog({
+        checks: { kind: 'stringList', description: 'Tick marks.' },
+        disabled: { ...gate, readsChecks: true }
+      });
+      const proc = apply(own, { checks: ['a', 'b'], '@checks': rules });
       expect(summary(proc)).toEqual([]);
       expect(stored(proc, 'checks')).toEqual(['a', 'b']);
-      expect(stored(proc, 'disabled')).toBeUndefined();
+      expect(stored(proc, '@checks')).toEqual(rules);
     });
 
-    it('takes checks as part of the gate once the gate declares readsChecks', () => {
-      const asked = catalog([], { disabled: { ...gate, readsChecks: true } });
-      expect(summary(apply(asked, rules))).toEqual([]);
-      expect(stored(apply(asked, rules), 'checks')).toEqual(rules);
-      const broken = apply(asked, [rule(required('/agreed'))]);
+    it('takes @checks as part of the gate once the gate declares readsChecks', () => {
+      const asked = catalog({ disabled: { ...gate, readsChecks: true } });
+      expect(summary(apply(asked, { '@checks': rules }))).toEqual([]);
+      expect(stored(apply(asked, { '@checks': rules }), '@checks')).toEqual(rules);
+      const broken = apply(asked, { '@checks': [rule(required('/agreed'))] });
       expect(summary(broken)).toEqual([['error', A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED]]);
       expect(stored(broken, 'disabled')).toBe(true);
     });
 
     // A prop without a failsafe has nothing to be held at: holding it would
     // write `undefined` over the payload's value, which renders it open.
-    it('leaves checks to the catalog where readsChecks sits on a prop that is no gate', () => {
-      const notGate = catalog([], {
+    it('ignores @checks where readsChecks sits on a prop that is no gate', () => {
+      const notGate = catalog({
         disabled: { kind: 'boolean', dynamic: true, readsChecks: true, description: 'No gate.' }
       });
-      const proc = apply(notGate, [rule(required('/agreed'))], { disabled: true });
+      const proc = apply(notGate, { '@checks': [rule(required('/agreed'))], disabled: true });
       expect(stored(proc, 'disabled')).toBe(true);
-      expect(summary(proc)).toEqual([['error', A2UI_ISSUE_CODES.UNKNOWN_PROP]]);
+      expect(summary(proc)).toEqual([['warning', A2UI_ISSUE_CODES.IGNORED_PROP]]);
     });
   });
 });
@@ -1208,7 +1241,7 @@ describe('surface requirements', () => {
   const consent: A2uiSurfaceRequirements = {
     booking: [{ component: 'Checkbox', path: '/agreed', description: 'consent to the policy' }]
   };
-  const consentBox = (value: unknown = { path: '/agreed' }) => ({
+  const consentBox = (value: unknown = { '@path': '/agreed' }) => ({
     id: 'agree',
     component: 'Checkbox',
     label: 'I agree',
@@ -1232,7 +1265,7 @@ describe('surface requirements', () => {
         code: A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
         surfaceId: 'booking',
         message:
-          'Surface "booking" must contain a Checkbox with value bound to { "path": "/agreed" } (consent to the policy); none renders from "root" (a fault chip does not count)'
+          'Surface "booking" must contain a Checkbox with value bound to { "@path": "/agreed" } (consent to the policy); none renders from "root" (a fault chip does not count)'
       }
     ]);
   });
@@ -1250,7 +1283,7 @@ describe('surface requirements', () => {
   });
 
   it('does not count one bound elsewhere, or holding a literal', () => {
-    const elsewhere = booking(form(['agree'], consentBox({ path: '/other' })));
+    const elsewhere = booking(form(['agree'], consentBox({ '@path': '/other' })));
     expect(missing(allIssues(elsewhere))).toHaveLength(1);
     expect(missing(allIssues(booking(form(['agree'], consentBox(false)))))).toHaveLength(1);
   });
@@ -1260,7 +1293,7 @@ describe('surface requirements', () => {
       const proc = booking(
         [
           { id: 'root', component: 'Column', children: { componentId: 'agree', path: '/rows' } },
-          consentBox({ path: 'agreed' })
+          consentBox({ '@path': 'agreed' })
         ],
         { booking: [{ component: 'Checkbox', path: pointer }] }
       );
@@ -1286,7 +1319,7 @@ describe('surface requirements', () => {
         component: 'Button',
         child: 'goLabel',
         action: { event: { name: 'go' } },
-        disabled: { path: '/locked' }
+        disabled: { '@path': '/locked' }
       },
       { id: 'goLabel', component: 'Text', text: 'Go' }
     );
@@ -1306,8 +1339,8 @@ describe('surface requirements', () => {
     const proc = booking(
       [
         { id: 'root', component: 'Column', children: ['b1', 'b2'] },
-        { id: 'b1', component: 'Checkbox', label: { path: '/l' }, value: { path: '/a' } },
-        { id: 'b2', component: 'Checkbox', label: 'x', value: { path: '/a' } }
+        { id: 'b1', component: 'Checkbox', label: { '@path': '/l' }, value: { '@path': '/a' } },
+        { id: 'b2', component: 'Checkbox', label: 'x', value: { '@path': '/a' } }
       ],
       {
         booking: [
@@ -1329,7 +1362,7 @@ describe('surface requirements', () => {
     // One box: the bound entry takes it, so the name-only one is still missing.
     const one = missing(allIssues(booking(form(['agree'], consentBox()), twoBoxes)));
     expect(one.map((i) => i.message)).toEqual([expect.stringContaining('(privacy)')]);
-    const second = { ...consentBox({ path: '/privacy' }), id: 'privacy' };
+    const second = { ...consentBox({ '@path': '/privacy' }), id: 'privacy' };
     expect(allIssues(booking(form(['privacy', 'agree'], consentBox(), second), twoBoxes))).toEqual(
       []
     );
@@ -1363,7 +1396,7 @@ describe('surface requirements', () => {
   // The user sees a fault chip there, not a consent box.
   it('does not count a component that renders as a fault chip', () => {
     for (const label of [undefined, 42, not(true)]) {
-      const box = { id: 'agree', component: 'Checkbox', value: { path: '/agreed' }, label };
+      const box = { id: 'agree', component: 'Checkbox', value: { '@path': '/agreed' }, label };
       expect(missing(allIssues(booking(form(['agree'], box))))).toHaveLength(1);
     }
   });
@@ -1390,16 +1423,19 @@ describe('surface requirements', () => {
       ],
       ['a relative path', { component: 'Checkbox', path: 'agreed' }, 'is relative'],
       [
-        'the checks a gate reads, which are no prop',
-        { component: 'Button', prop: 'checks' },
-        'declares no prop "checks"'
+        'the @checks a gate reads, which are no prop',
+        { component: 'Button', prop: '@checks' },
+        'declares no prop "@checks"'
       ]
     ];
     for (const [name, requirement, reason] of unmeetable) {
       it(`reports ${name} once, as INVALID_REQUIREMENT, and never asks the agent for it`, () => {
         // Built the way the requirement asks, as a model following it would.
         const proc = booking(
-          form(['agree'], { ...consentBox({ path: 'agreed' }), checked: { path: '/agreed' } }),
+          form(['agree'], {
+            ...consentBox({ '@path': 'agreed' }),
+            checked: { '@path': '/agreed' }
+          }),
           { booking: [requirement] }
         );
         const issues = allIssues(proc);
@@ -1421,10 +1457,14 @@ describe('surface requirements', () => {
     });
   });
 
-  // Which catalog a surface lands on is the agent's choice, and A2UIView always
-  // holds Basic first, as the default and fallback.
-  describe('when the agent picks a catalog that cannot hold the entry', () => {
-    const onCatalog = (catalogId: string, components: unknown[], requirements = consent) => {
+  // Which catalog a surface defaults to is the agent's choice, and so is the
+  // catalog of each component on it.
+  describe('when the surface defaults to a catalog that cannot hold the entry', () => {
+    const onCatalog = (
+      catalogId: string | undefined,
+      components: unknown[],
+      requirements = consent
+    ) => {
       const proc = createA2uiProcessor({
         catalogs: [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec],
         surfaceRequirements: requirements
@@ -1437,27 +1477,38 @@ describe('surface requirements', () => {
       { id: 'root', component: 'Column', children: ['note'] },
       { id: 'note', component: 'Text', text: 'Three nights in Cala' }
     ];
-    const basicIds = [
-      basicA2uiCatalogSpec.catalogId,
-      'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
-      'urbicon-ui/urbicon-catalog/v2'
-    ];
 
-    for (const catalogId of basicIds) {
+    for (const catalogId of [basicA2uiCatalogSpec.catalogId, A2UI_UPSTREAM_BASIC_CATALOG_ID]) {
       it(`keeps it checked on "${catalogId}" and names the catalog that can hold it`, () => {
         const issues = allIssues(onCatalog(catalogId, noConsent));
         expect(codes(issues).has(A2UI_ISSUE_CODES.INVALID_REQUIREMENT)).toBe(false);
         const errors = issues.filter((i) => i.severity === 'error');
         expect(errors.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT]);
         expect(errors[0].message).toContain(
-          `create the surface with catalogId "${URBICON_A2UI_CATALOG_ID}"`
+          `give the component "@catalogId": "${URBICON_A2UI_CATALOG_ID}"`
         );
       });
     }
 
+    it('is met by a component that names the other catalog itself', () => {
+      const mixed = [
+        { id: 'root', component: 'Column', children: ['agree'] },
+        { ...consentBox(), '@catalogId': URBICON_A2UI_CATALOG_ID }
+      ];
+      expect(allIssues(onCatalog(basicA2uiCatalogSpec.catalogId, mixed))).toEqual([]);
+    });
+
     it('is met on the catalog that can hold it', () => {
       const withConsent = [{ id: 'root', component: 'Column', children: ['agree'] }, consentBox()];
       expect(allIssues(onCatalog(URBICON_A2UI_CATALOG_ID, withConsent))).toEqual([]);
+    });
+
+    it('stays checked on a surface whose catalogId names no catalog', () => {
+      const issues = allIssues(onCatalog('urbicon-ui/urbicon-catalog/v2', noConsent));
+      expect(issues.filter((i) => i.severity === 'error').map((i) => i.code)).toEqual([
+        A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
+        A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT
+      ]);
     });
 
     it("is the consumer's mistake only when no catalog can hold it", () => {
@@ -1473,11 +1524,11 @@ describe('surface requirements', () => {
 
 describe('DateTimeInput validation', () => {
   const surface = () => ({
-    version: 'v0.9.1',
-    createSurface: { surfaceId: 's', catalogId: 'x' }
+    version: '1.0',
+    createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID }
   });
   const comps = (components: unknown[]) => ({
-    version: 'v0.9.1',
+    version: '1.0',
     updateComponents: { surfaceId: 's', components }
   });
   const dt = (props: Record<string, unknown>) =>
@@ -1487,7 +1538,7 @@ describe('DateTimeInput validation', () => {
     const proc = applyAll([
       surface(),
       dt({
-        value: { path: '/when' },
+        value: { '@path': '/when' },
         enableDate: true,
         enableTime: true,
         label: 'Due',
@@ -1499,7 +1550,7 @@ describe('DateTimeInput validation', () => {
   });
 
   it('warns DATETIME_NO_MODE when neither enableDate nor enableTime is set', () => {
-    const proc = applyAll([surface(), dt({ value: { path: '/when' } })]);
+    const proc = applyAll([surface(), dt({ value: { '@path': '/when' } })]);
     const issues = allIssues(proc);
     expect(
       issues.some((i) => i.code === A2UI_ISSUE_CODES.DATETIME_NO_MODE && i.severity === 'warning')
@@ -1507,7 +1558,7 @@ describe('DateTimeInput validation', () => {
   });
 
   it('rejects a non-boolean enableDate with TYPE_MISMATCH', () => {
-    const proc = applyAll([surface(), dt({ value: { path: '/when' }, enableDate: 'yes' })]);
+    const proc = applyAll([surface(), dt({ value: { '@path': '/when' }, enableDate: 'yes' })]);
     expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
   });
 
@@ -1516,11 +1567,653 @@ describe('DateTimeInput validation', () => {
     expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.MISSING_FIELD)).toBe(true);
   });
 
-  it('ignores the inherited Checkable `checks` prop with a warning', () => {
+  it('ignores the Checkable `@checks` mixin with a warning', () => {
     const proc = applyAll([
       surface(),
-      dt({ value: { path: '/when' }, enableDate: true, checks: [{ rule: 'x' }] })
+      dt({ value: { '@path': '/when' }, enableDate: true, '@checks': [{ rule: 'x' }] })
     ]);
     expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.IGNORED_PROP)).toBe(true);
+  });
+});
+
+// ── A2UI 1.0 ─────────────────────────────────────────────────────────────────
+
+const BOTH = [basicA2uiCatalogSpec, urbiconA2uiCatalogSpec];
+
+/** Apply `envelopes` to a processor holding both shipped catalogs. */
+function applyBoth(envelopes: readonly unknown[], dataSchema?: A2uiDataSchema): A2uiProcessor {
+  const proc = createA2uiProcessor({ catalogs: BOTH, dataSchema });
+  envelopes.forEach((envelope, index) => {
+    proc.apply(envelope, index);
+  });
+  return proc;
+}
+const create = (body: Record<string, unknown> = {}) => ({
+  version: '1.0',
+  createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID, ...body }
+});
+const update = (components: unknown[]) => ({
+  version: '1.0',
+  updateComponents: { surfaceId: 's', components }
+});
+const COMPONENT = '/messages/1/updateComponents/components';
+const instance = (proc: A2uiProcessor, id = 'root') => proc.surfaces.get('s')?.components.get(id);
+const surfaceIssues = (proc: A2uiProcessor) => proc.surfaces.get('s')?.issues ?? [];
+const summary = (issues: readonly A2uiValidationIssue[]) =>
+  issues.map((i) => [i.severity, i.code, i.path]);
+
+describe('protocol version', () => {
+  it.each(['v0.9', 'v0.9.1', '1.1', 1, undefined])(
+    'refuses version %j and applies nothing',
+    (version) => {
+      const proc = applyBoth([{ ...create(), version }]);
+      expect(summary(proc.globalIssues)).toEqual([
+        ['error', A2UI_ISSUE_CODES.INVALID_VERSION, '/messages/0/version']
+      ]);
+      expect(proc.globalIssues[0].message).toContain('expected "1.0"');
+      expect(proc.surfaces.size).toBe(0);
+    }
+  );
+});
+
+describe('createSurface with inline content', () => {
+  const text = (id: string, value: unknown) => ({ id, component: 'Text', text: value });
+
+  it('builds the surface from one message, data model first', () => {
+    const proc = applyBoth([
+      create({ components: [text('root', { '@path': '/name' })], dataModel: { name: 'Ada' } })
+    ]);
+    expect(allIssues(proc)).toEqual([]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual({ name: 'Ada' });
+    expect(instance(proc)?.props.get('text')).toEqual({ '@path': '/name' });
+  });
+
+  it('copies the data model, so a later edit never reaches the payload', () => {
+    const dataModel = { form: { name: 'Ada' } };
+    const proc = applyBoth([create({ dataModel })]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual(dataModel);
+    expect(proc.surfaces.get('s')?.dataModel).not.toBe(dataModel);
+  });
+
+  it('reports a component fault at its createSurface path', () => {
+    const proc = applyBoth([create({ components: [text('root', 7)] })]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, '/messages/0/createSurface/components/0/text'],
+      ['error', A2UI_ISSUE_CODES.MISSING_FIELD, '/messages/0/createSurface/components/0/text']
+    ]);
+  });
+
+  it.each([[[] as unknown[]], ['root']])('refuses components %j', (components) => {
+    expect(summary(surfaceIssues(applyBoth([create({ components })])))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MISSING_FIELD, '/messages/0/createSurface/components']
+    ]);
+  });
+
+  it.each([[['a']], ['x'], [null]])('refuses a dataModel of %j', (dataModel) => {
+    const proc = applyBoth([create({ dataModel })]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, '/messages/0/createSurface/dataModel']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toBeUndefined();
+  });
+
+  it('holds the inline data model to the data schema', () => {
+    const proc = applyBoth([create({ dataModel: { nights: 'three' } })], {
+      '/nights': { type: 'integer' }
+    });
+    expect(surfaceIssues(proc).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.SCHEMA_TYPE_MISMATCH]);
+  });
+
+  it('refuses theme, which A2UI 1.0 removed, and still creates the surface', () => {
+    const proc = applyBoth([create({ theme: { primaryColor: '#f00' } })]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.UNKNOWN_PROP, '/messages/0/createSurface/theme']
+    ]);
+    expect(proc.surfaces.has('s')).toBe(true);
+  });
+
+  it('takes metadata.extensions and reports nothing', () => {
+    const proc = applyBoth([create({ metadata: { extensions: { com_acme_trace: { id: 7 } } } })]);
+    expect(surfaceIssues(proc)).toEqual([]);
+  });
+
+  it.each([
+    [{ extensions: { 'com-acme': 1 } }, A2UI_ISSUE_CODES.TYPE_MISMATCH, '/extensions/com-acme'],
+    [{ extensions: { '1st': 1 } }, A2UI_ISSUE_CODES.TYPE_MISMATCH, '/extensions/1st'],
+    [{ extensions: [] }, A2UI_ISSUE_CODES.TYPE_MISMATCH, '/extensions'],
+    [{ tags: [] }, A2UI_ISSUE_CODES.UNKNOWN_PROP, '/tags'],
+    ['x', A2UI_ISSUE_CODES.TYPE_MISMATCH, '']
+  ])('refuses metadata %j', (metadata, code, at) => {
+    expect(summary(surfaceIssues(applyBoth([create({ metadata })])))).toEqual([
+      ['error', code, `/messages/0/createSurface/metadata${at}`]
+    ]);
+  });
+});
+
+describe('updateDataModel — null deletes', () => {
+  const write = (body: Record<string, unknown>) => ({
+    version: '1.0',
+    updateDataModel: { surfaceId: 's', ...body }
+  });
+  const model = (envelopes: unknown[], dataSchema?: A2uiDataSchema) => {
+    const proc = applyBoth(
+      [create({ dataModel: { user: { name: 'Ada', bio: 'x' } } }), ...envelopes],
+      dataSchema
+    );
+    return { proc, dataModel: proc.surfaces.get('s')?.dataModel };
+  };
+
+  it('removes the key and keeps its siblings', () => {
+    expect(model([write({ path: '/user/bio', value: null })]).dataModel).toEqual({
+      user: { name: 'Ada' }
+    });
+  });
+
+  it('removes a whole branch', () => {
+    expect(model([write({ path: '/user', value: null })]).dataModel).toEqual({});
+  });
+
+  it.each([[undefined], ['/'], ['']])('empties the model at the root path %j', (path) => {
+    expect(model([write({ path, value: null })]).dataModel).toEqual({});
+  });
+
+  it('leaves a hole in an array, keeping its length', () => {
+    const { dataModel } = model([
+      write({ path: '/items', value: ['a', 'b', 'c'] }),
+      write({ path: '/items/1', value: null })
+    ]);
+    const items = (dataModel as { items: unknown[] }).items;
+    expect(items).toHaveLength(3);
+    expect(JSON.stringify(items)).toBe('["a",null,"c"]');
+  });
+
+  it('keeps a null nested inside a written value', () => {
+    expect(model([write({ path: '/user', value: { name: null } })]).dataModel).toEqual({
+      user: { name: null }
+    });
+  });
+
+  it('never reads a delete as a schema mismatch', () => {
+    const { proc } = model([write({ path: '/user/name', value: null })], {
+      '/user/name': { type: 'string' }
+    });
+    expect(surfaceIssues(proc)).toEqual([]);
+  });
+});
+
+describe('catalog resolution', () => {
+  const badge = (extra: Record<string, unknown> = {}) => ({
+    id: 'tag',
+    component: 'Badge',
+    text: 'New',
+    ...extra
+  });
+  const column = { id: 'root', component: 'Column', children: ['tag'] };
+
+  it('resolves a component through the surface default', () => {
+    const proc = applyBoth([create(), update([{ id: 'root', component: 'Text', text: 'x' }])]);
+    expect(allIssues(proc)).toEqual([]);
+    expect(instance(proc)?.catalog).toBe(basicA2uiCatalogSpec);
+  });
+
+  it('resolves the id upstream gives its basic catalog to the subset', () => {
+    const proc = applyBoth([create({ catalogId: A2UI_UPSTREAM_BASIC_CATALOG_ID })]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(proc.surfaces.get('s')?.catalog).toBe(basicA2uiCatalogSpec);
+  });
+
+  it('mixes catalogs: a component with its own @catalogId beside default ones', () => {
+    const proc = applyBoth([
+      create(),
+      update([column, badge({ '@catalogId': URBICON_A2UI_CATALOG_ID })])
+    ]);
+    expect(allIssues(proc)).toEqual([]);
+    expect(instance(proc)?.catalog).toBe(basicA2uiCatalogSpec);
+    expect(instance(proc, 'tag')?.catalog).toBe(urbiconA2uiCatalogSpec);
+    expect(instance(proc, 'tag')?.props.has('@catalogId')).toBe(false);
+  });
+
+  it('validates each component against its own catalog', () => {
+    // Badge is an Urbicon component: on the Basic default it is unknown.
+    const proc = applyBoth([create(), update([column, badge()])]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.UNKNOWN_COMPONENT, `${COMPONENT}/1/component`]
+    ]);
+  });
+
+  it('honours weight under a flex container of another catalog', () => {
+    const proc = applyBoth([
+      create(),
+      update([
+        { id: 'root', component: 'Row', children: ['tag'], '@catalogId': URBICON_A2UI_CATALOG_ID },
+        { id: 'tag', component: 'Text', text: 'x', weight: 2 }
+      ])
+    ]);
+    expect(allIssues(proc)).toEqual([]);
+  });
+
+  it('reports an unknown surface catalogId once, and falls back to nothing', () => {
+    const proc = applyBoth([
+      create({ catalogId: 'acme.com:catalog/v1' }),
+      update([{ id: 'root', component: 'Text', text: 'x' }])
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.UNKNOWN_CATALOG, '/messages/0/createSurface/catalogId']
+    ]);
+    expect(proc.surfaces.get('s')?.catalog).toBeUndefined();
+    expect(instance(proc)).toMatchObject({ component: 'Text', catalog: undefined });
+    expect(instance(proc)?.props.size).toBe(0);
+  });
+
+  it('still renders a component that names a known catalog itself on such a surface', () => {
+    const proc = applyBoth([
+      create({ catalogId: 'acme.com:catalog/v1' }),
+      update([{ id: 'root', component: 'Text', text: 'x', '@catalogId': A2UI_CATALOG_ID }])
+    ]);
+    expect(instance(proc)?.catalog).toBe(basicA2uiCatalogSpec);
+    expect(instance(proc)?.props.get('text')).toBe('x');
+  });
+
+  it('reports each component that names no catalog on a surface without a default', () => {
+    const proc = applyBoth([
+      create({ catalogId: undefined }),
+      update([
+        { id: 'root', component: 'Column', children: ['a'] },
+        { id: 'a', component: 'Text', text: 'x', '@catalogId': A2UI_CATALOG_ID }
+      ])
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MISSING_FIELD, `${COMPONENT}/0/@catalogId`]
+    ]);
+    expect(instance(proc)?.catalog).toBeUndefined();
+    expect(instance(proc, 'a')?.catalog).toBe(basicA2uiCatalogSpec);
+  });
+
+  it.each([
+    ['elsewhere', A2UI_ISSUE_CODES.UNKNOWN_CATALOG],
+    [7, A2UI_ISSUE_CODES.TYPE_MISMATCH]
+  ])('does not render a component whose @catalogId is %j', (catalogId, code) => {
+    const proc = applyBoth([
+      create(),
+      update([{ id: 'root', component: 'Text', text: 'x', '@catalogId': catalogId }])
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([['error', code, `${COMPONENT}/0/@catalogId`]]);
+    expect(instance(proc)?.catalog).toBeUndefined();
+  });
+
+  it('refuses a createSurface.catalogId that is no string', () => {
+    const proc = applyBoth([create({ catalogId: 7 })]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, '/messages/0/createSurface/catalogId']
+    ]);
+  });
+
+  describe('of a function call', () => {
+    const gated = (disabled: unknown) => [
+      {
+        id: 'root',
+        component: 'Button',
+        '@catalogId': URBICON_A2UI_CATALOG_ID,
+        child: 'label',
+        action: { event: { name: 'go' } },
+        disabled
+      },
+      { id: 'label', component: 'Text', text: 'Go', '@catalogId': URBICON_A2UI_CATALOG_ID }
+    ];
+    const call = (extra: Record<string, unknown> = {}) => ({
+      ...not({ '@path': '/ok' }),
+      ...extra
+    });
+
+    it('runs in the surface default when it names none', () => {
+      const proc = applyBoth([create(), update(gated(call()))]);
+      expect(allIssues(proc)).toEqual([]);
+      expect(instance(proc)?.props.get('disabled')).toEqual(call());
+    });
+
+    it('is not evaluated on a surface without a default, and holds its gate closed', () => {
+      const proc = applyBoth([create({ catalogId: undefined }), update(gated(call()))]);
+      expect(summary(surfaceIssues(proc))).toEqual([
+        ['error', A2UI_ISSUE_CODES.MISSING_FIELD, `${COMPONENT}/0/disabled/catalogId`]
+      ]);
+      expect(instance(proc)?.props.get('disabled')).toBe(true);
+    });
+
+    it('runs in the catalog it names there', () => {
+      const named = call({ catalogId: URBICON_A2UI_CATALOG_ID });
+      const proc = applyBoth([create({ catalogId: undefined }), update(gated(named))]);
+      expect(allIssues(proc)).toEqual([]);
+      expect(instance(proc)?.props.get('disabled')).toEqual(named);
+    });
+  });
+});
+
+describe('component envelope keys', () => {
+  const withKeys = (keys: Record<string, unknown>) =>
+    applyBoth([create(), update([{ id: 'root', component: 'Text', text: 'x', ...keys }])]);
+  const A11Y = `${COMPONENT}/0/@accessibility`;
+
+  it('stores a valid @accessibility whole', () => {
+    const accessibility = {
+      label: { '@path': '/name' },
+      description: 'Updates as you type',
+      live: 'polite',
+      hidden: { '@path': '/collapsed' }
+    };
+    const proc = withKeys({ '@accessibility': accessibility });
+    expect(allIssues(proc)).toEqual([]);
+    expect(instance(proc)?.props.get('@accessibility')).toBe(accessibility);
+  });
+
+  it.each([
+    ['a value that is no object', 'Name', A2UI_ISSUE_CODES.TYPE_MISMATCH, ''],
+    ['an unknown key', { label: 'x', role: 'alert' }, A2UI_ISSUE_CODES.UNKNOWN_PROP, '/role'],
+    ['a live value outside the enum', { live: 'rude' }, A2UI_ISSUE_CODES.UNKNOWN_ENUM, '/live'],
+    ['a hidden that is no boolean', { hidden: 'yes' }, A2UI_ISSUE_CODES.TYPE_MISMATCH, '/hidden'],
+    ['a label that is no string', { label: 7 }, A2UI_ISSUE_CODES.TYPE_MISMATCH, '/label'],
+    [
+      'a label written as a pre-1.0 binding',
+      { label: { path: '/name' } },
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      '/label'
+    ],
+    [
+      'a poisoned description path',
+      { description: { '@path': '/__proto__/x' } },
+      A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+      '/description'
+    ]
+  ])('drops an @accessibility with %s', (_name, accessibility, code, at) => {
+    const proc = withKeys({ '@accessibility': accessibility });
+    expect(summary(surfaceIssues(proc))).toEqual([['error', code, `${A11Y}${at}`]]);
+    expect(instance(proc)?.props.has('@accessibility')).toBe(false);
+    // The component itself is untouched.
+    expect(instance(proc)?.props.get('text')).toBe('x');
+  });
+
+  it.each(['accessibility', 'checks', 'catalogId', 'metadata'])(
+    'reports the bare key %s as unknown and says how 1.0 writes it',
+    (key) => {
+      const proc = withKeys({ [key]: {} });
+      expect(summary(surfaceIssues(proc))).toEqual([
+        ['error', A2UI_ISSUE_CODES.UNKNOWN_PROP, `${COMPONENT}/0/${key}`]
+      ]);
+      expect(surfaceIssues(proc)[0].message).toContain(`A2UI 1.0 writes it "@${key}"`);
+    }
+  );
+
+  it('takes @metadata, stores nothing of it and reports nothing', () => {
+    const proc = withKeys({ '@metadata': { extensions: { com_acme_tag: 'hero' } } });
+    expect(allIssues(proc)).toEqual([]);
+    expect([...(instance(proc)?.props.keys() ?? [])]).toEqual(['text']);
+  });
+
+  it('refuses a malformed @metadata', () => {
+    const proc = withKeys({ '@metadata': { extensions: { 'not-an-identifier': 1 } } });
+    expect(summary(surfaceIssues(proc))).toEqual([
+      [
+        'error',
+        A2UI_ISSUE_CODES.TYPE_MISMATCH,
+        `${COMPONENT}/0/@metadata/extensions/not-an-identifier`
+      ]
+    ]);
+  });
+
+  it.each(['@if', '@', '@style'])('refuses the unknown reserved key %s', (key) => {
+    const proc = withKeys({ [key]: true });
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.INVALID_RESERVED_KEY, `${COMPONENT}/0/${key}`]
+    ]);
+    expect(instance(proc)?.props.has(key)).toBe(false);
+  });
+});
+
+describe('component ids', () => {
+  const withId = (id: string) =>
+    applyBoth([
+      create(),
+      update([
+        { id: 'root', component: 'Column', children: [id] },
+        { id, component: 'Text', text: 'x' }
+      ])
+    ]);
+
+  it.each(['user-card', '1st', 'a b', 'a.b', 'a/b'])(
+    'reports %j as INVALID_ID and keeps it',
+    (id) => {
+      const proc = withId(id);
+      expect(summary(allIssues(proc))).toEqual([
+        ['error', A2UI_ISSUE_CODES.INVALID_ID, `${COMPONENT}/1/id`]
+      ]);
+      // The surface still renders while the agent renames it.
+      expect(instance(proc, id)?.props.get('text')).toBe('x');
+    }
+  );
+
+  it.each(['user_card', 'userCard', '_internal', 'item_1', 'größe', 'ℓ'])('accepts %j', (id) => {
+    expect(allIssues(withId(id))).toEqual([]);
+  });
+});
+
+// The identifier rule holds for a catalog's own names too.
+describe('catalog entity names', () => {
+  it('are identifiers in both shipped catalogs, and none claims the reserved "Surface"', () => {
+    const names: string[] = [];
+    for (const spec of BOTH) {
+      for (const [component, { props }] of Object.entries(spec.registry)) {
+        names.push(component, ...Object.keys(props));
+      }
+    }
+    expect(names.length).toBeGreaterThan(100);
+    expect(names.filter((name) => !/^[\p{XID_Start}_]\p{XID_Continue}*$/u.test(name))).toEqual([]);
+    expect(names).not.toContain('Surface');
+  });
+});
+
+describe('@index', () => {
+  const list = (text: unknown) => [
+    create({ dataModel: { rows: [{}, {}] } }),
+    update([
+      { id: 'root', component: 'List', children: { componentId: 'row', path: '/rows' } },
+      { id: 'row', component: 'Text', text }
+    ])
+  ];
+
+  it('is accepted on a template item, with and without an offset', () => {
+    for (const call of [
+      { '@call': '@index' },
+      { '@call': '@index', args: { offset: 1 } },
+      { '@call': '@index', args: { offset: { '@path': '/base' } } }
+    ]) {
+      const proc = applyBoth(list(call));
+      expect(allIssues(proc)).toEqual([]);
+      expect(instance(proc, 'row')?.usesIndex).toBe(true);
+    }
+  });
+
+  it('is an error where the component renders outside a template', () => {
+    const proc = applyBoth([
+      create(),
+      update([{ id: 'root', component: 'Text', text: { '@call': '@index' } }])
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(allIssues(proc).map((i) => [i.severity, i.code])).toEqual([
+      ['error', A2UI_ISSUE_CODES.INDEX_OUTSIDE_TEMPLATE]
+    ]);
+  });
+
+  it('is found in an item label and in an action context', () => {
+    const proc = applyBoth([
+      create(),
+      update([
+        { id: 'root', component: 'Tabs', tabs: [{ title: { '@call': '@index' }, child: 'go' }] },
+        {
+          id: 'go',
+          component: 'Button',
+          child: 'root',
+          action: { event: { name: 'pick', context: { at: { '@call': '@index' } } } }
+        }
+      ])
+    ]);
+    expect(instance(proc)?.usesIndex).toBe(true);
+    expect(instance(proc, 'go')?.usesIndex).toBe(true);
+  });
+
+  it('reports a malformed call where it stands', () => {
+    const proc = applyBoth(list({ '@call': '@index', args: { offset: 'one' } }));
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, `${COMPONENT}/1/text/args/offset`]
+    ]);
+  });
+
+  it('is no gate: a prop that takes a logic call holds its failsafe', () => {
+    const proc = applyBoth([
+      create({ catalogId: URBICON_A2UI_CATALOG_ID }),
+      update([
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'label',
+          action: { event: { name: 'go' } },
+          disabled: { '@call': '@index' }
+        },
+        { id: 'label', component: 'Text', text: 'Go' }
+      ])
+    ]);
+    expect(surfaceIssues(proc).map((i) => i.code)).toEqual([
+      A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED
+    ]);
+    expect(instance(proc)?.props.get('disabled')).toBe(true);
+  });
+});
+
+describe('pre-1.0 spellings on a dynamic prop', () => {
+  it.each([
+    [{ path: '/name' }, '{ "@path": … }'],
+    [{ call: 'formatDate', args: {} }, '{ "@call": … }']
+  ])('reads %j as the literal it now is, and names the 1.0 form', (value, form) => {
+    const proc = applyBoth([create(), update([{ id: 'root', component: 'Text', text: value }])]);
+    const [mismatch] = surfaceIssues(proc);
+    expect(mismatch).toMatchObject({
+      severity: 'error',
+      code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      path: `${COMPONENT}/0/text`
+    });
+    expect(mismatch.message).toContain(form);
+    expect(instance(proc)?.props.has('text')).toBe(false);
+  });
+});
+
+describe('action.event', () => {
+  const button = (event: Record<string, unknown>) =>
+    applyBoth([
+      create(),
+      update([
+        { id: 'root', component: 'Button', child: 'label', action: { event } },
+        { id: 'label', component: 'Text', text: 'Go' }
+      ])
+    ]);
+  const ACTION = `${COMPONENT}/0/action/event`;
+
+  it.each([['Booked two nights'], [{ '@path': '/summary' }]])(
+    'takes a userMessage of %j',
+    (userMessage) => {
+      expect(allIssues(button({ name: 'book', userMessage }))).toEqual([]);
+    }
+  );
+
+  it('reports a userMessage that is no string and keeps the action', () => {
+    const proc = button({ name: 'book', userMessage: 7 });
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.TYPE_MISMATCH, `${ACTION}/userMessage`]
+    ]);
+    expect(instance(proc)?.props.has('action')).toBe(true);
+  });
+
+  it('takes a literal object in context, escaped "@" keys included', () => {
+    const proc = button({ name: 'go', context: { item: { path: '/var/log', '@@type': 'File' } } });
+    expect(allIssues(proc)).toEqual([]);
+  });
+
+  it('reports a reserved key in a context literal and keeps the action', () => {
+    const proc = button({ name: 'go', context: { item: { '@if': true } } });
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.INVALID_RESERVED_KEY, `${ACTION}/context/item/@if`]
+    ]);
+    expect(surfaceIssues(proc)[0].message).toContain('"@@if"');
+    expect(instance(proc)?.props.has('action')).toBe(true);
+  });
+});
+
+// A2UI 1.0's function-call messages: recognised, and refused.
+describe('function-call messages', () => {
+  it('refuses callRendererFunction and names the call it answers', () => {
+    const proc = applyBoth([
+      {
+        version: '1.0',
+        callRendererFunction: {
+          functionCallId: 'call_7',
+          callFunction: {
+            '@call': 'openUrl',
+            catalogId: A2UI_CATALOG_ID,
+            args: { url: 'https://x' }
+          }
+        }
+      }
+    ]);
+    expect(proc.globalIssues).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        code: A2UI_ISSUE_CODES.INVALID_FUNCTION_CALL,
+        functionCallId: 'call_7',
+        path: '/messages/0/callRendererFunction'
+      })
+    ]);
+    expect(proc.globalIssues[0].message).toContain('"openUrl"');
+    expect(proc.globalIssues[0].surfaceId).toBeUndefined();
+  });
+
+  it('refuses one for a logic function too: none may be called by the agent', () => {
+    const proc = applyBoth([
+      create(),
+      {
+        version: '1.0',
+        callRendererFunction: {
+          surfaceId: 's',
+          functionCallId: 'c',
+          callFunction: { ...not(true), catalogId: A2UI_CATALOG_ID }
+        }
+      }
+    ]);
+    expect(proc.globalIssues.map((i) => [i.code, i.functionCallId])).toEqual([
+      [A2UI_ISSUE_CODES.INVALID_FUNCTION_CALL, 'c']
+    ]);
+  });
+
+  it('reports an agentFunctionResponse, which answers a call it never made', () => {
+    const proc = applyBoth([
+      { version: '1.0', agentFunctionResponse: { functionCallId: 'r_1', value: true } }
+    ]);
+    expect(proc.globalIssues.map((i) => [i.severity, i.code, i.functionCallId])).toEqual([
+      ['error', A2UI_ISSUE_CODES.INVALID_FUNCTION_CALL, 'r_1']
+    ]);
+  });
+
+  it.each([
+    [{ callRendererFunction: 'x' }],
+    [{ callRendererFunction: {} }],
+    [{ agentFunctionResponse: null }]
+  ])('does not throw on the malformed %j', (body) => {
+    const proc = applyBoth([{ version: '1.0', ...body }]);
+    expect(proc.globalIssues.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.INVALID_FUNCTION_CALL]);
+    expect(proc.globalIssues[0].functionCallId).toBeUndefined();
+  });
+
+  it('still refuses an envelope that carries two messages', () => {
+    const proc = applyBoth([
+      { ...create(), agentFunctionResponse: { functionCallId: 'r', value: 1 } }
+    ]);
+    expect(proc.globalIssues.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.UNKNOWN_ENVELOPE_TYPE]);
+    expect(proc.surfaces.size).toBe(0);
   });
 });

@@ -3,7 +3,7 @@ import type { ChatMessageData, ChatMessagePart } from '../chat.types';
 import { A2uiSurfaceRouter } from './a2ui-router';
 import { editA2uiPayload, revokeMessage, routeMessageParts, sourceKey } from './a2ui-transcript';
 
-const V = 'v0.9.1';
+const V = '1.0';
 const create = (surfaceId: string) => ({
   version: V,
   createSurface: { surfaceId, catalogId: 'urbicon-ui/urbicon-catalog/v1' }
