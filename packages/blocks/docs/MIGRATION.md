@@ -83,6 +83,32 @@ rg -n 'v0\.9' src
 rg -n 'A2UI_SUPPORTED_VERSIONS|SURFACE_PROP_IGNORED|ignoredProps' src
 ```
 
+### A2UI: `@accessibility.label` names what takes focus, and is never shown
+
+- **The label is no longer drawn.** A Basic `ChoicePicker` or date `DateTimeInput`, or an Urbicon
+  `RadioGroup` or `DatePicker`, showed it as its visible label where it had none of its own, and a
+  `ChoicePicker` showed it in place of its own `label`. Where a label should be seen, the component
+  needs its `label`.
+- **It outranks the visible label everywhere**: on a `Slider`, a `Toggle`, a `Select`, a
+  `RadioGroup` and a date field too, as it did on a `TextField` or a `Button`. It names an `Image`,
+  `Avatar`, `Badge` and `Alert`, and makes a labelled Urbicon `Card` or `Accordion` a group.
+- **A component inside a hidden one meets no surface requirement**, as one that is hidden itself
+  does not: the required box in a `hidden` `Column` is `MISSING_REQUIRED_COMPONENT` now.
+
+### An `aria-labelledby` reaches the control of a `RadioGroup`, `Select` and `DatePicker`
+
+- **`RadioGroup`** is named by a passed `aria-labelledby` over its own `label`, which stays visible;
+  before, the label won.
+- **`Select`** and **`DatePicker`** pass `aria-labelledby` (and `DatePicker` `aria-describedby`) to
+  the control that takes focus, not their role-less wrapper, and the reference outranks their
+  `label`. **`Tab`** passes `aria-describedby` to its tablist.
+
+The line finds the calls that pass one of these:
+
+```sh
+rg -nU '<(RadioGroup|Select|DatePicker|Tab)\b[^>]*aria-(labelledby|describedby)' src
+```
+
 ## 8.38.0
 
 ### The A2UI transport for MCP Apps is removed

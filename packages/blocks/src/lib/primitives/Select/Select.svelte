@@ -65,6 +65,7 @@
     id: idProp,
     'aria-describedby': ariaDescribedby,
     'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
     ...restProps
   }: SelectProps<T> = $props();
 
@@ -113,6 +114,11 @@
   const triggerId = $derived(`${uid}-trigger`);
   const listboxId = $derived(`${uid}-listbox`);
   const labelId = $derived(label ? `${uid}-label` : undefined);
+  // A consumer `aria-labelledby` names the trigger and the listbox over the
+  // visible label, the order accessible-name computation gives a native control
+  // and its `<label>`. Destructured for the same reason as `aria-describedby`
+  // below: restProps land on the role-less wrapper div.
+  const nameRef = $derived(ariaLabelledby ?? labelId);
   const ff = useFormField(() => ({
     fieldId: uid,
     helper,
@@ -582,8 +588,8 @@
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={listboxId}
-        aria-labelledby={labelId}
-        aria-label={labelId ? undefined : ariaLabel}
+        aria-labelledby={nameRef}
+        aria-label={nameRef ? undefined : ariaLabel}
         aria-describedby={describedBy}
         aria-invalid={ff.invalid ? 'true' : undefined}
         aria-required={ff.required ? 'true' : undefined}
@@ -676,7 +682,7 @@
       style:margin="0"
       style:overflow-y="auto"
       style:display={floatingPanelHidden(panel, open) ? 'none' : null}
-      aria-labelledby={labelId}
+      aria-labelledby={nameRef}
     >
       {#if open}
         {#if groups}

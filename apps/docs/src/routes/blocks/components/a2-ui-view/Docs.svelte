@@ -193,10 +193,11 @@ const system = [
         <code>Slider</code>
         to Slider, <code>DateTimeInput</code> to DatePicker/TimeInput. So labels, roles and keyboard
         behaviour come from the library rather than ad-hoc markup. A component's
-        <code>@accessibility</code> maps onto ARIA: <code>label</code> names a component that has a
-        role to name, <code>description</code> and <code>live</code> become the attributes of the
-        same name, and <code>hidden</code> makes the component <code>inert</code> as well as
-        <code>aria-hidden</code>, so it leaves the tab order too.
+        <code>@accessibility</code> maps onto ARIA: <code>label</code> names the element that takes
+        focus, or the component's role where nothing does, and is never shown;
+        <code>description</code> describes the same element, <code>live</code> becomes the
+        component's <code>aria-live</code>, and <code>hidden</code> makes the component
+        <code>inert</code> as well as <code>aria-hidden</code>, so it leaves the tab order too.
       </p>
     </Note>
     <Note title="Streaming placeholders">

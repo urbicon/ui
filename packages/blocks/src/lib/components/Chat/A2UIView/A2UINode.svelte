@@ -57,8 +57,9 @@
     renderChild: Snippet<[A2uiRenderNode, A2uiRenderContext]>;
   } = $props();
 
-  // Per-INSTANCE id namespace for the DOM ids this dispatcher mints (Tabs).
-  // Must stay a top-level initializer (`props_id_invalid_placement` otherwise).
+  // Per-INSTANCE id namespace for the DOM ids this dispatcher mints (Tabs, the
+  // `@accessibility` references). Must stay a top-level initializer
+  // (`props_id_invalid_placement` otherwise).
   const propsId = $props.id();
 
   const DangerIcon = resolveIcon('danger', DangerCircleIconDefault);
@@ -97,9 +98,10 @@
     return context.resolve(nodeProps?.get(key), node.scopePrefix).value;
   }
 
-  // `@accessibility`: the label names the component where it has a role to
-  // name; description and live go onto every component's root. `hidden` is
-  // applied by the view around the whole component, label and control alike.
+  // `@accessibility`: `label` names, and `description` describes, the element
+  // that takes focus, or the component's role where nothing does; `live` goes on
+  // the component's root. `hidden` is applied by the view around the whole
+  // component, label and control alike.
   const accessibility = $derived(
     readAccessibility(
       nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
@@ -107,7 +109,23 @@
     )
   );
   const ariaLabel = $derived(accessibility.label);
-  const aria = $derived(accessibility.attributes);
+  const aria = $derived({
+    'aria-description': accessibility.description,
+    'aria-live': accessibility.live
+  });
+  // Where a primitive keeps an `aria-label` or `aria-description` off its
+  // focused element, or lets its own label outrank one, it still forwards an
+  // `aria-labelledby` / `aria-describedby` there and lets that win: those
+  // controls take both by reference to the `referenced()` elements.
+  const labelRef = $derived(ariaLabel ? `${propsId}-a11y-label` : undefined);
+  const descriptionRef = $derived(
+    accessibility.description ? `${propsId}-a11y-description` : undefined
+  );
+  const byReference = $derived({
+    'aria-labelledby': labelRef,
+    'aria-describedby': descriptionRef,
+    'aria-live': accessibility.live
+  });
 
   const weightStyle = $derived(node.weight != null ? `flex-grow:${node.weight}` : undefined);
 
@@ -467,6 +485,13 @@
   );
 </script>
 
+<!-- What `byReference` points at: in the DOM for the reference, out of sight and
+     out of the accessibility tree. -->
+{#snippet referenced()}
+  {#if labelRef}<span id={labelRef} hidden>{ariaLabel}</span>{/if}
+  {#if descriptionRef}<span id={descriptionRef} hidden>{accessibility.description}</span>{/if}
+{/snippet}
+
 {#snippet faultChip(label: string)}
   <span class={context.classes.errorChip}>
     <DangerIcon size={14} class={context.classes.errorIcon} />
@@ -553,16 +578,15 @@
 {:else if component === 'Tabs'}
   <!-- An empty strip would render role="tablist" with no role="tab" child
        (axe aria-required-children); the empty list is reported as TABS_EMPTY.
-       Tab retargets aria-label onto its inner role="tablist" (#135), so the
-       label names the tablist itself — no role="group" workaround needed. -->
+       Tab retargets both references onto its inner role="tablist" (#135), so
+       they name and describe the tablist itself. -->
   {#if tabItems.length > 0}
     <Tab
       unstyled={context.unstyled}
       value={activeTab}
       onValueChange={(next) => (selectedTab = next)}
       style={weightStyle}
-      aria-label={ariaLabel}
-      {...aria}
+      {...byReference}
     >
       {#snippet tabs()}
         {#each tabItems as item (item.value)}
@@ -579,6 +603,7 @@
         {/each}
       {/snippet}
     </Tab>
+    {@render referenced()}
   {/if}
 {:else if component === 'Divider'}
   <Separator
@@ -616,6 +641,7 @@
         IMAGE_SIZE[enumOr('variant', 'mediumFeature')]
       ]}
       style={weightStyle}
+      aria-label={ariaLabel}
       {...aria}
     />
   {:else}
@@ -738,16 +764,17 @@
   {:else}
     <RadioGroup
       unstyled={context.unstyled}
-      label={ariaLabel || choiceLabel || undefined}
+      label={choiceLabel || undefined}
       value={choiceSelected[0]}
       onValueChange={onRadioChange}
       style={weightStyle}
-      {...aria}
+      {...byReference}
     >
       {#each choiceOptions as option (option.value)}
         <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
       {/each}
     </RadioGroup>
+    {@render referenced()}
   {/if}
 {:else if component === 'Slider'}
   <!-- showValue is forced on: a generated surface has no other place to state
@@ -762,9 +789,9 @@
     showValue
     onValueChange={onSliderChange}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
+    {...byReference}
   />
+  {@render referenced()}
 {:else if component === 'DateTimeInput'}
   {@const label = text(resolved('label'))}
   {#if dtMode === 'datetime'}
@@ -818,19 +845,16 @@
       />
     </div>
   {:else}
-    <!-- The accessibility label becomes the field label when no visible label
-         is given: DatePicker spreads an aria-label onto its role-less root div
-         (AT-ignored, axe aria-prohibited-attr), so the name must travel
-         through `label` to reach the actual input. -->
     <DatePicker
       unstyled={context.unstyled}
-      label={label || ariaLabel || undefined}
+      label={label || undefined}
       value={dtParts.date || null}
       onValueChange={onDtDateChange}
       minDate={dtMinDate}
       maxDate={dtMaxDate}
       style={weightStyle}
-      {...aria}
+      {...byReference}
     />
+    {@render referenced()}
   {/if}
 {/if}

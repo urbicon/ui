@@ -266,9 +266,10 @@ describe('Select (component interaction)', () => {
 // restProps land on the role-less base <div>, so a consumer `aria-label` used to
 // become an axe `aria-prohibited-attr` there while the trigger went unnamed
 // (axe `button-name`). The trigger must resolve to an accessible name in EVERY
-// case: a visible `label` names it via aria-labelledby; else a consumer
-// `aria-label` is forwarded onto the trigger button (not the wrapper); else the
-// button's own text (value/placeholder). LocaleSwitcher relies on the aria-label
+// case: a consumer `aria-labelledby` names it; else a visible `label`, via
+// aria-labelledby; else a consumer `aria-label` is forwarded onto the trigger
+// button (not the wrapper); else the button's own text (value/placeholder).
+// LocaleSwitcher relies on the aria-label
 // branch (it passes `aria-label` with no visible `label`), so this guards that
 // inherited behaviour at the Select level.
 describe('Select (accessible naming)', () => {
@@ -309,6 +310,23 @@ describe('Select (accessible naming)', () => {
     expect(t.hasAttribute('aria-label')).toBe(false);
     // Falls back to the button's text content (the placeholder here).
     expect(t.textContent).toContain('Select...');
+  });
+
+  // The order accessible-name computation gives a native control and its <label>.
+  it('names the trigger and the listbox from a consumer aria-labelledby, over the visible label', () => {
+    const heading = document.createElement('h2');
+    heading.id = 'ext-heading';
+    heading.textContent = 'Shipping country';
+    document.body.append(heading);
+    renderSelect({ options: OPTIONS, label: 'Country', 'aria-labelledby': 'ext-heading' });
+
+    expect(screen.getByRole('combobox', { name: 'Shipping country' })).toBeTruthy();
+    expect(screen.getByRole('listbox', { hidden: true }).getAttribute('aria-labelledby')).toBe(
+      'ext-heading'
+    );
+    expect(screen.getByText('Country')).toBeTruthy();
+    // Not on the role-less wrapper, where restProps land.
+    expect(document.querySelectorAll('[aria-labelledby="ext-heading"]')).toHaveLength(2);
   });
 });
 

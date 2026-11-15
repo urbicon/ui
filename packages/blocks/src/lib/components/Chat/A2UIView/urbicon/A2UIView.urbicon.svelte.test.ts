@@ -402,3 +402,133 @@ describe('never throws on adversarial Urbicon payloads', () => {
     });
   }
 });
+
+describe('UrbiconA2UINode — @accessibility', () => {
+  // The name is dom-accessibility-api's (through getByRole); its 0.5 line reads
+  // `aria-describedby` but not `aria-description`, so the description is read
+  // from both attributes here.
+  const descriptionOf = (element: Element) =>
+    [
+      ...(element.getAttribute('aria-describedby') ?? '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((id) => document.getElementById(id)?.textContent ?? ''),
+      element.getAttribute('aria-description') ?? ''
+    ]
+      .filter(Boolean)
+      .join(' ');
+  /** The text a sighted user can see: every text node outside a `hidden` element. */
+  const visibleText = () => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const out: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.parentElement?.closest('[hidden]')) out.push(node.textContent ?? '');
+    }
+    return out.join(' ');
+  };
+  const kid = { id: 'kid', component: 'Text', text: 'kid' };
+  const go = { event: { name: 'go' } };
+  const options = [
+    { label: 'A', value: 'a' },
+    { label: 'B', value: 'b' }
+  ];
+  // [case, component, the role that carries the name, its siblings]
+  const named: Array<[string, Record<string, unknown>, string, unknown[]?]> = [
+    ['Column', { component: 'Column', children: ['kid'] }, 'group', [kid]],
+    ['List', { component: 'List', children: ['kid'] }, 'list', [kid]],
+    ['Card', { component: 'Card', child: 'kid' }, 'group', [kid]],
+    ['Section', { component: 'Section', title: 'Title', child: 'kid' }, 'region', [kid]],
+    [
+      'Accordion',
+      { component: 'Accordion', items: [{ label: 'I1', child: 'kid' }] },
+      'group',
+      [kid]
+    ],
+    ['Icon', { component: 'Icon', name: 'calendar' }, 'img'],
+    ['Image', { component: 'Image', url: 'https://img.example/a.png', description: 'Alt' }, 'img'],
+    ['Avatar', { component: 'Avatar', name: 'Ada Lovelace' }, 'img'],
+    ['Badge', { component: 'Badge', text: 'New' }, 'status'],
+    ['Alert', { component: 'Alert', title: 'Heads up' }, 'status'],
+    ['Progress', { component: 'Progress', value: 5, max: 10, label: 'Shown' }, 'progressbar'],
+    ['Stepper', { component: 'Stepper', steps: ['One', 'Two'], current: 0 }, 'list'],
+    ['Button', { component: 'Button', child: 'kid', action: go }, 'button', [kid]],
+    ['Input', { component: 'Input', label: 'Shown', value: { '@path': '/t' } }, 'textbox'],
+    ['Textarea', { component: 'Textarea', label: 'Shown', value: { '@path': '/t' } }, 'textbox'],
+    ['Checkbox', { component: 'Checkbox', label: 'Shown', value: { '@path': '/c' } }, 'checkbox'],
+    ['Toggle', { component: 'Toggle', label: 'Shown', value: { '@path': '/c' } }, 'switch'],
+    [
+      'RadioGroup, labelled',
+      { component: 'RadioGroup', label: 'Shown', options, value: { '@path': '/r' } },
+      'radiogroup'
+    ],
+    [
+      'RadioGroup, unlabelled',
+      { component: 'RadioGroup', options, value: { '@path': '/r' } },
+      'radiogroup'
+    ],
+    [
+      'Select, labelled',
+      { component: 'Select', label: 'Shown', options, value: { '@path': '/s' } },
+      'combobox'
+    ],
+    ['Select, unlabelled', { component: 'Select', options, value: { '@path': '/s' } }, 'combobox'],
+    [
+      'Select multiple',
+      { component: 'Select', label: 'Shown', options, value: { '@path': '/s' }, multiple: true },
+      'combobox'
+    ],
+    [
+      'Slider, labelled',
+      { component: 'Slider', label: 'Shown', value: { '@path': '/n' }, max: 10 },
+      'slider'
+    ],
+    ['Slider, unlabelled', { component: 'Slider', value: { '@path': '/n' }, max: 10 }, 'slider'],
+    [
+      'DatePicker, labelled',
+      { component: 'DatePicker', label: 'Shown', value: { '@path': '/d' } },
+      'textbox'
+    ],
+    ['DatePicker, unlabelled', { component: 'DatePicker', value: { '@path': '/d' } }, 'textbox'],
+    ['TimeInput', { component: 'TimeInput', label: 'Shown', value: { '@path': '/d' } }, 'group']
+  ];
+
+  it.each(named)(
+    'names and describes the %s where focus lands, and never shows the label',
+    (_case, component, role, siblings = []) => {
+      render({
+        urlPolicy: { allowedImagePrefixes: ['https://img.example/'] },
+        payload: [
+          surface(),
+          comps([
+            {
+              id: 'root',
+              ...component,
+              '@accessibility': { label: 'Named', description: 'Described' }
+            },
+            ...siblings
+          ])
+        ]
+      });
+      const target = screen.getByRole(role, { name: 'Named' });
+      expect(descriptionOf(target)).toBe('Described');
+      expect(visibleText()).not.toContain('Named');
+      if (component.label !== undefined) expect(visibleText()).toContain('Shown');
+    }
+  );
+
+  it('gives an unlabelled Card or Accordion no group role', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Column', children: ['card', 'acc'] },
+          { id: 'card', component: 'Card', child: 'kid' },
+          { id: 'acc', component: 'Accordion', items: [{ label: 'I1', child: 'kid2' }] },
+          kid,
+          { id: 'kid2', component: 'Text', text: 'kid2' }
+        ])
+      ]
+    });
+    expect(screen.queryAllByRole('group')).toHaveLength(0);
+  });
+});

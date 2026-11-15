@@ -26,9 +26,11 @@
     mint = 'none',
     // Retargeted onto the inner role="tablist" div: restProps land on the
     // role-less root, which forbids aria-label (axe aria-prohibited-attr),
-    // and the tablist is the element screen readers announce by name (#135).
+    // and the tablist is the element screen readers announce by name (#135);
+    // its description belongs on the same element.
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -299,6 +301,7 @@
     aria-orientation={orientation}
     aria-label={ariaLabel}
     aria-labelledby={ariaLabelledby}
+    aria-describedby={ariaDescribedby}
     onkeydown={handleKeyDown}
   >
     {#if variant === 'line'}

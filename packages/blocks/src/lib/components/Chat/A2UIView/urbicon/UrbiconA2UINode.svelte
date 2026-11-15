@@ -52,6 +52,10 @@
   // deliberately duplicated (not shared) so this stays a self-contained renderer.
   let { node, context, renderChild }: A2uiNodeProps = $props();
 
+  // Per-INSTANCE id namespace for the `@accessibility` references. Must stay a
+  // top-level initializer (`props_id_invalid_placement` otherwise).
+  const propsId = $props.id();
+
   const styles = a2uiUrbiconVariants();
   const DangerIcon = resolveIcon('danger', DangerCircleIconDefault);
 
@@ -108,9 +112,10 @@
     return coerceText(resolved(key));
   }
 
-  // `@accessibility`: the label names the component where it has a role to
-  // name; description and live go onto every component's root. `hidden` is
-  // applied by the view around the whole component, label and control alike.
+  // `@accessibility`: `label` names, and `description` describes, the element
+  // that takes focus, or the component's role where nothing does; `live` goes on
+  // the component's root. `hidden` is applied by the view around the whole
+  // component, label and control alike.
   const accessibility = $derived(
     readAccessibility(
       nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
@@ -118,7 +123,23 @@
     )
   );
   const ariaLabel = $derived(accessibility.label);
-  const aria = $derived(accessibility.attributes);
+  const aria = $derived({
+    'aria-description': accessibility.description,
+    'aria-live': accessibility.live
+  });
+  // Where a primitive keeps an `aria-label` or `aria-description` off its
+  // focused element, or lets its own label outrank one, it still forwards an
+  // `aria-labelledby` / `aria-describedby` there and lets that win: those
+  // controls take both by reference to the `referenced()` elements.
+  const labelRef = $derived(ariaLabel ? `${propsId}-a11y-label` : undefined);
+  const descriptionRef = $derived(
+    accessibility.description ? `${propsId}-a11y-description` : undefined
+  );
+  const byReference = $derived({
+    'aria-labelledby': labelRef,
+    'aria-describedby': descriptionRef,
+    'aria-live': accessibility.live
+  });
 
   const weightStyle = $derived(node.weight != null ? `flex-grow:${node.weight}` : undefined);
 
@@ -474,6 +495,13 @@
   });
 </script>
 
+<!-- What `byReference` points at: in the DOM for the reference, out of sight and
+     out of the accessibility tree. -->
+{#snippet referenced()}
+  {#if labelRef}<span id={labelRef} hidden>{ariaLabel}</span>{/if}
+  {#if descriptionRef}<span id={descriptionRef} hidden>{accessibility.description}</span>{/if}
+{/snippet}
+
 {#snippet faultChip(label: string)}
   <span class={context.classes.errorChip}>
     <DangerIcon size={14} class={context.classes.errorIcon} />
@@ -549,9 +577,11 @@
   {#snippet cardFooter()}
     {#if footerNode}{@render renderChild(footerNode, blockCtx)}{/if}
   {/snippet}
+  <!-- A div card is role=generic, which forbids a name; a labelled one is a group. -->
   <Card
     unstyled={context.unstyled}
     variant={styleOpt('variant')}
+    role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
     {...aria}
     header={headerNode ? cardHeader : undefined}
@@ -679,17 +709,18 @@
 {:else if component === 'RadioGroup'}
   <RadioGroup
     unstyled={context.unstyled}
-    label={resolvedText('label') || ariaLabel || undefined}
+    label={resolvedText('label') || undefined}
     value={radioValue}
     onValueChange={onRadioChange}
     orientation={enumOr('orientation', 'vertical') === 'horizontal' ? 'horizontal' : 'vertical'}
     style={weightStyle}
-    {...aria}
+    {...byReference}
   >
     {#each choiceOptions as option (option.value)}
       <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
     {/each}
   </RadioGroup>
+  {@render referenced()}
 {:else if component === 'Select'}
   {#if selectMultiple}
     <Select
@@ -701,8 +732,7 @@
       value={selectValues}
       onValueChange={onSelectMultiple}
       style={weightStyle}
-      aria-label={ariaLabel}
-      {...aria}
+      {...byReference}
     />
   {:else}
     <Select
@@ -713,10 +743,10 @@
       value={selectValues[0] ?? null}
       onValueChange={onSelectSingle}
       style={weightStyle}
-      aria-label={ariaLabel}
-      {...aria}
+      {...byReference}
     />
   {/if}
+  {@render referenced()}
 {:else if component === 'Slider'}
   <!-- showValue is forced on: a generated surface has no other place to state
        the current number, and the agent cannot ask for it (not a catalog prop). -->
@@ -730,9 +760,9 @@
     showValue
     onValueChange={onSliderChange}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
+    {...byReference}
   />
+  {@render referenced()}
 {:else if component === 'Toggle'}
   <Toggle
     unstyled={context.unstyled}
@@ -740,20 +770,23 @@
     checked={boolValue}
     onCheckedChange={onBoolChange}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
+    {...byReference}
   />
+  {@render referenced()}
 {:else if component === 'DatePicker'}
   {@const label = resolvedText('label')}
-  <div class={styles.field()} style={weightStyle} {...aria}>
+  <div class={styles.field()} style={weightStyle} aria-live={accessibility.live}>
     <DatePicker
       unstyled={context.unstyled}
-      label={label || ariaLabel || undefined}
+      label={label || undefined}
       value={dtParts.date || null}
       onValueChange={onDateChange}
       minDate={dtMinDate}
       maxDate={dtMaxDate}
+      aria-labelledby={labelRef}
+      aria-describedby={descriptionRef}
     />
+    {@render referenced()}
     {#if fieldError}
       <span class={styles.fieldError()}>{fieldError}</span>
     {/if}
@@ -792,7 +825,13 @@
       {...aria}
     />
   {:else}
-    <Badge unstyled={context.unstyled} {variant} intent={styleOpt('intent')} {...aria}>
+    <Badge
+      unstyled={context.unstyled}
+      {variant}
+      intent={styleOpt('intent')}
+      aria-label={ariaLabel}
+      {...aria}
+    >
       {resolvedText('text')}
     </Badge>
   {/if}
@@ -804,6 +843,7 @@
     intent={styleOpt('intent')}
     variant={styleOpt('variant')}
     style={weightStyle}
+    aria-label={ariaLabel}
     {...aria}
   >
     {#if resolvedText('description')}
@@ -843,11 +883,13 @@
     {/each}
   </Stepper>
 {:else if component === 'Accordion'}
+  <!-- A role-less root forbids a name; a labelled Accordion is a group. -->
   <Accordion
     unstyled={context.unstyled}
     type={accordionMultiple ? 'multiple' : 'single'}
     variant={styleOpt('variant')}
     style={weightStyle}
+    role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
     {...aria}
   >
@@ -860,13 +902,16 @@
     {/each}
   </Accordion>
 {:else if component === 'Avatar'}
+  <!-- The root of a static Avatar has no role, so a labelled one is an image:
+       its picture or initials inside become presentational. -->
   <Avatar
     unstyled={context.unstyled}
     src={avatarSrc}
     name={resolvedText('name') || undefined}
-    alt={resolvedText('name') || ariaLabel || undefined}
     variant={styleOpt('variant')}
     size={styleOpt('size')}
+    role={ariaLabel ? 'img' : undefined}
+    aria-label={ariaLabel}
     {...aria}
   />
 {:else if component === 'Icon'}
@@ -912,6 +957,7 @@
         IMAGE_SIZE[enumOr('variant', 'mediumFeature')]
       ]}
       style={weightStyle}
+      aria-label={ariaLabel}
       {...aria}
     />
   {:else}

@@ -8,9 +8,10 @@ import A2UIView from './A2UIView.svelte';
 import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from './a2ui.types';
 import { basicA2uiCatalog } from './a2ui-basic-catalog';
 import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
+import { validateA2uiPayload } from './a2ui-validate';
 import type { A2UIViewProps } from './index';
 import { urbiconA2uiCatalog } from './urbicon/a2ui-urbicon-catalog';
-import { URBICON_A2UI_CATALOG_ID } from './urbicon/a2ui-urbicon-registry';
+import { URBICON_A2UI_CATALOG_ID, urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
 
 // DOM/interaction tests for the A2UI renderer. The processor + validator +
 // pointer engines have their own node suites (a2ui-*.test.ts); here we assert
@@ -665,6 +666,44 @@ describe('A2UIView — consent gate and surface requirements (Urbicon catalog)',
     expect(reports.at(-1)?.some((i) => i.code === A2UI_ISSUE_CODES.MARKDOWN_IN_TEXT)).toBe(true);
     expect(missing()).toHaveLength(1);
   });
+
+  it('misses a box once the user hides the container around it, as the server does', async () => {
+    const user = userEvent.setup();
+    const surfaceRequirements = { s: [{ component: 'Checkbox', path: '/agreed' }] };
+    const payload = [
+      urbiconSurface(),
+      comps([
+        { id: 'root', component: 'Column', children: ['hide', 'box'] },
+        { id: 'hide', component: 'Checkbox', label: 'Hide', value: { '@path': '/hide' } },
+        {
+          id: 'box',
+          component: 'Column',
+          children: ['agree'],
+          '@accessibility': { hidden: { '@path': '/hide' } }
+        },
+        { id: 'agree', component: 'Checkbox', label: 'I agree', value: { '@path': '/agreed' } }
+      ])
+    ];
+    let reported: A2uiValidationIssue[] = [];
+    render({
+      catalogs: [urbiconA2uiCatalog],
+      surfaceRequirements,
+      payload,
+      onValidationError: (issues) => {
+        reported = issues;
+      }
+    });
+    expect(reported).toEqual([]);
+
+    await user.click(screen.getByRole('checkbox', { name: 'Hide' }));
+    flushSync();
+    const server = validateA2uiPayload([...payload, data({ hide: true })], {
+      catalogs: [urbiconA2uiCatalogSpec],
+      surfaceRequirements
+    });
+    expect(server.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT]);
+    expect(reported).toEqual(server);
+  });
 });
 
 describe('A2UIView — two-way binding', () => {
@@ -1230,8 +1269,8 @@ describe('A2UIView — DateTimeInput', () => {
   });
 
   it('routes accessibility.label to the date field name (no aria-label on a generic div)', () => {
-    // DatePicker spreads aria-label onto its role-less root div (AT-ignored),
-    // so the accessibility label must become the field label instead.
+    // DatePicker's rest props land on its role-less root div (AT-ignored); only
+    // a reference it forwards reaches the field.
     render({
       payload: [
         surface(),
@@ -1805,6 +1844,132 @@ describe('A2UIView — A2UI 1.0', () => {
       render({ payload: labelled({ label: { '@path': '/name' } }) });
       expect(screen.getByRole('button', { name: 'Send it' })).toBeTruthy();
     });
+
+    // The name is dom-accessibility-api's (through getByRole); its 0.5 line reads
+    // `aria-describedby` but not `aria-description`, so the description is read
+    // from both attributes here.
+    const descriptionOf = (element: Element) =>
+      [
+        ...(element.getAttribute('aria-describedby') ?? '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((id) => document.getElementById(id)?.textContent ?? ''),
+        element.getAttribute('aria-description') ?? ''
+      ]
+        .filter(Boolean)
+        .join(' ');
+    /** The text a sighted user can see: every text node outside a `hidden` element. */
+    const visibleText = () => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const out: string[] = [];
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.parentElement?.closest('[hidden]')) out.push(node.textContent ?? '');
+      }
+      return out.join(' ');
+    };
+    const kid = { id: 'kid', component: 'Text', text: 'kid' };
+    const go = { event: { name: 'go' } };
+    const options = [
+      { label: 'A', value: 'a' },
+      { label: 'B', value: 'b' }
+    ];
+    // [case, component, the role that carries the name, its siblings]
+    const named: Array<[string, Record<string, unknown>, string, unknown[]?]> = [
+      ['Column', { component: 'Column', children: ['kid'] }, 'group', [kid]],
+      ['List', { component: 'List', children: ['kid'] }, 'list', [kid]],
+      ['Card', { component: 'Card', child: 'kid' }, 'group', [kid]],
+      ['Tabs', { component: 'Tabs', tabs: [{ title: 'T1', child: 'kid' }] }, 'tablist', [kid]],
+      ['Icon', { component: 'Icon', name: 'star' }, 'img'],
+      [
+        'Image',
+        { component: 'Image', url: 'https://img.example/a.png', description: 'Alt' },
+        'img'
+      ],
+      ['Button', { component: 'Button', child: 'kid', action: go }, 'button', [kid]],
+      [
+        'TextField',
+        { component: 'TextField', label: 'Shown', value: { '@path': '/t' } },
+        'textbox'
+      ],
+      ['CheckBox', { component: 'CheckBox', label: 'Shown', value: { '@path': '/c' } }, 'checkbox'],
+      [
+        'ChoicePicker, labelled',
+        { component: 'ChoicePicker', label: 'Shown', options, value: { '@path': '/p' } },
+        'radiogroup'
+      ],
+      [
+        'ChoicePicker, unlabelled',
+        { component: 'ChoicePicker', options, value: { '@path': '/p' } },
+        'radiogroup'
+      ],
+      [
+        'ChoicePicker multipleSelection',
+        {
+          component: 'ChoicePicker',
+          label: 'Shown',
+          options,
+          value: { '@path': '/p' },
+          variant: 'multipleSelection'
+        },
+        'group'
+      ],
+      [
+        'Slider, labelled',
+        { component: 'Slider', label: 'Shown', value: { '@path': '/n' }, max: 10 },
+        'slider'
+      ],
+      ['Slider, unlabelled', { component: 'Slider', value: { '@path': '/n' }, max: 10 }, 'slider'],
+      [
+        'DateTimeInput date, labelled',
+        { component: 'DateTimeInput', label: 'Shown', value: { '@path': '/d' }, enableDate: true },
+        'textbox'
+      ],
+      [
+        'DateTimeInput date, unlabelled',
+        { component: 'DateTimeInput', value: { '@path': '/d' }, enableDate: true },
+        'textbox'
+      ],
+      [
+        'DateTimeInput time',
+        { component: 'DateTimeInput', label: 'Shown', value: { '@path': '/d' }, enableTime: true },
+        'group'
+      ],
+      [
+        'DateTimeInput date and time',
+        {
+          component: 'DateTimeInput',
+          label: 'Shown',
+          value: { '@path': '/d' },
+          enableDate: true,
+          enableTime: true
+        },
+        'group'
+      ]
+    ];
+
+    it.each(named)(
+      'names and describes the %s where focus lands, and never shows the label',
+      (_case, component, role, siblings = []) => {
+        render({
+          urlPolicy: { allowedImagePrefixes: ['https://img.example/'] },
+          payload: [
+            surface(),
+            comps([
+              {
+                id: 'root',
+                ...component,
+                '@accessibility': { label: 'Named', description: 'Described' }
+              },
+              ...siblings
+            ])
+          ]
+        });
+        const target = screen.getByRole(role, { name: 'Named' });
+        expect(descriptionOf(target)).toBe('Described');
+        expect(visibleText()).not.toContain('Named');
+        if (component.label !== undefined) expect(visibleText()).toContain('Shown');
+      }
+    );
 
     it('maps description and live to their ARIA attributes', () => {
       render({ payload: labelled({ description: 'Sends the form', live: 'polite' }) });
