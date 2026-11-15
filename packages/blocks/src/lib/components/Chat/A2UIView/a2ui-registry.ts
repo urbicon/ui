@@ -115,7 +115,7 @@ export const A2UI_ACCESSIBILITY_SPEC: Readonly<Record<string, A2uiPropSpec>> = l
   label: {
     kind: 'string',
     dynamic: true,
-    description: 'a short (1–3 word) name, read out in place of the visible text'
+    description: 'a name that contains the visible text and is read out in its place, never shown'
   },
   description: {
     kind: 'string',

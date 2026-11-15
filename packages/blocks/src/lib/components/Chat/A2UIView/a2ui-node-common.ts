@@ -24,35 +24,36 @@ export function coerceText(value: unknown): string {
   return '';
 }
 
-/** The ARIA state a component's `@accessibility` asks for beyond its name. */
-export interface A2uiAriaAttributes {
-  'aria-description'?: string;
-  'aria-live'?: 'off' | 'polite' | 'assertive';
+/** A component's `@accessibility`, resolved; `hidden` is {@link readHidden}'s. */
+export interface A2uiAccessibility {
+  /** The accessible name of the element that takes focus, or of the component's role. */
+  label: string | undefined;
+  /** The accessible description, on the element `label` names. */
+  description: string | undefined;
+  /** `aria-live` of the component's root. */
+  live: 'off' | 'polite' | 'assertive' | undefined;
 }
 
 /**
- * Read a stored `@accessibility` value: `label` as the accessible name,
- * `description` and `live` as the attributes every component root takes
- * (`hidden` is {@link readHidden}'s). `resolve` is the dispatcher's
- * data-binding resolver — `label` and `description` may be bound. An absent key
- * yields no attribute, so a component keeps the semantics it infers from its
- * visible text.
+ * Read a stored `@accessibility` value. `resolve` is the dispatcher's
+ * data-binding resolver — `label` and `description` may be bound. An absent key,
+ * or one that resolves to no text, is `undefined`, so a component keeps the
+ * semantics it infers from its visible text.
  */
 export function readAccessibility(
   accessibility: unknown,
   resolve: (value: unknown) => unknown
-): { label: string | undefined; attributes: A2uiAriaAttributes } {
+): A2uiAccessibility {
   if (accessibility === null || typeof accessibility !== 'object') {
-    return { label: undefined, attributes: {} };
+    return { label: undefined, description: undefined, live: undefined };
   }
   const source = accessibility as Record<string, unknown>;
-  const attributes: A2uiAriaAttributes = {};
-  const description = coerceText(resolve(source.description));
-  if (description) attributes['aria-description'] = description;
-  if (source.live === 'off' || source.live === 'polite' || source.live === 'assertive') {
-    attributes['aria-live'] = source.live;
-  }
-  return { label: coerceText(resolve(source.label)) || undefined, attributes };
+  const live = source.live;
+  return {
+    label: coerceText(resolve(source.label)) || undefined,
+    description: coerceText(resolve(source.description)) || undefined,
+    live: live === 'off' || live === 'polite' || live === 'assertive' ? live : undefined
+  };
 }
 
 /**

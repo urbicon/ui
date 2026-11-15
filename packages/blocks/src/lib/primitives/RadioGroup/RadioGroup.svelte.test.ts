@@ -202,25 +202,25 @@ describe('RadioGroup (internal ARIA wins over restProps)', () => {
   });
 });
 
-describe('RadioGroup (consumer aria-labelledby survives without an internal label)', () => {
-  // The reorder made `{...restProps}` spread first, so `aria-labelledby` is now
-  // destructured out and used as the group's fallback — a consumer's external
-  // heading association survives when there is no internal `label`, instead of
-  // being cleared by the internal `undefined`.
+describe('RadioGroup (consumer aria-labelledby)', () => {
+  // `{...restProps}` spreads first on the group, so `aria-labelledby` is
+  // destructured: left in the spread, the internal value would clear it.
   it('keeps a consumer aria-labelledby on the group when there is no internal label', () => {
     renderRadios({ 'aria-labelledby': 'ext-heading' });
 
     expect(screen.getByRole('radiogroup').getAttribute('aria-labelledby')).toBe('ext-heading');
   });
 
-  it('an internal label still wins over a consumer aria-labelledby', () => {
+  // The order accessible-name computation gives a native control and its <label>.
+  it('a consumer aria-labelledby names the group over its label, which stays visible', () => {
+    const heading = document.createElement('h2');
+    heading.id = 'ext-heading';
+    heading.textContent = 'Billing plan';
+    document.body.append(heading);
     renderRadios({ label: 'Plan', 'aria-labelledby': 'ext-heading' });
 
-    const group = screen.getByRole('radiogroup');
-    const labelSpan = screen.getByText('Plan');
-    // The rendered label owns the association; the consumer value is the fallback,
-    // not an override.
-    expect(group.getAttribute('aria-labelledby')).toBe(labelSpan.id);
+    expect(screen.getByRole('radiogroup', { name: 'Billing plan' })).toBeTruthy();
+    expect(screen.getByText('Plan')).toBeTruthy();
   });
 });
 

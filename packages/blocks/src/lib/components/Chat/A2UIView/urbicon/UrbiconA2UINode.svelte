@@ -52,6 +52,10 @@
   // deliberately duplicated (not shared) so this stays a self-contained renderer.
   let { node, context, renderChild }: A2uiNodeProps = $props();
 
+  // Per-INSTANCE id namespace for the `@accessibility` references. Must stay a
+  // top-level initializer (`props_id_invalid_placement` otherwise).
+  const propsId = $props.id();
+
   const styles = a2uiUrbiconVariants();
   const DangerIcon = resolveIcon('danger', DangerCircleIconDefault);
 
@@ -108,9 +112,12 @@
     return coerceText(resolved(key));
   }
 
-  // `@accessibility`: the label names the component where it has a role to
-  // name; description and live go onto every component's root. `hidden` is
-  // applied by the view around the whole component, label and control alike.
+  // `@accessibility`: `label` names the element that takes focus (the group, for
+  // a component of several controls) or the component's role where nothing
+  // does; `description` describes the same element, or each segment of a
+  // TimeInput, after the field's own error; `live` goes on the component's root.
+  // `hidden` is applied by the view around the whole component, label and
+  // control alike.
   const accessibility = $derived(
     readAccessibility(
       nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
@@ -118,7 +125,24 @@
     )
   );
   const ariaLabel = $derived(accessibility.label);
-  const aria = $derived(accessibility.attributes);
+  const aria = $derived({
+    'aria-description': accessibility.description,
+    'aria-live': accessibility.live
+  });
+  // Where a primitive keeps an `aria-label` or `aria-description` off its
+  // focused element, or lets its own label or its error's `aria-describedby`
+  // outrank one, it still forwards an `aria-labelledby` there that wins, and an
+  // `aria-describedby` it reads after its own: those controls take both by
+  // reference to the `referenced()` elements.
+  const labelRef = $derived(ariaLabel ? `${propsId}-a11y-label` : undefined);
+  const descriptionRef = $derived(
+    accessibility.description ? `${propsId}-a11y-description` : undefined
+  );
+  const byReference = $derived({
+    'aria-labelledby': labelRef,
+    'aria-describedby': descriptionRef,
+    'aria-live': accessibility.live
+  });
 
   const weightStyle = $derived(node.weight != null ? `flex-grow:${node.weight}` : undefined);
 
@@ -467,6 +491,12 @@
 
   // ── Field-error (Input/Textarea use the native prop; date/time show a line) ──
   const fieldError = $derived(resolvedText('error'));
+  // The date/time line describes its field ahead of the `@accessibility`
+  // description, the order Input reads its own error in.
+  const errorId = $derived(fieldError ? `${propsId}-error` : undefined);
+  const fieldDescribedBy = $derived(
+    [errorId, descriptionRef].filter(Boolean).join(' ') || undefined
+  );
 
   // ── Image ──────────────────────────────────────────────────────────────────
   const imageCheck = $derived(checkImageUrl(resolvedText('url'), context.urlPolicy));
@@ -478,6 +508,16 @@
     return check.ok ? check.href : undefined;
   });
 </script>
+
+<!-- What `byReference` points at: in the DOM for the reference, out of sight and
+     out of the accessibility tree. No whitespace beside it: in a `pre-wrap`
+     block container a whitespace text node is an empty line. -->
+{#snippet referenced()}
+  {#if labelRef}<span id={labelRef} hidden>{ariaLabel}</span>{/if}{#if descriptionRef}<span
+      id={descriptionRef}
+      hidden>{accessibility.description}</span
+    >{/if}
+{/snippet}
 
 {#snippet faultChip(label: string)}
   <span class={context.classes.errorChip}>
@@ -554,9 +594,11 @@
   {#snippet cardFooter()}
     {#if footerNode}{@render renderChild(footerNode, blockCtx)}{/if}
   {/snippet}
+  <!-- A div card is role=generic, which forbids a name; a labelled one is a group. -->
   <Card
     unstyled={context.unstyled}
     variant={styleOpt('variant')}
+    role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
     {...aria}
     header={headerNode ? cardHeader : undefined}
@@ -655,9 +697,8 @@
     error={fieldError || undefined}
     oninput={onTextInput}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
-  />
+    {...byReference}
+  />{@render referenced()}
 {:else if component === 'Textarea'}
   <Textarea
     unstyled={context.unstyled}
@@ -668,9 +709,8 @@
     rows={typeof raw('rows') === 'number' ? (raw('rows') as number) : undefined}
     oninput={onTextInput}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
-  />
+    {...byReference}
+  />{@render referenced()}
 {:else if component === 'Checkbox'}
   <Checkbox
     unstyled={context.unstyled}
@@ -684,17 +724,17 @@
 {:else if component === 'RadioGroup'}
   <RadioGroup
     unstyled={context.unstyled}
-    label={resolvedText('label') || ariaLabel || undefined}
+    label={resolvedText('label') || undefined}
     value={radioValue}
     onValueChange={onRadioChange}
     orientation={enumOr('orientation', 'vertical') === 'horizontal' ? 'horizontal' : 'vertical'}
     style={weightStyle}
-    {...aria}
+    {...byReference}
   >
     {#each choiceOptions as option (option.value)}
       <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
     {/each}
-  </RadioGroup>
+  </RadioGroup>{@render referenced()}
 {:else if component === 'Select'}
   {#if selectMultiple}
     <Select
@@ -706,9 +746,8 @@
       value={selectValues}
       onValueChange={onSelectMultiple}
       style={weightStyle}
-      aria-label={ariaLabel}
-      {...aria}
-    />
+      {...byReference}
+    />{@render referenced()}
   {:else}
     <Select
       unstyled={context.unstyled}
@@ -718,9 +757,8 @@
       value={selectValues[0] ?? null}
       onValueChange={onSelectSingle}
       style={weightStyle}
-      aria-label={ariaLabel}
-      {...aria}
-    />
+      {...byReference}
+    />{@render referenced()}
   {/if}
 {:else if component === 'Slider'}
   <!-- showValue is forced on: a generated surface has no other place to state
@@ -735,9 +773,8 @@
     showValue
     onValueChange={onSliderChange}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
-  />
+    {...byReference}
+  />{@render referenced()}
 {:else if component === 'Toggle'}
   <Toggle
     unstyled={context.unstyled}
@@ -745,34 +782,29 @@
     checked={boolValue}
     onCheckedChange={onBoolChange}
     style={weightStyle}
-    aria-label={ariaLabel}
-    {...aria}
-  />
+    {...byReference}
+  />{@render referenced()}
 {:else if component === 'DatePicker'}
   {@const label = resolvedText('label')}
-  <div class={styles.field()} style={weightStyle} {...aria}>
+  <div class={styles.field()} style={weightStyle} aria-live={accessibility.live}>
     <DatePicker
       unstyled={context.unstyled}
-      label={label || ariaLabel || undefined}
+      label={label || undefined}
       value={dtParts.date || null}
       onValueChange={onDateChange}
       minDate={dtMinDate}
       maxDate={dtMaxDate}
-    />
-    {#if fieldError}
-      <span class={styles.fieldError()}>{fieldError}</span>
-    {/if}
+      aria-labelledby={labelRef}
+      aria-describedby={fieldDescribedBy}
+    />{@render referenced()}{#if fieldError}<span id={errorId} class={styles.fieldError()}
+        >{fieldError}</span
+      >{/if}
   </div>
 {:else if component === 'TimeInput'}
   {@const label = resolvedText('label')}
-  <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
-  <div
-    class={styles.field()}
-    style={weightStyle}
-    role={ariaLabel ? 'group' : undefined}
-    aria-label={ariaLabel}
-    {...aria}
-  >
+  <!-- TimeInput's group takes the name, and each of its segments the
+       description. -->
+  <div class={styles.field()} style={weightStyle} aria-live={accessibility.live}>
     <TimeInput
       unstyled={context.unstyled}
       label={label || undefined}
@@ -781,10 +813,11 @@
       withSeconds={dtParts.time.length > 5}
       min={dtMinParts.time && !dtMinParts.date ? dtMinParts.time : undefined}
       max={dtMaxParts.time && !dtMaxParts.date ? dtMaxParts.time : undefined}
-    />
-    {#if fieldError}
-      <span class={styles.fieldError()}>{fieldError}</span>
-    {/if}
+      aria-labelledby={labelRef}
+      aria-describedby={fieldDescribedBy}
+    />{@render referenced()}{#if fieldError}<span id={errorId} class={styles.fieldError()}
+        >{fieldError}</span
+      >{/if}
   </div>
 {:else if component === 'Badge'}
   {@const variant = styleOpt<'filled' | 'soft' | 'outlined' | 'dot'>('variant')}
@@ -797,7 +830,13 @@
       {...aria}
     />
   {:else}
-    <Badge unstyled={context.unstyled} {variant} intent={styleOpt('intent')} {...aria}>
+    <Badge
+      unstyled={context.unstyled}
+      {variant}
+      intent={styleOpt('intent')}
+      aria-label={ariaLabel}
+      {...aria}
+    >
       {resolvedText('text')}
     </Badge>
   {/if}
@@ -809,6 +848,7 @@
     intent={styleOpt('intent')}
     variant={styleOpt('variant')}
     style={weightStyle}
+    aria-label={ariaLabel}
     {...aria}
   >
     {#if resolvedText('description')}
@@ -848,11 +888,13 @@
     {/each}
   </Stepper>
 {:else if component === 'Accordion'}
+  <!-- A role-less root forbids a name; a labelled Accordion is a group. -->
   <Accordion
     unstyled={context.unstyled}
     type={accordionMultiple ? 'multiple' : 'single'}
     variant={styleOpt('variant')}
     style={weightStyle}
+    role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
     {...aria}
   >
@@ -865,13 +907,16 @@
     {/each}
   </Accordion>
 {:else if component === 'Avatar'}
+  <!-- The root of a static Avatar has no role, so a labelled one is an image:
+       its picture or initials inside become presentational. -->
   <Avatar
     unstyled={context.unstyled}
     src={avatarSrc}
     name={resolvedText('name') || undefined}
-    alt={resolvedText('name') || ariaLabel || undefined}
     variant={styleOpt('variant')}
     size={styleOpt('size')}
+    role={ariaLabel ? 'img' : undefined}
+    aria-label={ariaLabel}
     {...aria}
   />
 {:else if component === 'Icon'}
@@ -910,7 +955,7 @@
   {#if imageCheck.ok}
     <img
       src={imageCheck.href}
-      alt={description}
+      alt={ariaLabel ?? description}
       class={[
         context.classes.image,
         FIT[enumOr('fit', 'cover')],

@@ -2469,12 +2469,15 @@ export function collectGraphIssues(
   // One CYCLE per edge (parent id → ancestor id), however often it is reached.
   const reportedCycles = new Set<string>();
 
+  // `hidden`: an ancestor is hidden, and the view's inert wrapper around it
+  // covers everything rendered inside.
   const visit = (
     id: string,
     depth: number,
     stack: Set<string>,
     parent: A2uiComponentInstance | null,
-    scopePrefix: string | undefined
+    scopePrefix: string | undefined,
+    hidden: boolean
   ): void => {
     if (aborted || !spend()) return;
     if (depth > maxDepth) {
@@ -2505,17 +2508,20 @@ export function collectGraphIssues(
       return;
     }
 
-    if (required.length > 0) {
-      const rendered = renderedCount++;
-      // The view makes a hidden component inert: no one can operate it.
-      const reachable =
+    // The view makes a hidden component inert: no one can operate it. Read only
+    // where a requirement could be met.
+    const inert =
+      hidden ||
+      (required.length > 0 &&
         readHidden(
           comp.props.get(A2UI_ACCESSIBILITY_PROP),
           (value) =>
             resolveDynamic(value, surface.dataModel, scopePrefix, surface.callCatalogs).value
-        ) !== true;
+        ) === true);
+    if (required.length > 0) {
+      const rendered = renderedCount++;
       required.forEach((entry, index) => {
-        if (reachable && meetsRequirement(entry.requirement, comp, scopePrefix)) {
+        if (!inert && meetsRequirement(entry.requirement, comp, scopePrefix)) {
           candidates[index].push(rendered);
         }
       });
@@ -2608,11 +2614,11 @@ export function collectGraphIssues(
         }
         continue;
       }
-      visit(target.id, depth + 1, nextStack, comp, target.scope);
+      visit(target.id, depth + 1, nextStack, comp, target.scope, inert);
     }
   };
 
-  visit('root', 0, new Set(), null, undefined);
+  visit('root', 0, new Set(), null, undefined, false);
   // Bound entries first: a box bound to /agreed counts as the consent box, and a
   // name-only entry it could also meet is the one reported missing.
   const order = required

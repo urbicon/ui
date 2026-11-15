@@ -1320,6 +1320,74 @@ describe('surface requirements', () => {
     expect(missing(allIssues(booking(form(['agree'], box))))).toEqual([]);
   });
 
+  // The inert wrapper covers everything inside the component that declares it.
+  it.each([
+    ['literally', true],
+    ['through a binding', { '@path': '/hide' }]
+  ])('does not count one inside a container that is hidden %s', (_label, hidden) => {
+    const proc = booking(
+      form(
+        ['box'],
+        { id: 'box', component: 'Column', children: ['agree'], '@accessibility': { hidden } },
+        consentBox()
+      )
+    );
+    proc.apply(
+      { version: V1, updateDataModel: { surfaceId: 'booking', path: '/hide', value: true } },
+      9
+    );
+    expect(missing(allIssues(proc))).toHaveLength(1);
+  });
+
+  it('does not count one under a hidden root', () => {
+    const proc = booking([
+      {
+        id: 'root',
+        component: 'Column',
+        children: ['agree'],
+        '@accessibility': { hidden: true }
+      },
+      consentBox()
+    ]);
+    expect(missing(allIssues(proc))).toHaveLength(1);
+  });
+
+  it.each([
+    ['its own', ['agree']],
+    ["its template item's", ['item', 'agree']]
+  ])('does not count one hidden by %s relative binding', (_label, chain) => {
+    const hidden = { '@accessibility': { hidden: { '@path': 'hide' } } };
+    const rows = (hide: boolean) => {
+      const proc = booking(
+        [
+          { id: 'root', component: 'Column', children: { componentId: chain[0], path: '/rows' } },
+          ...(chain.length === 2
+            ? [{ id: 'item', component: 'Column', children: ['agree'], ...hidden }]
+            : []),
+          { ...consentBox({ '@path': 'agreed' }), ...(chain.length === 1 ? hidden : {}) }
+        ],
+        { booking: [{ component: 'Checkbox', path: '/rows/0/agreed' }] }
+      );
+      proc.apply(
+        { version: V1, updateDataModel: { surfaceId: 'booking', value: { rows: [{ hide }] } } },
+        2
+      );
+      return missing(allIssues(proc));
+    };
+    expect(rows(false)).toEqual([]);
+    expect(rows(true)).toHaveLength(1);
+  });
+
+  it('counts one inside a container whose hidden resolves to false', () => {
+    const box = {
+      id: 'box',
+      component: 'Column',
+      children: ['agree'],
+      '@accessibility': { hidden: { '@path': '/hide' } }
+    };
+    expect(missing(allIssues(booking(form(['box'], box, consentBox()))))).toEqual([]);
+  });
+
   it('does not count a component that is defined but never reached from root', () => {
     expect(missing(allIssues(booking(form([], consentBox()))))).toHaveLength(1);
   });
