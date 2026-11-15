@@ -226,10 +226,15 @@
     return typeof resolvedUrl === 'string' ? resolvedUrl : undefined;
   });
   const buttonUsable = $derived(actionEvent !== undefined || openUrlArg !== undefined);
+  // A `disabled` that resolves with an issue — a binding refused in this
+  // template item's scope — holds its failsafe, as one the validator refused
+  // does; a value that resolves counts as a boolean.
+  const disabledGate = $derived(context.resolve(raw('disabled'), node.scopePrefix));
   // `disabled` reads `@checks` (`readsChecks`): a failing rule holds it at its failsafe.
   const buttonDisabled = $derived(
     !buttonUsable ||
-      coerceBoolean(resolved('disabled')) ||
+      disabledGate.issue !== undefined ||
+      coerceBoolean(disabledGate.value) ||
       !checksPass(raw(A2UI_CHECKS_PROP), (value) => context.resolve(value, node.scopePrefix).value)
   );
 

@@ -139,13 +139,19 @@ export const A2UI_ISSUE_CODES = {
    * become issues, not exceptions.
    */
   ENGINE_ERROR: 'ENGINE_ERROR',
-  /** A JSON Pointer was malformed. */
+  /**
+   * A JSON Pointer is malformed — a `~` not followed by `0` or `1`, a write path
+   * that is neither `""` nor starts with `/` — or a write addresses an array
+   * index past the array's length (`-` appends). The write is not applied.
+   */
   POINTER_ERROR: 'POINTER_ERROR',
-  /** The component graph contains a cycle. */
+  /** The component graph contains a cycle; reported once per referencing edge. */
   CYCLE: 'CYCLE',
   /**
-   * Tree depth exceeds the limit (default 32), or a data-model write would nest
-   * the data model deeper than 64 levels — that write is not applied.
+   * Tree depth exceeds the limit (default 32), or data would nest deeper than
+   * the 64 levels a data model may: a write, which is not applied; a binding of
+   * more pointer segments, its template scope included, which resolves to
+   * nothing; an action's context literal, which drops the action.
    */
   MAX_DEPTH: 'MAX_DEPTH',
   /** Rendered node count exceeds the limit (default 512). */

@@ -2218,3 +2218,124 @@ describe('A2UIView — A2UI 1.0', () => {
     expect(mixed).toBe(own);
   });
 });
+
+// A user's edit takes the processor's write path, so a binding can no more nest
+// the data model past its limit than a message can; and a gate whose binding a
+// template scope takes past it stays closed.
+describe('A2UIView — writes and gates at the data-model depth limit', () => {
+  const segments = (count: number) => Array.from({ length: count }, () => 'a').join('/');
+  const sendingForm = (field: Record<string, unknown>, dataModel: unknown): unknown[] => [
+    {
+      version: V,
+      createSurface: {
+        surfaceId: 's',
+        catalogId: A2UI_CATALOG_ID,
+        sendDataModel: true,
+        dataModel
+      }
+    },
+    comps([
+      { id: 'root', component: 'Column', children: ['fields', 'go'] },
+      field,
+      { id: 'go', component: 'Button', child: 'go_label', action: { event: { name: 'submit' } } },
+      { id: 'go_label', component: 'Text', text: 'Go' }
+    ])
+  ];
+  const typeAndSend = async (label: string) => {
+    const user = userEvent.setup();
+    for (const input of screen.getAllByLabelText(label)) await user.type(input, 'x');
+    await user.click(screen.getByRole('button', { name: /Go/ }));
+    flushSync();
+  };
+
+  it.each([
+    ['an absolute binding', 'Column', `/${segments(65)}`, { kept: true }],
+    // The template scope `/items/0` adds two segments to the item's 63.
+    ['a relative binding in a template item', 'List', segments(63), { items: [{}] }]
+  ])(
+    'writes nothing through %s that would nest the model too deep',
+    async (_label, container, path, dataModel) => {
+      const actions: A2uiActionEvent[] = [];
+      const children = container === 'List' ? { componentId: 'field', path: '/items' } : ['field'];
+      render({
+        payload: [
+          ...sendingForm(
+            { id: 'field', component: 'TextField', label: 'Name', value: { '@path': path } },
+            dataModel
+          ),
+          comps([{ id: 'fields', component: container, children }])
+        ],
+        onAction: (actionEvent) => actions.push(actionEvent)
+      });
+      await typeAndSend('Name');
+      expect(actions[0].dataModel).toEqual(dataModel);
+    }
+  );
+
+  it('writes an item at most at the length of its list', async () => {
+    const actions: A2uiActionEvent[] = [];
+    render({
+      payload: [
+        ...sendingForm(
+          {
+            id: 'field',
+            component: 'TextField',
+            label: 'Second guest',
+            value: { '@path': '/guests/1/name' }
+          },
+          {}
+        ),
+        comps([{ id: 'fields', component: 'Column', children: ['field'] }])
+      ],
+      onAction: (actionEvent) => actions.push(actionEvent)
+    });
+    await typeAndSend('Second guest');
+    expect(actions[0].dataModel).toEqual({});
+  });
+
+  it.each([
+    ['bound directly', (binding: unknown) => binding],
+    [
+      'as an "or" operand',
+      (binding: unknown) => ({ '@call': 'or', args: { values: [false, binding] } })
+    ]
+  ])(
+    'holds a gate %s at its failsafe in a template item that refuses its binding',
+    (_label, gate) => {
+      const disabledFor = (count: number) => {
+        render({
+          catalogs: [urbiconA2uiCatalog],
+          payload: [
+            {
+              version: V,
+              createSurface: {
+                surfaceId: 's',
+                catalogId: URBICON_A2UI_CATALOG_ID,
+                dataModel: { items: [{}] }
+              }
+            },
+            comps([
+              { id: 'root', component: 'Column', children: { componentId: 'row', path: '/items' } },
+              {
+                id: 'row',
+                component: 'Button',
+                child: 'row_label',
+                action: { event: { name: 'go' } },
+                disabled: gate({ '@path': segments(count) })
+              },
+              { id: 'row_label', component: 'Text', text: 'Go' }
+            ])
+          ]
+        });
+        const disabled = (screen.getByRole('button', { name: /Go/ }) as HTMLButtonElement).disabled;
+        dispose?.();
+        dispose = undefined;
+        document.body.replaceChildren();
+        return disabled;
+      };
+      // `/items/0` plus 62 segments is 64, an unset path the gate reads as false.
+      expect(disabledFor(62)).toBe(false);
+      expect(disabledFor(63)).toBe(true);
+    }
+  );
+});

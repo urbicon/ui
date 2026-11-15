@@ -214,6 +214,7 @@ function childRefs(
       if (Array.isArray(children)) {
         for (const childId of children) {
           if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix, slot: key });
+          if (out.length > state.maxNodes) break;
         }
       } else if (children !== null && typeof children === 'object') {
         const template = children as { componentId?: unknown; path?: unknown };
@@ -268,7 +269,12 @@ function buildNode(
   for (let i = 0; i < refs.length; i++) {
     if (state.count >= state.maxNodes) break;
     const ref = refs[i];
-    if (nextAncestors.has(ref.id)) continue; // cycle: truncate (issue reported elsewhere)
+    // A cycle is truncated (the issue is `collectGraphIssues`'), and spends the
+    // node budget as that walk does: a fan-out of back-references is bounded too.
+    if (nextAncestors.has(ref.id)) {
+      state.count++;
+      continue;
+    }
     const childKey = `${ref.id}@${ref.scope ?? ''}#${i}`;
     const child = buildNode(ref.id, ref.scope, childKey, isFlex, nextAncestors, depth + 1, state);
     if (child) {

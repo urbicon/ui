@@ -6,7 +6,7 @@
   import type { A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
-  import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
+  import { resolveDynamic, writeDataModel } from './a2ui-data';
   import { readHidden } from './a2ui-node-common';
   import { A2UI_ACCESSIBILITY_PROP } from './a2ui-registry';
   import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
@@ -138,26 +138,17 @@
     });
   });
 
-  function isContainer(value: unknown): boolean {
-    return value !== null && typeof value === 'object';
-  }
-
-  // Two-way write-back: mutate the surface data model in place, then bump so the
-  // render tree re-derives with the new value (bound labels update live).
+  // Two-way write-back through the processor's own write path, then bump so the
+  // render tree re-derives with the new value (bound labels update live). A
+  // refused write changes nothing and reports nothing: what refuses it is the
+  // binding, which validation reported, or the model at that moment, which the
+  // next message may change. `undefined` removes the key.
   function writeBinding(surfaceId: string, pointer: string, value: unknown): void {
     const surface = processor.surfaces.get(surfaceId);
     if (!surface) return;
-    if (!isContainer(surface.dataModel)) {
-      const firstSegment = pointer.replace(/^\//, '').split('/')[0];
-      surface.dataModel = /^(?:0|[1-9]\d*|-)$/.test(firstSegment) ? [] : {};
-    }
-    setAtPointer(surface.dataModel, pointer, value);
-    bump();
-  }
-  function removeBinding(surfaceId: string, pointer: string): void {
-    const surface = processor.surfaces.get(surfaceId);
-    if (!surface) return;
-    deleteAtPointer(surface.dataModel, pointer);
+    const write = writeDataModel(surface.dataModel, pointer, value);
+    if (!write.ok) return;
+    surface.dataModel = write.model;
     bump();
   }
 
@@ -229,7 +220,7 @@
         resolve: (value, scope) =>
           resolveDynamic(value, surface.dataModel, scope, surface.callCatalogs),
         write: (pointer, value) => writeBinding(surface.surfaceId, pointer, value),
-        remove: (pointer) => removeBinding(surface.surfaceId, pointer),
+        remove: (pointer) => writeBinding(surface.surfaceId, pointer, undefined),
         labels: {
           unsupported: unsupportedLabel,
           blockedImage: blockedImageLabel,

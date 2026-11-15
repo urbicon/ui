@@ -1,6 +1,7 @@
 /**
- * Data-model primitives for the A2UI engine: RFC 6901 JSON Pointer get/set/delete
- * and the `resolveDynamic` union resolver. Pure TS, no Svelte.
+ * Data-model primitives for the A2UI engine: RFC 6901 JSON Pointer reads, the
+ * one write path into a surface's data model, and the `resolveDynamic` union
+ * resolver. Pure TS, no Svelte.
  *
  * Security posture (this file is on the untrusted-payload path):
  * - `__proto__` / `constructor` / `prototype` are rejected at **every** pointer
@@ -22,10 +23,23 @@ import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 /** Property names that must never be used as an object key on the write path. */
 export const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
 
+/**
+ * How deep a surface's data model may nest, however it is written: a message,
+ * or a user's edit through a binding. It is also the most segments a pointer
+ * may have, since a longer one addresses nothing the model can hold. What walks
+ * the model — the copy a write makes, `JSON.stringify` of the data model an
+ * action carries — recurses, so a write that would nest it deeper is refused
+ * rather than run the engine out of stack.
+ */
+export const A2UI_MAX_DATA_DEPTH = 64;
+
 /** RFC 6901 token unescape: `~1`→`/` then `~0`→`~` (order is significant). */
 function unescapeToken(token: string): string {
   return token.replaceAll('~1', '/').replaceAll('~0', '~');
 }
+
+/** A `~` that RFC 6901 does not define: one not followed by `0` or `1`. */
+const INVALID_ESCAPE_RE = /~(?![01])/;
 
 /** Non-negative array index per RFC 6901 (`0` or `[1-9][0-9]*`); else `null`. */
 function toIndex(segment: string): number | null {
@@ -38,9 +52,11 @@ interface ParsedPointer {
 }
 
 /**
- * Parse a pointer into decoded segments, guarding every segment against
- * prototype-pollution keys. Absolute pointers start with `/`; anything else is
- * treated as relative (segments split on `/`). `''` yields zero segments.
+ * Parse a pointer into decoded segments. Absolute pointers start with `/`;
+ * anything else is treated as relative (segments split on `/`). `''` yields
+ * zero segments. Refused, with the issue that says why: a `~` RFC 6901 does not
+ * define, a prototype-pollution segment, and more segments than
+ * {@link A2UI_MAX_DATA_DEPTH}.
  */
 function parsePointer(pointer: string): ParsedPointer {
   if (typeof pointer !== 'string') {
@@ -58,8 +74,30 @@ function parsePointer(pointer: string): ParsedPointer {
   else if (pointer.startsWith('/')) rawTokens = pointer.slice(1).split('/');
   else rawTokens = pointer.split('/');
 
+  // Counted before any token is read, and the pointer is not echoed: a refused
+  // one can be the whole payload.
+  if (rawTokens.length > A2UI_MAX_DATA_DEPTH) {
+    return {
+      segments: [],
+      issue: {
+        severity: 'error',
+        code: A2UI_ISSUE_CODES.MAX_DEPTH,
+        message: `A pointer of ${rawTokens.length} segments reaches deeper than the ${A2UI_MAX_DATA_DEPTH} levels a data model nests`
+      }
+    };
+  }
   const segments: string[] = [];
   for (const token of rawTokens) {
+    if (INVALID_ESCAPE_RE.test(token)) {
+      return {
+        segments: [],
+        issue: {
+          severity: 'error',
+          code: A2UI_ISSUE_CODES.POINTER_ERROR,
+          message: `Invalid escape in pointer "${pointer}": "~" must be followed by 0 or 1`
+        }
+      };
+    }
     const segment = unescapeToken(token);
     if (PROTO_KEYS.has(segment)) {
       return {
@@ -107,100 +145,157 @@ export function getAtPointer(model: unknown, pointer: string): unknown {
 }
 
 /**
- * Write `value` at `pointer`, creating intermediate objects/arrays as needed.
- * The document root cannot be replaced through this function (the processor
- * assigns `dataModel` directly for whole-model updates); a root pointer returns
- * `ok: false`. Prototype-pollution segments are rejected with an issue.
+ * The issue a pointer is refused with ({@link getAtPointer} reads nothing
+ * through it, {@link writeDataModel} writes nothing), or `undefined` for a
+ * pointer the engine reads. A relative one is checked on its own segments; its
+ * template scope adds more.
  */
-export function setAtPointer(
-  model: unknown,
-  pointer: string,
-  value: unknown
-): { ok: boolean; issue?: A2uiValidationIssue } {
+export function pointerIssue(pointer: string): A2uiValidationIssue | undefined {
+  return parsePointer(pointer).issue;
+}
+
+/** The outcome of {@link writeDataModel}. */
+export type A2uiDataWrite =
+  | { ok: true; model: unknown }
+  | {
+      ok: false;
+      /** What the write is refused for: its pointer, or the value it would place. */
+      refused: 'pointer' | 'value';
+      code: string;
+      message: string;
+    };
+
+/**
+ * Write `value` into a surface's data model at `pointer` — the one path every
+ * write takes: a message's (`updateDataModel`, an inline `createSurface.
+ * dataModel`) and a user's edit through a two-way binding. `undefined` deletes:
+ * an object key is removed, an array item leaves a hole, and at the root the
+ * model is emptied to `{}`. Containers the pointer passes through are created
+ * where missing — an array where the next segment is an index or `-`.
+ *
+ * Nothing is written, and the outcome says why, for: a pointer that is neither
+ * `''`/`'/'` nor starts with `/`, or that {@link pointerIssue} refuses; an array
+ * index past the array's length (`-` appends); a value that would nest the model
+ * deeper than {@link A2UI_MAX_DATA_DEPTH}, counting a level per segment.
+ *
+ * The value is copied in, so a later edit never reaches the payload, and own
+ * prototype keys are dropped from the copy. `model` is mutated in place and
+ * returned, unless the write replaced the root or the model was no container.
+ */
+export function writeDataModel(model: unknown, pointer: string, value: unknown): A2uiDataWrite {
   if (pointer === '' || pointer === '/') {
+    if (value === undefined) return { ok: true, model: {} };
+    const copy = copyWithin(value, A2UI_MAX_DATA_DEPTH);
+    return copy === TOO_DEEP
+      ? tooDeep('The value would nest the data model')
+      : { ok: true, model: copy };
+  }
+  if (typeof pointer !== 'string' || !pointer.startsWith('/')) {
     return {
       ok: false,
-      issue: {
-        severity: 'error',
-        code: A2UI_ISSUE_CODES.POINTER_ERROR,
-        path: pointer,
-        message: 'Cannot replace the document root through setAtPointer'
-      }
+      refused: 'pointer',
+      code: A2UI_ISSUE_CODES.POINTER_ERROR,
+      message: `Pointer ${typeof pointer === 'string' ? `"${pointer}" ` : ''}must be "" or start with "/"`
     };
   }
   const { segments, issue } = parsePointer(pointer);
-  if (issue) return { ok: false, issue };
-  if (segments.length === 0) {
-    return {
-      ok: false,
-      issue: {
-        severity: 'error',
-        code: A2UI_ISSUE_CODES.POINTER_ERROR,
-        path: pointer,
-        message: 'Cannot replace the document root through setAtPointer'
-      }
-    };
+  if (issue) return { ok: false, refused: 'pointer', code: issue.code, message: issue.message };
+  if (value === undefined) {
+    deleteAt(model, segments);
+    return { ok: true, model };
   }
-  if (!isContainer(model)) {
-    return {
-      ok: false,
-      issue: {
-        severity: 'error',
-        code: A2UI_ISSUE_CODES.POINTER_ERROR,
-        path: pointer,
-        message: 'Cannot write into a non-object data model'
-      }
-    };
-  }
-
-  let node: Record<string, unknown> | unknown[] = model;
-  for (let i = 0; i < segments.length - 1; i++) {
-    const segment = segments[i];
-    const nextIsIndex = toIndex(segments[i + 1]) !== null || segments[i + 1] === '-';
-    if (Array.isArray(node)) {
-      const index = toIndex(segment);
-      if (index === null) {
-        return { ok: false, issue: pointerTypeIssue(pointer, segment) };
-      }
-      if (!isContainer(node[index])) node[index] = nextIsIndex ? [] : {};
-      node = node[index] as Record<string, unknown> | unknown[];
-    } else {
-      if (!isContainer(node[segment])) node[segment] = nextIsIndex ? [] : {};
-      node = node[segment] as Record<string, unknown> | unknown[];
-    }
-  }
-
-  const last = segments[segments.length - 1];
-  if (Array.isArray(node)) {
-    const index = last === '-' ? node.length : toIndex(last);
-    if (index === null) return { ok: false, issue: pointerTypeIssue(pointer, last) };
-    node[index] = value;
-  } else {
-    node[last] = value;
-  }
-  return { ok: true };
+  // The value lands one level below each segment of its pointer.
+  const copy = copyWithin(value, A2UI_MAX_DATA_DEPTH - segments.length);
+  if (copy === TOO_DEEP)
+    return tooDeep(`The value written at "${pointer}" would nest the data model`);
+  return assignAt(model, segments, copy, pointer);
 }
 
-function pointerTypeIssue(pointer: string, segment: string): A2uiValidationIssue {
+function tooDeep(subject: string): A2uiDataWrite {
   return {
-    severity: 'error',
-    code: A2UI_ISSUE_CODES.POINTER_ERROR,
-    path: pointer,
-    message: `Segment "${segment}" is not a valid array index in pointer "${pointer}"`
+    ok: false,
+    refused: 'value',
+    code: A2UI_ISSUE_CODES.MAX_DEPTH,
+    message: `${subject} deeper than ${A2UI_MAX_DATA_DEPTH} levels`
   };
 }
 
-/**
- * Delete the leaf at `pointer`. Object keys are removed; array indices are
- * `delete`d in place (leaving a hole, preserving length). No-ops for missing
- * paths, non-container parents, and root pointers (the processor clears
- * `dataModel` directly for whole-model deletes).
- */
-export function deleteAtPointer(model: unknown, pointer: string): void {
-  if (pointer === '' || pointer === '/') return;
-  const { segments, issue } = parsePointer(pointer);
-  if (issue || segments.length === 0) return;
+type Container = Record<string, unknown> | unknown[];
 
+/** Whether a segment addresses an array item, so a container created for it is an array. */
+function isListSegment(segment: string): boolean {
+  return segment === '-' || toIndex(segment) !== null;
+}
+
+/** The key `segment` addresses in `node`, or the refusal of it. `-` appends, as the last segment. */
+function keyIn(
+  node: Container,
+  segment: string,
+  last: boolean,
+  pointer: string
+): { key: string | number } | Extract<A2uiDataWrite, { ok: false }> {
+  if (!Array.isArray(node)) return { key: segment };
+  const index = last && segment === '-' ? node.length : toIndex(segment);
+  if (index === null) {
+    return {
+      ok: false,
+      refused: 'pointer',
+      code: A2UI_ISSUE_CODES.POINTER_ERROR,
+      message: `Segment "${segment}" is not a valid array index in pointer "${pointer}"`
+    };
+  }
+  if (index > node.length) {
+    return {
+      ok: false,
+      refused: 'pointer',
+      code: A2UI_ISSUE_CODES.POINTER_ERROR,
+      message: `Index ${index} in pointer "${pointer}" is past the end of a list of ${node.length}; an item is written at an index up to the length, or at "-"`
+    };
+  }
+  return { key: index };
+}
+
+/**
+ * Place `value` at `segments`. Every key is checked before the model changes:
+ * the walk descends through the containers that exist, builds the missing rest
+ * detached, and attaches it with one assignment — so a refused write leaves no
+ * container behind.
+ */
+function assignAt(
+  model: unknown,
+  segments: string[],
+  value: unknown,
+  pointer: string
+): A2uiDataWrite {
+  const root: Container = isContainer(model) ? model : isListSegment(segments[0]) ? [] : {};
+  const last = segments.length - 1;
+  let node = root;
+  let at = 0;
+  let key: string | number;
+  for (;;) {
+    const found = keyIn(node, segments[at], at === last, pointer);
+    if (!('key' in found)) return found;
+    key = found.key;
+    if (at === last) break;
+    const child = (node as Record<string | number, unknown>)[key];
+    if (!isContainer(child)) break;
+    node = child;
+    at++;
+  }
+  let leaf = value;
+  for (let j = last; j > at; j--) {
+    const container: Container = isListSegment(segments[j]) ? [] : {};
+    const found = keyIn(container, segments[j], j === last, pointer);
+    if (!('key' in found)) return found;
+    (container as Record<string | number, unknown>)[found.key] = leaf;
+    leaf = container;
+  }
+  (node as Record<string | number, unknown>)[key] = leaf;
+  return { ok: true, model: root };
+}
+
+/** Delete the leaf at `segments`; a no-op for a missing path or a non-container parent. */
+function deleteAt(model: unknown, segments: string[]): void {
   let node: unknown = model;
   for (let i = 0; i < segments.length - 1; i++) {
     if (!isContainer(node)) return;
@@ -220,6 +315,41 @@ export function deleteAtPointer(model: unknown, pointer: string): void {
   } else {
     delete (node as Record<string, unknown>)[last];
   }
+}
+
+const TOO_DEEP: unique symbol = Symbol('too deep');
+
+/**
+ * Deep-copy JSON data within `levels` of nesting (a scalar takes none, `{}`
+ * one), or {@link TOO_DEEP}. The copy recurses, and the bound is what keeps
+ * that recursion off a hostile depth: it stops one level past `levels`. Own
+ * `__proto__`/`constructor`/`prototype` keys are dropped (harmless as own
+ * props, but never addressable), functions and symbols become `undefined`,
+ * array holes stay holes.
+ */
+function copyWithin(value: unknown, levels: number): unknown {
+  if (value === null || typeof value !== 'object') {
+    return typeof value === 'function' || typeof value === 'symbol' ? undefined : value;
+  }
+  if (levels < 1) return TOO_DEEP;
+  if (Array.isArray(value)) {
+    const out: unknown[] = [];
+    for (let i = 0; i < value.length; i++) {
+      if (!(i in value)) continue;
+      const item = copyWithin(value[i], levels - 1);
+      if (item === TOO_DEEP) return TOO_DEEP;
+      out[i] = item;
+    }
+    return out;
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(value as Record<string, unknown>)) {
+    if (PROTO_KEYS.has(key)) continue;
+    const item = copyWithin((value as Record<string, unknown>)[key], levels - 1);
+    if (item === TOO_DEEP) return TOO_DEEP;
+    out[key] = item;
+  }
+  return out;
 }
 
 // ── Dynamic-value directives ─────────────────────────────────────────────────
@@ -602,31 +732,41 @@ function templateIndex(scopePrefix: string | undefined): number | undefined {
  * Evaluate a logic call {@link logicCallFault} has passed. Each operand is read
  * through {@link coerceBoolean}: an unset path, `null` and any string but
  * `"true"` count as false — so `not` of a path nobody has written yet is `true`.
+ * An operand whose binding is refused in this scope — its pointer too deep once
+ * the template scope is added — leaves the whole call unresolved, with that
+ * issue, rather than counting as false: a gate reads it as one it cannot
+ * evaluate. Every operand is read for that reason, not just the ones up to the
+ * first that decides.
  */
 function evaluateLogic(
   call: Record<string, unknown>,
   model: unknown,
   scopePrefix: string | undefined,
   catalogs: A2uiCallCatalogs
-): boolean {
+): { value: unknown; issue?: A2uiValidationIssue } {
   const args = call.args as Record<string, unknown>;
-  const operand = (value: unknown): boolean =>
-    isLogicCall(value)
-      ? evaluateLogic(value, model, scopePrefix, catalogs)
-      : coerceBoolean(resolveDynamic(value, model, scopePrefix, catalogs).value);
   const name = call[A2UI_CALL_KEY];
-  if (name === 'not') return !operand(args.value);
-  const values = args.values as unknown[];
-  return name === 'and' ? values.every(operand) : values.some(operand);
+  const operands = name === 'not' ? [args.value] : (args.values as unknown[]);
+  const results: boolean[] = [];
+  for (const operand of operands) {
+    const resolved = isLogicCall(operand)
+      ? evaluateLogic(operand, model, scopePrefix, catalogs)
+      : resolveDynamic(operand, model, scopePrefix, catalogs);
+    if (resolved.issue) return { value: undefined, issue: resolved.issue };
+    results.push(coerceBoolean(resolved.value));
+  }
+  if (name === 'not') return { value: !results[0] };
+  return { value: name === 'and' ? results.every(Boolean) : results.some(Boolean) };
 }
 
 /**
  * Resolve a Dynamic value union to a concrete value.
  * - `{ "@path" }` (data binding) → the pointed-at model value (relative paths
- *   are resolved against `scopePrefix`, the current template item).
+ *   are resolved against `scopePrefix`, the current template item); a pointer
+ *   {@link pointerIssue} refuses, once scoped → `undefined` + that error.
  * - `{ "@call": "not" | "and" | "or", args }` → the boolean it computes; a
  *   malformed one, or one whose catalog does not resolve → `undefined` + a
- *   warning.
+ *   warning; one with a refused operand binding → `undefined` + its error.
  * - `{ "@call": "@index" }` → the template item's position plus `args.offset`;
  *   outside a template → `undefined` + a warning.
  * - any other `{ "@call", ... }` → `undefined` + a warning (unsupported).
@@ -657,7 +797,7 @@ export function resolveDynamic(
         }
       };
     }
-    return { value: evaluateLogic(value, model, scopePrefix, catalogs) };
+    return evaluateLogic(value, model, scopePrefix, catalogs);
   }
 
   if (name === A2UI_INDEX_FUNCTION) {
@@ -727,14 +867,6 @@ export function checksPass(checks: unknown, resolve: (value: unknown) => unknown
 }
 
 /**
- * How deep a message may nest a surface's data model. The walks over the model
- * — the clone on ingest, the data model an action serialises — recurse, so a
- * message that would nest it deeper is refused rather than run the engine out
- * of stack. A user's edit through a binding is not counted against it.
- */
-export const A2UI_MAX_DATA_DEPTH = 64;
-
-/**
  * Whether JSON data nests deeper than `max` levels (a scalar is 0 deep, `{}` 1),
  * counted without recursion so the count itself survives hostile depth.
  */
@@ -748,31 +880,4 @@ export function exceedsDataDepth(value: unknown, max: number): boolean {
     for (const child of Object.values(node)) stack.push([child, level + 1]);
   }
   return false;
-}
-
-/**
- * Deep-clone JSON data for ingest into the model, stripping any own
- * `__proto__`/`constructor`/`prototype` keys (harmless as own props, but never
- * addressable, so we drop them). Functions/symbols are dropped. Used by the
- * processor so that later two-way edits never mutate the source payload and no
- * prototype key ever enters the model.
- */
-export function cloneData(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    const out: unknown[] = [];
-    for (let i = 0; i < value.length; i++) {
-      if (i in value) out[i] = cloneData(value[i]);
-    }
-    return out;
-  }
-  if (value !== null && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>)) {
-      if (PROTO_KEYS.has(key)) continue;
-      out[key] = cloneData((value as Record<string, unknown>)[key]);
-    }
-    return out;
-  }
-  if (typeof value === 'function' || typeof value === 'symbol') return undefined;
-  return value;
 }

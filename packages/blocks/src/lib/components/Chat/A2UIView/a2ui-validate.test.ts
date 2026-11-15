@@ -9,6 +9,7 @@ import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, type A2uiPropSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
 import { A2UI_MAX_DATA_DEPTH, A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
 import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
+import { buildRenderTree } from './a2ui-render';
 import {
   type A2uiRequiredComponent,
   type A2uiSurfaceRequirements,
@@ -1722,17 +1723,50 @@ describe('createSurface with inline content', () => {
   });
 
   it.each([
-    ['a deep value', '/a', nested(A2UI_MAX_DATA_DEPTH)],
-    ['a deep path', `/${Array.from({ length: A2UI_MAX_DATA_DEPTH + 1 }, () => 'k').join('/')}`, 1]
-  ])('refuses an updateDataModel with %s and writes nothing', (_label, path, value) => {
+    ['a deep value', '/a', nested(A2UI_MAX_DATA_DEPTH), 'value'],
+    [
+      'a deep path',
+      `/${Array.from({ length: A2UI_MAX_DATA_DEPTH + 1 }, () => 'k').join('/')}`,
+      1,
+      'path'
+    ]
+  ])('refuses an updateDataModel with %s and writes nothing', (_label, path, value, at) => {
     const proc = applyBoth([
       create({ dataModel: { kept: true } }),
       { version: '1.0', updateDataModel: { surfaceId: 's', path, value } }
     ]);
     expect(summary(surfaceIssues(proc))).toEqual([
-      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, '/messages/1/updateDataModel/value']
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, `/messages/1/updateDataModel/${at}`]
     ]);
     expect(proc.surfaces.get('s')?.dataModel).toEqual({ kept: true });
+  });
+
+  it.each([
+    ['an index past the end of a list', '/items/4'],
+    ['an index far past the end of a list', '/items/50000000'],
+    ['an index past the end of a list it would create', '/fresh/1'],
+    ['no leading "/"', 'invalid path [0]'],
+    ['an escape RFC 6901 does not define', '/items~2']
+  ])('refuses an updateDataModel to %s and writes nothing', (_label, path) => {
+    const dataModel = { items: ['a', 'b', 'c'] };
+    const proc = applyBoth([
+      create({ dataModel }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path, value: 'x' } }
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.POINTER_ERROR, '/messages/1/updateDataModel/path']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual(dataModel);
+  });
+
+  it('appends to a list at its length and at "-"', () => {
+    const proc = applyBoth([
+      create({ dataModel: { items: ['a'] } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/1', value: 'b' } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/-', value: 'c' } }
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual({ items: ['a', 'b', 'c'] });
   });
 
   it('copies the data model, so a later edit never reaches the payload', () => {
@@ -2435,5 +2469,157 @@ describe('function-call messages', () => {
     ]);
     expect(proc.globalIssues.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.UNKNOWN_ENVELOPE_TYPE]);
     expect(proc.surfaces.size).toBe(0);
+  });
+});
+
+// Hostile shapes measured against the engine: depth carried in through a
+// binding or a context literal, and fan-out through self-references.
+describe('hostile depth and fan-out', () => {
+  const segments = (count: number) => Array.from({ length: count }, () => 'a').join('/');
+  const nested = (depth: number, leaf: unknown = 1): unknown => {
+    let value = leaf;
+    for (let i = 0; i < depth; i++) value = { a: value };
+    return value;
+  };
+  const urbicon = (components: unknown[]) => ({
+    version: '1.0',
+    createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID, components }
+  });
+  const label = { id: 'l', component: 'Text', text: 'Go' };
+  const button = (extra: Record<string, unknown>) => ({
+    id: 'root',
+    component: 'Button',
+    child: 'l',
+    action: { event: { name: 'go' } },
+    ...extra
+  });
+  const contextButton = (literal: unknown) =>
+    button({ action: { event: { name: 'go', context: { k: literal } } } });
+  const graphIssues = (proc: A2uiProcessor) => {
+    const surface = proc.surfaces.get('s');
+    if (!surface) throw new Error('no surface');
+    return collectGraphIssues(surface);
+  };
+
+  it.each([
+    ['absolute', `/${segments(A2UI_MAX_DATA_DEPTH + 1)}`],
+    ['absolute, 100,000 segments', `/${segments(100_000)}`],
+    ['relative', segments(A2UI_MAX_DATA_DEPTH + 1)]
+  ])('reports a %s binding deeper than the data model nests, at the binding', (_label, path) => {
+    const field = { id: 'root', component: 'TextField', label: 'Name', value: { '@path': path } };
+    const proc = applyBoth([create({ components: [field] })]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, '/messages/0/createSurface/components/0/value']
+    ]);
+  });
+
+  it('takes a binding of as many segments as the data model nests', () => {
+    const path = `/${segments(A2UI_MAX_DATA_DEPTH)}`;
+    const field = { id: 'root', component: 'TextField', label: 'Name', value: { '@path': path } };
+    expect(allIssues(applyBoth([create({ components: [field] })]))).toEqual([]);
+  });
+
+  it('reports a relative binding once a template scope takes it past the limit', () => {
+    const list = {
+      id: 'root',
+      component: 'List',
+      children: { componentId: 'row', path: '/items' }
+    };
+    const rows = (count: number) =>
+      applyBoth([
+        create({
+          components: [
+            list,
+            { id: 'row', component: 'TextField', label: 'N', value: { '@path': segments(count) } }
+          ],
+          dataModel: { items: [{}, {}] }
+        })
+      ]);
+    // The scope `/items/<i>` adds two segments.
+    expect(graphIssues(rows(A2UI_MAX_DATA_DEPTH - 2))).toEqual([]);
+    const over = rows(A2UI_MAX_DATA_DEPTH - 1);
+    expect(surfaceIssues(over)).toEqual([]);
+    expect(graphIssues(over).map((i) => [i.code, i.message.slice(0, 13)])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, '"row" binds a']
+    ]);
+  });
+
+  it.each([
+    ['bound directly', { '@path': `/${segments(A2UI_MAX_DATA_DEPTH + 1)}` }],
+    [
+      'inside a logic call',
+      { '@call': 'not', args: { value: { '@path': `/${segments(A2UI_MAX_DATA_DEPTH + 1)}` } } }
+    ]
+  ])('holds a gate whose binding is too deep at its failsafe, %s', (_label, disabled) => {
+    const proc = applyBoth([urbicon([button({ disabled }), label])]);
+    expect(surfaceIssues(proc).map((i) => [i.code, i.message.includes('held at true')])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, true]
+    ]);
+    expect(instance(proc)?.props.get('disabled')).toBe(true);
+  });
+
+  it('holds the gates of a @checks list whose condition binding is too deep', () => {
+    const condition = { '@path': `/${segments(A2UI_MAX_DATA_DEPTH + 1)}` };
+    const proc = applyBoth([
+      urbicon([button({ disabled: false, '@checks': [{ condition }] }), label])
+    ]);
+    expect(surfaceIssues(proc).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MAX_DEPTH]);
+    expect(instance(proc)?.props.get('disabled')).toBe(true);
+    expect(instance(proc)?.props.has('@checks')).toBe(false);
+  });
+
+  it.each([
+    ['an object', nested(A2UI_MAX_DATA_DEPTH + 1)],
+    ['an object 10,000 levels deep', nested(10_000)],
+    ['an array', Array.from({ length: A2UI_MAX_DATA_DEPTH }).reduce<unknown>((v) => [v], [1])]
+  ])('drops an action whose context literal is %s nesting too deep', (_label, literal) => {
+    const proc = applyBoth([create({ components: [contextButton(literal), label] })]);
+    const at = '/messages/0/createSurface/components/0/action';
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, `${at}/event/context/k`],
+      ['error', A2UI_ISSUE_CODES.MISSING_FIELD, at]
+    ]);
+    expect(instance(proc)?.props.has('action')).toBe(false);
+  });
+
+  it('keeps an action whose context literal nests as deep as the data model may', () => {
+    const proc = applyBoth([
+      create({ components: [contextButton(nested(A2UI_MAX_DATA_DEPTH)), label] })
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(instance(proc)?.props.has('action')).toBe(true);
+  });
+
+  it('reports one CYCLE per edge and bounds a self-referencing fan-out by the node budget', () => {
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'Column', children: Array.from({ length: 100 }, () => 'C') },
+          { id: 'C', component: 'Column', children: Array.from({ length: 1_000 }, () => 'C') }
+        ]
+      })
+    ]);
+    expect(graphIssues(proc).map((i) => i.code)).toEqual([
+      A2UI_ISSUE_CODES.CYCLE,
+      A2UI_ISSUE_CODES.MAX_NODES
+    ]);
+    // The render tree spends the same budget: the first C's back-references use
+    // it up, so no second C renders.
+    const surface = proc.surfaces.get('s');
+    expect(surface && buildRenderTree(surface)?.children.map((child) => child.id)).toEqual(['C']);
+  });
+
+  it('reports a cycle edge reached on two paths once', () => {
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'Column', children: ['a', 'a'] },
+          { id: 'a', component: 'Column', children: ['a'] }
+        ]
+      })
+    ]);
+    expect(graphIssues(proc).map((i) => i.message)).toEqual([
+      'Cycle detected at component "a", referenced by "a"'
+    ]);
   });
 });

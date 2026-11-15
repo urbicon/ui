@@ -83,6 +83,34 @@ rg -n 'v0\.9' src
 rg -n 'A2UI_SUPPORTED_VERSIONS|SURFACE_PROP_IGNORED|ignoredProps' src
 ```
 
+### A2UI: writes, bindings and context literals are held to the data model's limits
+
+Every write into a surface's data model takes one path: `updateDataModel`, an inline
+`createSurface.dataModel` and what the user types into a bound field. What a payload could do
+before and is now refused:
+
+- **A write path RFC 6901 does not define is a `POINTER_ERROR`**, and nothing is written: one that
+  is neither `""` nor starts with `/` (it was read as relative to the root), and one with a `~` not
+  followed by `0` or `1` (it was kept as written).
+- **So is an index past the end of a list.** `/items/5` onto three items left holes, and
+  `/items/50000000` a list of fifty million. A list the write creates has no items yet, so
+  `/guests/1/name` without a `guests` list is refused too; `/guests/0/name` and `/guests/-` are not.
+  A field bound to `/guests/1/name` takes the user's typing only once item 0 exists.
+- **A user's edit is held to the 64 levels a message is.** A bound field whose pointer would nest
+  the model deeper writes nothing; before, one keystroke could nest it as deep as the pointer was
+  long. And it writes the root as a message does: a field bound to `""` outside a list template
+  replaces the whole data model with what the user enters, where the edit used to be dropped.
+- **A binding of more than 64 segments is a `MAX_DEPTH` error** and resolves to nothing; on a gate it
+  holds the failsafe. In a list template the item's scope counts: `collectGraphIssues` reports a
+  relative binding the scope takes past the limit.
+- **An action context literal nested deeper than 64 levels is a `MAX_DEPTH` error** and drops the
+  action, so a Basic `Button` renders a fault chip.
+- **`CYCLE` is reported once per edge**, and a cycle's back-reference spends the node budget as a
+  rendered node does, in `collectGraphIssues` and in the render tree alike: a fan-out of
+  self-references ends at `MAX_NODES` instead of reporting each one.
+- **`updateDataModel` reports a fault of its path at `…/updateDataModel/path`**; a path of more than
+  64 segments was reported at `…/value`.
+
 ## 8.38.0
 
 ### The A2UI transport for MCP Apps is removed

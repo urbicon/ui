@@ -28,6 +28,7 @@ import {
   A2UI_INDEX_FUNCTION,
   A2UI_LOGIC_FUNCTION_NAMES,
   A2UI_MAX_DATA_DEPTH,
+  A2UI_MAX_LOGIC_DEPTH,
   A2UI_MAX_LOGIC_OPERANDS,
   A2UI_PATH_KEY,
   type A2uiCallCatalogs,
@@ -35,8 +36,6 @@ import {
   bindingPath,
   callName,
   catalogFault,
-  cloneData,
-  deleteAtPointer,
   exceedsDataDepth,
   getAtPointer,
   indexCallFault,
@@ -44,10 +43,11 @@ import {
   isLogicCall,
   logicCallFault,
   type OperandBudget,
+  pointerIssue,
   reservedKeyOf,
   resolveDynamic,
   scopedPointer,
-  setAtPointer
+  writeDataModel
 } from './a2ui-data';
 import { readHidden } from './a2ui-node-common';
 import {
@@ -184,10 +184,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function isContainer(value: unknown): value is Record<string, unknown> | unknown[] {
-  return value !== null && typeof value === 'object';
-}
-
 function issue(
   severity: A2uiIssueSeverity,
   code: string,
@@ -231,9 +227,12 @@ function isDynamicStringList(value: unknown): boolean {
  * time so they reach `onValidationError` (the render layer resolves with only
  * `.value` and drops the issue — this is the closed feedback loop the agent
  * needs). A function-call binding is unsupported (renders to nothing → warning),
- * except a well-formed `@index`; a `{ "@path" }` binding whose pointer contains
- * a prototype-pollution segment is a hard error (position-independent, so scope
- * need not be resolved here). Plain literals return no issues.
+ * except a well-formed `@index`; a `{ "@path" }` binding whose pointer the
+ * engine refuses ({@link pointerIssue}: a prototype-pollution segment, an
+ * invalid escape, more segments than the data model nests) is a hard error.
+ * That is position-independent — a template scope only adds segments — so
+ * scope need not be resolved here; `collectGraphIssues` checks a relative
+ * binding against each scope it renders in. Plain literals return no issues.
  */
 function dynamicRefIssues(value: unknown, path: string, surfaceId: string): A2uiValidationIssue[] {
   if (isIndexCall(value)) {
@@ -258,21 +257,14 @@ function dynamicRefIssues(value: unknown, path: string, surfaceId: string): A2ui
     ];
   }
   const raw = bindingPath(value);
-  if (raw !== undefined) {
-    const tokens = (raw.startsWith('/') ? raw.slice(1) : raw).split('/');
-    for (const token of tokens) {
-      const segment = token.replaceAll('~1', '/').replaceAll('~0', '~');
-      if (PROTO_KEYS.has(segment)) {
-        return [
-          issue(
-            'error',
-            A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
-            `Prohibited property name "${segment}" in binding path "${raw}"`,
-            { surfaceId, path }
-          )
-        ];
-      }
-    }
+  const refused = raw === undefined ? undefined : pointerIssue(raw);
+  if (refused) {
+    return [
+      issue('error', refused.code, `Binding refused: ${refused.message}; it resolves to nothing`, {
+        surfaceId,
+        path
+      })
+    ];
   }
   return [];
 }
@@ -984,6 +976,24 @@ function validateAction(
           );
           continue;
         }
+        // A literal is sent as written, and serialising it recurses. Dropping
+        // the key instead would change the event the agent receives unasked.
+        const contextValue = context[contextKey];
+        if (
+          !isDynamicRef(contextValue) &&
+          !isLogicCall(contextValue) &&
+          exceedsDataDepth(contextValue, A2UI_MAX_DATA_DEPTH)
+        ) {
+          issues.push(
+            issue(
+              'error',
+              A2UI_ISSUE_CODES.MAX_DEPTH,
+              `action context "${contextKey}" on ${componentName} nests deeper than ${A2UI_MAX_DATA_DEPTH} levels; the action is dropped`,
+              { surfaceId, path: `${path}/event/context/${contextKey}` }
+            )
+          );
+          continue;
+        }
         for (const valueIssue of contextValueIssues(
           componentName,
           contextKey,
@@ -996,11 +1006,13 @@ function validateAction(
         }
       }
     }
-    // Store even with a context-key error: the renderer builds context on a
-    // null-prototype object, so the flagged key is inert. The error still relays.
-    // A faulty context VALUE or userMessage never decides this: it only travels
-    // as `undefined`.
-    const store = issues.every((i) => i.code !== A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION);
+    // A prototype context key and a literal too deep to serialise drop the
+    // action. Any other faulty context VALUE, and a faulty userMessage, only
+    // travels as `undefined`.
+    const store = issues.every(
+      (i) =>
+        i.code !== A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION && i.code !== A2UI_ISSUE_CODES.MAX_DEPTH
+    );
     return { store, issues: [...issues, ...valueIssues] };
   }
   if (isPlainObject(value.functionCall)) {
@@ -1287,6 +1299,47 @@ function holdsIndexCall(value: unknown, depth = 0): boolean {
   if (Array.isArray(value)) return value.some((item) => holdsIndexCall(item, depth + 1));
   if (isIndexCall(value)) return true;
   return Object.values(value).some((item) => holdsIndexCall(item, depth + 1));
+}
+
+/**
+ * The deepest place below a stored prop where a dispatcher resolves a binding:
+ * an operand of a logic call nested `A2UI_MAX_LOGIC_DEPTH` deep — three levels
+ * per call (the call, its `args`, `values`) — in an action's context value,
+ * itself three levels below the prop.
+ */
+const BINDING_SITE_DEPTH = 3 + 3 * A2UI_MAX_LOGIC_DEPTH;
+const relativeSegmentsMemo = new WeakMap<A2uiComponentInstance, number>();
+
+/**
+ * The most segments a relative `{ "@path" }` binding in a component's stored
+ * props has — what a template scope adds its own segments to. One refused on
+ * its own segments was reported where it was validated and is not counted. The
+ * walk also enters literals no dispatcher resolves, so a binding-shaped literal
+ * counts too. Memoised per instance: the graph walk asks once per template item.
+ */
+function relativeBindingSegments(comp: A2uiComponentInstance): number {
+  let deepest = relativeSegmentsMemo.get(comp);
+  if (deepest === undefined) {
+    deepest = 0;
+    for (const value of comp.props.values()) deepest = Math.max(deepest, deepestRelative(value, 0));
+    relativeSegmentsMemo.set(comp, deepest);
+  }
+  return deepest;
+}
+
+function deepestRelative(value: unknown, depth: number): number {
+  if (depth > BINDING_SITE_DEPTH || value === null || typeof value !== 'object') return 0;
+  const path = bindingPath(value);
+  if (path !== undefined) {
+    if (path === '' || path.startsWith('/')) return 0;
+    const segments = path.split('/').length;
+    return segments > A2UI_MAX_DATA_DEPTH ? 0 : segments;
+  }
+  let deepest = 0;
+  for (const item of Object.values(value)) {
+    deepest = Math.max(deepest, deepestRelative(item, depth + 1));
+  }
+  return deepest;
 }
 
 // ── Component validation ─────────────────────────────────────────────────────
@@ -1859,27 +1912,33 @@ function createProcessor(
     // A2UI applies `dataModel` before `components`. No binding resolves before
     // the render, so the order shows only in the order of the issues.
     if ('dataModel' in cs) {
-      if (isPlainObject(cs.dataModel) && exceedsDataDepth(cs.dataModel, A2UI_MAX_DATA_DEPTH)) {
-        surface.issues.push(
-          issue(
-            'error',
-            A2UI_ISSUE_CODES.MAX_DEPTH,
-            `createSurface.dataModel nests deeper than ${A2UI_MAX_DATA_DEPTH} levels; it is not applied`,
-            { surfaceId, path: `${base}/createSurface/dataModel` }
-          )
-        );
-      } else if (isPlainObject(cs.dataModel)) {
-        if (dataSchema) {
-          for (const schemaIssue of validateSchemaWrite(
-            dataSchema,
-            undefined,
-            cs.dataModel,
-            surfaceId
-          )) {
-            surface.issues.push(schemaIssue);
+      if (isPlainObject(cs.dataModel)) {
+        const write = writeDataModel(undefined, '', cs.dataModel);
+        if (!write.ok) {
+          surface.issues.push(
+            issue(
+              'error',
+              write.code,
+              `createSurface.dataModel: ${write.message}; it is not applied`,
+              {
+                surfaceId,
+                path: `${base}/createSurface/dataModel`
+              }
+            )
+          );
+        } else {
+          surface.dataModel = write.model;
+          if (dataSchema) {
+            for (const schemaIssue of validateSchemaWrite(
+              dataSchema,
+              undefined,
+              cs.dataModel,
+              surfaceId
+            )) {
+              surface.issues.push(schemaIssue);
+            }
           }
         }
-        surface.dataModel = cloneData(cs.dataModel);
       } else {
         surface.issues.push(
           issue(
@@ -2022,24 +2081,25 @@ function createProcessor(
     }
     // A2UI 1.0: null is how a message deletes, so it is never a value to store.
     const deletes = udm.value === null;
-    const whole = pathValue === undefined || pathValue === '' || pathValue === '/';
-    // The value lands one level below each segment of its path.
-    const segments = whole ? 0 : (pathValue as string).replace(/^\//, '').split('/').length;
-    if (!deletes && exceedsDataDepth(udm.value, A2UI_MAX_DATA_DEPTH - segments)) {
+    const write = writeDataModel(
+      surface.dataModel,
+      pathValue ?? '',
+      deletes ? undefined : udm.value
+    );
+    if (!write.ok) {
       surface.issues.push(
-        issue(
-          'error',
-          A2UI_ISSUE_CODES.MAX_DEPTH,
-          `updateDataModel would nest the data model deeper than ${A2UI_MAX_DATA_DEPTH} levels; nothing is written`,
-          { surfaceId, path: `${base}/updateDataModel/value` }
-        )
+        issue('error', write.code, `updateDataModel: ${write.message}; nothing is written`, {
+          surfaceId,
+          path: `${base}/updateDataModel/${write.refused === 'pointer' ? 'path' : 'value'}`
+        })
       );
       return;
     }
+    surface.dataModel = write.model;
 
     // Schema validation (opt-in): a type mismatch on a declared pointer is an
     // error, a write to an undeclared top-level branch a warning — both relayed
-    // to the agent. Runs on the raw written value before it enters the model.
+    // to the agent. It reports and never refuses, so it runs on what was written.
     if (dataSchema) {
       const schemaIssues = validateSchemaWrite(
         dataSchema,
@@ -2048,23 +2108,6 @@ function createProcessor(
         surfaceId
       );
       for (const schemaIssue of schemaIssues) surface.issues.push(schemaIssue);
-    }
-
-    if (whole) {
-      surface.dataModel = deletes ? {} : cloneData(udm.value);
-      return;
-    }
-
-    const pointer = pathValue as string;
-    if (!isContainer(surface.dataModel)) {
-      const firstSegment = pointer.replace(/^\//, '').split('/')[0];
-      surface.dataModel = /^(?:0|[1-9]\d*|-)$/.test(firstSegment) ? [] : {};
-    }
-    if (deletes) {
-      deleteAtPointer(surface.dataModel, pointer);
-    } else {
-      const { issue: setIssue } = setAtPointer(surface.dataModel, pointer, cloneData(udm.value));
-      if (setIssue) surface.issues.push({ ...setIssue, surfaceId });
     }
   }
 
@@ -2292,13 +2335,15 @@ function matchRequirements(candidates: readonly number[][], order: readonly numb
  * Walk the component graph from `root` and collect structural faults that only
  * exist once components are assembled: cycles, excessive depth/nodes, dangling
  * child references, non-array template paths, mis-placed `weight`, `@index`
- * outside a template and — on a settled surface only — every `requirements`
+ * outside a template, a relative binding a template scope takes deeper than the
+ * data model nests, and — on a settled surface only — every `requirements`
  * entry no component rendered from `root` meets. A surface without a `root`
  * reports at most `MISSING_ROOT`.
  *
  * Their severity depends on `streaming`, which is why they are collected on
- * demand rather than stored. Traversal is bounded by `maxNodes` so a template
- * over a huge array cannot DoS the walk itself.
+ * demand rather than stored. Traversal is bounded by `maxNodes` — every child
+ * reference spends one, a cycle's back-reference too — so neither a template
+ * over a huge array nor a fan-out of self-references can DoS the walk itself.
  */
 export function collectGraphIssues(
   surface: A2uiSurfaceState,
@@ -2324,6 +2369,7 @@ export function collectGraphIssues(
 
   const reportedDangling = new Set<string>();
   const reportedIndex = new Set<string>();
+  const reportedScopeDepth = new Set<string>();
   // Mid-stream every requirement would read as missing — the surface arrives
   // over several envelopes — so they are checked on the settled tree only.
   const required = streaming ? [] : (surface.requirements ?? []);
@@ -2364,8 +2410,10 @@ export function collectGraphIssues(
       } else if (propSpec.kind === 'childList') {
         const children = comp.props.get(key);
         if (Array.isArray(children)) {
-          for (const childId of children)
+          for (const childId of children) {
             if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
+            if (out.length > maxNodes) break; // bound expansion
+          }
         } else if (children && typeof children === 'object') {
           const template = children as { componentId?: unknown; path?: unknown };
           if (typeof template.componentId === 'string' && typeof template.path === 'string') {
@@ -2396,6 +2444,30 @@ export function collectGraphIssues(
     return out;
   };
 
+  // Every child reference the walk takes spends one of `maxNodes`: a visited
+  // node, and a reference refused as a cycle, which `buildRenderTree` counts
+  // the same way — so in both walks a fan-out of back-references is as short
+  // as a fan-out of nodes.
+  const spend = (): boolean => {
+    nodeCount++;
+    if (nodeCount <= maxNodes) return true;
+    if (!overflowReported) {
+      issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MAX_NODES,
+          `Rendered node count exceeds the limit of ${maxNodes}`,
+          { surfaceId }
+        )
+      );
+      overflowReported = true;
+    }
+    aborted = true;
+    return false;
+  };
+  // One CYCLE per edge (parent id → ancestor id), however often it is reached.
+  const reportedCycles = new Set<string>();
+
   const visit = (
     id: string,
     depth: number,
@@ -2403,23 +2475,7 @@ export function collectGraphIssues(
     parent: A2uiComponentInstance | null,
     scopePrefix: string | undefined
   ): void => {
-    if (aborted) return;
-    nodeCount++;
-    if (nodeCount > maxNodes) {
-      if (!overflowReported) {
-        issues.push(
-          issue(
-            'error',
-            A2UI_ISSUE_CODES.MAX_NODES,
-            `Rendered node count exceeds the limit of ${maxNodes}`,
-            { surfaceId }
-          )
-        );
-        overflowReported = true;
-      }
-      aborted = true;
-      return;
-    }
+    if (aborted || !spend()) return;
     if (depth > maxDepth) {
       issues.push(
         issue(
@@ -2476,6 +2532,24 @@ export function collectGraphIssues(
       );
     }
 
+    // A relative binding is checked on its own segments when it is validated;
+    // the scope of each template item it renders in adds the item's.
+    if (scopePrefix !== undefined && !reportedScopeDepth.has(id)) {
+      const relative = relativeBindingSegments(comp);
+      const scoped = scopePrefix.split('/').length - 1 + relative;
+      if (relative > 0 && scoped > A2UI_MAX_DATA_DEPTH) {
+        reportedScopeDepth.add(id);
+        issues.push(
+          issue(
+            'error',
+            A2UI_ISSUE_CODES.MAX_DEPTH,
+            `"${id}" binds a relative path of ${relative} segments, which in the template item "${scopePrefix}" reaches ${scoped} levels, deeper than the ${A2UI_MAX_DATA_DEPTH} a data model nests; it resolves to nothing`,
+            { surfaceId }
+          )
+        );
+      }
+    }
+
     // A bound `options` list is only checkable once it resolves — the envelope
     // validator saw a { "@path" }, not a list. Silent while the path is still
     // undefined (the agent fills it in with a later updateDataModel); a warning
@@ -2518,11 +2592,19 @@ export function collectGraphIssues(
     for (const target of childTargets(comp, scopePrefix)) {
       if (aborted) return;
       if (nextStack.has(target.id)) {
-        issues.push(
-          issue('error', A2UI_ISSUE_CODES.CYCLE, `Cycle detected at component "${target.id}"`, {
-            surfaceId
-          })
-        );
+        if (!spend()) return;
+        const edge = `${id.length}:${id}${target.id}`;
+        if (!reportedCycles.has(edge)) {
+          reportedCycles.add(edge);
+          issues.push(
+            issue(
+              'error',
+              A2UI_ISSUE_CODES.CYCLE,
+              `Cycle detected at component "${target.id}", referenced by "${id}"`,
+              { surfaceId }
+            )
+          );
+        }
         continue;
       }
       visit(target.id, depth + 1, nextStack, comp, target.scope);
