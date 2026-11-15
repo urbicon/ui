@@ -7,6 +7,7 @@ import * as attacks from './__fixtures__/hostile/attacks';
 import A2UIView from './A2UIView.svelte';
 import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from './a2ui.types';
 import { basicA2uiCatalog } from './a2ui-basic-catalog';
+import { A2UI_MAX_DATA_DEPTH } from './a2ui-data';
 import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
 import { validateA2uiPayload } from './a2ui-validate';
 import type { A2UIViewProps } from './index';
@@ -2834,6 +2835,117 @@ describe('A2UIView — a field the data model cannot take', () => {
     expect(locked(screen.getByRole('textbox'))).toBe(false);
     expect(reported.flat()).toEqual([]);
     expect(validateA2uiPayload(payload)).toEqual([]);
+  });
+
+  it.each([[''], ['/'], ['//']])('locks a field bound to "%s", the whole data model', (path) => {
+    const reported: A2uiValidationIssue[][] = [];
+    const payload = fieldForm(
+      { id: 'field', component: 'TextField', label: 'Name', value: { '@path': path } },
+      { name: 'Alice' }
+    );
+    render({ payload, onValidationError: (issues) => reported.push(issues) });
+    expect(locked(screen.getByRole('textbox'))).toBe(true);
+    expect(pointerErrors(reported.at(-1)).map((issue) => issue.message)).toEqual([
+      `"field" is bound to "${path}", which takes no user's edit: the pointer addresses the whole data model, which only a message replaces; the field is locked until it is bound to another`
+    ]);
+    expect(reported.at(-1)).toEqual(validateA2uiPayload(payload));
+  });
+
+  it('locks a template item’s field bound to "/", while one bound to "" writes its item', async () => {
+    const user = userEvent.setup();
+    const actions: A2uiActionEvent[] = [];
+    const reported: A2uiValidationIssue[][] = [];
+    const dataModel = { name: 'Alice', notes: ['a', 'b'] };
+    const payload = [
+      {
+        version: V,
+        createSurface: {
+          surfaceId: 's',
+          catalogId: A2UI_CATALOG_ID,
+          sendDataModel: true,
+          dataModel
+        }
+      },
+      comps([
+        { id: 'root', component: 'Column', children: ['name', 'notes', 'go'] },
+        { id: 'name', component: 'TextField', label: 'Name', value: { '@path': '/name' } },
+        { id: 'notes', component: 'List', children: { componentId: 'row', path: '/notes' } },
+        { id: 'row', component: 'Column', children: ['item', 'whole'] },
+        { id: 'item', component: 'TextField', label: 'Item', value: { '@path': '' } },
+        { id: 'whole', component: 'TextField', label: 'Whole', value: { '@path': '/' } },
+        { id: 'go', component: 'Button', child: 'go_label', action: { event: { name: 'go' } } },
+        { id: 'go_label', component: 'Text', text: 'Go' }
+      ])
+    ];
+    render({
+      payload,
+      onAction: (event) => actions.push(event),
+      onValidationError: (issues) => reported.push(issues)
+    });
+    const whole = screen.getAllByLabelText('Whole') as HTMLInputElement[];
+    expect(whole.map(locked)).toEqual([true, true]);
+    expect(screen.getAllByLabelText('Item').map(locked)).toEqual([false, false]);
+    expect(pointerErrors(reported.at(-1))).toHaveLength(1);
+    expect(reported.at(-1)).toEqual(validateA2uiPayload(payload));
+
+    // An input event the lock cannot stop still writes nothing.
+    whole[1].value = 'q';
+    whole[1].dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+    await user.click(screen.getByRole('button', { name: /Go/ }));
+    expect(actions.at(-1)?.dataModel).toEqual(dataModel);
+
+    await user.type(screen.getAllByLabelText('Item')[1], 'x');
+    await user.click(screen.getByRole('button', { name: /Go/ }));
+    expect(actions.at(-1)?.dataModel).toEqual({ name: 'Alice', notes: ['a', 'bx'] });
+  });
+
+  it.each([
+    ['a 65-segment pointer', `/${Array.from({ length: 65 }, () => 'a').join('/')}`],
+    ['an invalid escape', '/a~2'],
+    ['a prototype segment', '/__proto__/x']
+  ])('locks a field whose binding is %s, reported once where it was validated', (_label, path) => {
+    const reported: A2uiValidationIssue[][] = [];
+    const payload = fieldForm(
+      { id: 'field', component: 'TextField', label: 'Name', value: { '@path': path } },
+      {}
+    );
+    render({ payload, onValidationError: (issues) => reported.push(issues) });
+    expect(locked(screen.getByRole('textbox'))).toBe(true);
+    expect(reported.at(-1)?.map((issue) => [issue.severity, issue.path])).toEqual([
+      ['error', '/messages/1/updateComponents/components/1/value']
+    ]);
+  });
+
+  it('locks a ChoicePicker whose list a 64-segment pointer cannot take, and not a TextField', () => {
+    const reported: A2uiValidationIssue[][] = [];
+    const deep = {
+      '@path': `/${Array.from({ length: A2UI_MAX_DATA_DEPTH }, () => 'a').join('/')}`
+    };
+    const payload = [
+      {
+        version: V,
+        createSurface: { surfaceId: 's', catalogId: A2UI_CATALOG_ID }
+      },
+      comps([
+        { id: 'root', component: 'Column', children: ['picks', 'text'] },
+        {
+          id: 'picks',
+          component: 'ChoicePicker',
+          variant: 'multipleSelection',
+          options,
+          value: deep
+        },
+        { id: 'text', component: 'TextField', label: 'Text', value: deep }
+      ])
+    ];
+    render({ payload, onValidationError: (issues) => reported.push(issues) });
+    expect(controls('checkbox').every(locked)).toBe(true);
+    expect(locked(screen.getByRole('textbox'))).toBe(false);
+    expect(reported.at(-1)?.map((issue) => [issue.code, issue.message.slice(0, 22)])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, '"picks" is bound to "/']
+    ]);
+    expect(reported.at(-1)).toEqual(validateA2uiPayload(payload));
   });
 });
 

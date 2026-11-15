@@ -34,7 +34,6 @@ import {
   type A2uiCallCatalogs,
   type A2uiCallFault,
   bindingPath,
-  bindingWriteRefusal,
   callName,
   catalogFault,
   exceedsDataDepth,
@@ -44,12 +43,14 @@ import {
   isLogicCall,
   logicCallFault,
   type OperandBudget,
+  parseScopedPath,
   pointerIssue,
   pointerSegmentCount,
   quoted,
   reservedKeyOf,
   resolveDynamic,
   scopedPointer,
+  templateList,
   writeDataModel
 } from './a2ui-data';
 import { readHidden } from './a2ui-node-common';
@@ -67,9 +68,9 @@ import {
   acceptsLogicCall,
   checksGates,
   ownEntry,
-  rendersAsComponent,
-  writesValue
+  rendersAsComponent
 } from './a2ui-registry';
+import { fieldWriteRefusal } from './a2ui-render';
 import {
   type A2uiSurfaceRequirement,
   type A2uiSurfaceRequirements,
@@ -1951,7 +1952,7 @@ function createProcessor(
     // the render, so the order shows only in the order of the issues.
     if ('dataModel' in cs) {
       if (isPlainObject(cs.dataModel)) {
-        const write = writeDataModel(undefined, '', cs.dataModel, surface.paddedSlots);
+        const write = writeDataModel(undefined, '', cs.dataModel, surface.paddedSlots, 'message');
         if (!write.ok) {
           surface.issues.push(
             issue(
@@ -2124,7 +2125,8 @@ function createProcessor(
       surface.dataModel,
       pathValue ?? '',
       deletes ? undefined : udm.value,
-      surface.paddedSlots
+      surface.paddedSlots,
+      'message'
     );
     if (!write.ok) {
       surface.issues.push(
@@ -2411,6 +2413,7 @@ export function collectGraphIssues(
   const reportedDangling = new Set<string>();
   const reportedIndex = new Set<string>();
   const reportedScopeDepth = new Set<string>();
+  const reportedTemplateDepth = new Set<string>();
   const reportedWrite = new Set<string>();
   // Mid-stream every requirement would read as missing — the surface arrives
   // over several envelopes — so they are checked on the settled tree only.
@@ -2459,19 +2462,33 @@ export function collectGraphIssues(
         } else if (children && typeof children === 'object') {
           const template = children as { componentId?: unknown; path?: unknown };
           if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-            const list = getAtScopedPath(surface.dataModel, template, template.path, scopePrefix);
-            const absPath = scopedPointer(template.path, scopePrefix);
-            if (Array.isArray(list)) {
-              for (let i = 0; i < list.length; i++) {
-                out.push({ id: template.componentId, scope: `${absPath}/${i}` });
+            const items = templateList(surface.dataModel, template, template.path, scopePrefix);
+            if (items.issue) {
+              // A path refused on its own segments was reported where it was
+              // validated; one its scope takes past the limit is reported here.
+              const own = parseScopedPath(template, template.path, undefined);
+              if (!own.issue && !reportedTemplateDepth.has(comp.id)) {
+                reportedTemplateDepth.add(comp.id);
+                issues.push(
+                  issue(
+                    'error',
+                    A2UI_ISSUE_CODES.MAX_DEPTH,
+                    `${quoted(comp.id)} lists the items at the relative template path ${quoted(template.path)}, which in the template item ${quoted(scopePrefix ?? '')} reaches deeper than the ${A2UI_MAX_DATA_DEPTH} levels a data model nests; it renders no items`,
+                    { surfaceId }
+                  )
+                );
+              }
+            } else if (Array.isArray(items.list)) {
+              for (let i = 0; i < items.list.length; i++) {
+                out.push({ id: template.componentId, scope: `${items.at}/${i}` });
                 if (out.length > maxNodes) break; // bound expansion
               }
-            } else if (list !== undefined) {
+            } else if (items.list !== undefined) {
               issues.push(
                 issue(
                   'warning',
                   A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
-                  `Template path ${quoted(absPath)} did not resolve to an array`,
+                  `Template path ${quoted(items.at)} did not resolve to an array`,
                   {
                     surfaceId
                   }
@@ -2598,30 +2615,23 @@ export function collectGraphIssues(
       }
     }
 
-    // A two-way field whose binding the data model cannot take is locked until
-    // it can (`A2uiRenderContext.refusesWrite`), and this is what tells the
+    // A two-way field whose binding takes no user's edit is locked while it
+    // does (`A2uiRenderContext.refusesWrite`), and this is what tells the
     // agent, once per component. A pointer refused on its own segments was
     // reported where it was validated, and one its scope takes too deep above.
-    if (
-      !reportedWrite.has(id) &&
-      rendersAsComponent(comp) &&
-      writesValue(ownEntry(comp.catalog?.registry, comp.component))
-    ) {
-      const binding = comp.props.get(A2UI_VALUE_PROP);
-      const refusal = bindingWriteRefusal(
-        surface.dataModel,
-        binding,
-        scopePrefix,
-        surface.paddedSlots
-      );
-      if (refusal?.cause === 'model') {
+    if (!reportedWrite.has(id) && rendersAsComponent(comp)) {
+      const refusal = fieldWriteRefusal(surface.dataModel, comp, scopePrefix, surface.paddedSlots);
+      if (refusal !== undefined && refusal.cause !== 'pointer') {
         reportedWrite.add(id);
-        const pointer = scopedPointer(bindingPath(binding) as string, scopePrefix);
+        const bound = bindingPath(comp.props.get(A2UI_VALUE_PROP)) as string;
+        const subject = `${quoted(id)} is bound to ${quoted(scopedPointer(bound, scopePrefix))}`;
         issues.push(
           issue(
             'error',
             refusal.code,
-            `${quoted(id)} is bound to ${quoted(pointer)}, which the data model cannot take: the pointer ${refusal.reason}; the field is locked until the data model can take it`,
+            refusal.cause === 'model'
+              ? `${subject}, which the data model cannot take: the pointer ${refusal.reason}; the field is locked until the data model can take it`
+              : `${subject}, which takes no user's edit: the pointer ${refusal.reason}; the field is locked until it is bound to another`,
             { surfaceId }
           )
         );
@@ -2775,6 +2785,27 @@ export function collectA2uiIssues(
     }
   }
   return issues;
+}
+
+/**
+ * Whether two issue lists are equal, issue by issue and field by field, a field
+ * left out counting as `undefined`: how the view tells a changed list from the
+ * one it last reported. Nothing is serialised, so no copy is built of a field
+ * from the payload: a long `surfaceId` is repeated by every issue of its surface.
+ */
+export function sameA2uiIssues(
+  a: readonly A2uiValidationIssue[],
+  b: readonly A2uiValidationIssue[]
+): boolean {
+  if (a.length !== b.length) return false;
+  const fields = (entry: A2uiValidationIssue) =>
+    Object.keys(entry) as (keyof A2uiValidationIssue)[];
+  return a.every((left, index) => {
+    const right = b[index];
+    return (
+      left === right || [...fields(left), ...fields(right)].every((key) => left[key] === right[key])
+    );
+  });
 }
 
 /** Options for {@link validateA2uiPayload} — `A2UIView`'s validation props, in spec form. */

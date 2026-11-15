@@ -68,6 +68,11 @@ function unescapeToken(token: string): string {
   return token.replaceAll('~1', '/').replaceAll('~0', '~');
 }
 
+/** RFC 6901 token escape, the inverse of {@link unescapeToken}: `~`→`~0` then `/`→`~1`. */
+function escapeToken(segment: string): string {
+  return segment.replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
 /** A `~` that RFC 6901 does not define: one not followed by `0` or `1`. */
 const INVALID_ESCAPE_RE = /~(?![01])/;
 
@@ -256,8 +261,8 @@ export function getAtPointer(model: unknown, pointer: string): unknown {
 
 /**
  * {@link getAtPointer} for the pointer `path` addresses in `scopePrefix`, read
- * through {@link parseScopedPath}: what a list template or a bound `options`
- * list reads, once per template item.
+ * through {@link parseScopedPath}: what a bound `options` list reads, once per
+ * template item.
  */
 export function getAtScopedPath(
   model: unknown,
@@ -267,6 +272,36 @@ export function getAtScopedPath(
 ): unknown {
   const { segments, issue } = parseScopedPath(holder, path, scopePrefix);
   return issue ? undefined : readSegments(model, segments);
+}
+
+/** What a list template expands over; see {@link templateList}. */
+export type A2uiTemplateList =
+  | {
+      /** The value the template's `path` addresses; its items render only where it is an array. */
+      list: unknown;
+      /** The pointer of that list, which an item's scope extends by its index: `${at}/${index}`. */
+      at: string;
+      issue?: undefined;
+    }
+  | { issue: A2uiValidationIssue };
+
+/**
+ * The list a template's `path` addresses in `scopePrefix`, read through
+ * {@link parseScopedPath}, or the issue the path is refused with there. `at`
+ * is spelled from the parsed segments, escaped again: `//l` is `/l`. An item's
+ * scope is tokenized for every binding the item renders, so it holds at most
+ * the segments a pointer may, not the path as it was written.
+ */
+export function templateList(
+  model: unknown,
+  template: object,
+  path: string,
+  scopePrefix: string | undefined
+): A2uiTemplateList {
+  const { segments, issue } = parseScopedPath(template, path, scopePrefix);
+  if (issue) return { issue };
+  const at = segments.length === 0 ? '' : `/${segments.map(escapeToken).join('/')}`;
+  return { list: readSegments(model, segments), at };
 }
 
 /**
@@ -302,6 +337,8 @@ export type A2uiDataWrite =
 interface PointerFault {
   code: string;
   reason: string;
+  /** Refused whatever the data model holds. */
+  anyModel?: true;
 }
 
 /**
@@ -324,20 +361,28 @@ function parseWritePointer(pointer: string): ParsedPointer {
 }
 
 /**
+ * Who writes into a surface's data model: a `'message'` — `updateDataModel`,
+ * an inline `createSurface.dataModel` — or a `'user'`'s edit through a two-way
+ * binding. Only a message replaces the whole model.
+ */
+export type A2uiWriter = 'message' | 'user';
+
+/**
  * Write `value` into a surface's data model at `pointer` — the one path every
- * write takes: a message's (`updateDataModel`, an inline `createSurface.
- * dataModel`) and a user's edit through a two-way binding. `undefined` deletes:
- * an object key is removed, an array item leaves a hole, and at the root the
- * model is emptied to `{}`. A pointer of no segments (`''`, `'/'`) replaces the
- * whole model, with any value. Containers the pointer passes through are created
- * where they are missing or `null` — an array where the next segment is an index
- * or `-`. An index past the end of an array leaves the gap as holes, which read
- * as missing, as a deleted item does; `-` appends.
+ * write takes, a message's and a user's edit alike (`writer`). `undefined`
+ * deletes: an object key is removed, an array item leaves a hole, and at the
+ * root the model is emptied to `{}`. A message's pointer of no segments (`''`,
+ * `'/'`) replaces the whole model, with any value, as upstream's `set("/")`
+ * does. Containers the pointer passes through are created where they are
+ * missing or `null` — an array where the next segment is an index or `-`. An
+ * index past the end of an array leaves the gap as holes, which read as
+ * missing, as a deleted item does; `-` appends.
  *
  * Nothing is written, and the outcome says why, for: a pointer that is neither
  * `''` nor starts with `/`, or that {@link pointerIssue} refuses; one the data
- * model refuses ({@link writeTarget}); a value that would nest the model deeper
- * than {@link A2UI_MAX_DATA_DEPTH}, counting a level per segment.
+ * model refuses ({@link writeTarget}), a user's pointer of no segments among
+ * them; a value that would nest the model deeper than
+ * {@link A2UI_MAX_DATA_DEPTH}, counting a level per segment.
  *
  * `paddedSlots` is how many list slots the surface's writes have padded so far,
  * and a written outcome carries the new count, which the caller keeps with the
@@ -352,23 +397,24 @@ export function writeDataModel(
   model: unknown,
   pointer: string,
   value: unknown,
-  paddedSlots: number
+  paddedSlots: number,
+  writer: A2uiWriter
 ): A2uiDataWrite {
   const { segments, issue } = parseWritePointer(pointer);
   if (issue) return { ok: false, refused: 'pointer', code: issue.code, message: issue.message };
-  if (segments.length === 0) {
+  if (segments.length === 0 && writer === 'message') {
     if (value === undefined) return { ok: true, model: {}, paddedSlots };
     const copy = copyWithin(value, A2UI_MAX_DATA_DEPTH);
     return copy === TOO_DEEP
       ? tooDeep('The value would nest the data model')
       : { ok: true, model: copy, paddedSlots };
   }
-  if (value === undefined) {
+  // A user's delete of the root goes on to `writeTarget`, which refuses it.
+  if (value === undefined && segments.length > 0) {
     deleteAt(model, segments);
     return { ok: true, model, paddedSlots };
   }
-  // The value lands one level below each segment of its pointer.
-  const copy = copyWithin(value, A2UI_MAX_DATA_DEPTH - segments.length);
+  const copy = copyWithin(value, levelsBelow(segments.length));
   if (copy === TOO_DEEP)
     return tooDeep(`The value written at ${quoted(pointer)} would nest the data model`);
   const target = writeTarget(model, segments, paddedSlots);
@@ -388,37 +434,53 @@ export function writeDataModel(
 export interface A2uiBindingRefusal {
   /**
    * `'pointer'`: the pointer itself is refused, which validation reports where
-   * the binding is. `'model'`: the data model as it is refuses the write.
+   * the binding is. `'edit'`: no data model takes the edit there — the pointer
+   * is the whole model, or what the field writes would nest it too deep — so
+   * only another binding unlocks the field. `'model'`: the data model as it is
+   * refuses the write.
    */
-  cause: 'pointer' | 'model';
+  cause: 'pointer' | 'edit' | 'model';
   code: string;
-  /** For `'model'`, the rest of a sentence about the pointer, as in {@link writeDataModel}'s messages. */
+  /** For `'edit'` and `'model'`, the rest of a sentence about the pointer, as in {@link writeDataModel}'s messages. */
   reason: string;
 }
 
 /**
- * Why `model` refuses a write through `binding` in `scopePrefix` — to the
- * pointer a dispatcher writes a two-way field's input to ({@link scopedPointer}) —
- * for the pointer alone, or `undefined` when the pointer takes one. The rule is
- * {@link writeDataModel}'s, through the same {@link writeTarget}; the value-side
- * refusal is not read, since what a user enters is a scalar or a flat list. A
- * literal or a function call is no binding and refuses nothing; neither does a
- * pointer of no segments, which replaces the whole model.
+ * Why `model` refuses a user's edit through `binding` in `scopePrefix` — to the
+ * pointer a dispatcher writes a two-way field's input to ({@link scopedPointer})
+ * — or `undefined` when it takes one. The rule is {@link writeDataModel}'s for a
+ * user: the same {@link writeTarget}, and the same {@link levelsBelow} the value
+ * is copied within, with `levels` for how deep what the field writes nests (a
+ * scalar none, a list one). A literal or a function call is no binding and
+ * refuses nothing.
  */
 export function bindingWriteRefusal(
   model: unknown,
   binding: unknown,
   scopePrefix: string | undefined,
-  paddedSlots: number
+  paddedSlots: number,
+  levels: number
 ): A2uiBindingRefusal | undefined {
   if (callName(binding) !== undefined) return undefined;
   const path = bindingPath(binding);
   if (path === undefined) return undefined;
   const { segments, issue } = parseScopedPath(binding as object, path, scopePrefix);
   if (issue) return { cause: 'pointer', code: issue.code, reason: issue.message };
-  if (segments.length === 0) return undefined;
+  if (levels > levelsBelow(segments.length)) {
+    return {
+      cause: 'edit',
+      code: A2UI_ISSUE_CODES.MAX_DEPTH,
+      reason: `has ${segments.length} segments, and what the field writes nests ${levels} more below it: ${segments.length + levels} levels, deeper than the ${A2UI_MAX_DATA_DEPTH} a data model nests`
+    };
+  }
   const target = writeTarget(model, segments, paddedSlots);
-  return 'reason' in target ? { cause: 'model', ...target } : undefined;
+  if (!('reason' in target)) return undefined;
+  return { cause: target.anyModel ? 'edit' : 'model', code: target.code, reason: target.reason };
+}
+
+/** The levels a value written at a pointer of `count` segments may nest: the model's, less one per segment. */
+function levelsBelow(count: number): number {
+  return A2UI_MAX_DATA_DEPTH - count;
 }
 
 function tooDeep(subject: string): A2uiDataWrite {
@@ -484,8 +546,11 @@ interface WriteTarget {
  * Where a write at `segments` lands in `model`, or why the model refuses it for
  * the pointer: it runs through a string, number or boolean — at any level, the
  * root included; a segment into a list is no index (`01`, `x`); it adds a list
- * item above {@link A2UI_MAX_NEW_ITEM_INDEX}; or the slots it pads would take
- * the surface past that many, `paddedSlots` being what its writes padded so far.
+ * item above {@link A2UI_MAX_NEW_ITEM_INDEX}; the slots it pads would take the
+ * surface past that many, `paddedSlots` being what its writes padded so far; or
+ * it has no segments. That last is refused whatever the model holds: only a
+ * message replaces the whole model, which {@link writeDataModel} does without
+ * this walk, so a pointer of no segments reaches it only as a user's edit.
  * Every key is checked and nothing is changed: the walk descends through the
  * containers that exist and plans the missing rest. A key the node does not own
  * counts as missing, so `/toString/x` creates an own `toString`.
@@ -495,6 +560,13 @@ function writeTarget(
   segments: readonly string[],
   paddedSlots: number
 ): WriteTarget | PointerFault {
+  if (segments.length === 0) {
+    return {
+      code: A2UI_ISSUE_CODES.POINTER_ERROR,
+      reason: 'addresses the whole data model, which only a message replaces',
+      anyModel: true
+    };
+  }
   if (model != null && !isContainer(model)) return throughValue('the root', model);
   const root: Container = isContainer(model) ? model : isListSegment(segments[0]) ? [] : {};
   const last = segments.length - 1;

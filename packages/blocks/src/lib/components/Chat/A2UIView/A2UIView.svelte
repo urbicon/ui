@@ -6,16 +6,22 @@
   import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
-  import { bindingWriteRefusal, copyData, resolveDynamic, writeDataModel } from './a2ui-data';
+  import { copyData, resolveDynamic, writeDataModel } from './a2ui-data';
   import { readHidden } from './a2ui-node-common';
   import { A2UI_ACCESSIBILITY_PROP } from './a2ui-registry';
-  import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
+  import {
+    type A2uiRenderContext,
+    type A2uiRenderNode,
+    buildRenderTree,
+    fieldWriteRefusal
+  } from './a2ui-render';
   import {
     type A2uiProcessor,
     applyA2uiEnvelope,
     collectA2uiIssues,
     createA2uiProcessor,
-    normalizeA2uiPayload
+    normalizeA2uiPayload,
+    sameA2uiIssues
   } from './a2ui-validate';
   import { a2uiViewVariants } from './a2ui-view.variants';
   import type { A2UIViewProps } from './index';
@@ -140,14 +146,13 @@
 
   // Two-way write-back through the processor's own write path, then bump so the
   // render tree re-derives with the new value (bound labels update live). A
-  // field is disabled while `refusesWrite` — this write's pointer rule — refuses
-  // its binding, and `collectGraphIssues` reports it. A write refused here for
-  // its value — a list at a pointer of `A2UI_MAX_DATA_DEPTH` segments — is
-  // neither locked nor reported. `undefined` removes the key.
+  // field is disabled while `refusesWrite` — this write's rule for a user —
+  // refuses its binding, and `collectGraphIssues` reports it. `undefined`
+  // removes the key.
   function writeBinding(surfaceId: string, pointer: string, value: unknown): void {
     const surface = processor.surfaces.get(surfaceId);
     if (!surface) return;
-    const write = writeDataModel(surface.dataModel, pointer, value, surface.paddedSlots);
+    const write = writeDataModel(surface.dataModel, pointer, value, surface.paddedSlots, 'user');
     if (!write.ok) return;
     surface.dataModel = write.model;
     surface.paddedSlots = write.paddedSlots;
@@ -235,8 +240,13 @@
         actionDataModel: surface.sendDataModel ? () => surface.dataModel : undefined,
         resolve: (value, scope) =>
           resolveDynamic(value, surface.dataModel, scope, surface.callCatalogs),
-        refusesWrite: (value, scope) =>
-          bindingWriteRefusal(surface.dataModel, value, scope, surface.paddedSlots) !== undefined,
+        refusesWrite: (node) =>
+          fieldWriteRefusal(
+            surface.dataModel,
+            node.instance,
+            node.scopePrefix,
+            surface.paddedSlots
+          ) !== undefined,
         write: (pointer, value) => writeBinding(surface.surfaceId, pointer, value),
         remove: (pointer) => writeBinding(surface.surfaceId, pointer, undefined),
         labels: {
@@ -251,22 +261,12 @@
   });
 
   // Fire onValidationError only when the issue list actually changes. Seeded
-  // with the empty signature so an issue-free first render stays silent.
-  let lastIssueSig = '[]';
+  // with the empty list so an issue-free first render stays silent.
+  let lastIssues: readonly A2uiValidationIssue[] = [];
   $effect(() => {
     const issues = view.allIssues;
-    const signature = JSON.stringify(
-      issues.map((issue) => [
-        issue.severity,
-        issue.code,
-        issue.surfaceId ?? '',
-        issue.path ?? '',
-        issue.message,
-        issue.functionCallId ?? ''
-      ])
-    );
-    if (signature !== lastIssueSig) {
-      lastIssueSig = signature;
+    if (!sameA2uiIssues(issues, lastIssues)) {
+      lastIssues = issues;
       onValidationError?.(issues);
     }
   });

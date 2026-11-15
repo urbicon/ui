@@ -791,4 +791,87 @@ describe('a field the data model cannot take', () => {
     expect(locked(screen.getByRole('textbox'))).toBe(false);
     expect(issues).toEqual([]);
   });
+
+  it.each([[''], ['/'], ['//']])('locks an Input bound to "%s", the whole data model', (path) => {
+    const payload = form(
+      { component: 'Input', label: 'Name', value: { '@path': path } },
+      { name: 'A' }
+    );
+    const { issues } = render({ payload });
+    expect(locked(screen.getByRole('textbox'))).toBe(true);
+    expect(pointerErrors(issues).map((issue) => issue.message.split(':')[0])).toEqual([
+      `"field" is bound to "${path}", which takes no user's edit`
+    ]);
+    expect(issues).toEqual(validateA2uiPayload(payload, { catalogs: [urbiconA2uiCatalogSpec] }));
+  });
+
+  it('locks a template item’s Input bound to "/", while one bound to "" writes its item', async () => {
+    const user = userEvent.setup();
+    const actions: A2uiActionEvent[] = [];
+    const dataModel = { name: 'A', notes: ['a', 'b'] };
+    const payload = [
+      {
+        version: V,
+        createSurface: { surfaceId: 's', catalogId: CID, sendDataModel: true, dataModel }
+      },
+      comps([
+        { id: 'root', component: 'Column', children: ['notes', 'go'] },
+        { id: 'notes', component: 'List', children: { componentId: 'row', path: '/notes' } },
+        { id: 'row', component: 'Column', children: ['item', 'whole'] },
+        { id: 'item', component: 'Input', label: 'Item', value: { '@path': '' } },
+        { id: 'whole', component: 'Input', label: 'Whole', value: { '@path': '/' } },
+        { id: 'go', component: 'Button', child: 'go_label', action: { event: { name: 'go' } } },
+        { id: 'go_label', component: 'Text', text: 'Go' }
+      ])
+    ];
+    const { issues } = render({ payload, onAction: (event) => actions.push(event) });
+    const whole = screen.getAllByLabelText('Whole') as HTMLInputElement[];
+    expect(whole.map(locked)).toEqual([true, true]);
+    expect(screen.getAllByLabelText('Item').map(locked)).toEqual([false, false]);
+    expect(pointerErrors(issues)).toHaveLength(1);
+
+    // An input event the lock cannot stop still writes nothing.
+    whole[1].value = 'q';
+    whole[1].dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+    await user.click(screen.getByRole('button', { name: /Go/ }));
+    expect(actions.at(-1)?.dataModel).toEqual(dataModel);
+
+    await user.type(screen.getAllByLabelText('Item')[1], 'x');
+    await user.click(screen.getByRole('button', { name: /Go/ }));
+    expect(actions.at(-1)?.dataModel).toEqual({ name: 'A', notes: ['a', 'bx'] });
+  });
+
+  it.each([
+    ['a 65-segment pointer', `/${Array.from({ length: 65 }, () => 'a').join('/')}`],
+    ['an invalid escape', '/a~2'],
+    ['a prototype segment', '/__proto__/x']
+  ])('locks an Input whose binding is %s, reported once where it was validated', (_label, path) => {
+    const { issues } = render({
+      payload: form({ component: 'Input', label: 'Name', value: { '@path': path } }, {})
+    });
+    expect(locked(screen.getByRole('textbox'))).toBe(true);
+    expect(issues.map((issue) => [issue.severity, issue.path])).toEqual([
+      ['error', '/messages/1/updateComponents/components/1/value']
+    ]);
+  });
+
+  it('locks a multiple Select whose list a 64-segment pointer cannot take, and not an Input', () => {
+    const deep = { '@path': `/${Array.from({ length: 64 }, () => 'a').join('/')}` };
+    const payload = [
+      { version: V, createSurface: { surfaceId: 's', catalogId: CID } },
+      comps([
+        { id: 'root', component: 'Column', children: ['picks', 'text'] },
+        { id: 'picks', component: 'Select', multiple: true, options, value: deep },
+        { id: 'text', component: 'Input', label: 'Text', value: deep }
+      ])
+    ];
+    const { issues } = render({ payload });
+    expect(screen.getAllByRole('combobox').every(locked)).toBe(true);
+    expect(locked(screen.getByRole('textbox'))).toBe(false);
+    expect(issues.map((issue) => [issue.code, issue.message.slice(0, 22)])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, '"picks" is bound to "/']
+    ]);
+    expect(issues).toEqual(validateA2uiPayload(payload, { catalogs: [urbiconA2uiCatalogSpec] }));
+  });
 });

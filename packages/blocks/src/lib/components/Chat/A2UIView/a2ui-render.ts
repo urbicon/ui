@@ -19,7 +19,14 @@ import type { Component, Snippet } from 'svelte';
 import type { IconComponent } from '#lib/icons/index.js';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
-import { bindingPath, callName, getAtScopedPath, scopedPointer } from './a2ui-data';
+import {
+  type A2uiBindingRefusal,
+  bindingPath,
+  bindingWriteRefusal,
+  callName,
+  scopedPointer,
+  templateList
+} from './a2ui-data';
 import { A2UI_VALUE_PROP, ownEntry, writesValue } from './a2ui-registry';
 import type { A2uiComponentInstance, A2uiSurfaceState } from './a2ui-validate';
 
@@ -93,12 +100,12 @@ export interface A2uiRenderContext {
     scopePrefix: string | undefined
   ) => { value: unknown; issue?: A2uiValidationIssue };
   /**
-   * Whether the data model refuses a write through `value`, a two-way field's
-   * binding, in `scopePrefix`: its pointer is refused, or the model as it is
-   * cannot take a write there. The field renders disabled while it does, and
-   * `collectGraphIssues` reports the second case.
+   * Whether the data model refuses a user's edit of `node`'s two-way field
+   * ({@link fieldWriteRefusal}); `false` for a component that writes nothing.
+   * The field renders disabled while it does, and `collectGraphIssues`
+   * reports why.
    */
-  refusesWrite: (value: unknown, scopePrefix: string | undefined) => boolean;
+  refusesWrite: (node: A2uiRenderNode) => boolean;
   /** Write a value at an absolute JSON Pointer into the surface model, then bump. */
   write: (pointer: string, value: unknown) => void;
   /** Delete the key at an absolute JSON Pointer from the surface model, then bump. */
@@ -173,6 +180,26 @@ export function writePointer(
   return bindingPointer(instance.props.get(A2UI_VALUE_PROP), scopePrefix);
 }
 
+/**
+ * Why the data model refuses a user's edit of a two-way field — what
+ * {@link writePointer} writes to, read by `writeDataModel`'s rule for a user
+ * (`bindingWriteRefusal`) — or `undefined` when it takes one, and for a
+ * component that writes nothing. What the field writes nests as its `value`
+ * is declared: a `stringList` one level below the pointer, any other kind none.
+ */
+export function fieldWriteRefusal(
+  model: unknown,
+  instance: A2uiComponentInstance | null,
+  scopePrefix: string | undefined,
+  paddedSlots: number
+): A2uiBindingRefusal | undefined {
+  const spec = instance ? ownEntry(instance.catalog?.registry, instance.component) : undefined;
+  if (!instance || !writesValue(spec)) return undefined;
+  const levels = ownEntry(spec?.props, A2UI_VALUE_PROP)?.kind === 'stringList' ? 1 : 0;
+  const binding = instance.props.get(A2UI_VALUE_PROP);
+  return bindingWriteRefusal(model, binding, scopePrefix, paddedSlots, levels);
+}
+
 /** Coerce an unknown model value to a string array of stable option values (for ChoicePicker). */
 export function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -242,11 +269,10 @@ function childRefs(
       } else if (children !== null && typeof children === 'object') {
         const template = children as { componentId?: unknown; path?: unknown };
         if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-          const list = getAtScopedPath(state.dataModel, template, template.path, scopePrefix);
-          if (Array.isArray(list)) {
-            const absPath = scopedPointer(template.path, scopePrefix);
-            for (let i = 0; i < list.length; i++) {
-              out.push({ id: template.componentId, scope: `${absPath}/${i}`, slot: key });
+          const items = templateList(state.dataModel, template, template.path, scopePrefix);
+          if (!items.issue && Array.isArray(items.list)) {
+            for (let i = 0; i < items.list.length; i++) {
+              out.push({ id: template.componentId, scope: `${items.at}/${i}`, slot: key });
               if (out.length > state.maxNodes) break; // bound the expansion itself
             }
           }

@@ -118,16 +118,34 @@ before and is now refused:
 - **A user's edit is held to the 64 levels a message is.** A bound field whose pointer would nest
   the model deeper writes nothing; before, one keystroke could nest it as deep as the pointer was
   long.
-- **An input is disabled while the data model cannot take a write through its binding**: while its
-  pointer is refused, or while the model as it is refuses the write — through a string, number or
-  boolean, or past the padding total. The second case is a `POINTER_ERROR` on the component, from
-  `onValidationError` and `validateA2uiPayload` alike, until the `updateDataModel` that makes room.
-  Before, a field bound to `/user/name/first` over `"Alice"` showed the user's typing, stored none of
-  it and reported nothing. The dispatchers write through a `value` whose spec declares the new
-  `A2uiPropSpec.twoWay`, and read the lock from the new `A2uiRenderContext.refusesWrite`.
+- **An input is disabled for any reason a user's edit at the pointer of its binding would be
+  refused**: the pointer is refused on its own; it runs through a string, number or boolean, the
+  root included; it has a segment into a list that is no index; it adds a list item above index
+  10000; it would pass the padding total; it has no segments; or what the input writes would nest
+  the model past 64 levels, as the list a `ChoicePicker` or `Select` writes does at a pointer of 64
+  segments. Every reason but the first is an issue on the component — `MAX_DEPTH` for the depth,
+  `POINTER_ERROR` for the rest — from `onValidationError` and `validateA2uiPayload` alike,
+  recomputed from the data model, so the `updateDataModel` that makes room clears it. Before, a
+  field bound to `/user/name/first` over `"Alice"` showed the user's typing, stored none of it and
+  reported nothing. The dispatchers write through a `value` whose spec declares the new
+  `A2uiPropSpec.twoWay`, and read the lock from the new `A2uiRenderContext.refusesWrite(node)`. A
+  custom catalog's input is checked and reported only where its `value` declares `twoWay`; its
+  dispatcher locks it by reading `context.refusesWrite(node)`, and writes through `context.write`
+  whatever it declares.
+- **A user's edit never replaces the whole data model.** A field bound to a pointer of no segments —
+  `""` or `"/"` outside a list template, `"//"`, an absolute `"/"` inside one — is disabled and a
+  `POINTER_ERROR` until the agent binds it to another. A field bound to `""` was unbound before: it
+  kept the user's typing as text of its own, which no action sent. Inside a template `""` is still
+  the item and takes the edit, and a message's `updateDataModel` or inline `createSurface.dataModel`
+  still replaces the root.
+- **A template item's scope is spelled from the pointer the template's `path` addresses**, its empty
+  segments collapsed: `//l` scopes its items `/l/0`, `/l/1`, where they were `//l/0`, `//l/1`. It
+  shows in `A2uiRenderNode.scopePrefix`, which a custom dispatcher reads, and in the issue messages
+  that name a scope.
 - **A binding of more than 64 segments is a `MAX_DEPTH` error** and resolves to nothing; on a gate it
   holds the failsafe. In a list template the item's scope counts: `collectGraphIssues` reports a
-  relative binding the scope takes past the limit.
+  relative binding the scope takes past the limit, and a nested template's relative `path`, which
+  lists no items.
 - **An action context literal nested deeper than 64 levels is a `MAX_DEPTH` error** and drops the
   action, so a Basic `Button` renders a fault chip.
 - **`CYCLE` is reported once per edge**, and a cycle's back-reference spends the node budget as a
@@ -139,7 +157,9 @@ before and is now refused:
   a `__proto__` segment — carried the pointer itself as its `path` (`"/items/01"`).
 - **An issue message quotes at most the first 64 characters of a string from the payload**, cut
   with `…`: an id, a key, a pointer, a template item's scope. Before, a message repeated it whole,
-  once per issue.
+  once per issue. The view compares the issue list field by field before it calls
+  `onValidationError`; it serialised the list, which repeats a long `surfaceId` once per issue, and
+  threw once that string passed the engine's length limit.
 - **`onAction` receives a copy** of the event's `context` and `dataModel`, taken at the click: typing
   afterwards changed an event already dispatched, and editing the event changed the surface.
 

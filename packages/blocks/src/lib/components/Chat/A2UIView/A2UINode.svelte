@@ -292,9 +292,7 @@
   }
   // A field the data model cannot take a write from is locked: an edit it
   // showed would be neither stored nor sent.
-  const writeLocked = $derived(
-    valuePointer() !== undefined && context.refusesWrite(raw(A2UI_VALUE_PROP), node.scopePrefix)
-  );
+  const writeLocked = $derived(context.refusesWrite(node));
 
   const textValue = $derived.by(() => {
     const pointer = valuePointer();

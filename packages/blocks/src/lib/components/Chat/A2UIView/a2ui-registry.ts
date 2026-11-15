@@ -75,7 +75,10 @@ export interface A2uiPropSpec {
    * {@link A2UI_VALUE_PROP} only: the component is an input, and what the user
    * enters is written back through this prop's `{ "@path" }` binding — A2UI's
    * two-way binding. A `value` without it is shown and never written, as a
-   * `Progress` bar's is (see {@link writesValue}).
+   * `Progress` bar's is (see {@link writesValue}). In a custom catalog, an
+   * input is checked and reported only where its `value` declares this; its
+   * dispatcher locks it by reading `context.refusesWrite(node)`, and writes
+   * through `context.write` whatever it declares.
    */
   twoWay?: boolean;
 }
