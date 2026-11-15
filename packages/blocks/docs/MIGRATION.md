@@ -92,10 +92,18 @@ before and is now refused:
 - **A write path RFC 6901 does not define is a `POINTER_ERROR`**, and nothing is written: one that
   is neither `""` nor starts with `/` (it was read as relative to the root), and one with a `~` not
   followed by `0` or `1` (it was kept as written).
-- **So is an index past the end of a list.** `/items/5` onto three items left holes, and
-  `/items/50000000` a list of fifty million. A list the write creates has no items yet, so
-  `/guests/1/name` without a `guests` list is refused too; `/guests/0/name` and `/guests/-` are not.
-  A field bound to `/guests/1/name` takes the user's typing only once item 0 exists.
+- **So is a list item added above index 10000**, by index or by `-`: `/items/50000000` made a list
+  of fifty million, from a message or a bound field alike. Up to index 10000 an index past the end
+  is written as before, the gap left as holes, so a field bound to `/guests/1/name` takes the user's
+  typing before any guest exists; an item a longer list already holds is written at any index.
+- **So is a write through a string, number or boolean**, at any level, the root included:
+  `/user/name/first` onto `{ "user": { "name": "Alice" } }` replaced `"Alice"` with an object, from a
+  message or one keystroke in a bound field, and `/a` onto a model replaced with `1` made it
+  `{ "a": … }`. A `null` or missing value is still replaced by the container the path needs.
+- **Empty pointer segments collapse**, in every path and binding, as upstream's conformance suite
+  defines: `/foo/` addresses `/foo` and `//a///b//` addresses `/a/b`, where RFC 6901 reads an empty
+  segment as the key `""`, which no pointer addresses any more. A surface schema and
+  `surfaceRequirements` compare pointers the same way.
 - **A user's edit is held to the 64 levels a message is.** A bound field whose pointer would nest
   the model deeper writes nothing; before, one keystroke could nest it as deep as the pointer was
   long. And it writes the root as a message does: a field bound to `""` outside a list template

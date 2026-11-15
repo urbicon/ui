@@ -19,6 +19,16 @@ describe('validateSchemaWrite', () => {
     expect(validateSchemaWrite(SCHEMA, '/guests', ['a', 'b'])).toEqual([]);
   });
 
+  it('matches a write on its pointer with empty segments collapsed, as the write reads it', () => {
+    expect(validateSchemaWrite(SCHEMA, '/party/', 'three').map((i) => i.code)).toEqual([
+      'SCHEMA_TYPE_MISMATCH'
+    ]);
+    expect(validateSchemaWrite(SCHEMA, '//guests', ['a'])).toEqual([]);
+    expect(validateSchemaWrite(SCHEMA, '//', { party: 'three' }).map((i) => i.code)).toEqual([
+      'SCHEMA_TYPE_MISMATCH'
+    ]);
+  });
+
   it('flags a type mismatch on a declared pointer as an error', () => {
     const issues = validateSchemaWrite(SCHEMA, '/party', 'three', 's');
     expect(issues).toHaveLength(1);

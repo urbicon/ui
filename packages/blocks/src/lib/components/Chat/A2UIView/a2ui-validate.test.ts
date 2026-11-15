@@ -1297,6 +1297,10 @@ describe('surface requirements', () => {
     expect(allIssues(booking(form(['agree'], consentBox())))).toEqual([]);
   });
 
+  it('matches the pointer with empty segments collapsed, as the binding reads it', () => {
+    expect(allIssues(booking(form(['agree'], consentBox({ '@path': '//agreed/' }))))).toEqual([]);
+  });
+
   // The view renders a hidden component inert, so the user cannot tick it.
   it.each([
     ['literally', true],
@@ -1742,9 +1746,10 @@ describe('createSurface with inline content', () => {
   });
 
   it.each([
-    ['an index past the end of a list', '/items/4'],
-    ['an index far past the end of a list', '/items/50000000'],
-    ['an index past the end of a list it would create', '/fresh/1'],
+    ['a new item far past the end of a list', '/items/50000000'],
+    ['a new item above index 10000 of a list it would create', '/fresh/10001'],
+    ['an index with a leading zero', '/items/01'],
+    ['a path through a string', '/items/0/foo'],
     ['no leading "/"', 'invalid path [0]'],
     ['an escape RFC 6901 does not define', '/items~2']
   ])('refuses an updateDataModel to %s and writes nothing', (_label, path) => {
@@ -1767,6 +1772,49 @@ describe('createSurface with inline content', () => {
     ]);
     expect(surfaceIssues(proc)).toEqual([]);
     expect(proc.surfaces.get('s')?.dataModel).toEqual({ items: ['a', 'b', 'c'] });
+  });
+
+  it('writes an index past the end of a list, the gap left as holes, also in a list it creates', () => {
+    const proc = applyBoth([
+      create({ dataModel: { items: ['a', 'b', 'c'] } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/5', value: 'f' } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/guests/1/name', value: 'Bo' } }
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    const model = proc.surfaces.get('s')?.dataModel as { items: unknown[]; guests: unknown[] };
+    expect([model.items.length, 3 in model.items, 4 in model.items, model.items[5]]).toEqual([
+      6,
+      false,
+      false,
+      'f'
+    ]);
+    expect([model.guests.length, 0 in model.guests, model.guests[1]]).toEqual([
+      2,
+      false,
+      { name: 'Bo' }
+    ]);
+  });
+
+  it('replaces the whole model with a primitive, and refuses to write through it', () => {
+    const proc = applyBoth([
+      create({ dataModel: { kept: true } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/', value: 1 } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/a', value: 2 } }
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.POINTER_ERROR, '/messages/2/updateDataModel/path']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toBe(1);
+  });
+
+  it('collapses the empty segments of a path', () => {
+    const proc = applyBoth([
+      create({ dataModel: { items: ['a'] } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/', value: ['b'] } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '//note///text//', value: 'n' } }
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual({ items: ['b'], note: { text: 'n' } });
   });
 
   it('copies the data model, so a later edit never reaches the payload', () => {
@@ -2542,6 +2590,20 @@ describe('hostile depth and fan-out', () => {
     expect(graphIssues(over).map((i) => [i.code, i.message.slice(0, 13)])).toEqual([
       [A2UI_ISSUE_CODES.MAX_DEPTH, '"row" binds a']
     ]);
+  });
+
+  it('counts only the segments a relative binding addresses, its empty ones collapsed', () => {
+    const value = { '@path': `${segments(A2UI_MAX_DATA_DEPTH - 2)}//` };
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'List', children: { componentId: 'row', path: '/items' } },
+          { id: 'row', component: 'TextField', label: 'N', value }
+        ],
+        dataModel: { items: [{}] }
+      })
+    ]);
+    expect(allIssues(proc)).toEqual([]);
   });
 
   it.each([

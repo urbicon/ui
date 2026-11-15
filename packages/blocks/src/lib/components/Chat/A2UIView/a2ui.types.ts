@@ -141,8 +141,10 @@ export const A2UI_ISSUE_CODES = {
   ENGINE_ERROR: 'ENGINE_ERROR',
   /**
    * A JSON Pointer is malformed — a `~` not followed by `0` or `1`, a write path
-   * that is neither `""` nor starts with `/` — or a write addresses an array
-   * index past the array's length (`-` appends). The write is not applied.
+   * that is neither `""` nor starts with `/` — or a write's path runs through a
+   * string, number or boolean (the root included), addresses an array with a
+   * segment that is no index (`01`), or would add an array item above index
+   * 10000. The write is not applied.
    */
   POINTER_ERROR: 'POINTER_ERROR',
   /** The component graph contains a cycle; reported once per referencing edge. */

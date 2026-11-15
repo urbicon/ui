@@ -2272,25 +2272,49 @@ describe('A2UIView — writes and gates at the data-model depth limit', () => {
     }
   );
 
-  it('writes an item at most at the length of its list', async () => {
+  it('takes typing into any item of a list the model does not hold yet, in any order', async () => {
     const actions: A2uiActionEvent[] = [];
+    const guest = (index: number) => ({
+      id: `guest_${index}`,
+      component: 'TextField',
+      label: `Guest ${index + 1}`,
+      value: { '@path': `/guests/${index}/name` }
+    });
+    render({
+      payload: [
+        ...sendingForm(guest(0), {}),
+        comps([guest(1), { id: 'fields', component: 'Column', children: ['guest_0', 'guest_1'] }])
+      ],
+      onAction: (actionEvent) => actions.push(actionEvent)
+    });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Guest 2'), 'Bo');
+    await user.type(screen.getByLabelText('Guest 1'), 'Al');
+    await user.click(screen.getByRole('button', { name: /Go/ }));
+    flushSync();
+    expect(actions[0].dataModel).toEqual({ guests: [{ name: 'Al' }, { name: 'Bo' }] });
+  });
+
+  it('keeps what the agent wrote when a binding runs through it', async () => {
+    const actions: A2uiActionEvent[] = [];
+    const dataModel = { user: { name: 'Alice' } };
     render({
       payload: [
         ...sendingForm(
           {
             id: 'field',
             component: 'TextField',
-            label: 'Second guest',
-            value: { '@path': '/guests/1/name' }
+            label: 'First',
+            value: { '@path': '/user/name/first' }
           },
-          {}
+          dataModel
         ),
         comps([{ id: 'fields', component: 'Column', children: ['field'] }])
       ],
       onAction: (actionEvent) => actions.push(actionEvent)
     });
-    await typeAndSend('Second guest');
-    expect(actions[0].dataModel).toEqual({});
+    await typeAndSend('First');
+    expect(actions[0].dataModel).toEqual(dataModel);
   });
 
   it.each([

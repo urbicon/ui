@@ -72,14 +72,23 @@ function calls. What an envelope may carry, and what becomes of it:
 | `callRendererFunction`, `agentFunctionResponse`        | Recognised and refused: no function here may be called by the agent, and the engine calls none on the agent. Each is an `INVALID_FUNCTION_CALL` error that carries the `functionCallId` — what a transport needs to answer the call with a `rendererFunctionResponse` error.                                                                                                                                                                                                                                                                           |
 | `allowedParents` / `allowedChildren`, capabilities     | Not read. No shipped catalog declares composition constraints, and capabilities are exchanged by the transport.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
+A pointer — a `path`, a `{ "@path" }` binding — follows RFC 6901, except that empty segments
+collapse, as upstream's A2UI conformance suite defines: `/foo/` is `/foo`, `//a///b//` is `/a/b`,
+and `/`, like `""`, is the whole model. So no pointer addresses a key `""`.
+
 The data model nests at most 64 levels, and every write into it takes one path —
 `updateDataModel`, an inline `createSurface.dataModel`, and what the user types into a bound field.
-A `path` that is neither `""` nor starts with `/`, holds a `~` not followed by `0` or `1`, or names
-an index past the end of a list (`-` appends) is a `POINTER_ERROR`, and nothing is written; a user's
-edit the path refuses changes nothing. A binding with more segments than the model has levels, a
-template item's scope included, is a `MAX_DEPTH` error and resolves to nothing — on a gate such as
-`disabled`, to its failsafe. So is an action's context literal nested deeper than 64 levels, and the
-action is dropped.
+A write creates what its path passes through where that is missing or `null`, so a field bound to
+`/guests/1/name` takes the user's typing before the agent has sent any guests: an index past the end
+of a list leaves the gap as holes, which read as missing and serialise as `null`, and `-` appends.
+It never replaces a string, number or boolean with a container: a path that runs through one —
+`/user/name/first` onto `"Alice"`, or `/a` onto a model the agent replaced with `1` — is refused.
+So is a `path` that is neither `""` nor starts with `/`, holds a `~` not followed by `0` or `1`,
+has a segment into a list that is no index (`01`, `name`), or adds a list item above index 10000.
+Each is a `POINTER_ERROR`, and nothing is written; a user's edit the path refuses changes nothing.
+A binding with more segments than the model has levels, a template item's scope included, is a
+`MAX_DEPTH` error and resolves to nothing — on a gate such as `disabled`, to its failsafe. So is an
+action's context literal nested deeper than 64 levels, and the action is dropped.
 
 ## Surfaces outlive the reply that created them
 

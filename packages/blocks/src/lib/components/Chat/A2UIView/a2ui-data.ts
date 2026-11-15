@@ -11,11 +11,11 @@
  * - Array index deletion leaves a hole (length preserved), matching the spec's
  *   sparse-array semantics.
  *
- * A2UI convention (deviation from strict RFC 6901): the pointers `''` **and**
- * `'/'` both address the whole model. Strict RFC treats `'/'` as the key `""`;
- * A2UI's `updateDataModel` uses `'/'` to mean "the entire data model", and no
- * A2UI payload ever addresses an empty-string key, so we honor the spec's own
- * convention here for ergonomics.
+ * Pointers follow RFC 6901 except that empty segments collapse, as upstream's
+ * A2UI conformance suite defines (`test_data_model_normalizes_empty_path_segments`):
+ * `/foo/` is `/foo`, `//a///b//` is `/a/b`, and `/`, like `''`, is the whole
+ * model. RFC 6901 reads an empty segment as the key `""`, which therefore no
+ * pointer addresses here.
  */
 
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
@@ -33,6 +33,15 @@ export const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructo
  */
 export const A2UI_MAX_DATA_DEPTH = 64;
 
+/**
+ * The highest index a write adds a list item at. An index at or past the end of
+ * a list adds the item and leaves the gap as holes, up to this one; above it the
+ * write is refused. An item the list already holds is written at any index.
+ * Upstream's bound — the A2UI conformance case
+ * `test_data_model_rejects_excessive_list_index`.
+ */
+export const A2UI_MAX_NEW_ITEM_INDEX = 10_000;
+
 /** RFC 6901 token unescape: `~1`→`/` then `~0`→`~` (order is significant). */
 function unescapeToken(token: string): string {
   return token.replaceAll('~1', '/').replaceAll('~0', '~');
@@ -46,16 +55,36 @@ function toIndex(segment: string): number | null {
   return /^(?:0|[1-9]\d*)$/.test(segment) ? Number(segment) : null;
 }
 
+/** A pointer's tokens, still escaped, its empty segments collapsed; absolute or relative alike. */
+function pointerTokens(pointer: string): string[] {
+  return pointer.split('/').filter((token) => token !== '');
+}
+
+/** How many segments `pointer` addresses, its empty ones collapsed (`//a///b//` → 2). */
+export function pointerSegmentCount(pointer: string): number {
+  return pointerTokens(pointer).length;
+}
+
+/**
+ * `pointer` as an absolute pointer, its empty segments collapsed and its escapes
+ * as written (`''` for the root): one spelling per place, so two pointers that
+ * address the same place compare equal.
+ */
+export function collapsePointer(pointer: string): string {
+  const tokens = pointerTokens(pointer);
+  return tokens.length === 0 ? '' : `/${tokens.join('/')}`;
+}
+
 interface ParsedPointer {
   segments: string[];
   issue?: A2uiValidationIssue;
 }
 
 /**
- * Parse a pointer into decoded segments. Absolute pointers start with `/`;
- * anything else is treated as relative (segments split on `/`). `''` yields
- * zero segments. Refused, with the issue that says why: a `~` RFC 6901 does not
- * define, a prototype-pollution segment, and more segments than
+ * Parse a pointer into decoded segments, its empty ones collapsed. Absolute
+ * pointers start with `/`; anything else is treated as relative. `''` and `/`
+ * yield zero segments. Refused, with the issue that says why: a `~` RFC 6901
+ * does not define, a prototype-pollution segment, and more segments than
  * {@link A2UI_MAX_DATA_DEPTH}.
  */
 function parsePointer(pointer: string): ParsedPointer {
@@ -69,10 +98,7 @@ function parsePointer(pointer: string): ParsedPointer {
       }
     };
   }
-  let rawTokens: string[];
-  if (pointer === '') rawTokens = [];
-  else if (pointer.startsWith('/')) rawTokens = pointer.slice(1).split('/');
-  else rawTokens = pointer.split('/');
+  const rawTokens = pointerTokens(pointer);
 
   // Counted before any token is read, and the pointer is not echoed: a refused
   // one can be the whole payload.
@@ -120,12 +146,12 @@ function isContainer(value: unknown): value is Record<string, unknown> | unknown
 }
 
 /**
- * Read the value at `pointer`. `''` / `'/'` return the whole model. Missing
- * paths, holes and type-mismatches resolve to `undefined` (never throw) — the
+ * Read the value at `pointer`. A pointer of no segments (`''`, `'/'`) returns
+ * the whole model. Missing paths, holes, a key the object does not own
+ * (`/toString`) and type-mismatches resolve to `undefined` (never throw) — the
  * spec renders an empty string / skeleton for unresolved bindings.
  */
 export function getAtPointer(model: unknown, pointer: string): unknown {
-  if (pointer === '' || pointer === '/') return model;
   const { segments, issue } = parsePointer(pointer);
   if (issue) return undefined;
 
@@ -136,7 +162,7 @@ export function getAtPointer(model: unknown, pointer: string): unknown {
       const index = toIndex(segment);
       node = index === null ? undefined : node[index];
     } else if (typeof node === 'object') {
-      node = (node as Record<string, unknown>)[segment];
+      node = Object.hasOwn(node, segment) ? (node as Record<string, unknown>)[segment] : undefined;
     } else {
       return undefined;
     }
@@ -170,27 +196,26 @@ export type A2uiDataWrite =
  * write takes: a message's (`updateDataModel`, an inline `createSurface.
  * dataModel`) and a user's edit through a two-way binding. `undefined` deletes:
  * an object key is removed, an array item leaves a hole, and at the root the
- * model is emptied to `{}`. Containers the pointer passes through are created
- * where missing — an array where the next segment is an index or `-`.
+ * model is emptied to `{}`. A pointer of no segments (`''`, `'/'`) replaces the
+ * whole model, with any value. Containers the pointer passes through are created
+ * where they are missing or `null` — an array where the next segment is an index
+ * or `-`. An index past the end of an array leaves the gap as holes, which read
+ * as missing, as a deleted item does; `-` appends.
  *
  * Nothing is written, and the outcome says why, for: a pointer that is neither
- * `''`/`'/'` nor starts with `/`, or that {@link pointerIssue} refuses; an array
- * index past the array's length (`-` appends); a value that would nest the model
- * deeper than {@link A2UI_MAX_DATA_DEPTH}, counting a level per segment.
+ * `''` nor starts with `/`, or that {@link pointerIssue} refuses; a pointer that
+ * runs through a string, number or boolean — at any level, the root included;
+ * an array segment that is no index (`01`, `x`); a new array item above
+ * {@link A2UI_MAX_NEW_ITEM_INDEX}; a value that would nest the model deeper than
+ * {@link A2UI_MAX_DATA_DEPTH}, counting a level per segment.
  *
  * The value is copied in, so a later edit never reaches the payload, and own
  * prototype keys are dropped from the copy. `model` is mutated in place and
- * returned, unless the write replaced the root or the model was no container.
+ * returned, unless the write replaced the root or created it for a model that
+ * was `null` or `undefined`.
  */
 export function writeDataModel(model: unknown, pointer: string, value: unknown): A2uiDataWrite {
-  if (pointer === '' || pointer === '/') {
-    if (value === undefined) return { ok: true, model: {} };
-    const copy = copyWithin(value, A2UI_MAX_DATA_DEPTH);
-    return copy === TOO_DEEP
-      ? tooDeep('The value would nest the data model')
-      : { ok: true, model: copy };
-  }
-  if (typeof pointer !== 'string' || !pointer.startsWith('/')) {
+  if (typeof pointer !== 'string' || (pointer !== '' && !pointer.startsWith('/'))) {
     return {
       ok: false,
       refused: 'pointer',
@@ -200,6 +225,13 @@ export function writeDataModel(model: unknown, pointer: string, value: unknown):
   }
   const { segments, issue } = parsePointer(pointer);
   if (issue) return { ok: false, refused: 'pointer', code: issue.code, message: issue.message };
+  if (segments.length === 0) {
+    if (value === undefined) return { ok: true, model: {} };
+    const copy = copyWithin(value, A2UI_MAX_DATA_DEPTH);
+    return copy === TOO_DEEP
+      ? tooDeep('The value would nest the data model')
+      : { ok: true, model: copy };
+  }
   if (value === undefined) {
     deleteAt(model, segments);
     return { ok: true, model };
@@ -244,22 +276,33 @@ function keyIn(
       message: `Segment "${segment}" is not a valid array index in pointer "${pointer}"`
     };
   }
-  if (index > node.length) {
+  if (index >= node.length && index > A2UI_MAX_NEW_ITEM_INDEX) {
     return {
       ok: false,
       refused: 'pointer',
       code: A2UI_ISSUE_CODES.POINTER_ERROR,
-      message: `Index ${index} in pointer "${pointer}" is past the end of a list of ${node.length}; an item is written at an index up to the length, or at "-"`
+      message: `Index ${index} in pointer "${pointer}" would add an item to a list of ${node.length} above index ${A2UI_MAX_NEW_ITEM_INDEX}, the highest a write adds one at`
     };
   }
   return { key: index };
+}
+
+/** The refusal of a write whose pointer runs through `held`, which no write replaces with a container. */
+function throughValue(pointer: string, where: string, held: unknown): A2uiDataWrite {
+  return {
+    ok: false,
+    refused: 'pointer',
+    code: A2UI_ISSUE_CODES.POINTER_ERROR,
+    message: `Pointer "${pointer}" runs through ${where}, which holds a ${typeof held}, not an object or list`
+  };
 }
 
 /**
  * Place `value` at `segments`. Every key is checked before the model changes:
  * the walk descends through the containers that exist, builds the missing rest
  * detached, and attaches it with one assignment — so a refused write leaves no
- * container behind.
+ * container behind. A key the node does not own counts as missing, so
+ * `/toString/x` creates an own `toString`.
  */
 function assignAt(
   model: unknown,
@@ -267,6 +310,7 @@ function assignAt(
   value: unknown,
   pointer: string
 ): A2uiDataWrite {
+  if (model != null && !isContainer(model)) return throughValue(pointer, 'the root', model);
   const root: Container = isContainer(model) ? model : isListSegment(segments[0]) ? [] : {};
   const last = segments.length - 1;
   let node = root;
@@ -277,7 +321,12 @@ function assignAt(
     if (!('key' in found)) return found;
     key = found.key;
     if (at === last) break;
-    const child = (node as Record<string | number, unknown>)[key];
+    const child = Object.hasOwn(node, key)
+      ? (node as Record<string | number, unknown>)[key]
+      : undefined;
+    if (child != null && !isContainer(child)) {
+      return throughValue(pointer, `"${segments[at]}"`, child);
+    }
     if (!isContainer(child)) break;
     node = child;
     at++;

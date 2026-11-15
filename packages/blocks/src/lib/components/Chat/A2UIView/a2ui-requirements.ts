@@ -14,6 +14,7 @@
  */
 
 import type { A2uiCatalogSpec } from './a2ui-catalog';
+import { collapsePointer } from './a2ui-data';
 import {
   A2UI_VALUE_PROP,
   type A2uiComponentSpec,
@@ -27,8 +28,9 @@ import { bindingPointer } from './a2ui-render';
  * name is reachable from `root` and renders as itself — not as a fault chip,
  * which an unknown component or one missing a required prop becomes — and, when
  * `path` is set, once its `prop` is a `{ "@path" }` binding that resolves to
- * exactly that pointer. One rendered component meets one entry, so two entries
- * for a `Checkbox` ask for two.
+ * that pointer, empty segments collapsed on both sides as a binding reads them
+ * (`/agreed/` is `/agreed`). One rendered component meets one entry, so two
+ * entries for a `Checkbox` ask for two.
  */
 export interface A2uiRequiredComponent {
   /** The component name as its catalog spells it — `Checkbox` (Urbicon), `CheckBox` (Basic). */
@@ -109,9 +111,8 @@ export function meetsRequirement(
   if (instance.component !== requirement.component) return false;
   if (!rendersAsComponent(instance)) return false;
   if (requirement.path === undefined) return true;
-  return (
-    bindingPointer(instance.props.get(boundProp(requirement)), scopePrefix) === requirement.path
-  );
+  const bound = bindingPointer(instance.props.get(boundProp(requirement)), scopePrefix);
+  return bound !== undefined && collapsePointer(bound) === collapsePointer(requirement.path);
 }
 
 /** The requirement in the words the prompt and the issue both use. */

@@ -19,7 +19,7 @@
  */
 
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
-import { getAtPointer } from './a2ui-data';
+import { collapsePointer, getAtPointer } from './a2ui-data';
 
 /** The JSON primitive/shape a declared field holds. */
 export type A2uiSchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object';
@@ -98,7 +98,9 @@ function fieldIssues(
 
 /**
  * Validate one data-model write against the schema. `pointer` is the write
- * target (`''`/`'/'`/`undefined` = whole model); `value` is the written value
+ * target (`undefined`, or one of no segments such as `''`/`'/'` = whole model),
+ * matched against the declared pointers with empty segments collapsed on both
+ * sides, as the write itself reads them; `value` is the written value
  * (`undefined` for a delete — never flagged). Returns any schema issues.
  */
 export function validateSchemaWrite(
@@ -108,9 +110,9 @@ export function validateSchemaWrite(
   surfaceId?: string
 ): A2uiValidationIssue[] {
   if (value === undefined) return []; // a delete never violates a type
-  const whole = pointer === undefined || pointer === '' || pointer === '/';
+  const target = pointer === undefined ? '' : collapsePointer(pointer);
 
-  if (whole) {
+  if (target === '') {
     // Whole-model write: check every declared field against the new model.
     const issues: A2uiValidationIssue[] = [];
     for (const [declaredPointer, field] of Object.entries(schema)) {
@@ -120,17 +122,18 @@ export function validateSchemaWrite(
     return issues;
   }
 
-  // `Object.hasOwn`, not a bare lookup: a pointer like `/toString` or `/__proto__`
+  // Own keys only, not a bare lookup: a pointer like `/toString` or `/__proto__`
   // would otherwise resolve an inherited Object.prototype member and mis-report a
   // type mismatch on a field that was never declared.
-  const field = Object.hasOwn(schema, pointer) ? schema[pointer] : undefined;
-  if (field) return fieldIssues(field, pointer, value, surfaceId);
+  const declaredPointers = Object.keys(schema);
+  const match = declaredPointers.find((key) => collapsePointer(key) === target);
+  if (match !== undefined) return fieldIssues(schema[match], match, value, surfaceId);
 
   // Undeclared pointer: warn only when its whole top-level branch is unknown, so
   // a write into a declared object (a deeper path we don't model yet) stays quiet.
-  const top = topSegment(pointer);
-  const declared = Object.keys(schema).some(
-    (declaredPointer) => topSegment(declaredPointer) === top
+  const top = topSegment(target);
+  const declared = declaredPointers.some(
+    (declaredPointer) => topSegment(collapsePointer(declaredPointer)) === top
   );
   if (!declared) {
     return [

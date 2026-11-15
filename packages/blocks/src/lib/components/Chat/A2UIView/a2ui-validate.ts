@@ -44,6 +44,7 @@ import {
   logicCallFault,
   type OperandBudget,
   pointerIssue,
+  pointerSegmentCount,
   reservedKeyOf,
   resolveDynamic,
   scopedPointer,
@@ -1331,8 +1332,8 @@ function deepestRelative(value: unknown, depth: number): number {
   if (depth > BINDING_SITE_DEPTH || value === null || typeof value !== 'object') return 0;
   const path = bindingPath(value);
   if (path !== undefined) {
-    if (path === '' || path.startsWith('/')) return 0;
-    const segments = path.split('/').length;
+    if (path.startsWith('/')) return 0;
+    const segments = pointerSegmentCount(path);
     return segments > A2UI_MAX_DATA_DEPTH ? 0 : segments;
   }
   let deepest = 0;
@@ -2536,7 +2537,7 @@ export function collectGraphIssues(
     // the scope of each template item it renders in adds the item's.
     if (scopePrefix !== undefined && !reportedScopeDepth.has(id)) {
       const relative = relativeBindingSegments(comp);
-      const scoped = scopePrefix.split('/').length - 1 + relative;
+      const scoped = pointerSegmentCount(scopePrefix) + relative;
       if (relative > 0 && scoped > A2UI_MAX_DATA_DEPTH) {
         reportedScopeDepth.add(id);
         issues.push(
