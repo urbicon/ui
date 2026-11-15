@@ -25,6 +25,7 @@
 
 import { A2UI_ISSUE_CODES } from '../a2ui.types';
 import type { A2uiCatalogSpec, A2uiComponentCheck } from '../a2ui-catalog';
+import { quoted } from '../a2ui-data';
 import { type A2uiComponentSpec, type A2uiPropSpec, lookupTable } from '../a2ui-registry';
 
 /**
@@ -416,6 +417,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       value: {
         kind: 'string',
         dynamic: true,
+        twoWay: true,
         description: 'The field value. Bind with { "@path" } for two-way binding.'
       },
       placeholder: { kind: 'string', dynamic: true, description: 'Placeholder text when empty.' },
@@ -444,6 +446,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       value: {
         kind: 'string',
         dynamic: true,
+        twoWay: true,
         description: 'The field value. Bind with { "@path" } for two-way binding.'
       },
       placeholder: { kind: 'string', dynamic: true, description: 'Placeholder text when empty.' },
@@ -472,6 +475,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'boolean',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The checked state. Bind with { "@path" } for two-way binding.'
       }
     })
@@ -494,6 +498,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The selected option value. Bind with { "@path" } for two-way binding.'
       },
       label: { kind: 'string', dynamic: true, description: 'An optional label for the group.' },
@@ -524,6 +529,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'stringList',
         required: true,
         dynamic: true,
+        twoWay: true,
         description:
           'The selected values as a string array in the data model. Single-select writes a one-element array.'
       },
@@ -551,6 +557,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'number',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The current value. Bind with { "@path" } for two-way binding.'
       },
       max: { kind: 'number', required: true, description: 'The maximum value.' },
@@ -576,6 +583,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'boolean',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The on/off state. Bind with { "@path" } for two-way binding.'
       }
     })
@@ -591,6 +599,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
+        twoWay: true,
         description:
           'The ISO date (YYYY-MM-DD, "" when unset). Bind with { "@path" } for two-way binding.'
       },
@@ -615,6 +624,7 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
         kind: 'string',
         required: true,
         dynamic: true,
+        twoWay: true,
         description:
           'The ISO time (HH:MM, "" when unset). Bind with { "@path" } for two-way binding.'
       },
@@ -878,7 +888,7 @@ export const urbiconA2uiCatalogSpec: A2uiCatalogSpec = {
           {
             severity: 'warning',
             code: A2UI_ISSUE_CODES.MARKDOWN_IN_TEXT,
-            message: `Text "${id}" contains Markdown syntax, but Text renders PLAIN — use RichText for formatting`,
+            message: `Text ${quoted(id)} contains Markdown syntax, but Text renders PLAIN — use RichText for formatting`,
             surfaceId,
             path: base
           }

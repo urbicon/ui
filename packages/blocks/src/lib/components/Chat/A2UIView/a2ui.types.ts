@@ -24,7 +24,9 @@ export type A2uiEnvelope = Record<string, unknown>;
 /**
  * A resolved user action, spec-exact for the body of the A2UI renderer→agent
  * `action` message. `context` bindings are resolved against the data model in
- * the source component's scope before dispatch.
+ * the source component's scope before dispatch. `A2UIView` hands `onAction` a
+ * copy of `context` and `dataModel` taken at the click: typing afterwards does
+ * not change it, and editing it does not change the surface.
  */
 export interface A2uiActionEvent {
   name: string;
@@ -139,13 +141,21 @@ export const A2UI_ISSUE_CODES = {
    * become issues, not exceptions.
    */
   ENGINE_ERROR: 'ENGINE_ERROR',
-  /** A JSON Pointer was malformed. */
+  /**
+   * A JSON Pointer is malformed — a `~` not followed by `0` or `1`, a write path
+   * that is neither `""` nor starts with `/` — or a write's path runs through a
+   * string, number or boolean (the root included), addresses an array with a
+   * segment that is no index (`01`), or would add an array item above index
+   * 10000. The write is not applied.
+   */
   POINTER_ERROR: 'POINTER_ERROR',
-  /** The component graph contains a cycle. */
+  /** The component graph contains a cycle; reported once per referencing edge. */
   CYCLE: 'CYCLE',
   /**
-   * Tree depth exceeds the limit (default 32), or a data-model write would nest
-   * the data model deeper than 64 levels — that write is not applied.
+   * Tree depth exceeds the limit (default 32), or data would nest deeper than
+   * the 64 levels a data model may: a write, which is not applied; a binding of
+   * more pointer segments, its template scope included, which resolves to
+   * nothing; an action's context literal, which drops the action.
    */
   MAX_DEPTH: 'MAX_DEPTH',
   /** Rendered node count exceeds the limit (default 512). */

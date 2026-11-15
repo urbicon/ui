@@ -14,21 +14,22 @@
  */
 
 import type { A2uiCatalogSpec } from './a2ui-catalog';
+import { bindingPath, callName, parseScopedPath } from './a2ui-data';
 import {
   A2UI_VALUE_PROP,
   type A2uiComponentSpec,
   ownEntry,
   rendersAsComponent
 } from './a2ui-registry';
-import { bindingPointer } from './a2ui-render';
 
 /**
  * One component a surface must contain. It counts once a component of that
  * name is reachable from `root` and renders as itself — not as a fault chip,
  * which an unknown component or one missing a required prop becomes — and, when
  * `path` is set, once its `prop` is a `{ "@path" }` binding that resolves to
- * exactly that pointer. One rendered component meets one entry, so two entries
- * for a `Checkbox` ask for two.
+ * that pointer, empty segments collapsed on both sides as a binding reads them
+ * (`/agreed/` is `/agreed`). One rendered component meets one entry, so two
+ * entries for a `Checkbox` ask for two.
  */
 export interface A2uiRequiredComponent {
   /** The component name as its catalog spells it — `Checkbox` (Urbicon), `CheckBox` (Basic). */
@@ -109,9 +110,15 @@ export function meetsRequirement(
   if (instance.component !== requirement.component) return false;
   if (!rendersAsComponent(instance)) return false;
   if (requirement.path === undefined) return true;
-  return (
-    bindingPointer(instance.props.get(boundProp(requirement)), scopePrefix) === requirement.path
-  );
+  const binding = instance.props.get(boundProp(requirement));
+  const path = bindingPath(binding);
+  if (path === undefined || callName(binding) !== undefined) return false;
+  // Compared segment by segment, each side parsed once and kept with its
+  // object: this runs for every candidate in every template item.
+  const bound = parseScopedPath(binding as object, path, scopePrefix);
+  const wanted = parseScopedPath(requirement, requirement.path, undefined);
+  if (bound.issue || wanted.issue || bound.segments.length !== wanted.segments.length) return false;
+  return bound.segments.every((segment, i) => segment === wanted.segments[i]);
 }
 
 /** The requirement in the words the prompt and the issue both use. */

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as attacks from './__fixtures__/hostile/attacks';
 import { exButton } from './__fixtures__/spec/ex_button';
 import { exChildlist } from './__fixtures__/spec/ex_childlist';
@@ -7,8 +7,21 @@ import { exLogin } from './__fixtures__/spec/ex_login';
 import { exSimpleText } from './__fixtures__/spec/ex_simple_text';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
 import { type A2uiCatalogSpec, type A2uiPropSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
-import { A2UI_MAX_DATA_DEPTH, A2UI_MAX_LOGIC_DEPTH, A2UI_MAX_LOGIC_OPERANDS } from './a2ui-data';
+import {
+  A2UI_MAX_DATA_DEPTH,
+  A2UI_MAX_LOGIC_DEPTH,
+  A2UI_MAX_LOGIC_OPERANDS,
+  A2UI_MAX_NEW_ITEM_INDEX,
+  bindingWriteRefusal,
+  resolveDynamic
+} from './a2ui-data';
 import { A2UI_CATALOG_ID, A2UI_UPSTREAM_BASIC_CATALOG_ID } from './a2ui-registry';
+import {
+  A2UI_MAX_NODES,
+  type A2uiRenderNode,
+  buildRenderTree,
+  fieldWriteRefusal
+} from './a2ui-render';
 import {
   type A2uiRequiredComponent,
   type A2uiSurfaceRequirements,
@@ -19,9 +32,12 @@ import {
   type A2uiProcessor,
   type A2uiSurfaceState,
   applyA2uiEnvelope,
+  collectA2uiIssues,
   collectGraphIssues,
   createA2uiProcessor,
-  normalizeA2uiPayload
+  normalizeA2uiPayload,
+  sameA2uiIssues,
+  validateA2uiPayload
 } from './a2ui-validate';
 import { URBICON_A2UI_CATALOG_ID, urbiconA2uiCatalogSpec } from './urbicon/a2ui-urbicon-registry';
 
@@ -1296,6 +1312,27 @@ describe('surface requirements', () => {
     expect(allIssues(booking(form(['agree'], consentBox())))).toEqual([]);
   });
 
+  it('matches the pointer with empty segments collapsed, as the binding reads it', () => {
+    expect(allIssues(booking(form(['agree'], consentBox({ '@path': '//agreed/' }))))).toEqual([]);
+  });
+
+  it.each([
+    ['an invalid escape', '/a~2b'],
+    ['70 segments', `/${Array.from({ length: 70 }, () => 'a').join('/')}`]
+  ])('is not met by a binding refused for %s, though it names the same pointer', (_label, path) => {
+    const requirements = { booking: [{ component: 'Checkbox', path }] };
+    const proc = booking(form(['agree'], consentBox({ '@path': path })), requirements);
+    expect(missing(allIssues(proc))).toHaveLength(1);
+  });
+
+  it.each([
+    ['an invalid escape', '/a~2b'],
+    ['70 segments', `/${Array.from({ length: 70 }, () => 'a').join('/')}`]
+  ])('is not met by a binding refused for %s, whatever pointer it names', (_label, path) => {
+    const proc = booking(form(['agree'], consentBox({ '@path': path })));
+    expect(missing(allIssues(proc))).toHaveLength(1);
+  });
+
   // The view renders a hidden component inert, so the user cannot tick it.
   it.each([
     ['literally', true],
@@ -1790,17 +1827,94 @@ describe('createSurface with inline content', () => {
   });
 
   it.each([
-    ['a deep value', '/a', nested(A2UI_MAX_DATA_DEPTH)],
-    ['a deep path', `/${Array.from({ length: A2UI_MAX_DATA_DEPTH + 1 }, () => 'k').join('/')}`, 1]
-  ])('refuses an updateDataModel with %s and writes nothing', (_label, path, value) => {
+    ['a deep value', '/a', nested(A2UI_MAX_DATA_DEPTH), 'value'],
+    [
+      'a deep path',
+      `/${Array.from({ length: A2UI_MAX_DATA_DEPTH + 1 }, () => 'k').join('/')}`,
+      1,
+      'path'
+    ]
+  ])('refuses an updateDataModel with %s and writes nothing', (_label, path, value, at) => {
     const proc = applyBoth([
       create({ dataModel: { kept: true } }),
       { version: '1.0', updateDataModel: { surfaceId: 's', path, value } }
     ]);
     expect(summary(surfaceIssues(proc))).toEqual([
-      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, '/messages/1/updateDataModel/value']
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, `/messages/1/updateDataModel/${at}`]
     ]);
     expect(proc.surfaces.get('s')?.dataModel).toEqual({ kept: true });
+  });
+
+  it.each([
+    ['a new item far past the end of a list', '/items/50000000'],
+    ['a new item above index 10000 of a list it would create', '/fresh/10001'],
+    ['an index with a leading zero', '/items/01'],
+    ['a path through a string', '/items/0/foo'],
+    ['no leading "/"', 'invalid path [0]'],
+    ['an escape RFC 6901 does not define', '/items~2']
+  ])('refuses an updateDataModel to %s and writes nothing', (_label, path) => {
+    const dataModel = { items: ['a', 'b', 'c'] };
+    const proc = applyBoth([
+      create({ dataModel }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path, value: 'x' } }
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.POINTER_ERROR, '/messages/1/updateDataModel/path']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual(dataModel);
+  });
+
+  it('appends to a list at its length and at "-"', () => {
+    const proc = applyBoth([
+      create({ dataModel: { items: ['a'] } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/1', value: 'b' } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/-', value: 'c' } }
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual({ items: ['a', 'b', 'c'] });
+  });
+
+  it('writes an index past the end of a list, the gap left as holes, also in a list it creates', () => {
+    const proc = applyBoth([
+      create({ dataModel: { items: ['a', 'b', 'c'] } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/5', value: 'f' } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/guests/1/name', value: 'Bo' } }
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    const model = proc.surfaces.get('s')?.dataModel as { items: unknown[]; guests: unknown[] };
+    expect([model.items.length, 3 in model.items, 4 in model.items, model.items[5]]).toEqual([
+      6,
+      false,
+      false,
+      'f'
+    ]);
+    expect([model.guests.length, 0 in model.guests, model.guests[1]]).toEqual([
+      2,
+      false,
+      { name: 'Bo' }
+    ]);
+  });
+
+  it('replaces the whole model with a primitive, and refuses to write through it', () => {
+    const proc = applyBoth([
+      create({ dataModel: { kept: true } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/', value: 1 } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/a', value: 2 } }
+    ]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.POINTER_ERROR, '/messages/2/updateDataModel/path']
+    ]);
+    expect(proc.surfaces.get('s')?.dataModel).toBe(1);
+  });
+
+  it('collapses the empty segments of a path', () => {
+    const proc = applyBoth([
+      create({ dataModel: { items: ['a'] } }),
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '/items/', value: ['b'] } },
+      { version: '1.0', updateDataModel: { surfaceId: 's', path: '//note///text//', value: 'n' } }
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(proc.surfaces.get('s')?.dataModel).toEqual({ items: ['b'], note: { text: 'n' } });
   });
 
   it('copies the data model, so a later edit never reaches the payload', () => {
@@ -2503,5 +2617,653 @@ describe('function-call messages', () => {
     ]);
     expect(proc.globalIssues.map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.UNKNOWN_ENVELOPE_TYPE]);
     expect(proc.surfaces.size).toBe(0);
+  });
+});
+
+// Hostile shapes measured against the engine: depth carried in through a
+// binding or a context literal, and fan-out through self-references.
+describe('hostile depth and fan-out', () => {
+  const segments = (count: number) => Array.from({ length: count }, () => 'a').join('/');
+  const nested = (depth: number, leaf: unknown = 1): unknown => {
+    let value = leaf;
+    for (let i = 0; i < depth; i++) value = { a: value };
+    return value;
+  };
+  const urbicon = (components: unknown[]) => ({
+    version: '1.0',
+    createSurface: { surfaceId: 's', catalogId: URBICON_A2UI_CATALOG_ID, components }
+  });
+  const label = { id: 'l', component: 'Text', text: 'Go' };
+  const button = (extra: Record<string, unknown>) => ({
+    id: 'root',
+    component: 'Button',
+    child: 'l',
+    action: { event: { name: 'go' } },
+    ...extra
+  });
+  const contextButton = (literal: unknown) =>
+    button({ action: { event: { name: 'go', context: { k: literal } } } });
+  const graphIssues = (proc: A2uiProcessor) => {
+    const surface = proc.surfaces.get('s');
+    if (!surface) throw new Error('no surface');
+    return collectGraphIssues(surface);
+  };
+
+  it.each([
+    ['absolute', `/${segments(A2UI_MAX_DATA_DEPTH + 1)}`],
+    ['absolute, 100,000 segments', `/${segments(100_000)}`],
+    ['relative', segments(A2UI_MAX_DATA_DEPTH + 1)]
+  ])('reports a %s binding deeper than the data model nests, at the binding', (_label, path) => {
+    const field = { id: 'root', component: 'TextField', label: 'Name', value: { '@path': path } };
+    const proc = applyBoth([create({ components: [field] })]);
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, '/messages/0/createSurface/components/0/value']
+    ]);
+  });
+
+  it('takes a binding of as many segments as the data model nests', () => {
+    const path = `/${segments(A2UI_MAX_DATA_DEPTH)}`;
+    const field = { id: 'root', component: 'TextField', label: 'Name', value: { '@path': path } };
+    expect(allIssues(applyBoth([create({ components: [field] })]))).toEqual([]);
+  });
+
+  it('reports a relative binding once a template scope takes it past the limit', () => {
+    const list = {
+      id: 'root',
+      component: 'List',
+      children: { componentId: 'row', path: '/items' }
+    };
+    const rows = (count: number) =>
+      applyBoth([
+        create({
+          components: [
+            list,
+            { id: 'row', component: 'TextField', label: 'N', value: { '@path': segments(count) } }
+          ],
+          dataModel: { items: [{}, {}] }
+        })
+      ]);
+    // The scope `/items/<i>` adds two segments.
+    expect(graphIssues(rows(A2UI_MAX_DATA_DEPTH - 2))).toEqual([]);
+    const over = rows(A2UI_MAX_DATA_DEPTH - 1);
+    expect(surfaceIssues(over)).toEqual([]);
+    expect(graphIssues(over).map((i) => [i.code, i.message.slice(0, 13)])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, '"row" binds a']
+    ]);
+  });
+
+  it('counts only the segments a relative binding addresses, its empty ones collapsed', () => {
+    const value = { '@path': `${segments(A2UI_MAX_DATA_DEPTH - 2)}//` };
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'List', children: { componentId: 'row', path: '/items' } },
+          { id: 'row', component: 'TextField', label: 'N', value }
+        ],
+        dataModel: { items: [{}] }
+      })
+    ]);
+    expect(allIssues(proc)).toEqual([]);
+  });
+
+  it.each([
+    ['bound directly', { '@path': `/${segments(A2UI_MAX_DATA_DEPTH + 1)}` }],
+    [
+      'inside a logic call',
+      { '@call': 'not', args: { value: { '@path': `/${segments(A2UI_MAX_DATA_DEPTH + 1)}` } } }
+    ]
+  ])('holds a gate whose binding is too deep at its failsafe, %s', (_label, disabled) => {
+    const proc = applyBoth([urbicon([button({ disabled }), label])]);
+    expect(surfaceIssues(proc).map((i) => [i.code, i.message.includes('held at true')])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, true]
+    ]);
+    expect(instance(proc)?.props.get('disabled')).toBe(true);
+  });
+
+  it('holds the gates of a @checks list whose condition binding is too deep', () => {
+    const condition = { '@path': `/${segments(A2UI_MAX_DATA_DEPTH + 1)}` };
+    const proc = applyBoth([
+      urbicon([button({ disabled: false, '@checks': [{ condition }] }), label])
+    ]);
+    expect(surfaceIssues(proc).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MAX_DEPTH]);
+    expect(instance(proc)?.props.get('disabled')).toBe(true);
+    expect(instance(proc)?.props.has('@checks')).toBe(false);
+  });
+
+  it.each([
+    ['an object', nested(A2UI_MAX_DATA_DEPTH + 1)],
+    ['an object 10,000 levels deep', nested(10_000)],
+    ['an array', Array.from({ length: A2UI_MAX_DATA_DEPTH }).reduce<unknown>((v) => [v], [1])]
+  ])('drops an action whose context literal is %s nesting too deep', (_label, literal) => {
+    const proc = applyBoth([create({ components: [contextButton(literal), label] })]);
+    const at = '/messages/0/createSurface/components/0/action';
+    expect(summary(surfaceIssues(proc))).toEqual([
+      ['error', A2UI_ISSUE_CODES.MAX_DEPTH, `${at}/event/context/k`],
+      ['error', A2UI_ISSUE_CODES.MISSING_FIELD, at]
+    ]);
+    expect(instance(proc)?.props.has('action')).toBe(false);
+  });
+
+  it('keeps an action whose context literal nests as deep as the data model may', () => {
+    const proc = applyBoth([
+      create({ components: [contextButton(nested(A2UI_MAX_DATA_DEPTH)), label] })
+    ]);
+    expect(surfaceIssues(proc)).toEqual([]);
+    expect(instance(proc)?.props.has('action')).toBe(true);
+  });
+
+  it('reports one CYCLE per edge and bounds a self-referencing fan-out by the node budget', () => {
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'Column', children: Array.from({ length: 100 }, () => 'C') },
+          { id: 'C', component: 'Column', children: Array.from({ length: 1_000 }, () => 'C') }
+        ]
+      })
+    ]);
+    expect(graphIssues(proc).map((i) => i.code)).toEqual([
+      A2UI_ISSUE_CODES.CYCLE,
+      A2UI_ISSUE_CODES.MAX_NODES
+    ]);
+    // The render tree spends the same budget: the first C's back-references use
+    // it up, so no second C renders.
+    const surface = proc.surfaces.get('s');
+    expect(surface && buildRenderTree(surface)?.children.map((child) => child.id)).toEqual(['C']);
+  });
+
+  it('reports the cycle whose back-reference spends the last of the node budget', () => {
+    const leaves = Array.from({ length: A2UI_MAX_NODES - 1 }, (_, i) => `x${i}`);
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'Column', children: [...leaves, 'root'] },
+          ...leaves.map((id) => ({ id, component: 'Text', text: id }))
+        ]
+      })
+    ]);
+    expect(graphIssues(proc).map((i) => i.code)).toContain(A2UI_ISSUE_CODES.CYCLE);
+  });
+
+  // The proxy counts the items a walk reads; validation read them all already.
+  const countedChildren = (count: number) => {
+    const reads = { count: 0 };
+    const children = new Proxy(
+      Array.from({ length: count }, () => 'leaf'),
+      {
+        get(target, key, receiver) {
+          if (typeof key === 'string' && /^\d+$/.test(key)) reads.count++;
+          return Reflect.get(target, key, receiver);
+        }
+      }
+    );
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'Column', children },
+          { id: 'leaf', component: 'Text', text: 'x' }
+        ]
+      })
+    ]);
+    const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+    reads.count = 0;
+    return { surface, reads };
+  };
+
+  it('reads no more of a plain child list than the node budget renders, building the tree', () => {
+    const { surface, reads } = countedChildren(10_000);
+    expect(buildRenderTree(surface)?.children).toHaveLength(A2UI_MAX_NODES - 1);
+    expect(reads.count).toBeLessThanOrEqual(A2UI_MAX_NODES + 1);
+  });
+
+  it('reads no more of a plain child list than the node budget renders, collecting issues', () => {
+    const { surface, reads } = countedChildren(10_000);
+    expect(collectGraphIssues(surface).map((i) => i.code)).toEqual([A2UI_ISSUE_CODES.MAX_NODES]);
+    expect(reads.count).toBeLessThanOrEqual(A2UI_MAX_NODES + 1);
+  });
+
+  it('reports a cycle edge reached on two paths once', () => {
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'Column', children: ['a', 'a'] },
+          { id: 'a', component: 'Column', children: ['a'] }
+        ]
+      })
+    ]);
+    expect(graphIssues(proc).map((i) => i.message)).toEqual([
+      'Cycle detected at component "a", referenced by "a"'
+    ]);
+  });
+});
+
+describe('a two-way field the data model cannot take', () => {
+  const at = (path: string, value: unknown) => ({
+    version: '1.0',
+    updateDataModel: { surfaceId: 's', path, value }
+  });
+  const form = (catalogId: string, field: Record<string, unknown>, dataModel: unknown) => [
+    { version: '1.0', createSurface: { surfaceId: 's', catalogId, dataModel } },
+    {
+      version: '1.0',
+      updateComponents: {
+        surfaceId: 's',
+        components: [
+          { id: 'root', component: 'Column', children: ['field'] },
+          { id: 'field', ...field }
+        ]
+      }
+    }
+  ];
+  const validate = (payload: unknown[]) =>
+    validateA2uiPayload(payload, { catalogs: [urbiconA2uiCatalogSpec] });
+  const pointerErrors = (issues: readonly A2uiValidationIssue[]) =>
+    issues
+      .filter((i) => i.code === A2UI_ISSUE_CODES.POINTER_ERROR)
+      .map((i) => [i.severity, i.surfaceId, i.path]);
+  const B = A2UI_CATALOG_ID;
+  const U = URBICON_A2UI_CATALOG_ID;
+  const bound = (path: string) => ({ '@path': path });
+  const options = [{ label: 'One', value: 'one' }];
+
+  it.each([
+    ['TextField', B, { component: 'TextField', label: 'L', value: bound('/u/name/first') }],
+    ['CheckBox', B, { component: 'CheckBox', label: 'L', value: bound('/u/name/first') }],
+    ['ChoicePicker', B, { component: 'ChoicePicker', options, value: bound('/u/name/first') }],
+    ['Slider', B, { component: 'Slider', max: 10, value: bound('/u/name/first') }],
+    [
+      'DateTimeInput',
+      B,
+      { component: 'DateTimeInput', enableTime: true, value: bound('/u/name/first') }
+    ],
+    ['Input', U, { component: 'Input', label: 'L', value: bound('/u/name/first') }],
+    ['Textarea', U, { component: 'Textarea', label: 'L', value: bound('/u/name/first') }],
+    ['Checkbox', U, { component: 'Checkbox', label: 'L', value: bound('/u/name/first') }],
+    ['RadioGroup', U, { component: 'RadioGroup', options, value: bound('/u/name/first') }],
+    ['Select', U, { component: 'Select', options, value: bound('/u/name/first') }],
+    ['Slider', U, { component: 'Slider', max: 10, value: bound('/u/name/first') }],
+    ['Toggle', U, { component: 'Toggle', label: 'L', value: bound('/u/name/first') }],
+    ['DatePicker', U, { component: 'DatePicker', value: bound('/u/name/first') }],
+    ['TimeInput', U, { component: 'TimeInput', value: bound('/u/name/first') }]
+  ])(
+    'reports a %s (%s) bound through a string, until a message fixes the model',
+    (_name, catalogId, field) => {
+      const payload = form(catalogId, field, { u: { name: 'Alice' } });
+      expect(pointerErrors(validate(payload))).toEqual([['error', 's', undefined]]);
+      expect(pointerErrors(validate([...payload, at('/u/name', {})]))).toEqual([]);
+    }
+  );
+
+  it('reports a field on a root a message replaced with a number', () => {
+    const payload = [
+      ...form(B, { component: 'TextField', label: 'L', value: bound('/name') }, {}),
+      at('/', 7)
+    ];
+    const [issue] = validate(payload).filter((i) => i.code === A2UI_ISSUE_CODES.POINTER_ERROR);
+    expect(issue.message).toBe(
+      '"field" is bound to "/name", which the data model cannot take: the pointer runs through the root, which holds a number, not an object or list; the field is locked until the data model can take it'
+    );
+  });
+
+  it('leaves a Progress bar alone, whose value is shown and never written', () => {
+    const payload = form(
+      U,
+      { component: 'Progress', value: bound('/u/name/first') },
+      {
+        u: { name: 'Alice' }
+      }
+    );
+    expect(validate(payload)).toEqual([]);
+  });
+
+  it('reports each template item’s scoped pointer once per component', () => {
+    const payload = [
+      {
+        version: '1.0',
+        createSurface: { surfaceId: 's', catalogId: B, dataModel: { rows: ['a', 'b', { n: 1 }] } }
+      },
+      {
+        version: '1.0',
+        updateComponents: {
+          surfaceId: 's',
+          components: [
+            { id: 'root', component: 'List', children: { componentId: 'row', path: '/rows' } },
+            { id: 'row', component: 'TextField', label: 'L', value: bound('n') }
+          ]
+        }
+      }
+    ];
+    const errors = validate(payload).filter((i) => i.code === A2UI_ISSUE_CODES.POINTER_ERROR);
+    expect(errors.map((i) => i.message.slice(0, 31))).toEqual(['"row" is bound to "/rows/0/n", ']);
+    expect(pointerErrors(validate([...payload, at('/rows', [{}, {}, {}])]))).toEqual([]);
+  });
+
+  it('reports a pointer refused on its own segments once, where it was validated', () => {
+    const payload = form(B, { component: 'TextField', label: 'L', value: bound('/a~2') }, {});
+    expect(pointerErrors(validate(payload))).toEqual([
+      ['error', 's', '/messages/1/updateComponents/components/1/value']
+    ]);
+  });
+
+  it('takes the pointer the dispatcher writes: a template-relative one in its item’s scope', () => {
+    const binding = bound('name');
+    expect(bindingWriteRefusal({ rows: ['a'] }, binding, '/rows/0', 0, 0)).toMatchObject({
+      cause: 'model'
+    });
+    expect(bindingWriteRefusal({ rows: [{}] }, binding, '/rows/0', 0, 0)).toBeUndefined();
+    expect(bindingWriteRefusal({ rows: ['a'] }, bound(''), '/rows/0', 0, 0)).toBeUndefined();
+    expect(
+      bindingWriteRefusal({ a: 1 }, { '@call': 'not', args: { value: true } }, undefined, 0, 0)
+    ).toBeUndefined();
+  });
+});
+
+describe('template paths', () => {
+  const list = (path: string, dataModel: unknown) =>
+    applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'List', children: { componentId: 'row', path } },
+          { id: 'row', component: 'Text', text: 'x' }
+        ],
+        dataModel
+      })
+    ]);
+  const segments = (count: number) => Array.from({ length: count }, () => 'a').join('/');
+
+  it.each([
+    ['an invalid escape', '/rows~x', { 'rows~x': ['a', 'b'] }, A2UI_ISSUE_CODES.POINTER_ERROR],
+    ['a prototype segment', '/__proto__/x', {}, A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION],
+    ['70 segments', `/${segments(70)}`, {}, A2UI_ISSUE_CODES.MAX_DEPTH]
+  ])(
+    'refuses one with %s as a binding is refused, and both walks render no item',
+    (_label, path, dataModel, code) => {
+      const proc = list(path, dataModel);
+      expect(summary(surfaceIssues(proc))).toEqual([
+        ['error', code, '/messages/0/createSurface/components/0/children/path']
+      ]);
+      const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+      expect(buildRenderTree(surface)?.children).toEqual([]);
+      expect(collectGraphIssues(surface)).toEqual([]);
+    }
+  );
+
+  it('reads a "~" in a model key escaped as "~0"', () => {
+    const surface = list('/rows~0x', { 'rows~x': ['a', 'b'] }).surfaces.get(
+      's'
+    ) as A2uiSurfaceState;
+    expect(buildRenderTree(surface)?.children).toHaveLength(2);
+  });
+
+  it('reports once a relative path a nested template’s scope takes too deep, and lists nothing', () => {
+    // The outer list sits 63 segments down, so each of its items is 64 deep.
+    let deep: unknown = [0, 0];
+    for (let i = 0; i < A2UI_MAX_DATA_DEPTH - 1; i++) deep = { a: deep };
+    const outer = `/${segments(A2UI_MAX_DATA_DEPTH - 1)}`;
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'List', children: { componentId: 'inner', path: outer } },
+          { id: 'inner', component: 'List', children: { componentId: 'row', path: 'rows' } },
+          { id: 'row', component: 'Text', text: 'x' }
+        ],
+        dataModel: deep
+      })
+    ]);
+    const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+    expect(surface.issues).toEqual([]);
+    expect(collectGraphIssues(surface).map((i) => [i.code, i.message.split(',')[0]])).toEqual([
+      [A2UI_ISSUE_CODES.MAX_DEPTH, '"inner" lists the items at the relative template path "rows"']
+    ]);
+    expect(buildRenderTree(surface)?.children.map((child) => child.children)).toEqual([[], []]);
+  });
+});
+
+// The agent may write a template path with empty segments (`//l`); an item's
+// scope is the pointer it addresses, so each item reads no more than that.
+describe('a template item’s scope', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const longPath = `${'/'.repeat(1000)}l`;
+  const listed = (items: number) => {
+    const proc = createA2uiProcessor({ catalogs: BOTH });
+    [
+      create({ dataModel: { l: Array.from({ length: items }, (_, i) => ({ v: `v${i}` })) } }),
+      update([
+        { id: 'root', component: 'Column', children: { componentId: 'row', path: longPath } },
+        { id: 'row', component: 'Column', children: ['field', 'at'] },
+        { id: 'field', component: 'TextField', label: 'x', value: { '@path': 'v' } },
+        { id: 'at', component: 'Text', text: { '@call': '@index' } }
+      ])
+    ].forEach((envelope, index) => {
+      applyA2uiEnvelope(proc, envelope, index);
+    });
+    return proc;
+  };
+
+  it('is the collapsed pointer of the item, which @index, bindings and the lock read', () => {
+    const proc = listed(2);
+    const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+    expect(collectA2uiIssues(proc, { streaming: false })).toEqual([]);
+    const rows = buildRenderTree(surface)?.children ?? [];
+    expect(rows.map((row) => row.scopePrefix)).toEqual(['/l/0', '/l/1']);
+    const read = (node: A2uiRenderNode) =>
+      resolveDynamic(
+        node.instance?.props.get(node.id === 'at' ? 'text' : 'value'),
+        surface.dataModel,
+        node.scopePrefix,
+        surface.callCatalogs
+      ).value;
+    expect(rows.map((row) => row.children.map(read))).toEqual([
+      ['v0', 0],
+      ['v1', 1]
+    ]);
+    (surface.dataModel as { l: unknown[] }).l[1] = 'b';
+    expect(
+      rows.map((row) =>
+        fieldWriteRefusal(
+          surface.dataModel,
+          row.children[0].instance,
+          row.children[0].scopePrefix,
+          0
+        )
+      )
+    ).toEqual([undefined, expect.objectContaining({ cause: 'model' })]);
+  });
+
+  // The tokenizer scans a pointer for "/" with indexOf; counted on every string
+  // as long as the template path, which an item's scope held when it was spelled
+  // from the path as written.
+  const tokenizerCalls = (items: number) => {
+    const proc = listed(items);
+    const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+    const indexOf = vi.spyOn(String.prototype, 'indexOf');
+    collectA2uiIssues(proc, { streaming: false });
+    for (const row of buildRenderTree(surface)?.children ?? []) {
+      for (const node of row.children) {
+        resolveDynamic(
+          node.instance?.props.get('value'),
+          surface.dataModel,
+          node.scopePrefix,
+          surface.callCatalogs
+        );
+        fieldWriteRefusal(surface.dataModel, node.instance, node.scopePrefix, surface.paddedSlots);
+      }
+    }
+    const calls = indexOf.mock.contexts.filter(
+      (context) => typeof context === 'string' && context.length >= longPath.length
+    ).length;
+    vi.restoreAllMocks();
+    return calls;
+  };
+
+  it('reads the template path, in one bump, as often for 1 item as for 200', () => {
+    const once = tokenizerCalls(1);
+    expect(once).toBeGreaterThan(0);
+    expect(tokenizerCalls(200)).toBe(once);
+  });
+});
+
+describe('issue messages repeat a bounded part of a payload string', () => {
+  const lengthFor = (
+    keyLength: number,
+    code: string,
+    row: Record<string, unknown>,
+    held: unknown
+  ) => {
+    const key = 'k'.repeat(keyLength);
+    const proc = applyBoth([
+      create({
+        components: [
+          { id: 'root', component: 'List', children: { componentId: 'row', path: `/${key}` } },
+          { id: 'row', ...row }
+        ],
+        dataModel: { [key]: held }
+      })
+    ]);
+    const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+    const found = collectGraphIssues(surface).find((i) => i.code === code);
+    if (!found) throw new Error(`no ${code}`);
+    return found.message.length;
+  };
+  const deepRow = {
+    component: 'TextField',
+    label: 'L',
+    value: { '@path': Array.from({ length: A2UI_MAX_DATA_DEPTH - 1 }, () => 'a').join('/') }
+  };
+
+  it('names a template item’s scope in a MAX_DEPTH message', () => {
+    const code = A2UI_ISSUE_CODES.MAX_DEPTH;
+    expect(lengthFor(100_000, code, deepRow, [{}])).toBe(lengthFor(1_000, code, deepRow, [{}]));
+  });
+
+  it('names a template path in a TEMPLATE_PATH_NOT_ARRAY message', () => {
+    const code = A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY;
+    const row = { component: 'Text', text: 'x' };
+    expect(lengthFor(100_000, code, row, 1)).toBe(lengthFor(1_000, code, row, 1));
+  });
+});
+
+// One bump is what the view runs on every edit: the issue list, the render tree
+// and, per rendered field, its value and whether it can take a write.
+describe('a binding in a template is tokenized once, however many items render it', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const binding = `/${Array.from({ length: A2UI_MAX_DATA_DEPTH - 2 }, () => 'a').join('/')}`;
+  // The tokenizer scans a pointer for "/" with indexOf; counted on this string.
+  const tokenizerCalls = (items: number) => {
+    const proc = createA2uiProcessor({
+      catalogs: BOTH,
+      surfaceRequirements: { s: [{ component: 'CheckBox', path: '/agreed' }] }
+    });
+    [
+      create({ dataModel: { l: Array.from({ length: items }, () => 0) } }),
+      update([
+        { id: 'root', component: 'Column', children: { componentId: 'c', path: '/l' } },
+        { id: 'c', component: 'CheckBox', label: 'x', value: { '@path': binding } }
+      ])
+    ].forEach((envelope, index) => {
+      applyA2uiEnvelope(proc, envelope, index);
+    });
+    const surface = proc.surfaces.get('s') as A2uiSurfaceState;
+    const indexOf = vi.spyOn(String.prototype, 'indexOf');
+    collectA2uiIssues(proc, { streaming: false });
+    for (const node of buildRenderTree(surface)?.children ?? []) {
+      const value = node.instance?.props.get('value');
+      resolveDynamic(value, surface.dataModel, node.scopePrefix, surface.callCatalogs);
+      fieldWriteRefusal(surface.dataModel, node.instance, node.scopePrefix, surface.paddedSlots);
+    }
+    const calls = indexOf.mock.contexts.filter((context) => context === binding).length;
+    vi.restoreAllMocks();
+    return calls;
+  };
+
+  it('in one bump, for 1 item and for 200', () => {
+    const once = tokenizerCalls(1);
+    expect(once).toBeGreaterThan(0);
+    expect(tokenizerCalls(200)).toBe(once);
+  });
+});
+
+describe('sameA2uiIssues', () => {
+  const issue = (extra: Partial<A2uiValidationIssue> = {}): A2uiValidationIssue => ({
+    severity: 'error',
+    code: A2UI_ISSUE_CODES.DANGLING_REF,
+    message: 'm',
+    surfaceId: 's',
+    ...extra
+  });
+
+  it('compares every field, an absent one as undefined', () => {
+    expect(sameA2uiIssues([issue()], [issue()])).toBe(true);
+    expect(sameA2uiIssues([issue({ path: undefined })], [issue()])).toBe(true);
+    expect(sameA2uiIssues([issue()], [issue(), issue()])).toBe(false);
+    for (const field of ['severity', 'code', 'message', 'surfaceId', 'path', 'functionCallId']) {
+      const changed = issue({ [field]: field === 'severity' ? 'warning' : 'other' });
+      expect([field, sameA2uiIssues([issue()], [changed])]).toEqual([field, false]);
+      expect([field, sameA2uiIssues([changed], [issue()])]).toEqual([field, false]);
+    }
+  });
+});
+
+describe('the list slots a surface pads', () => {
+  const MAX = A2UI_MAX_NEW_ITEM_INDEX;
+  const at = (path: string, value: unknown) => ({
+    version: '1.0',
+    updateDataModel: { surfaceId: 's', path, value }
+  });
+  const paths = (proc: A2uiProcessor) => surfaceIssues(proc).map((i) => [i.code, i.path]);
+
+  it('are counted across messages, and a write past the total is refused', () => {
+    const proc = applyBoth([create(), at(`/a/${MAX - 3}`, 1), at('/b/3', 1), at('/c/1', 1)]);
+    expect(paths(proc)).toEqual([
+      [A2UI_ISSUE_CODES.POINTER_ERROR, '/messages/3/updateDataModel/path']
+    ]);
+    expect(proc.surfaces.get('s')?.paddedSlots).toBe(MAX);
+    expect(proc.surfaces.get('s')?.dataModel).not.toHaveProperty('c');
+  });
+
+  it('start at 0 on each surface', () => {
+    const second = {
+      version: '1.0',
+      createSurface: { surfaceId: 't', catalogId: A2UI_CATALOG_ID }
+    };
+    const proc = applyBoth([
+      create(),
+      second,
+      at(`/a/${MAX}`, 1),
+      { version: '1.0', updateDataModel: { surfaceId: 't', path: `/a/${MAX}`, value: 1 } }
+    ]);
+    expect(
+      [...proc.surfaces.values()].map((surface) => [surface.issues, surface.paddedSlots])
+    ).toEqual([
+      [[], MAX],
+      [[], MAX]
+    ]);
+  });
+
+  it('decide a field as they decide a message: one whose write would pad past them is locked', () => {
+    const field = (id: string, path: string) => ({
+      id,
+      component: 'TextField',
+      label: id,
+      value: { '@path': path }
+    });
+    const payload = [
+      create(),
+      at(`/a/${MAX - 2}`, 1),
+      update([
+        { id: 'root', component: 'Column', children: ['fits', 'over'] },
+        field('fits', '/b/2/v'),
+        field('over', '/c/3/v')
+      ])
+    ];
+    const errors = validateA2uiPayload(payload).filter(
+      (i) => i.code === A2UI_ISSUE_CODES.POINTER_ERROR
+    );
+    expect(errors.map((i) => i.message.slice(0, 32))).toEqual(['"over" is bound to "/c/3/v", whi']);
   });
 });

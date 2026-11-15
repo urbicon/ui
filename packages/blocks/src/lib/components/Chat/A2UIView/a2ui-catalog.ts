@@ -24,6 +24,7 @@
 import type { Component } from 'svelte';
 import type { IconComponent } from '#lib/icons/index.js';
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
+import { quoted } from './a2ui-data';
 import {
   A2UI_CATALOG_ID,
   A2UI_ICON_NAMES,
@@ -140,7 +141,7 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
         {
           severity: 'error',
           code: A2UI_ISSUE_CODES.TYPE_MISMATCH,
-          message: `"steps" on Slider "${id}" must be an integer of 1 or more; it is ignored`,
+          message: `"steps" on Slider ${quoted(id)} must be an integer of 1 or more; it is ignored`,
           surfaceId,
           path: `${base}/steps`
         }
@@ -156,7 +157,7 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
           {
             severity: 'warning',
             code: A2UI_ISSUE_CODES.TABS_EMPTY,
-            message: `Tabs "${id}" has an empty tabs array; nothing is rendered`,
+            message: `Tabs ${quoted(id)} has an empty tabs array; nothing is rendered`,
             surfaceId,
             path: base
           }
@@ -170,7 +171,7 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
           {
             severity: 'warning',
             code: A2UI_ISSUE_CODES.CHOICEPICKER_FALLBACK,
-            message: `ChoicePicker "${id}" chips/filterable are rendered with a fallback`,
+            message: `ChoicePicker ${quoted(id)} chips/filterable are rendered with a fallback`,
             surfaceId,
             path: base
           }
@@ -187,7 +188,7 @@ export const basicA2uiCatalogSpec: A2uiCatalogSpec = {
           {
             severity: 'warning',
             code: A2UI_ISSUE_CODES.DATETIME_NO_MODE,
-            message: `DateTimeInput "${id}" sets neither enableDate nor enableTime; rendering a date input`,
+            message: `DateTimeInput ${quoted(id)} sets neither enableDate nor enableTime; rendering a date input`,
             surfaceId,
             path: base
           }

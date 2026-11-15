@@ -72,6 +72,44 @@ function calls. What an envelope may carry, and what becomes of it:
 | `callRendererFunction`, `agentFunctionResponse`        | Recognised and refused: no function here may be called by the agent, and the engine calls none on the agent. Each is an `INVALID_FUNCTION_CALL` error that carries the `functionCallId` — what a transport needs to answer the call with a `rendererFunctionResponse` error.                                                                                                                                                                                                                                                                           |
 | `allowedParents` / `allowedChildren`, capabilities     | Not read. No shipped catalog declares composition constraints, and capabilities are exchanged by the transport.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
+A pointer — a `path`, a `{ "@path" }` binding — follows RFC 6901, except that empty segments
+collapse, as upstream's A2UI conformance suite defines: `/foo/` is `/foo`, `//a///b//` is `/a/b`,
+and `/`, like `""`, is the whole model. So no pointer addresses a key `""`.
+
+The data model nests at most 64 levels, and every write into it takes one path —
+`updateDataModel`, an inline `createSurface.dataModel`, and what the user types into a bound field.
+A message's `path` of `""` or `/` replaces the whole model; a user's edit never does. A write
+creates what its path passes through where that is missing or `null`, so a field bound to
+`/guests/1/name` takes the user's typing before the agent has sent any guests: an index past the end
+of a list leaves the gap as holes, which read as missing and serialise as `null`, and `-` appends.
+It never replaces a string, number or boolean with a container: a path that runs through one —
+`/user/name/first` onto `"Alice"`, or `/a` onto a model the agent replaced with `1` — is refused.
+So is a `path` that is neither `""` nor starts with `/`, holds a `~` not followed by `0` or `1`,
+has a segment into a list that is no index (`01`, `name`), or adds a list item above index 10000;
+and a write that would pad a surface's lists with more than 10000 empty slots in all, every slot a
+message or a user's edit has padded since `createSurface` counted. Each is a `POINTER_ERROR`, and
+nothing is written.
+
+A binding, and a list template's `path`, is read by the same rules. One with a `~` not followed by
+`0` or `1` is a `POINTER_ERROR` and resolves to nothing — a key that holds a `~` is addressed as
+`~0`. One with more segments than the model has levels, a template item's scope included, is a
+`MAX_DEPTH` error and resolves to nothing — on a gate such as `disabled`, to its failsafe. A
+template whose `path` is refused renders no items. An action's context literal nested deeper than
+64 levels is a `MAX_DEPTH` error too, and the action is dropped.
+
+An input is disabled for any reason a user's edit at the pointer of its binding would be refused:
+the pointer is refused on its own, as above; it runs through a string, number or boolean the model
+holds now, the root included; it has a segment into a list that is no index; it adds a list item
+above index 10000; it would pad past the surface's 10000 slots; it has no segments — `""` or `/`
+outside a list template, `//`, an absolute `/` inside one — so the edit would replace the whole
+model; or what the input writes would nest the model past 64 levels, as the list a `ChoicePicker`
+or `Select` writes does at a pointer of 64 segments. In a template, `""` is the item and takes the
+edit. Every reason but the first is an issue on the input — a `MAX_DEPTH` for the depth, a
+`POINTER_ERROR` for the rest — from `onValidationError` and `validateA2uiPayload` alike, and both
+are recomputed from the data model: the `updateDataModel` that makes room for the write enables the
+input and clears the issue. A pointer of no segments, or one too deep, keeps the input disabled
+until the agent binds it to another.
+
 ## Surfaces outlive the reply that created them
 
 A `surfaceId` is unique for the renderer's lifetime, and `deleteSurface` is the only way to retire

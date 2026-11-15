@@ -34,7 +34,7 @@
     rendersAsComponent
   } from './a2ui-registry';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
-  import { bindingPointer, toInputString, toStringArray } from './a2ui-render';
+  import { toInputString, toStringArray, writePointer } from './a2ui-render';
 
   // Recursive dispatcher: one instance renders one node of the assembled A2UI
   // render tree, mapping the trusted catalog subset onto real Urbicon
@@ -288,8 +288,11 @@
 
   // ── Two-way inputs ──────────────────────────────────────────────────────
   function valuePointer(): string | undefined {
-    return bindingPointer(raw(A2UI_VALUE_PROP), node.scopePrefix);
+    return writePointer(instance, node.scopePrefix);
   }
+  // A field the data model cannot take a write from is locked: an edit it
+  // showed would be neither stored nor sent.
+  const writeLocked = $derived(context.refusesWrite(node));
 
   const textValue = $derived.by(() => {
     const pointer = valuePointer();
@@ -713,6 +716,7 @@
       {label}
       {placeholder}
       value={textValue}
+      disabled={writeLocked}
       oninput={onTextInput}
       style={weightStyle}
       aria-label={ariaLabel}
@@ -725,6 +729,7 @@
       {placeholder}
       type={INPUT_TYPE[variant] ?? 'text'}
       value={textValue}
+      disabled={writeLocked}
       oninput={onTextInput}
       style={weightStyle}
       aria-label={ariaLabel}
@@ -736,6 +741,7 @@
     unstyled={context.unstyled}
     label={text(resolved('label'))}
     checked={boolValue}
+    disabled={writeLocked}
     onCheckedChange={onBoolChange}
     style={weightStyle}
     aria-label={ariaLabel}
@@ -759,6 +765,7 @@
           unstyled={context.unstyled}
           label={option.label}
           checked={choiceSelected.includes(option.value)}
+          disabled={writeLocked}
           onCheckedChange={(checked) => onOptionToggle(option.value, checked)}
         />
       {/each}
@@ -768,6 +775,7 @@
       unstyled={context.unstyled}
       label={choiceLabel || undefined}
       value={choiceSelected[0]}
+      disabled={writeLocked}
       onValueChange={onRadioChange}
       style={weightStyle}
       {...byReference}
@@ -788,6 +796,7 @@
     max={sliderMax}
     step={sliderStep}
     showValue
+    disabled={writeLocked}
     onValueChange={onSliderChange}
     style={weightStyle}
     {...byReference}
@@ -809,6 +818,7 @@
         unstyled={context.unstyled}
         label={label || undefined}
         value={dtParts.date || null}
+        disabled={writeLocked}
         onValueChange={onDtDateChange}
         minDate={dtMinDate}
         maxDate={dtMaxDate}
@@ -816,6 +826,7 @@
       <TimeInput
         unstyled={context.unstyled}
         value={dtParts.time || undefined}
+        disabled={writeLocked}
         onValueChange={onDtTimeChange}
         withSeconds={dtParts.time.length > 5}
         min={dtMinTime}
@@ -831,6 +842,7 @@
         unstyled={context.unstyled}
         label={label || undefined}
         value={dtParts.time || undefined}
+        disabled={writeLocked}
         onValueChange={onDtTimeChange}
         withSeconds={dtParts.time.length > 5}
         min={dtMinTime}
@@ -844,6 +856,7 @@
       unstyled={context.unstyled}
       label={label || undefined}
       value={dtParts.date || null}
+      disabled={writeLocked}
       onValueChange={onDtDateChange}
       minDate={dtMinDate}
       maxDate={dtMaxDate}

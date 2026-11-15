@@ -19,8 +19,15 @@ import type { Component, Snippet } from 'svelte';
 import type { IconComponent } from '#lib/icons/index.js';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
-import { bindingPath, callName, getAtPointer, scopedPointer } from './a2ui-data';
-import { ownEntry } from './a2ui-registry';
+import {
+  type A2uiBindingRefusal,
+  bindingPath,
+  bindingWriteRefusal,
+  callName,
+  scopedPointer,
+  templateList
+} from './a2ui-data';
+import { A2UI_VALUE_PROP, ownEntry, writesValue } from './a2ui-registry';
 import type { A2uiComponentInstance, A2uiSurfaceState } from './a2ui-validate';
 
 /** Default traversal bounds — mirror `collectGraphIssues` so the tree and the issue list agree. */
@@ -92,6 +99,13 @@ export interface A2uiRenderContext {
     value: unknown,
     scopePrefix: string | undefined
   ) => { value: unknown; issue?: A2uiValidationIssue };
+  /**
+   * Whether the data model refuses a user's edit of `node`'s two-way field
+   * ({@link fieldWriteRefusal}); `false` for a component that writes nothing.
+   * The field renders disabled while it does, and `collectGraphIssues`
+   * reports why.
+   */
+  refusesWrite: (node: A2uiRenderNode) => boolean;
   /** Write a value at an absolute JSON Pointer into the surface model, then bump. */
   write: (pointer: string, value: unknown) => void;
   /** Delete the key at an absolute JSON Pointer from the surface model, then bump. */
@@ -148,6 +162,42 @@ export function bindingPointer(
   const path = bindingPath(value);
   if (path === undefined) return undefined;
   return scopedPointer(path, scopePrefix);
+}
+
+/**
+ * The absolute JSON Pointer a two-way field writes what the user enters to:
+ * its `value` binding in `scopePrefix`, where its catalog declares that prop
+ * two-way ({@link writesValue}). `undefined` for any other component, and for
+ * a literal or a function call.
+ */
+export function writePointer(
+  instance: A2uiComponentInstance | null,
+  scopePrefix: string | undefined
+): string | undefined {
+  if (!instance || !writesValue(ownEntry(instance.catalog?.registry, instance.component))) {
+    return undefined;
+  }
+  return bindingPointer(instance.props.get(A2UI_VALUE_PROP), scopePrefix);
+}
+
+/**
+ * Why the data model refuses a user's edit of a two-way field — what
+ * {@link writePointer} writes to, read by `writeDataModel`'s rule for a user
+ * (`bindingWriteRefusal`) — or `undefined` when it takes one, and for a
+ * component that writes nothing. What the field writes nests as its `value`
+ * is declared: a `stringList` one level below the pointer, any other kind none.
+ */
+export function fieldWriteRefusal(
+  model: unknown,
+  instance: A2uiComponentInstance | null,
+  scopePrefix: string | undefined,
+  paddedSlots: number
+): A2uiBindingRefusal | undefined {
+  const spec = instance ? ownEntry(instance.catalog?.registry, instance.component) : undefined;
+  if (!instance || !writesValue(spec)) return undefined;
+  const levels = ownEntry(spec?.props, A2UI_VALUE_PROP)?.kind === 'stringList' ? 1 : 0;
+  const binding = instance.props.get(A2UI_VALUE_PROP);
+  return bindingWriteRefusal(model, binding, scopePrefix, paddedSlots, levels);
 }
 
 /** Coerce an unknown model value to a string array of stable option values (for ChoicePicker). */
@@ -214,15 +264,15 @@ function childRefs(
       if (Array.isArray(children)) {
         for (const childId of children) {
           if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix, slot: key });
+          if (out.length > state.maxNodes) break;
         }
       } else if (children !== null && typeof children === 'object') {
         const template = children as { componentId?: unknown; path?: unknown };
         if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-          const absPath = scopedPointer(template.path, scopePrefix);
-          const list = getAtPointer(state.dataModel, absPath);
-          if (Array.isArray(list)) {
-            for (let i = 0; i < list.length; i++) {
-              out.push({ id: template.componentId, scope: `${absPath}/${i}`, slot: key });
+          const items = templateList(state.dataModel, template, template.path, scopePrefix);
+          if (!items.issue && Array.isArray(items.list)) {
+            for (let i = 0; i < items.list.length; i++) {
+              out.push({ id: template.componentId, scope: `${items.at}/${i}`, slot: key });
               if (out.length > state.maxNodes) break; // bound the expansion itself
             }
           }
@@ -268,7 +318,12 @@ function buildNode(
   for (let i = 0; i < refs.length; i++) {
     if (state.count >= state.maxNodes) break;
     const ref = refs[i];
-    if (nextAncestors.has(ref.id)) continue; // cycle: truncate (issue reported elsewhere)
+    // A cycle is truncated (the issue is `collectGraphIssues`'), and spends the
+    // node budget as that walk does: a fan-out of back-references is bounded too.
+    if (nextAncestors.has(ref.id)) {
+      state.count++;
+      continue;
+    }
     const childKey = `${ref.id}@${ref.scope ?? ''}#${i}`;
     const child = buildNode(ref.id, ref.scope, childKey, isFlex, nextAncestors, depth + 1, state);
     if (child) {
