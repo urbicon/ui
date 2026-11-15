@@ -24,7 +24,9 @@ export type A2uiEnvelope = Record<string, unknown>;
 /**
  * A resolved user action, spec-exact for the body of the A2UI renderer→agent
  * `action` message. `context` bindings are resolved against the data model in
- * the source component's scope before dispatch.
+ * the source component's scope before dispatch. `A2UIView` hands `onAction` a
+ * copy of `context` and `dataModel` taken at the click: typing afterwards does
+ * not change it, and editing it does not change the surface.
  */
 export interface A2uiActionEvent {
   name: string;

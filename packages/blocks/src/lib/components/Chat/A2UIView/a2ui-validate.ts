@@ -34,10 +34,11 @@ import {
   type A2uiCallCatalogs,
   type A2uiCallFault,
   bindingPath,
+  bindingWriteRefusal,
   callName,
   catalogFault,
   exceedsDataDepth,
-  getAtPointer,
+  getAtScopedPath,
   indexCallFault,
   isIndexCall,
   isLogicCall,
@@ -45,6 +46,7 @@ import {
   type OperandBudget,
   pointerIssue,
   pointerSegmentCount,
+  quoted,
   reservedKeyOf,
   resolveDynamic,
   scopedPointer,
@@ -59,11 +61,14 @@ import {
   A2UI_MESSAGE_KEYS,
   A2UI_PROTOCOL_VERSION,
   A2UI_SVG_PATH_RE,
+  A2UI_VALUE_PROP,
   type A2uiComponentSpec,
   type A2uiPropSpec,
   acceptsLogicCall,
   checksGates,
-  ownEntry
+  ownEntry,
+  rendersAsComponent,
+  writesValue
 } from './a2ui-registry';
 import {
   type A2uiSurfaceRequirement,
@@ -115,6 +120,14 @@ export interface A2uiSurfaceState {
   components: Map<string, A2uiComponentInstance>;
   /** Root of the surface data model (mutated in place by two-way edits). */
   dataModel: unknown;
+  /**
+   * How many list slots the writes into `dataModel` have padded, messages and
+   * user edits alike: a write at an index past the end of a list pads the slots
+   * before it, which an action's `sendDataModel` serialises as `null`. A write
+   * that would take it past `A2UI_MAX_NEW_ITEM_INDEX` is refused. 0 at
+   * `createSurface`.
+   */
+  paddedSlots: number;
   issues: A2uiValidationIssue[];
   /** `createSurface.catalogId` as the message wrote it; `undefined` when it named none. */
   catalogId: string | undefined;
@@ -252,7 +265,7 @@ function dynamicRefIssues(value: unknown, path: string, surfaceId: string): A2ui
       issue(
         'warning',
         A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
-        `Function-call binding "${call}" is not supported; it resolves to nothing`,
+        `Function-call binding ${quoted(call)} is not supported; it resolves to nothing`,
         { surfaceId, path }
       )
     ];
@@ -494,7 +507,7 @@ function validateGate(
     : {
         code: A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
         at: '',
-        message: `function "${callName(call)}" is not supported (only ${A2UI_LOGIC_FUNCTION_NAMES} are evaluated)`
+        message: `function ${quoted(String(callName(call)))} is not supported (only ${A2UI_LOGIC_FUNCTION_NAMES} are evaluated)`
       };
   if (!fault) return { store: true, issues: [] };
   return {
@@ -583,7 +596,7 @@ function checksIssues(
             ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION
             : A2UI_ISSUE_CODES.UNKNOWN_PROP,
           `/${i}/${extra}`,
-          `Unexpected key "${extra}" in "${label}" on ${componentName}; a rule is { condition, message? }`
+          `Unexpected key ${quoted(extra)} in "${label}" on ${componentName}; a rule is { condition, message? }`
         )
       );
       continue;
@@ -694,7 +707,20 @@ function validateChildList(
     typeof value.componentId === 'string' &&
     typeof value.path === 'string'
   ) {
-    return { store: true, issues: [] };
+    // A template's path is read as a binding's is, so it is refused as one is.
+    const refused = pointerIssue(value.path);
+    if (!refused) return { store: true, issues: [] };
+    return {
+      store: true,
+      issues: [
+        issue(
+          'error',
+          refused.code,
+          `Template path refused: ${refused.message}; the list renders no items`,
+          { surfaceId, path: `${path}/path` }
+        )
+      ]
+    };
   }
   return {
     store: false,
@@ -777,7 +803,7 @@ function contextValueIssues(
       issue(
         'error',
         fault.code,
-        `action context "${contextKey}" on ${componentName}: ${fault.message}; it is sent as undefined`,
+        `action context ${quoted(contextKey)} on ${componentName}: ${fault.message}; it is sent as undefined`,
         { surfaceId, path: `${path}${fault.at}` }
       )
     ];
@@ -790,7 +816,7 @@ function contextValueIssues(
         issue(
           'warning',
           A2UI_ISSUE_CODES.TYPE_MISMATCH,
-          `action context "${contextKey}" on ${componentName} is a literal object written like a pre-1.0 directive${legacyDirectiveHint(value)}; it is sent as written`,
+          `action context ${quoted(contextKey)} on ${componentName} is a literal object written like a pre-1.0 directive${legacyDirectiveHint(value)}; it is sent as written`,
           { surfaceId, path }
         )
       ];
@@ -799,7 +825,7 @@ function contextValueIssues(
       issue(
         'error',
         A2UI_ISSUE_CODES.INVALID_RESERVED_KEY,
-        `action context "${contextKey}" on ${componentName} holds the reserved key "${reserved}" (a literal "@" key is written doubled: "@${reserved}"); it is sent as undefined`,
+        `action context ${quoted(contextKey)} on ${componentName} holds the reserved key ${quoted(reserved)} (a literal "@" key is written doubled: ${quoted(`@${reserved}`)}); it is sent as undefined`,
         { surfaceId, path: `${path}/${reserved}` }
       )
     ];
@@ -834,7 +860,7 @@ function validateFunctionCallAction(
         issue(
           'warning',
           A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
-          `action.functionCall "${name}" on ${componentName} is not supported; the button is inert`,
+          `action.functionCall ${quoted(name)} on ${componentName} is not supported; the button is inert`,
           { surfaceId, path: `${at}/${A2UI_CALL_KEY}` }
         )
       ]
@@ -855,7 +881,7 @@ function validateFunctionCallAction(
     if (OPEN_URL_CALL_KEYS.has(key)) continue;
     return refuse(
       unexpected(key),
-      `Unexpected key "${key}" in the "${name}" call on ${componentName}`,
+      `Unexpected key ${quoted(key)} in the "${name}" call on ${componentName}`,
       `/${key}`
     );
   }
@@ -872,7 +898,7 @@ function validateFunctionCallAction(
     if (key === 'url') continue;
     return refuse(
       unexpected(key),
-      `Unexpected key "${key}" in the args of the "${name}" call on ${componentName}`,
+      `Unexpected key ${quoted(key)} in the args of the "${name}" call on ${componentName}`,
       `/args/${key}`
     );
   }
@@ -971,7 +997,7 @@ function validateAction(
             issue(
               'error',
               A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
-              `Prohibited action context key "${contextKey}" on ${componentName}`,
+              `Prohibited action context key ${quoted(contextKey)} on ${componentName}`,
               { surfaceId, path: `${path}/event/context/${contextKey}` }
             )
           );
@@ -989,7 +1015,7 @@ function validateAction(
             issue(
               'error',
               A2UI_ISSUE_CODES.MAX_DEPTH,
-              `action context "${contextKey}" on ${componentName} nests deeper than ${A2UI_MAX_DATA_DEPTH} levels; the action is dropped`,
+              `action context ${quoted(contextKey)} on ${componentName} nests deeper than ${A2UI_MAX_DATA_DEPTH} levels; the action is dropped`,
               { surfaceId, path: `${path}/event/context/${contextKey}` }
             )
           );
@@ -1085,7 +1111,7 @@ function validateOptions(
         issue(
           'warning',
           A2UI_ISSUE_CODES.DUPLICATE_OPTION,
-          `Duplicate option value "${option.value}" on ${componentName} (the later option is dropped)`,
+          `Duplicate option value ${quoted(option.value)} on ${componentName} (the later option is dropped)`,
           { surfaceId, path: `${path}/${i}/value` }
         )
       );
@@ -1112,7 +1138,7 @@ function validateIcon(
         issue(
           'warning',
           A2UI_ISSUE_CODES.ICON_UNMAPPED,
-          `Icon "${value}" is not mapped; a fallback glyph is drawn`,
+          `Icon ${quoted(value)} is not mapped; a fallback glyph is drawn`,
           {
             surfaceId,
             path
@@ -1198,7 +1224,7 @@ function validateAccessibility(
           PROTO_KEYS.has(key)
             ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION
             : A2UI_ISSUE_CODES.UNKNOWN_PROP,
-          `Unexpected key "${key}" in "${A2UI_ACCESSIBILITY_PROP}" on ${componentName}; it takes ${Object.keys(A2UI_ACCESSIBILITY_SPEC).join(', ')}`,
+          `Unexpected key ${quoted(key)} in "${A2UI_ACCESSIBILITY_PROP}" on ${componentName}; it takes ${Object.keys(A2UI_ACCESSIBILITY_SPEC).join(', ')}`,
           { surfaceId, path: `${path}/${key}` }
         )
       );
@@ -1260,7 +1286,7 @@ function metadataIssues(
       issue(
         'error',
         PROTO_KEYS.has(key) ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION : A2UI_ISSUE_CODES.TYPE_MISMATCH,
-        `Extension key "${key}" in ${name} must be an identifier (letters, digits and "_", no leading digit)`,
+        `Extension key ${quoted(key)} in ${name} must be an identifier (letters, digits and "_", no leading digit)`,
         { surfaceId, path: `${path}/extensions/${key}` }
       )
     );
@@ -1378,10 +1404,15 @@ function validateComponent(
   }
   if (PROTO_KEYS.has(id)) {
     surface.issues.push(
-      issue('error', A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION, `Prohibited component id "${id}"`, {
-        surfaceId,
-        path: `${base}/id`
-      })
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+        `Prohibited component id ${quoted(id)}`,
+        {
+          surfaceId,
+          path: `${base}/id`
+        }
+      )
     );
     return;
   }
@@ -1390,7 +1421,7 @@ function validateComponent(
       issue(
         'error',
         A2UI_ISSUE_CODES.INVALID_ID,
-        `Component id "${id}" must be an identifier (letters, digits and "_", no leading digit)`,
+        `Component id ${quoted(id)} must be an identifier (letters, digits and "_", no leading digit)`,
         { surfaceId, path: `${base}/id` }
       )
     );
@@ -1400,7 +1431,7 @@ function validateComponent(
       issue(
         'error',
         A2UI_ISSUE_CODES.DUPLICATE_ID,
-        `Duplicate component id "${id}" in one components list (last wins)`,
+        `Duplicate component id ${quoted(id)} in one components list (last wins)`,
         {
           surfaceId,
           path: `${base}/id`
@@ -1429,7 +1460,7 @@ function validateComponent(
       issue(
         'error',
         A2UI_ISSUE_CODES.MISSING_FIELD,
-        `Component "${id}" is missing a string "component"`,
+        `Component ${quoted(id)} is missing a string "component"`,
         { surfaceId, path: `${base}/component` }
       )
     );
@@ -1449,7 +1480,7 @@ function validateComponent(
         issue(
           'error',
           A2UI_ISSUE_CODES.MISSING_FIELD,
-          `Component "${id}" names no "${A2UI_CATALOG_ID_KEY}" and surface "${surfaceId}" has no default catalogId; it is not rendered`,
+          `Component ${quoted(id)} names no "${A2UI_CATALOG_ID_KEY}" and surface ${quoted(surfaceId)} has no default catalogId; it is not rendered`,
           { surfaceId, path: `${base}/${A2UI_CATALOG_ID_KEY}` }
         )
       );
@@ -1461,7 +1492,7 @@ function validateComponent(
         issue(
           'error',
           A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
-          `Unknown "${A2UI_CATALOG_ID_KEY}" "${ownCatalogId}" on "${id}"; it is not rendered`,
+          `Unknown "${A2UI_CATALOG_ID_KEY}" ${quoted(ownCatalogId)} on ${quoted(id)}; it is not rendered`,
           { surfaceId, path: `${base}/${A2UI_CATALOG_ID_KEY}` }
         )
       );
@@ -1471,7 +1502,7 @@ function validateComponent(
       issue(
         'error',
         A2UI_ISSUE_CODES.TYPE_MISMATCH,
-        `"${A2UI_CATALOG_ID_KEY}" on "${id}" must be a string; it is not rendered`,
+        `"${A2UI_CATALOG_ID_KEY}" on ${quoted(id)} must be a string; it is not rendered`,
         { surfaceId, path: `${base}/${A2UI_CATALOG_ID_KEY}` }
       )
     );
@@ -1497,10 +1528,15 @@ function validateComponent(
       );
     } else {
       surface.issues.push(
-        issue('error', A2UI_ISSUE_CODES.UNKNOWN_COMPONENT, `Unknown component "${componentName}"`, {
-          surfaceId,
-          path: `${base}/component`
-        })
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.UNKNOWN_COMPONENT,
+          `Unknown component ${quoted(componentName)}`,
+          {
+            surfaceId,
+            path: `${base}/component`
+          }
+        )
       );
     }
     unrendered(componentName, catalog);
@@ -1517,7 +1553,7 @@ function validateComponent(
         issue(
           'error',
           A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
-          `Prohibited property "${key}" on "${id}"`,
+          `Prohibited property "${key}" on ${quoted(id)}`,
           { surfaceId, path: `${base}/${key}` }
         )
       );
@@ -1573,7 +1609,7 @@ function validateComponent(
         comp[key],
         `${base}/${key}`,
         surfaceId,
-        `"${key}" on "${id}"`
+        `"${key}" on ${quoted(id)}`
       )) {
         surface.issues.push(metadataIssue);
       }
@@ -1584,7 +1620,7 @@ function validateComponent(
         issue(
           'error',
           A2UI_ISSUE_CODES.INVALID_RESERVED_KEY,
-          `Unknown reserved key "${key}" on "${id}"; a component takes ${COMPONENT_MIXIN_KEYS}`,
+          `Unknown reserved key ${quoted(key)} on ${quoted(id)}; a component takes ${COMPONENT_MIXIN_KEYS}`,
           { surfaceId, path: `${base}/${key}` }
         )
       );
@@ -1600,7 +1636,7 @@ function validateComponent(
         issue(
           'error',
           A2UI_ISSUE_CODES.UNKNOWN_PROP,
-          `Unknown property "${key}" on ${componentName}${
+          `Unknown property ${quoted(key)} on ${componentName}${
             LEGACY_MIXIN_KEYS.has(key) ? `; A2UI 1.0 writes it "@${key}"` : ''
           }${heldLegacyChecks ? `; ${heldGates(spec, checkedGates)} until it is fixed` : ''}`,
           { surfaceId, path: `${base}/${key}` }
@@ -1630,7 +1666,7 @@ function validateComponent(
         issue(
           'error',
           A2UI_ISSUE_CODES.MISSING_FIELD,
-          `Required property "${key}" is missing on ${componentName} "${id}"`,
+          `Required property "${key}" is missing on ${componentName} ${quoted(id)}`,
           {
             surfaceId,
             path: `${base}/${key}`
@@ -1681,7 +1717,7 @@ function flagExtraKeys(
       ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION
       : A2UI_ISSUE_CODES.UNKNOWN_PROP;
     sink.push(
-      issue('error', code, `Unexpected key "${key}" in ${container}`, {
+      issue('error', code, `Unexpected key ${quoted(key)} in ${container}`, {
         surfaceId,
         path: `${base}/${key}`
       })
@@ -1733,7 +1769,7 @@ function createProcessor(
           issue(
             'warning',
             A2UI_ISSUE_CODES.INVALID_REQUIREMENT,
-            `surfaceRequirements for "${surface.surfaceId}" ask for ${describeRequirement(requirement)}, which no configured catalog can meet (${fault}); it is not checked`,
+            `surfaceRequirements for ${quoted(surface.surfaceId)} ask for ${describeRequirement(requirement)}, which no configured catalog can meet (${fault}); it is not checked`,
             { surfaceId: surface.surfaceId }
           )
         );
@@ -1809,7 +1845,7 @@ function createProcessor(
         issue(
           'error',
           A2UI_ISSUE_CODES.DUPLICATE_SURFACE,
-          `Surface "${surfaceId}" already exists; delete it before recreating`,
+          `Surface ${quoted(surfaceId)} already exists; delete it before recreating`,
           {
             surfaceId,
             path: `${base}/createSurface/surfaceId`
@@ -1823,7 +1859,7 @@ function createProcessor(
         issue(
           'error',
           A2UI_ISSUE_CODES.MAX_SURFACES,
-          `Surface count exceeds the limit of ${MAX_SURFACES}; "${surfaceId}" was not created`,
+          `Surface count exceeds the limit of ${MAX_SURFACES}; ${quoted(surfaceId)} was not created`,
           { surfaceId, path: `${base}/createSurface/surfaceId` }
         )
       );
@@ -1836,6 +1872,7 @@ function createProcessor(
       surfaceId,
       components: new Map(),
       dataModel: undefined,
+      paddedSlots: 0,
       issues: [],
       catalogId,
       catalog,
@@ -1863,7 +1900,7 @@ function createProcessor(
         issue(
           'error',
           A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
-          `Unknown catalogId "${catalogId}"; a component of this surface renders only with a known "${A2UI_CATALOG_ID_KEY}" of its own`,
+          `Unknown catalogId ${quoted(catalogId)}; a component of this surface renders only with a known "${A2UI_CATALOG_ID_KEY}" of its own`,
           { surfaceId, path: `${base}/createSurface/catalogId` }
         )
       );
@@ -1914,7 +1951,7 @@ function createProcessor(
     // the render, so the order shows only in the order of the issues.
     if ('dataModel' in cs) {
       if (isPlainObject(cs.dataModel)) {
-        const write = writeDataModel(undefined, '', cs.dataModel);
+        const write = writeDataModel(undefined, '', cs.dataModel, surface.paddedSlots);
         if (!write.ok) {
           surface.issues.push(
             issue(
@@ -1929,6 +1966,7 @@ function createProcessor(
           );
         } else {
           surface.dataModel = write.model;
+          surface.paddedSlots = write.paddedSlots;
           if (dataSchema) {
             for (const schemaIssue of validateSchemaWrite(
               dataSchema,
@@ -1990,7 +2028,7 @@ function createProcessor(
         issue(
           'error',
           A2UI_ISSUE_CODES.NO_SURFACE,
-          `updateComponents for unknown surface "${surfaceId}" (createSurface must come first)`,
+          `updateComponents for unknown surface ${quoted(surfaceId)} (createSurface must come first)`,
           {
             surfaceId,
             path: `${base}/updateComponents`
@@ -2041,7 +2079,7 @@ function createProcessor(
         issue(
           'error',
           A2UI_ISSUE_CODES.NO_SURFACE,
-          `updateDataModel for unknown surface "${surfaceId}" (createSurface must come first)`,
+          `updateDataModel for unknown surface ${quoted(surfaceId)} (createSurface must come first)`,
           {
             surfaceId,
             path: `${base}/updateDataModel`
@@ -2085,7 +2123,8 @@ function createProcessor(
     const write = writeDataModel(
       surface.dataModel,
       pathValue ?? '',
-      deletes ? undefined : udm.value
+      deletes ? undefined : udm.value,
+      surface.paddedSlots
     );
     if (!write.ok) {
       surface.issues.push(
@@ -2097,6 +2136,7 @@ function createProcessor(
       return;
     }
     surface.dataModel = write.model;
+    surface.paddedSlots = write.paddedSlots;
 
     // Schema validation (opt-in): a type mismatch on a declared pointer is an
     // error, a write to an undeclared top-level branch a warning — both relayed
@@ -2136,7 +2176,7 @@ function createProcessor(
         issue(
           'error',
           A2UI_ISSUE_CODES.NO_SURFACE,
-          `deleteSurface for unknown surface "${surfaceId}"`,
+          `deleteSurface for unknown surface ${quoted(surfaceId)}`,
           { surfaceId, path: `${base}/deleteSurface` }
         )
       );
@@ -2171,7 +2211,7 @@ function createProcessor(
         'error',
         A2UI_ISSUE_CODES.INVALID_FUNCTION_CALL,
         `${
-          name === undefined ? 'callRendererFunction' : `Function "${name}"`
+          name === undefined ? 'callRendererFunction' : `Function ${quoted(name)}`
         } cannot be called by the agent: this renderer runs no function on the agent's behalf`,
         { functionCallId, path: `${base}/callRendererFunction` }
       )
@@ -2212,7 +2252,7 @@ function createProcessor(
           'error',
           A2UI_ISSUE_CODES.INVALID_VERSION,
           `Unsupported envelope version${
-            typeof env.version === 'string' ? ` "${env.version}"` : ''
+            typeof env.version === 'string' ? ` ${quoted(env.version)}` : ''
           } (expected "${A2UI_PROTOCOL_VERSION}")`,
           {
             path: `${base}/version`
@@ -2371,6 +2411,7 @@ export function collectGraphIssues(
   const reportedDangling = new Set<string>();
   const reportedIndex = new Set<string>();
   const reportedScopeDepth = new Set<string>();
+  const reportedWrite = new Set<string>();
   // Mid-stream every requirement would read as missing — the surface arrives
   // over several envelopes — so they are checked on the settled tree only.
   const required = streaming ? [] : (surface.requirements ?? []);
@@ -2418,8 +2459,8 @@ export function collectGraphIssues(
         } else if (children && typeof children === 'object') {
           const template = children as { componentId?: unknown; path?: unknown };
           if (typeof template.componentId === 'string' && typeof template.path === 'string') {
+            const list = getAtScopedPath(surface.dataModel, template, template.path, scopePrefix);
             const absPath = scopedPointer(template.path, scopePrefix);
-            const list = getAtPointer(surface.dataModel, absPath);
             if (Array.isArray(list)) {
               for (let i = 0; i < list.length; i++) {
                 out.push({ id: template.componentId, scope: `${absPath}/${i}` });
@@ -2430,7 +2471,7 @@ export function collectGraphIssues(
                 issue(
                   'warning',
                   A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
-                  `Template path "${absPath}" did not resolve to an array`,
+                  `Template path ${quoted(absPath)} did not resolve to an array`,
                   {
                     surfaceId
                   }
@@ -2500,7 +2541,7 @@ export function collectGraphIssues(
           issue(
             streaming ? 'warning' : 'error',
             A2UI_ISSUE_CODES.DANGLING_REF,
-            `Reference to undefined component "${id}"`,
+            `Reference to undefined component ${quoted(id)}`,
             { surfaceId }
           )
         );
@@ -2533,7 +2574,7 @@ export function collectGraphIssues(
         issue(
           'error',
           A2UI_ISSUE_CODES.INDEX_OUTSIDE_TEMPLATE,
-          `"${A2UI_INDEX_FUNCTION}" on "${id}" has no list template to count in; it resolves to nothing`,
+          `"${A2UI_INDEX_FUNCTION}" on ${quoted(id)} has no list template to count in; it resolves to nothing`,
           { surfaceId }
         )
       );
@@ -2550,7 +2591,37 @@ export function collectGraphIssues(
           issue(
             'error',
             A2UI_ISSUE_CODES.MAX_DEPTH,
-            `"${id}" binds a relative path of ${relative} segments, which in the template item "${scopePrefix}" reaches ${scoped} levels, deeper than the ${A2UI_MAX_DATA_DEPTH} a data model nests; it resolves to nothing`,
+            `${quoted(id)} binds a relative path of ${relative} segments, which in the template item ${quoted(scopePrefix)} reaches ${scoped} levels, deeper than the ${A2UI_MAX_DATA_DEPTH} a data model nests; it resolves to nothing`,
+            { surfaceId }
+          )
+        );
+      }
+    }
+
+    // A two-way field whose binding the data model cannot take is locked until
+    // it can (`A2uiRenderContext.refusesWrite`), and this is what tells the
+    // agent, once per component. A pointer refused on its own segments was
+    // reported where it was validated, and one its scope takes too deep above.
+    if (
+      !reportedWrite.has(id) &&
+      rendersAsComponent(comp) &&
+      writesValue(ownEntry(comp.catalog?.registry, comp.component))
+    ) {
+      const binding = comp.props.get(A2UI_VALUE_PROP);
+      const refusal = bindingWriteRefusal(
+        surface.dataModel,
+        binding,
+        scopePrefix,
+        surface.paddedSlots
+      );
+      if (refusal?.cause === 'model') {
+        reportedWrite.add(id);
+        const pointer = scopedPointer(bindingPath(binding) as string, scopePrefix);
+        issues.push(
+          issue(
+            'error',
+            refusal.code,
+            `${quoted(id)} is bound to ${quoted(pointer)}, which the data model cannot take: the pointer ${refusal.reason}; the field is locked until the data model can take it`,
             { surfaceId }
           )
         );
@@ -2566,16 +2637,21 @@ export function collectGraphIssues(
       ownEntry(comp.catalog?.registry, comp.component)?.props ?? {}
     )) {
       if (propSpec.kind !== 'options' || !propSpec.dynamic) continue;
-      const bound = bindingPath(comp.props.get(key));
+      const binding = comp.props.get(key);
+      const bound = bindingPath(binding);
       if (bound === undefined) continue;
-      const pointer = scopedPointer(bound, scopePrefix);
-      const resolvedList = getAtPointer(surface.dataModel, pointer);
+      const resolvedList = getAtScopedPath(
+        surface.dataModel,
+        binding as object,
+        bound,
+        scopePrefix
+      );
       if (resolvedList === undefined || Array.isArray(resolvedList)) continue;
       issues.push(
         issue(
           'warning',
           A2UI_ISSUE_CODES.OPTIONS_NOT_A_LIST,
-          `"${key}" on "${id}" is bound to "${pointer}", which is not a list of options`,
+          `${quoted(key)} on ${quoted(id)} is bound to ${quoted(scopedPointer(bound, scopePrefix))}, which is not a list of options`,
           { surfaceId }
         )
       );
@@ -2586,7 +2662,7 @@ export function collectGraphIssues(
         issue(
           'warning',
           A2UI_ISSUE_CODES.WEIGHT_CONTEXT,
-          `"weight" on "${id}" is only honored as a direct child of Row or Column`,
+          `"weight" on ${quoted(id)} is only honored as a direct child of Row or Column`,
           {
             surfaceId
           }
@@ -2599,7 +2675,8 @@ export function collectGraphIssues(
     for (const target of childTargets(comp, scopePrefix)) {
       if (aborted) return;
       if (nextStack.has(target.id)) {
-        if (!spend()) return;
+        // Reported before it spends: the edge that exhausts the budget is still
+        // a cycle the agent has to remove.
         const edge = `${id.length}:${id}${target.id}`;
         if (!reportedCycles.has(edge)) {
           reportedCycles.add(edge);
@@ -2607,11 +2684,12 @@ export function collectGraphIssues(
             issue(
               'error',
               A2UI_ISSUE_CODES.CYCLE,
-              `Cycle detected at component "${target.id}", referenced by "${id}"`,
+              `Cycle detected at component ${quoted(target.id)}, referenced by ${quoted(id)}`,
               { surfaceId }
             )
           );
         }
+        if (!spend()) return;
         continue;
       }
       visit(target.id, depth + 1, nextStack, comp, target.scope, inert);
@@ -2638,7 +2716,7 @@ export function collectGraphIssues(
       issue(
         'error',
         A2UI_ISSUE_CODES.MISSING_REQUIRED_COMPONENT,
-        `Surface "${surfaceId}" must contain ${describeRequirement(entry.requirement)}; none renders from "root" (a fault chip or a hidden one does not count)${elsewhere}`,
+        `Surface ${quoted(surfaceId)} must contain ${describeRequirement(entry.requirement)}; none renders from "root" (a fault chip or a hidden one does not count)${elsewhere}`,
         { surfaceId }
       )
     );
@@ -2723,8 +2801,9 @@ export interface A2uiPayloadValidationOptions {
  *
  * What only the view can report: issues that read the data model after the
  * user changed it. When the user's input leaves a template path or an
- * `options` binding pointing at something that is not a list, the view reports
- * it on that edit; this function sees the data model as the payload wrote it.
+ * `options` binding pointing at something that is not a list, or a field's
+ * binding one the data model refuses a write through, the view reports it on
+ * that edit; this function sees the data model as the payload wrote it.
  *
  * @example
  * ```ts

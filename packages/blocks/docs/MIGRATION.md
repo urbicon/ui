@@ -91,11 +91,22 @@ before and is now refused:
 
 - **A write path RFC 6901 does not define is a `POINTER_ERROR`**, and nothing is written: one that
   is neither `""` nor starts with `/` (it was read as relative to the root), and one with a `~` not
-  followed by `0` or `1` (it was kept as written).
+  followed by `0` or `1` (it was kept as written). A binding with such a `~` is a `POINTER_ERROR` as
+  well and resolves to nothing, where it read the key as written: the key `price~USD` is
+  addressed as `/price~0USD`, not `/price~USD`. A tool handler that rejects a payload on its errors
+  now rejects one that holds such a binding.
+- **A list template's `path` is refused as a binding is**: one with such a `~`, a `__proto__`
+  segment or more than 64 segments is an error at `…/children/path`, and the list renders no items.
+  It rendered the items of the key as written, or nothing without an issue.
 - **So is a list item added above index 10000**, by index or by `-`: `/items/50000000` made a list
   of fifty million, from a message or a bound field alike. Up to index 10000 an index past the end
   is written as before, the gap left as holes, so a field bound to `/guests/1/name` takes the user's
   typing before any guest exists; an item a longer list already holds is written at any index.
+- **And a surface's writes pad at most 10000 list slots in all.** Every slot a write leaves as a
+  hole counts, filled later or not, from a message or a user's edit, from `createSurface` on; a
+  write that would pass the total is a `POINTER_ERROR`. One short `updateDataModel` per list of `/<key>/10000` added another 10000 holes
+  each, and an action with `sendDataModel` serialised every one as `null`. The total is the new
+  `A2uiSurfaceState.paddedSlots`.
 - **So is a write through a string, number or boolean**, at any level, the root included:
   `/user/name/first` onto `{ "user": { "name": "Alice" } }` replaced `"Alice"` with an object, from a
   message or one keystroke in a bound field, and `/a` onto a model replaced with `1` made it
@@ -106,8 +117,14 @@ before and is now refused:
   `surfaceRequirements` compare pointers the same way.
 - **A user's edit is held to the 64 levels a message is.** A bound field whose pointer would nest
   the model deeper writes nothing; before, one keystroke could nest it as deep as the pointer was
-  long. And it writes the root as a message does: a field bound to `""` outside a list template
-  replaces the whole data model with what the user enters, where the edit used to be dropped.
+  long.
+- **An input is disabled while the data model cannot take a write through its binding**: while its
+  pointer is refused, or while the model as it is refuses the write — through a string, number or
+  boolean, or past the padding total. The second case is a `POINTER_ERROR` on the component, from
+  `onValidationError` and `validateA2uiPayload` alike, until the `updateDataModel` that makes room.
+  Before, a field bound to `/user/name/first` over `"Alice"` showed the user's typing, stored none of
+  it and reported nothing. The dispatchers write through a `value` whose spec declares the new
+  `A2uiPropSpec.twoWay`, and read the lock from the new `A2uiRenderContext.refusesWrite`.
 - **A binding of more than 64 segments is a `MAX_DEPTH` error** and resolves to nothing; on a gate it
   holds the failsafe. In a list template the item's scope counts: `collectGraphIssues` reports a
   relative binding the scope takes past the limit.
@@ -115,9 +132,16 @@ before and is now refused:
   action, so a Basic `Button` renders a fault chip.
 - **`CYCLE` is reported once per edge**, and a cycle's back-reference spends the node budget as a
   rendered node does, in `collectGraphIssues` and in the render tree alike: a fan-out of
-  self-references ends at `MAX_NODES` instead of reporting each one.
+  self-references ends at `MAX_NODES` instead of reporting each one. The back-reference that spends
+  the last of the budget is still reported as a `CYCLE`.
 - **`updateDataModel` reports a fault of its path at `…/updateDataModel/path`**; a path of more than
-  64 segments was reported at `…/value`.
+  64 segments was reported at `…/value`, and every other fault of a path — `01` or `foo` on a list,
+  a `__proto__` segment — carried the pointer itself as its `path` (`"/items/01"`).
+- **An issue message quotes at most the first 64 characters of a string from the payload**, cut
+  with `…`: an id, a key, a pointer, a template item's scope. Before, a message repeated it whole,
+  once per issue.
+- **`onAction` receives a copy** of the event's `context` and `dataModel`, taken at the click: typing
+  afterwards changed an event already dispatched, and editing the event changed the surface.
 
 ### A2UI: `@accessibility.label` names what takes focus, and is never shown
 

@@ -19,8 +19,8 @@ import type { Component, Snippet } from 'svelte';
 import type { IconComponent } from '#lib/icons/index.js';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
-import { bindingPath, callName, getAtPointer, scopedPointer } from './a2ui-data';
-import { ownEntry } from './a2ui-registry';
+import { bindingPath, callName, getAtScopedPath, scopedPointer } from './a2ui-data';
+import { A2UI_VALUE_PROP, ownEntry, writesValue } from './a2ui-registry';
 import type { A2uiComponentInstance, A2uiSurfaceState } from './a2ui-validate';
 
 /** Default traversal bounds — mirror `collectGraphIssues` so the tree and the issue list agree. */
@@ -92,6 +92,13 @@ export interface A2uiRenderContext {
     value: unknown,
     scopePrefix: string | undefined
   ) => { value: unknown; issue?: A2uiValidationIssue };
+  /**
+   * Whether the data model refuses a write through `value`, a two-way field's
+   * binding, in `scopePrefix`: its pointer is refused, or the model as it is
+   * cannot take a write there. The field renders disabled while it does, and
+   * `collectGraphIssues` reports the second case.
+   */
+  refusesWrite: (value: unknown, scopePrefix: string | undefined) => boolean;
   /** Write a value at an absolute JSON Pointer into the surface model, then bump. */
   write: (pointer: string, value: unknown) => void;
   /** Delete the key at an absolute JSON Pointer from the surface model, then bump. */
@@ -148,6 +155,22 @@ export function bindingPointer(
   const path = bindingPath(value);
   if (path === undefined) return undefined;
   return scopedPointer(path, scopePrefix);
+}
+
+/**
+ * The absolute JSON Pointer a two-way field writes what the user enters to:
+ * its `value` binding in `scopePrefix`, where its catalog declares that prop
+ * two-way ({@link writesValue}). `undefined` for any other component, and for
+ * a literal or a function call.
+ */
+export function writePointer(
+  instance: A2uiComponentInstance | null,
+  scopePrefix: string | undefined
+): string | undefined {
+  if (!instance || !writesValue(ownEntry(instance.catalog?.registry, instance.component))) {
+    return undefined;
+  }
+  return bindingPointer(instance.props.get(A2UI_VALUE_PROP), scopePrefix);
 }
 
 /** Coerce an unknown model value to a string array of stable option values (for ChoicePicker). */
@@ -219,9 +242,9 @@ function childRefs(
       } else if (children !== null && typeof children === 'object') {
         const template = children as { componentId?: unknown; path?: unknown };
         if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-          const absPath = scopedPointer(template.path, scopePrefix);
-          const list = getAtPointer(state.dataModel, absPath);
+          const list = getAtScopedPath(state.dataModel, template, template.path, scopePrefix);
           if (Array.isArray(list)) {
+            const absPath = scopedPointer(template.path, scopePrefix);
             for (let i = 0; i < list.length; i++) {
               out.push({ id: template.componentId, scope: `${absPath}/${i}`, slot: key });
               if (out.length > state.maxNodes) break; // bound the expansion itself

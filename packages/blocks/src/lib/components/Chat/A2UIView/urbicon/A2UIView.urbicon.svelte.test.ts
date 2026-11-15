@@ -4,11 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import A2UIView from '../A2UIView.svelte';
-import type { A2uiActionEvent, A2uiValidationIssue } from '../a2ui.types';
+import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from '../a2ui.types';
 import type { A2uiPropSpec } from '../a2ui-registry';
+import { validateA2uiPayload } from '../a2ui-validate';
 import type { A2UIViewProps } from '../index';
 import { urbiconA2uiCatalog } from './a2ui-urbicon-catalog';
-import { URBICON_A2UI_CATALOG_ID, URBICON_A2UI_REGISTRY } from './a2ui-urbicon-registry';
+import {
+  URBICON_A2UI_CATALOG_ID,
+  URBICON_A2UI_REGISTRY,
+  urbiconA2uiCatalogSpec
+} from './a2ui-urbicon-registry';
 
 // DOM tests for the Urbicon A2UI dispatcher. The registry + axes have a node
 // suite; here we assert the render layer: every catalog component mounts through
@@ -687,5 +692,103 @@ describe('UrbiconA2UINode — @accessibility', () => {
       ]
     });
     expect(screen.queryAllByRole('group')).toHaveLength(0);
+  });
+});
+
+describe('a field the data model cannot take', () => {
+  const at = (path: string, value: unknown): Envelope => ({
+    version: V,
+    updateDataModel: { surfaceId: 's', path, value }
+  });
+  const form = (field: Record<string, unknown>, dataModel: unknown): unknown[] => [
+    { version: V, createSurface: { surfaceId: 's', catalogId: CID, dataModel } },
+    comps([
+      { id: 'root', component: 'Column', children: ['field'] },
+      { id: 'field', ...field }
+    ])
+  ];
+  const locked = (element: Element) =>
+    (element as HTMLInputElement).disabled === true ||
+    element.getAttribute('aria-disabled') === 'true';
+  const pointerErrors = (issues: readonly A2uiValidationIssue[]) =>
+    issues.filter((issue) => issue.code === A2UI_ISSUE_CODES.POINTER_ERROR);
+  const through = { '@path': '/user/name/first' };
+  const options = [
+    { label: 'One', value: 'one' },
+    { label: 'Two', value: 'two' }
+  ];
+
+  it.each([
+    ['Input', { component: 'Input', label: 'First', value: through }, 'textbox'],
+    ['Textarea', { component: 'Textarea', label: 'First', value: through }, 'textbox'],
+    ['Checkbox', { component: 'Checkbox', label: 'First', value: through }, 'checkbox'],
+    ['RadioGroup', { component: 'RadioGroup', options, value: through }, 'radio'],
+    ['Select', { component: 'Select', multiple: true, options, value: through }, 'combobox'],
+    ['Slider', { component: 'Slider', max: 10, value: through }, 'slider'],
+    ['Toggle', { component: 'Toggle', label: 'First', value: through }, 'switch'],
+    ['DatePicker', { component: 'DatePicker', label: 'First', value: through }, 'textbox'],
+    ['TimeInput', { component: 'TimeInput', label: 'First', value: through }, 'spinbutton']
+  ])(
+    'locks %s while its pointer runs through a string, and unlocks it once a message fixes the model',
+    (_name, field, role) => {
+      const payload = form(field, { user: { name: 'Alice' } });
+      const { props, issues } = render({ payload });
+
+      expect(screen.getAllByRole(role).every(locked)).toBe(true);
+      expect(pointerErrors(issues).map((issue) => issue.severity)).toEqual(['error']);
+      expect(issues).toEqual(validateA2uiPayload(payload, { catalogs: [urbiconA2uiCatalogSpec] }));
+
+      flushSync(() => {
+        props.payload = [...payload, at('/user/name', {})];
+      });
+      expect(screen.getAllByRole(role).some(locked)).toBe(false);
+      expect(pointerErrors(issues)).toEqual([]);
+    }
+  );
+
+  it('locks an Input on a root a message replaced with a number', () => {
+    const payload = [
+      ...form({ component: 'Input', label: 'Name', value: { '@path': '/name' } }, { name: 'A' }),
+      at('/', 7)
+    ];
+    const { props, issues } = render({ payload });
+    expect(locked(screen.getByRole('textbox'))).toBe(true);
+    expect(pointerErrors(issues)).toHaveLength(1);
+    flushSync(() => {
+      props.payload = [...payload, at('/', {})];
+    });
+    expect(locked(screen.getByRole('textbox'))).toBe(false);
+    expect(pointerErrors(issues)).toEqual([]);
+  });
+
+  it('locks only the template items whose scoped pointer the model refuses', () => {
+    const payload = [
+      {
+        version: V,
+        createSurface: { surfaceId: 's', catalogId: CID, dataModel: { rows: [{}, 'b'] } }
+      },
+      comps([
+        { id: 'root', component: 'List', children: { componentId: 'row', path: '/rows' } },
+        { id: 'row', component: 'Input', label: 'Row', value: { '@path': 'name' } }
+      ])
+    ];
+    const { props, issues } = render({ payload });
+    expect(screen.getAllByRole('textbox').map(locked)).toEqual([false, true]);
+    expect(pointerErrors(issues)).toHaveLength(1);
+    flushSync(() => {
+      props.payload = [...payload, at('/rows/1', {})];
+    });
+    expect(screen.getAllByRole('textbox').map(locked)).toEqual([false, false]);
+    expect(pointerErrors(issues)).toEqual([]);
+  });
+
+  it('leaves a field enabled and silent whose write creates what its pointer passes through', () => {
+    const payload = form(
+      { component: 'Input', label: 'Guest', value: { '@path': '/guests/1/name' } },
+      {}
+    );
+    const { issues } = render({ payload });
+    expect(locked(screen.getByRole('textbox'))).toBe(false);
+    expect(issues).toEqual([]);
   });
 });

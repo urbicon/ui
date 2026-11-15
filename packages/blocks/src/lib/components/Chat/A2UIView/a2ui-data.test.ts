@@ -84,7 +84,7 @@ function deepPointer(segments: number): string {
 
 /** The model after a write that must apply. */
 function written(model: unknown, pointer: string, value: unknown): unknown {
-  const write = writeDataModel(model, pointer, value);
+  const write = writeDataModel(model, pointer, value, 0);
   if (!write.ok) throw new Error(`refused: ${write.message}`);
   return write.model;
 }
@@ -111,7 +111,7 @@ describe('writeDataModel', () => {
   it.each([1, false, 0, ''])(
     'refuses to write through a root that holds %j, which a whole-model write still replaces',
     (root) => {
-      const write = writeDataModel(root, '/a', 2);
+      const write = writeDataModel(root, '/a', 2, 0);
       expect(write.ok || [write.refused, write.code]).toEqual([
         'pointer',
         A2UI_ISSUE_CODES.POINTER_ERROR
@@ -130,7 +130,7 @@ describe('writeDataModel', () => {
     'refuses %s, which runs through a string, number or boolean, and writes nothing',
     (pointer, model) => {
       const before = structuredClone(model);
-      const write = writeDataModel(model, pointer, 'x');
+      const write = writeDataModel(model, pointer, 'x', 0);
       expect(write.ok || [write.refused, write.code]).toEqual([
         'pointer',
         A2UI_ISSUE_CODES.POINTER_ERROR
@@ -188,9 +188,9 @@ describe('writeDataModel', () => {
 
   it('refuses proto segments and leaves the prototype clean', () => {
     const model: Record<string, unknown> = {};
-    const first = writeDataModel(model, '/__proto__/polluted', true);
+    const first = writeDataModel(model, '/__proto__/polluted', true, 0);
     expect(first.ok || first.code).toBe(A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION);
-    expect(writeDataModel(model, '/constructor', true).ok).toBe(false);
+    expect(writeDataModel(model, '/constructor', true, 0).ok).toBe(false);
     expect(model).toEqual({});
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
@@ -202,7 +202,7 @@ describe('writeDataModel', () => {
     ['a trailing "~"', '/a~']
   ])('refuses a pointer with %s and writes nothing', (_label, pointer) => {
     const model = { kept: true };
-    const write = writeDataModel(model, pointer, 'x');
+    const write = writeDataModel(model, pointer, 'x', 0);
     expect(write.ok || [write.refused, write.code]).toEqual([
       'pointer',
       A2UI_ISSUE_CODES.POINTER_ERROR
@@ -240,7 +240,7 @@ describe('writeDataModel', () => {
     '/newArray/10000000/field'
   ])('refuses a new list item above that index, at %s, and writes nothing', (pointer) => {
     const model = { items: ['a', 'b', 'c'] };
-    const write = writeDataModel(model, pointer, 'x');
+    const write = writeDataModel(model, pointer, 'x', 0);
     expect(write.ok || [write.refused, write.code]).toEqual([
       'pointer',
       A2UI_ISSUE_CODES.POINTER_ERROR
@@ -251,7 +251,7 @@ describe('writeDataModel', () => {
   it('refuses to append above that index, by index and by "-"', () => {
     const model = written({}, `/items/${MAX}`, 'x') as { items: unknown[] };
     for (const pointer of [`/items/${MAX + 1}`, '/items/-']) {
-      expect(writeDataModel(model, pointer, 'y').ok).toBe(false);
+      expect(writeDataModel(model, pointer, 'y', 0).ok).toBe(false);
     }
     expect(model.items.length).toBe(MAX + 1);
   });
@@ -265,12 +265,41 @@ describe('writeDataModel', () => {
     expect(getAtPointer(written(model, `/items/${MAX + 3}`, 'x'), `/items/${MAX + 3}`)).toBe('x');
   });
 
+  it('counts the slots a write pads: past the end of a list, also in lists it creates', () => {
+    const padded = (model: unknown, pointer: string) => {
+      const write = writeDataModel(model, pointer, 'x', 0);
+      if (!write.ok) throw new Error(write.message);
+      return write.paddedSlots;
+    };
+    expect(padded({ items: ['a', 'b', 'c'] }, `/items/${MAX}`)).toBe(MAX - 3);
+    expect(padded({}, '/guests/1/name')).toBe(1);
+    expect(padded({}, '/a/2/b/3')).toBe(5);
+    expect(padded({ items: ['a'] }, '/items/1')).toBe(0);
+    expect(padded({ items: ['a'] }, '/items/-')).toBe(0);
+    expect(padded({ items: [] as unknown[] }, '/items/0')).toBe(0);
+  });
+
+  it(`refuses a write that would pad more than ${MAX} slots on the surface in all`, () => {
+    const model = {};
+    const first = writeDataModel(model, `/a/${MAX - 3}`, 'x', 0);
+    expect(first.ok && first.paddedSlots).toBe(MAX - 3);
+    const used = MAX - 3;
+    expect(writeDataModel(model, '/b/3', 'x', used).ok).toBe(true);
+    const over = writeDataModel(model, '/c/4', 'x', used);
+    expect(over.ok || [over.refused, over.code]).toEqual([
+      'pointer',
+      A2UI_ISSUE_CODES.POINTER_ERROR
+    ]);
+    expect(over.ok || over.message).toContain(`${MAX} one surface's data model may be padded with`);
+    expect(getAtPointer(model, '/c')).toBeUndefined();
+  });
+
   it.each(['/items/01', '/items/01/nested', '/items/x'])(
     'reads %s on a list as missing, and refuses to write it',
     (pointer) => {
       const model = { items: ['a', 'b', 'c'] };
       expect(getAtPointer(model, pointer)).toBeUndefined();
-      const write = writeDataModel(model, pointer, 'x');
+      const write = writeDataModel(model, pointer, 'x', 0);
       expect(write.ok || [write.refused, write.code]).toEqual([
         'pointer',
         A2UI_ISSUE_CODES.POINTER_ERROR
@@ -281,9 +310,9 @@ describe('writeDataModel', () => {
 
   it('leaves no container behind when a later segment refuses the write', () => {
     const model: Record<string, unknown> = {};
-    expect(writeDataModel(model, `/a/b/list/${MAX + 1}`, 'x').ok).toBe(false);
+    expect(writeDataModel(model, `/a/b/list/${MAX + 1}`, 'x', 0).ok).toBe(false);
     expect(model).toEqual({});
-    expect(writeDataModel(undefined, `/${MAX + 1}`, 'x').ok).toBe(false);
+    expect(writeDataModel(undefined, `/${MAX + 1}`, 'x', 0).ok).toBe(false);
   });
 
   it(`writes up to ${A2UI_MAX_DATA_DEPTH} levels, counting a level per segment`, () => {
@@ -302,7 +331,7 @@ describe('writeDataModel', () => {
     'refuses a write that nests the model too deep %s, and writes nothing',
     (_label, pointer, value, refused) => {
       const model = { kept: true };
-      const write = writeDataModel(model, pointer, value);
+      const write = writeDataModel(model, pointer, value, 0);
       expect(write.ok || [write.refused, write.code]).toEqual([
         refused,
         A2UI_ISSUE_CODES.MAX_DEPTH
@@ -323,8 +352,8 @@ describe('writeDataModel', () => {
   it('deletes nothing through a missing path, and nothing through a refused pointer', () => {
     const model = { a: 1, 'invalid path [0]': 2 };
     written(model, '/missing/deep', undefined);
-    expect(writeDataModel(model, '/__proto__/x', undefined).ok).toBe(false);
-    expect(writeDataModel(model, 'invalid path [0]', undefined).ok).toBe(false);
+    expect(writeDataModel(model, '/__proto__/x', undefined, 0).ok).toBe(false);
+    expect(writeDataModel(model, 'invalid path [0]', undefined, 0).ok).toBe(false);
     expect(model).toEqual({ a: 1, 'invalid path [0]': 2 });
   });
 });

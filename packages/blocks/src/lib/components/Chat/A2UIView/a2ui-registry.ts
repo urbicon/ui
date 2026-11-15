@@ -71,14 +71,32 @@ export interface A2uiPropSpec {
    * does not count as true (`coerceBoolean`).
    */
   readsChecks?: boolean;
+  /**
+   * {@link A2UI_VALUE_PROP} only: the component is an input, and what the user
+   * enters is written back through this prop's `{ "@path" }` binding — A2UI's
+   * two-way binding. A `value` without it is shown and never written, as a
+   * `Progress` bar's is (see {@link writesValue}).
+   */
+  twoWay?: boolean;
 }
 
 /**
  * The prop through which an input binds what the user enters. Both node
- * dispatchers write user input back through it, and a surface requirement's
- * `path` is matched against it unless the requirement names another prop.
+ * dispatchers write user input back through it where the component declares it
+ * `twoWay`, and a surface requirement's `path` is matched against it unless the
+ * requirement names another prop.
  */
 export const A2UI_VALUE_PROP = 'value';
+
+/**
+ * Whether a component writes what the user enters back through its `value`
+ * binding: its spec declares that prop `twoWay`. Both dispatchers write through
+ * no other, and a field whose binding the data model refuses is locked and
+ * reported (`collectGraphIssues`) only where this holds.
+ */
+export function writesValue(spec: A2uiComponentSpec | undefined): boolean {
+  return ownEntry(spec?.props, A2UI_VALUE_PROP)?.twoWay === true;
+}
 
 /**
  * Whether a prop takes a logic call: a dynamic boolean that declares its
@@ -528,6 +546,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'string',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The field value. Bind with { "@path" } for two-way binding.'
       },
       placeholder: {
@@ -559,6 +578,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'boolean',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The checked state. Bind with { "@path" } for two-way binding.'
       }
     })
@@ -579,6 +599,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'stringList',
         required: true,
         dynamic: true,
+        twoWay: true,
         description:
           'The selected values as a string array in the data model. Single-select writes a one-element array.'
       },
@@ -617,6 +638,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'number',
         required: true,
         dynamic: true,
+        twoWay: true,
         description: 'The current value. Bind with { "@path" } for two-way binding.'
       },
       max: {
@@ -653,6 +675,7 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = lookup
         kind: 'string',
         required: true,
         dynamic: true,
+        twoWay: true,
         description:
           'The ISO 8601 date/time string ("" when unset). Bind with { "@path" } for two-way binding.'
       },

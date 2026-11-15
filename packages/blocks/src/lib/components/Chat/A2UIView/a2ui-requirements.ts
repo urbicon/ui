@@ -14,14 +14,13 @@
  */
 
 import type { A2uiCatalogSpec } from './a2ui-catalog';
-import { collapsePointer } from './a2ui-data';
+import { bindingPath, callName, parseScopedPath } from './a2ui-data';
 import {
   A2UI_VALUE_PROP,
   type A2uiComponentSpec,
   ownEntry,
   rendersAsComponent
 } from './a2ui-registry';
-import { bindingPointer } from './a2ui-render';
 
 /**
  * One component a surface must contain. It counts once a component of that
@@ -111,8 +110,15 @@ export function meetsRequirement(
   if (instance.component !== requirement.component) return false;
   if (!rendersAsComponent(instance)) return false;
   if (requirement.path === undefined) return true;
-  const bound = bindingPointer(instance.props.get(boundProp(requirement)), scopePrefix);
-  return bound !== undefined && collapsePointer(bound) === collapsePointer(requirement.path);
+  const binding = instance.props.get(boundProp(requirement));
+  const path = bindingPath(binding);
+  if (path === undefined || callName(binding) !== undefined) return false;
+  // Compared segment by segment, each side parsed once and kept with its
+  // object: this runs for every candidate in every template item.
+  const bound = parseScopedPath(binding as object, path, scopePrefix);
+  const wanted = parseScopedPath(requirement, requirement.path, undefined);
+  if (bound.issue || wanted.issue || bound.segments.length !== wanted.segments.length) return false;
+  return bound.segments.every((segment, i) => segment === wanted.segments[i]);
 }
 
 /** The requirement in the words the prompt and the issue both use. */

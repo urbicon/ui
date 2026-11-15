@@ -29,6 +29,11 @@ describe('validateSchemaWrite', () => {
     ]);
   });
 
+  it('reads the top-level branch of a declared pointer with its empty segments collapsed', () => {
+    const issues = validateSchemaWrite({ '//user/x': { type: 'string' } }, '/user/y', 'Ada');
+    expect(issues.map((i) => i.code)).not.toContain('SCHEMA_UNDECLARED_PATH');
+  });
+
   it('flags a type mismatch on a declared pointer as an error', () => {
     const issues = validateSchemaWrite(SCHEMA, '/party', 'three', 's');
     expect(issues).toHaveLength(1);

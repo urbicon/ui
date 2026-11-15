@@ -19,7 +19,7 @@
  */
 
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
-import { collapsePointer, getAtPointer } from './a2ui-data';
+import { collapsePointer, getAtPointer, quoted } from './a2ui-data';
 
 /** The JSON primitive/shape a declared field holds. */
 export type A2uiSchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object';
@@ -142,7 +142,7 @@ export function validateSchemaWrite(
         code: A2UI_ISSUE_CODES.SCHEMA_UNDECLARED_PATH,
         surfaceId,
         path: pointer,
-        message: `Data path "${pointer}" is not declared in the surface schema`
+        message: `Data path ${quoted(target)} is not declared in the surface schema`
       }
     ];
   }

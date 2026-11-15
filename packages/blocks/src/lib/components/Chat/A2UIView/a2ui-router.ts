@@ -27,6 +27,7 @@
  */
 
 import { A2UI_ISSUE_CODES, type A2uiValidationIssue } from './a2ui.types';
+import { quoted } from './a2ui-data';
 import {
   A2UI_MESSAGE_KEYS,
   A2UI_PROTOCOL_VERSION,
@@ -233,7 +234,7 @@ export class A2uiSurfaceRouter {
             code: A2UI_ISSUE_CODES.SURFACE_RECREATED,
             surfaceId,
             message:
-              `Surface "${surfaceId}" was already created earlier in this conversation. ` +
+              `Surface ${quoted(surfaceId)} was already created earlier in this conversation. ` +
               "A surfaceId must stay unique for the renderer's lifetime — to change an " +
               'existing surface send updateComponents/updateDataModel for it instead of ' +
               'createSurface, or pick a new id.'

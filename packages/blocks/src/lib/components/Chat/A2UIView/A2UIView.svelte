@@ -3,10 +3,10 @@
   import { Alert } from '#lib/primitives/index.js';
   import { getBlocksConfig, resolveSlotClasses } from '#lib/provider/index.js';
   import { resolveClassChain } from '#lib/utils/variants.js';
-  import type { A2uiValidationIssue } from './a2ui.types';
+  import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
   import { basicA2uiCatalog } from './a2ui-basic-catalog';
   import type { A2uiCatalog } from './a2ui-catalog';
-  import { resolveDynamic, writeDataModel } from './a2ui-data';
+  import { bindingWriteRefusal, copyData, resolveDynamic, writeDataModel } from './a2ui-data';
   import { readHidden } from './a2ui-node-common';
   import { A2UI_ACCESSIBILITY_PROP } from './a2ui-registry';
   import { type A2uiRenderContext, type A2uiRenderNode, buildRenderTree } from './a2ui-render';
@@ -140,16 +140,31 @@
 
   // Two-way write-back through the processor's own write path, then bump so the
   // render tree re-derives with the new value (bound labels update live). A
-  // refused write changes nothing and reports nothing: what refuses it is the
-  // binding, which validation reported, or the model at that moment, which the
-  // next message may change. `undefined` removes the key.
+  // field is disabled while `refusesWrite` — this write's pointer rule — refuses
+  // its binding, and `collectGraphIssues` reports it. A write refused here for
+  // its value — a list at a pointer of `A2UI_MAX_DATA_DEPTH` segments — is
+  // neither locked nor reported. `undefined` removes the key.
   function writeBinding(surfaceId: string, pointer: string, value: unknown): void {
     const surface = processor.surfaces.get(surfaceId);
     if (!surface) return;
-    const write = writeDataModel(surface.dataModel, pointer, value);
+    const write = writeDataModel(surface.dataModel, pointer, value, surface.paddedSlots);
     if (!write.ok) return;
     surface.dataModel = write.model;
+    surface.paddedSlots = write.paddedSlots;
     bump();
+  }
+
+  // What the consumer receives is a copy, taken at the click: typing after it
+  // does not change an event already dispatched, and an edit of the event does
+  // not reach the surface. Context values read from the model are copied too.
+  function copiedAction(event: A2uiActionEvent): A2uiActionEvent {
+    const context: Record<string, unknown> = {};
+    for (const key of Object.keys(event.context)) context[key] = copyData(event.context[key]);
+    return {
+      ...event,
+      context,
+      ...(event.dataModel === undefined ? {} : { dataModel: copyData(event.dataModel) })
+    };
   }
 
   // ── Resolved slot classes ────────────────────────────────────────────────
@@ -190,6 +205,7 @@
     const isStreaming = streamingProp;
     const isUnstyled = unstyled;
     const currentClasses = classes;
+    const actionSink = onAction;
     const surfaces: SurfaceView[] = [];
     // A server's `validateA2uiPayload` builds its list with this same call, so an
     // issue added beside it here is one the server never reports.
@@ -214,11 +230,13 @@
         streaming: isStreaming,
         inline: false,
         surfaceId: surface.surfaceId,
-        onAction,
+        onAction: actionSink && ((event) => actionSink(copiedAction(event))),
         // Read lazily: the click, not the render, decides what the agent sees.
         actionDataModel: surface.sendDataModel ? () => surface.dataModel : undefined,
         resolve: (value, scope) =>
           resolveDynamic(value, surface.dataModel, scope, surface.callCatalogs),
+        refusesWrite: (value, scope) =>
+          bindingWriteRefusal(surface.dataModel, value, scope, surface.paddedSlots) !== undefined,
         write: (pointer, value) => writeBinding(surface.surfaceId, pointer, value),
         remove: (pointer) => writeBinding(surface.surfaceId, pointer, undefined),
         labels: {

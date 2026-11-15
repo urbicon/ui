@@ -84,11 +84,23 @@ of a list leaves the gap as holes, which read as missing and serialise as `null`
 It never replaces a string, number or boolean with a container: a path that runs through one —
 `/user/name/first` onto `"Alice"`, or `/a` onto a model the agent replaced with `1` — is refused.
 So is a `path` that is neither `""` nor starts with `/`, holds a `~` not followed by `0` or `1`,
-has a segment into a list that is no index (`01`, `name`), or adds a list item above index 10000.
-Each is a `POINTER_ERROR`, and nothing is written; a user's edit the path refuses changes nothing.
-A binding with more segments than the model has levels, a template item's scope included, is a
-`MAX_DEPTH` error and resolves to nothing — on a gate such as `disabled`, to its failsafe. So is an
-action's context literal nested deeper than 64 levels, and the action is dropped.
+has a segment into a list that is no index (`01`, `name`), or adds a list item above index 10000;
+and a write that would pad a surface's lists with more than 10000 empty slots in all, every slot a
+message or a user's edit has padded since `createSurface` counted. Each is a `POINTER_ERROR`, and
+nothing is written.
+
+A binding, and a list template's `path`, is read by the same rules. One with a `~` not followed by
+`0` or `1` is a `POINTER_ERROR` and resolves to nothing — a key that holds a `~` is addressed as
+`~0`. One with more segments than the model has levels, a template item's scope included, is a
+`MAX_DEPTH` error and resolves to nothing — on a gate such as `disabled`, to its failsafe. A
+template whose `path` is refused renders no items. An action's context literal nested deeper than
+64 levels is a `MAX_DEPTH` error too, and the action is dropped.
+
+An input is disabled while the data model cannot take a write through its binding: while its
+pointer is refused, or while the write would be — it runs through a string, number or boolean the
+model holds now, or would pad past the surface's 10000 slots. That second case is a `POINTER_ERROR` on the input, from
+`onValidationError` and `validateA2uiPayload` alike, and both are recomputed from the data model:
+the `updateDataModel` that makes room for the write enables the input and clears the issue.
 
 ## Surfaces outlive the reply that created them
 

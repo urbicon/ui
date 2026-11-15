@@ -41,7 +41,7 @@
     rendersAsComponent
   } from '../a2ui-registry';
   import type { A2uiNodeProps, A2uiRenderNode } from '../a2ui-render';
-  import { bindingPointer, toInputString, toStringArray } from '../a2ui-render';
+  import { toInputString, toStringArray, writePointer } from '../a2ui-render';
   import { a2uiUrbiconVariants } from './a2ui-urbicon.variants';
 
   // Recursive dispatcher for the Urbicon A2UI catalog — the sibling of A2UINode,
@@ -304,8 +304,13 @@
 
   // ── Two-way inputs ──────────────────────────────────────────────────────────
   function valuePointer(): string | undefined {
-    return bindingPointer(raw(A2UI_VALUE_PROP), node.scopePrefix);
+    return writePointer(instance, node.scopePrefix);
   }
+  // A field the data model cannot take a write from is locked: an edit it
+  // showed would be neither stored nor sent.
+  const writeLocked = $derived(
+    valuePointer() !== undefined && context.refusesWrite(raw(A2UI_VALUE_PROP), node.scopePrefix)
+  );
 
   const textValue = $derived.by(() => {
     const pointer = valuePointer();
@@ -693,6 +698,7 @@
     label={resolvedText('label')}
     type={u(enumOr('inputType', 'text'))}
     value={textValue}
+    disabled={writeLocked}
     placeholder={resolvedText('placeholder') || undefined}
     error={fieldError || undefined}
     oninput={onTextInput}
@@ -704,6 +710,7 @@
     unstyled={context.unstyled}
     label={resolvedText('label')}
     value={textValue}
+    disabled={writeLocked}
     placeholder={resolvedText('placeholder') || undefined}
     error={fieldError || undefined}
     rows={typeof raw('rows') === 'number' ? (raw('rows') as number) : undefined}
@@ -716,6 +723,7 @@
     unstyled={context.unstyled}
     label={resolvedText('label')}
     checked={boolValue}
+    disabled={writeLocked}
     onCheckedChange={onBoolChange}
     style={weightStyle}
     aria-label={ariaLabel}
@@ -726,6 +734,7 @@
     unstyled={context.unstyled}
     label={resolvedText('label') || undefined}
     value={radioValue}
+    disabled={writeLocked}
     onValueChange={onRadioChange}
     orientation={enumOr('orientation', 'vertical') === 'horizontal' ? 'horizontal' : 'vertical'}
     style={weightStyle}
@@ -744,6 +753,7 @@
       placeholder={resolvedText('placeholder') || undefined}
       options={choiceOptions}
       value={selectValues}
+      disabled={writeLocked}
       onValueChange={onSelectMultiple}
       style={weightStyle}
       {...byReference}
@@ -755,6 +765,7 @@
       placeholder={resolvedText('placeholder') || undefined}
       options={choiceOptions}
       value={selectValues[0] ?? null}
+      disabled={writeLocked}
       onValueChange={onSelectSingle}
       style={weightStyle}
       {...byReference}
@@ -771,6 +782,7 @@
     max={sliderMax}
     step={typeof raw('step') === 'number' ? (raw('step') as number) : undefined}
     showValue
+    disabled={writeLocked}
     onValueChange={onSliderChange}
     style={weightStyle}
     {...byReference}
@@ -780,6 +792,7 @@
     unstyled={context.unstyled}
     label={resolvedText('label')}
     checked={boolValue}
+    disabled={writeLocked}
     onCheckedChange={onBoolChange}
     style={weightStyle}
     {...byReference}
@@ -791,6 +804,7 @@
       unstyled={context.unstyled}
       label={label || undefined}
       value={dtParts.date || null}
+      disabled={writeLocked}
       onValueChange={onDateChange}
       minDate={dtMinDate}
       maxDate={dtMaxDate}
@@ -809,6 +823,7 @@
       unstyled={context.unstyled}
       label={label || undefined}
       value={dtParts.time || undefined}
+      disabled={writeLocked}
       onValueChange={onTimeChange}
       withSeconds={dtParts.time.length > 5}
       min={dtMinParts.time && !dtMinParts.date ? dtMinParts.time : undefined}
