@@ -272,12 +272,15 @@ describe('TimeInput (restProps)', () => {
     }
   });
 
-  it('appends a consumer aria-labelledby to the field group after its own label', () => {
+  // The order accessible-name computation gives a native control and its <label>.
+  it('names the field group by a consumer aria-labelledby over its label, which stays visible', () => {
+    const heading = document.createElement('h2');
+    heading.id = 'outside-label';
+    heading.textContent = 'Opening time';
+    document.body.append(heading);
     render({ 'data-testid': 'start', label: 'Start', 'aria-labelledby': 'outside-label' });
-    const parts = (screen.getByRole('group').getAttribute('aria-labelledby') ?? '').split(/\s+/);
-    expect(parts).toHaveLength(2);
-    expect(document.getElementById(parts[0])?.textContent).toBe('Start');
-    expect(parts[1]).toBe('outside-label');
+    expect(screen.getByRole('group', { name: 'Opening time' })).toBeTruthy();
+    expect(screen.getByText('Start')).toBeTruthy();
     expect(root().hasAttribute('aria-labelledby')).toBe(false);
   });
 

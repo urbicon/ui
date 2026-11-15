@@ -98,10 +98,11 @@
     return context.resolve(nodeProps?.get(key), node.scopePrefix).value;
   }
 
-  // `@accessibility`: `label` names, and `description` describes, the element
-  // that takes focus, or the component's role where nothing does; `live` goes on
-  // the component's root. `hidden` is applied by the view around the whole
-  // component, label and control alike.
+  // `@accessibility`: `label` names the element that takes focus (the group, for
+  // a component of several controls) or the component's role where nothing
+  // does; `description` describes the same element, or each segment of a time
+  // field; `live` goes on the component's root. `hidden` is applied by the view
+  // around the whole component, label and control alike.
   const accessibility = $derived(
     readAccessibility(
       nodeProps?.get(A2UI_ACCESSIBILITY_PROP),
@@ -486,10 +487,13 @@
 </script>
 
 <!-- What `byReference` points at: in the DOM for the reference, out of sight and
-     out of the accessibility tree. -->
+     out of the accessibility tree. No whitespace beside it: in a `pre-wrap`
+     block container a whitespace text node is an empty line. -->
 {#snippet referenced()}
-  {#if labelRef}<span id={labelRef} hidden>{ariaLabel}</span>{/if}
-  {#if descriptionRef}<span id={descriptionRef} hidden>{accessibility.description}</span>{/if}
+  {#if labelRef}<span id={labelRef} hidden>{ariaLabel}</span>{/if}{#if descriptionRef}<span
+      id={descriptionRef}
+      hidden>{accessibility.description}</span
+    >{/if}
 {/snippet}
 
 {#snippet faultChip(label: string)}
@@ -602,8 +606,7 @@
           </TabPanel>
         {/each}
       {/snippet}
-    </Tab>
-    {@render referenced()}
+    </Tab>{@render referenced()}
   {/if}
 {:else if component === 'Divider'}
   <Separator
@@ -634,14 +637,13 @@
   {#if check.ok}
     <img
       src={check.href}
-      alt={description}
+      alt={ariaLabel ?? description}
       class={[
         context.classes.image,
         FIT[enumOr('fit', 'fill')],
         IMAGE_SIZE[enumOr('variant', 'mediumFeature')]
       ]}
       style={weightStyle}
-      aria-label={ariaLabel}
       {...aria}
     />
   {:else}
@@ -773,8 +775,7 @@
       {#each choiceOptions as option (option.value)}
         <RadioItem unstyled={context.unstyled} value={option.value} label={option.label} />
       {/each}
-    </RadioGroup>
-    {@render referenced()}
+    </RadioGroup>{@render referenced()}
   {/if}
 {:else if component === 'Slider'}
   <!-- showValue is forced on: a generated surface has no other place to state
@@ -790,8 +791,7 @@
     onValueChange={onSliderChange}
     style={weightStyle}
     {...byReference}
-  />
-  {@render referenced()}
+  />{@render referenced()}
 {:else if component === 'DateTimeInput'}
   {@const label = text(resolved('label'))}
   {#if dtMode === 'datetime'}
@@ -823,17 +823,10 @@
       />
     </div>
   {:else if dtMode === 'time'}
-    <!-- Weight and accessibility label stay on a wrapper although TimeInput
-         forwards both: its root is w-full, so as a Row child its flex basis
-         would be the whole row, and its group drops aria-label whenever the
-         visible label names it. role=group only when the wrapper has a name. -->
-    <!-- biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is an expression, which the rule reads as no role; the attribute comes only with the role that supports it -->
-    <div
-      style={weightStyle}
-      role={ariaLabel ? 'group' : undefined}
-      aria-label={ariaLabel}
-      {...aria}
-    >
+    <!-- Weight stays on a wrapper although TimeInput forwards it: its root is
+         w-full, so as a Row child its flex basis would be the whole row. Its
+         group takes the name and its segments the description. -->
+    <div style={weightStyle} aria-live={accessibility.live}>
       <TimeInput
         unstyled={context.unstyled}
         label={label || undefined}
@@ -842,7 +835,9 @@
         withSeconds={dtParts.time.length > 5}
         min={dtMinTime}
         max={dtMaxTime}
-      />
+        aria-labelledby={labelRef}
+        aria-describedby={descriptionRef}
+      />{@render referenced()}
     </div>
   {:else}
     <DatePicker
@@ -854,7 +849,6 @@
       maxDate={dtMaxDate}
       style={weightStyle}
       {...byReference}
-    />
-    {@render referenced()}
+    />{@render referenced()}
   {/if}
 {/if}

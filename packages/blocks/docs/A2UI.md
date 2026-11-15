@@ -302,9 +302,13 @@ object with any other key, or a key of the wrong type, is an error and is droppe
 - **`label`** names the element that takes focus, or the group around a component's controls. A
   component that takes none is named through its role, and a labelled `Column` or `Card` becomes a
   group; a `Text` has no role to name. The label outranks the visible one and is never shown, so it
-  must contain its text (WCAG 2.5.3, Label in Name).
-- **`description`** is the accessible description of the same element, and **`live`** (`off`,
-  `polite`, `assertive`) the `aria-live` of the component's root.
+  must contain its text (WCAG 2.5.3, Label in Name). A control without a `label` of its own shows
+  none: give it one where sighted users need to see what it is for.
+- **`description`** is the accessible description of the same element, read after the component's
+  own `error` where it shows one. On a time field — a `TimeInput`, or a `DateTimeInput` with only
+  `enableTime` — the label names the group around the segments, and the description goes to each
+  segment, where the field puts its own messages.
+- **`live`** (`off`, `polite`, `assertive`) is the `aria-live` of the component's root.
 - **`hidden: true`** wraps the component in an element that is `inert` and `aria-hidden`: it and its
   children leave the accessibility tree, the tab order and pointer input, and stay visible. It is
   for decoration and repeated content. `aria-hidden` alone would leave a control focusable that a

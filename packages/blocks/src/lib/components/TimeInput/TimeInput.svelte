@@ -58,9 +58,9 @@
   const fieldId = $derived(idProp ?? `timeinput-${propsId}`);
   const labelId = $derived(`${fieldId}-label`);
   const messageId = $derived(`${fieldId}-message`);
-  const labelledBy = $derived(
-    [label ? labelId : undefined, ariaLabelledby].filter(Boolean).join(' ') || undefined
-  );
+  // A consumer `aria-labelledby` names the group over the visible label, the
+  // order accessible-name computation gives a native control and its `<label>`.
+  const labelledBy = $derived(ariaLabelledby || (label ? labelId : undefined));
   const describedBy = $derived(
     [error || helper ? messageId : undefined, ariaDescribedby].filter(Boolean).join(' ') ||
       undefined

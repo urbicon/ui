@@ -1846,18 +1846,18 @@ describe('A2UIView — A2UI 1.0', () => {
     });
 
     // The name is dom-accessibility-api's (through getByRole); its 0.5 line reads
-    // `aria-describedby` but not `aria-description`, so the description is read
-    // from both attributes here.
-    const descriptionOf = (element: Element) =>
-      [
-        ...(element.getAttribute('aria-describedby') ?? '')
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((id) => document.getElementById(id)?.textContent ?? ''),
-        element.getAttribute('aria-description') ?? ''
-      ]
+    // `aria-describedby` but not `aria-description`, so the description is
+    // computed here, in accname's order: an `aria-describedby` that points at an
+    // element wins, and `aria-description` counts only without one.
+    const descriptionOf = (element: Element) => {
+      const referenced = (element.getAttribute('aria-describedby') ?? '')
+        .split(/\s+/)
         .filter(Boolean)
-        .join(' ');
+        .flatMap((id) => document.getElementById(id) ?? []);
+      return referenced.length > 0
+        ? referenced.map((node) => node.textContent ?? '').join(' ')
+        : (element.getAttribute('aria-description') ?? '');
+    };
     /** The text a sighted user can see: every text node outside a `hidden` element. */
     const visibleText = () => {
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -1867,6 +1867,37 @@ describe('A2UIView — A2UI 1.0', () => {
       }
       return out.join(' ');
     };
+    /** The hidden elements an `aria-labelledby` or `aria-describedby` points at. */
+    const hiddenReferences = () => {
+      const ids = [...document.querySelectorAll('[aria-labelledby], [aria-describedby]')].flatMap(
+        (element) =>
+          `${element.getAttribute('aria-labelledby') ?? ''} ${element.getAttribute('aria-describedby') ?? ''}`
+            .split(/\s+/)
+            .filter(Boolean)
+      );
+      return [...new Set(ids)].flatMap((id) => {
+        const element = document.getElementById(id);
+        return element?.hidden ? [element] : [];
+      });
+    };
+    /**
+     * The whitespace-only text nodes next to `element`, looking past the comment
+     * anchors and empty text nodes Svelte leaves, which render nothing.
+     */
+    const blankTextBeside = (element: Element) =>
+      (['previousSibling', 'nextSibling'] as const).flatMap((side) => {
+        let sibling = element[side];
+        while (
+          sibling &&
+          (sibling.nodeType === Node.COMMENT_NODE ||
+            (sibling.nodeType === Node.TEXT_NODE && sibling.textContent === ''))
+        ) {
+          sibling = sibling[side];
+        }
+        return sibling?.nodeType === Node.TEXT_NODE && /^\s+$/.test(sibling.textContent ?? '')
+          ? [sibling]
+          : [];
+      });
     const kid = { id: 'kid', component: 'Text', text: 'kid' };
     const go = { event: { name: 'go' } };
     const options = [
@@ -1930,11 +1961,6 @@ describe('A2UIView — A2UI 1.0', () => {
         'textbox'
       ],
       [
-        'DateTimeInput time',
-        { component: 'DateTimeInput', label: 'Shown', value: { '@path': '/d' }, enableTime: true },
-        'group'
-      ],
-      [
         'DateTimeInput date and time',
         {
           component: 'DateTimeInput',
@@ -1968,6 +1994,104 @@ describe('A2UIView — A2UI 1.0', () => {
         expect(descriptionOf(target)).toBe('Described');
         expect(visibleText()).not.toContain('Named');
         if (component.label !== undefined) expect(visibleText()).toContain('Shown');
+      }
+    );
+
+    // The label names the one group TimeInput draws around its segments; the
+    // description reaches each segment, where TimeInput's own messages go.
+    it.each([
+      ['label and description', { label: 'Named', description: 'Described' }, 'Named'],
+      ['description', { description: 'Described' }, 'Shown']
+    ])(
+      'names the group of a time field and describes its segments, given a %s',
+      (_c, a11y, name) => {
+        render({
+          payload: [
+            surface(),
+            comps([
+              {
+                id: 'root',
+                component: 'DateTimeInput',
+                label: 'Shown',
+                value: { '@path': '/d' },
+                enableTime: true,
+                '@accessibility': a11y
+              }
+            ])
+          ]
+        });
+        const group = screen.getByRole('group');
+        expect(screen.getByRole('group', { name })).toBe(group);
+        const segments = screen.getAllByRole('spinbutton');
+        expect(segments.length).toBeGreaterThan(1);
+        for (const segment of segments) {
+          expect(group.contains(segment)).toBe(true);
+          expect(descriptionOf(segment)).toBe('Described');
+        }
+        expect(visibleText()).toContain('Shown');
+        expect(visibleText()).not.toContain('Named');
+      }
+    );
+
+    // An `aria-label` beside `alt=""` is a presentation-role conflict (axe).
+    it.each([
+      ['a label', { '@accessibility': { label: 'Named' } }, 'Named'],
+      [
+        'a label and a description',
+        { description: 'Alt', '@accessibility': { label: 'Named' } },
+        'Named'
+      ],
+      ['a description', { description: 'Alt' }, 'Alt'],
+      ['neither', {}, '']
+    ])('gives an Image with %s its name as alt text', (_c, props, alt) => {
+      render({
+        urlPolicy: { allowedImagePrefixes: ['https://img.example/'] },
+        payload: [
+          surface(),
+          comps([{ id: 'root', component: 'Image', url: 'https://img.example/a.png', ...props }])
+        ]
+      });
+      const image = document.querySelector('img') as HTMLImageElement;
+      expect(image.getAttribute('alt')).toBe(alt);
+      expect(image.hasAttribute('aria-label')).toBe(false);
+    });
+
+    // Inside a `white-space: pre-wrap` bubble, a whitespace text node beside the
+    // hidden spans is an empty line in a block container such as a list item.
+    it.each([
+      ['Tabs', { component: 'Tabs', tabs: [{ title: 'T1', child: 'kid' }] }, [kid]],
+      ['ChoicePicker', { component: 'ChoicePicker', options, value: { '@path': '/p' } }],
+      ['Slider', { component: 'Slider', value: { '@path': '/n' }, max: 10 }],
+      [
+        'DateTimeInput date',
+        { component: 'DateTimeInput', value: { '@path': '/d' }, enableDate: true }
+      ],
+      [
+        'DateTimeInput time',
+        { component: 'DateTimeInput', value: { '@path': '/d' }, enableTime: true }
+      ]
+    ] as Array<[string, Record<string, unknown>, unknown[]?]>)(
+      'leaves no whitespace beside the hidden references of a %s',
+      (_case, component, siblings = []) => {
+        render({
+          payload: [
+            surface(),
+            comps([
+              { id: 'root', component: 'List', children: ['field'] },
+              {
+                id: 'field',
+                ...component,
+                '@accessibility': { label: 'Named', description: 'Described' }
+              },
+              ...siblings
+            ])
+          ]
+        });
+        const references = hiddenReferences();
+        expect(references).toHaveLength(2);
+        for (const reference of references) {
+          expect(blankTextBeside(reference)).toEqual([]);
+        }
       }
     );
 
