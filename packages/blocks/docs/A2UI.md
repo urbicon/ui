@@ -233,11 +233,11 @@ export const system = [
 A requirement is met by a component of that name that is reachable from `root` and renders as
 itself. One defined but never referenced renders nothing, and one the catalog does not know or that
 lost a required prop renders as a fault chip — neither counts, and nor does one whose
-`@accessibility.hidden` is true, which no one can operate. With `path`, its `value` (or the prop
-named in `prop`) must also be a `{ "@path" }` binding that resolves to that pointer, template scope
-included. One component meets one entry, so two `Checkbox` entries ask for two boxes; the entries
-are matched to your components as a whole, so an entry is missing only when no assignment of the
-rendered components could meet it.
+`@accessibility.hidden` is true, or that of a component around it, which no one can operate. With
+`path`, its `value` (or the prop named in `prop`) must also be a `{ "@path" }` binding that resolves
+to that pointer, template scope included. One component meets one entry, so two `Checkbox` entries
+ask for two boxes; the entries are matched to your components as a whole, so an entry is missing
+only when no assignment of the rendered components could meet it.
 
 Each unmet requirement is one `MISSING_REQUIRED_COMPONENT` issue on `onValidationError`, and only
 once `streaming` is false: a surface arrives over several envelopes, and A2UI has no message that
@@ -299,14 +299,16 @@ issue that reads the data model after the user changed it.
 `{ label?, description?, live?, hidden? }`. `label`, `description` and `hidden` may be bound. An
 object with any other key, or a key of the wrong type, is an error and is dropped whole.
 
-- **`label`** becomes the `aria-label` of a component that has a role to name, over the name its
-  visible text gives it. Where a control draws a visible label of its own — a date `DateTimeInput`,
-  and in the Urbicon catalog `Toggle`, `RadioGroup`, `Select` and `DatePicker` — that label stays
-  the name. `Slider` and the Urbicon `Card` and `Accordion` take no name from it.
-- **`description`** and **`live`** (`off`, `polite`, `assertive`) become `aria-description` and
-  `aria-live` on the component's root. On a composite control — `Slider`, `Tabs`, and the Urbicon
-  `Select`, `DatePicker` and `Accordion` — that root is the wrapper, not the element that takes
-  focus.
+- **`label`** names the element that takes focus, or the group around a component's controls. A
+  component that takes none is named through its role, and a labelled `Column` or `Card` becomes a
+  group; a `Text` has no role to name. The label outranks the visible one and is never shown, so it
+  must contain its text (WCAG 2.5.3, Label in Name). A control without a `label` of its own shows
+  none: give it one where sighted users need to see what it is for.
+- **`description`** is the accessible description of the same element, read after the component's
+  own `error` where it shows one. On a time field — a `TimeInput`, or a `DateTimeInput` with only
+  `enableTime` — the label names the group around the segments, and the description goes to each
+  segment, where the field puts its own messages.
+- **`live`** (`off`, `polite`, `assertive`) is the `aria-live` of the component's root.
 - **`hidden: true`** wraps the component in an element that is `inert` and `aria-hidden`: it and its
   children leave the accessibility tree, the tab order and pointer input, and stay visible. It is
   for decoration and repeated content. `aria-hidden` alone would leave a control focusable that a

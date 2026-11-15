@@ -72,6 +72,9 @@
     slotClasses: slotClassesProp = {},
     onkeydown: onkeydownProp,
     onfocusout: onfocusoutProp,
+    // The text field is what takes focus; restProps land on the role-less root.
+    'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: DatePickerProps = $props();
 
@@ -365,6 +368,8 @@
       : undefined}
     oninput={handleInput}
     onfocus={handleFocus}
+    aria-labelledby={ariaLabelledby}
+    aria-describedby={ariaDescribedby}
     aria-haspopup="dialog"
     autocomplete="off"
     spellcheck={false}

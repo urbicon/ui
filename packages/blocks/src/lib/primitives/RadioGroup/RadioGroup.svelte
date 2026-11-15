@@ -48,9 +48,9 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   const groupId = $derived(id || `radiogroup-${propsId}`);
-  // When a `label` is rendered it owns the group's `aria-labelledby`; otherwise a
-  // consumer-supplied `aria-labelledby` (an external heading) is used as the
-  // fallback so external labelling survives (see the group element below).
+  // A consumer-supplied `aria-labelledby` names the group over the rendered
+  // `label`, the order accessible-name computation gives a native control and
+  // its `<label>`; the label stays visible either way (see the group element).
   const labelId = $derived(label ? `${groupId}-label` : undefined);
   // ARIA wiring is shared with every form primitive — see `useFormField`.
   const ff = useFormField(() => ({
@@ -187,7 +187,7 @@
     role="radiogroup"
     id={groupId}
     class={unstyled ? (slotClasses?.group ?? '') : styles.group({ class: slotClasses?.group })}
-    aria-labelledby={labelId ?? ariaLabelledby}
+    aria-labelledby={ariaLabelledby ?? labelId}
     aria-describedby={describedBy}
     aria-required={required || undefined}
     aria-invalid={ff.invalid ? 'true' : undefined}

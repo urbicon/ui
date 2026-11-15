@@ -95,6 +95,12 @@ interface TabBaseProps
    */
   'aria-labelledby'?: string;
 
+  /**
+   * Ids of the elements that describe the tab strip, retargeted onto the inner
+   * `role="tablist"` element like `aria-label`.
+   */
+  'aria-describedby'?: string;
+
   /** Disables all tabs, preventing interaction and dimming the UI. @default false */
   disabled?: boolean;
 

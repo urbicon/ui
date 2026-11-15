@@ -613,6 +613,32 @@ describe('DatePicker (restProps)', () => {
     // Once, and after the picker had claimed the key.
     expect(seen).toEqual([true]);
   });
+
+  // The field takes focus; the root is a role-less div, where a reference names nothing.
+  it('passes aria-labelledby and aria-describedby to the field, the reference over its label', () => {
+    for (const [id, text] of [
+      ['due-heading', 'Due date'],
+      ['due-hint', 'Weekdays only']
+    ]) {
+      const element = document.createElement('p');
+      element.id = id;
+      element.textContent = text;
+      document.body.append(element);
+    }
+    renderPicker({
+      label: 'Date',
+      helper: 'Shown below',
+      'aria-labelledby': 'due-heading',
+      'aria-describedby': 'due-hint'
+    });
+
+    expect(screen.getByRole('textbox', { name: 'Due date' })).toBe(input());
+    expect(input().getAttribute('aria-describedby')?.split(' ')).toContain('due-hint');
+    expect(screen.getByText('Date')).toBeTruthy();
+    expect(
+      document.querySelectorAll('[aria-labelledby], [aria-describedby~="due-hint"]')
+    ).toHaveLength(1);
+  });
 });
 
 // A popover that sizes to its month changes height while paging, and the cells move out from

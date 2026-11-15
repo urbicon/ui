@@ -402,3 +402,290 @@ describe('never throws on adversarial Urbicon payloads', () => {
     });
   }
 });
+
+describe('UrbiconA2UINode — @accessibility', () => {
+  // The name is dom-accessibility-api's (through getByRole); its 0.5 line reads
+  // `aria-describedby` but not `aria-description`, so the description is
+  // computed here, in accname's order: an `aria-describedby` that points at an
+  // element wins, and `aria-description` counts only without one.
+  const descriptionOf = (element: Element) => {
+    const referenced = (element.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .flatMap((id) => document.getElementById(id) ?? []);
+    return referenced.length > 0
+      ? referenced.map((node) => node.textContent ?? '').join(' ')
+      : (element.getAttribute('aria-description') ?? '');
+  };
+  /** The text a sighted user can see: every text node outside a `hidden` element. */
+  const visibleText = () => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const out: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.parentElement?.closest('[hidden]')) out.push(node.textContent ?? '');
+    }
+    return out.join(' ');
+  };
+  /** The hidden elements an `aria-labelledby` or `aria-describedby` points at. */
+  const hiddenReferences = () => {
+    const ids = [...document.querySelectorAll('[aria-labelledby], [aria-describedby]')].flatMap(
+      (element) =>
+        `${element.getAttribute('aria-labelledby') ?? ''} ${element.getAttribute('aria-describedby') ?? ''}`
+          .split(/\s+/)
+          .filter(Boolean)
+    );
+    return [...new Set(ids)].flatMap((id) => {
+      const element = document.getElementById(id);
+      return element?.hidden ? [element] : [];
+    });
+  };
+  /**
+   * The whitespace-only text nodes next to `element`, looking past the comment
+   * anchors and empty text nodes Svelte leaves, which render nothing.
+   */
+  const blankTextBeside = (element: Element) =>
+    (['previousSibling', 'nextSibling'] as const).flatMap((side) => {
+      let sibling = element[side];
+      while (
+        sibling &&
+        (sibling.nodeType === Node.COMMENT_NODE ||
+          (sibling.nodeType === Node.TEXT_NODE && sibling.textContent === ''))
+      ) {
+        sibling = sibling[side];
+      }
+      return sibling?.nodeType === Node.TEXT_NODE && /^\s+$/.test(sibling.textContent ?? '')
+        ? [sibling]
+        : [];
+    });
+  const kid = { id: 'kid', component: 'Text', text: 'kid' };
+  const go = { event: { name: 'go' } };
+  const options = [
+    { label: 'A', value: 'a' },
+    { label: 'B', value: 'b' }
+  ];
+  // [case, component, the role that carries the name, its siblings]
+  const named: Array<[string, Record<string, unknown>, string, unknown[]?]> = [
+    ['Column', { component: 'Column', children: ['kid'] }, 'group', [kid]],
+    ['List', { component: 'List', children: ['kid'] }, 'list', [kid]],
+    ['Card', { component: 'Card', child: 'kid' }, 'group', [kid]],
+    ['Section', { component: 'Section', title: 'Title', child: 'kid' }, 'region', [kid]],
+    [
+      'Accordion',
+      { component: 'Accordion', items: [{ label: 'I1', child: 'kid' }] },
+      'group',
+      [kid]
+    ],
+    ['Icon', { component: 'Icon', name: 'calendar' }, 'img'],
+    ['Image', { component: 'Image', url: 'https://img.example/a.png', description: 'Alt' }, 'img'],
+    ['Avatar', { component: 'Avatar', name: 'Ada Lovelace' }, 'img'],
+    ['Badge', { component: 'Badge', text: 'New' }, 'status'],
+    ['Alert', { component: 'Alert', title: 'Heads up' }, 'status'],
+    ['Progress', { component: 'Progress', value: 5, max: 10, label: 'Shown' }, 'progressbar'],
+    ['Stepper', { component: 'Stepper', steps: ['One', 'Two'], current: 0 }, 'list'],
+    ['Button', { component: 'Button', child: 'kid', action: go }, 'button', [kid]],
+    ['Input', { component: 'Input', label: 'Shown', value: { '@path': '/t' } }, 'textbox'],
+    ['Textarea', { component: 'Textarea', label: 'Shown', value: { '@path': '/t' } }, 'textbox'],
+    ['Checkbox', { component: 'Checkbox', label: 'Shown', value: { '@path': '/c' } }, 'checkbox'],
+    ['Toggle', { component: 'Toggle', label: 'Shown', value: { '@path': '/c' } }, 'switch'],
+    [
+      'RadioGroup, labelled',
+      { component: 'RadioGroup', label: 'Shown', options, value: { '@path': '/r' } },
+      'radiogroup'
+    ],
+    [
+      'RadioGroup, unlabelled',
+      { component: 'RadioGroup', options, value: { '@path': '/r' } },
+      'radiogroup'
+    ],
+    [
+      'Select, labelled',
+      { component: 'Select', label: 'Shown', options, value: { '@path': '/s' } },
+      'combobox'
+    ],
+    ['Select, unlabelled', { component: 'Select', options, value: { '@path': '/s' } }, 'combobox'],
+    [
+      'Select multiple',
+      { component: 'Select', label: 'Shown', options, value: { '@path': '/s' }, multiple: true },
+      'combobox'
+    ],
+    [
+      'Slider, labelled',
+      { component: 'Slider', label: 'Shown', value: { '@path': '/n' }, max: 10 },
+      'slider'
+    ],
+    ['Slider, unlabelled', { component: 'Slider', value: { '@path': '/n' }, max: 10 }, 'slider'],
+    [
+      'DatePicker, labelled',
+      { component: 'DatePicker', label: 'Shown', value: { '@path': '/d' } },
+      'textbox'
+    ],
+    ['DatePicker, unlabelled', { component: 'DatePicker', value: { '@path': '/d' } }, 'textbox']
+  ];
+
+  it.each(named)(
+    'names and describes the %s where focus lands, and never shows the label',
+    (_case, component, role, siblings = []) => {
+      render({
+        urlPolicy: { allowedImagePrefixes: ['https://img.example/'] },
+        payload: [
+          surface(),
+          comps([
+            {
+              id: 'root',
+              ...component,
+              '@accessibility': { label: 'Named', description: 'Described' }
+            },
+            ...siblings
+          ])
+        ]
+      });
+      const target = screen.getByRole(role, { name: 'Named' });
+      expect(descriptionOf(target)).toBe('Described');
+      expect(visibleText()).not.toContain('Named');
+      if (component.label !== undefined) expect(visibleText()).toContain('Shown');
+    }
+  );
+
+  // The label names the one group TimeInput draws around its segments; the
+  // description reaches each segment, where TimeInput's own messages go.
+  it.each([
+    ['label and description', { label: 'Named', description: 'Described' }, 'Named'],
+    ['description', { description: 'Described' }, 'Shown']
+  ])('names the group of a TimeInput and describes its segments, given a %s', (_c, a11y, name) => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'TimeInput',
+            label: 'Shown',
+            value: { '@path': '/d' },
+            '@accessibility': a11y
+          }
+        ])
+      ]
+    });
+    const group = screen.getByRole('group');
+    expect(screen.getByRole('group', { name })).toBe(group);
+    const segments = screen.getAllByRole('spinbutton');
+    expect(segments.length).toBeGreaterThan(1);
+    for (const segment of segments) {
+      expect(group.contains(segment)).toBe(true);
+      expect(descriptionOf(segment)).toBe('Described');
+    }
+    expect(visibleText()).toContain('Shown');
+    expect(visibleText()).not.toContain('Named');
+  });
+
+  // A field's own error is an `aria-describedby`, which an `aria-description`
+  // loses to; the error is read first, as Input reads its own.
+  it.each([
+    ['Input', { component: 'Input', label: 'Shown', value: { '@path': '/t' } }, 'textbox'],
+    ['Textarea', { component: 'Textarea', label: 'Shown', value: { '@path': '/t' } }, 'textbox'],
+    [
+      'DatePicker',
+      { component: 'DatePicker', label: 'Shown', value: { '@path': '/d' } },
+      'textbox'
+    ],
+    [
+      'TimeInput',
+      { component: 'TimeInput', label: 'Shown', value: { '@path': '/d' } },
+      'spinbutton'
+    ]
+  ])('reads the error of a %s, then its description', (_case, component, role) => {
+    for (const [a11y, description] of [
+      [{ description: 'Described' }, 'Wrong Described'],
+      [undefined, 'Wrong']
+    ] as const) {
+      render({
+        payload: [
+          surface(),
+          comps([
+            {
+              id: 'root',
+              ...component,
+              error: 'Wrong',
+              ...(a11y ? { '@accessibility': a11y } : {})
+            }
+          ])
+        ]
+      });
+      const targets = screen.getAllByRole(role);
+      for (const target of targets) expect(descriptionOf(target)).toBe(description);
+      expect(visibleText()).toContain('Wrong');
+      dispose?.();
+      document.body.replaceChildren();
+    }
+  });
+
+  // An `aria-label` beside `alt=""` is a presentation-role conflict (axe).
+  it.each([
+    ['a label', { '@accessibility': { label: 'Named' } }, 'Named'],
+    [
+      'a label and a description',
+      { description: 'Alt', '@accessibility': { label: 'Named' } },
+      'Named'
+    ],
+    ['a description', { description: 'Alt' }, 'Alt'],
+    ['neither', {}, '']
+  ])('gives an Image with %s its name as alt text', (_c, props, alt) => {
+    render({
+      urlPolicy: { allowedImagePrefixes: ['https://img.example/'] },
+      payload: [
+        surface(),
+        comps([{ id: 'root', component: 'Image', url: 'https://img.example/a.png', ...props }])
+      ]
+    });
+    const image = document.querySelector('img') as HTMLImageElement;
+    expect(image.getAttribute('alt')).toBe(alt);
+    expect(image.hasAttribute('aria-label')).toBe(false);
+  });
+
+  // Inside a `white-space: pre-wrap` bubble, a whitespace text node beside the
+  // hidden spans is an empty line in a block container such as a list item.
+  it.each([
+    ['RadioGroup', { component: 'RadioGroup', options, value: { '@path': '/r' } }],
+    ['Select', { component: 'Select', options, value: { '@path': '/s' } }],
+    ['Select multiple', { component: 'Select', options, value: { '@path': '/s' }, multiple: true }],
+    ['Slider', { component: 'Slider', value: { '@path': '/n' }, max: 10 }],
+    ['Toggle', { component: 'Toggle', label: 'Shown', value: { '@path': '/c' } }],
+    ['Input', { component: 'Input', label: 'Shown', value: { '@path': '/t' } }],
+    ['Textarea', { component: 'Textarea', label: 'Shown', value: { '@path': '/t' } }],
+    ['DatePicker', { component: 'DatePicker', value: { '@path': '/d' }, error: 'Wrong' }],
+    ['TimeInput', { component: 'TimeInput', value: { '@path': '/d' }, error: 'Wrong' }]
+  ])('leaves no whitespace beside the hidden references of a %s', (_case, component) => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'List', children: ['field'] },
+          {
+            id: 'field',
+            ...component,
+            '@accessibility': { label: 'Named', description: 'Described' }
+          }
+        ])
+      ]
+    });
+    const references = hiddenReferences();
+    expect(references).toHaveLength(2);
+    for (const reference of references) expect(blankTextBeside(reference)).toEqual([]);
+  });
+
+  it('gives an unlabelled Card or Accordion no group role', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Column', children: ['card', 'acc'] },
+          { id: 'card', component: 'Card', child: 'kid' },
+          { id: 'acc', component: 'Accordion', items: [{ label: 'I1', child: 'kid2' }] },
+          kid,
+          { id: 'kid2', component: 'Text', text: 'kid2' }
+        ])
+      ]
+    });
+    expect(screen.queryAllByRole('group')).toHaveLength(0);
+  });
+});

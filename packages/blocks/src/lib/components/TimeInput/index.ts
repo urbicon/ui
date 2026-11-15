@@ -50,8 +50,9 @@ export interface TimeInputProps
   extends Omit<TimeInputVariants, 'error' | 'messageType'>,
     // `class`, `id` and `aria-label` are modelled below; the rest of a div's
     // attributes reach the root. `aria-describedby` and `aria-labelledby` stay in
-    // and are merged rather than spread: a consumer's description joins every
-    // segment's own, a consumer's label id joins the field group's.
+    // but are not spread there: a consumer's description joins every segment's
+    // own, after it, and a consumer's label id names the field group over its
+    // visible label.
     Omit<HTMLAttributes<HTMLDivElement>, 'class' | 'id' | 'aria-label' | 'children'> {
   /**
    * The time as the segments spell it, in one of three states:

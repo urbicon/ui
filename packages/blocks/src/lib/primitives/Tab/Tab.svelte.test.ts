@@ -244,6 +244,14 @@ describe('Tab (component interaction)', () => {
       expect(root.getAttribute('aria-labelledby')).toBeNull();
     });
 
+    it('retargets aria-describedby onto the tablist with the name', () => {
+      renderTabs({ defaultValue: 'overview', 'aria-describedby': 'tabs-hint' });
+
+      expect(screen.getByRole('tablist').getAttribute('aria-describedby')).toBe('tabs-hint');
+      const root = document.querySelector('[data-orientation]') as HTMLElement;
+      expect(root.getAttribute('aria-describedby')).toBeNull();
+    });
+
     it('renders an unnamed tablist when no label prop is given', () => {
       renderTabs({ defaultValue: 'overview' });
 
