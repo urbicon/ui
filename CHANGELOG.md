@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.40.0](https://github.com/urbicon/ui/compare/v8.39.0...v8.40.0) - 2026-11-15
+
+### Breaking Changes
+- **blocks**: Move the A2UI engine to protocol 1.0 ([#603](https://github.com/urbicon/ui/issues/603))
+
+### Bug Fixes
+- **blocks**: Bound the A2UI engine against hostile input and conform its pointers to upstream ([#605](https://github.com/urbicon/ui/issues/605))
+
+### Features
+- **blocks**: Name and describe the A2UI control that takes focus ([#604](https://github.com/urbicon/ui/issues/604))
+
 ## [8.39.0](https://github.com/urbicon/ui/compare/v8.38.1...v8.39.0) - 2026-11-13
 
 ### Features
