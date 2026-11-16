@@ -19,13 +19,13 @@ treatment rather than inventing a synonym.
 Every container variant is built from four tints that sit on top of `surface-base`
 (the page background). Picking a variant is really picking a rung:
 
-| Token              | Reads as                                                                              | Lift relative to base                                                         |
-| ------------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `surface-base`     | The page itself                                                                       | —                                                                             |
-| `surface-quiet`    | A softly tinted in-page zone — "own zone", no border, no shadow                       | 1.5 % darker (light), 3 % lighter (dark)                                      |
-| `surface-subtle`   | A **resting** tint against a border — readonly/disabled fields, list rows, code chips | 3.5 % darker (light), 8 % lighter (dark)                                      |
-| `surface-elevated` | A floating overlay with its own stacking context                                      | same lift as `subtle`, plus shadow + z-index                                  |
-| `surface-overlay`  | The highest surfaces — Dialog, Drawer, Sheet, Toast — over a dimmed backdrop          | same as base (light), 3 % lighter (dark); the backdrop carries the separation |
+| Token              | Reads as                                                                                  | Lift relative to base                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `surface-base`     | The page itself                                                                           | —                                                                                             |
+| `surface-quiet`    | A softly tinted in-page zone — "own zone", no border, no shadow                           | 1.5 % darker (light), 3 % lighter (dark)                                                      |
+| `surface-subtle`   | A **resting** tint against a border — readonly/disabled fields, list rows, code chips     | 3.5 % darker (light), 8 % lighter (dark)                                                      |
+| `surface-elevated` | A floating overlay with its own stacking context                                          | same lift as `subtle`, plus shadow + z-index                                                  |
+| `surface-overlay`  | The topmost surfaces — a modal over a dimmed backdrop, or a panel floating above the page | same as base (light), 3 % lighter (dark); a backdrop, shadow or border carries the separation |
 
 Two traps worth naming:
 

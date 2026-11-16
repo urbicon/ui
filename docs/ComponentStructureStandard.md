@@ -264,7 +264,7 @@ variants: {
 defaultVariants: { tier: 'commit' /* or 'modify' per family */ }
 ```
 
-Vorbild: `Toggle/toggle.variants.ts` + `Toggle.svelte` (Action family, commit default). A compound puts the resolved tier on its own context so the parts pick it up — see [`Tab/tab.context.ts`](../packages/blocks/src/lib/primitives/Tab/tab.context.ts).
+Role model: `Toggle/toggle.variants.ts` + `Toggle.svelte` (Action family, commit default). A compound puts the resolved tier on its own context so the parts pick it up — see [`Tab/tab.context.ts`](../packages/blocks/src/lib/primitives/Tab/tab.context.ts).
 
 ## JSDoc Quality
 
@@ -303,5 +303,10 @@ section order, the examples strategy and the accessibility section.
 ## docs-gen Integration
 
 The `docs-gen` pipeline automatically extracts from this structure: Props + JSDoc from `index.ts`, variant options + defaults from `*.variants.ts`, inheritance hierarchy (Omit patterns, HTML attributes).
+
+- **The `*Props` declaration lives in `index.ts` itself** — an `interface`, or a `type` that is a union of interfaces. docs-gen looks it up in that file (`findPropsDeclaration` in `packages/docs-gen/src/extractors/typescript/PropsExtractor.ts`), so a props interface declared elsewhere and only re-exported is not found. What it references — an imported base, a type from another file, a barrel re-export — resolves across files through the package's `ts.Program`.
+- **Defaults come from two places**: a tv() axis's from `defaultVariants`, a direct prop's from its `@default` tag alone. The tag contract is the `component-metadata` skill (`.claude/skills/component-metadata/SKILL.md`).
+- **`compoundVariants` are not extracted** — the docs list each axis and its values, never a combination.
+- **Type links are generated**: a prop type naming a type that the component's `index.ts` declares or type-imports links to its `#type-<Name>` anchor in the Types section, a component or `*Props` name to that component's API, and Svelte and DOM/HTML types to their reference docs. `@see` is for everything else.
 
 In the playground, use `extractPlaygroundDocs(componentData.props)` to separate `propDocs` (hand-written descriptions) from `variantKeys` (tv-only props).

@@ -66,7 +66,7 @@ and a link to that place, and in these reference docs the owning section says so
 ## Component reference
 
 - [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) — seven-family taxonomy (Action / Form / Navigation / Container / Feedback / Identity / Conversation): ARIA, tier behaviour, border-token source
-- [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) — Sidebar/Drawer/Popover/SidebarLayout and Calendar/Planner decision matrices
+- [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) — decision matrices for the overlay and layout surfaces, the date surfaces (Calendar/Planner/ResourceTimeline) and the form-input layer (Select/Combobox/Menu), plus the floating-overlay architecture cheatsheet
 - [VARIANT-CONTRACT.md](VARIANT-CONTRACT.md) — what each `variant` value means across the library _(shipped in the blocks tarball)_
 - [STICKY-PINNING.md](STICKY-PINNING.md) — table scroll models: page-relative sticky pinning + contained scroll _(shipped in the table tarball)_
 - [MIGRATION-V8.md](MIGRATION-V8.md) — table v7 → v8: the consumer-owned view object, the source union, the two persistence channels _(shipped in the table tarball)_

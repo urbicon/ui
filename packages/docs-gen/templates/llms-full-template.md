@@ -140,16 +140,16 @@ Merged with variant classes. Always available on every component.
 
 ## Component Families
 
-Every component belongs to exactly one of the families in the table below. The family decides ARIA role, tier-system membership, and border-token source. Pick the right family up-front to avoid categorical bugs (button that looks like an input, menu that doubles as a listbox, avatar that mutates when commit-radii flatten).
+The families in the table below sort the primitives and the conversation components, each into exactly one; `Kbd` sits outside them. The family decides ARIA role, tier-system membership, and border-token source. Pick the right family up-front to avoid categorical bugs (button that looks like an input, menu that doubles as a listbox, avatar that mutates when commit-radii flatten).
 
 ### Family table
 
 | Family             | Members                                                                                                                                  | ARIA role                                                       | Tier default                                                                                | Border source                        |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Action             | Button, ButtonGroup, Menu, Toolbar, Toggle                                                                                               | `button`, `menu`, `menuitem`, `toolbar`, `switch`               | `commit` (tier-aware)                                                                       | Intent (`border-neutral` etc.)       |
-| Form               | Input, Select, Combobox, Textarea, Checkbox, RadioGroup, Slider, FormField                                                               | `textbox`, `listbox`, `combobox`, `checkbox`, `radio`, `slider` | `modify` (tier-aware)                                                                       | Surface (`border-border-subtle`)     |
-| Navigation         | Breadcrumb, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline                                                                      | `navigation`, `tablist`, `tab`                                  | per-component (tier-aware)                                                                  | mixed                                |
-| Container          | Card, Alert, Accordion, Collapsible, Dialog, Drawer, Popover, Tooltip, Sidebar, Separator, ConfirmDialog                                 | `dialog`, `tooltip`, `region`, `aside`                          | `contain` (tier-aware)                                                                      | Surface or Hairline                  |
+| Action             | Button, ButtonGroup, Menu, Toolbar, Toggle                                                                                               | `button`, `menu`, `menuitem`, `toolbar`, `switch`               | `commit` (tier-aware; Toolbar sets the context and is itself `contain`)                     | Intent (`border-neutral` etc.)       |
+| Form               | Input, Select, Combobox, Textarea, Checkbox, RadioGroup, Slider, FormField                                                               | `textbox`, `listbox`, `combobox`, `checkbox`, `radio`, `slider` | `modify` (tier-aware; Slider and FormField opt out)                                         | Surface (`border-border-subtle`)     |
+| Navigation         | Breadcrumb, Link, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline                                                                | `navigation`, `tablist`, `tab`                                  | per-component (tier-aware; Breadcrumb, JourneyTimeline and Link opt out)                    | mixed                                |
+| Container          | Card, Alert, Accordion, Collapsible, Dialog, Drawer, Popover, Tooltip, Sidebar, Separator, ConfirmDialog, SplitPane, Scroller            | `dialog`, `tooltip`, `region`, `aside`, `separator`, `group`    | fixed `contain` — no member reads the context                                               | Surface or Hairline                  |
 | Feedback / Ambient | Toast, Spinner, Progress, Skeleton, Badge                                                                                                | `status`, `alert`, `progressbar`                                | **not tier-aware** (Badge is the documented edge case)                                      | Intent (status-tinted) or none       |
 | Identity           | Avatar                                                                                                                                   | `img` or `button`                                               | **not tier-aware** — own shape axis (`circle` / `rounded` / `square`)                       | none                                 |
 | Conversation       | Chat, ChatMessageList, ChatMessage, PromptInput, StreamingMarkdown, CodeBlock, ToolCallCard, ReasoningDisclosure, CitationChip, A2UIView | `log`, `textbox`, `region`                                      | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | Surface, on the outermost frame only |
@@ -176,7 +176,7 @@ Every component belongs to exactly one of the families in the table below. The f
 
 ### Container — content surfaces
 
-- ARIA: `<dialog>`, `role="tooltip"`, `<aside>`, `<details>` / `aria-expanded`.
+- ARIA: `<dialog>`, `role="tooltip"`, `<aside>`, a `<button aria-expanded>` disclosure trigger (never `<details>`), a focusable `role="separator"` window splitter (SplitPane), `role="group"` while the row overflows (Scroller).
 - Border: never Intent in default state — Surface or Hairline. If a container border reads as a button, family mismatch.
 - Pick `Card` / `Alert` for in-page surfaces; `Dialog` / `Drawer` / `ConfirmDialog` for modal overlays; `Popover` for anchored floating; `Tooltip` for hover-described inline targets; `Sidebar` for persistent app-shell; `Accordion` / `Collapsible` for disclosure.
 
@@ -210,29 +210,13 @@ Every component belongs to exactly one of the families in the table below. The f
 
 ### Tier-aware components (read the tier context)
 
-The tier context is a context, not a component: a wrapping container calls `setTierContext()` and a tier-aware component reads it with `getTierContext()`. Seventeen components expose a `tier` prop AND inherit from a wrapping context when it is unset:
+The tier context is a context, not a component: a wrapping container calls `setTierContext()` and a tier-aware component reads it with `getTierContext()`. A tier-aware component exposes a `tier` prop and inherits from a wrapping context when it is unset. The installed package names every one of them:
 
-| Component      | Default tier | Family     |
-| -------------- | ------------ | ---------- |
-| Button         | `commit`     | Action     |
-| ButtonGroup    | `commit`¹    | Action     |
-| Menu           | `commit`     | Action     |
-| Toggle         | `commit`     | Action     |
-| Badge          | `commit`     | Feedback   |
-| SegmentGroup   | `commit`     | Navigation |
-| Stepper        | `commit`     | Navigation |
-| PaginationItem | `commit`     | Navigation |
-| Tab            | `modify`     | Navigation |
-| RadioGroup     | `commit`     | Form       |
-| Checkbox       | `modify`     | Form       |
-| Input          | `modify`     | Form       |
-| Select         | `modify`     | Form       |
-| Combobox       | `modify`     | Form       |
-| Textarea       | `modify`     | Form       |
-| PinInput       | `modify`     | Form       |
-| TimeInput      | `modify`     | Form       |
+```bash
+grep -rl getTierContext node_modules/@urbicon-ui/blocks/dist --include='*.svelte'
+```
 
-¹ `ButtonGroup`'s unset default is `modify` on a **connected vertical** group — a pill cap
+`ButtonGroup`'s unset default is `modify` on a **connected vertical** group — a pill cap
 domes a stack of text buttons into a lozenge. An explicit `tier`, or a wrapping Toolbar's or
 ButtonGroup's context, still wins.
 
@@ -256,7 +240,7 @@ This is the COMPLETE list of available semantic tokens. Use ONLY these — do no
 
 ### Intent Tokens (available for ALL intents: primary, secondary, neutral, success, warning, danger)
 
-Each intent has 5 variants. Example with `success`:
+Example with `success`:
 
 ```
 bg-success               /* base intent color */

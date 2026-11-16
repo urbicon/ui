@@ -77,30 +77,9 @@ Everything under `apps/docs/static/<scope>/` and `dist/` is a **generated
 artifact** (git-ignored, rebuilt by `docs:gen:all` / `build`) — never edit it,
 never link to it as a source.
 
-## Migration state
+## A new guide
 
-**Complete (2026-07-21).** The stages, in the order they landed:
-
-- 2026-07-20: AUTH.md moved into `packages/auth/docs/` + root symlink; internal
-  markers stripped from the shipped file; `guides` mechanism in docs-gen with
-  auth as first user.
-- 2026-07-21, the remaining channel wiring:
-  - `/auth/guide` renders the shipped AUTH.md at build time (GitHub-compatible
-    heading anchors); the auth README's deep links went absolute to it for the
-    npmjs view, keeping `./docs/AUTH.md` as the shipped-copy pointer.
-  - `urbicon guide <slug>` serves the canonical package guides from the
-    `design-content` bundle (`guides/<slug>.md` + `index.json`, emitted by
-    docs-gen's `PACKAGE_GUIDES`).
-  - The hand-written llms-full-template auth section (already drifted: it
-    still called SSO "on the roadmap") was replaced by `{{GUIDE:auth}}`
-    extraction from AUTH.md; the kernel-CSRF prose in `handle.ts`/`csrf.ts`
-    shrank to pointers (principle 3). The scope `llms.txt` stays an index —
-    security notes live in the indexed guide, not inline (decided 2026-07-21).
-  - The `docs/*.md` audit moved GUIDE.md + the blocks migration guide into
-    `packages/blocks/docs/` and STICKY-PINNING.md into
-    `packages/table/docs/` — each tarball-shipped with a root symlink,
-    scope-`llms.txt` indexed, and in the guide bundle.
-
-New consumer-relevant docs follow this file's model from the start; there is
-no open migration debt. The `urbicon` CLI lists every bundled guide dynamically
-(`guides/index.json`), so a new guide reaches it through its `PACKAGE_GUIDES` entry alone.
+A new consumer-relevant doc follows this file's model from the start. The `urbicon` CLI lists
+every bundled guide dynamically (`guides/index.json`), so a new guide reaches it through its
+`PACKAGE_GUIDES` entry alone. The scope `llms.txt` stays an index: what a guide says, security
+notes included, lives in the indexed guide, never inline.

@@ -87,11 +87,11 @@ The radius is the container tier token, not a raw Tailwind size, so a brand that
 
 Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 
-### Floating UI Integration
+### Anchored positioning (`floating.ts`)
 
 - **Combobox / Select**: `computePosition` with `flip()`, `shift()`, `offset()`, `size()`. `size()` caps the listbox to the room left between the anchor and the (visual) viewport edge — or, for an in-place panel, the edge of the scroll box that clips it — via `--blocks-overlay-available-height`; the design cap `max-h-[min(15rem,…)]` stays the upper bound, so the panel never overflows above the keyboard.
 - **Popover**: `overflow-y-auto` + `max-h-[calc(100dvh-4rem)]` for long content.
-- **Menu / Tooltip**: Already positioned via Popover's Floating UI.
+- **Menu**: positioned through Popover. **Tooltip**: its own `computePosition` call, `strategy: 'fixed'`.
 
 ### Virtual Keyboard
 
