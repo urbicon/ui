@@ -460,12 +460,40 @@ export function a2uiActionMessage(
   return `${action} ${JSON.stringify(event)}`;
 }
 
+/** One surface's issues in the error turn, which names the surface once for all of them. */
+interface A2uiErrorGroup {
+  surfaceId?: string;
+  issues: Omit<A2uiValidationIssue, 'surfaceId'>[];
+}
+
+/**
+ * The issues grouped by `surfaceId`, groups in the order their first issue
+ * comes, issues in theirs. A payload sets no bound on a `surfaceId`'s length,
+ * so a list that repeats it on every issue multiplies that length by the issue
+ * count.
+ */
+function groupBySurface(issues: readonly A2uiValidationIssue[]): A2uiErrorGroup[] {
+  const groups = new Map<string | undefined, A2uiErrorGroup>();
+  for (const { surfaceId, ...issue } of issues) {
+    let group = groups.get(surfaceId);
+    if (!group) {
+      group = surfaceId === undefined ? { issues: [] } : { surfaceId, issues: [] };
+      groups.set(surfaceId, group);
+    }
+    group.issues.push(issue);
+  }
+  return [...groups.values()];
+}
+
 /**
  * The text that reports validation issues to the agent — the `errorPrefix`, a
- * space, then the issues as compact JSON: the next user turn in a chat, or the
- * error result of a tool call. It serializes exactly the issues it is given; which ones are worth a round-trip (usually the error-severity ones)
- * is the caller's choice. Throws when `errorPrefix` is `false`, for the reason
- * {@link a2uiActionMessage} does.
+ * space, then the issues as compact JSON, grouped by surface:
+ * `[{"surfaceId":"booking","issues":[{"severity":"error","code":"MISSING_ROOT",…}]}]`.
+ * Issues that name no surface share one group without `surfaceId`. This is the
+ * next user turn in a chat, or the error result of a tool call. It serializes
+ * exactly the issues it is given; which ones are worth a round-trip (usually
+ * the error-severity ones) is the caller's choice. Throws when `errorPrefix` is
+ * `false`, for the reason {@link a2uiActionMessage} does.
  */
 export function a2uiErrorMessage(
   issues: readonly A2uiValidationIssue[],
@@ -477,7 +505,7 @@ export function a2uiErrorMessage(
       'a2uiErrorMessage: errorPrefix is false, so the prompt describes no error message'
     );
   }
-  return `${error} ${JSON.stringify(issues)}`;
+  return `${error} ${JSON.stringify(groupBySurface(issues))}`;
 }
 
 /**

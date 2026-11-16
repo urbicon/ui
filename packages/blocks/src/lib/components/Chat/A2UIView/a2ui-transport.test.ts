@@ -124,8 +124,50 @@ describe('a2uiActionMessage / a2uiErrorMessage', () => {
       expect(text).toContain(`\`${actionPrefix}\``);
       expect(text).toContain(`\`${errorPrefix}\``);
       expect(action).toBe(`${actionPrefix}${JSON.stringify(event)}`);
-      expect(error).toBe(`${errorPrefix}${JSON.stringify(issues)}`);
+      expect(error).toBe(
+        `${errorPrefix}${JSON.stringify([
+          {
+            surfaceId: 's',
+            issues: [{ severity: 'error', code: 'MISSING_ROOT', message: 'No root' }]
+          }
+        ])}`
+      );
     }
+  });
+
+  it('names each surface once, in the order its first issue comes', () => {
+    const mixed: A2uiValidationIssue[] = [
+      { severity: 'error', code: 'MISSING_ROOT', surfaceId: 'b', message: 'one' },
+      { severity: 'error', code: 'INVALID_ENVELOPE', path: '/2', message: 'two' },
+      {
+        severity: 'error',
+        code: 'UNKNOWN_COMPONENT',
+        surfaceId: 'a',
+        path: '/0',
+        message: 'three'
+      },
+      { severity: 'warning', code: 'UNKNOWN_PROP', surfaceId: 'b', message: 'four' },
+      { severity: 'error', code: 'INVALID_FUNCTION_CALL', functionCallId: 'f', message: 'five' }
+    ];
+    expect(JSON.parse(a2uiErrorMessage(mixed).slice('[ui-error] '.length))).toEqual([
+      {
+        surfaceId: 'b',
+        issues: [
+          { severity: 'error', code: 'MISSING_ROOT', message: 'one' },
+          { severity: 'warning', code: 'UNKNOWN_PROP', message: 'four' }
+        ]
+      },
+      {
+        issues: [
+          { severity: 'error', code: 'INVALID_ENVELOPE', path: '/2', message: 'two' },
+          { severity: 'error', code: 'INVALID_FUNCTION_CALL', functionCallId: 'f', message: 'five' }
+        ]
+      },
+      {
+        surfaceId: 'a',
+        issues: [{ severity: 'error', code: 'UNKNOWN_COMPONENT', path: '/0', message: 'three' }]
+      }
+    ]);
   });
 
   it('refuses a prefix the options turned off — no prompt describes that message', () => {
