@@ -322,7 +322,8 @@ renderer, which is where a malformed item shows up.
 `onValidationError` fires with every issue the payload produced, each carrying a `severity`. The
 error-severity ones are shaped to be relayed to the agent verbatim as a `VALIDATION_FAILED` error;
 `a2uiFencedTransportSection()` tells it to expect them behind a `[ui-error]` prefix and re-emit a
-corrected surface, and `a2uiErrorMessage(issues)` writes that turn. Warnings are degradations the
+corrected surface, and `a2uiErrorMessage(issues)` writes that turn, grouped by surface so each
+`surfaceId` appears once however many issues it has. Warnings are degradations the
 surface survived — worth logging, rarely worth a round-trip. Router issues are the exception: a
 re-created `surfaceId` is a protocol slip, so relay it even though it is only a warning.
 
