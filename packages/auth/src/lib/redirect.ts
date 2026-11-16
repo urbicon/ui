@@ -7,14 +7,17 @@
  *
  * The auth handle appends the originally requested path to its login redirect
  * as `?redirectTo=…` (GET navigations only). This helper is the mandatory
- * gate between that query param — attacker-writable, like any URL — and a
- * `goto()`:
+ * gate between that query param — attacker-writable, like any URL — and the
+ * navigation:
  *
  * ```svelte
  * <LoginPage onSuccess={() =>
- *   goto(sanitizeRedirect(page.url.searchParams.get('redirectTo'), '/dashboard'))
+ *   location.assign(sanitizeRedirect(page.url.searchParams.get('redirectTo'), '/dashboard'))
  * } />
  * ```
+ *
+ * A document navigation, not `goto()`: the target can be a `+server` route or
+ * a path no route serves, and `goto()` rejects a URL that resolves to no page.
  *
  * Environment-free (no SvelteKit imports), so it works in components, load
  * functions and form actions alike.
