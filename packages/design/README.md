@@ -193,7 +193,9 @@ Exit codes — designed for hooks and CI:
 | `2`  | Usage error — bad flags / unreadable input                                                                                      |
 
 `--skip-heuristics` runs only the deterministic rules (no distribution notes). For `i18n`, a
-translations dir that loads nothing also fails the run (`1`), not a usage error.
+translations dir that loads nothing also fails the run (`1`), not a usage error. A source dir that
+yields no `.ts`, `.js` or `.svelte` file, or an empty `sources` list, is a usage error (`2`) for
+`unused`, `hardcoded` and `audit`; `parity` reads no sources.
 
 ### i18n
 

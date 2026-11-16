@@ -54,6 +54,9 @@ const SKIP_DIRS = new Set([
 ]);
 const MAX_DEPTH = 24;
 
+/** The files a source scan reads. */
+const SOURCE_EXTENSIONS = ['.ts', '.js', '.svelte'];
+
 interface I18nAuditConfig {
   sources: string[];
   translations: string[];
@@ -108,6 +111,12 @@ async function loadConfig(flags: Flags, sourceDirs: string[]): Promise<I18nAudit
   merged.baseLocale = stringFlag(flags, 'base-locale') ?? merged.baseLocale;
   merged.translations = listFlag(flags, 'translations') ?? merged.translations;
   merged.runtimeUsage = stringFlag(flags, 'runtime-usage') ?? merged.runtimeUsage;
+  for (const key of ['sources', 'translations'] as const) {
+    const list: unknown = merged[key];
+    if (!Array.isArray(list) || list.some((entry) => typeof entry !== 'string')) {
+      throw new Error(`"${key}" in ${candidate} must be a list of directories.`);
+    }
+  }
   // The flag cannot be empty (`listFlag` folds an empty value to the default),
   // so an empty list can only come from the config file. Loading zero dirs would
   // pass the bundle side as complete with nothing in it.
@@ -343,7 +352,7 @@ async function runHardcoded(
   return { lines, errors: 0, warnings, json: { findings: all } };
 }
 
-/** Whether `path` is a readable directory (the only thing a source positional may be). */
+/** Whether `path` is a directory (the only thing a source positional may be). */
 async function isDirectory(path: string): Promise<boolean> {
   try {
     return (await stat(resolve(path))).isDirectory();
@@ -396,21 +405,6 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
   const wantsUnused = check === 'unused' || check === 'audit';
   const wantsHardcoded = check === 'hardcoded' || check === 'audit';
 
-  // The sources a config file names (or the default `src`) need the check the
-  // positionals got above: scanning nothing reports every defined key unused
-  // and exits 0. `parity` reads no sources.
-  if (wantsUnused || wantsHardcoded) {
-    if (config.sources.length === 0) {
-      printError('"sources" is empty — name at least one source directory to scan.');
-      return EXIT.USAGE;
-    }
-    for (const dir of config.sources) {
-      if (await isDirectory(dir)) continue;
-      printError(`cannot read source directory "${dir}".`);
-      return EXIT.USAGE;
-    }
-  }
-
   let runtimeUsedKeys: string[] | undefined;
   if (wantsUnused && config.runtimeUsage) {
     try {
@@ -421,16 +415,33 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     }
   }
 
-  // Sources are needed for unused + hardcoded; load once.
+  // Sources are needed for unused + hardcoded; load once. Every source dir must
+  // yield a file: one that yields none — missing, empty, or holding only files
+  // the walk skips — reports every key used from it as unused and exits 0.
+  // `parity` reads no sources.
   let sources: { file: string; code: string }[] = [];
   if (wantsUnused || wantsHardcoded) {
-    const files = (
-      await Promise.all(
-        config.sources.map((dir) => collectFiles(resolve(dir), ['.ts', '.js', '.svelte']))
-      )
-    ).flat();
+    if (config.sources.length === 0) {
+      printError('"sources" is empty — name at least one source directory to scan.');
+      return EXIT.USAGE;
+    }
+    const perDir = await Promise.all(
+      config.sources.map((dir) => collectFiles(resolve(dir), SOURCE_EXTENSIONS))
+    );
+    const hole = perDir.findIndex((files) => files.length === 0);
+    if (hole !== -1) {
+      const dir = resolve(config.sources[hole] ?? '');
+      printError(
+        (await isDirectory(dir))
+          ? `no ${SOURCE_EXTENSIONS.join(', ')} file to scan under "${dir}".`
+          : `cannot read source directory "${dir}".`
+      );
+      return EXIT.USAGE;
+    }
     sources = await Promise.all(
-      files.map(async (file) => ({ file: label(file), code: await readFile(file, 'utf-8') }))
+      perDir
+        .flat()
+        .map(async (file) => ({ file: label(file), code: await readFile(file, 'utf-8') }))
     );
   }
 
