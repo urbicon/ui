@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.41.1](https://github.com/urbicon/ui/compare/v8.41.0...v8.41.1) - 2026-11-16
+
+### Documentation
+- Map the three agent surfaces on /ai and serve the A2UI and mcp-app guides ([#613](https://github.com/urbicon/ui/issues/613))
+
 ## [8.41.0](https://github.com/urbicon/ui/compare/v8.40.0...v8.41.0) - 2026-11-16
 
 ### Breaking Changes
