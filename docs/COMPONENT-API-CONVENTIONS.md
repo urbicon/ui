@@ -284,7 +284,7 @@ The granular dismiss-path callbacks (`onEscape`, `onClickOutside`) remain separa
 
 ## `data-state` Attribute
 
-Interactive components with distinct visual states expose a `data-state` attribute on their key element. This enables CSS-only custom styling in `unstyled` mode. ~14 primitives expose it (Toggle, Tab, Drawer, Collapsible, RadioGroup, SegmentGroup, Sidebar, …) — the table below is illustrative, not exhaustive:
+Interactive components with distinct visual states expose a `data-state` attribute on their key element. This enables CSS-only custom styling in `unstyled` mode. `grep -rl 'data-state' packages/blocks/src/lib --include='*.svelte'` lists the components that expose it — the table below is illustrative, not exhaustive:
 
 | Component | Element | Values                                  |
 | --------- | ------- | --------------------------------------- |

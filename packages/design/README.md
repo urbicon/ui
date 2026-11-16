@@ -30,7 +30,11 @@ actually has.
 The last three rows are the honest limits, and they matter more than the
 headline. A clean `validate` means the linter found nothing, which is not the
 same as correct — the wired run still shipped `text-on-surface-muted`, a class
-naming no token, which therefore renders as nothing, and the linter missed it.
+naming no token, which therefore renders as nothing, and the v8.3.1 linter missed
+it. It fails that class now, as it fails any made-up name on a root it knows
+(`bg-surface-made-up`); a colour class on a root it does not know, such as
+`bg-made-up-token`, still passes, because it cannot be told apart from your
+project's own colour.
 Re-implementation drops but does not stop: a wired agent still hand-builds
 components the catalog ships. And design quality does not move. Two further
 findings from the same eval: the loop raises craft scores on no model tier

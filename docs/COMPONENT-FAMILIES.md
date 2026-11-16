@@ -1,6 +1,6 @@
 # Component Families
 
-> A taxonomy of the Urbicon UI primitives. Every component belongs to exactly one family, and the family determines its ARIA role, its border-token source, its tier-system membership, and the question a consumer should ask before reaching for it.
+> A taxonomy of the Urbicon UI primitives and the conversation components. Each of them belongs to exactly one family or is named as standing outside them, and the family determines its ARIA role, its border-token source, its tier-system membership, and the question a consumer should ask before reaching for it.
 >
 > This page is the canonical reference. Doc-page JSDoc `@tag` annotations follow the same taxonomy so that the `urbicon` CLI, `llms.txt`, and the documentation site all agree.
 >
@@ -10,7 +10,7 @@
 
 ## Why families exist
 
-The library exposes 39 primitives and 27 components. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
+Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give a component a position on three axes:
 
 1. **ARIA role** — what assistive technology calls it.
 2. **Tier membership** — which radius tier the family sits on, and whether its members read the tier context. The model itself is [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system); this page only says which family lands where.
@@ -27,10 +27,12 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 | [Action](#action)                        | Button · ButtonGroup · Menu · Toolbar · Toggle                                                                                                    | `button`, `menu`, `menuitem`, `toolbar`               | `commit`, read from the tier context — except `Toolbar`, which **sets** it and is itself `contain`        | **Intent** (`border-neutral` etc.)           |
 | [Form](#form)                            | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField                                                                 | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | `modify` from the context; `Slider` and `FormField` opt out                                               | **Surface** (`border-border-subtle`)         |
 | [Navigation](#navigation)                | Breadcrumb · Link · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline                                                                   | `navigation`, `tablist`, `tab`                        | `commit` or `modify` per component, from the context; `Breadcrumb`, `JourneyTimeline` and `Link` opt out  | mixed (route-context dependent)              |
-| [Container](#container)                  | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog                                | `dialog`, `region`, `tooltip`, etc.                   | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline**                  |
+| [Container](#container)                  | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog · SplitPane · Scroller         | `dialog`, `region`, `tooltip`, etc.                   | fixed `contain`; **no member reads the context**, and only `Card` has a `tier` prop (`contain \| bridge`) | **Surface** or **Hairline**                  |
 | [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge                                                                                                     | `status`, `alert`, `progressbar`                      | **not tier-aware** — fixed geometry; `Badge` is the one exception                                         | **Intent** (status-tinted) or **none**       |
 | [Identity](#identity)                    | Avatar                                                                                                                                            | `img` or `button`                                     | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`)                                         | none (avatar is its own surface)             |
 | [Conversation](#conversation)            | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `textbox`, `region`                            | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer               | **Surface**, and only on the OUTERMOST frame |
+
+**Outside the families:** `Kbd` — a `<kbd>` is phrasing content inside a sentence: it has no role, takes no part in layout and reads no tier, and its small frame is typography, not a surface that holds content. None of the families' questions applies to a key label. A primitive in `packages/blocks/src/lib/primitives/` that neither the table nor this line names has not been placed yet.
 
 The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and catalog filtering, the family decides architecture.
 
@@ -106,7 +108,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page and for the current `Link` (`aria-current="page"`). `JourneyTimeline` is an `<ol>` with `aria-current="step"` on the active-status node and disclosure semantics (`aria-expanded`/`aria-controls`) on the focused node's trigger.
 
-**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `PaginationItem` read the tier context. `Breadcrumb`, `JourneyTimeline` and `Link` do not — the timeline's cards and panel sit on the fixed `contain` radius, a breadcrumb trail draws no box to round, and a `Link` is a word rather than a control: its `rounded-modify` is the shape of a focus ring, not of a surface.
+**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `Pagination` and `PaginationItem` read the tier context. `Breadcrumb`, `JourneyTimeline` and `Link` do not — the timeline's cards and panel sit on the fixed `contain` radius, a breadcrumb trail draws no box to round, and a `Link` is a word rather than a control: its `rounded-modify` is the shape of a focus ring, not of a surface.
 
 **Border source:** Mixed. `SegmentGroup` indicator uses Intent (the active item is action-like). `Tab` `line` variant has no border. Breadcrumb uses no border by default.
 
@@ -127,9 +129,9 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 ## Container
 
-**Members:** `Card`, `Alert`, `Accordion`, `Collapsible`, `Dialog`, `Drawer`, `Popover`, `Tooltip`, `Sidebar`, `Separator`, `ConfirmDialog`.
+**Members:** `Card`, `Alert`, `Accordion`, `Collapsible`, `Dialog`, `Drawer`, `Popover`, `Tooltip`, `Sidebar`, `Separator`, `ConfirmDialog`, `SplitPane`, `Scroller`.
 
-**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` / `role="status"` (Alert, derived from `intent` — assertive at `danger` and `warning`, polite otherwise), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
+**ARIA:** `<dialog>` (Dialog, Drawer, ConfirmDialog), `role="tooltip"` (Tooltip), `role="alert"` / `role="status"` (Alert, derived from `intent` — assertive at `danger` and `warning`, polite otherwise), `<aside>` (Sidebar), a `<button aria-expanded>` trigger over a plain region (Accordion, Collapsible — not `<details>`, which cannot animate its own disclosure or be driven from outside), a focusable `role="separator"` as the window splitter between two panes (SplitPane), `role="group"` while the row overflows and none while it fits (Scroller). `Card` renders `<a>` with `href`, `<button>` when it is clickable, and `<div>` otherwise — never `<article>`, because a card is a grouping device and an `<article>` promises independently distributable content.
 
 **Tier:** Fixed `contain` — containers are architectural surfaces, not interactive affordances; the radius signal is "this is a frame", not "this is a button". **No Container member reads the tier context**, deliberately: a Toolbar's `commit` must not reshape a Card standing inside it. `Card` is the only one with a `tier` prop at all, and its two values are `contain | bridge` — the optical-size decision, not the interactive one ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
 
@@ -261,17 +263,17 @@ Four surfaces render option/item rows inside a floating panel: `Select` and `Com
 
 The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/primitives/*/index.ts` drive doc-generation and catalog filtering. They are _finer-grained_ than families:
 
-| JSDoc tag    | Family                                  | Notes                                                                                                           |
-| ------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `action`     | Action                                  | Button, ButtonGroup, Menu, Toolbar                                                                              |
-| `form`       | Form                                    | Toggle is form-tagged but in Action by behaviour (bistable switch) — see the table at top for canonical family. |
-| `navigation` | Navigation                              | Breadcrumb, Link, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline (also `display`-tagged)               |
-| `layout`     | Container                               | Accordion, Card, Collapsible, Separator, Sidebar                                                                |
-| `overlay`    | Container                               | ConfirmDialog, Dialog, Drawer, Popover                                                                          |
-| `feedback`   | Feedback / Ambient                      | Alert, Badge, Progress, Skeleton, Spinner, Toast                                                                |
-| `display`    | Identity (Avatar) / Container (Tooltip) | Tooltip is display-tagged but lives in Container by behaviour — see canonical family.                           |
+| JSDoc tag    | Family                                  | Notes                                                                           |
+| ------------ | --------------------------------------- | ------------------------------------------------------------------------------- |
+| `action`     | Action                                  |                                                                                 |
+| `form`       | Form                                    | Toggle is form-tagged but in Action by behaviour (bistable switch).             |
+| `navigation` | Navigation                              | JourneyTimeline is display-tagged too and lives in Navigation.                  |
+| `layout`     | Container                               | Sidebar is navigation-tagged too and lives in Container.                        |
+| `overlay`    | Container                               |                                                                                 |
+| `feedback`   | Feedback / Ambient                      | Alert is feedback-tagged but lives in Container by behaviour.                   |
+| `display`    | Identity (Avatar) / Container (Tooltip) | Tooltip lives in Container by behaviour; Kbd, display-tagged too, sits outside. |
 
-When the tag and the family disagree (Toggle, Tooltip), the family rules — JSDoc tags exist for fine-grained catalog filtering (`urbicon find --tag form`), not as the architectural source of truth.
+Which components carry a tag is read off the catalog, not listed here: `urbicon find --tag <tag>`. When the tag and the family disagree, as in the notes above, the family rules — JSDoc tags exist for fine-grained catalog filtering, not as the architectural source of truth.
 
 ---
 

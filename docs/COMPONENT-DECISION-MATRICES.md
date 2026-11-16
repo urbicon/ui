@@ -20,7 +20,7 @@ Four components occupy overlapping territory: **Sidebar** (primitive, semantic l
 | Mobile bottom sheet                                               | **`Drawer`** with `placement="bottom"`                                            | Drawer supports all four edges; Sidebar is left/right only.                                                                                                                                               |
 | Filter panel (persistent on desktop, overlay on mobile)           | **`Sidebar`** with `mode="responsive"`                                            | Hybrid lifecycle is exactly Sidebar's purpose.                                                                                                                                                            |
 | Collapsible side panel (toggleable on desktop too)                | **`Sidebar`** with `mode="collapsible"` or **`SidebarLayout`** with the same mode | Width-animation behaviour, no backdrop on desktop.                                                                                                                                                        |
-| Anchored picker (date, action menu, autocomplete)                 | **`Popover`**                                                                     | Floating-UI positioning, not modal.                                                                                                                                                                       |
+| Anchored picker (date, action menu, autocomplete)                 | **`Popover`**                                                                     | Anchored positioning, not modal.                                                                                                                                                                          |
 | Hover description for an inline target                            | **`Tooltip`**                                                                     | `aria-describedby` pattern, no click trigger. Renders as phrasing content (all spans), so it is legal inside a `<p>` — see [COMPONENT-FAMILIES.md §Phrasing content](COMPONENT-FAMILIES.md#conversation). |
 | Stack of system notifications                                     | **`Toast`**                                                                       | Auto-dismiss, stacking, not modal.                                                                                                                                                                        |
 
@@ -170,21 +170,27 @@ Tooltip and Toast almost never collide with the four above — Tooltip is descri
 How the floating components stack up under the hood, so contributors picking patterns or
 adding new primitives know what to mirror:
 
-| Primitive    | Top-layer strategy                       | Positioning                  | Composes                     | Notes                                                                                                              |
-| ------------ | ---------------------------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Tooltip**  | `popover="manual"`                       | Floating UI `strategy:fixed` | —                            | Hover/focus driven; no light dismiss; not click-toggle-able.                                                       |
-| **Popover**  | `popover="auto"` or `"manual"` (derived) | Floating UI `strategy:fixed` | —                            | Auto when `closeOnEscape && closeOnClickOutside` (default); manual otherwise so the consumer can veto either path. |
-| **Menu**     | (inherits from Popover)                  | (via Popover)                | wraps **Popover** internally | Owns keyboard nav + item registry; positioning + dismiss come from Popover.                                        |
-| **Select**   | `popover="manual"`                       | Floating UI `strategy:fixed` | —                            | Form input with a listbox panel. Manual mode so existing keydown/outside-click handlers stay in control.           |
-| **Combobox** | `popover="manual"`                       | Floating UI `strategy:fixed` | —                            | Like Select, but the trigger is the `<input>` itself and `aria-activedescendant` keeps DOM focus on the input.     |
+| Primitive    | Top-layer strategy                       | Positioning                                                | Composes                     | Notes                                                                                                                                                                                                                                           |
+| ------------ | ---------------------------------------- | ---------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tooltip**  | `popover="manual"`                       | `floating.ts`, `strategy: 'fixed'`                         | —                            | Hover/focus driven; no light dismiss; not click-toggle-able.                                                                                                                                                                                    |
+| **Popover**  | `popover="auto"` or `"manual"` (derived) | `floating.ts`, `fixed` (`absolute` at `usePortal={false}`) | —                            | Auto only when the panel is in the top layer, the trigger is its own (`autoTrigger`) and `closeOnEscape && closeOnClickOutside` (the defaults); manual otherwise, so the consumer can veto either path and an external trigger toggles cleanly. |
+| **Menu**     | (inherits from Popover)                  | (via Popover)                                              | wraps **Popover** internally | Owns keyboard nav + item registry; positioning + dismiss come from Popover.                                                                                                                                                                     |
+| **Select**   | `popover="manual"`                       | `floating.ts`, `fixed` (`absolute` at `usePortal={false}`) | —                            | Form input with a listbox panel. Manual mode so existing keydown/outside-click handlers stay in control.                                                                                                                                        |
+| **Combobox** | `popover="manual"`                       | `floating.ts`, `fixed`                                     | —                            | Like Select, but the trigger is the `<input>` itself and `aria-activedescendant` keeps DOM focus on the input.                                                                                                                                  |
+
+`floating.ts` is `packages/blocks/src/lib/utils/floating.ts`, the library's own zero-dependency
+`computePosition` with middleware and `autoUpdate` — why it is not CSS Anchor Positioning:
+[DECISIONS.md § Positioning stays in JavaScript](DECISIONS.md#positioning-stays-in-javascript).
 
 **Why `popover="manual"` for form inputs (Select/Combobox):** the native light-dismiss in `popover="auto"`
 fights with our pointerdown-on-trigger toggle flow. Manual mode plus our own outside-click /
 Escape listeners is the simplest path that keeps the form-input UX intact.
 
 **Why `popover="auto"` is the Popover default:** the browser provides Escape, light-dismiss, focus
-restoration, and single-stack semantics for free. We only switch to `manual` when the consumer
-disables one of those paths via `closeOnEscape` / `closeOnClickOutside`.
+restoration, and single-stack semantics for free. It switches to `manual` when the consumer
+disables one of those paths via `closeOnEscape` / `closeOnClickOutside`, when the trigger is
+external (`autoTrigger={false}`), and when the panel stays out of the top layer inside a modal
+dialog — the derivation is `popoverMode` in `Popover.svelte`.
 
 ### Unified non-modal dismiss API
 
@@ -206,7 +212,7 @@ the right abstraction only when no scrim exists.
 - **Tooltip top-layer migration** (`packages/blocks/src/lib/primitives/Tooltip/Tooltip.svelte`) — the
   canonical example of switching a floating component from inline `position: absolute` to native popover
   top-layer rendering, including the UA-stylesheet pitfalls (overflow:auto clipping the arrow, restProps
-  reordering for load-bearing attributes, `Number.isFinite` guards on Floating UI output).
+  reordering for load-bearing attributes, `Number.isFinite` guards on `computePosition` output).
 - **Popover dismiss-API** (`packages/blocks/src/lib/primitives/Popover/Popover.svelte`) — derived
   `popoverMode` (auto/manual), re-shown when a flip while open makes the browser hide it (and
   the popovers open inside it shown again after it, so they stay above it in the top layer),
