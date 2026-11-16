@@ -17,6 +17,7 @@ Why: [DECISIONS.md](DECISIONS.md#the-mcp-server-was-retired).
 ## The `urbicon` CLI
 
 One dev-dependency, so the knowledge a project gets is pinned to the version it installed.
+`urbicon --help` lists every command.
 
 - **Knowledge** — `primer` (the always-needed bundle: component selection plus the token
   core, the override ladder and the link-as-button recipe, one call, run first), `find`,
@@ -24,7 +25,8 @@ One dev-dependency, so the knowledge a project gets is pinned to the version it 
   migration and integration docs shipped in the package tarballs; `--help` and a bare `guide`
   list them from the bundle's index), `pattern`, `principles` (`--topic`, `--rubric`),
   `css-reference`.
-- **Judgment** — `validate`, plus `hook` and the CI entry point.
+- **Judgment** — `validate`, plus `hook` and the CI entry point; `i18n`, the audit of a
+  project's `@urbicon-ui/i18n` usage.
 - **Memory** — `context`, `record-decision`, `sync-manifest`.
 - **Process** — `verbs` / `verb <name>`, plus the `urbicon-design` skill.
 - **Onboarding** — `init`: writes the AGENTS.md block, wires CLAUDE.md to it, scaffolds the

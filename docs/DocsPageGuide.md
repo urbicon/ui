@@ -215,7 +215,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   related={relatedLinks}
 >
   <!-- 1. Playground — titled but unmarked; add `titleHidden` to keep the heading
-       in the outline while the stage speaks for itself (59 of 87 pages do). -->
+       in the outline while the stage speaks for itself. -->
   <Section id="playground" title="Playground" titleHidden intent="primary">
     <Playground />
   </Section>
@@ -265,7 +265,7 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   pages outside the docs chrome (`+error.svelte`, test fixtures) — not for component pages.
 - **ReferenceSections**: once per page, unwrapped — it renders both of its sections itself.
 - **Playground**: for anything beyond a trivial control set, put the `PlaygroundConfigurator` in a
-  sibling `Playground.svelte` and render `<Playground />` (98 pages do). It keeps the control array
+  sibling `Playground.svelte` and render `<Playground />`. It keeps the control array
   — often 40+ lines — out of the page shell. Set `showHeader={false}`; pass `propDocs` from
   `componentData` when available.
 - **`stability` / `sourceHref` / `related`**: read from `componentData` and `buildRelatedLinks`,

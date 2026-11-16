@@ -22,12 +22,17 @@ documentation tooling and an AI-native developer surface, all under one version 
 
 ### The package map
 
-Every arrow is a `peerDependency`, not a runtime dependency — every package that can reach a
-consumer's bundle has a `dependencies` field that is literally `{}`. Consumers install what
-they use; the workspace wires the same edges as `workspace:*` devDependencies for local
-development. Two dev-time tools sit outside the rule, because nothing about them ships into
-an app: `docs-gen` (`glob`, plus `design-engine` and `shared-types`) and the `urbicon` CLI in
-`design` (`design-engine`, `design-content`, `i18n`).
+A solid arrow is a `peerDependency`: every package that can reach a consumer's bundle
+declares no runtime dependency — its `dependencies` field is `{}` or absent. Consumers install
+what they use; the workspace wires the same edges as `workspace:*` devDependencies for local
+development. A dashed arrow is a runtime `dependency`, and only the dev-time tools have them,
+because nothing about them ships into an app: `docs-gen` (plus `glob`), the `urbicon` CLI in
+`design`, and the unscoped `urbicon` name that forwards to it. The edges are read off the
+`package.json` files; this prints them:
+
+```sh
+bun -e 'for (const f of new Bun.Glob("packages/*/package.json").scanSync()) { const p = await Bun.file(f).json(); for (const k of ["dependencies", "peerDependencies"]) for (const d of Object.keys(p[k] ?? {})) if (d.startsWith("@urbicon-ui/")) console.log(`${d} → ${p.name} (${k})`) }'
+```
 
 ```mermaid
 graph TD
@@ -43,43 +48,51 @@ graph TD
     DE[design-engine<br/><i>linter, manifest, rubric</i>]
     DC[design-content<br/><i>knowledge bundle</i>]
     DES[design<br/><i>urbicon CLI</i>]
+    URB[urbicon<br/><i>unscoped bin name</i>]
+    SV[sv<br/><i>Svelte-CLI add-on</i>]
 
     I18N --> BL
+    I18N --> TB
+    I18N --> AU
+    I18N --> DOCS
     BL --> TB
     BL --> AU
-    I18N --> AU
     BL --> DOCS
     TB --> DOCS
     ST --> DOCS
-    ST --> DG
-    DE --> DG
-    DE --> DES
-    DC --> DES
+    ST -.-> DG
+    DE -.-> DG
+    DE -.-> DES
+    DC -.-> DES
+    I18N -.-> DES
+    DES -.-> URB
 
     classDef found fill:#e8f0fe,stroke:#5b7fb9,color:#1a3a5c
     classDef lib fill:#fff3e0,stroke:#c9884a,color:#5c3a10
     classDef tool fill:#f0f0f0,stroke:#999,color:#333
     class ST,I18N found
     class BL,TB,AU,SKU,MCP,DOCS lib
-    class DG,DE,DC,DES tool
+    class DG,DE,DC,DES,URB,SV tool
 ```
 
 ### What lives where
 
-| Package           | Does                                                                                                                                                                                                                                     | Start reading at                      |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `shared-types`    | Docs-tooling types (playground, docs-config, navigation) for `docs` and `docs-gen`, no runtime code                                                                                                                                      | `src/index.ts`                        |
-| `i18n`            | Runes-based localization + translation audit                                                                                                                                                                                             | `src/lib/i18n/registry.svelte.ts`     |
-| `blocks`          | 39 primitives + 27 components, the token system, the `tv()` engine                                                                                                                                                                       | `src/lib/index.ts`                    |
-| `table`           | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode                                                                                                                                           | `src/lib/stores/TableStore.svelte.ts` |
-| `auth`            | JWT sessions, refresh rotation, passkeys, Web Push, notifications                                                                                                                                                                        | `src/lib/server/index.ts`             |
-| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes). No arrow in the map: nothing peer-depends on it, and its table-view types are a deliberate mirror guarded by a parity test rather than an import                                | `src/lib/index.ts`                    |
-| `mcp-app`         | MCP-App views: the view's bridge to its host, the server's dispatcher, its `ui://` catalog, the SDK wire check, a test host after the spec, the views' single-file build. No arrow in the map: it depends on no package here, none on it | `src/view/index.ts`                   |
-| `docs`            | Reusable documentation UI components                                                                                                                                                                                                     | `src/lib/index.ts`                    |
-| `docs-gen`        | AST-based documentation generator (CLI)                                                                                                                                                                                                  | `src/cli/index.ts`                    |
-| `design-engine`   | Zero-dep design linter, manifest parser, rubric                                                                                                                                                                                          | `src/linter/index.ts`                 |
-| `design-content`  | Versioned design-knowledge bundle (`content/` is a build artifact)                                                                                                                                                                       | `src/content-loader.ts`               |
-| `design`          | The `urbicon` CLI — the consumer-facing surface                                                                                                                                                                                          | `src/cli/index.ts`                    |
+| Package           | Does                                                                                                                                                                                                                                               | Start reading at                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `shared-types`    | Docs-tooling types (playground, docs-config, navigation) for `docs` and `docs-gen`, no runtime code                                                                                                                                                | `src/index.ts`                        |
+| `i18n`            | Runes-based localization + translation audit                                                                                                                                                                                                       | `src/lib/i18n/registry.svelte.ts`     |
+| `blocks`          | The primitives and components, the token system, the `tv()` engine                                                                                                                                                                                 | `src/lib/index.ts`                    |
+| `table`           | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode                                                                                                                                                     | `src/lib/stores/TableStore.svelte.ts` |
+| `auth`            | JWT sessions, refresh rotation, passkeys, Web Push, notifications                                                                                                                                                                                  | `src/lib/server/index.ts`             |
+| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes). No arrow in the map: nothing peer-depends on it, and its table-view types are a deliberate mirror guarded by a parity test rather than an import                                          | `src/lib/index.ts`                    |
+| `mcp-app`         | MCP-App views: the view's bridge to its host, the server's dispatcher, its `ui://` catalog, the SDK wire check, a test host after the spec, the views' single-file build. No arrow in the map: it depends on no package here, none on it           | `src/view/index.ts`                   |
+| `docs`            | Reusable documentation UI components                                                                                                                                                                                                               | `src/lib/index.ts`                    |
+| `docs-gen`        | AST-based documentation generator (CLI)                                                                                                                                                                                                            | `src/cli/index.ts`                    |
+| `design-engine`   | Zero-dep design linter, manifest parser, rubric                                                                                                                                                                                                    | `src/linter/index.ts`                 |
+| `design-content`  | Versioned design-knowledge bundle (`content/` is a build artifact)                                                                                                                                                                                 | `src/content-loader.ts`               |
+| `design`          | The `urbicon` CLI — the consumer-facing surface                                                                                                                                                                                                    | `src/cli/index.ts`                    |
+| `urbicon`         | The unscoped bin name: forwards in-process to the installed `design`, so `bunx urbicon` resolves in every project                                                                                                                                  | `bin/urbicon.js`                      |
+| `sv`              | Svelte-CLI community add-on: `sv add @urbicon-ui` installs `blocks` and `design`, wires the stylesheet, then hands over to `urbicon init`. No arrow in the map: the packages it writes into a consumer's `package.json` are an edge npm cannot see | `src/index.ts`                        |
 
 Applications live in `apps/`: [`apps/docs`](../apps/docs/README.md) is the documentation
 site. End-to-end suites live in `e2e/`.
@@ -858,7 +871,7 @@ Each package's own README is the authoritative reference; these are orientation 
 
 ### `blocks`
 
-39 primitives and 27 components, the token system, the `tv()` engine, the Mint system, the
+The primitives and components, the token system, the `tv()` engine, the Mint system, the
 icon set (363 icons) and the provider. Everything in §2 lives here.
 
 Icons are tree-shaking-sensitive: **never call `getIcon('name')` inside a component** — the
@@ -931,7 +944,7 @@ P-256 + RSA, FIDO2 Level 2); Web Push (ECDH + HKDF + AES-128-GCM, RFC 8291/8292/
 signing); an adapter pattern for repositories with a Prisma adapter shipped; pluggable
 stores for challenges, rate limits and refresh tokens.
 
-**Client** (`@urbicon-ui/auth`): 14 blocks-based UI components, Svelte 5 runes stores
+**Client** (`@urbicon-ui/auth`): blocks-based UI components, Svelte 5 runes stores
 (`createAuthStore()`, `createNotificationStore()`), service-worker helpers.
 
 Full reference incl. consumer integration and known security limitations:
@@ -944,10 +957,8 @@ See §5.
 ### `design`, `design-content`, `design-engine`
 
 The `urbicon` CLI is the **consumer-facing surface** — one dev-dependency with
-version-pinned knowledge. Knowledge commands: `primer` (run first), `find`, `get-component`,
-`icons`, `recipe`, `guide`, `pattern`, `principles`, `css-reference`. Judgment: `validate`
-(+ `hook`/CI). Memory: `context`, `record-decision`, `sync-manifest`. Process: `verbs` and
-the `urbicon-design` skill. Onboarding: `init`.
+version-pinned knowledge. Which command serves what:
+[AI-NATIVE-DX.md § The `urbicon` CLI](AI-NATIVE-DX.md#the-urbicon-cli).
 
 `design-engine` is the zero-dep linter, manifest parser and rubric; `design-content` is the
 versioned knowledge bundle the CLI reads.
@@ -991,7 +1002,8 @@ is generated from the component catalog too, but tracked: `llms:check` (`git dif
 after `build:ts`) fails the gates job when a commit skipped `docs:gen`.
 
 Components may provide a `docs.svelte` with custom content and a `docsConfig` export.
-Conventions: `packages/docs-gen/docs/component-structure-guidelines.md`.
+What extraction expects of a component's files:
+[ComponentStructureStandard.md § docs-gen Integration](ComponentStructureStandard.md#docs-gen-integration).
 
 ### The lint gates
 
@@ -1050,19 +1062,13 @@ at build time) and the full changelog at `/changelog` (via the `virtual:changelo
 
 ### AI-native developer surface
 
-| Artifact         | Purpose                                                                                              |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `/llms.txt`      | Brief library overview (llms.txt standard) — generated from the catalog, tracked, `llms:check`-gated |
-| `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated                                |
-| `urbicon` CLI    | The consumer surface — see §4                                                                        |
-| `design-system/` | Design principles and composition patterns, served by the CLI                                        |
+What an agent is served and from where — `llms.txt`, `llms-full.txt`, the `urbicon` CLI and
+the `design-system/` knowledge it serves: [AI-NATIVE-DX.md](AI-NATIVE-DX.md).
 
 ---
 
 ## 6 · Conscious trade-offs
 
-Decisions that look like oversights and are not — Biome's lack of type-awareness, the
-pre-commit scope, the `import.meta.env` advisory, the narrow `tv()` engine, the retired MCP
-server, and where publishing actually happens:
+Decisions that look like oversights and are not:
 
 → **[DECISIONS.md](DECISIONS.md)**

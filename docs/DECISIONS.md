@@ -98,11 +98,11 @@ passes the root one explicitly and takes its file list from git.
 ## Stricter TS flags are not raised centrally
 
 `tsconfig.base.json` holds the shared baseline (`strict`, `esModuleInterop`,
-`moduleResolution`, `allowJs`/`checkJs`, …). Of the six `tsc`-checked packages, five raise
-stronger flags: `noUncheckedIndexedAccess` and `verbatimModuleSyntax` in `design`,
-`design-content`, `design-engine`, `docs-gen` and `sv`, plus `exactOptionalPropertyTypes` in
-`docs-gen` alone. The sixth, `shared-types`, is built the same way and raises none of them —
-it declares types and has nothing to index or narrow.
+`moduleResolution`, `allowJs`/`checkJs`, …). Stronger flags are raised per package, and only
+in packages whose `check` is plain `tsc` rather than `svelte-check`;
+`grep -oE 'noUncheckedIndexedAccess|verbatimModuleSyntax|exactOptionalPropertyTypes' packages/*/tsconfig.json`
+lists which package raises which. `shared-types` is `tsc`-checked too and raises none of them
+— it declares types and has nothing to index or narrow.
 
 Raising them centrally would mean migrating the SvelteKit packages, and that effort is not
 yet justified.
@@ -133,8 +133,8 @@ The subset is a decision, but a silent one was not: `variants:lint` compares the
 against the compiler — a missing family over the classes the library ships, a bucket whose
 classes write different properties over Tailwind's whole class list too — so it is reported
 rather than discovered by a consumer whose override does not land. Deriving the table from
-the compiler instead was measured and rejected — it is a breaking change and costs +7.8 KB
-gzip in every consumer bundle, while the gate ships nothing.
+the compiler instead was measured and rejected in 2026-08 (#335): a breaking change, at
++7.8 KB gzip in every consumer bundle then, while the gate ships nothing.
 
 Two other override architectures were weighed and not built. **Cascade layers** (`@layer`)
 would make the conflict unrepresentable instead of computed: one declared layer order decides,
@@ -182,6 +182,34 @@ The proof that the boundary holds is in the repo: the Color Rooms skin
 (`apps/docs/src/lib/style/rooms*.css`) carries a complete identity — own paper, ink, intent
 ramps, typography, first-class light and dark via `light-dark()` — as a scoped token override
 with no parallel component tree.
+
+## No semantic typography tier
+
+Colour has a semantic layer; typography has none — no `--text-body`, no `--text-caption`. It is
+themed through Tailwind's own `@theme` namespaces (`--text-*`, `--font-*`, `--leading-*`,
+`--tracking-*`). `packages/blocks/src/lib/style/index.css` does not import Tailwind, so the
+library's `@theme` and the consumer's run in the consumer's one compilation, and a consumer
+`@theme` declared after the library's stylesheet wins. The Color Rooms skin rebinds
+`--font-sans` and `--font-mono` on `.docs-rooms` (`apps/docs/src/lib/style/rooms-docs.css`),
+and the components follow without a change.
+
+A semantic name would add nothing and break something:
+
+- **It would be a pure alias.** `--radius-commit` earns its name because it carries a contract
+  across components — every commit-tier control reads it, so one rebinding reshapes them
+  together ([ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system)).
+  `--text-body` would stand for one size and nothing more.
+- **The `tv()` engine would read it as a colour.** `BUCKET_PATTERNS` in
+  `packages/blocks/src/lib/utils/variants.ts` buckets `text-(\d+xs|xs|sm|base|lg|xl|\d+xl)` as
+  `text-size`, and a `text-<word>` that no pattern names (not an alignment, wrap, overflow or
+  shadow keyword) falls through to the text-colour catch-all. `text-body`
+  would be classified as a colour, and any text-colour override would silently strip it.
+
+The one real gap, sizes below Tailwind's 12px `--text-xs`, was closed inside Tailwind's
+namespace: `--text-2xs` and `--text-3xs` in `foundation.css`, with the `text-size` pattern
+extended by `\d+xs`.
+
+**Revisit only if:** a typography token has to carry a behaviour contract rather than a value.
 
 ## Deliberately not in the catalog
 
@@ -262,8 +290,9 @@ configured per package on npmjs.com. Provenance attestations are automatic — t
 an escape hatch, scoped to the publish job's single step.
 
 **This reverses the earlier arrangement.** Until 2026-08-01 the effective publisher was the
-deploy host and both this file and `VERSIONING.md` said so. Since v6.48.1 all thirteen packages
-go out from here over OIDC. Publishing is gated on the repository variable
+deploy host and both this file and `VERSIONING.md` said so. Since v6.48.1 every release of a package in
+`RELEASE_PACKAGES` (`scripts/release-packages.mjs`) after its first, hand-made publish goes out
+from here over OIDC. Publishing is gated on the repository variable
 `NPM_TRUSTED_PUBLISHING=true`; clearing it turns the job back into a rehearsal, which is the
 way back if it is ever needed.
 
@@ -294,9 +323,9 @@ The reason is not tidiness. **`$effect` never runs during server rendering**, so
 a component ingests in an effect is missing from the prerendered HTML and appears only after
 hydration. Measured on three surfaces in v7 (#10): the table served an **empty** body because
 every prop reached the store through an effect, `CodePanel` shipped a spinner where the code
-should be, and `PlaygroundConfigurator` served empty controls. 154 of 173 prerendered pages
-now carry real highlighted code; the remaining 19 are 5 redirect stubs and 14 pages with no
-code on them.
+should be, and `PlaygroundConfigurator` served empty controls. After the fix, in 2026-08, 154
+of 173 prerendered pages carried real highlighted code; the remaining 19 were 5 redirect stubs
+and 14 pages with no code on them.
 
 **Known consequence:** a `$state` bucket cannot hold a derivation, which is why a provider
 that mirrors every prop needs one effect per prop — the table's had ten of them, mirroring
@@ -329,7 +358,7 @@ cut removed the question rather than the symptoms. Column visibility and column 
 out of the URL entirely — they are presentation, not selection, and live in the `prefs`
 channel.
 
-## Three auth restructurings wait for a breaking release
+## Three auth restructurings wait for a re-wiring that happens anyway
 
 Redesigns of `packages/auth` drafted from its requirements alone proposed three shapes the code
 does not have:
@@ -351,9 +380,13 @@ resolved-config accessors keep the entry points in agreement (#307), and the con
 pins that a deletion erases every declared dependent, against a test double whose cascade is
 read from the reference schema (#305). None of them is worth a break on its own.
 
-**Revisit only if:** a consumer pays for the divergence again, or a breaking release is being
-cut anyway. Until the launch, [VERSIONING.md § The pre-launch window](VERSIONING.md#the-pre-launch-window)
-ships a breaking set as a minor, which makes that window the cheapest moment for all three.
+**Revisit only if:** a consumer pays for the divergence again, or another change already makes
+consumers re-wire the place a restructuring would touch — the public wiring for the one
+constructor, a custom adapter for token families or the cascade. That re-wiring is the cost of
+each break, and a change that pays it anyway can carry the restructuring too. A breaking
+release alone is no such occasion: under
+[VERSIONING.md § The pre-launch window](VERSIONING.md#the-pre-launch-window) a breaking set
+ships as a minor, so most releases are breaking ones.
 
 ## The docs highlighter is synchronous, and pays for it in the eager bundle
 
