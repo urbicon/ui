@@ -125,7 +125,7 @@ Two things bite in a fresh worktree:
 
 - `apps/docs` is no package, so `build:packages` does not sync it. Its `check`, `test` and
   `build` scripts and `vite dev` run `svelte-kit sync` themselves; a bare `svelte-check` there,
-  or `vitest` on Node, fails on the missing `$app/tsconfig` its `tsconfig.json` extends until
+  or `vitest`, fails on the missing `$app/tsconfig` its `tsconfig.json` extends until
   `bunx --bun svelte-kit sync` has run. The packages that extend it are synced by
   `build:packages`: each one's `build` starts with `svelte-kit sync`.
 - `apps/docs` needs both the built packages **and** a `docs:gen:all` run — every page

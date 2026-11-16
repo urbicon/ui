@@ -48,7 +48,7 @@ Runes, snippets and attachments only — no legacy syntax (`export let`, `$:`, `
 - Context through `createContext<T>()` from `svelte`, never `setContext('string', …)`.
 - A value that follows a prop is a `$derived`, never synced in an `$effect` — even when other writers assign to it.
 - Reactive collections from `svelte/reactivity` (`SvelteMap`, `SvelteSet`, `MediaQuery`), never `$state(new Map())` or `onMount` + `matchMedia`.
-- `{#each}` keys on a stable, unique id, never the index — Biome demands a key, not a good one.
+- `{#each}` keys on a stable, unique id, never the index (static skeletons excepted) — Biome demands a key, not a good one.
 
 When the Svelte MCP is connected, run `svelte-autofixer` on every `.svelte` file you changed until it reports no issues; for patterns, SVELTE5-PATTERNS.md wins over the upstream docs.
 
