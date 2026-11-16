@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.41.2](https://github.com/urbicon/ui/compare/v8.41.1...v8.41.2) - 2026-11-16
+
+### Documentation
+- **mcp-app**: Add a walkthrough from a tool to a card in Claude ([#614](https://github.com/urbicon/ui/issues/614))
+
 ## [8.41.1](https://github.com/urbicon/ui/compare/v8.41.0...v8.41.1) - 2026-11-16
 
 ### Documentation

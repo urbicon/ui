@@ -76,7 +76,7 @@
     },
     "packages/auth": {
       "name": "@urbicon-ui/auth",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -101,7 +101,7 @@
     },
     "packages/blocks": {
       "name": "@urbicon-ui/blocks",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -128,7 +128,7 @@
     },
     "packages/design": {
       "name": "@urbicon-ui/design",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "bin": {
         "urbicon": "./dist/cli.js",
       },
@@ -145,7 +145,7 @@
     },
     "packages/design-content": {
       "name": "@urbicon-ui/design-content",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -154,7 +154,7 @@
     },
     "packages/design-engine": {
       "name": "@urbicon-ui/design-engine",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@types/node": "catalog:",
         "tailwindcss": "catalog:",
@@ -164,7 +164,7 @@
     },
     "packages/docs": {
       "name": "@urbicon-ui/docs",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@shikijs/langs": "^4.5.0",
         "@sveltejs/kit": "catalog:",
@@ -199,7 +199,7 @@
     },
     "packages/docs-gen": {
       "name": "@urbicon-ui/docs-gen",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "bin": {
         "docs-gen": "./dist/cli/CLI.js",
       },
@@ -217,7 +217,7 @@
     },
     "packages/i18n": {
       "name": "@urbicon-ui/i18n",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -239,7 +239,7 @@
     },
     "packages/mcp-app": {
       "name": "@urbicon-ui/mcp-app",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@fontsource/jetbrains-mono": "^5.3.0",
         "@modelcontextprotocol/ext-apps": "1.7.5",
@@ -268,14 +268,14 @@
     },
     "packages/shared-types": {
       "name": "@urbicon-ui/shared-types",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "typescript": "catalog:",
       },
     },
     "packages/sv": {
       "name": "@urbicon-ui/sv",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@types/node": "catalog:",
         "sv": "^1.1.1",
@@ -288,7 +288,7 @@
     },
     "packages/sveltekit-utils": {
       "name": "@urbicon-ui/sveltekit-utils",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -306,7 +306,7 @@
     },
     "packages/table": {
       "name": "@urbicon-ui/table",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -334,7 +334,7 @@
     },
     "packages/urbicon": {
       "name": "urbicon",
-      "version": "8.41.1",
+      "version": "8.41.2",
       "bin": {
         "urbicon": "./bin/urbicon.js",
       },
