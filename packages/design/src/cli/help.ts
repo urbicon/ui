@@ -198,7 +198,8 @@ Commands — judgment (is what you built right):
                         --strict           Gate on advisory findings too.
                         Gates on parity errors + used-but-undefined; unused,
                         hardcoded and parity warnings are advisory. A translations
-                        dir that loads nothing fails the run (1) too.
+                        dir that loads nothing fails the run (1) too; a source dir
+                        with no file to scan is a usage error (2).
 
 Commands — memory (what this project already decided):
   context               Print the project's design.manifest.md summary. Warns when

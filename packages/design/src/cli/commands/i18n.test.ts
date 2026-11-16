@@ -136,6 +136,56 @@ describe('urbicon i18n', () => {
     expect(textOutput()).not.toContain('parity:');
   });
 
+  it('rejects an empty or missing "sources" from the config file before scanning', async () => {
+    const config = join(dir, 'i18n.audit.json');
+    const translations = join(dir, 'src', 'lib', 'translations');
+    await writeFile(config, JSON.stringify({ sources: [], translations: [translations] }));
+    expect(await runI18n(['unused'], { config })).toBe(2);
+    expect(errorOutput()).toContain('"sources" is empty');
+
+    err.mockClear();
+    log.mockClear();
+    const nope = join(dir, 'nope');
+    await writeFile(config, JSON.stringify({ sources: [nope], translations: [translations] }));
+    expect(await runI18n(['hardcoded'], { config })).toBe(2);
+    expect(errorOutput()).toContain(`cannot read source directory "${nope}"`);
+    expect(textOutput()).not.toContain('hardcoded:');
+
+    // `parity` reads no sources, so the same config still runs it — and finds
+    // the key `de` lacks.
+    expect(await runI18n(['parity'], { config, json: true })).toBe(1);
+    expect(JSON.stringify(lastJson().parity)).toContain('unused.deep');
+  });
+
+  it('rejects a source dir that yields no file to scan, named or configured', async () => {
+    const docsOnly = join(dir, 'docs-only');
+    await mkdir(join(docsOnly, 'node_modules'), { recursive: true });
+    await writeFile(join(docsOnly, 'README.md'), '# not a source\n');
+    await writeFile(join(docsOnly, 'node_modules', 'dep.ts'), 'export {};\n');
+    const translations = join(dir, 'src', 'lib', 'translations');
+
+    expect(await runI18n(['unused', docsOnly], { translations })).toBe(2);
+    expect(errorOutput()).toContain(`no source file to scan under "${docsOnly}"`);
+
+    // One empty dir among several is the same hole: its keys would read unused.
+    err.mockClear();
+    const config = join(dir, 'i18n.audit.json');
+    await writeFile(
+      config,
+      JSON.stringify({ sources: [join(dir, 'src'), docsOnly], translations: [translations] })
+    );
+    expect(await runI18n(['audit'], { config })).toBe(2);
+    expect(errorOutput()).toContain(docsOnly);
+  });
+
+  it('rejects a "sources" that is not a list of directories', async () => {
+    const config = join(dir, 'i18n.audit.json');
+    await writeFile(config, '{"sources": "src"}');
+    expect(await runI18n(['unused'], { config })).toBe(2);
+    expect(errorOutput()).toContain('"sources" in');
+    expect(errorOutput()).toContain('must be a list of directories');
+  });
+
   it('stops on a configured translations dir that holds no locale bundle', async () => {
     const empty = join(dir, 'empty');
     await mkdir(empty);
