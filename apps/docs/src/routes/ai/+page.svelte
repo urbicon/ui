@@ -2,7 +2,12 @@
   import { buttonVariants, Card } from '@urbicon-ui/blocks';
   import { CodeExample } from '@urbicon-ui/docs';
   import SeoMeta from '#lib/SeoMeta.svelte';
-  import { asset } from '$app/paths';
+  import { REPO_URL } from '#lib/seo.js';
+  import { asset, resolve } from '$app/paths';
+
+  // The site renders neither guide; GitHub does, and both ship in their package's tarball.
+  const A2UI_GUIDE = `${REPO_URL}/blob/main/packages/blocks/docs/A2UI.md`;
+  const MCP_APP_README = `${REPO_URL}/tree/main/packages/mcp-app#readme`;
 
   const cliSetupExample = `# One dev-dependency wires your agent into the design system
 # (already there if you set the project up with \`sv add @urbicon-ui\`):
@@ -31,6 +36,26 @@ urbicon principles --rubric        # 8-criterion rubric to judge a generated UI
 urbicon context                    # read the project's design memory
 urbicon record-decision --title …  # write a decision the next session will see`;
 
+  const surfaces = [
+    {
+      when: "Your coding agent writes or changes your app's code.",
+      name: 'The urbicon CLI',
+      anchor: 'the-urbicon-cli-title'
+    },
+    {
+      when: "Your app's own assistant needs an answer, a choice or a confirmation from the user.",
+      name: 'A2UIView',
+      anchor: 'a2ui-title'
+    },
+    {
+      when: 'An assistant such as Claude calls a tool on your MCP server, and the tool should answer with a view instead of text.',
+      name: '@urbicon-ui/mcp-app',
+      anchor: 'mcp-apps-title'
+    }
+  ];
+
+  const mcpAppInstall = `bun add @urbicon-ui/mcp-app`;
+
   const llmsTxtExample = `# llms.txt (quick reference)
 # llms-full.txt (complete API for every component)
 
@@ -41,27 +66,48 @@ urbicon record-decision --title …  # write a decision the next session will se
 
 <SeoMeta
   title="AI & Developer Experience"
-  description="AI-native developer experience: the urbicon CLI puts version-matched design knowledge, a design linter and project memory next to your agent — plus per-component llms.txt. Built for Claude, Cursor, and AI-assisted workflows."
+  description="The urbicon CLI puts version-matched design knowledge, a design linter and project memory next to your coding agent; A2UIView draws the forms your app's assistant sends; @urbicon-ui/mcp-app serves the views of an MCP App. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
 <!-- Color Rooms hero field — full-width band flush to the app sidebar, the
-     inner wrapper re-aligns with the body. The two topics of the page sit in
+     inner wrapper re-aligns with the body. The topics of the page sit in
      the band as its eyebrow, as on Getting started, not as chips above it. -->
 <div data-room-hero>
   <div class="mx-auto max-w-4xl px-6">
     <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
-      AI &amp; DX — urbicon CLI · llms.txt
+      AI &amp; DX — urbicon CLI · A2UI · MCP Apps
     </p>
     <h1 class="text-text-primary mt-4 text-4xl font-bold">AI & Developer Experience</h1>
     <p class="text-text-secondary mt-4 text-xl">
-      Urbicon UI is built for AI-assisted development. The design system's knowledge, linter, and
-      memory install with the library — version-matched, offline, and enforceable — so Claude,
-      Cursor, Copilot and friends compose from the system instead of guessing.
+      Three kinds of agent work with Urbicon UI: the coding agent that writes your app, the
+      assistant inside your app, and assistants such as Claude that call the tools of your MCP
+      server.
     </p>
   </div>
 </div>
 
-<div class="mx-auto max-w-4xl px-6 pt-10 pb-12">
+<div class="mx-auto max-w-4xl px-6 pt-10 pb-12" data-docs-content>
+  <div class="border-border-subtle mb-12 overflow-x-auto rounded-xl border">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-surface-subtle border-border-subtle border-b">
+          <th class="text-text-primary px-4 py-2 text-left font-medium">Situation</th>
+          <th class="text-text-primary px-4 py-2 text-left font-medium">Reach for</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each surfaces as surface (surface.anchor)}
+          <tr class="border-border-subtle border-b last:border-0">
+            <td class="text-text-secondary px-4 py-3">{surface.when}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <a href="#{surface.anchor}">{surface.name}</a>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+
   <!-- urbicon CLI -->
   <section class="mb-12" aria-labelledby="the-urbicon-cli-title">
     <h2 id="the-urbicon-cli-title" class="text-text-primary mb-2 text-2xl font-bold">
@@ -207,5 +253,136 @@ urbicon record-decision --title …  # write a decision the next session will se
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- A2UI -->
+  <section class="mb-12" aria-labelledby="a2ui-title">
+    <h2 id="a2ui-title" class="text-text-primary mb-2 text-2xl font-bold">
+      A2UI: forms your assistant sends
+    </h2>
+    <p class="text-text-secondary mb-4">
+      When your assistant needs a date, a choice or a yes from the user, it can describe a form in
+      <a href="https://a2ui.org">A2UI</a>, an open protocol for agent-generated UI, instead of
+      asking in prose.
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">A2UIView</code>
+      from
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >@urbicon-ui/blocks</code
+      >
+      draws that form with Urbicon components. Your assistant sends a description, never code, and only
+      components the catalog lists reach the page.
+    </p>
+    <p class="text-text-secondary mb-6">
+      On the server,
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >a2uiSystemPrompt()</code
+      >
+      and
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >a2uiFencedTransportSection()</code
+      >
+      write the part of your assistant's system prompt that names the components it may use and tells
+      it to send a form inside an
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">```a2ui</code>
+      fence in its reply. In the chat,
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >A2uiStreamSplitter</code
+      >
+      turns the streamed reply into text and form parts,
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">A2UIView</code>
+      draws each form part, and its
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">onAction</code>
+      fires when the user presses one of the form's buttons;
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >a2uiActionMessage(event)</code
+      > turns that into your assistant's next user turn.
+    </p>
+    <ul class="text-text-secondary list-disc space-y-1 pl-5">
+      <li>
+        <a href={resolve('/recipes/a2ui-agent-ui')}>The A2UI recipe</a> builds the whole chat with all
+        of these, including a later turn that updates a form your assistant sent earlier.
+      </li>
+      <li>
+        <a href={resolve('/blocks/components/a2-ui-view')}>The A2UIView page</a> renders live forms and
+        shows the prompt and the view's wiring in code.
+      </li>
+      <li>
+        <a href={A2UI_GUIDE}>The A2UI guide</a> covers how a form behaves over a conversation: why
+        typing in a field sends your assistant nothing, how to gate a button on the form's data, and
+        which parts of A2UI 1.0 the view refuses. Your coding agent reads it with
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >urbicon guide a2ui</code
+        >.
+      </li>
+    </ul>
+  </section>
+
+  <!-- MCP Apps -->
+  <section class="mb-12" aria-labelledby="mcp-apps-title">
+    <h2 id="mcp-apps-title" class="text-text-primary mb-2 text-2xl font-bold">
+      MCP Apps: a view for your tool
+    </h2>
+    <p class="text-text-secondary mb-4">
+      In a host that supports MCP Apps, such as Claude, a tool can answer with an HTML view instead
+      of text. The host is the assistant your users already chat with; your part is the MCP server
+      and the view, and
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >@urbicon-ui/mcp-app</code
+      >
+      covers both. It does not turn your own chat into a host: for a form in your own chat, use
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">A2UIView</code>.
+    </p>
+
+    <CodeExample title="Install" code={mcpAppInstall} language="bash" preview={false} />
+
+    <ul class="text-text-secondary mt-6 mb-6 list-disc space-y-1 pl-5">
+      <li>
+        On the server (<code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >@urbicon-ui/mcp-app/server</code
+        >, Node or Bun),
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >createViewCatalog</code
+        >
+        lists your views and serves their HTML, and
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >createDispatcher</code
+        > answers the host's JSON-RPC requests. Your tools, credentials and HTTP route stay yours, and
+        the server needs no MCP SDK.
+      </li>
+      <li>
+        In the view (<code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >@urbicon-ui/mcp-app/view</code
+        >),
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">startView</code>
+        connects to the host, hands your code the tool's arguments and result, and passes on the host's
+        light or dark theme. The view renders with any framework.
+      </li>
+      <li>
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">buildViews</code>
+        (<code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >@urbicon-ui/mcp-app/vite</code
+        >) builds each view into one HTML file. Urbicon components in a view built this way follow
+        the host's theme; another build can compile their
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">light-dark()</code
+        > colours into a form the host's theme no longer switches.
+      </li>
+      <li>
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+          >@urbicon-ui/mcp-app/testing</code
+        >
+        checks your messages against the MCP SDK's schemas, and its
+        <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">/host</code> subpath
+        drives your server from a test host.
+      </li>
+    </ul>
+
+    <p class="text-text-secondary">
+      The build and test entries need peer packages of their own, which
+      <a href={MCP_APP_README}>the mcp-app README</a> lists with the code for a server and a view.
+      Your coding agent reads it with
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >urbicon guide mcp-app</code
+      >.
+    </p>
   </section>
 </div>

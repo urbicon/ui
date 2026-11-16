@@ -133,7 +133,7 @@ export class LlmsAssembler {
       `- [Full API Reference](${this.config.siteUrl}/llms-full.txt): Complete component props, variants, tokens, and patterns for every component`
     );
     lines.push(
-      `- [AI-native tooling](${this.config.siteUrl}/ai): The \`urbicon\` CLI — version-pinned component knowledge and a design-token linter for agents`
+      `- [AI-native tooling](${this.config.siteUrl}/ai): The \`urbicon\` CLI for coding agents, \`A2UIView\` for agent-generated forms in a chat, and \`@urbicon-ui/mcp-app\` for MCP-App views`
     );
     lines.push(
       `- [Customization](${this.config.siteUrl}/customization): Project-wide styling — \`BlocksProvider\` defaults, presets and overrides, design tokens`

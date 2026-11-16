@@ -84,6 +84,13 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
     description:
       'URL-state runes, table view ↔ URL binding, the cron runner (createCronRunner) and the SSE stream reader — @urbicon-ui/sveltekit-utils',
     sourcePath: resolveFromDocsGen('..', 'sveltekit-utils', 'README.md')
+  },
+  {
+    slug: 'mcp-app',
+    title: 'MCP-App views',
+    description:
+      'Serving a view a host such as Claude shows in place of a tool result: the JSON-RPC dispatcher, the ui:// view catalog, the view bridge, the wire check, a test host and the single-file build — @urbicon-ui/mcp-app',
+    sourcePath: resolveFromDocsGen('..', 'mcp-app', 'README.md')
   }
 ];
 

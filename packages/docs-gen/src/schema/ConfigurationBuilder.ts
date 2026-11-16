@@ -382,6 +382,13 @@ export class ConfigurationFactory {
               outputName: 'VARIANT-CONTRACT.md',
               description:
                 'What each variant value means across the library — the surface ladder, Card/Alert/Accordion/Table variants, border tokens, and the naming history'
+            },
+            {
+              title: 'A2UI',
+              sourcePath: '../blocks/docs/A2UI.md',
+              outputName: 'A2UI.md',
+              description:
+                'Rendering A2UI in a chat: surfaces that outlive their reply, the action-only return path, fetched options, and the shipped transport/routing pieces'
             }
           ]
         })
