@@ -869,7 +869,7 @@ Each package's own README is the authoritative reference; these are orientation 
 ### `blocks`
 
 The primitives and components, the token system, the `tv()` engine, the Mint system, the
-icon set and the provider. Everything in §2 lives here.
+icon set (363 icons) and the provider. Everything in §2 lives here.
 
 Icons are tree-shaking-sensitive: **never call `getIcon('name')` inside a component** — the
 dynamic key drags the whole set into the consumer bundle. Use `resolveIcon('name', NameIconDefault)`
