@@ -21,8 +21,9 @@ The error turn groups the issues by surface instead of repeating `surfaceId` on 
 [ui-error] [{"surfaceId":"booking","issues":[{"severity":"error","code":"MISSING_ROOT","message":"…"}]}]
 ```
 
-Issues that name no surface (an envelope without one, a function call) share one group without
-`surfaceId`. A payload with a long `surfaceId` and many bad components used to come back to the
+Issues that name no surface share one group without `surfaceId`: those about the payload or an
+envelope as a whole, such as a wrong `version` or a missing `surfaceId`, and those that carry a
+`functionCallId`. A payload with a long `surfaceId` and many bad components used to come back to the
 agent as a message many times its own size. The prompt is unchanged: it describes the issues
 as JSON, not their shape. What breaks is code that reads the turn back as an array of issues, such
 as a test that pins it or a log parser: grep for `a2uiErrorMessage` and `[ui-error]`.

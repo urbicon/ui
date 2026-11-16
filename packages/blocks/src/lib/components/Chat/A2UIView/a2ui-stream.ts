@@ -469,7 +469,7 @@ interface A2uiErrorGroup {
 /**
  * The issues grouped by `surfaceId`, groups in the order their first issue
  * comes, issues in theirs. A payload sets no bound on a `surfaceId`'s length,
- * so a list that repeats it on every issue multiplies the payload by the issue
+ * so a list that repeats it on every issue multiplies that length by the issue
  * count.
  */
 function groupBySurface(issues: readonly A2uiValidationIssue[]): A2uiErrorGroup[] {

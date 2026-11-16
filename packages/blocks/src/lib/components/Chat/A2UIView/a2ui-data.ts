@@ -50,10 +50,10 @@ const QUOTE_LIMIT = 64;
 
 /**
  * `text` in double quotes, cut to its first {@link QUOTE_LIMIT} characters: a
- * string from the payload as an issue message names it. A list of issues is
- * serialised whole — by the view's change check before `onValidationError`, by
- * `a2uiErrorMessage` — and an issue per component can repeat the same string,
- * so an unbounded one multiplies the payload by the number of issues.
+ * string from the payload as an issue message names it. `a2uiErrorMessage`
+ * serialises a list of issues whole, and an issue per component can repeat the
+ * same string, so an unbounded one would multiply its length by the number of
+ * issues.
  */
 export function quoted(text: string): string {
   if (text.length <= QUOTE_LIMIT) return `"${text}"`;

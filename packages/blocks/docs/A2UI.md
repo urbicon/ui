@@ -320,12 +320,13 @@ renderer, which is where a malformed item shows up.
 ## Reporting problems back
 
 `onValidationError` fires with every issue the payload produced, each carrying a `severity`. The
-error-severity ones are shaped to be relayed to the agent verbatim as a `VALIDATION_FAILED` error;
-`a2uiFencedTransportSection()` tells it to expect them behind a `[ui-error]` prefix and re-emit a
-corrected surface, and `a2uiErrorMessage(issues)` writes that turn, grouped by surface so each
-`surfaceId` appears once however many issues it has. Warnings are degradations the
-surface survived — worth logging, rarely worth a round-trip. Router issues are the exception: a
-re-created `surfaceId` is a protocol slip, so relay it even though it is only a warning.
+error-severity ones are shaped like A2UI's `VALIDATION_FAILED` error and can be relayed as one
+verbatim. For a chat transport, `a2uiFencedTransportSection()` tells the agent to expect them behind
+a `[ui-error]` prefix and re-emit a corrected surface, and `a2uiErrorMessage(issues)` writes that
+turn, with the issues grouped by surface so each `surfaceId` is written once as a field. Warnings
+are degradations the surface survived — worth logging, rarely worth a round-trip. Router issues are
+the exception: a re-created `surfaceId` is a protocol slip, so relay it even though it is only a
+warning.
 
 On a server, `validateA2uiPayload()` returns the issues the view reports through
 `onValidationError` once `streaming` is false, built by the same function the view uses; give it the

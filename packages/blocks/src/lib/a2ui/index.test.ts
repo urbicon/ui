@@ -44,26 +44,29 @@ describe('@urbicon-ui/blocks/a2ui without a DOM', () => {
     );
   });
 
-  it('writes an error turn no larger than the payload that caused it', () => {
-    // A long surfaceId and many bad components: an issue list that names the
-    // surface on every issue grows with their product.
-    const surfaceId = 's'.repeat(100_000);
-    const args = {
-      messages: [
-        { version: '1.0', createSurface: { surfaceId, catalogId: A2UI_CATALOG_ID } },
-        {
-          version: '1.0',
-          updateComponents: {
-            surfaceId,
-            components: Array.from({ length: 500 }, (_, i) => ({ id: `c${i}`, component: 'Nope' }))
+  it('names a long surfaceId once, however many issues it has', () => {
+    const turn = (surfaceId: string) => {
+      const errors = validateA2uiPayload({
+        messages: [
+          { version: '1.0', createSurface: { surfaceId, catalogId: A2UI_CATALOG_ID } },
+          {
+            version: '1.0',
+            updateComponents: {
+              surfaceId,
+              components: Array.from({ length: 500 }, (_, i) => ({
+                id: `c${i}`,
+                component: 'Nope'
+              }))
+            }
           }
-        }
-      ]
+        ]
+      }).filter((issue) => issue.severity === 'error');
+      expect(errors.length).toBeGreaterThan(500);
+      return a2uiErrorMessage(errors);
     };
-    const errors = validateA2uiPayload(args).filter((issue) => issue.severity === 'error');
-    expect(errors.length).toBeGreaterThan(500);
-    const message = a2uiErrorMessage(errors);
-    expect(message.split(surfaceId).length - 1).toBe(1);
-    expect(message.length).toBeLessThan(JSON.stringify(args).length);
+    // The same payload with a 100 000-character id instead of a 1-character
+    // one: the turn grows by the difference once, not once per issue.
+    const long = 's'.repeat(100_000);
+    expect(turn(long).length - turn('s').length).toBe(long.length - 1);
   });
 });
