@@ -6,7 +6,7 @@ description: Test conventions for this repo (Vitest, node vs jsdom, mounting Sve
 # Testing in this repo
 
 - Framework: Vitest. Every package's `test` script is the one-shot run CI's `bun run test` calls, on the runtime it names (`vitest run` or `bunx --bun vitest run`); watch mode is `test:watch`, where a package defines one.
-- Type checks: `bun run check` or per-package `svelte-check`
+- Type checks: `bun run check`, root or per package — never a bare `svelte-check`, which skips the `svelte-kit sync` every `check` script that runs `svelte-check` starts with ([ARCHITECTURE.md § Build order](../../../docs/ARCHITECTURE.md#build-order))
 
 ## Component / DOM tests (`blocks`)
 

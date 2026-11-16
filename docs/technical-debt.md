@@ -31,9 +31,6 @@ later — state each of these explicitly:
   this is not debt, it is a bug report
 - **Found** — when, and what surfaced it
 
-The bar has not changed either: log genuine deferrals, not what the code or the git history
-already covers.
-
 ## Labels
 
 Every issue carries four label axes, set when it is opened (`enhancement` issues carry no

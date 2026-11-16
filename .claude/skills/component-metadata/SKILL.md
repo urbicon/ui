@@ -90,7 +90,7 @@ structure, not a single JSDoc block) apply in JSDoc unchanged. What belongs wher
 
 ## `@example` blocks compile, or `examples:lint` fails
 
-Every `svelte` code block in a `*Props` JSDoc (blocks, table, auth, docs) is written out as a real `.svelte` file and type-checked by `bun run examples:lint` — CI's `gates` job; slow, and it needs the workspace built. PascalCase tags are imported from `#lib` and free identifiers get an `any` slot, so a fragment may leave its state undeclared; what fails is a wrong prop name or enum value, a missing required prop, a component the library does not export. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry with its reason in `packages/docs-gen/scripts/examples-lint.ts`, and a stale entry is an error.
+Every `svelte` code block in a `*Props` JSDoc of a package in `PACKAGES` (`packages/docs-gen/scripts/examples-lint.ts`) is written out as a real `.svelte` file and type-checked by `bun run examples:lint` — CI's `gates` job; slow, and it needs the workspace built. PascalCase tags are imported from `#lib` and free identifiers get an `any` slot, so a fragment may leave its state undeclared; what fails is a wrong prop name or enum value, a missing required prop, a component the library does not export. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry with its reason in the same file, and a stale entry is an error.
 
 The same run compiles every `svelte` fence of `design-system/patterns/*.md` as a whole component, with nothing exempt — `urbicon pattern` serves those verbatim. A pattern takes consumer context as `{@render children()}`, a named snippet or an `<!-- your … -->` marker, never an import of a component that does not exist.
 

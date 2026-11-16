@@ -61,8 +61,15 @@ particular to ui: one PR per strand, CI on the head SHA as the oracle, squash me
 - **A PR with `mergeable: CONFLICTING` gets no `pull_request` run** — resolve the conflict,
   do not retrigger.
 - **A PR whose base is another PR's branch is a stack**: `ci.yml` runs only for PRs against
-  `main`, and `gh pr merge` fails on it — only
-  `gh api -X PUT repos/:owner/:repo/pulls/<N>/merge-async` merges it.
+  `main`, and `gh pr merge` fails on it. The async merge endpoint takes it, squashed, with the
+  same explicit subject and body as below; it answers `202` with a `uuid` to poll until the
+  state leaves `pending` for `merged` or `failed`:
+  ```bash
+  gh api -X PUT repos/:owner/:repo/pulls/<N>/merge-async -f merge_method=squash \
+    -f merge_action=direct_merge -f sha=<head> -f commit_title='<subject>' \
+    -F commit_message=@<body-file>
+  gh api repos/:owner/:repo/pulls/<N>/merge-async/<uuid>
+  ```
 - Squash-merge with explicit `--subject`/`--body` — the body lands in the changelog.
   `Closes #N` only on the wave that finishes the issue; earlier waves say `Refs #N`. GitHub's
   keyword parser knows no negation — "This does not close #14." closed #14 — so no

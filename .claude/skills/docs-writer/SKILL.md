@@ -33,7 +33,8 @@ imitated verbatim; pointers do not.
 - Single-prop rules → the prop's JSDoc (`component-metadata` skill); the page explains relations
   between props.
 - Information must not drop. Misplaced facts move; they are not cut.
-- Gates before reporting: `docs-editor` § Gates and reporting. No commits, no staging.
+- Gates before reporting: the docs-page gates in `docs-editor` § Gates and reporting. No
+  commits, no staging.
 
 ## Migration (existing page)
 

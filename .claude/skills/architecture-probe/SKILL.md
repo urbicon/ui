@@ -156,14 +156,14 @@ do not replace each other.
 
 ## Where the results go
 
-- **A verified defect that names someone it hurts** → an issue, labelled and placed in a
-  milestone per [docs/technical-debt.md](../../../docs/technical-debt.md). Where the fix needs a
-  product decision (what does "select all" mean when the server holds the rows?), leave `ready`
-  off and put the options in the body. A defect that names no one feeds a `pr-wave` instead —
-  self-inspection findings are fixed in a PR or dropped (AGENTS.md § Project tracking).
+- **A verified defect** → a `pr-wave` that fixes it, or nothing. A probe is self-inspection,
+  and what self-inspection finds is fixed in a PR or dropped; an issue needs someone who noticed
+  the problem without looking for it (AGENTS.md § Project tracking). Where the fix needs a
+  product decision (what does "select all" mean when the server holds the rows?), put the
+  options to the user before the wave starts.
 - **The architecture diagnosis** → a document under `docs/internal/`, not issues. "The row
-  renderer exists three times" is a state, not a task; as an issue it sits open for a year. Issue
-  the _work_ that ends the state, and let it link back.
+  renderer exists three times" is a state, not a task; as an issue it sits open for a year. The
+  wave that ends the state links back to it.
 - **Method learnings** → this file.
 - **The probe is not the last instrument.** Sondes measure state; the class "shows only when you
   change it" surfaces during implementation — table's migration waves found defects the probe had

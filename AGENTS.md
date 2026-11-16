@@ -7,7 +7,7 @@ Svelte 5 + Tailwind CSS 4 UI component library, a Bun-workspace monorepo (root `
 - `blocks` — the Svelte components: `primitives` (atomic) and `components` (widgets built on them)
 - `table` — the data table
 - `auth` — authentication and user management, zero runtime dependencies (Web Crypto)
-- `i18n` — runes-based localization and the translation audit; `bun run i18n:check` scans `blocks`, `table` and `docs`, while `auth` keeps its own locale system, checked by `translations.parity.test.ts` and `satisfies AuthLocale`
+- `i18n` — runes-based localization and the translation audit
 - `docs` — reusable documentation UI components · `docs-gen` — the generator that extracts props and variants from the AST · `shared-types` — docs-tooling types for those two
 - `design` — the `urbicon` CLI, the consumer surface (`urbicon --help` lists the commands) · `urbicon` — its unscoped bin name · `design-content` — the knowledge bundle it serves · `design-engine` — the zero-dep design linter
 - `sveltekit-utils` — SvelteKit helpers · `mcp-app` — MCP-App views · `sv` — the `sv add @urbicon-ui` add-on
@@ -22,7 +22,7 @@ Svelte 5 + Tailwind CSS 4 UI component library, a Bun-workspace monorepo (root `
 
 ## Commands
 
-`bun run` lists every script, and `.github/workflows/ci.yml` is the list a PR must pass. A script's prerequisites and exemption list are its head comment; what each gate catches is [ARCHITECTURE.md § The lint gates](docs/ARCHITECTURE.md#the-lint-gates).
+`bun run` lists every script, and `.github/workflows/ci.yml` is the list a PR must pass. A gate script's head comment names what it needs run first; what each gate catches is [ARCHITECTURE.md § The lint gates](docs/ARCHITECTURE.md#the-lint-gates).
 
 - One package: `bun --filter='@urbicon-ui/<pkg>' run <script>`. A package's suite always runs through `run test` — bare `bun test` bypasses its vitest config (the root `bun test scripts/…` positive controls are not package suites).
 - A gate that reads generated output (catalogs, `api.ts`, `llms.txt`) needs `bun run docs:gen:all` first; a scoped `docs:gen:<target>` skips the catalog assembly.
@@ -32,13 +32,13 @@ Svelte 5 + Tailwind CSS 4 UI component library, a Bun-workspace monorepo (root `
 
 - Formatting: **Biome** lints and formats `.ts`/`.js`/`.json`/`.yml` and lints `.svelte` too, with six Svelte rules on top ([DECISIONS.md](docs/DECISIONS.md#biome-is-not-type-aware) — a deliberate exception carries a `biome-ignore` with its reason). **`bun fmt`** formats `.svelte` and `.md`, and every tracked one is its output (`bun run fmt:check`; `.prettierignore` holds the exemptions, each with its reason). For one file: `bun fmt --no-script <file>`.
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts` — [ComponentStructureStandard.md](docs/ComponentStructureStandard.md); props and callbacks: [COMPONENT-API-CONVENTIONS.md](docs/COMPONENT-API-CONVENTIONS.md).
-- **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
+- **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the `urbicon` CLI, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill** (each skill is `.claude/skills/<name>/SKILL.md`).
 - Package scope: `@urbicon-ui/*`
 - **Comments carry constraints, not history.** A comment earns its lines by stating what the code cannot show _and_ what would change the next edit — the platform fact, the measured behaviour, the deliberate exception. Provenance and bug stories live in the commit message (a bare issue number as a pointer is fine, "the #N review" is not); behaviour lives in a test before it lives in prose; effect claims must be measured before they are written. A "mirrors X" / "must match X" comment is documented duplication — first ask whether X can be derived (unrepresentable), only then comment. A number carries the command that reproduces it or stays out — in a comment as in a doc ([DOCS-SURFACES.md](docs/DOCS-SURFACES.md)). In reviews, comment claims are findings-eligible exactly like code.
 
 ## Svelte 5 — Mandatory Patterns
 
-Runes, snippets and attachments only — no legacy syntax (`export let`, `$:`, `on:click`, `<slot />`, `class:`, `use:`). [docs/SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md) is the canon: each construct's replacement, the library rules, the role models. The library rules in short:
+Runes, snippets and attachments only — no legacy syntax (`export let`, `$:`, `on:click`, `<slot />`, `<svelte:fragment>`, `<svelte:component this>`, `class:`, `use:`). [docs/SVELTE5-PATTERNS.md](docs/SVELTE5-PATTERNS.md) is the canon: each construct's replacement, the library rules, the role models. The library rules in short:
 
 - **IDs:** never `Math.random()` — it causes an SSR hydration mismatch in the consumer. `$props.id()` may **only** appear as a top-level initializer (compiler error `props_id_invalid_placement` otherwise), so a component with an `id`/`name` prop takes two steps:
   ```ts
@@ -48,6 +48,7 @@ Runes, snippets and attachments only — no legacy syntax (`export let`, `$:`, `
 - Context through `createContext<T>()` from `svelte`, never `setContext('string', …)`.
 - A value that follows a prop is a `$derived`, never synced in an `$effect` — even when other writers assign to it.
 - Reactive collections from `svelte/reactivity` (`SvelteMap`, `SvelteSet`, `MediaQuery`), never `$state(new Map())` or `onMount` + `matchMedia`.
+- `{#each}` keys on a stable, unique id, never the index — Biome demands a key, not a good one.
 
 When the Svelte MCP is connected, run `svelte-autofixer` on every `.svelte` file you changed until it reports no issues; for patterns, SVELTE5-PATTERNS.md wins over the upstream docs.
 
@@ -72,7 +73,7 @@ Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` i
 ## Git Workflow (Agent Notes)
 
 - **Formatting happens for you.** The pre-commit hook runs Biome, then `bun fmt`, on the staged files and re-stages the result (`lefthook.yml`; its blind spot, a file staged hunk by hunk: [DECISIONS.md](docs/DECISIONS.md#pre-commit-runs-neither-check-nor-the-tests)); commitlint guards the message. Fix lint errors rather than reaching for `--no-verify`.
-- **A fresh worktree needs a build before anything else.** `bun install`, then `bun run build:packages` (a flat `--filter='./packages/*'` sweep races the topology; the script's header says why), then `bun run docs:gen:all` — every component page imports a git-ignored, generated `api.ts`. Without it the symptoms mislead — a dev server that won't start, missing `@urbicon-ui/…` modules, phantom `Snippet` errors, a failing `run test` — all because `@urbicon-ui/i18n` has no `dist/` yet.
+- **A fresh worktree needs a build before anything else.** `bun install`, then `bun run build:packages` (a flat `--filter='./packages/*'` sweep races the topology; the script's header says why), then `bun run docs:gen:all` — every component page imports a git-ignored, generated `api.ts`. Without it the symptoms mislead — a dev server that won't start, missing `@urbicon-ui/…` modules, phantom `Snippet` errors, a failing `run test` — all because `@urbicon-ui/i18n` has no `dist/` yet. A bare `svelte-check` or `vitest` in `apps/docs` needs `bunx --bun svelte-kit sync` there first ([ARCHITECTURE.md § Build order](docs/ARCHITECTURE.md#build-order)).
 - **Only a PR's head SHA proves it landed.** PRs squash-merge, so the branch commit never enters `main` and `git branch --merged` reports every merged branch as unmerged. Check with `gh pr view <N> --json headRefName,headRefOid,state` — equal SHA plus `MERGED` is also what makes deleting the branch safe (cleanup: `pr-wave` skill).
 - **The `import.meta.env` build warning is expected — do not "fix" it** by adding `esm-env` or `$app/env` ([DECISIONS.md](docs/DECISIONS.md#importmetaenvdev-instead-of-esm-env)).
 
