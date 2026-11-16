@@ -82,9 +82,10 @@ import { Glob } from 'bun';
 /**
  * AGENTS.md is read in full by every session, so its length is a cost every
  * session pays. The budget is set one Commands bullet above the file as it was
- * when the check landed: a new entry is meant to cost the removal of another.
+ * when the budget was last set: a new entry is meant to cost the removal of
+ * another.
  */
-export const AGENTS_WORD_BUDGET = 3400;
+export const AGENTS_WORD_BUDGET = 1590;
 
 /** Exemptions — a genuine false positive per entry, with the reason for it. */
 export const ALLOWLIST: ReadonlyArray<readonly [what: string, why: string]> = [

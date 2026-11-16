@@ -1,13 +1,12 @@
 ---
 name: blocks-testing
-description: Test conventions for this repo (Vitest, node vs jsdom, mounting Svelte components, compound-widget harnesses). Use when writing, fixing, or reviewing tests in packages/blocks, table, docs, i18n, docs-gen, auth or sveltekit-utils — especially DOM/interaction tests.
+description: Test conventions for this repo (Vitest, node vs jsdom, mounting Svelte components, compound-widget harnesses). Use when writing, fixing, or reviewing tests in any package of this repo — especially DOM/interaction tests.
 ---
 
 # Testing in this repo
 
-- Framework: Vitest (in `blocks`, `table`, `docs`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`)
+- Framework: Vitest. Every package's `test` script is the one-shot run CI's `bun run test` calls, on the runtime it names (`vitest run` or `bunx --bun vitest run`); watch mode is `test:watch`, where a package defines one.
 - Type checks: `bun run check` or per-package `svelte-check`
-- Run a package's tests with `bun --filter='<pkg>' run test` — **`run` is mandatory**; bare `bun test` bypasses the Vitest config and produces fake failures. Every package's `test` script is the one-shot run CI calls, on the runtime it names (`vitest run` or `bunx --bun vitest run`); watch mode is `test:watch`, where a package defines one.
 
 ## Component / DOM tests (`blocks`)
 
@@ -16,7 +15,7 @@ Most tests run in the default `node` environment (variant + logic checks, no DOM
 These conventions were learned the hard way — **do not "modernise" them back to the obvious libraries:**
 
 - **Mount with Svelte's own `mount`/`unmount`** (from `svelte`), **not** `@testing-library/svelte`. The latter pulls a second svelte instance, which makes svelte-check see two unrelated `Snippet` types across the whole package (spurious errors in unrelated components). Queries + interactions use the svelte-free `@testing-library/dom` (`screen`) + `@testing-library/user-event`.
-- **Assert with vitest's native matchers** (`toBe`, `document.activeElement`, `getAttribute`), **not** `@testing-library/jest-dom` — its expect augmentation does not compose with vitest 4's `Assertion` type.
+- **Assert with vitest's native matchers** (`toBe`, `document.activeElement`, `getAttribute`), **not** `@testing-library/jest-dom` — its expect augmentation does not compose with vitest's `Assertion` type.
 - **Overlay content (Combobox/Select/Menu/Tooltip) renders in a native popover.** jsdom has no top layer and no Popover API; its UA sheet keeps every `[popover]` at `display: none`, and `focus()` refuses anything inside one. `scripts/vitest-popover.ts`, the one stub for blocks and table, un-hides a panel between `showPopover()` and `hidePopover()` and answers `:popover-open` from the same state, so an open panel is focusable and visible to role queries, a closed one hidden again — a query without `{ hidden: true }` also asserts that the panel is shown. A no-op stub leaves every opened panel unfocusable. These tests assert interaction _logic_ (aria, callbacks, state), not visual visibility — that is Playwright's (`e2e/`) job.
 - The other jsdom polyfills (scrollIntoView, Resize/IntersectionObserver) live in `packages/blocks/vitest-setup.ts`, guarded on `window` so node tests skip them.
 - **Web Storage in jsdom tests: never the ambient one.** No runtime guarantees the global is a working Storage — it has been an object with no methods and it has been absent — so a suite that uses it has a subject that differs by machine. Install one per test from `scripts/vitest-storage`: `installMemoryStorage()` for a working one, `installStorage(descriptor)` for the hostile shapes (no methods, absent, a property that throws, a `setItem` that throws), and `restoreStorage()` in the `afterEach` of every file that installs — vitest's per-file isolation hides a leaked global today, `isolate: false` would not. Place it **after** whatever in the same teardown could still reach storage — the unmounts, a timer flush. An unmount does write: `createPersistentState` flushes a save still waiting out its debounce when its owner is destroyed, so a field with `persistKey` writes during its unmount, and restored first, that write lands in whatever storage was there before. A `describe`'s `afterEach` runs before the file's, so a block that restores there unmounts there first (reference: the persistence block of `packages/blocks/src/lib/primitives/Input/Input.svelte.test.ts`). A file that only _injects_ `createMemoryStorage()` into a subject taking its storage as an option touches no global and needs no restore (reference: `packages/table/src/lib/view/storage-binding.svelte.test.ts`). One file for blocks, table and docs, the way `scripts/vitest-match-media` is the one `matchMedia` (reference: `packages/blocks/src/lib/internal/storage.test.ts`).
@@ -25,14 +24,14 @@ These conventions were learned the hard way — **do not "modernise" them back t
 
 ## `$effect` in a test needs jsdom — silently, or it runs nothing
 
-**A test that drives an `$effect` (directly or through `$effect.root`) must carry the `// @vitest-environment jsdom` docblock.** Without it the callback never runs, no error is raised, and every assertion inside is skipped: the suite reports green while measuring nothing. Two suites shipped that way and were only caught in 2026-08 by sabotaging the code under test and watching them stay green.
+**A test that drives an `$effect` (directly or through `$effect.root`) must carry the `// @vitest-environment jsdom` docblock.** Without it the callback never runs, no error is raised, and every assertion inside is skipped: the suite reports green while measuring nothing.
 
 Two knobs have to be right and neither announces itself:
 
 1. the per-file `// @vitest-environment jsdom` docblock, and
 2. `resolve.conditions: ['browser']` in the package's `vitest.config.ts`.
 
-Vitest consults `resolve.conditions` only in its **web** transform mode, which the jsdom environment selects. Miss either one and Svelte resolves to its _server_ build, where `$effect` and `$effect.root` are no-ops that discard the callback unread. `blocks`, `table`, `docs`, `i18n`, `auth` and `sveltekit-utils` all set the condition; a new package needs it added.
+Vitest consults `resolve.conditions` only in its **web** transform mode, which the jsdom environment selects. Miss either one and Svelte resolves to its _server_ build, where `$effect` and `$effect.root` are no-ops that discard the callback unread. `grep -l "conditions: \['browser'\]" packages/*/vitest.config.ts` lists the packages that set it; a new package whose tests drive effects needs it added.
 
 - **`$derived` is not affected** — it recomputes on read in the server build too, so a controller harness that only reads derived values may legitimately stay on node (reference: `internal/date-grid/date-grid.svelte.test.ts`, verified falsifiable).
 - **`flushSync()` belongs outside the root**, not in the callback body — inside, the effects created alongside it have not been scheduled yet.
@@ -42,4 +41,4 @@ Vitest consults `resolve.conditions` only in its **web** transform mode, which t
 
 ## Fresh-worktree prerequisite
 
-In a fresh worktree `bun --filter='@urbicon-ui/blocks' run check` and `run test` fail until the workspace deps are built (`test` reports "Failed to resolve entry for package @urbicon-ui/i18n"). Build first — `bun run build:packages` — then svelte-check is 0 errors and tests are green.
+In a fresh worktree `run check` and `run test` fail until the workspace deps are built (`test` reports "Failed to resolve entry for package @urbicon-ui/i18n") — AGENTS.md § Git Workflow has the order.

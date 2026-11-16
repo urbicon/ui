@@ -43,7 +43,7 @@ Commit messages drive the auto-generated changelog (git-cliff) — correct types
 
 ## Pull Requests
 
-Development happens on [GitHub](https://github.com/urbicon/ui). Open pull requests against the `main` branch. Keep PRs focused — one coherent change per PR. If you spot an unrelated issue while working, open an issue with the matching `debt:` label rather than widening the PR's scope — [docs/technical-debt.md](docs/technical-debt.md) describes what such an entry should state.
+Development happens on [GitHub](https://github.com/urbicon/ui). Open pull requests against the `main` branch. Keep PRs focused — one coherent change per PR. If you spot an unrelated issue while working, open an issue rather than widening the PR's scope — [docs/technical-debt.md](docs/technical-debt.md) says which labels it carries and what it should state.
 
 ## Conventions
 

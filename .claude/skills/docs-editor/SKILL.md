@@ -1,6 +1,6 @@
 ---
 name: docs-editor
-description: Review pass for docs-site prose — a blind reader pass first, then facts, then the EDITORIAL.md checklist. Use after writing or substantially editing an apps/docs page, or when asked for an "Editor-Pass", "Kalt-Test" or a prose review of documentation pages.
+description: Review pass for docs-site prose — a blind reader pass first, then facts, the EDITORIAL.md checklist, and a demo pass that renders the examples and clicks through them. Use after writing or substantially editing an apps/docs page, or when asked for an "Editor-Pass", "Kalt-Test" or a prose review of documentation pages.
 ---
 
 # The review pass
@@ -107,12 +107,10 @@ Before a measurement becomes a component bug, rule out the rig:
 
 ## Gates and reporting
 
-`bun fmt --no-script <page>`, then `bun --filter='@urbicon-ui/docs-app' run registry:lint`,
-and `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path> --craft-floor 70`
-(`urbicon validate`, which lints the page's own markup). On a component page, also `refsections:lint`
-and `examples:budget`; after a JSDoc change, also `summary:lint` and `playgrounds:lint`. This is the
-docs-page subset of the `gates` job in `.github/workflows/ci.yml`; run the whole job list before
-reporting.
+`bun fmt --no-script <page>`, then the `gates` job of `.github/workflows/ci.yml` — after
+`bun run docs:gen:all` whenever JSDoc changed. Its `validate apps/docs/src --craft-floor 70` step
+is `urbicon validate` over the page's own markup and takes the page's route directory while
+iterating.
 
 Report as points, not an essay. Pass 1: the blockers, the paragraphs that taught nothing, verbatim
 quotes. Passes 2 and 3: each change with what it rests on. And explicitly, anything

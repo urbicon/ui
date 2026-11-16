@@ -5,9 +5,8 @@ description: Driving a docs-page write or migration — role split (writer vs do
 
 # Writing or migrating a docs page
 
-Two contexts, always: a writer and a separate review (`docs-editor` skill). A context does not see
-its own style violations (measured twice, 2026-08-05/06). A typo or a single sentence needs no
-review pass.
+Two contexts, always: a writer and a separate review (`docs-editor` skill, which says why). A
+typo or a single sentence needs no review pass.
 
 **The acceptance test is the reader pass, not the checklist** — pass 1 of `docs-editor`, blind,
 without the library source. A page that survives the checklist can still leave its reader unable
@@ -34,23 +33,19 @@ imitated verbatim; pointers do not.
 - Single-prop rules → the prop's JSDoc (`component-metadata` skill); the page explains relations
   between props.
 - Information must not drop. Misplaced facts move; they are not cut.
-- Gates before reporting: `bun fmt --no-script <page>`, `bun --filter='@urbicon-ui/docs-app' run
-examples:budget`. No commits, no staging.
+- Gates before reporting: `docs-editor` § Gates and reporting. No commits, no staging.
 
 ## Migration (existing page)
 
-1. **A fresh worktree has no `api.ts` yet** — it is git-ignored, not committed. Run
-   `bun run docs:gen:all` before opening the page, even when JSDoc did not change.
+1. **A fresh worktree has no `api.ts` yet** — build it first (AGENTS.md § Git Workflow), even
+   when JSDoc did not change.
 2. Writer, fresh context, with the briefing above.
 3. `docs-editor` pass on the result — second fresh context.
 4. Read the page cold; dissect any sentence that slipped through, sentence by sentence.
-5. If JSDoc changed: `bun run docs:gen:all` again, then `summary:lint` / `registry:lint`.
+5. If JSDoc changed: `bun run docs:gen:all` again, then the gates.
 
 ## New page
 
 JSDoc first (`component-metadata`), then `bun run docs:gen:all` (creates the page's `api.ts`),
 then the writer — plus the `docs-recipes` skill for section structure and the three registrations
-(`registry:lint` enforces them) — then the `docs-editor` pass. Gates: `examples:budget`,
-`registry:lint`, `refsections:lint`, and after JSDoc changes `summary:lint` /
-`playgrounds:lint` — the full list a component page must satisfy is the `gates` job in
-`.github/workflows/ci.yml`.
+— then the `docs-editor` pass.

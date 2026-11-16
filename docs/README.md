@@ -45,8 +45,10 @@ and a link to that place, and in these reference docs the owning section says so
 | Docs-page structure                                                                  | [DocsPageGuide.md](DocsPageGuide.md)                                                                                                    |
 | Docs prose                                                                           | [EDITORIAL.md](EDITORIAL.md)                                                                                                            |
 | Versioning, bump levels                                                              | [VERSIONING.md](VERSIONING.md)                                                                                                          |
-| Gates: how to run one                                                                | [AGENTS.md § Commands](../AGENTS.md#commands)                                                                                           |
+| Gates: which ones a PR must pass                                                     | `.github/workflows/ci.yml`                                                                                                              |
+| Gates: how to run one                                                                | [AGENTS.md § Commands](../AGENTS.md#commands); prerequisites and exemptions in the head comment of each script                          |
 | Gates: what the set catches                                                          | [ARCHITECTURE § The lint gates](ARCHITECTURE.md#the-lint-gates)                                                                         |
+| Issue tracking: labels, milestones, `parked`, the entry format                       | [technical-debt.md](technical-debt.md)                                                                                                  |
 
 ## Architecture & conventions
 

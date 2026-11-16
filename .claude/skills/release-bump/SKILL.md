@@ -5,13 +5,13 @@ description: Version bump and release flow (bump level per commit type, tag, pus
 
 # Versioning
 
-**Conventional Commits → git-cliff → Changelog**, one unified version across all packages. Bump proactively after a coherent set of changes (once at the end, not per commit; **never on a dirty tree**):
+**Conventional Commits → git-cliff → Changelog**, one unified version across all packages. Bump proactively after a coherent set of changes — once at the end, not per commit (the script refuses a dirty tree):
 
 - **Patch** `bun run bump` — `fix` / `docs` / `refactor` / `chore` / `style` / `test` / `perf`
 - **Minor** `bun run bump:minor` — `feat` (new component / prop / capability)
 - **Major** `bun run bump:major` — `feat!:` or `BREAKING CHANGE:`
 
-**Pre-launch window (until the launch of ui.urbicon.de is announced):** a set with breaking commits is still released as a **minor**. Decided 2026-08-14 and written into [docs/VERSIONING.md](../../../docs/VERSIONING.md) § The pre-launch window on 2026-09-03 — name the exception when you bump, do not ask again. Two things stay non-negotiable: every breaking commit carries `!` in its subject (git-cliff groups on a `BREAKING CHANGE:` footer too, but the subject is what `git log` shows; the footer may wrap, and must once a line would pass commitlint's 100 characters, but no wrapped line may open with a word holding a colon — `` `onError: `` or `changed:` reads as the next footer and git-cliff ends the note there), and `packages/blocks/docs/MIGRATION.md` is headed by the release that ships the change, never `## v9`. The window closes with the announcement release, **9.0.0**.
+**Pre-launch window (until the launch of ui.urbicon.de is announced):** a set with breaking commits is still released as a **minor** — name the exception when you bump, do not ask again. What stays non-negotiable inside the window — `!` in every breaking subject, how a `BREAKING CHANGE:` footer may wrap, `MIGRATION.md` headed by the release that ships the change — and the 9.0.0 that closes it: [VERSIONING.md § The pre-launch window](../../../docs/VERSIONING.md#the-pre-launch-window).
 
 Before tagging, the bump script also runs `bun run size --check` (after its build/test verification, skipped together with them by `BUMP_SKIP_VERIFY=1`). A failure prints the per-component table and aborts — this is a decision, not a bug: judge whether the growth is intentional, then run `bun run size --update-baseline` and re-run the bump. The refreshed `bundle-size.baseline.json` is picked up by the script's own staging step, so it ships inside the same release commit rather than as a follow-up.
 
@@ -19,10 +19,4 @@ The bump writes a `chore: release vX.Y.Z` commit + an annotated tag on HEAD (the
 
 **A package new to `RELEASE_PACKAGES`** (`scripts/release-packages.mjs`) has no trusted publisher on npm, and OIDC cannot create one — the publish job fails at that package, and `scripts/publish-tarballs.mjs` stops the run there. Before tagging, publish its first version by hand at the version currently on the registry (its `workspace:*` dependency must point at a published version), wait until `npm view <name> version` shows it, then `ONLY=<name> APPLY=1 bash scripts/trust-publishers.sh`; only then tag. If the repo's version is already ahead of the registry, `bun pm pack` would resolve `workspace:*` to the local sibling: set the new package's `version` and its dependency to the registry version in an uncommitted edit, pack, publish, revert.
 
-**Never edit `CHANGELOG.md` by hand** — it is auto-generated.
-
-Full detail — bump-script steps, commit-type → changelog mapping, scoping: [docs/VERSIONING.md](../../../docs/VERSIONING.md).
-
-## Changelog generation
-
-`bun run changelog` regenerates `CHANGELOG.md` via git-cliff. Conventional commits are parsed by git-cliff, so correct types and scopes decide which section a change appears in.
+`CHANGELOG.md` is generated — the bump regenerates it, `bun run changelog` does so on its own. Full detail — bump-script steps, commit-type → changelog mapping, scoping: [docs/VERSIONING.md](../../../docs/VERSIONING.md).
