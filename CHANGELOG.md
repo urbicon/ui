@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.41.0](https://github.com/urbicon/ui/compare/v8.40.0...v8.41.0) - 2026-11-16
+
+### Breaking Changes
+- **blocks**: Name each surface once in the A2UI error turn ([#610](https://github.com/urbicon/ui/issues/610))
+> **BREAKING:** the error turn's JSON is an array of { surfaceId?, issues } groups instead of an array of issues. MIGRATION.md shows the shape.
+
+### Bug Fixes
+- **auth**: Send the post-login redirect through a document navigation ([#611](https://github.com/urbicon/ui/issues/611))
+- **design**: Urbicon i18n stops on a source dir that scans nothing ([#612](https://github.com/urbicon/ui/issues/612))
+
+### Documentation
+- Correct stale counts, rosters and facts across the docs ([#609](https://github.com/urbicon/ui/issues/609))
+- Cut AGENTS.md to what every session needs and move the rest to its canon ([#608](https://github.com/urbicon/ui/issues/608))
+
 ## [8.40.0](https://github.com/urbicon/ui/compare/v8.39.0...v8.40.0) - 2026-11-15
 
 ### Breaking Changes
