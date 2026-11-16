@@ -6,6 +6,12 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { codeExamplePlugin } from '@urbicon-ui/docs/vite';
 import { defineConfig, type Plugin } from 'vite';
+import {
+  closesFence,
+  dedentFenceLine,
+  type FenceDelimiter,
+  parseFenceDelimiter
+} from '../../packages/docs-gen/src/generators/llm/fence-grammar';
 
 const rootPkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8'));
 
@@ -38,12 +44,82 @@ function changelogPlugin(): Plugin {
   };
 }
 
+/**
+ * The bodies of the fences whose info string is `info`, read with docs-gen's
+ * fence grammar — its own module, because `guide-injection.ts` imports
+ * design-engine's source, which Node cannot load for this config.
+ */
+function fencesNamed(markdown: string, info: string): string[] {
+  const found: string[] = [];
+  let open: FenceDelimiter | null = null;
+  let body: string[] = [];
+  for (const line of markdown.split(/\r?\n/)) {
+    if (!open) {
+      open = parseFenceDelimiter(line);
+      body = [];
+      continue;
+    }
+    if (closesFence(line, open)) {
+      if (open.info.split(/\s+/).join(' ') === info) found.push(`${body.join('\n')}\n`);
+      open = null;
+      continue;
+    }
+    body.push(dedentFenceLine(line, open.indent));
+  }
+  return found;
+}
+
+/**
+ * `virtual:guide-fence/<pkg>/<doc>.md/<File>.svelte` is the one fence in
+ * `packages/<pkg>/docs/<doc>.md` whose info string is `svelte <File>.svelte`,
+ * compiled as a component — so a guide's live demo on this site renders the
+ * guide's own code, not a copy that drifts from it. The fence must be a whole
+ * component without relative imports: nothing sits beside it.
+ *
+ * Vite strips the fence's types without checking them, and svelte-check does
+ * not see a virtual module: nothing type-checks this code.
+ */
+function guideFencePlugin(): Plugin {
+  const prefix = 'virtual:guide-fence/';
+  const packagesDir = resolve(__dirname, '../../packages');
+  // The id must end in `.svelte` and must not start with `\0`: vite-plugin-svelte
+  // compiles by extension and skips `\0` ids.
+  const fenceId = /^(.+\.md)\.fence\/([^/]+\.svelte)$/;
+
+  return {
+    name: 'guide-fence',
+    enforce: 'pre',
+    resolveId(id) {
+      if (!id.startsWith(prefix)) return;
+      const [pkg, doc, file, ...rest] = id.slice(prefix.length).split('/');
+      if (!pkg || !doc?.endsWith('.md') || !file?.endsWith('.svelte') || rest.length > 0) {
+        throw new Error(`${id}: expected virtual:guide-fence/<pkg>/<doc>.md/<File>.svelte`);
+      }
+      return resolve(packagesDir, pkg, 'docs', `${doc}.fence`, file);
+    },
+    load(id) {
+      const match = fenceId.exec(id);
+      if (!match) return;
+      const [, mdPath, file] = match;
+      this.addWatchFile(mdPath);
+      const found = fencesNamed(readFileSync(mdPath, 'utf-8'), `svelte ${file}`);
+      if (found.length !== 1) {
+        throw new Error(
+          `${mdPath}: expected exactly one fence with the info string "svelte ${file}", found ${found.length}`
+        );
+      }
+      return found[0];
+    }
+  };
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(rootPkg.version)
   },
   plugins: [
     changelogPlugin(),
+    guideFencePlugin(),
     codeExamplePlugin(),
     tailwindcss(),
     sveltekit({

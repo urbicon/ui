@@ -5,9 +5,8 @@
   import { REPO_URL } from '#lib/seo.js';
   import { asset, resolve } from '$app/paths';
 
-  // The site renders neither guide; GitHub does, and both ship in their package's tarball.
+  // The site does not render the A2UI guide; GitHub does, and it ships in the blocks tarball.
   const A2UI_GUIDE = `${REPO_URL}/blob/main/packages/blocks/docs/A2UI.md`;
-  const MCP_APP_README = `${REPO_URL}/tree/main/packages/mcp-app#readme`;
 
   const cliSetupExample = `# One dev-dependency wires your agent into the design system
 # (already there if you set the project up with \`sv add @urbicon-ui\`):
@@ -377,9 +376,14 @@ urbicon record-decision --title …  # write a decision the next session will se
     </ul>
 
     <p class="text-text-secondary">
-      The build and test entries need peer packages of their own, which
-      <a href={MCP_APP_README}>the mcp-app README</a> lists with the code for a server and a view.
-      Your coding agent reads it with
+      <a href={resolve('/ai/mcp-apps/walkthrough')}>The walkthrough</a> builds one view, from the
+      server to a card in Claude. <a href={resolve('/ai/mcp-apps/reference')}>The reference</a>
+      covers every entry point, including the peer packages the build and test entries need. Your coding
+      agent reads them with
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >urbicon guide mcp-app-walkthrough</code
+      >
+      and
       <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
         >urbicon guide mcp-app</code
       >.

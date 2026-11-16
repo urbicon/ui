@@ -26,6 +26,8 @@
 @source '../../../packages/docs/src/lib';
 @source '../../../packages/table/src/lib';
 @source '../../../packages/auth/src/lib';
+/* The MCP-App walkthrough's view fence, compiled into /ai/mcp-apps/walkthrough (guideFencePlugin). */
+@source '../../../packages/mcp-app/docs';
 
 /* Custom documentation theme */
 @theme {
