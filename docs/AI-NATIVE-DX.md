@@ -3,6 +3,10 @@
 How this library makes itself usable by an agent: what is served, from where, and which
 surface is the one consumers actually install.
 
+This is about the coding agent. What a consumer's app shows its own users through an agent at
+runtime is elsewhere: `A2UIView` in [A2UI.md](A2UI.md), and MCP-App views in
+[`packages/mcp-app/README.md`](../packages/mcp-app/README.md). The site's `/ai` page maps all three.
+
 ## The three surfaces
 
 | Surface                               | What it is                                                                                                                             |

@@ -31,7 +31,7 @@ prop-conditional `overrides` (e.g. style only `variant="outlined"`).
 
 - [Documentation site](https://ui.urbicon.de): Live docs, playgrounds and recipes for every component
 - [Full API Reference](https://ui.urbicon.de/llms-full.txt): Complete component props, variants, tokens, and patterns for every component
-- [AI-native tooling](https://ui.urbicon.de/ai): The `urbicon` CLI — version-pinned component knowledge and a design-token linter for agents
+- [AI-native tooling](https://ui.urbicon.de/ai): The `urbicon` CLI for coding agents, `A2UIView` for agent-generated forms in a chat, and `@urbicon-ui/mcp-app` for MCP-App views
 - [Customization](https://ui.urbicon.de/customization): Project-wide styling — `BlocksProvider` defaults, presets and overrides, design tokens
 - [Blocks — llms.txt](https://ui.urbicon.de/blocks/llms.txt): Scope index
 - [Table — llms.txt](https://ui.urbicon.de/table/llms.txt): Scope index

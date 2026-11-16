@@ -17,7 +17,9 @@
     type MarkdownUrlPolicy
   } from '@urbicon-ui/blocks';
 
-  let messages: ChatMessageData[] = $state([]);
+  // $state.raw: a deep $state hands A2UIView new objects on every update,
+  // and it rebuilds the form, dropping what the user typed.
+  let messages: ChatMessageData[] = $state.raw([]);
 
   // Strict by default: external images are blocked unless a prefix is
   // allowlisted; links keep the safe default protocols. Keep the object stable.

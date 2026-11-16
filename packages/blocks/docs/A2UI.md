@@ -377,3 +377,11 @@ payload is unknown.
 The Urbicon prompt is capped at 24 kB by a test, deliberately: a bloated prompt measurably degrades
 conformance. If you add catalog entries, keep descriptions tight and let the generated prop types
 carry the mechanics.
+
+## In an MCP App
+
+This guide covers a chat. In an MCP App the agent sends the envelopes as a tool's arguments, each
+call of that tool opens a view of its own, and no later call reaches an earlier one, so the rules
+`a2uiFencedTransportSection()` gives the agent do not hold there. The library ships no transport for it. The
+[8.38.0 entry of the blocks migration guide](https://github.com/urbicon/ui/blob/main/packages/blocks/docs/MIGRATION.md#8380)
+says where a transport of your own starts and links the removed one as a template.
