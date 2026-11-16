@@ -190,7 +190,7 @@ themed through Tailwind's own `@theme` namespaces (`--text-*`, `--font-*`, `--le
 `--tracking-*`). `packages/blocks/src/lib/style/index.css` does not import Tailwind, so the
 library's `@theme` and the consumer's run in the consumer's one compilation, and a consumer
 `@theme` declared after the library's stylesheet wins. The Color Rooms skin rebinds
-`--font-sans`, `--font-display` and `--font-mono` (`apps/docs/src/lib/style/rooms-docs.css`),
+`--font-sans` and `--font-mono` on `.docs-rooms` (`apps/docs/src/lib/style/rooms-docs.css`),
 and the components follow without a change.
 
 A semantic name would add nothing and break something:
@@ -201,7 +201,8 @@ A semantic name would add nothing and break something:
   `--text-body` would stand for one size and nothing more.
 - **The `tv()` engine would read it as a colour.** `BUCKET_PATTERNS` in
   `packages/blocks/src/lib/utils/variants.ts` buckets `text-(\d+xs|xs|sm|base|lg|xl|\d+xl)` as
-  `text-size`, and every other `text-*` falls through to the text-colour catch-all. `text-body`
+  `text-size`, and a `text-<word>` that no pattern names (not an alignment, wrap, overflow or
+  shadow keyword) falls through to the text-colour catch-all. `text-body`
   would be classified as a colour, and any text-colour override would silently strip it.
 
 The one real gap, sizes below Tailwind's 12px `--text-xs`, was closed inside Tailwind's
@@ -289,8 +290,9 @@ configured per package on npmjs.com. Provenance attestations are automatic — t
 an escape hatch, scoped to the publish job's single step.
 
 **This reverses the earlier arrangement.** Until 2026-08-01 the effective publisher was the
-deploy host and both this file and `VERSIONING.md` said so. Since v6.48.1 every package in
-`RELEASE_PACKAGES` (`scripts/release-packages.mjs`) goes out from here over OIDC. Publishing is gated on the repository variable
+deploy host and both this file and `VERSIONING.md` said so. Since v6.48.1 every release of a package in
+`RELEASE_PACKAGES` (`scripts/release-packages.mjs`) after its first, hand-made publish goes out
+from here over OIDC. Publishing is gated on the repository variable
 `NPM_TRUSTED_PUBLISHING=true`; clearing it turns the job back into a rehearsal, which is the
 way back if it is ever needed.
 

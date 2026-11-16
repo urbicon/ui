@@ -1,6 +1,6 @@
 # Component Families
 
-> A taxonomy of the Urbicon UI primitives. Every component belongs to exactly one family or is named as standing outside them, and the family determines its ARIA role, its border-token source, its tier-system membership, and the question a consumer should ask before reaching for it.
+> A taxonomy of the Urbicon UI primitives and the conversation components. Each of them belongs to exactly one family or is named as standing outside them, and the family determines its ARIA role, its border-token source, its tier-system membership, and the question a consumer should ask before reaching for it.
 >
 > This page is the canonical reference. Doc-page JSDoc `@tag` annotations follow the same taxonomy so that the `urbicon` CLI, `llms.txt`, and the documentation site all agree.
 >
@@ -32,7 +32,7 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 | [Identity](#identity)                    | Avatar                                                                                                                                            | `img` or `button`                                     | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`)                                         | none (avatar is its own surface)             |
 | [Conversation](#conversation)            | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `textbox`, `region`                            | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer               | **Surface**, and only on the OUTERMOST frame |
 
-**Outside the families:** `Kbd` — a `<kbd>` with no role and a fixed per-size radius that reads no tier. No family's trait fits a key label: it dispatches nothing, holds no value, navigates nowhere, frames nothing, reports no status and stands for no person. A primitive in `packages/blocks/src/lib/primitives/` that neither the table nor this line names has not been placed yet.
+**Outside the families:** `Kbd` — a `<kbd>` is phrasing content inside a sentence: it has no role, takes no part in layout and reads no tier, and its small frame is typography, not a surface that holds content. None of the families' questions applies to a key label. A primitive in `packages/blocks/src/lib/primitives/` that neither the table nor this line names has not been placed yet.
 
 The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and catalog filtering, the family decides architecture.
 
@@ -108,7 +108,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page and for the current `Link` (`aria-current="page"`). `JourneyTimeline` is an `<ol>` with `aria-current="step"` on the active-status node and disclosure semantics (`aria-expanded`/`aria-controls`) on the focused node's trigger.
 
-**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `PaginationItem` read the tier context. `Breadcrumb`, `JourneyTimeline` and `Link` do not — the timeline's cards and panel sit on the fixed `contain` radius, a breadcrumb trail draws no box to round, and a `Link` is a word rather than a control: its `rounded-modify` is the shape of a focus ring, not of a surface.
+**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`; those three plus `Pagination` and `PaginationItem` read the tier context. `Breadcrumb`, `JourneyTimeline` and `Link` do not — the timeline's cards and panel sit on the fixed `contain` radius, a breadcrumb trail draws no box to round, and a `Link` is a word rather than a control: its `rounded-modify` is the shape of a focus ring, not of a surface.
 
 **Border source:** Mixed. `SegmentGroup` indicator uses Intent (the active item is action-like). `Tab` `line` variant has no border. Breadcrumb uses no border by default.
 
@@ -267,8 +267,8 @@ The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/pr
 | ------------ | --------------------------------------- | ------------------------------------------------------------------------------- |
 | `action`     | Action                                  |                                                                                 |
 | `form`       | Form                                    | Toggle is form-tagged but in Action by behaviour (bistable switch).             |
-| `navigation` | Navigation                              |                                                                                 |
-| `layout`     | Container                               |                                                                                 |
+| `navigation` | Navigation                              | JourneyTimeline is display-tagged too and lives in Navigation.                  |
+| `layout`     | Container                               | Sidebar is navigation-tagged too and lives in Container.                        |
 | `overlay`    | Container                               |                                                                                 |
 | `feedback`   | Feedback / Ambient                      | Alert is feedback-tagged but lives in Container by behaviour.                   |
 | `display`    | Identity (Avatar) / Container (Tooltip) | Tooltip lives in Container by behaviour; Kbd, display-tagged too, sits outside. |
