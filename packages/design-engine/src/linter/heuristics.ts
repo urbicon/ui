@@ -723,8 +723,8 @@ function teachingChainEnd(code: string, start: number): number {
 
 /**
  * Blank the template-literal bodies of *teaching code* — `code={`…`}` props and
- * `recipeCode = `…`` declarations (docs example source; see CLAUDE.md → Recipe
- * Pages) — preserving newlines so finding line numbers stay accurate (mirrors
+ * `recipeCode = `…`` declarations (docs example source; see the `docs-recipes`
+ * skill) — preserving newlines so finding line numbers stay accurate (mirrors
  * maskComments in linter.ts). A `transition-all` or an `<h1>…<h4>` shown *inside* an
  * example is not the page's own markup and must not score on the craft axis.
  *

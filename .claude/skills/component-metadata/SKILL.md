@@ -14,7 +14,7 @@ Every `*Props` interface in `index.ts` MUST have JSDoc tags — this is the sing
 - `@stability` (optional, default `stable`) — `experimental | beta | stable | deprecated`; drives the Editorial stability badge in the doc-page header. Level semantics + the beta→stable promotion criteria: `docs/COMPONENT-API-CONVENTIONS.md` § Stability
 - `@standalone` (optional, multi-component `index.ts` only) — opt-in: this export gets its own catalog entry + `llm.txt` (e.g. the eight Guide surfaces). Without it, additional exports count as compound subcomponents (TabItem, MenuItem) and stay folded into the directory component's entry. Requires a matching `export { default as X } from './X.svelte'` in the same file.
 
-The two description tags are **not** interchangeable. They were one field until 2026-07-27; the median ran 259 characters over more than one sentence, so the landing page truncated it mid-clause while agents got no more detail for it.
+The two description tags are **not** interchangeable: a long form in `@summary` is truncated mid-clause on the landing page, and a one-liner in `@description` gives agents no more than the headline.
 
 ```ts
 /**
@@ -45,9 +45,9 @@ The same split, one level down. A prop's own JSDoc is the contract; an optional 
 ```
 
 - **Optional by design.** Most props say all they need in one sentence and get no summary; `extractPlaygroundDocs` reads `summary ?? description`, so leaving it out changes nothing. A required second field would mean hundreds of copies of the first.
-- **Required past 120 characters when the prop is a playground knob** — gated by `bun run playgrounds:lint`, which reports the component, the knob and the character count. The budget is measured: the hint column is 336 px at `text-xs`, which fits 57 characters on a line in the best case and ~38 with real word breaking, so 120 is three lines. Past that a hint is a wall beside a switch.
-- **Only _direct_ props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary. The first version of the gate missed this and reported 56 knobs that show nothing to anyone.
-- The API table on the docs page keeps showing the **description** — that is where the contract belongs. Measured on Dialog: 53 characters beside the knob, 375 in the table, same prop.
+- **Required past 120 characters when the prop is a playground knob** — gated by `bun run playgrounds:lint`, which reports the component, the knob and the character count. Past that a hint is a wall beside a switch.
+- **Only _direct_ props carry a hint.** A tv() axis gets the "V" badge and no hint line at all, so its generated description ("Determines the component's visual treatment. Available options: …") never reaches a reader and needs no summary.
+- The API table on the docs page keeps showing the **description** — that is where the contract belongs.
 
 ## A prop's `@default` is copied, never checked
 
@@ -88,9 +88,15 @@ structure, not a single JSDoc block) apply in JSDoc unchanged. What belongs wher
 - **Where page and JSDoc disagree, the JSDoc is the copy to trust** and the page is the copy to
   fix — it sits next to the code and ships to every generated surface.
 
+## `@example` blocks compile, or `examples:lint` fails
+
+Every `svelte` code block in a `*Props` JSDoc of a package in `PACKAGES` (`packages/docs-gen/scripts/examples-lint.ts`) is written out as a real `.svelte` file and type-checked by `bun run examples:lint` — CI's `gates` job; slow, and it needs the workspace built. PascalCase tags are imported from `#lib` and free identifiers get an `any` slot, so a fragment may leave its state undeclared; what fails is a wrong prop name or enum value, a missing required prop, a component the library does not export. A consumer-context component in an example (`<SettingsForm>`) needs a `PLACEHOLDERS` entry with its reason in the same file, and a stale entry is an error.
+
+The same run compiles every `svelte` fence of `design-system/patterns/*.md` as a whole component, with nothing exempt — `urbicon pattern` serves those verbatim. A pattern takes consumer context as `{@render children()}`, a named snippet or an `<!-- your … -->` marker, never an import of a component that does not exist.
+
 ## Regeneration is two-step — run `docs:gen:all`, not `docs:gen:<target>`
 
-`docs:gen:<target>` only writes `apps/docs/static/<group>/_catalog.json` + per-component `llm.txt`; the `CatalogAssembler` (runs only in `docs:gen:all` / `build`) globs every `_catalog.json` into `apps/docs/static/mcp/component-catalog.json` — the file root `llms.txt` and the design-content bundle (`urbicon find` / `get-component` / `recipe`) are built from. Editing `*Props` JSDoc and running only `docs:gen:<target>` leaves that file **stale**. All three artifacts are git-ignored (CI rebuilds them on `build`).
+`docs:gen:<target>` only writes `apps/docs/static/<group>/_catalog.json` + per-component `llm.txt`; the `CatalogAssembler` (runs only in `docs:gen:all` / `build`) globs every `_catalog.json` into `apps/docs/static/mcp/component-catalog.json` — the file root `llms.txt` and the design-content bundle (`urbicon find` / `get-component` / `recipe`) are built from. Editing `*Props` JSDoc and running only `docs:gen:<target>` leaves that file **stale**. All three artifacts are git-ignored (CI rebuilds them on `build`); the root `llms.txt` built from them is tracked, so commit what `docs:gen:all` rewrote there or `llms:check` fails. `summary:lint` and `playgrounds:lint` read the generated output as well — a JSDoc edit is checked only after the regeneration.
 
 ## Name the real server factory
 
@@ -98,6 +104,6 @@ For a component with a server counterpart (auth handler, SSE/stream endpoint), t
 
 ## Related
 
-New components also need a bundle-size baseline entry — see `bun run size --update-baseline`.
+A new component has no bundle-size baseline entry; the release bump's `size --check` names it, and `--update-baseline` there records it.
 
-`@stability` reaches the component catalog (and with it the landing page's status column) since 2026-07-27 — before that it was extracted and dropped, and the landing page carried a hand-written list naming four of the thirty-eight non-stable components. Set it truthfully.
+`@stability` reaches the component catalog and with it the landing page's status column — set it truthfully.

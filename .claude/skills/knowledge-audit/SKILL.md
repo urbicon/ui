@@ -12,7 +12,8 @@ than a reading. Never run one in the context that wrote the prose it audits.
 ## When it is worth running
 
 - AGENTS.md above the budget `bun run docs:refs:check` enforces and prints.
-- The memory index above 1,250 words (`wc -w` on `MEMORY.md`).
+- The memory index above 350 words (`wc -w` on `MEMORY.md`) — set just above the index as it
+  stands, so a new entry costs the removal of another.
 - A review, a consumer or a derailed session hit a claim that is false.
 - Otherwise at most quarterly: self-inspection finds findings without limit, so
   a run needs a trigger, not a calendar.
@@ -35,20 +36,31 @@ says; a drifted hook is worse than no entry, because the hook is what gets read.
 Anything already codified in AGENTS.md, a skill or a doc is **deleted, not
 kept**: the repo is canon, memory holds only what has no home in it yet.
 
+- **Memory holds tested rules, measured traps and decisions without a repo home** — never
+  state: versions, release logs, wave results, "waits for the maintainer" lists. A deletion
+  condition that waits on a decision never fires.
+- **Every claim that names a file, test, script, constant or version is checked against the
+  tree**, not only for codification: a memory can warn about a test that a later change
+  replaced by a derivation.
+- **Traps live in a few themed collections, not one file per incident** — the index line is
+  what every session pays for.
+
 ## 2. Instructions
 
 Reference integrity of AGENTS.md and every `.claude/skills/*/SKILL.md`: each
 `bun run <script>` exists in a `package.json`, each path exists, each named constant
 (`PLACEHOLDERS`, `COMPOSED`, `BUCKET_PATTERNS`, …) is still in the script said to
-hold it. `bun run docs:refs:check` is the gate for this; grep by hand for
-whatever it does not cover — the last pass found a deleted constant still cited,
-two wrong package names, and a hook described as local that exists only in the
-consumer template.
+hold it. `bun run docs:refs:check` is the gate for this; it checks existence only, so read
+for what it does not cover — a wrong package name, a hook described as local that
+exists only in the consumer template.
 
 Then a history-vs-constraint pass over AGENTS.md, applying its own rule to
 itself: classify each sentence as rule, pointer or provenance. Provenance that
 names no constraint the next edit would honour is the finding — count those
-words, then cut them.
+words, then cut them. Then the placement pass: AGENTS.md is loaded whole into every
+session, so a line there must be needed before the session knows its task, true, and said
+only there or be the pointer. A rule only a narrow task needs moves to the skill or doc that
+task loads, adding what the target lacks first.
 
 ## 3. Docs
 
@@ -70,9 +82,7 @@ words, then cut them.
   count that only introduces the list in the same paragraph is its own oracle
   and stays. A retyped roster counts as a number. Run both passes over
   `packages/*/README.md`, `packages/docs-gen/templates/*.md` and
-  `.claude/skills/*/SKILL.md` too, and add the hyphenated form (`six-family`) —
-  the stale copies the 2026-09-14 pass fixed sat in exactly those files and in
-  that spelling.
+  `.claude/skills/*/SKILL.md` too, and add the hyphenated form (`six-family`).
 
 - **Markers.** `git grep -n "pending #"`, then `gh issue view <N> --json state`:
   a marker whose issue is closed is a decision to write into the prose or delete.
@@ -87,7 +97,7 @@ GitHub issue or dropped. The internal index names exactly the files present —
 no ghosts, no unlisted ones.
 
 Internal docs have a lifecycle, not an archive. `docs/internal/` is its own
-local git repository (since 2026-09-24; this repo still ignores it). A living
+local git repository (this repo ignores it). A living
 doc names its end condition in its head; when the work ends it is harvested,
 then removed with `git rm` in that repository — no archive folder, no row left
 in the index; the history is the archive:

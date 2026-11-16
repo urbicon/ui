@@ -7,11 +7,11 @@ description: Structure of recipe pages and component doc pages in apps/docs. Use
 
 Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files for metadata (title, description, components, features). The `recipeCode` template literal stays in `+page.svelte` for the live preview — and it is a template literal: an unescaped backtick in the snippet is a syntax error, an escaped one is fine. Backslashes double (`\s` in a shown regex is `\\s` in the literal), **`<\/script>` escapes the closer** (Svelte's parser ends the `<script>` block at the first raw `</script>`, inside a string or not), the opener `<script` needs no escape (Vite 8's dependency scanner finds the same script blocks as Svelte's parser, and a cold scan stays clean), and there is no string concatenation — one literal. The catalog extractor cooks all of these escapes on emit, so `urbicon recipe` serves exactly what the code panel displays.
 
-**A shown import must resolve.** Vite's dependency scanner regex-finds import statements even inside the literal and loads `.svelte`-suffixed local paths for real — an import of a file that does not exist (`#lib/HelpTooltip.svelte` as pure display code) fails the ENTIRE dev-server dependency scan with ENOENT, which surfaces as a wall of on-demand-optimize errors on every cold start (2026-08-16). So a second file the recipe shows is a real sibling of the page: the demo imports it (`./HelpTooltip.svelte`), the code panel renders its source via `?raw`, and the shown import in the literal is the same `./` path. That also makes the file single-source — panel and demo cannot drift.
+**A shown import must resolve.** Vite's dependency scanner regex-finds import statements even inside the literal and loads `.svelte`-suffixed local paths for real — an import of a file that does not exist (`#lib/HelpTooltip.svelte` as pure display code) fails the ENTIRE dev-server dependency scan with ENOENT, which surfaces as a wall of on-demand-optimize errors on every cold start. So a second file the recipe shows is a real sibling of the page: the demo imports it (`./HelpTooltip.svelte`), the code panel renders its source via `?raw`, and the shown import in the literal is the same `./` path. That also makes the file single-source — panel and demo cannot drift.
 
-**The main literal MUST be named `recipeCode`.** `CatalogAssembler` extracts exactly one `const recipeCode` per page; any other name silently drops the recipe's code from `urbicon recipe` (found on the 2026-08-16 rollout: three pages had drifted out of the catalog this way). Secondary literals (a hook file, a server route, extra variants) take other names and stay catalog-invisible — name their facts in `meta.features` so an agent knows they exist.
+**The main literal MUST be named `recipeCode`.** `CatalogAssembler` extracts exactly one `const recipeCode` per page; any other name silently drops the recipe's code from `urbicon recipe`. Secondary literals (a hook file, a server route, extra variants) take other names and stay catalog-invisible — name their facts in `meta.features` so an agent knows they exist.
 
-## Canonical page structure (since 2026-08; `table-detail` is the model)
+## Canonical page structure (`table-detail` is the model)
 
 ```svelte
 <RecipeShell meta={recipeMeta}>
@@ -29,9 +29,9 @@ Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files
   RecipeHeader on the page.
 - **One** CodeExample: the live demo as children, the copyable source as `code`. The source
   sits directly under the demo — no separate "Code" section at the foot, and no feature card
-  retelling what the demo shows (`RecipeFeatures.svelte` was deleted with its last consumer
-  on the 2026-08-16 rollout — never reintroduce it; `features` in `meta.ts` stays: its
-  consumer is `urbicon recipe`, so write it as facts for an agent, not page copy).
+  retelling what the demo shows (never reintroduce a `RecipeFeatures` card; `features` in
+  `meta.ts` stays: its consumer is `urbicon recipe`, so write it as facts for an agent, not
+  page copy).
 - The components list renders as the header's mono manifest line ("BUILT WITH …") — it comes
   from `meta.ts` via `RecipeShell`, nothing to do per page. Never reintroduce badge chips
   for it.
@@ -85,6 +85,22 @@ bun run docs:scaffold <ComponentName> --group primitives|components
 
 Full guide for building component documentation pages: [docs/DocsPageGuide.md](../../../docs/DocsPageGuide.md).
 
+## Registration and the example budget
+
+A new page is registered by hand in three places — the sidebar (`apps/docs/src/lib/navigation.ts`),
+`componentLinks` (`apps/docs/src/lib/component-links.ts`, which the `@related` chips read) and,
+for a recipe, the cookbook order in `apps/docs/src/routes/recipes/recipe-meta.ts`. Forgetting
+one is silent; `bun run registry:lint` checks all three against the routes and the generated
+catalogs. A page deliberately absent from the sidebar takes an `UNLISTED` entry with its
+reason, a catalogue component deliberately without a page a `PAGELESS` one; a stale entry is an
+error too.
+
+`bun run examples:budget` holds a component page to the 2–4 `<CodeExample>` budget of
+`docs/DocsPageGuide.md`. A page with no `examples` section takes a `NO_EXAMPLES` entry with its
+reason, a section allowed past the ceiling an `OVERSIZE_OK` one; stale entries are errors. Which
+sections count: the head of `apps/docs/scripts/example-budget-lint.ts`. Not to be confused with
+`examples:lint`, which type-checks `@example` JSDoc (`component-metadata` skill).
+
 ## The API and Types sections: one component, one binding
 
 A component page ends its reference part with one line, between the custom docs and Installation:
@@ -98,23 +114,24 @@ from the page's own `componentData`, so the type names the API table links alway
 the Types table. Never wire `<ApiReference types=…>` and `<TypesReference>` by hand on a component
 page: the two copies of `types` are each silent without the other. Both sections reach the table
 of contents on their own, since `DocsLayout` lists every titled section a page renders;
-`refsections:lint` checks that every component page renders the component. A family page
-that documents several components under one Types section (`/blocks/components/guide`) is the one
-exception: it composes the two tables itself, with every prop table rendered through one local
-snippet that binds the page's single `types` — keep new tables inside that snippet, since no
-gate checks the binding there.
+`refsections:lint` checks that every component page renders the component — presence only, asked
+of the Svelte parser. A family page that documents several components under one Types section
+(`/blocks/components/guide`) is the one exception, listed in `COMPOSED` with its reason: it
+composes the two tables itself, with every prop table rendered through one local snippet that
+binds the page's single `types` — keep new tables inside that snippet, since no gate checks the
+binding there.
 
 ## Playground stages: cap the width of form controls
 
 The stage is as wide as the preview column (≈ 650 px in the hero). A single-line
 field stretched across it reads as a bug, so a form playground wraps its control:
 
-| Control                | Cap        | Who has it                                                                  |
-| ---------------------- | ---------- | --------------------------------------------------------------------------- |
-| single-line field      | `max-w-xs` | Input · Select · DatePicker · DateRangePicker · NumberInput · CurrencyInput |
-| multi-line / wrapper   | `max-w-md` | Textarea · FormField · FileUpload · Slider                                  |
-| composer / wide widget | `max-w-xl` | PromptInput · JourneyTimeline                                               |
-| naturally narrow       | none       | Checkbox · Radio · Toggle · PinInput · TimeInput · Spinner                  |
+| Control                | Cap        |
+| ---------------------- | ---------- |
+| single-line field      | `max-w-xs` |
+| multi-line / wrapper   | `max-w-md` |
+| composer / wide widget | `max-w-xl` |
+| naturally narrow       | none       |
 
 Two rules that are easy to get wrong:
 
@@ -129,7 +146,7 @@ Two rules that are easy to get wrong:
 
 `pick` is an edited selection, not "every prop". Before adding a knob, check
 that it _visibly_ changes the stage — a knob that does nothing reads as a broken
-library, and the 2026-07-28 hero review found nine of them.
+library.
 
 Four kinds that look pickable but are not:
 
@@ -150,4 +167,4 @@ and still renders the same grey border.
 
 ## Prerequisite
 
-`bun --filter='@urbicon-ui/docs-app' run check` needs the workspace packages **built** (`bun run build:packages`) **and** a `docs:gen` run — `apps/docs/src/**/api.ts` is git-ignored and imported by every page, so a fresh worktree otherwise shows hundreds of "Cannot find module '@urbicon-ui/…'" / missing-`./api` errors.
+A fresh worktree shows hundreds of "Cannot find module '@urbicon-ui/…'" / missing-`./api` errors until it is built — AGENTS.md § Git Workflow has the order.

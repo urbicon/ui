@@ -57,7 +57,9 @@ Make the agent check the current code for whether each cause still stands, and m
 
 Pick the concerns from what step 1 surfaced. On table these were: state ownership and write
 paths, client vs. server processing, value/identity resolution, and render duality
-(desktop/mobile/grouped).
+(desktop/mobile/grouped). Feed sonde 1's series into the matrix prompts verbatim (sites, commit
+quotes, "the cause still stands at X"): the matrix then starts from the real inventory instead of
+rediscovering it, and its findings cite the fix history without a second archaeology pass.
 
 **The prompt must enforce two phases:** first collect _every_ site mechanically — the working
 phrasing is _"list every site and how it does it — do not judge"_ — and only then derive the
@@ -84,7 +86,14 @@ no `@testing-library/svelte`, no `jest-dom`. Give the agents:
   no positive control against its own oracle can stay green while checking nothing.
 - **`NOT_DECIDABLE` as a permitted verdict.** jsdom does not lay out; `offsetHeight` is 0. Where
   layout is needed, stub `clientHeight` (pattern in the `stubLayoutProp` helper,
-  `Table.render.svelte.test.ts:44`). Anything pixel-shaped stays unclaimed.
+  `Table.render.svelte.test.ts:44`). Anything pixel-shaped stays unclaimed until the browser
+  pass below.
+- **`CORRECTED` beside CONFIRMED / REFUTED / `NOT_DECIDABLE`.** Findings that hold in substance
+  with a wrong detail (a five-state union called six, a DEV warning that never fires) otherwise
+  end as false confirms or false kills.
+- **a reading obligation, not a grep**: a truncated grep hides hits, and a defect spread across
+  several files only shows up once each one is read in full — make agents read the files they
+  cite.
 - **an adversarial brief**: the job is to _refute_. A refuted finding is a valuable result.
 - **a unique temp filename per agent** (parallel verifications otherwise overwrite each other),
   delete it afterwards, commit nothing.
@@ -94,6 +103,16 @@ no `@testing-library/svelte`, no `jest-dom`. Give the agents:
 
 Of 11 verified claims on table, 9 held, 2 were corrected in their reach, 0 fell — but both
 corrections mattered, and one of them moved the cause of a defect.
+
+**A browser pass follows wherever findings are pixel-shaped.** Have the matrix agents tag each
+finding `jsdom_verifiable` or not; pipe only the former into DOM-test verification and measure
+the rest in a real browser. It is also where exonerations come from (on table's `features/`, a
+summary row that aligns exactly, a sheet write path that works) — jsdom can confirm defects but
+rarely clears them. Coordinate clicks are not an instrument: a deterministic JS click with a
+state read before and after settles in one round what a mis-landed synthetic click turns into a
+phantom finding. A mounted-but-closed drawer still has in-viewport rects, so judge overlay
+visibility by screenshot, never by DOM geometry; flip container queries by resizing the
+container itself.
 
 ### 4. Change-cost probes — two or three real roadmap items
 
@@ -107,7 +126,7 @@ explicitly refuses; the refusal machinery is often more expensive than the thing
 
 ### 5. Blind redesign — last, and only where it earns its cost
 
-Felix's idea; it works, but not through the diff.
+It works, but not through the diff.
 
 - A **separate agent** distils an implementation-neutral requirements dossier from README, docs,
   props JSDoc and test names. Give it a **ban list** of internal names (module, type, prop and
@@ -137,12 +156,14 @@ do not replace each other.
 
 ## Where the results go
 
-- **Verified defects with user impact** → issues, with the four label axes and a milestone. Where
-  the fix needs a product decision (what does "select all" mean when the server holds the rows?),
-  leave `ready` off and put the options in the body. That is what `ready` is for.
+- **A verified defect** → a `pr-wave` that fixes it, or nothing. A probe is self-inspection,
+  and what self-inspection finds is fixed in a PR or dropped; an issue needs someone who noticed
+  the problem without looking for it (AGENTS.md § Project tracking). Where the fix needs a
+  product decision (what does "select all" mean when the server holds the rows?), put the
+  options to the user before the wave starts.
 - **The architecture diagnosis** → a document under `docs/internal/`, not issues. "The row
-  renderer exists three times" is a state, not a task; as an issue it sits open for a year. Issue
-  the _work_ that ends the state, and let it link back.
+  renderer exists three times" is a state, not a task; as an issue it sits open for a year. The
+  wave that ends the state links back to it.
 - **Method learnings** → this file.
 - **The probe is not the last instrument.** Sondes measure state; the class "shows only when you
   change it" surfaces during implementation — table's migration waves found defects the probe had
@@ -166,37 +187,3 @@ instruments that return a number or a yes/no — table's v8 view object was deci
   design before it exists.
 - **Abort criteria fixed before the spike**, against sunk cost: the measurements that tip the
   decision to the fallback.
-
-## Learnings from the second run (features/ layer, 2026-08-22)
-
-- **A browser pass belongs after sonde 3 wherever findings were tagged
-  pixel-shaped.** Have the matrix agents tag each finding `jsdom_verifiable`
-  or not; pipe only the former into DOM-test verification and measure the
-  rest yourself in Chrome. On features/ the browser pass also produced the
-  probe's only _exonerations_ (a summary row that aligns exactly, a sheet
-  write path that works) — jsdom can confirm defects but rarely clears them.
-- **Coordinate clicks are not an instrument.** One synthetic click landed on
-  the wrong element and produced a phantom "store resets my selection"
-  finding that cost four measurement rounds. Deterministic JS clicks with a
-  state read before/after settle the same question in one. Corollaries: a
-  mounted-but-closed drawer still has in-viewport rects (judge overlay
-  visibility by screenshot, never by DOM geometry), and `resize_window` can
-  be overridden by the extension viewport — flip container queries by
-  resizing the container itself.
-- **Feed sonde 1's series into the matrix prompts verbatim** (sites, commit
-  quotes, "the cause still stands at X"). The two-phase matrix then starts
-  from the real inventory instead of rediscovering it, and its findings
-  cite the fix history without a second archaeology pass.
-- **Give verify agents a CORRECTED verdict** besides CONFIRMED/REFUTED/
-  NOT_DECIDABLE. Both runs produced findings that held in substance with a
-  wrong detail (a five-state union called six, a DEV-warn that never fires);
-  without the verdict those become either false confirms or false kills.
-
-- **A quota limit kills every agent of a workflow at once.** All seven returned the same error
-  string. `resumeFromRunId` does not help when nothing was cached — check the journal before
-  diagnosing, and set an explicit `model` on the agent calls when the session model is the one
-  that ran out.
-- **Read big workflow results from the journal, not whole.** Extract titles and verdicts with
-  `jq` over `journal.jsonl` first, then pull the few entries that matter.
-- **`rg` output is not evidence.** A truncated grep hides hits, and a defect spread across several
-  files only shows up once each one is read in full — make agents read the files they cite.

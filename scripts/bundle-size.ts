@@ -10,6 +10,8 @@
  * `sideEffects` semantics apply), bundles it with Vite + vite-plugin-svelte,
  * minifies, and measures raw + gzip bytes.
  *
+ * Reads those packages' built dist: run `bun run build` first.
+ *
  * Two things are subtracted, and the difference between them matters:
  *
  *   - **Svelte** (svelte, svelte/*) is externalized, so no component is billed
