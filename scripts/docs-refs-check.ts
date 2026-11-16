@@ -78,6 +78,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { Glob } from 'bun';
+import { slugify } from './github-slug';
 
 /**
  * AGENTS.md is read in full by every session, so its length is a cost every
@@ -234,8 +235,8 @@ export function check(root: string): Report {
     const paths: string[] = [];
     const agents = join(ROOT, 'AGENTS.md');
     if (existsSync(agents)) paths.push(agents);
-    // `followSymlinks`, or the seven tarball docs are silently not sources:
-    // a plain scan counts a symlink as "not a file" and drops it.
+    // `followSymlinks`, or the tarball docs (the symlinks among `docs/*.md`) are
+    // silently not sources: a plain scan counts a symlink as "not a file" and drops it.
     for (const p of new Glob('docs/*.md').scanSync({
       cwd: ROOT,
       onlyFiles: true,
@@ -693,35 +694,6 @@ export function check(root: string): Report {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * GitHub's heading slug: lowercase, punctuation dropped except `-`/`_`, spaces
- * → `-`. Inside inline code nothing is HTML, so a heading that names
- * `<BlocksProvider>` keeps those letters — strip the angle brackets there and
- * the anchor the document actually links to reads as broken.
- */
-/** Drops `<…>` runs until none is left, so a nested `<<b>>` cannot survive one pass. */
-function stripTags(text: string): string {
-  let out = text;
-  for (;;) {
-    const next = out.replace(/<[^>]*>/g, '');
-    if (next === out) return out;
-    out = next;
-  }
-}
-
-export function slugify(raw: string): string {
-  return raw
-    .split('`')
-    .map((part, i) => (i % 2 === 1 ? part : stripTags(part)))
-    .join('')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/[*~]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
-    .replace(/\s/g, '-');
-}
 
 function normalize(token: string): string {
   return token

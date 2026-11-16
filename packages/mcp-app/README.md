@@ -12,6 +12,10 @@ shows in place of a tool's text result, in an iframe that talks to the host over
 - **Checked against the SDK, not the spec text.** Where the two disagree, hosts validate
   with the SDK's schemas, and so does this package's own test suite.
 
+This README is the reference. To build your first view, start with
+[the walkthrough](https://ui.urbicon.de/ai/mcp-apps/walkthrough): one example from the server to a card
+in Claude. It also ships in this package as [`./docs/WALKTHROUGH.md`](./docs/WALKTHROUGH.md).
+
 ## Entry points
 
 | Import                             | Runs in            | Peers                                                                     | What it gives you                                                                                                 |

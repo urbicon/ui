@@ -84,7 +84,16 @@ const allNavigationItems: NavItem[] = [
     href: '/getting-started',
     standalone: true
   },
-  { name: 'AI & DX', nameKey: 'nav.aiDx', href: '/ai', standalone: true },
+  {
+    name: 'AI & DX',
+    nameKey: 'nav.aiDx',
+    href: '/ai',
+    standalone: true,
+    children: [
+      { name: 'MCP App walkthrough', href: '/ai/mcp-apps/walkthrough', standalone: true },
+      { name: 'MCP App reference', href: '/ai/mcp-apps/reference', standalone: true }
+    ]
+  },
   {
     name: 'Blocks',
     nameKey: 'nav.blocks',

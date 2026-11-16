@@ -1,0 +1,1 @@
+../packages/mcp-app/docs/WALKTHROUGH.md
