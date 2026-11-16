@@ -396,6 +396,21 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
   const wantsUnused = check === 'unused' || check === 'audit';
   const wantsHardcoded = check === 'hardcoded' || check === 'audit';
 
+  // The sources a config file names (or the default `src`) need the check the
+  // positionals got above: scanning nothing reports every defined key unused
+  // and exits 0. `parity` reads no sources.
+  if (wantsUnused || wantsHardcoded) {
+    if (config.sources.length === 0) {
+      printError('"sources" is empty — name at least one source directory to scan.');
+      return EXIT.USAGE;
+    }
+    for (const dir of config.sources) {
+      if (await isDirectory(dir)) continue;
+      printError(`cannot read source directory "${dir}".`);
+      return EXIT.USAGE;
+    }
+  }
+
   let runtimeUsedKeys: string[] | undefined;
   if (wantsUnused && config.runtimeUsage) {
     try {

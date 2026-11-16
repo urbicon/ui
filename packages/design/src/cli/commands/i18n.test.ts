@@ -136,6 +136,24 @@ describe('urbicon i18n', () => {
     expect(textOutput()).not.toContain('parity:');
   });
 
+  it('rejects an empty or missing "sources" from the config file before scanning', async () => {
+    const config = join(dir, 'i18n.audit.json');
+    const translations = join(dir, 'src', 'lib', 'translations');
+    await writeFile(config, JSON.stringify({ sources: [], translations: [translations] }));
+    expect(await runI18n(['unused'], { config })).toBe(2);
+    expect(errorOutput()).toContain('"sources" is empty');
+
+    err.mockClear();
+    const nope = join(dir, 'nope');
+    await writeFile(config, JSON.stringify({ sources: [nope], translations: [translations] }));
+    expect(await runI18n(['hardcoded'], { config })).toBe(2);
+    expect(errorOutput()).toContain(`cannot read source directory "${nope}"`);
+    expect(textOutput()).not.toContain('unused');
+
+    // `parity` reads no sources, so the same config still runs it.
+    expect(await runI18n(['parity'], { config })).toBe(1);
+  });
+
   it('stops on a configured translations dir that holds no locale bundle', async () => {
     const empty = join(dir, 'empty');
     await mkdir(empty);
