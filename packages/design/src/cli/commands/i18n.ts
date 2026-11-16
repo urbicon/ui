@@ -54,9 +54,6 @@ const SKIP_DIRS = new Set([
 ]);
 const MAX_DEPTH = 24;
 
-/** The files a source scan reads. */
-const SOURCE_EXTENSIONS = ['.ts', '.js', '.svelte'];
-
 interface I18nAuditConfig {
   sources: string[];
   translations: string[];
@@ -426,14 +423,14 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
       return EXIT.USAGE;
     }
     const perDir = await Promise.all(
-      config.sources.map((dir) => collectFiles(resolve(dir), SOURCE_EXTENSIONS))
+      config.sources.map((dir) => collectFiles(resolve(dir), ['.ts', '.js', '.svelte']))
     );
     const hole = perDir.findIndex((files) => files.length === 0);
     if (hole !== -1) {
       const dir = resolve(config.sources[hole] ?? '');
       printError(
         (await isDirectory(dir))
-          ? `no ${SOURCE_EXTENSIONS.join(', ')} file to scan under "${dir}".`
+          ? `no source file to scan under "${dir}".`
           : `cannot read source directory "${dir}".`
       );
       return EXIT.USAGE;

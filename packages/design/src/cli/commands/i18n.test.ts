@@ -165,7 +165,7 @@ describe('urbicon i18n', () => {
     const translations = join(dir, 'src', 'lib', 'translations');
 
     expect(await runI18n(['unused', docsOnly], { translations })).toBe(2);
-    expect(errorOutput()).toContain(`no .ts, .js, .svelte file to scan under "${docsOnly}"`);
+    expect(errorOutput()).toContain(`no source file to scan under "${docsOnly}"`);
 
     // One empty dir among several is the same hole: its keys would read unused.
     err.mockClear();
