@@ -111,24 +111,22 @@ describe('clientRequest', () => {
     });
   });
 
-  test('what the caller sets wins: a _meta key, a header', async () => {
-    const request = clientRequest(
-      'http://s.test/mcp',
-      'tools/list',
-      { _meta: { [PROTOCOL_VERSION_KEY]: '2099-01-01' } },
-      { headers: { 'mcp-protocol-version': '2099-01-01' } }
-    );
+  test('a version the caller claims in _meta goes into the header too: -32022, not -32020', async () => {
+    const claim = { _meta: { [PROTOCOL_VERSION_KEY]: '2099-01-01' } };
+    expect(requestHeaders('tools/list', claim)['mcp-protocol-version']).toBe('2099-01-01');
+    const request = clientRequest('http://s.test/mcp', 'tools/list', claim);
     expect(request.headers.get('mcp-protocol-version')).toBe('2099-01-01');
-    expect((await request.json()).params._meta[PROTOCOL_VERSION_KEY]).toBe('2099-01-01');
-    const response = await dispatcher.handle(
-      clientRequest(
-        'http://s.test/mcp',
-        'tools/list',
-        { _meta: { [PROTOCOL_VERSION_KEY]: '2099-01-01' } },
-        { headers: { 'mcp-protocol-version': '2099-01-01' } }
-      )
-    );
+    const response = await dispatcher.handle(request);
     expect(response.status).toBe(400);
+    expect((await response.json()).error.data.requested).toBe('2099-01-01');
+  });
+
+  test('a header of the caller replaces the derived one, whatever the case of its name', () => {
+    const request = clientRequest('http://s.test/mcp', 'tools/list', undefined, {
+      headers: { 'MCP-Protocol-Version': '2025-11-25', 'Content-Type': 'application/json' }
+    });
+    expect(request.headers.get('mcp-protocol-version')).toBe('2025-11-25');
+    expect(request.headers.get('content-type')).toBe('application/json');
   });
 
   test('headers of the caller join the derived ones', () => {

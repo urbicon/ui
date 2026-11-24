@@ -95,11 +95,20 @@ export function decodeHeaderValue(value: string): string | undefined {
 
 /**
  * The `MCP-Protocol-Version`, `Mcp-Method` and — where the method has one —
- * `Mcp-Name` headers of a request, derived from its body.
+ * `Mcp-Name` headers of a request, derived from its body: the version is the
+ * one `params._meta` claims, {@link MCP_PROTOCOL_VERSION} when it claims none.
  */
 export function requestHeaders(method: string, params: unknown): Record<string, string> {
+  const meta =
+    typeof params === 'object' && params !== null
+      ? (params as { _meta?: unknown })._meta
+      : undefined;
+  const claimed =
+    typeof meta === 'object' && meta !== null
+      ? (meta as Record<string, unknown>)[PROTOCOL_VERSION_KEY]
+      : undefined;
   const headers: Record<string, string> = {
-    'mcp-protocol-version': MCP_PROTOCOL_VERSION,
+    'mcp-protocol-version': typeof claimed === 'string' ? claimed : MCP_PROTOCOL_VERSION,
     'mcp-method': method
   };
   const name = mcpName(method, params);
@@ -147,15 +156,15 @@ export function clientRequest(
       ...meta
     }
   };
+  const headers = new Headers(requestHeaders(method, body));
+  // Both, as the MCP transport asks of a client.
+  headers.set('accept', 'application/json, text/event-stream');
+  headers.set('content-type', 'application/json');
+  // `set`, not a spread: header names ignore case, so `Content-Type` replaces, never doubles.
+  for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value);
   return new Request(url, {
     method: 'POST',
-    headers: {
-      ...requestHeaders(method, body),
-      // Both, as the MCP transport asks of a client.
-      accept: 'application/json, text/event-stream',
-      'content-type': 'application/json',
-      ...options.headers
-    },
+    headers,
     body: JSON.stringify({ jsonrpc: '2.0', id: options.id ?? 1, method, params: body })
   });
 }

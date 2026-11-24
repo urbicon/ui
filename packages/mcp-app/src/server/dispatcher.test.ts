@@ -698,7 +698,8 @@ describe('the standard headers', () => {
   test('a disagreement outranks an unknown version: -32020, not -32022', async () => {
     const { ask } = appOf();
     const { body } = await ask('tools/list', undefined, {
-      meta: { ...ENVELOPE, [PROTOCOL_VERSION_KEY]: '2025-11-25' }
+      meta: { ...ENVELOPE, [PROTOCOL_VERSION_KEY]: '2025-11-25' },
+      headers: { 'mcp-protocol-version': MCP_PROTOCOL_VERSION }
     });
     expect(body.error.code).toBe(HEADER_MISMATCH);
   });
