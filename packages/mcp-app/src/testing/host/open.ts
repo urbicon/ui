@@ -30,16 +30,7 @@ import {
   type Frame,
   type Page
 } from 'playwright-core';
-import {
-  CLIENT_CAPABILITIES_KEY,
-  CLIENT_INFO_KEY,
-  MCP_PROTOCOL_VERSION,
-  PROTOCOL_VERSION_KEY,
-  requestHeaders,
-  SERVER_INFO_KEY,
-  UI_EXTENSION
-} from '../../mcp.ts';
-import { RESOURCE_MIME_TYPE } from '../../server/catalog.ts';
+import { clientRequest, SERVER_INFO_KEY } from '../../mcp.ts';
 import { buildCsp, type HostCsp } from './csp.ts';
 import { type HostPageConfig, hostPage, sandboxPage } from './pages.ts';
 
@@ -66,49 +57,27 @@ export interface JsonRpcAnswer {
   error?: { code: number; message: string; data?: unknown };
 }
 
-/** The client the test host introduces itself as, in every request's `_meta`. */
-const CLIENT_INFO = { name: 'mcp-app-test-host', version: '1.0.0' };
-
-/** What the test host declares in every request: MCP Apps, nothing else. */
-const CLIENT_CAPABILITIES = {
-  extensions: { [UI_EXTENSION]: { mimeTypes: [RESOURCE_MIME_TYPE] } }
-};
-
 /**
- * One JSON-RPC request to the app's server as MCP 2026-07-28 sends it: the
- * envelope joins `params._meta`, the standard headers derive from the body.
+ * One JSON-RPC request to the app's server as MCP 2026-07-28 sends it
+ * ({@link clientRequest}), introduced as the test host and declaring MCP Apps.
  * The host page's requests go the same way (`/rpc`), so what the page asks
  * and what the test asks reach the server alike.
  */
 function postToServer(
   endpoint: Endpoint,
-  id: unknown,
+  id: string | number,
   method: string,
   params: unknown
 ): Promise<Response> {
-  const given = typeof params === 'object' && params !== null ? params : {};
-  const meta = (given as { _meta?: Record<string, unknown> })._meta;
-  const body = {
-    ...given,
-    _meta: {
-      ...meta,
-      [PROTOCOL_VERSION_KEY]: MCP_PROTOCOL_VERSION,
-      [CLIENT_CAPABILITIES_KEY]: CLIENT_CAPABILITIES,
-      [CLIENT_INFO_KEY]: CLIENT_INFO
-    }
-  };
-  return fetch(endpoint.url, {
-    method: 'POST',
-    headers: {
-      ...endpoint.headers,
-      ...requestHeaders(method, body),
-      // Both, as the MCP transport asks of a client; the host reads JSON only,
-      // and an event stream in answer fails loudly at `response.json()`.
-      accept: 'application/json, text/event-stream',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({ jsonrpc: '2.0', id, method, params: body })
-  });
+  const given =
+    typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : undefined;
+  return fetch(
+    clientRequest(endpoint.url, method, given, {
+      id,
+      headers: endpoint.headers,
+      clientInfo: { name: 'mcp-app-test-host', version: '1.0.0' }
+    })
+  );
 }
 
 /**
@@ -413,7 +382,7 @@ export async function openHost(options: OpenHostOptions): Promise<OpenHost> {
         }
         rpcLog.forwarded++;
         const message = (await request.json()) as {
-          id?: unknown;
+          id: string | number;
           method: string;
           params?: unknown;
         };

@@ -59,6 +59,10 @@ first and use 2026-07-28.
 envelope and the headers, `serverInfo(endpoint)` reads `server/discover`, and the
 `version-unknown` check expects `-32602` with the URI in `data`.
 
+A unit test or a script that called `dispatch` with a message builds the request with
+`clientRequest(url, method, params)` from `@urbicon-ui/mcp-app/testing` and reads the answer
+from the `Response`: `await (await dispatcher.handle(clientRequest(…), context)).json()`.
+
 Grep for `.dispatch(`, `parseErrorResponse`, `bodyTooLargeResponse`, `RESOURCE_NOT_FOUND`,
 `-32002`, `MCP_PROTOCOL_VERSIONS` and `protocolVersions`, and for scripts and tests that post
 JSON-RPC to your endpoint by hand: a `curl` or an end-to-end test without the envelope now gets

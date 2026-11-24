@@ -19,6 +19,9 @@ export const SERVER_INFO_KEY = 'io.modelcontextprotocol/serverInfo';
 /** The extension identifier of MCP Apps, a key of `capabilities.extensions`. */
 export const UI_EXTENSION = 'io.modelcontextprotocol/ui';
 
+/** The `mimeType` the MCP Apps spec requires of a view ("MUST"). */
+export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
+
 /** A header disagrees with the body, or a required one is missing (HTTP 400). */
 export const HEADER_MISMATCH = -32020;
 /** The request names no revision the server speaks (HTTP 400); `data` lists them. */
@@ -83,4 +86,54 @@ export function requestHeaders(method: string, params: unknown): Record<string, 
       : undefined;
   if (typeof name === 'string') headers['mcp-name'] = encodeHeaderValue(name);
   return headers;
+}
+
+/** What {@link clientRequest} sends besides the method and its params. */
+export interface ClientRequestOptions {
+  /** The JSON-RPC id; default `1`. */
+  id?: string | number;
+  /** Added to the derived headers, and winning over them — a bearer token, for instance. */
+  headers?: Record<string, string>;
+  /** `_meta["io.modelcontextprotocol/clientCapabilities"]`; default: MCP Apps declared. */
+  capabilities?: Record<string, unknown>;
+  /** `_meta["io.modelcontextprotocol/clientInfo"]`; default `mcp-app-client` 1.0.0. */
+  clientInfo?: { name: string; version: string };
+}
+
+/**
+ * A request as an MCP 2026-07-28 client sends it: one `POST` with the
+ * envelope in `params._meta` (a `_meta` of `params` keeps its own keys) and
+ * the standard headers derived from the body. For a test or a script that
+ * talks to a dispatcher, in process (`dispatcher.handle(clientRequest(…))`)
+ * or with `fetch`.
+ */
+export function clientRequest(
+  url: string | URL,
+  method: string,
+  params?: Record<string, unknown>,
+  options: ClientRequestOptions = {}
+): Request {
+  const meta = params?._meta as Record<string, unknown> | undefined;
+  const body = {
+    ...params,
+    _meta: {
+      ...meta,
+      [PROTOCOL_VERSION_KEY]: MCP_PROTOCOL_VERSION,
+      [CLIENT_CAPABILITIES_KEY]: options.capabilities ?? {
+        extensions: { [UI_EXTENSION]: { mimeTypes: [RESOURCE_MIME_TYPE] } }
+      },
+      [CLIENT_INFO_KEY]: options.clientInfo ?? { name: 'mcp-app-client', version: '1.0.0' }
+    }
+  };
+  return new Request(url, {
+    method: 'POST',
+    headers: {
+      ...requestHeaders(method, body),
+      // Both, as the MCP transport asks of a client.
+      accept: 'application/json, text/event-stream',
+      'content-type': 'application/json',
+      ...options.headers
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', id: options.id ?? 1, method, params: body })
+  });
 }

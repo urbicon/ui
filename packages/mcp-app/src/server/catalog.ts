@@ -15,10 +15,9 @@
  */
 import { createHash } from 'node:crypto';
 import { INTERNAL_ERROR, INVALID_PARAMS } from '../jsonrpc.ts';
-import { UI_EXTENSION } from '../mcp.ts';
+import { RESOURCE_MIME_TYPE, UI_EXTENSION } from '../mcp.ts';
 
-/** The `mimeType` the spec requires of a view ("MUST"). */
-export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
+export { RESOURCE_MIME_TYPE };
 
 /**
  * The old flat key for a tool's resource. The spec calls it deprecated; the

@@ -24,7 +24,7 @@ in Claude. It also ships in this package as [`./docs/WALKTHROUGH.md`](./docs/WAL
 | `@urbicon-ui/mcp-app/server`       | Node, Bun          | —                                                                         | `createDispatcher`: the MCP endpoint; `createViewCatalog`: `_meta.ui` for tools, `resources/*` for the views |
 | `@urbicon-ui/mcp-app/view`         | the view (browser) | —                                                                         | `startView`, the bridge to the host, size and theme                                                          |
 | `@urbicon-ui/mcp-app/view/tools`   | the view (browser) | —                                                                         | `toolCaller` — the one module that sends `tools/call`                                                        |
-| `@urbicon-ui/mcp-app/testing`      | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it                                                    |
+| `@urbicon-ui/mcp-app/testing`      | your test runner   | `@modelcontextprotocol/ext-apps` 1.7.5, `@modelcontextprotocol/sdk` ^1.29 | `wireProblem`: a message checked the way a host checks it; `clientRequest`: a request as a client sends it   |
 | `@urbicon-ui/mcp-app/testing/host` | Bun                | the two above, `playwright-core` ^1.62.1                                  | a test host after the spec, driven by Playwright against your server                                         |
 | `@urbicon-ui/mcp-app/vite`         | a build script     | `vite` ^8.3                                                               | `buildViews`: each view as one HTML file, fonts beside it                                                    |
 
@@ -530,7 +530,38 @@ wireProblem({ jsonrpc: '2.0', id: 1, result: {} }, 'ping');
 ```
 
 Run it over every message a view sends in a test — this package does so for every message
-its bridge can send. A method no schema knows is a finding, not a pass.
+its bridge can send. A method no schema knows is a finding, not a pass. The schemas are the
+view-and-host wire of `ext-apps` 1.7.5 and the core of the MCP SDK 1.x; what a server answers
+under 2026-07-28 is checked by the revision's own conformance suite, which this package runs
+against its fixture server (`test:conformance`).
+
+### Talking to a server: `clientRequest`
+
+`clientRequest(url, method, params?, options?)` builds the `Request` an MCP 2026-07-28 client
+sends: the envelope in `params._meta`, declaring MCP Apps, and the `MCP-Protocol-Version`,
+`Mcp-Method` and `Mcp-Name` headers derived from the body. It is the request the test host
+sends, for a unit test that calls a dispatcher in process or a script that uses `fetch`.
+
+<!-- typecheck -->
+
+```ts
+import { createDispatcher } from '@urbicon-ui/mcp-app/server';
+import { clientRequest } from '@urbicon-ui/mcp-app/testing';
+
+const dispatcher = createDispatcher({
+  serverInfo: { name: 'notes', version: '1.0.0' },
+  tools: () => [{ name: 'list_notes', inputSchema: { type: 'object' } }],
+  call: () => ({ result: { content: [] } })
+});
+
+const response = await dispatcher.handle(
+  clientRequest('http://localhost/mcp', 'tools/call', { name: 'list_notes', arguments: {} })
+);
+// response.status → 200; (await response.json()).result.resultType → 'complete'
+```
+
+`options` take the `id` (default `1`), extra `headers` (a bearer token, for a running server),
+the `capabilities` and the `clientInfo` to declare.
 
 ## Testing in a host: `@urbicon-ui/mcp-app/testing/host`
 
