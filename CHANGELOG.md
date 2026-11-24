@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.42.0](https://github.com/urbicon/ui/compare/v8.41.2...v8.42.0) - 2026-11-24
+
+### Breaking Changes
+- **mcp-app**: Speak MCP 2026-07-28 only ([#620](https://github.com/urbicon/ui/issues/620))
+> **BREAKING:** dispatch(payload) is handle(request), and a client of 2025-11-25 or older gets 400 with -32022. parseErrorResponse, bodyTooLargeResponse, MCP_PROTOCOL_VERSIONS, protocolVersions, MAX_BATCH and RESOURCE_NOT_FOUND are gone; see the 8.42.0 entry of packages/mcp-app/docs/MIGRATION.md.
+
 ## [8.41.2](https://github.com/urbicon/ui/compare/v8.41.1...v8.41.2) - 2026-11-16
 
 ### Documentation
