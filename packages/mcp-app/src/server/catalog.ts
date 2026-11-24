@@ -6,19 +6,18 @@
  * Spec: `io.modelcontextprotocol/ui` 2026-01-26. Where the spec says two
  * things, the SDK source decides (`registerAppTool`, `getUiCapability`).
  *
- * **`_meta.ui` is always there**, also for a host that does not know MCP Apps.
- * The spec advises the server to check the client's capabilities ("SHOULD
- * check", `capabilities.extensions["io.modelcontextprotocol/ui"]` of the
- * client's `initialize`). A stateless server never sees that `initialize`
- * again when `tools/list` arrives, so it departs from the SHOULD; a host
- * without MCP Apps ignores `_meta`, and the tool stays an ordinary one with a
- * text result ("text-only fallback", ibid.).
+ * **`_meta.ui` is always there**, also for a client whose request does not
+ * declare `io.modelcontextprotocol/ui` in its capabilities. The spec advises
+ * the server to check them ("SHOULD check"); `toolMeta` is built without the
+ * request, and a client without MCP Apps ignores `_meta` — the tool stays an
+ * ordinary one with a text result ("text-only fallback", ibid.). Leaving the
+ * key out would bet every card on each host declaring the extension.
  */
 import { createHash } from 'node:crypto';
 import { INTERNAL_ERROR, INVALID_PARAMS } from '../jsonrpc.ts';
+import { RESOURCE_MIME_TYPE, UI_EXTENSION } from '../mcp.ts';
 
-/** The `mimeType` the spec requires of a view ("MUST"). */
-export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
+export { RESOURCE_MIME_TYPE };
 
 /**
  * The old flat key for a tool's resource. The spec calls it deprecated; the
@@ -26,9 +25,6 @@ export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
  * hosts are to read both.
  */
 export const LEGACY_RESOURCE_URI_KEY = 'ui/resourceUri';
-
-/** "Resource not found" — the code the MCP spec names for `resources/read`. */
-export const RESOURCE_NOT_FOUND = -32002;
 
 /** How many hex characters of the SHA-256 an issued URI carries. */
 export const VERSION_LENGTH = 12;
@@ -83,7 +79,7 @@ export interface AppToolMeta<N extends string> {
 /** A dispatcher's answer: a JSON-RPC `result` or `error`, without envelope. */
 export type Outcome =
   | { result: Record<string, unknown> }
-  | { error: { code: number; message: string } };
+  | { error: { code: number; message: string; data?: unknown } };
 
 export interface ViewCatalogOptions<N extends string> {
   /** The URI authority: views live at `ui://<server>/<name>[/<version>]`. */
@@ -117,8 +113,11 @@ export interface ViewCatalog<N extends string> {
   read(uri: unknown): Outcome;
   /** `resources/list`, `resources/read`, `resources/templates/list` — `null` for any other method. */
   handle(method: string, params: unknown): Outcome | null;
-  /** Spread into the `capabilities` of `initialize`. */
-  readonly capabilities: { resources: Record<string, never> };
+  /** Spread into the `capabilities` of `server/discover`: `resources` and the MCP Apps extension. */
+  readonly capabilities: {
+    resources: Record<string, never>;
+    extensions: Record<typeof UI_EXTENSION, Record<string, never>>;
+  };
 }
 
 const versions = new Map<string, string>();
@@ -291,8 +290,13 @@ export function createViewCatalog<N extends string>(
     }
     const name = at(requested);
     if (name === undefined) {
+      // 2026-07-28 has no code of its own for it: invalid params, the URI in `data`.
       return {
-        error: { code: RESOURCE_NOT_FOUND, message: `Resource not found: ${requested}` }
+        error: {
+          code: INVALID_PARAMS,
+          message: `Resource not found: ${requested}`,
+          data: { uri: requested }
+        }
       };
     }
     const built = html(name);
@@ -346,6 +350,6 @@ export function createViewCatalog<N extends string>(
     list,
     read,
     handle,
-    capabilities: { resources: {} }
+    capabilities: { resources: {}, extensions: { [UI_EXTENSION]: {} } }
   };
 }

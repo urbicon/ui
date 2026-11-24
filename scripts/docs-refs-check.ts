@@ -104,6 +104,13 @@ export const ALLOWLIST: ReadonlyArray<readonly [what: string, why: string]> = [
     'A2UI_SUPPORTED_VERSIONS',
     'the pre-1.0 name in a rename note of MIGRATION.md: retired by design, and the note is why'
   ],
+  ...(['MCP_PROTOCOL_VERSIONS', 'MAX_BATCH', 'RESOURCE_NOT_FOUND'] as const).map(
+    (name) =>
+      [
+        name,
+        'a removed mcp-app export in its MIGRATION.md entry: retired by design, and the entry is why'
+      ] as const
+  ),
   [
     'prototypes/artifact-frame/serve.ts',
     'a port-in-use error of the private, local-only artifact studio: whoever reads it runs the checkout that holds prototypes/'

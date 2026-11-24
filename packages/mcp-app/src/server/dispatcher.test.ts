@@ -1,9 +1,11 @@
 /**
- * The dispatcher — the JSON-RPC envelope around a tool list, a call and the
- * view catalog. Every answer goes through `wireProblem`, the SDK's schemas a
- * host validates with; the id rules are pinned against them, not against
- * this package's own reading of the spec.
+ * The dispatcher — MCP 2026-07-28 around a tool list, a call and the view
+ * catalog, HTTP in and out. The status table and the header checks are
+ * pinned here; that the answers are what a 2026 client takes, the SDK's own
+ * client says at the end, and the conformance suite in CI
+ * (`bun run test:conformance`).
  */
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   INTERNAL_ERROR,
@@ -12,17 +14,19 @@ import {
   METHOD_NOT_FOUND,
   PARSE_ERROR
 } from '../jsonrpc.ts';
-import { wireProblem } from '../testing/wire.ts';
-import { createViewCatalog, type Outcome, RESOURCE_NOT_FOUND } from './catalog.ts';
 import {
-  bodyTooLargeResponse,
-  createDispatcher,
-  type DispatcherOptions,
-  type JsonRpcResponse,
-  MAX_BATCH,
-  MCP_PROTOCOL_VERSIONS,
-  parseErrorResponse
-} from './dispatcher.ts';
+  CLIENT_CAPABILITIES_KEY,
+  encodeHeaderValue,
+  HEADER_MISMATCH,
+  MCP_PROTOCOL_VERSION,
+  PROTOCOL_VERSION_KEY,
+  requestHeaders,
+  SERVER_INFO_KEY,
+  UI_EXTENSION,
+  UNSUPPORTED_PROTOCOL_VERSION
+} from '../mcp.ts';
+import { createViewCatalog, type Outcome } from './catalog.ts';
+import { createDispatcher, type DispatcherOptions, NO_CACHE } from './dispatcher.ts';
 
 interface Caller {
   userId: string;
@@ -31,6 +35,8 @@ interface Caller {
 const CALLER: Caller = { userId: 'u1' };
 const SECRET = 'password=hunter2';
 const NOTE_HTML = '<!doctype html><html><body>note</body></html>';
+const INFO = { name: 'notes', version: '1.0.0' };
+const URL_ = 'http://notes.test/mcp';
 
 const views = createViewCatalog({
   server: 'notes',
@@ -67,12 +73,51 @@ const UNUSABLE_IDS: [label: string, id: unknown][] = [
   ['1e300', JSON.parse('1e300')]
 ];
 
+/** What every request of a 2026 client carries in `params._meta`. */
+const ENVELOPE = { [PROTOCOL_VERSION_KEY]: MCP_PROTOCOL_VERSION, [CLIENT_CAPABILITIES_KEY]: {} };
+
+/** The added fields of a result that is not cacheable. */
+const STAMP = { resultType: 'complete', _meta: { [SERVER_INFO_KEY]: INFO } };
+/** … and of one that is, with the default hint. */
+const CACHED = { ...STAMP, ...NO_CACHE };
+
+interface Answer {
+  status: number;
+  headers: Headers;
+  body: any;
+}
+
+async function read(response: Response): Promise<Answer> {
+  const raw = await response.text();
+  return {
+    status: response.status,
+    headers: response.headers,
+    body: raw === '' ? null : JSON.parse(raw)
+  };
+}
+
+function post(body: unknown, headers: Record<string, string> = {}): Request {
+  return new Request(URL_, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: typeof body === 'string' ? body : JSON.stringify(body)
+  });
+}
+
+interface AskOptions {
+  id?: unknown;
+  /** Replaces the derived headers; `undefined` as a value leaves one out. */
+  headers?: Record<string, string | undefined>;
+  /** The `_meta` of the request; `null` sends none. */
+  meta?: Record<string, unknown> | null;
+}
+
 /** The app's half: a tool list, a call, and what each received. */
 function appOf(overrides: Partial<DispatcherOptions<Caller>> = {}) {
   const calls: { name: string; args: unknown; caller: Caller }[] = [];
   const listed: Caller[] = [];
   const dispatcher = createDispatcher<Caller>({
-    serverInfo: { name: 'notes', version: '1.0.0' },
+    serverInfo: INFO,
     instructions: 'Notes of one person.',
     views,
     tools(caller) {
@@ -101,185 +146,215 @@ function appOf(overrides: Partial<DispatcherOptions<Caller>> = {}) {
     },
     ...overrides
   });
-  return {
-    calls,
-    listed,
-    ask: (payload: unknown) => dispatcher.dispatch(payload, CALLER)
-  };
-}
-
-const request = (id: unknown, method: string, params?: unknown) => ({
-  jsonrpc: '2.0',
-  id,
-  method,
-  ...(params === undefined ? {} : { params })
-});
-const notification = (method: string, params?: unknown) => ({
-  jsonrpc: '2.0',
-  method,
-  ...(params === undefined ? {} : { params })
-});
-
-function single(answer: JsonRpcResponse | JsonRpcResponse[] | null): JsonRpcResponse {
-  if (answer === null || Array.isArray(answer)) {
-    throw new Error(`One answer was expected: ${JSON.stringify(answer)}`);
+  const send = async (request: Request) => read(await dispatcher.handle(request, CALLER));
+  /** A request as a 2026 client sends it — envelope and headers derived — unless told otherwise. */
+  async function ask(method: string, params?: Record<string, unknown>, o: AskOptions = {}) {
+    const meta = o.meta === undefined ? ENVELOPE : o.meta;
+    const full = meta === null ? params : { ...params, _meta: meta };
+    const derived: Record<string, string | undefined> = {
+      ...requestHeaders(method, full),
+      ...o.headers
+    };
+    const headers = Object.fromEntries(
+      Object.entries(derived).filter((entry): entry is [string, string] => entry[1] !== undefined)
+    );
+    const id = 'id' in o ? o.id : 1;
+    return send(post({ jsonrpc: '2.0', id, method, ...(full ? { params: full } : {}) }, headers));
   }
-  return answer;
-}
-
-function resultOf(answer: JsonRpcResponse | JsonRpcResponse[] | null): Record<string, unknown> {
-  const one = single(answer);
-  if ('error' in one) throw new Error(`Error ${one.error.code}: ${one.error.message}`);
-  return one.result;
-}
-
-function errorOf(answer: JsonRpcResponse | JsonRpcResponse[] | null) {
-  const one = single(answer);
-  if (!('error' in one)) throw new Error(`An error was expected: ${JSON.stringify(one)}`);
-  return one.error;
+  return { calls, listed, ask, send, dispatcher };
 }
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('initialize', () => {
-  test.each(MCP_PROTOCOL_VERSIONS)('agrees to %s when the client asks for it', async (version) => {
+describe('server/discover', () => {
+  test('the one revision, tools beside the views’ capabilities, instructions, the identity', async () => {
     const { ask } = appOf();
-    const result = resultOf(await ask(request(1, 'initialize', { protocolVersion: version })));
-    expect(result.protocolVersion).toBe(version);
-  });
-
-  test.each([
-    ['an unknown version', { protocolVersion: '1999-01-01' }],
-    ['a version that is no string', { protocolVersion: 20250618 }],
-    ['no version', {}],
-    ['params that are no object', 'x'],
-    ['no params', undefined]
-  ])('answers with the preferred version for %s', async (_label, params) => {
-    const { ask } = appOf();
-    const result = resultOf(await ask(request(1, 'initialize', params)));
-    expect(result.protocolVersion).toBe(MCP_PROTOCOL_VERSIONS[0]);
-  });
-
-  test('serverInfo, instructions, and tools beside the views’ capabilities', async () => {
-    const { ask } = appOf();
-    expect(resultOf(await ask(request(1, 'initialize', {})))).toEqual({
-      protocolVersion: MCP_PROTOCOL_VERSIONS[0],
-      capabilities: { tools: {}, resources: {} },
-      serverInfo: { name: 'notes', version: '1.0.0' },
-      instructions: 'Notes of one person.'
+    const { status, body } = await ask('server/discover');
+    expect(status).toBe(200);
+    expect(body).toEqual({
+      jsonrpc: '2.0',
+      id: 1,
+      result: {
+        ...CACHED,
+        supportedVersions: [MCP_PROTOCOL_VERSION],
+        capabilities: { tools: {}, resources: {}, extensions: { [UI_EXTENSION]: {} } },
+        instructions: 'Notes of one person.'
+      }
     });
   });
 
   test('without views and instructions: tools only, no instructions key', async () => {
     const { ask } = appOf({ views: undefined, instructions: undefined });
-    const result = resultOf(await ask(request(1, 'initialize', {})));
+    const { result } = (await ask('server/discover')).body;
     expect(result.capabilities).toEqual({ tools: {} });
     expect('instructions' in result).toBe(false);
   });
-
-  test('protocolVersions: the first is preferred, the rest agreed to', async () => {
-    const { ask } = appOf({ protocolVersions: ['2025-11-25', '2025-06-18'] });
-    const asked = async (protocolVersion: string) =>
-      resultOf(await ask(request(1, 'initialize', { protocolVersion }))).protocolVersion;
-    expect(await asked('2025-06-18')).toBe('2025-06-18');
-    expect(await asked('2025-11-25')).toBe('2025-11-25');
-    expect(await asked('2024-11-05')).toBe('2025-11-25');
-  });
-
-  test('an empty protocolVersions is a loud stop at creation', () => {
-    expect(() => appOf({ protocolVersions: [] })).toThrow('at least one version');
-  });
 });
 
-describe('ping and tools/list', () => {
-  test('ping answers {}', async () => {
-    const { ask } = appOf();
-    expect(resultOf(await ask(request('p', 'ping')))).toEqual({});
-  });
-
-  test('tools/list hands the caller to tools() and answers { tools }', async () => {
+describe('tools/list', () => {
+  test('hands the caller to tools() and answers { tools }, stamped', async () => {
     const { ask, listed } = appOf();
-    expect(resultOf(await ask(request(2, 'tools/list')))).toEqual({ tools: TOOLS });
+    expect((await ask('tools/list')).body.result).toEqual({ ...CACHED, tools: TOOLS });
     expect(listed).toEqual([CALLER]);
   });
 
   test('tools() may answer asynchronously', async () => {
     const { ask } = appOf({ tools: async () => TOOLS.slice(0, 1) });
-    expect(resultOf(await ask(request(2, 'tools/list')))).toEqual({ tools: TOOLS.slice(0, 1) });
+    expect((await ask('tools/list')).body.result.tools).toEqual(TOOLS.slice(0, 1));
+  });
+});
+
+describe('cache', () => {
+  test('a hint per method; the ones left out keep NO_CACHE', async () => {
+    const { ask } = appOf({
+      cache: {
+        'resources/read': { ttlMs: 86_400_000, cacheScope: 'public' },
+        'tools/list': { ttlMs: 60_000, cacheScope: 'private' }
+      }
+    });
+    const hint = async (method: string, params?: Record<string, unknown>) => {
+      const { ttlMs, cacheScope } = (await ask(method, params)).body.result;
+      return { ttlMs, cacheScope };
+    };
+    expect(await hint('resources/read', { uri: views.uri('note') })).toEqual({
+      ttlMs: 86_400_000,
+      cacheScope: 'public'
+    });
+    expect(await hint('tools/list')).toEqual({ ttlMs: 60_000, cacheScope: 'private' });
+    expect(await hint('server/discover')).toEqual(NO_CACHE);
+    expect(await hint('resources/list')).toEqual(NO_CACHE);
+    expect(await hint('resources/templates/list')).toEqual(NO_CACHE);
+  });
+
+  test('tools/call is not cacheable and carries no hint', async () => {
+    const { ask } = appOf({ cache: { 'tools/list': { ttlMs: 5, cacheScope: 'public' } } });
+    const { result } = (await ask('tools/call', { name: 'domain' })).body;
+    expect('ttlMs' in result || 'cacheScope' in result).toBe(false);
+  });
+
+  test.each([-1, 1.5, Number.NaN, '60' as unknown as number])(
+    'a ttlMs of %s is a loud stop at creation',
+    (ttlMs) => {
+      expect(() => appOf({ cache: { 'tools/list': { ttlMs, cacheScope: 'private' } } })).toThrow(
+        'cache["tools/list"].ttlMs must be an integer ≥ 0'
+      );
+    }
+  );
+
+  test('a cacheScope other than public or private is a loud stop at creation', () => {
+    const cacheScope = 'shared' as 'public';
+    expect(() => appOf({ cache: { 'tools/list': { ttlMs: 5, cacheScope } } })).toThrow(
+      `cache["tools/list"].cacheScope must be 'public' or 'private', not "shared"`
+    );
+  });
+
+  test('a method that is not cacheable is a loud stop at creation', () => {
+    const cache = { 'tools/call': NO_CACHE } as DispatcherOptions<Caller>['cache'];
+    expect(() => appOf({ cache })).toThrow('cache["tools/call"]: not a cacheable method');
   });
 });
 
 describe('tools/call', () => {
-  test('hands name, arguments and caller to call() and answers its result', async () => {
+  test('hands name, arguments and caller to call() and answers its result, stamped', async () => {
     const { ask, calls } = appOf();
-    const result = resultOf(
-      await ask(request(3, 'tools/call', { name: 'show_note', arguments: { id: 'n1' } }))
-    );
-    expect(result).toEqual({ content: text('Note n1'), structuredContent: { id: 'n1' } });
+    const { status, body } = await ask('tools/call', {
+      name: 'show_note',
+      arguments: { id: 'n1' }
+    });
+    expect(status).toBe(200);
+    expect(body.result).toEqual({
+      ...STAMP,
+      content: text('Note n1'),
+      structuredContent: { id: 'n1' }
+    });
     expect(calls).toEqual([{ name: 'show_note', args: { id: 'n1' }, caller: CALLER }]);
+  });
+
+  test('the result’s own _meta stays, the identity joins it', async () => {
+    const { ask } = appOf({ call: () => ({ result: { content: [], _meta: { mine: 1 } } }) });
+    expect((await ask('tools/call', { name: 'x' })).body.result._meta).toEqual({
+      mine: 1,
+      [SERVER_INFO_KEY]: INFO
+    });
+  });
+
+  test('an identity the result sets itself wins', async () => {
+    const own = { name: 'proxied', version: '9' };
+    const { ask } = appOf({
+      call: () => ({ result: { content: [], _meta: { [SERVER_INFO_KEY]: own } } })
+    });
+    expect((await ask('tools/call', { name: 'x' })).body.result._meta[SERVER_INFO_KEY]).toEqual(
+      own
+    );
   });
 
   test('arguments arrive as they came — undefined when absent', async () => {
     const { ask, calls } = appOf();
-    await ask(request(3, 'tools/call', { name: 'other' }));
-    await ask(request(3, 'tools/call', { name: 'other', arguments: [1] }));
+    await ask('tools/call', { name: 'other' });
+    await ask('tools/call', { name: 'other', arguments: [1] });
     expect(calls.map((c) => c.args)).toEqual([undefined, [1]]);
   });
 
   test('a result with isError stays a result', async () => {
     const { ask } = appOf();
-    expect(resultOf(await ask(request(3, 'tools/call', { name: 'domain' })))).toEqual({
+    expect((await ask('tools/call', { name: 'domain' })).body.result).toEqual({
+      ...STAMP,
       content: text('No note n9.'),
       isError: true
     });
   });
 
-  test('a protocol error from call() is the error under the request’s id', async () => {
+  test('a protocol error from call() is the error under the request’s id, HTTP 200', async () => {
     const { ask } = appOf();
-    const answer = single(await ask(request(3, 'tools/call', { name: 'show_note' })));
-    expect(answer).toEqual({
+    const { status, body } = await ask('tools/call', { name: 'show_note' });
+    expect(status).toBe(200);
+    expect(body).toEqual({
       jsonrpc: '2.0',
-      id: 3,
+      id: 1,
       error: { code: INVALID_PARAMS, message: 'show_note needs a string id.' }
     });
   });
 
   test.each([
     ['no params', undefined],
-    ['params that are no object', [1]],
-    ['no name', { arguments: {} }],
-    ['a name that is no string', { name: 5 }]
+    ['no name', { arguments: {} }]
   ])('%s: -32602, and call() does not run', async (_label, params) => {
     const { ask, calls } = appOf();
-    expect(errorOf(await ask(request(3, 'tools/call', params)))).toEqual({
-      code: INVALID_PARAMS,
-      message: 'tools/call needs params.name.'
-    });
+    const { status, body } = await ask('tools/call', params);
+    expect(status).toBe(200);
+    expect(body.error).toEqual({ code: INVALID_PARAMS, message: 'tools/call needs params.name.' });
     expect(calls).toEqual([]);
   });
 
   test('a throw is -32603 with a general sentence — the error goes to the log only', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { ask } = appOf();
-    const answer = single(await ask(request(3, 'tools/call', { name: 'fail' })));
-    expect(answer).toEqual({
+    const { status, body } = await ask('tools/call', { name: 'fail' });
+    expect(status).toBe(200);
+    expect(body).toEqual({
       jsonrpc: '2.0',
-      id: 3,
+      id: 1,
       error: { code: INTERNAL_ERROR, message: 'tools/call fail failed on the server.' }
     });
-    expect(JSON.stringify(answer)).not.toContain(SECRET);
+    expect(JSON.stringify(body)).not.toContain(SECRET);
     expect(log).toHaveBeenCalledTimes(1);
     expect(String(log.mock.calls[0]?.[1])).toContain(SECRET);
+  });
+
+  test('a log that throws costs no answer', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {
+      throw new Error('printing failed');
+    });
+    const { ask } = appOf();
+    expect((await ask('tools/call', { name: 'fail' })).body.error.code).toBe(INTERNAL_ERROR);
   });
 
   test('an outcome that is neither result nor error is -32603, not a broken answer', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { ask } = appOf();
-    expect(errorOf(await ask(request(3, 'tools/call', { name: 'broken' }))).code).toBe(
-      INTERNAL_ERROR
-    );
+    expect((await ask('tools/call', { name: 'broken' })).body.error.code).toBe(INTERNAL_ERROR);
     expect(log).toHaveBeenCalledTimes(1);
   });
 
@@ -293,18 +368,29 @@ describe('tools/call', () => {
     async (_label, outcome) => {
       const log = vi.spyOn(console, 'error').mockImplementation(() => {});
       const { ask } = appOf({ call: () => outcome as unknown as Outcome });
-      const answer = single(await ask(request(3, 'tools/call', { name: 'db' })));
-      expect(answer).toEqual({
+      const { body } = await ask('tools/call', { name: 'db' });
+      expect(body).toEqual({
         jsonrpc: '2.0',
-        id: 3,
+        id: 1,
         error: { code: INTERNAL_ERROR, message: 'tools/call db failed on the server.' }
       });
-      expect(JSON.stringify(answer)).not.toContain(SECRET);
+      expect(JSON.stringify(body)).not.toContain(SECRET);
       expect(log).toHaveBeenCalledTimes(1);
       const logged = log.mock.calls[0]?.[1] as Error | undefined;
       expect(logged?.cause).toBe(outcome);
     }
   );
+
+  test('an error outcome keeps its data', async () => {
+    const { ask } = appOf({
+      call: () => ({ error: { code: INVALID_PARAMS, message: 'x', data: { field: 'id' } } })
+    });
+    expect((await ask('tools/call', { name: 'x' })).body.error).toEqual({
+      code: INVALID_PARAMS,
+      message: 'x',
+      data: { field: 'id' }
+    });
+  });
 
   test('a throwing tools() is -32603 as well', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -313,17 +399,408 @@ describe('tools/call', () => {
         throw new Error(SECRET);
       }
     });
-    const answer = await ask(request(2, 'tools/list'));
-    expect(errorOf(answer)).toEqual({
+    const { body } = await ask('tools/list');
+    expect(body.error).toEqual({
       code: INTERNAL_ERROR,
       message: 'tools/list failed on the server.'
     });
-    expect(JSON.stringify(answer)).not.toContain(SECRET);
+    expect(JSON.stringify(body)).not.toContain(SECRET);
+  });
+});
+
+describe('resources/* go to the catalog', () => {
+  test('list, templates and read answer what the catalog answers, stamped', async () => {
+    const { ask } = appOf();
+    for (const [method, params] of [
+      ['resources/list', undefined],
+      ['resources/templates/list', undefined],
+      ['resources/read', { uri: views.uri('note') }],
+      ['resources/read', { uri: 'ui://notes/gone' }],
+      ['resources/read', {}]
+    ] as const) {
+      const expected = views.handle(method, params);
+      if (expected === null) throw new Error(`The catalog does not answer ${method}.`);
+      const { status, body } = await ask(method, params);
+      expect(status, method).toBe(200);
+      expect(body, method).toEqual(
+        'error' in expected
+          ? { jsonrpc: '2.0', id: 1, error: expected.error }
+          : { jsonrpc: '2.0', id: 1, result: { ...CACHED, ...expected.result } }
+      );
+    }
+  });
+
+  test('an unknown URI is -32602 with the URI in data', async () => {
+    const { ask } = appOf();
+    expect((await ask('resources/read', { uri: 'ui://x/y' })).body.error).toEqual({
+      code: INVALID_PARAMS,
+      message: 'Resource not found: ui://x/y',
+      data: { uri: 'ui://x/y' }
+    });
+  });
+
+  test('a view whose html() throws is -32603, not a thrown handle', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const throwing = createViewCatalog({
+      server: 'notes',
+      views: { note: { title: 'Note', description: 'x' } },
+      html: () => {
+        throw new Error(SECRET);
+      }
+    });
+    const { ask } = appOf({ views: throwing });
+    const { body } = await ask('resources/list');
+    expect(body.error.code).toBe(INTERNAL_ERROR);
+    expect(JSON.stringify(body)).not.toContain(SECRET);
+  });
+
+  test('without views, resources/* do not exist: 404', async () => {
+    const { ask } = appOf({ views: undefined });
+    const { status, body } = await ask('resources/list');
+    expect(status).toBe(404);
+    expect(body.error.code).toBe(METHOD_NOT_FOUND);
+  });
+});
+
+describe('methods the revision does not have', () => {
+  test.each(['prompts/list', 'ping', 'initialize', 'logging/setLevel', 'resources/subscribe'])(
+    '%s: 404, -32601 under the id',
+    async (method) => {
+      const { ask } = appOf();
+      const { status, body } = await ask(method, {}, { id: 5 });
+      expect(status).toBe(404);
+      expect(body).toEqual({
+        jsonrpc: '2.0',
+        id: 5,
+        error: { code: METHOD_NOT_FOUND, message: `Method not found: ${method}` }
+      });
+    }
+  );
+});
+
+describe('the transport', () => {
+  test.each(['GET', 'DELETE', 'PUT'])('%s: 405, Allow: POST', async (method) => {
+    const { send } = appOf();
+    const { status, headers, body } = await send(new Request(URL_, { method }));
+    expect(status).toBe(405);
+    expect(headers.get('allow')).toBe('POST');
+    expect('id' in body).toBe(false);
+  });
+
+  test('a body that is not JSON: 400, -32700 without id', async () => {
+    const { send } = appOf();
+    const { status, body } = await send(post('{kaputt'));
+    expect(status).toBe(400);
+    expect(body).toEqual({
+      jsonrpc: '2.0',
+      error: { code: PARSE_ERROR, message: 'The body is not JSON.' }
+    });
+  });
+
+  test('a batch: 400, -32600 without id, and nothing in it runs', async () => {
+    const { send, calls } = appOf();
+    const { status, body } = await send(
+      post([
+        { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'x', _meta: ENVELOPE } }
+      ])
+    );
+    expect(status).toBe(400);
+    expect(body.error.code).toBe(INVALID_REQUEST);
+    expect('id' in body).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  test.each([
+    ['a method that is no string', { jsonrpc: '2.0', id: 5, method: 5 }, 5],
+    ['no method', { jsonrpc: '2.0', id: 5 }, 5],
+    ['text', 'kaputt', undefined],
+    ['a number', 5, undefined],
+    ['null', null, undefined],
+    ['no method and id null', { jsonrpc: '2.0', id: null }, undefined]
+  ])('not a request (%s): 400, -32600, the id where usable', async (_label, message, id) => {
+    const { send } = appOf();
+    const { status, body } = await send(post(JSON.stringify(message)));
+    expect(status).toBe(400);
+    expect(body.error.code).toBe(INVALID_REQUEST);
+    expect(body.id).toBe(id);
+  });
+
+  test('a notification: 202 without body, and a tools/call without id does not run', async () => {
+    const { send, calls } = appOf();
+    for (const method of ['notifications/cancelled', 'tools/call', 'no/such/method']) {
+      const answer = await send(
+        post({ jsonrpc: '2.0', method, params: { name: 'show_note', _meta: ENVELOPE } })
+      );
+      expect(answer.status, method).toBe(202);
+      expect(answer.body, method).toBeNull();
+    }
+    expect(calls).toEqual([]);
+  });
+
+  test('a body too large to read (adapter-node’s 413): 413, the limit and a way out', async () => {
+    const { dispatcher } = appOf();
+    const tooLarge = Object.assign(
+      new Error('Content-length of 600992 exceeds limit of 524288 bytes.'),
+      { status: 413 }
+    );
+    const request = post('{}');
+    vi.spyOn(request, 'text').mockRejectedValue(tooLarge);
+    const { status, body } = await read(await dispatcher.handle(request, CALLER));
+    expect(status).toBe(413);
+    expect('id' in body).toBe(false);
+    expect(body.error.code).toBe(INVALID_REQUEST);
+    expect(body.error.message).toContain(
+      '(Content-length of 600992 exceeds limit of 524288 bytes)'
+    );
+    expect(body.error.message).toContain('Send it shorter');
+    expect(body.error.message).not.toContain('JSON');
+  });
+
+  test('any other failure to read the body is thrown, not answered', async () => {
+    const { dispatcher } = appOf();
+    const request = post('{}');
+    vi.spyOn(request, 'text').mockRejectedValue(new Error('aborted'));
+    await expect(dispatcher.handle(request, CALLER)).rejects.toThrow('aborted');
+  });
+});
+
+describe('the id', () => {
+  test.each([
+    ['text', 'p'],
+    ['empty text', ''],
+    ['0', 0],
+    ['a negative integer', -7],
+    ['2^53 − 1', Number.MAX_SAFE_INTEGER],
+    ['−(2^53 − 1)', Number.MIN_SAFE_INTEGER]
+  ])('%s: the answer stands under it', async (_label, id) => {
+    const { ask } = appOf();
+    expect((await ask('tools/list', undefined, { id })).body.id).toBe(id);
+  });
+
+  test.each(UNUSABLE_IDS)('%s: 400, -32600 without id', async (_label, id) => {
+    const { ask } = appOf();
+    const { status, body } = await ask('tools/list', undefined, { id });
+    expect(status).toBe(400);
+    expect(body).toEqual({
+      jsonrpc: '2.0',
+      error: {
+        code: INVALID_REQUEST,
+        message: 'The id must be a string or an integer within ±(2^53 − 1).'
+      }
+    });
+  });
+
+  test('a tools/call under an unusable id does not run', async () => {
+    const { ask, calls } = appOf();
+    await ask('tools/call', { name: 'show_note', arguments: { id: 'n1' } }, { id: null });
+    expect(calls).toEqual([]);
+  });
+});
+
+describe('the version and the envelope', () => {
+  test('a client of 2025 (initialize, no envelope): 400, -32022 naming the revision', async () => {
+    const { ask } = appOf();
+    const { status, body } = await ask(
+      'initialize',
+      { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'c', version: '1' } },
+      { meta: null, headers: { 'mcp-protocol-version': undefined, 'mcp-method': undefined } }
+    );
+    expect(status).toBe(400);
+    expect(body.id).toBe(1);
+    expect(body.error.code).toBe(UNSUPPORTED_PROTOCOL_VERSION);
+    expect(body.error.data).toEqual({ supported: [MCP_PROTOCOL_VERSION], requested: '2025-11-25' });
+    expect(body.error.message).toContain(MCP_PROTOCOL_VERSION);
+  });
+
+  test('a request of 2025 after the handshake (its header, no envelope): -32022', async () => {
+    const { ask } = appOf();
+    const { status, body } = await ask('tools/list', undefined, {
+      meta: null,
+      headers: { 'mcp-protocol-version': '2025-06-18' }
+    });
+    expect(status).toBe(400);
+    expect(body.error.code).toBe(UNSUPPORTED_PROTOCOL_VERSION);
+    expect(body.error.data).toEqual({ supported: [MCP_PROTOCOL_VERSION], requested: '2025-06-18' });
+  });
+
+  test('no envelope, but the 2026 header: 400, -32602 naming the key', async () => {
+    const { ask } = appOf();
+    const { status, body } = await ask('tools/list', undefined, { meta: null });
+    expect(status).toBe(400);
+    expect(body.error.code).toBe(INVALID_PARAMS);
+    expect(body.error.message).toContain(PROTOCOL_VERSION_KEY);
+  });
+
+  test('an unknown revision in the envelope and the header: 400, -32022', async () => {
+    const { ask } = appOf();
+    const { status, body } = await ask('tools/list', undefined, {
+      meta: { ...ENVELOPE, [PROTOCOL_VERSION_KEY]: '2099-01-01' },
+      headers: { 'mcp-protocol-version': '2099-01-01' }
+    });
+    expect(status).toBe(400);
+    expect(body.error.data).toEqual({ supported: [MCP_PROTOCOL_VERSION], requested: '2099-01-01' });
+  });
+
+  test('a version that is no string: 400, -32602', async () => {
+    const { ask } = appOf();
+    const { status, body } = await ask('tools/list', undefined, {
+      meta: { ...ENVELOPE, [PROTOCOL_VERSION_KEY]: 20260728 }
+    });
+    expect(status).toBe(400);
+    expect(body.error.code).toBe(INVALID_PARAMS);
+  });
+
+  test.each([undefined, 'all', ['x']])(
+    'clientCapabilities of %j: 400, -32602 naming the key',
+    async (capabilities) => {
+      const { ask } = appOf();
+      const { status, body } = await ask('tools/list', undefined, {
+        meta: {
+          [PROTOCOL_VERSION_KEY]: MCP_PROTOCOL_VERSION,
+          [CLIENT_CAPABILITIES_KEY]: capabilities
+        }
+      });
+      expect(status).toBe(400);
+      expect(body.error.code).toBe(INVALID_PARAMS);
+      expect(body.error.message).toContain(CLIENT_CAPABILITIES_KEY);
+    }
+  );
+
+  test('clientInfo is optional; other keys in _meta pass', async () => {
+    const { ask } = appOf();
+    const { status } = await ask('tools/list', undefined, { meta: { ...ENVELOPE, mine: true } });
+    expect(status).toBe(200);
+  });
+});
+
+describe('the standard headers', () => {
+  const rejected = async (
+    method: string,
+    params: Record<string, unknown> | undefined,
+    headers: Record<string, string | undefined>
+  ) => {
+    const { ask, calls } = appOf();
+    const { status, body } = await ask(method, params, { headers });
+    expect(calls).toEqual([]);
+    return { status, code: body.error?.code };
+  };
+  const MISMATCH = { status: 400, code: HEADER_MISMATCH };
+
+  test('MCP-Protocol-Version missing, or another than the envelope’s: -32020', async () => {
+    expect(await rejected('tools/list', undefined, { 'mcp-protocol-version': undefined })).toEqual(
+      MISMATCH
+    );
+    expect(
+      await rejected('tools/list', undefined, { 'mcp-protocol-version': '2025-11-25' })
+    ).toEqual(MISMATCH);
+  });
+
+  test('a disagreement outranks an unknown version: -32020, not -32022', async () => {
+    const { ask } = appOf();
+    const { body } = await ask('tools/list', undefined, {
+      meta: { ...ENVELOPE, [PROTOCOL_VERSION_KEY]: '2025-11-25' },
+      headers: { 'mcp-protocol-version': MCP_PROTOCOL_VERSION }
+    });
+    expect(body.error.code).toBe(HEADER_MISMATCH);
+  });
+
+  test('Mcp-Method missing, another, or in another case: -32020', async () => {
+    for (const value of [undefined, 'tools/list', 'TOOLS/CALL']) {
+      expect(
+        await rejected('tools/call', { name: 'show_note' }, { 'mcp-method': value }),
+        String(value)
+      ).toEqual(MISMATCH);
+    }
+  });
+
+  test('Mcp-Name missing or another for tools/call and resources/read: -32020', async () => {
+    expect(await rejected('tools/call', { name: 'show_note' }, { 'mcp-name': undefined })).toEqual(
+      MISMATCH
+    );
+    expect(await rejected('tools/call', { name: 'show_note' }, { 'mcp-name': 'fail' })).toEqual(
+      MISMATCH
+    );
+    expect(
+      await rejected('resources/read', { uri: views.uri('note') }, { 'mcp-name': 'ui://notes/x' })
+    ).toEqual(MISMATCH);
+  });
+
+  test('a name that is no text is no name a header mirrors: the method answers, -32602 in-band', async () => {
+    for (const [method, params] of [
+      ['tools/call', { name: 5 }],
+      ['resources/read', { uri: 5 }]
+    ] as const) {
+      const { ask } = appOf();
+      const { status, body } = await ask(method, params);
+      expect(status, method).toBe(200);
+      expect(body.error.code, method).toBe(INVALID_PARAMS);
+    }
+  });
+
+  test('an own key only: a method named constructor has no name to mirror, and is 404', async () => {
+    const { ask } = appOf();
+    const { status } = await ask('constructor', {}, { headers: { 'mcp-name': 'x' } });
+    expect(status).toBe(404);
+  });
+
+  test('the sentinel is lowercase and canonical: an uppercase frame is literal, unpadded is no base64', async () => {
+    // `size` needs padding (c2l6ZQ==), so the unpadded form differs from the canonical one.
+    expect(btoa('size')).toMatch(/==$/);
+    for (const value of [
+      `=?BASE64?${btoa('size')}?=`,
+      `=?base64?${btoa('size').replace(/=+$/, '')}?=`
+    ]) {
+      expect(await rejected('tools/call', { name: 'size' }, { 'mcp-name': value }), value).toEqual(
+        MISMATCH
+      );
+    }
+  });
+
+  test('a sentinel that is no base64 or no UTF-8: -32020', async () => {
+    for (const value of ['=?base64?!!!?=', `=?base64?${btoa('\xff\xfe')}?=`]) {
+      expect(await rejected('tools/call', { name: 'show_note' }, { 'mcp-name': value })).toEqual(
+        MISMATCH
+      );
+    }
+  });
+
+  test('header names in any case, values with whitespace around, a name as sentinel', async () => {
+    const { ask, calls } = appOf();
+    const { status } = await ask(
+      'tools/call',
+      { name: 'show_note', arguments: { id: 'n1' } },
+      {
+        headers: {
+          'mcp-protocol-version': undefined,
+          'mcp-method': undefined,
+          'mcp-name': undefined,
+          'MCP-PROTOCOL-VERSION': ` ${MCP_PROTOCOL_VERSION} `,
+          'Mcp-Method': ' tools/call',
+          'MCP-NAME': `=?base64?${btoa('show_note')}?=`
+        }
+      }
+    );
+    expect(status).toBe(200);
+    expect(calls).toHaveLength(1);
+  });
+
+  test('a name outside printable ASCII travels as sentinel and is matched decoded', async () => {
+    expect(encodeHeaderValue('größe')).toMatch(/^=\?base64\?.+\?=$/);
+    const { ask, calls } = appOf();
+    const { status } = await ask('tools/call', { name: 'größe' });
+    expect(status).toBe(200);
+    expect(calls.map((c) => c.name)).toEqual(['größe']);
+  });
+
+  test('a tools/call without name and without Mcp-Name reaches the method: -32602 in-band', async () => {
+    const { ask } = appOf();
+    const { status, body } = await ask('tools/call', {});
+    expect(status).toBe(200);
+    expect(body.error.code).toBe(INVALID_PARAMS);
   });
 });
 
 describe('the options', () => {
-  const INFO = { name: 'notes', version: '1.0.0' };
   const call = (): Outcome => ({ result: {} });
 
   test('tools and call run as methods of the options, so `this` holds', async () => {
@@ -336,27 +813,32 @@ describe('the options', () => {
         return { result: { content: text(`${this.serverInfo.name}/${name}/${caller.userId}`) } };
       }
     });
-    expect(resultOf(await dispatcher.dispatch(request(1, 'tools/list'), CALLER))).toEqual({
-      tools: [{ name: 'notes', inputSchema: { type: 'object' } }]
-    });
-    expect(
-      resultOf(await dispatcher.dispatch(request(2, 'tools/call', { name: 'x' }), CALLER))
-    ).toEqual({ content: text('notes/x/u1') });
+    const list = post(
+      { jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: ENVELOPE } },
+      requestHeaders('tools/list', {})
+    );
+    expect((await read(await dispatcher.handle(list, CALLER))).body.result.tools).toEqual([
+      { name: 'notes', inputSchema: { type: 'object' } }
+    ]);
+    const params = { name: 'x', _meta: ENVELOPE };
+    const called = post(
+      { jsonrpc: '2.0', id: 2, method: 'tools/call', params },
+      requestHeaders('tools/call', params)
+    );
+    expect((await read(await dispatcher.handle(called, CALLER))).body.result.content).toEqual(
+      text('notes/x/u1')
+    );
   });
 
-  test('without a context, dispatch takes the payload alone', async () => {
+  test('without a context, handle takes the request alone', async () => {
     const dispatcher = createDispatcher({ serverInfo: INFO, tools: () => [], call });
-    expect(single(await dispatcher.dispatch(request(1, 'ping')))).toEqual({
-      jsonrpc: '2.0',
-      id: 1,
-      result: {}
-    });
+    expect((await dispatcher.handle(new Request(URL_))).status).toBe(405);
   });
 
-  test('with a context, dispatch needs it', async () => {
+  test('with a context, handle needs it', async () => {
     const dispatcher = createDispatcher({ serverInfo: INFO, tools: (_: Caller) => [], call });
     // @ts-expect-error — the context is missing
-    expect(await dispatcher.dispatch(request(1, 'ping'))).not.toBeNull();
+    expect((await dispatcher.handle(new Request(URL_))).status).toBe(405);
   });
 
   test('a tool needs a string name and an inputSchema — the compiler says so', () => {
@@ -389,338 +871,56 @@ describe('the options', () => {
   });
 });
 
-describe('resources/* go to the catalog', () => {
-  test('list, templates and read answer what the catalog answers', async () => {
-    const { ask } = appOf();
-    for (const [method, params] of [
-      ['resources/list', undefined],
-      ['resources/templates/list', undefined],
-      ['resources/read', { uri: views.uri('note') }],
-      ['resources/read', { uri: 'ui://notes/gone' }],
-      ['resources/read', {}]
-    ] as const) {
-      const expected = views.handle(method, params);
-      if (expected === null) throw new Error(`The catalog does not answer ${method}.`);
-      const answer = single(await ask(request(4, method, params)));
-      expect(answer, method).toEqual(
-        'error' in expected
-          ? { jsonrpc: '2.0', id: 4, error: expected.error }
-          : { jsonrpc: '2.0', id: 4, result: expected.result }
-      );
-    }
-    expect(errorOf(await ask(request(4, 'resources/read', { uri: 'ui://x/y' }))).code).toBe(
-      RESOURCE_NOT_FOUND
-    );
-  });
-
-  test('a view whose html() throws is -32603, not a thrown dispatch', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const throwing = createViewCatalog({
-      server: 'notes',
-      views: { note: { title: 'Note', description: 'x' } },
-      html: () => {
-        throw new Error(SECRET);
-      }
-    });
-    const { ask } = appOf({ views: throwing });
-    const answer = await ask(request(4, 'resources/list'));
-    expect(errorOf(answer).code).toBe(INTERNAL_ERROR);
-    expect(JSON.stringify(answer)).not.toContain(SECRET);
-  });
-
-  test('without views, resources/* do not exist', async () => {
-    const { ask } = appOf({ views: undefined });
-    expect(errorOf(await ask(request(4, 'resources/list'))).code).toBe(METHOD_NOT_FOUND);
-  });
-});
-
-describe('methods and messages', () => {
-  test('an unknown method is -32601 under the id', async () => {
-    const { ask } = appOf();
-    expect(single(await ask(request(5, 'prompts/list')))).toEqual({
-      jsonrpc: '2.0',
-      id: 5,
-      error: { code: METHOD_NOT_FOUND, message: 'Method not found: prompts/list' }
-    });
-  });
-
-  test.each([
-    ['a method that is no string', { jsonrpc: '2.0', id: 5, method: 5 }],
-    ['no method', { jsonrpc: '2.0', id: 5 }]
-  ])('%s, with a usable id: -32600 under that id', async (_label, message) => {
-    const { ask } = appOf();
-    const answer = single(await ask(message));
-    expect(answer.id).toBe(5);
-    expect(errorOf(answer).code).toBe(INVALID_REQUEST);
-  });
-
-  test('a notification gets no answer', async () => {
-    const { ask } = appOf();
-    expect(await ask(notification('notifications/initialized'))).toBeNull();
-    expect(await ask(notification('no/such/method'))).toBeNull();
-  });
-
-  test('a tools/call without id does not run', async () => {
-    const { ask, calls } = appOf();
-    expect(await ask(notification('tools/call', { name: 'show_note' }))).toBeNull();
-    expect(calls).toEqual([]);
-  });
-});
-
-describe('the id', () => {
-  test.each([
-    ['text', 'p'],
-    ['empty text', ''],
-    ['0', 0],
-    ['a negative integer', -7],
-    ['2^53 − 1', Number.MAX_SAFE_INTEGER],
-    ['−(2^53 − 1)', Number.MIN_SAFE_INTEGER]
-  ])('%s: the answer stands under it', async (_label, id) => {
-    const { ask } = appOf();
-    expect(single(await ask(request(id, 'ping')))).toEqual({ jsonrpc: '2.0', id, result: {} });
-  });
-
-  test.each(UNUSABLE_IDS)('%s: -32600 without id', async (_label, id) => {
-    const { ask } = appOf();
-    const answer = single(await ask(request(id, 'ping')));
-    expect(answer).toEqual({
-      jsonrpc: '2.0',
-      error: {
-        code: INVALID_REQUEST,
-        message: 'The id must be a string or an integer within ±(2^53 − 1).'
-      }
-    });
-    expect('id' in answer).toBe(false);
-  });
-
-  test('a tools/call under an unusable id does not run', async () => {
-    const { ask, calls } = appOf();
-    await ask(request(null, 'tools/call', { name: 'show_note', arguments: { id: 'n1' } }));
-    expect(calls).toEqual([]);
-  });
-
-  test.each([
-    ['text', 'kaputt'],
-    ['a number', 5],
-    ['null', null],
-    ['no method and no id', { jsonrpc: '2.0' }],
-    ['no method and id null', { jsonrpc: '2.0', id: null }]
-  ])('not a request (%s): -32600 without id', async (_label, message) => {
-    const { ask } = appOf();
-    const answer = single(await ask(message));
-    expect(errorOf(answer).code).toBe(INVALID_REQUEST);
-    expect('id' in answer).toBe(false);
-  });
-});
-
-describe('batch', () => {
-  test('answers every request in order, leaves out notifications', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { ask } = appOf();
-    const answers = (await ask([
-      request(1, 'ping'),
-      notification('notifications/initialized'),
-      request('b', 'tools/list'),
-      request(null, 'ping'),
-      7,
-      request(9, 'tools/call', { name: 'fail' }),
-      request(10, 'prompts/list')
-    ])) as JsonRpcResponse[];
-    expect(answers.map((answer) => ('id' in answer ? answer.id : '—'))).toEqual([
-      1,
-      'b',
-      '—',
-      '—',
-      9,
-      10
-    ]);
-    expect(answers.map((answer) => ('error' in answer ? answer.error.code : 'result'))).toEqual([
-      'result',
-      'result',
-      INVALID_REQUEST,
-      INVALID_REQUEST,
-      INTERNAL_ERROR,
-      METHOD_NOT_FOUND
-    ]);
-  });
-
-  test('a log that throws costs no answer of the batch', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {
-      throw new Error('printing failed');
-    });
-    const { ask } = appOf();
-    const answers = (await ask([
-      request(1, 'tools/call', { name: 'fail' }),
-      request(2, 'ping')
-    ])) as JsonRpcResponse[];
-    expect(answers.map((answer) => ('error' in answer ? answer.error.code : 'result'))).toEqual([
-      INTERNAL_ERROR,
-      'result'
-    ]);
-  });
-
-  test('only notifications: no answer', async () => {
-    const { ask } = appOf();
-    expect(await ask([notification('notifications/initialized')])).toBeNull();
-  });
-
-  test('empty: -32600 without id, as one answer', async () => {
-    const { ask } = appOf();
-    const answer = single(await ask([]));
-    expect(errorOf(answer)).toEqual({ code: INVALID_REQUEST, message: 'The batch is empty.' });
-    expect('id' in answer).toBe(false);
-  });
-
-  test('a batch inside a batch is not a request: -32600 without id', async () => {
-    const { ask } = appOf();
-    const answers = (await ask([[request(1, 'ping')]])) as JsonRpcResponse[];
-    expect(answers).toHaveLength(1);
-    const [inner] = answers;
-    expect(inner && 'error' in inner && inner.error.code).toBe(INVALID_REQUEST);
-    expect(inner && 'id' in inner).toBe(false);
-  });
-
-  test(`MAX_BATCH (${MAX_BATCH}) messages pass, one more is -32600 without id`, async () => {
-    const { ask } = appOf();
-    const pings = (n: number) => Array.from({ length: n }, (_, i) => request(i + 1, 'ping'));
-    expect(await ask(pings(MAX_BATCH))).toHaveLength(MAX_BATCH);
-    const over = single(await ask(pings(MAX_BATCH + 1)));
-    expect(errorOf(over).code).toBe(INVALID_REQUEST);
-    expect('id' in over).toBe(false);
-  });
-
-  test('one call after another, never two at once', async () => {
-    let running = 0;
-    let most = 0;
-    const { ask } = appOf({
-      async call() {
-        running += 1;
-        most = Math.max(most, running);
-        await new Promise((resolve) => setTimeout(resolve, 2));
-        running -= 1;
-        return { result: { content: text('done') } };
-      }
-    });
-    const answers = await ask([1, 2, 3].map((id) => request(id, 'tools/call', { name: 'slow' })));
-    expect(answers).toHaveLength(3);
-    expect(most).toBe(1);
-  });
-});
-
-describe('bodies the dispatcher never sees', () => {
-  test('parseErrorResponse: -32700 without id', () => {
-    const answer = parseErrorResponse();
-    expect(answer).toEqual({
-      jsonrpc: '2.0',
-      error: { code: PARSE_ERROR, message: 'The body is not JSON.' }
-    });
-    expect('id' in answer).toBe(false);
-  });
-
-  test('bodyTooLargeResponse: the limit and a way out, not "not JSON"', () => {
-    const answer = bodyTooLargeResponse('Content-length of 600992 exceeds limit of 524288 bytes.');
-    expect('id' in answer).toBe(false);
-    expect(answer.error.code).toBe(INVALID_REQUEST);
-    expect(answer.error.message).toContain(
-      '(Content-length of 600992 exceeds limit of 524288 bytes)'
-    );
-    expect(answer.error.message).toContain('Send it shorter');
-    expect(answer.error.message).not.toContain('JSON');
-    expect(bodyTooLargeResponse().error.message).toMatch(
-      /^The request is too large for this server and was not read\. /
-    );
-  });
-});
-
 /**
- * Every answer of the dispatcher as a host checks it. An answer with a
- * `result` is checked against the result schema of its request's method.
+ * The SDK's client, pinned to 2026-07-28 — no fallback to `initialize` — on a
+ * `fetch` that goes straight into `handle`. It validates every result
+ * against its schemas for the revision; the control below shows it does.
  */
-describe('every answer passes the SDK’s schemas (wireProblem)', () => {
-  const CORPUS: [label: string, payload: unknown][] = [
-    ['initialize', request(1, 'initialize', { protocolVersion: '2025-06-18' })],
-    ['initialize without params', request(1, 'initialize')],
-    ['ping', request('p', 'ping')],
-    ['ping under 0', request(0, 'ping')],
-    ['ping under −7', request(-7, 'ping')],
-    ['tools/list', request(2, 'tools/list')],
-    [
-      'tools/call with a result',
-      request(3, 'tools/call', { name: 'show_note', arguments: { id: 'n1' } })
-    ],
-    ['tools/call with isError', request(3, 'tools/call', { name: 'domain' })],
-    ['tools/call with a protocol error', request(3, 'tools/call', { name: 'show_note' })],
-    ['tools/call that throws', request(3, 'tools/call', { name: 'fail' })],
-    ['tools/call without name', request(3, 'tools/call', {})],
-    ['tools/call of an unknown tool', request(3, 'tools/call', { name: 'nope' })],
-    ['resources/list', request(4, 'resources/list')],
-    ['resources/templates/list', request(4, 'resources/templates/list')],
-    ['resources/read', request(4, 'resources/read', { uri: views.uri('note') })],
-    ['resources/read of an unknown URI', request(4, 'resources/read', { uri: 'ui://x/y' })],
-    ['an unknown method', request(5, 'prompts/list')],
-    ['no method, with id', { jsonrpc: '2.0', id: 6 }],
-    ['no method, without id', { jsonrpc: '2.0' }],
-    ['not an object', 'kaputt'],
-    ...UNUSABLE_IDS.map(([label, id]): [string, unknown] => [`id ${label}`, request(id, 'ping')]),
-    ['an empty batch', []],
-    ['a batch over MAX_BATCH', Array.from({ length: MAX_BATCH + 1 }, (_, i) => request(i, 'ping'))],
-    [
-      'a mixed batch',
-      [request(1, 'ping'), request(null, 'ping'), 7, request(2, 'tools/list'), request(3, 'nope')]
-    ]
-  ];
-
-  /** The method each answerable request asked for, by its id. */
-  function methodsOf(payload: unknown): Map<unknown, string> {
-    const methods = new Map<unknown, string>();
-    for (const entry of Array.isArray(payload) ? payload : [payload]) {
-      const { id, method } = (entry ?? {}) as { id?: unknown; method?: unknown };
-      if (typeof method === 'string') methods.set(id, method);
-    }
-    return methods;
+describe('the SDK’s 2026-07-28 client speaks to it', () => {
+  async function connect(rewrite?: (body: Record<string, unknown>) => void) {
+    const { dispatcher } = appOf();
+    const fetch = async (input: string | URL | Request, init?: RequestInit) => {
+      const response = await dispatcher.handle(new Request(input, init), CALLER);
+      if (!rewrite || response.status !== 200) return response;
+      const body = await response.json();
+      rewrite(body);
+      return Response.json(body, { status: response.status });
+    };
+    const client = new Client(
+      { name: 'sdk-client', version: '0.0.0' },
+      { versionNegotiation: { mode: { pin: MCP_PROTOCOL_VERSION } } }
+    );
+    await client.connect(new StreamableHTTPClientTransport(new URL(URL_), { fetch }));
+    return client;
   }
 
-  test.each(CORPUS)('%s', async (_label, payload) => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { ask } = appOf();
-    const answer = await ask(payload);
-    if (answer === null) throw new Error('No answer to check.');
-    const methods = methodsOf(payload);
-    for (const one of Array.isArray(answer) ? answer : [answer]) {
-      const answers = 'result' in one ? methods.get(one.id) : undefined;
-      expect(wireProblem(one, answers), JSON.stringify(one)).toBeNull();
-    }
+  test('discover, tools, a call, the views, and an unknown URI as -32602', async () => {
+    const client = await connect();
+    expect(client.getServerVersion()).toEqual(INFO);
+    expect(client.getInstructions()).toBe('Notes of one person.');
+    const { tools } = await client.listTools();
+    expect(tools.map((tool) => tool.name)).toEqual(['show_note', 'fail']);
+    const called = await client.callTool({ name: 'show_note', arguments: { id: 'n1' } });
+    expect(called.structuredContent).toEqual({ id: 'n1' });
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toEqual([views.uri('note')]);
+    const { contents } = await client.readResource({ uri: views.uri('note') });
+    expect(contents[0]).toMatchObject({ text: NOTE_HTML });
+    await expect(client.readResource({ uri: 'ui://notes/gone' })).rejects.toMatchObject({
+      code: INVALID_PARAMS
+    });
+    await client.close();
   });
 
-  test('parseErrorResponse and bodyTooLargeResponse', () => {
-    expect(wireProblem(parseErrorResponse())).toBeNull();
-    expect(
-      wireProblem(bodyTooLargeResponse('Content-length of 9 exceeds limit of 8 bytes.'))
-    ).toBeNull();
-  });
-
-  /** The oracle sees what the id rules prevent — or the tests above would pass for nothing. */
-  test('positive control: the schemas reject a null id and the ids the dispatcher refuses', () => {
-    const error = { code: INVALID_REQUEST, message: 'x' };
-    expect(wireProblem({ jsonrpc: '2.0', id: null, error })).not.toBeNull();
-    for (const [, id] of UNUSABLE_IDS) {
-      expect(
-        wireProblem({ jsonrpc: '2.0', id, result: {} }, 'ping'),
-        JSON.stringify(id)
-      ).not.toBeNull();
-    }
-    // The sentence `JsonRpcSuccess` cites: beyond ±(2^53 − 1) the SDK says "Too big".
-    expect(
-      wireProblem({ jsonrpc: '2.0', id: Number.MAX_SAFE_INTEGER + 1, result: {} }, 'ping')?.message
-    ).toContain('Too big');
-  });
-
-  test('the sentence `Tool` cites: one tool without inputSchema fails the whole tools/list', () => {
-    const ok = { name: 'ok', inputSchema: { type: 'object' } };
-    const list = (tools: unknown[]) => ({ jsonrpc: '2.0', id: 1, result: { tools } });
-    expect(wireProblem(list([ok]), 'tools/list')).toBeNull();
-    expect(wireProblem(list([ok, { name: 'no_schema' }]), 'tools/list')?.message).toContain(
-      'inputSchema'
-    );
+  test('positive control: without ttlMs and cacheScope it rejects tools/list', async () => {
+    const client = await connect((body) => {
+      const result = body.result as Record<string, unknown> | undefined;
+      if (result && 'tools' in result) {
+        delete result.ttlMs;
+        delete result.cacheScope;
+      }
+    });
+    await expect(client.listTools()).rejects.toThrow();
+    await client.close();
   });
 });

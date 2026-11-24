@@ -88,6 +88,7 @@ and a link to that place, and in these reference docs the owning section says so
 
 - [packages/mcp-app/README.md](../packages/mcp-app/README.md) — `@urbicon-ui/mcp-app`: serving an MCP-App view — the JSON-RPC dispatcher, the `ui://` view catalog, the view's bridge to its host, the wire check against the SDK schemas, a test host after the spec and the views' single-file build _(the package README)_
 - [MCP-APP-WALKTHROUGH.md](MCP-APP-WALKTHROUGH.md) — one example from a tool to a view a host shows: server, Svelte view, build, connecting, testing _(shipped in the mcp-app tarball)_
+- [MIGRATION-MCP-APP.md](MIGRATION-MCP-APP.md) — breaking changes to `@urbicon-ui/mcp-app`, newest first _(shipped in the mcp-app tarball)_
 
 ## Project tracking
 

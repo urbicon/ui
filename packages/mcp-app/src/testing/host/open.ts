@@ -30,6 +30,7 @@ import {
   type Frame,
   type Page
 } from 'playwright-core';
+import { clientRequest, SERVER_INFO_KEY } from '../../mcp.ts';
 import { buildCsp, type HostCsp } from './csp.ts';
 import { type HostPageConfig, hostPage, sandboxPage } from './pages.ts';
 
@@ -56,30 +57,60 @@ export interface JsonRpcAnswer {
   error?: { code: number; message: string; data?: unknown };
 }
 
-/** One JSON-RPC request to the app's server, the answer as it came — errors included. */
+/**
+ * One JSON-RPC request to the app's server as MCP 2026-07-28 sends it
+ * ({@link clientRequest}), introduced as the test host and declaring MCP Apps.
+ * The host page's requests go the same way (`/rpc`), so what the page asks
+ * and what the test asks reach the server alike.
+ */
+function postToServer(
+  endpoint: Endpoint,
+  id: string | number,
+  method: string,
+  params: unknown
+): Promise<Response> {
+  const given =
+    typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : undefined;
+  return fetch(
+    clientRequest(endpoint.url, method, given, {
+      id,
+      headers: endpoint.headers,
+      clientInfo: { name: 'mcp-app-test-host', version: '1.0.0' }
+    })
+  );
+}
+
+/**
+ * One request to the app's server ({@link postToServer}), the answer as it
+ * came — a JSON-RPC error included, whatever its HTTP status (2026-07-28
+ * sends a `-32022` with 400, a `-32601` with 404). Throws, naming the
+ * status, when the answer is no JSON-RPC: the route's 401, a proxy's 502, an
+ * event stream.
+ */
 export async function mcpRequest(
   endpoint: Endpoint,
   method: string,
   params?: unknown
 ): Promise<JsonRpcAnswer> {
-  const response = await fetch(endpoint.url, {
-    method: 'POST',
-    headers: {
-      ...endpoint.headers,
-      // Both, as the MCP transport asks of a client; the host reads JSON only,
-      // and an event stream in answer fails loudly at `response.json()`.
-      accept: 'application/json, text/event-stream',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method,
-      ...(params === undefined ? {} : { params })
-    })
-  });
-  if (!response.ok) throw new Error(`${method}: HTTP ${response.status} from ${endpoint.url}`);
-  return (await response.json()) as JsonRpcAnswer;
+  const response = await postToServer(endpoint, 1, method, params);
+  const text = await response.text();
+  let answer: unknown;
+  try {
+    answer = JSON.parse(text);
+  } catch {
+    answer = undefined;
+  }
+  const rpc =
+    typeof answer === 'object' &&
+    answer !== null &&
+    (answer as { jsonrpc?: unknown }).jsonrpc === '2.0' &&
+    ('result' in answer || 'error' in answer);
+  if (!rpc) {
+    throw new Error(
+      `${method}: HTTP ${response.status} from ${endpoint.url}, no JSON-RPC answer: ${text.slice(0, 200)}`
+    );
+  }
+  return answer as JsonRpcAnswer;
 }
 
 /** {@link mcpRequest}, its `result` — and a throw on an error answer. */
@@ -93,14 +124,15 @@ export async function mcpResult(
   return answer.result;
 }
 
-/** `serverInfo` of the server's `initialize` — what a view's `appInfo` is often measured against. */
+/**
+ * The server's identity, `_meta["io.modelcontextprotocol/serverInfo"]` of its
+ * `server/discover` — what a view's `appInfo` is often measured against.
+ */
 export async function serverInfo(endpoint: Endpoint): Promise<unknown> {
-  const result = (await mcpResult(endpoint, 'initialize', {
-    protocolVersion: '2025-06-18',
-    capabilities: {},
-    clientInfo: { name: 'mcp-app-test-host', version: '1.0.0' }
-  })) as { serverInfo?: unknown };
-  return result.serverInfo;
+  const result = (await mcpResult(endpoint, 'server/discover')) as {
+    _meta?: Record<string, unknown>;
+  };
+  return result._meta?.[SERVER_INFO_KEY];
 }
 
 /**
@@ -366,15 +398,17 @@ export async function openHost(options: OpenHostOptions): Promise<OpenHost> {
           return new Response('only the host page', { status: 403 });
         }
         rpcLog.forwarded++;
-        const response = await fetch(options.endpoint.url, {
-          method: 'POST',
-          headers: {
-            ...options.endpoint.headers,
-            accept: 'application/json, text/event-stream',
-            'content-type': 'application/json'
-          },
-          body: await request.text()
-        });
+        const message = (await request.json()) as {
+          id: string | number;
+          method: string;
+          params?: unknown;
+        };
+        const response = await postToServer(
+          options.endpoint,
+          message.id,
+          message.method,
+          message.params
+        );
         return new Response(await response.text(), {
           status: response.status,
           headers: { 'content-type': 'application/json' }
