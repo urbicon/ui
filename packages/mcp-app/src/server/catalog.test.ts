@@ -8,6 +8,8 @@
  */
 import * as apps from '@modelcontextprotocol/ext-apps/app-bridge';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { INVALID_PARAMS } from '../jsonrpc.ts';
+import { UI_EXTENSION } from '../mcp.ts';
 import { wireProblem } from '../testing/wire.ts';
 import {
   createViewCatalog,
@@ -15,7 +17,6 @@ import {
   type Outcome,
   plainOrigin,
   RESOURCE_MIME_TYPE,
-  RESOURCE_NOT_FOUND,
   VERSION_LENGTH,
   type ViewSpec
 } from './catalog.ts';
@@ -68,7 +69,7 @@ function resultOf(outcome: Outcome | null): Record<string, unknown> {
   return outcome.result;
 }
 
-function errorOf(outcome: Outcome | null): { code: number; message: string } {
+function errorOf(outcome: Outcome | null): { code: number; message: string; data?: unknown } {
   if (outcome === null || !('error' in outcome)) throw new Error('An error was expected.');
   return outcome.error;
 }
@@ -356,12 +357,13 @@ describe('which URI reads which view', () => {
     }
   });
 
-  test('read() — every URI without a view is -32002, naming the URI', () => {
+  test('read() — every URI without a view is -32602, naming the URI, in data too', () => {
     const catalog = catalogOf();
     for (const [group, uri] of POPULATION.filter(([, , view]) => view === undefined)) {
       const problem = errorOf(catalog.read(uri));
-      expect(problem.code, group).toBe(RESOURCE_NOT_FOUND);
+      expect(problem.code, group).toBe(INVALID_PARAMS);
       expect(problem.message, group).toContain(uri);
+      expect(problem.data, group).toEqual({ uri });
     }
   });
 });
@@ -384,8 +386,12 @@ describe('handle — the resources/* methods for a dispatcher', () => {
     }
   });
 
-  test('capabilities declare resources', () => {
-    expect({ tools: {}, ...catalog.capabilities }).toEqual({ tools: {}, resources: {} });
+  test('capabilities declare resources and the MCP Apps extension', () => {
+    expect({ tools: {}, ...catalog.capabilities }).toEqual({
+      tools: {},
+      resources: {},
+      extensions: { [UI_EXTENSION]: {} }
+    });
   });
 });
 

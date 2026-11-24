@@ -11,8 +11,7 @@ import {
   createDispatcher,
   createViewCatalog,
   INVALID_PARAMS,
-  type Outcome,
-  parseErrorResponse
+  type Outcome
 } from '@urbicon-ui/mcp-app/server';
 import { BASE_PLACEHOLDER, FIXTURE_INFO, FONTS_PATH, NOTES, type Note, VIEWS } from './shared.ts';
 
@@ -114,15 +113,8 @@ export function startFixtureServer(options: FixtureServerOptions): FixtureServer
     port: 0,
     async fetch(request): Promise<Response> {
       const url = new URL(request.url);
-      if (url.pathname === '/mcp' && request.method === 'POST') {
-        let payload: unknown;
-        try {
-          payload = await request.json();
-        } catch {
-          return Response.json(parseErrorResponse(), { status: 400 });
-        }
-        const answer = await dispatcher.dispatch(payload);
-        return answer === null ? new Response(null, { status: 202 }) : Response.json(answer);
+      if (url.pathname === '/mcp') {
+        return dispatcher.handle(request);
       }
       if (url.pathname.startsWith(FONTS_PATH)) {
         const name = url.pathname.slice(FONTS_PATH.length);

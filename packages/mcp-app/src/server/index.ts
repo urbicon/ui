@@ -7,13 +7,18 @@ export {
   PARSE_ERROR
 } from '../jsonrpc.ts';
 export {
+  HEADER_MISMATCH,
+  MCP_PROTOCOL_VERSION,
+  UI_EXTENSION,
+  UNSUPPORTED_PROTOCOL_VERSION
+} from '../mcp.ts';
+export {
   type AppToolMeta,
   createViewCatalog,
   LEGACY_RESOURCE_URI_KEY,
   type Outcome,
   plainOrigin,
   RESOURCE_MIME_TYPE,
-  RESOURCE_NOT_FOUND,
   VERSION_LENGTH,
   type ViewCatalog,
   type ViewCatalogOptions,
@@ -23,16 +28,15 @@ export {
   viewVersion
 } from './catalog.ts';
 export {
-  bodyTooLargeResponse,
+  type CacheableMethod,
+  type CacheHint,
   createDispatcher,
   type Dispatcher,
   type DispatcherOptions,
   type JsonRpcFailure,
   type JsonRpcResponse,
   type JsonRpcSuccess,
-  MAX_BATCH,
-  MCP_PROTOCOL_VERSIONS,
-  parseErrorResponse,
+  NO_CACHE,
   type ServerInfo,
   type Tool
 } from './dispatcher.ts';

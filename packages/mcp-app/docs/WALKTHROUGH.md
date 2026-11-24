@@ -25,7 +25,7 @@ then passes the call's arguments and result to the view. When someone clicks Pin
 asks the host to call `pin_note`, and the host forwards the call to your server.
 
 If you already have a server, it keeps its own JSON-RPC handling and takes three parts of
-the view catalog instead of the server below: `views.capabilities` in its `initialize`
+the view catalog instead of the server below: `views.capabilities` in its `server/discover`
 answer, `views.toolMeta(…)` as each tool's `_meta`, and `views.handle(method, params)` for
 the methods it does not handle itself, which answers `resources/*` and returns `null` for the
 rest ([the view catalog](../README.md#server-the-view-catalog)). The view and its build stay
@@ -90,8 +90,7 @@ import {
   createDispatcher,
   createViewCatalog,
   INVALID_PARAMS,
-  type Outcome,
-  parseErrorResponse
+  type Outcome
 } from '@urbicon-ui/mcp-app/server';
 import { APP_INFO, BASE_PLACEHOLDER, VIEWS } from './mcp-app/views';
 
@@ -172,16 +171,8 @@ const dispatcher = createDispatcher({
   call
 });
 
-export async function POST(request: Request): Promise<Response> {
-  let payload: unknown;
-  try {
-    payload = await request.json();
-  } catch {
-    return Response.json(parseErrorResponse(), { status: 400 });
-  }
-  const answer = await dispatcher.dispatch(payload);
-  // Only notifications: Streamable HTTP answers 202 without a body.
-  return answer === null ? new Response(null, { status: 202 }) : Response.json(answer);
+export function POST(request: Request): Promise<Response> {
+  return dispatcher.handle(request);
 }
 ```
 
@@ -201,19 +192,16 @@ built HTML at startup: build the view before you start it, and restart it after 
 The example has no notes web app at `APP_URL`, so the card's Open in Notes link leads nowhere
 until yours runs there.
 
-`POST` takes a web `Request` and returns a `Response`, so it fits any server built on those.
-With Bun, `server.ts` is all that is left:
+`dispatcher.handle` speaks MCP 2026-07-28: it reads the request, checks the protocol version
+and headers a client sends, and answers with the status the revision names for each case
+([the dispatcher](../README.md#server-the-dispatcher)). `POST` takes a web `Request` and
+returns a `Response`, so it fits any server built on those. With Bun, `server.ts` is all that
+is left:
 
 ```ts
 import { POST } from './mcp';
 
-Bun.serve({
-  port: 3000,
-  routes: {
-    // GET would open a stream of server messages; this server sends none.
-    '/mcp': { POST, GET: () => new Response(null, { status: 405 }) }
-  }
-});
+Bun.serve({ port: 3000, routes: { '/mcp': POST } });
 console.log('MCP endpoint at http://localhost:3000/mcp');
 ```
 
@@ -485,11 +473,16 @@ bun build-views.ts
 bun src/server.ts
 ```
 
-Ask the server for its tools, as a host does:
+Ask the server for its tools, as a host does. MCP 2026-07-28 has no handshake: every request
+names the protocol version in its body and its headers, and the client's capabilities in its
+body:
 
 ```sh
 curl -s localhost:3000/mcp -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+  -H 'mcp-protocol-version: 2026-07-28' -H 'mcp-method: tools/list' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{
+    "io.modelcontextprotocol/protocolVersion":"2026-07-28",
+    "io.modelcontextprotocol/clientCapabilities":{}}}}'
 ```
 
 In the answer, the `_meta.ui.resourceUri` of `show_note` is `ui://notes/note/<version>`. The
@@ -500,8 +493,8 @@ host that keeps views fetches the new one ([versioned URIs](../README.md#version
 
 `@urbicon-ui/mcp-app/testing/host` shows your view the way a web host does, in headless
 Chromium driven by Playwright, against your running server. It sends each request as a POST
-of its own and reads JSON back, so it needs an endpoint like `POST` above, without sessions
-or event streams. Install the browser once:
+of MCP 2026-07-28 and reads JSON back, so it needs an endpoint like `POST` above, without
+event streams. Install the browser once:
 
 ```sh
 bunx playwright-core install --only-shell chromium
@@ -625,7 +618,7 @@ public URL, must show `_meta.ui.resourceUri` on `show_note`, and `bun test-host.
 
 This server lets anyone who knows the URL call its tools. Before it holds real notes, find out
 who is calling in `POST` (Claude can sign in to a connector with OAuth) and pass the caller
-on. With `createDispatcher<Caller>`, `dispatcher.dispatch(payload, caller)` hands it to
+on. With `createDispatcher<Caller>`, `dispatcher.handle(request, caller)` hands it to
 `tools(caller)` and `call(name, args, caller)`, which refuse what this caller may not use
 ([the dispatcher](../README.md#server-the-dispatcher)).
 

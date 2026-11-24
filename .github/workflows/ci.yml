@@ -389,6 +389,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun --filter='@urbicon-ui/mcp-app' run test:host
       - run: bun --filter='@urbicon-ui/mcp-app' run test:host:controls
+      # The dispatcher against the MCP conformance suite at 2026-07-28; the
+      # excused checks and why: packages/mcp-app/fixture/conformance-baseline.yml.
+      - run: bun --filter='@urbicon-ui/mcp-app' run test:conformance
 
   build:
     name: Build

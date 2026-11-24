@@ -1,0 +1,14 @@
+# The checks of the conformance gate's scenarios (fixture/conformance.ts) that
+# need what a pure tool-and-view server lacks by design. Each entry names one
+# check, never a whole scenario, so every other check of it still counts.
+server:
+  # Need the everything server's diagnostic tool `test_missing_capability`. The
+  # dispatcher requires no client capability, so it never answers -32021.
+  - server-stateless:sep-2575-server-rejects-undeclared-capability
+  - server-stateless:sep-2575-missing-capability-http-400
+  # Needs `test_streaming_elicitation`. The dispatcher answers JSON, never a stream.
+  - server-stateless:sep-2575-http-server-no-independent-requests-on-stream
+  # Needs `test_logging_tool`. The dispatcher sends no notifications/message.
+  - server-stateless:sep-2575-server-no-log-without-loglevel
+  # The dispatcher has no prompts: prompts/list is -32601.
+  - caching:sep-2549-prompts-list-caching-hints

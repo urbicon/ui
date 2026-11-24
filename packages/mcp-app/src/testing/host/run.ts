@@ -2,6 +2,7 @@
  * A whole run of the test host — `openHost`, the app's scenario, the generic
  * checks — and the checks against the server alone (`versionReport`).
  */
+import { INVALID_PARAMS } from '../../jsonrpc.ts';
 import { VERSION_LENGTH } from '../../server/catalog.ts';
 import {
   checkHostVariables,
@@ -132,7 +133,7 @@ interface ToolLite {
  * `resources/list` name the same; `resources/list` names no other URI of the
  * view, no older version beside it. `resources/read` returns the same HTML
  * under it, under a foreign version and without version; an unknown name is
- * `-32002`. With `withoutView`, that tool carries no URI.
+ * `-32602` with the URI in `data`. With `withoutView`, that tool carries no URI.
  *
  * The hash is computed here, not taken from the catalog: the check is meant
  * to catch the catalog hashing something else.
@@ -211,8 +212,9 @@ export async function versionReport(options: {
   const unknown = await mcpRequest(endpoint, 'resources/read', { uri: unknownUri });
   check(
     'version-unknown',
-    'an unknown name is -32002',
-    unknown.error?.code === -32002,
+    'an unknown name is -32602 with the URI in data',
+    unknown.error?.code === INVALID_PARAMS &&
+      (unknown.error.data as { uri?: unknown } | undefined)?.uri === unknownUri,
     JSON.stringify(unknown)
   );
   return plainReport(checks);

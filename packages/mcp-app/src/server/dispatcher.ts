@@ -1,12 +1,14 @@
 /**
- * The JSON-RPC envelope of a stateless MCP tool server: the body as one
- * message or a batch, the ids, notifications, the error forms, the protocol
- * version, `initialize` and `ping` — around the three things only the app
- * knows: its tools for a caller, the call, and (optionally) its views.
+ * The endpoint of a stateless MCP tool server — MCP 2026-07-28, and only
+ * that: one POST carries one JSON-RPC request or notification, the answer is
+ * JSON. Around the three things only the app knows: its tools for a caller,
+ * the call, and (optionally) its views.
  *
- * Stateless: no session, no stream, every request stands alone. What reaches
- * `dispatch` is the parsed body; reading it, the HTTP status and the caller's
- * credentials stay with the app's route.
+ * The revision makes the HTTP layer part of the protocol — the status a
+ * rejection carries, the `MCP-Protocol-Version` / `Mcp-Method` / `Mcp-Name`
+ * headers checked against the body. So `handle` takes the `Request` and
+ * returns the `Response`; the caller's credentials stay with the app's route,
+ * which runs before it.
  *
  * Web standards only — no Node API, no dependency; the `node:crypto` of the
  * same entry point is the catalog's.
@@ -19,6 +21,16 @@ import {
   METHOD_NOT_FOUND,
   PARSE_ERROR
 } from '../jsonrpc.ts';
+import {
+  CLIENT_CAPABILITIES_KEY,
+  decodeHeaderValue,
+  HEADER_MISMATCH,
+  MCP_NAME_SOURCE,
+  MCP_PROTOCOL_VERSION,
+  PROTOCOL_VERSION_KEY,
+  SERVER_INFO_KEY,
+  UNSUPPORTED_PROTOCOL_VERSION
+} from '../mcp.ts';
 import type { Outcome, ViewCatalog } from './catalog.ts';
 
 /**
@@ -35,37 +47,20 @@ export interface JsonRpcSuccess {
 
 /**
  * An answer with an `error` — **without `id`** where the request carried no
- * usable one (broken JSON, a body too large, an empty or oversized batch, no
- * id or an unusable id).
- * JSON-RPC 2.0 writes `null` there; MCP forbids `null` as an id, the SDK's
- * schemas a host validates with accept the omission and not `null`, and from
- * 2025-11-25 on the spec types the field as optional (`JSONRPCErrorResponse`).
+ * usable one (broken JSON, a body too large, no id or an unusable id).
+ * JSON-RPC 2.0 writes `null` there; MCP forbids `null` as an id, and the spec
+ * types the field as optional (`JSONRPCErrorResponse`).
  */
 export interface JsonRpcFailure {
   jsonrpc: '2.0';
   id?: JsonRpcId;
-  error: { code: number; message: string };
+  error: { code: number; message: string; data?: unknown };
 }
 
 /** One answer of the dispatcher, with `result` or `error`. */
 export type JsonRpcResponse = JsonRpcSuccess | JsonRpcFailure;
 
-/**
- * The MCP versions `initialize` agrees to by default — `initialize`, `ping`,
- * `tools/*` and `resources/*` exist in all three. The first is the preferred
- * one, and the answer to a client that asks for none or another. Not the
- * MCP Apps version: that is `PROTOCOL_VERSION` of `./view`.
- */
-export const MCP_PROTOCOL_VERSIONS: readonly string[] = ['2025-06-18', '2025-03-26', '2024-11-05'];
-
-/**
- * How many messages one batch may carry. The batch runs one message after
- * another, so without a cap only the body size limits how many calls a
- * single request sets off.
- */
-export const MAX_BATCH = 50;
-
-/** `serverInfo` of `initialize` (MCP's `Implementation`). */
+/** `_meta["io.modelcontextprotocol/serverInfo"]` of every result (MCP's `Implementation`). */
 export interface ServerInfo {
   name: string;
   version: string;
@@ -83,13 +78,45 @@ export interface Tool {
   [key: string]: unknown;
 }
 
+/** The results a client may cache, and that therefore carry `ttlMs` and `cacheScope`. */
+export type CacheableMethod =
+  | 'server/discover'
+  | 'tools/list'
+  | 'resources/list'
+  | 'resources/templates/list'
+  | 'resources/read';
+
+/**
+ * How long a client may reuse a result, and whether across callers.
+ * `'public'` lets a cache hand the result to another authorization context —
+ * only for what every caller sees alike.
+ */
+export interface CacheHint {
+  ttlMs: number;
+  cacheScope: 'public' | 'private';
+}
+
+/**
+ * The hint of a method the app names none for: stale at once, never shared —
+ * what a client assumes of a result without the fields, so never wrong.
+ */
+export const NO_CACHE: CacheHint = { ttlMs: 0, cacheScope: 'private' };
+
+const CACHEABLE: readonly string[] = [
+  'server/discover',
+  'tools/list',
+  'resources/list',
+  'resources/templates/list',
+  'resources/read'
+] satisfies readonly CacheableMethod[];
+
 /**
  * What only the app knows; `C` is the context of a call. `tools` and `call`
  * are called as methods of this object, so `this` holds.
  */
 export interface DispatcherOptions<C = void> {
   serverInfo: ServerInfo;
-  /** `instructions` of `initialize` — what the model should know before it touches a tool. */
+  /** `instructions` of `server/discover` — what the model should know before it touches a tool. */
   instructions?: string;
   /**
    * `tools/list`: the tool descriptions this caller may see, as the wire
@@ -115,23 +142,31 @@ export interface DispatcherOptions<C = void> {
   call(name: string, args: unknown, context: C): Outcome | Promise<Outcome>;
   /**
    * The view catalog (`createViewCatalog`): its `capabilities` join
-   * `initialize`, and `resources/*` go to its `handle()`. Without it those
-   * methods are `-32601`. A catalog whose origin depends on the request goes
-   * to a dispatcher created per request — it holds nothing but its options.
+   * `server/discover`, and `resources/*` go to its `handle()`. Without it
+   * those methods are `-32601`. A catalog whose origin depends on the request
+   * goes to a dispatcher created per request — it holds nothing but its
+   * options.
    */
   views?: Pick<ViewCatalog<string>, 'handle' | 'capabilities'>;
-  /** The versions `initialize` agrees to, preferred first. Default {@link MCP_PROTOCOL_VERSIONS}. */
-  protocolVersions?: readonly string[];
+  /**
+   * `ttlMs` and `cacheScope` per cacheable method; {@link NO_CACHE} for every
+   * method left out. `tools/list` may differ by caller (`tools(context)`), so
+   * it stays `'private'` unless every caller sees the same list.
+   *
+   * @throws At creation, for a `ttlMs` that is no integer ≥ 0.
+   */
+  cache?: Partial<Record<CacheableMethod, CacheHint>>;
 }
 
 /** What `createDispatcher` returns. */
 export interface Dispatcher<C = void> {
   /**
-   * A parsed body: one message or a batch. `null` when there is nothing to
-   * answer — only notifications; Streamable HTTP answers that with `202` and
-   * no body. A batch is answered as an array, in the order of its requests.
+   * The MCP endpoint: `POST` with one JSON-RPC message in, the answer out. A
+   * notification is `202` without body; every rejection the revision gives a
+   * status (`400`, `404`, `405`, `413`) carries it, every answer from a method
+   * — errors of a tool or a resource included — is `200`.
    */
-  dispatch(payload: unknown, context: C): Promise<JsonRpcResponse | JsonRpcResponse[] | null>;
+  handle(request: Request, context: C): Promise<Response>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -145,40 +180,41 @@ function requestId(value: unknown): JsonRpcId | undefined {
     : undefined;
 }
 
-function failure(id: JsonRpcId | undefined, code: number, message: string): JsonRpcFailure {
-  return { jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code, message } };
+function failure(
+  id: JsonRpcId | undefined,
+  code: number,
+  message: string,
+  data?: unknown
+): JsonRpcFailure {
+  return {
+    jsonrpc: '2.0',
+    ...(id === undefined ? {} : { id }),
+    error: { code, message, ...(data === undefined ? {} : { data }) }
+  };
 }
 
-/** Checked, not trusted: past a cast or from plain JS, `error` may be a database error. */
-function answer(id: JsonRpcId, outcome: Outcome): JsonRpcResponse {
-  if ('error' in outcome) {
-    const { code, message } = outcome.error;
-    if (Number.isSafeInteger(code) && typeof message === 'string') {
-      return failure(id, code, message);
-    }
-  } else if (isRecord(outcome.result)) {
-    return { jsonrpc: '2.0', id, result: outcome.result };
-  }
-  throw new Error('The answer is neither { result: {…} } nor { error: { code, message } }.', {
-    cause: outcome
-  });
-}
-
-/** The answer to a body that is not JSON: `-32700`, without id — nobody can read one. */
-export function parseErrorResponse(): JsonRpcFailure {
-  return failure(undefined, PARSE_ERROR, 'The body is not JSON.');
+function reply(status: number, body: JsonRpcResponse, headers?: HeadersInit): Response {
+  return Response.json(body, { status, headers });
 }
 
 const FINAL_PERIOD = /\.$/;
 
 /**
- * The answer to a body the server does not read because it is too large:
- * `-32600`, without id. Long texts in a tool's arguments reach it; the model
- * needs the limit and a way out, not "not JSON".
- *
- * @param detail The server's sentence about the limit, e.g. "Content-length of 600992 exceeds limit of 524288 bytes."
+ * Whether reading the body failed because it is too large — SvelteKit's
+ * adapter-node throws an error with `status` 413 when `BODY_SIZE_LIMIT` is
+ * exceeded, and `Content-length of 600992 exceeds limit of 524288 bytes.` as
+ * its message.
  */
-export function bodyTooLargeResponse(detail?: string): JsonRpcFailure {
+function tooLarge(error: unknown): error is Error {
+  return error instanceof Error && (error as { status?: unknown }).status === 413;
+}
+
+/**
+ * The answer to a body too large to read: `-32600`, without id. Long texts in
+ * a tool's arguments reach it; the model needs the limit and a way out, not
+ * "not JSON".
+ */
+function bodyTooLarge(detail: string): JsonRpcFailure {
   const limit = detail ? ` (${detail.replace(FINAL_PERIOD, '')})` : '';
   return failure(
     undefined,
@@ -188,120 +224,259 @@ export function bodyTooLargeResponse(detail?: string): JsonRpcFailure {
   );
 }
 
+/** A header, trimmed — `undefined` when absent. */
+function header(request: Request, name: string): string | undefined {
+  const value = request.headers.get(name);
+  return value === null ? undefined : value.trim();
+}
+
 /**
  * The dispatcher of a stateless MCP tool server, generic over the context of
  * a call — the caller, a registry, a clock: whatever the route resolves.
  *
- * Answered here: `initialize` (the version, `tools` and the views'
- * capabilities, `serverInfo`, `instructions`), `ping`, `tools/list`,
- * `tools/call`, and `resources/*` through `views`. Every other method is
- * `-32601`. A request without `id` is a notification and gets no answer — a
- * `tools/call` without `id` does not run.
+ * Answered: `server/discover`, `tools/list`, `tools/call`, and `resources/*`
+ * through `views`. Every other method is `404` with `-32601`, `ping` included,
+ * which 2026-07-28 removed. The `initialize` of a 2025 client carries no
+ * envelope, so it is told the revision this server speaks (`400`, `-32022`).
  *
- * @throws When `protocolVersions` is empty.
+ * @throws When a `cache` hint's `ttlMs` is no integer ≥ 0.
  */
 export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispatcher<C> {
   const { serverInfo, instructions, views } = options;
-  const versions = options.protocolVersions ?? MCP_PROTOCOL_VERSIONS;
-  const first = versions[0];
-  if (first === undefined) throw new Error('protocolVersions must name at least one version.');
-  const preferred: string = first;
+  for (const [method, hint] of Object.entries(options.cache ?? {})) {
+    if (!Number.isSafeInteger(hint?.ttlMs) || (hint?.ttlMs ?? -1) < 0) {
+      throw new Error(`cache["${method}"].ttlMs must be an integer ≥ 0, not ${hint?.ttlMs}.`);
+    }
+  }
+  const supported = [MCP_PROTOCOL_VERSION];
 
-  function negotiate(params: unknown): string {
-    const requested = isRecord(params) ? params.protocolVersion : undefined;
-    return typeof requested === 'string' && versions.includes(requested) ? requested : preferred;
+  function unsupported(id: JsonRpcId | undefined, requested: unknown): Response {
+    const named = typeof requested === 'string' ? requested : undefined;
+    return reply(
+      400,
+      failure(
+        id,
+        UNSUPPORTED_PROTOCOL_VERSION,
+        `This server speaks MCP ${supported.join(', ')} only, ${
+          named === undefined ? 'and the request names no protocol version' : `not ${named}`
+        }. The version goes into params._meta["${PROTOCOL_VERSION_KEY}"] of every request; there is no initialize.`,
+        { supported, ...(named === undefined ? {} : { requested: named }) }
+      )
+    );
   }
 
-  async function outcomeOf(method: string, params: unknown, context: C): Promise<Outcome> {
+  function mismatch(id: JsonRpcId, message: string): Response {
+    return reply(400, failure(id, HEADER_MISMATCH, message));
+  }
+
+  /**
+   * The revision's checks before a method runs, in the SDK's order: the
+   * version claim, the envelope, the standard headers. `null` when all pass.
+   */
+  function rejection(
+    request: Request,
+    id: JsonRpcId,
+    method: string,
+    params: Record<string, unknown> | undefined
+  ): Response | null {
+    const meta = isRecord(params?._meta) ? params._meta : undefined;
+    const claimed = meta?.[PROTOCOL_VERSION_KEY];
+    const headerVersion = header(request, 'mcp-protocol-version');
+    if (claimed === undefined) {
+      // A client of 2026-07-28 that forgot the claim is told which key; any
+      // other request — an `initialize` above all — which revision to speak.
+      if (headerVersion !== undefined && supported.includes(headerVersion)) {
+        return reply(
+          400,
+          failure(id, INVALID_PARAMS, `params._meta["${PROTOCOL_VERSION_KEY}"] is missing.`)
+        );
+      }
+      return unsupported(id, method === 'initialize' ? params?.protocolVersion : headerVersion);
+    }
+    if (typeof claimed !== 'string') {
+      return reply(
+        400,
+        failure(id, INVALID_PARAMS, `params._meta["${PROTOCOL_VERSION_KEY}"] must be a string.`)
+      );
+    }
+    // A disagreement outranks the version itself: which of the two is meant is unknown.
+    if (headerVersion !== undefined && headerVersion !== claimed) {
+      return mismatch(
+        id,
+        `The MCP-Protocol-Version header (${headerVersion}) and params._meta (${claimed}) disagree.`
+      );
+    }
+    if (!supported.includes(claimed)) return unsupported(id, claimed);
+    if (!isRecord(meta?.[CLIENT_CAPABILITIES_KEY])) {
+      return reply(
+        400,
+        failure(id, INVALID_PARAMS, `params._meta["${CLIENT_CAPABILITIES_KEY}"] must be an object.`)
+      );
+    }
+    if (headerVersion === undefined)
+      return mismatch(id, 'The MCP-Protocol-Version header is missing.');
+    const headerMethod = header(request, 'mcp-method');
+    if (headerMethod === undefined) return mismatch(id, 'The Mcp-Method header is missing.');
+    if (headerMethod !== method) {
+      return mismatch(
+        id,
+        `The Mcp-Method header (${headerMethod}) and the body (${method}) disagree.`
+      );
+    }
+    const field = MCP_NAME_SOURCE[method];
+    if (field !== undefined) {
+      const body = params?.[field];
+      const raw = header(request, 'mcp-name');
+      if (raw === undefined) {
+        if (body !== undefined) return mismatch(id, 'The Mcp-Name header is missing.');
+      } else if (decodeHeaderValue(raw) !== body) {
+        return mismatch(id, `The Mcp-Name header and params.${field} disagree.`);
+      }
+    }
+    return null;
+  }
+
+  /** The method's answer — `null` for a method this server does not have. */
+  async function outcomeOf(
+    method: string,
+    params: Record<string, unknown> | undefined,
+    context: C
+  ): Promise<Outcome | null> {
     switch (method) {
-      case 'initialize':
+      case 'server/discover':
         return {
           result: {
-            protocolVersion: negotiate(params),
+            supportedVersions: supported,
             capabilities: { tools: {}, ...views?.capabilities },
-            serverInfo,
             ...(instructions === undefined ? {} : { instructions })
           }
         };
-      case 'ping':
-        return { result: {} };
       case 'tools/list':
         return { result: { tools: await options.tools(context) } };
       case 'tools/call': {
-        const name = isRecord(params) ? params.name : undefined;
+        const name = params?.name;
         if (typeof name !== 'string') {
           return { error: { code: INVALID_PARAMS, message: 'tools/call needs params.name.' } };
         }
-        return options.call(name, (params as Record<string, unknown>).arguments, context);
+        return options.call(name, params?.arguments, context);
       }
       default:
-        return (
-          views?.handle(method, params) ?? {
-            error: { code: METHOD_NOT_FOUND, message: `Method not found: ${method}` }
-          }
-        );
+        return views?.handle(method, params) ?? null;
     }
   }
 
-  async function message(entry: unknown, context: C): Promise<JsonRpcResponse | null> {
-    if (!isRecord(entry) || typeof entry.method !== 'string') {
-      return failure(
-        isRecord(entry) ? requestId(entry.id) : undefined,
-        INVALID_REQUEST,
-        'Not a JSON-RPC request: an object with a string method.'
-      );
-    }
-    if (entry.id === undefined) return null;
-    const id = requestId(entry.id);
-    if (id === undefined) {
-      return failure(
-        undefined,
-        INVALID_REQUEST,
-        'The id must be a string or an integer within ±(2^53 − 1).'
-      );
-    }
-    const { method, params } = entry;
-    const what =
-      method === 'tools/call' && isRecord(params) && typeof params.name === 'string'
-        ? `tools/call ${params.name}`
-        : method;
-    try {
-      return answer(id, await outcomeOf(method, params, context));
-    } catch (error) {
-      // MCP clients run headless: what is not in the server's log is nowhere. Printing runs the
-      // value's own code (`inspect.custom`, a Proxy trap) and can throw; that must not cost the
-      // answer, nor the rest of a batch.
-      try {
-        console.error(`[mcp-app] ${what} failed:`, error);
-      } catch {
-        // The answer below is all that is left to give.
+  /**
+   * A `result` as the revision wants it: `resultType`, the server's identity
+   * in `_meta`, the cache hint where the method is cacheable. What the result
+   * sets itself wins, `_meta` merged.
+   */
+  function complete(method: string, result: Record<string, unknown>): Record<string, unknown> {
+    const meta = isRecord(result._meta) ? result._meta : {};
+    const hint = CACHEABLE.includes(method)
+      ? (options.cache?.[method as CacheableMethod] ?? NO_CACHE)
+      : undefined;
+    return {
+      resultType: 'complete',
+      ...hint,
+      ...result,
+      _meta: { ...meta, [SERVER_INFO_KEY]: serverInfo }
+    };
+  }
+
+  /** Checked, not trusted: past a cast or from plain JS, `error` may be a database error. */
+  function answer(id: JsonRpcId, method: string, outcome: Outcome): JsonRpcResponse {
+    if ('error' in outcome) {
+      const { code, message, data } = outcome.error;
+      if (Number.isSafeInteger(code) && typeof message === 'string') {
+        return failure(id, code, message, data);
       }
-      return failure(id, INTERNAL_ERROR, `${what} failed on the server.`);
+    } else if (isRecord(outcome.result)) {
+      return { jsonrpc: '2.0', id, result: complete(method, outcome.result) };
     }
+    throw new Error('The answer is neither { result: {…} } nor { error: { code, message } }.', {
+      cause: outcome
+    });
   }
 
   return {
-    async dispatch(payload, context) {
-      if (!Array.isArray(payload)) return message(payload, context);
-      // Answered under every version: 2025-03-26 has batches, later versions
-      // dropped them, and a stateless server never learns which one the
-      // client agreed to.
-      if (payload.length === 0) return failure(undefined, INVALID_REQUEST, 'The batch is empty.');
-      if (payload.length > MAX_BATCH) {
-        return failure(
-          undefined,
-          INVALID_REQUEST,
-          `A batch carries at most ${MAX_BATCH} messages, not ${payload.length}.`
+    async handle(request, context) {
+      if (request.method !== 'POST') {
+        return reply(405, failure(undefined, -32000, 'Method not allowed: MCP takes POST only.'), {
+          allow: 'POST'
+        });
+      }
+      let text: string;
+      try {
+        text = await request.text();
+      } catch (error) {
+        if (tooLarge(error)) return reply(413, bodyTooLarge(error.message));
+        throw error;
+      }
+      let payload: unknown;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        return reply(400, failure(undefined, PARSE_ERROR, 'The body is not JSON.'));
+      }
+      if (Array.isArray(payload)) {
+        return reply(
+          400,
+          failure(
+            undefined,
+            INVALID_REQUEST,
+            'One JSON-RPC message per request — MCP has no batches.'
+          )
         );
       }
-      // One after another, so a batch holds at most one of the app's
-      // resources (a transaction, a pooled connection) at a time.
-      const answers: JsonRpcResponse[] = [];
-      for (const entry of payload) {
-        const reply = await message(entry, context);
-        if (reply !== null) answers.push(reply);
+      if (!isRecord(payload) || typeof payload.method !== 'string') {
+        return reply(
+          400,
+          failure(
+            isRecord(payload) ? requestId(payload.id) : undefined,
+            INVALID_REQUEST,
+            'Not a JSON-RPC request: an object with a string method.'
+          )
+        );
       }
-      return answers.length > 0 ? answers : null;
+      // A notification is taken and dropped: this server acts on none.
+      if (!('id' in payload)) return new Response(null, { status: 202 });
+      const id = requestId(payload.id);
+      if (id === undefined) {
+        return reply(
+          400,
+          failure(
+            undefined,
+            INVALID_REQUEST,
+            'The id must be a string or an integer within ±(2^53 − 1).'
+          )
+        );
+      }
+      const { method } = payload;
+      const params = isRecord(payload.params) ? payload.params : undefined;
+      const rejected = rejection(request, id, method, params);
+      if (rejected) return rejected;
+
+      const what =
+        method === 'tools/call' && typeof params?.name === 'string'
+          ? `tools/call ${params.name}`
+          : method;
+      try {
+        const outcome = await outcomeOf(method, params, context);
+        if (outcome === null) {
+          return reply(404, failure(id, METHOD_NOT_FOUND, `Method not found: ${method}`));
+        }
+        return reply(200, answer(id, method, outcome));
+      } catch (error) {
+        // MCP clients run headless: what is not in the server's log is nowhere. Printing runs the
+        // value's own code (`inspect.custom`, a Proxy trap) and can throw; that must not cost the
+        // answer.
+        try {
+          console.error(`[mcp-app] ${what} failed:`, error);
+        } catch {
+          // The answer below is all that is left to give.
+        }
+        return reply(200, failure(id, INTERNAL_ERROR, `${what} failed on the server.`));
+      }
     }
   };
 }
