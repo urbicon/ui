@@ -241,8 +241,9 @@ cacheable ones (`server/discover`, `tools/list`, `resources/list`, `resources/te
 once and never shared, which is what a client assumes without the fields. `tools/list` may
 differ by caller, so it stays `"private"` unless every caller sees the same list. A URI
 without a version, or an older one, reads today's HTML ([versioned URIs](#versioned-uris)),
-so a long `ttlMs` on `resources/read` keeps a host on an old view past a deploy. What a result
-sets itself wins.
+so a long `ttlMs` on `resources/read` keeps a host on an old view past a deploy. A `cache` key
+that is no cacheable method, or a hint the wire would reject, throws at creation. What a result
+sets itself wins as it is set, its `_meta` merged key by key.
 
 The status of each answer:
 
@@ -571,7 +572,9 @@ under Bun and starts no server of yours — you give it a **running** endpoint, 
 development, and the parts only your app knows. It speaks MCP 2026-07-28 to it, as the
 dispatcher does: every request with the envelope in `params._meta` (declaring
 `io.modelcontextprotocol/ui`) and the standard headers, the page's requests included.
-`serverInfo(endpoint)` reads the identity from `server/discover`.
+`serverInfo(endpoint)` reads the identity from `server/discover`. `mcpRequest` returns a
+JSON-RPC answer whatever its HTTP status (a `-32022` comes with 400) and throws, naming the
+status, on anything else: the route's 401, a proxy's 502.
 
 `playwright-core` brings no browser. The host launches headless Chromium in the build
 your `playwright-core` version expects — without it, the launch fails with "Executable

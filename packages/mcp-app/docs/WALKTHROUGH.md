@@ -205,6 +205,10 @@ Bun.serve({ port: 3000, routes: { '/mcp': POST } });
 console.log('MCP endpoint at http://localhost:3000/mcp');
 ```
 
+The example checks no `Origin` header. The spec has a server answer `403` to a present, invalid
+one, so that a web page cannot reach it through the browser; a server a browser can reach checks
+it in `POST` before `handle` ([the dispatcher](../README.md#server-the-dispatcher)).
+
 ## The view
 
 The view is a page of its own, built with Vite. `note.html` is named after the view's key in

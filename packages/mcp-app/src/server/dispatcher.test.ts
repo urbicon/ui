@@ -242,6 +242,18 @@ describe('cache', () => {
       );
     }
   );
+
+  test('a cacheScope other than public or private is a loud stop at creation', () => {
+    const cacheScope = 'shared' as 'public';
+    expect(() => appOf({ cache: { 'tools/list': { ttlMs: 5, cacheScope } } })).toThrow(
+      `cache["tools/list"].cacheScope must be 'public' or 'private', not "shared"`
+    );
+  });
+
+  test('a method that is not cacheable is a loud stop at creation', () => {
+    const cache = { 'tools/call': NO_CACHE } as DispatcherOptions<Caller>['cache'];
+    expect(() => appOf({ cache })).toThrow('cache["tools/call"]: not a cacheable method');
+  });
 });
 
 describe('tools/call', () => {
@@ -266,6 +278,16 @@ describe('tools/call', () => {
       mine: 1,
       [SERVER_INFO_KEY]: INFO
     });
+  });
+
+  test('an identity the result sets itself wins', async () => {
+    const own = { name: 'proxied', version: '9' };
+    const { ask } = appOf({
+      call: () => ({ result: { content: [], _meta: { [SERVER_INFO_KEY]: own } } })
+    });
+    expect((await ask('tools/call', { name: 'x' })).body.result._meta[SERVER_INFO_KEY]).toEqual(
+      own
+    );
   });
 
   test('arguments arrive as they came — undefined when absent', async () => {
@@ -702,8 +724,35 @@ describe('the standard headers', () => {
     ).toEqual(MISMATCH);
   });
 
-  test('a name that is no string has no header to mirror it: -32020', async () => {
-    expect(await rejected('tools/call', { name: 5 }, {})).toEqual(MISMATCH);
+  test('a name that is no text is no name a header mirrors: the method answers, -32602 in-band', async () => {
+    for (const [method, params] of [
+      ['tools/call', { name: 5 }],
+      ['resources/read', { uri: 5 }]
+    ] as const) {
+      const { ask } = appOf();
+      const { status, body } = await ask(method, params);
+      expect(status, method).toBe(200);
+      expect(body.error.code, method).toBe(INVALID_PARAMS);
+    }
+  });
+
+  test('an own key only: a method named constructor has no name to mirror, and is 404', async () => {
+    const { ask } = appOf();
+    const { status } = await ask('constructor', {}, { headers: { 'mcp-name': 'x' } });
+    expect(status).toBe(404);
+  });
+
+  test('the sentinel is lowercase and canonical: an uppercase frame is literal, unpadded is no base64', async () => {
+    // `size` needs padding (c2l6ZQ==), so the unpadded form differs from the canonical one.
+    expect(btoa('size')).toMatch(/==$/);
+    for (const value of [
+      `=?BASE64?${btoa('size')}?=`,
+      `=?base64?${btoa('size').replace(/=+$/, '')}?=`
+    ]) {
+      expect(await rejected('tools/call', { name: 'size' }, { 'mcp-name': value }), value).toEqual(
+        MISMATCH
+      );
+    }
   });
 
   test('a sentinel that is no base64 or no UTF-8: -32020', async () => {

@@ -27,7 +27,9 @@ const SCENARIOS = [
   'resources-list',
   'sep-2164-resource-not-found',
   'caching',
-  'http-header-validation'
+  'http-header-validation',
+  'server-sse-multiple-streams',
+  'input-required-result-unsupported-methods'
 ];
 
 const BASELINE = fileURLToPath(new URL('./conformance-baseline.yml', import.meta.url));

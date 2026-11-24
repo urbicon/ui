@@ -35,7 +35,19 @@ describe('header values', () => {
     expect(decodeHeaderValue('  tools/call \t')).toBe('tools/call');
   });
 
+  test('the frame is lowercase: an uppercase one is a literal value', () => {
+    const upper = `=?BASE64?${btoa('a')}?=`;
+    expect(decodeHeaderValue(upper)).toBe(upper);
+  });
+
+  test('a plain value shaped like a sentinel travels encoded, so it comes back as itself', () => {
+    const literal = '=?base64?literal?=';
+    expect(encodeHeaderValue(literal)).not.toBe(literal);
+    expect(decodeHeaderValue(encodeHeaderValue(literal))).toBe(literal);
+  });
+
   test('a sentinel that is no base64 or no UTF-8 says nothing', () => {
+    expect(decodeHeaderValue(`=?base64?${btoa('ab').replace(/=+$/, '')}?=`)).toBeUndefined();
     expect(decodeHeaderValue('=?base64?!!!?=')).toBeUndefined();
     expect(decodeHeaderValue(`=?base64?${btoa('\xff')}?=`)).toBeUndefined();
   });
@@ -97,6 +109,26 @@ describe('clientRequest', () => {
       },
       [CLIENT_INFO_KEY]: { name: 'mcp-app-client', version: '1.0.0' }
     });
+  });
+
+  test('what the caller sets wins: a _meta key, a header', async () => {
+    const request = clientRequest(
+      'http://s.test/mcp',
+      'tools/list',
+      { _meta: { [PROTOCOL_VERSION_KEY]: '2099-01-01' } },
+      { headers: { 'mcp-protocol-version': '2099-01-01' } }
+    );
+    expect(request.headers.get('mcp-protocol-version')).toBe('2099-01-01');
+    expect((await request.json()).params._meta[PROTOCOL_VERSION_KEY]).toBe('2099-01-01');
+    const response = await dispatcher.handle(
+      clientRequest(
+        'http://s.test/mcp',
+        'tools/list',
+        { _meta: { [PROTOCOL_VERSION_KEY]: '2099-01-01' } },
+        { headers: { 'mcp-protocol-version': '2099-01-01' } }
+      )
+    );
+    expect(response.status).toBe(400);
   });
 
   test('headers of the caller join the derived ones', () => {

@@ -27,26 +27,49 @@ export const HEADER_MISMATCH = -32020;
 /** The request names no revision the server speaks (HTTP 400); `data` lists them. */
 export const UNSUPPORTED_PROTOCOL_VERSION = -32022;
 
-/** Which `params` field the `Mcp-Name` header mirrors, by method. */
-export const MCP_NAME_SOURCE: Readonly<Record<string, string>> = {
+const MCP_NAME_SOURCE: Readonly<Record<string, string>> = {
   'tools/call': 'name',
   'resources/read': 'uri',
   'prompts/get': 'name'
 };
 
-/** The sentinel's frame; what stands inside must be base64, or the value says nothing. */
-const SENTINEL = /^=\?base64\?(.*)\?=$/i;
-const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
+/**
+ * The `params` field the `Mcp-Name` header mirrors for `method`, or
+ * `undefined` — an own key only, so `constructor` is no method with a name.
+ */
+export function mcpNameField(method: string): string | undefined {
+  return Object.hasOwn(MCP_NAME_SOURCE, method) ? MCP_NAME_SOURCE[method] : undefined;
+}
+
+/**
+ * The value of the `Mcp-Name` header for `params`: the field's text, or
+ * `undefined` when the field holds none — a number is no name a header mirrors.
+ */
+export function mcpName(method: string, params: unknown): string | undefined {
+  const field = mcpNameField(method);
+  if (field === undefined || typeof params !== 'object' || params === null) return undefined;
+  const value = (params as Record<string, unknown>)[field];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * The sentinel's frame, lowercase as the spec writes it ("MUST appear exactly
+ * as shown"); `=?BASE64?…?=` is a literal value. What stands inside must be
+ * canonical base64, padding included, or the value says nothing.
+ */
+const SENTINEL = /^=\?base64\?(.*)\?=$/;
+const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 /** Printable ASCII without leading or trailing space: what a header carries as it is. */
 const PLAIN_HEADER = /^[\x21-\x7e](?:[\x20-\x7e]*[\x21-\x7e])?$/;
 
 /**
  * A header value for `value`: itself when it is printable ASCII, otherwise
- * the spec's sentinel `=?base64?…?=` over its UTF-8 bytes.
+ * the spec's sentinel `=?base64?…?=` over its UTF-8 bytes — also for a plain
+ * value shaped like a sentinel, which a server would decode.
  */
 export function encodeHeaderValue(value: string): string {
-  if (PLAIN_HEADER.test(value)) return value;
+  if (PLAIN_HEADER.test(value) && !SENTINEL.test(value)) return value;
   let binary = '';
   for (const byte of new TextEncoder().encode(value)) binary += String.fromCharCode(byte);
   return `=?base64?${btoa(binary)}?=`;
@@ -79,12 +102,8 @@ export function requestHeaders(method: string, params: unknown): Record<string, 
     'mcp-protocol-version': MCP_PROTOCOL_VERSION,
     'mcp-method': method
   };
-  const field = MCP_NAME_SOURCE[method];
-  const name =
-    field !== undefined && typeof params === 'object' && params !== null
-      ? (params as Record<string, unknown>)[field]
-      : undefined;
-  if (typeof name === 'string') headers['mcp-name'] = encodeHeaderValue(name);
+  const name = mcpName(method, params);
+  if (name !== undefined) headers['mcp-name'] = encodeHeaderValue(name);
   return headers;
 }
 
@@ -102,10 +121,13 @@ export interface ClientRequestOptions {
 
 /**
  * A request as an MCP 2026-07-28 client sends it: one `POST` with the
- * envelope in `params._meta` (a `_meta` of `params` keeps its own keys) and
- * the standard headers derived from the body. For a test or a script that
- * talks to a dispatcher, in process (`dispatcher.handle(clientRequest(…))`)
- * or with `fetch`.
+ * envelope in `params._meta` and the standard headers derived from the body.
+ * For a test or a script that talks to a dispatcher, in process
+ * (`dispatcher.handle(clientRequest(…))`) or with `fetch`.
+ *
+ * What the caller sets wins: a key of `params._meta` over the envelope's, a
+ * header of `options.headers` over the derived one — so a test can also send
+ * the request a server must refuse.
  */
 export function clientRequest(
   url: string | URL,
@@ -117,12 +139,12 @@ export function clientRequest(
   const body = {
     ...params,
     _meta: {
-      ...meta,
       [PROTOCOL_VERSION_KEY]: MCP_PROTOCOL_VERSION,
       [CLIENT_CAPABILITIES_KEY]: options.capabilities ?? {
         extensions: { [UI_EXTENSION]: { mimeTypes: [RESOURCE_MIME_TYPE] } }
       },
-      [CLIENT_INFO_KEY]: options.clientInfo ?? { name: 'mcp-app-client', version: '1.0.0' }
+      [CLIENT_INFO_KEY]: options.clientInfo ?? { name: 'mcp-app-client', version: '1.0.0' },
+      ...meta
     }
   };
   return new Request(url, {

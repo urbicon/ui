@@ -82,8 +82,10 @@ function postToServer(
 
 /**
  * One request to the app's server ({@link postToServer}), the answer as it
- * came — errors included. Throws only when the answer is no JSON-RPC (an
- * HTTP error without a JSON body, an event stream).
+ * came — a JSON-RPC error included, whatever its HTTP status (2026-07-28
+ * sends a `-32022` with 400, a `-32601` with 404). Throws, naming the
+ * status, when the answer is no JSON-RPC: the route's 401, a proxy's 502, an
+ * event stream.
  */
 export async function mcpRequest(
   endpoint: Endpoint,
@@ -91,9 +93,24 @@ export async function mcpRequest(
   params?: unknown
 ): Promise<JsonRpcAnswer> {
   const response = await postToServer(endpoint, 1, method, params);
-  const json = response.headers.get('content-type')?.startsWith('application/json');
-  if (!json) throw new Error(`${method}: HTTP ${response.status} from ${endpoint.url}`);
-  return (await response.json()) as JsonRpcAnswer;
+  const text = await response.text();
+  let answer: unknown;
+  try {
+    answer = JSON.parse(text);
+  } catch {
+    answer = undefined;
+  }
+  const rpc =
+    typeof answer === 'object' &&
+    answer !== null &&
+    (answer as { jsonrpc?: unknown }).jsonrpc === '2.0' &&
+    ('result' in answer || 'error' in answer);
+  if (!rpc) {
+    throw new Error(
+      `${method}: HTTP ${response.status} from ${endpoint.url}, no JSON-RPC answer: ${text.slice(0, 200)}`
+    );
+  }
+  return answer as JsonRpcAnswer;
 }
 
 /** {@link mcpRequest}, its `result` — and a throw on an error answer. */

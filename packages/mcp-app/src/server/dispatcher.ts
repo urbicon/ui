@@ -25,8 +25,9 @@ import {
   CLIENT_CAPABILITIES_KEY,
   decodeHeaderValue,
   HEADER_MISMATCH,
-  MCP_NAME_SOURCE,
   MCP_PROTOCOL_VERSION,
+  mcpName,
+  mcpNameField,
   PROTOCOL_VERSION_KEY,
   SERVER_INFO_KEY,
   UNSUPPORTED_PROTOCOL_VERSION
@@ -239,13 +240,23 @@ function header(request: Request, name: string): string | undefined {
  * which 2026-07-28 removed. The `initialize` of a 2025 client carries no
  * envelope, so it is told the revision this server speaks (`400`, `-32022`).
  *
- * @throws When a `cache` hint's `ttlMs` is no integer ≥ 0.
+ * @throws When `cache` names a method that is not cacheable, or a hint whose
+ *   `ttlMs` is no integer ≥ 0 or whose `cacheScope` is neither `'public'` nor
+ *   `'private'` — each would make every answer of the method invalid on the wire.
  */
 export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispatcher<C> {
   const { serverInfo, instructions, views } = options;
   for (const [method, hint] of Object.entries(options.cache ?? {})) {
+    if (!CACHEABLE.includes(method)) {
+      throw new Error(`cache["${method}"]: not a cacheable method (${CACHEABLE.join(', ')}).`);
+    }
     if (!Number.isSafeInteger(hint?.ttlMs) || (hint?.ttlMs ?? -1) < 0) {
       throw new Error(`cache["${method}"].ttlMs must be an integer ≥ 0, not ${hint?.ttlMs}.`);
+    }
+    if (hint.cacheScope !== 'public' && hint.cacheScope !== 'private') {
+      throw new Error(
+        `cache["${method}"].cacheScope must be 'public' or 'private', not ${JSON.stringify(hint.cacheScope)}.`
+      );
     }
   }
   const supported = [MCP_PROTOCOL_VERSION];
@@ -270,8 +281,10 @@ export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispa
   }
 
   /**
-   * The revision's checks before a method runs, in the SDK's order: the
-   * version claim, the envelope, the standard headers. `null` when all pass.
+   * The revision's checks before a method runs: the version claim, the
+   * envelope, the standard headers, in that order. The spec fixes no
+   * precedence; a request that breaks two rules gets one of the two 400s.
+   * `null` when all pass.
    */
   function rejection(
     request: Request,
@@ -323,9 +336,10 @@ export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispa
         `The Mcp-Method header (${headerMethod}) and the body (${method}) disagree.`
       );
     }
-    const field = MCP_NAME_SOURCE[method];
+    const field = mcpNameField(method);
     if (field !== undefined) {
-      const body = params?.[field];
+      // A field that is no text is no name a header mirrors: the method's own check answers it.
+      const body = mcpName(method, params);
       const raw = header(request, 'mcp-name');
       if (raw === undefined) {
         if (body !== undefined) return mismatch(id, 'The Mcp-Name header is missing.');
@@ -368,7 +382,8 @@ export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispa
   /**
    * A `result` as the revision wants it: `resultType`, the server's identity
    * in `_meta`, the cache hint where the method is cacheable. What the result
-   * sets itself wins, `_meta` merged.
+   * sets itself wins, as it is set; `_meta` is merged key by key, and one
+   * that is no object is replaced.
    */
   function complete(method: string, result: Record<string, unknown>): Record<string, unknown> {
     const meta = isRecord(result._meta) ? result._meta : {};
@@ -379,7 +394,7 @@ export function createDispatcher<C = void>(options: DispatcherOptions<C>): Dispa
       resultType: 'complete',
       ...hint,
       ...result,
-      _meta: { ...meta, [SERVER_INFO_KEY]: serverInfo }
+      _meta: { [SERVER_INFO_KEY]: serverInfo, ...meta }
     };
   }
 
