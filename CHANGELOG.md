@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [8.42.1](https://github.com/urbicon/ui/compare/v8.42.0...v8.42.1) - 2026-11-26
+
+### Documentation
+- **mcp-app**: Arguments a schema rejects are a tool result, not -32602 ([#621](https://github.com/urbicon/ui/issues/621))
+
 ## [8.42.0](https://github.com/urbicon/ui/compare/v8.41.2...v8.42.0) - 2026-11-24
 
 ### Breaking Changes
