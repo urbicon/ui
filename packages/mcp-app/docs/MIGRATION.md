@@ -59,8 +59,9 @@ SDK's 2.x clients in their default mode, `legacy`; in mode `auto` they ask `serv
 first and use 2026-07-28. The voice mode of claude.ai, as of 25 November 2026, connects through
 a client of its own that sends `initialize` with 2025-11-25
 ([anthropics/claude-ai-mcp#1356](https://github.com/anthropics/claude-ai-mcp/issues/1356)), so
-it gets the same `-32022`. Claude Desktop and Claude Code 2.1.332 ask `server/discover` and work
-(measured on 26 November 2026); the issue shows the same for typed chats on claude.ai.
+it gets the same `-32022`. A chat in Claude Desktop speaks 2026-07-28 and works, and Claude Code
+2.1.332 asks `server/discover` (measured on 26 November 2026); the issue shows typed chats on
+claude.ai asking `server/discover` too.
 
 **Your `call`'s error line.** 2026-07-28 counts input validation errors among tool execution
 errors: arguments a tool's schema rejects come back as a result with `isError: true` and a

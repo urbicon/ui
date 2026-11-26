@@ -270,9 +270,10 @@ first and fall back to `initialize` only when a server does not answer it. Their
 `legacy`, sends `initialize` and so cannot use this server. The voice mode of claude.ai, as
 of 25 November 2026, connects through a client of its own that sends `initialize` with
 2025-11-25 ([anthropics/claude-ai-mcp#1356](https://github.com/anthropics/claude-ai-mcp/issues/1356)),
-which this server answers with the `-32022` above. Claude Desktop and Claude Code 2.1.332 ask
-`server/discover` and work (measured on 26 November 2026 against servers built on this
-dispatcher); the issue shows the same for typed chats on claude.ai.
+which this server answers with the `-32022` above. A chat in Claude Desktop speaks 2026-07-28
+and works, and Claude Code 2.1.332 asks `server/discover` (measured on 26 November 2026 against
+servers built on this dispatcher); the issue shows typed chats on claude.ai asking
+`server/discover` too.
 
 **The id.** An answer stands under the request's id when that is text or an integer within
 ±(2^53 − 1). Any other id — `null`, an object, a fraction, `2^53`, `1e300` — is `-32600`
