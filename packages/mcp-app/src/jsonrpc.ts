@@ -17,9 +17,10 @@ export const INVALID_REQUEST = -32600;
 /** No such method. */
 export const METHOD_NOT_FOUND = -32601;
 /**
- * Invalid params — in `tools/call`, an unknown tool or `arguments` that are not
- * an object. Arguments a tool's schema rejects are a result with `isError`
- * instead (MCP 2026-07-28).
+ * Invalid params — in `tools/call`, for example an unknown tool or `arguments`
+ * that are present but no object (the cases: `DispatcherOptions.call`).
+ * Arguments a tool's schema rejects are a result with `isError` instead (MCP
+ * 2026-07-28).
  */
 export const INVALID_PARAMS = -32602;
 /** The server failed on a request it took. */
