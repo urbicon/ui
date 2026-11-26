@@ -134,8 +134,10 @@ export interface DispatcherOptions<C = void> {
    *
    * The answer is an {@link Outcome}: `{ result }` is the tool's result
    * (`content`, `structuredContent`, `isError`), `{ error: { code, message } }`
-   * a protocol error such as `-32602` for an unknown tool or arguments the
-   * schema rejects. Whatever `call` throws becomes `-32603` with a general
+   * a protocol error such as `-32602` for an unknown tool or `arguments` that
+   * are not an object. Arguments the tool's schema rejects are a result with
+   * `isError`: MCP 2026-07-28 counts input validation errors among tool
+   * execution errors. Whatever `call` throws becomes `-32603` with a general
    * sentence; the thrown error goes to `console.error`, not to the client. So
    * does an `Outcome` of another shape — an `error` needs a safe integer `code`
    * and a string `message`.

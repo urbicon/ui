@@ -16,7 +16,11 @@ export const PARSE_ERROR = -32700;
 export const INVALID_REQUEST = -32600;
 /** No such method. */
 export const METHOD_NOT_FOUND = -32601;
-/** MCP's code for an unknown tool and for arguments the tool's schema rejects, too. */
+/**
+ * Invalid params — in `tools/call`, an unknown tool or `arguments` that are not
+ * an object. Arguments a tool's schema rejects are a result with `isError`
+ * instead (MCP 2026-07-28).
+ */
 export const INVALID_PARAMS = -32602;
 /** The server failed on a request it took. */
 export const INTERNAL_ERROR = -32603;

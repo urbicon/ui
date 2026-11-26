@@ -56,7 +56,16 @@ status of each case is in the
 **Who it locks out:** a client that speaks only 2025-11-25 or older. Its `initialize` is answered
 `400` with `-32022`, which names `2026-07-28` as the supported revision. That includes the MCP
 SDK's 2.x clients in their default mode, `legacy`; in mode `auto` they ask `server/discover`
-first and use 2026-07-28.
+first and use 2026-07-28. It also includes the voice mode of claude.ai, which as of 26 November
+2026 connects through a client of its own that sends `initialize` with 2025-11-25
+([anthropics/claude-ai-mcp#1356](https://github.com/anthropics/claude-ai-mcp/issues/1356));
+typed chats in claude.ai, Claude Desktop and Claude Code ask `server/discover`.
+
+**Your `call`'s error line.** 2026-07-28 counts input validation errors among tool execution
+errors: arguments a tool's schema rejects come back as a result with `isError: true` and a
+sentence the model can correct the call from, not as `-32602`. `-32602` stays for an unknown
+tool, one hidden from the caller, and `arguments` that are not an object. A `call` that
+answered a schema rejection with `INVALID_PARAMS` should move it.
 
 **The test host** speaks 2026-07-28 to your server as well: `mcpRequest` and `mcpResult` add the
 envelope and the headers, `serverInfo(endpoint)` reads `server/discover`, and the
