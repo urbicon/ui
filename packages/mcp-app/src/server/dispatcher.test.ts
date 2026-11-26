@@ -128,9 +128,19 @@ function appOf(overrides: Partial<DispatcherOptions<Caller>> = {}) {
       calls.push({ name, args, caller });
       switch (name) {
         case 'show_note': {
+          // The line of 2026-07-28: `arguments` present but no object is a malformed
+          // request; arguments the tool's schema rejects are a result with isError.
+          if (
+            args !== undefined &&
+            (typeof args !== 'object' || args === null || Array.isArray(args))
+          ) {
+            return {
+              error: { code: INVALID_PARAMS, message: 'show_note: arguments must be an object.' }
+            };
+          }
           const id = (args as { id?: unknown } | undefined)?.id;
           if (typeof id !== 'string') {
-            return { error: { code: INVALID_PARAMS, message: 'show_note needs a string id.' } };
+            return { result: { content: text('show_note needs a string id.'), isError: true } };
           }
           return { result: { content: text(`Note ${id}`), structuredContent: { id } } };
         }
@@ -308,13 +318,25 @@ describe('tools/call', () => {
 
   test('a protocol error from call() is the error under the request’s id, HTTP 200', async () => {
     const { ask } = appOf();
-    const { status, body } = await ask('tools/call', { name: 'show_note' });
+    const { status, body } = await ask('tools/call', { name: 'show_note', arguments: 'n1' });
     expect(status).toBe(200);
     expect(body).toEqual({
       jsonrpc: '2.0',
       id: 1,
-      error: { code: INVALID_PARAMS, message: 'show_note needs a string id.' }
+      error: { code: INVALID_PARAMS, message: 'show_note: arguments must be an object.' }
     });
+  });
+
+  test('absent arguments reach call(), and its schema answers with a result', async () => {
+    const { ask, calls } = appOf();
+    const { status, body } = await ask('tools/call', { name: 'show_note' });
+    expect(status).toBe(200);
+    expect(body.result).toEqual({
+      ...STAMP,
+      content: text('show_note needs a string id.'),
+      isError: true
+    });
+    expect(calls).toEqual([{ name: 'show_note', args: undefined, caller: CALLER }]);
   });
 
   test.each([

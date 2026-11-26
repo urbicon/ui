@@ -267,7 +267,13 @@ Any other failure to read the body is thrown: it is no answer the client could a
 names the revision it would have to speak. The MCP SDK's clients from 2.0 on speak
 2026-07-28 when asked to (`versionNegotiation`): in mode `auto` they ask `server/discover`
 first and fall back to `initialize` only when a server does not answer it. Their default,
-`legacy`, sends `initialize` and so cannot use this server.
+`legacy`, sends `initialize` and so cannot use this server. The voice mode of claude.ai, as
+of 25 November 2026, connects through a client of its own that sends `initialize` with
+2025-11-25 ([anthropics/claude-ai-mcp#1356](https://github.com/anthropics/claude-ai-mcp/issues/1356)),
+which this server answers with the `-32022` above. A chat in Claude Desktop speaks 2026-07-28
+and works, and Claude Code 2.1.332 asks `server/discover` (measured on 26 November 2026 against
+servers built on this dispatcher); the issue shows typed chats on claude.ai asking
+`server/discover` too.
 
 **The id.** An answer stands under the request's id when that is text or an integer within
 ±(2^53 − 1). Any other id — `null`, an object, a fraction, `2^53`, `1e300` — is `-32600`
@@ -275,8 +281,12 @@ first and fall back to `initialize` only when a server does not answer it. Their
 that is not JSON and one too large to read. MCP forbids `null` as an id.
 
 **Errors from the call.** `call` returns a protocol error as a value,
-`{ error: { code, message, data? } }` — `INVALID_PARAMS` for an unknown tool or for arguments
-its schema rejects — and a tool's own failure as a result with `isError: true`. Whatever it
+`{ error: { code, message, data? } }` — `INVALID_PARAMS` for an unknown tool, one hidden from
+this caller, or `arguments` that are present but no JSON object (`null`, an array, a string, a
+number) — and a tool's own failure as a result with `isError: true`. Absent `arguments` are
+valid and go to the tool's schema. Arguments the tool's schema rejects are such a failure: 2026-07-28 counts
+input validation errors among tool execution errors, which a client should show the model so
+it can correct the call, while a protocol error it may withhold. Whatever it
 throws becomes `-32603` with a general sentence ("tools/call list_notes failed on the
 server."); the thrown error goes to `console.error`, never to the client. A throwing
 `tools()` or catalog answers the same way, and so does an `Outcome` of another shape — an
